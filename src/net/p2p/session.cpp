@@ -13,23 +13,49 @@ namespace P2P {
 
   std::string Session::getLogicalLocation() const { return manager_.getLogicalLocation(); }
 
-  bool Session::handle_error(const std::string& func, const boost::system::error_code& ec) {
-    /// TODO: return true/false depending on err code is necessary?
-    LOGDEBUG("Client Error Code: " + std::to_string(ec.value()) + " message: " + ec.message());
-    if (ec != boost::system::errc::operation_canceled) {
-      /// operation_canceled == close() was already called, we cannot close or deregister again.
-      if (this->doneHandshake_) {
-        this->manager_.unregisterSession(shared_from_this());
+  void Session::handle_error(const std::string& func, const boost::system::error_code& ec) {
+    // No need to discriminate on the error code here; it is harmless to try to deregister
+    //   sessions or close sockets when either of those has already been done.
+    if (this->doneHandshake_) {
+      // handshake was completed, so nodeId_ is valid
+      if (!closed_) {
+        // Avoid logging errors if the socket is tagged as being explicitly closed from our end
+        LOGDEBUG("Peer connection " + toString(this->nodeId_) + " error (" +
+                 func + ", " + std::to_string(ec.value()) + "): " + ec.message());
       }
-      this->close();
+      this->manager_.disconnectSession(this->nodeId_);
+    } else {
+      // Ensure the session/socket is going to be closed.
+      // If closed_ is set, don't need to call close() since that would be a NOP.
+      if (!closed_) {
+        // Avoid logging errors if the socket is tagged as being explicitly closed from our end
+        LOGDEBUG("Non-handshaked peer connection (" + this->addressAndPortStr() + ") error (" +
+                 func + ", " + std::to_string(ec.value()) + "): " + ec.message());
+        this->close();
+      }
     }
-    /// TODO: Automatically close on error.
-    return true;
   }
 
   void Session::do_connect() {
     boost::asio::ip::tcp::resolver resolver(this->socket_.get_executor());
     auto endpoints = resolver.resolve({this->address_, this->port_});
+
+    // Make sockets go away immediately when closed.
+    boost::system::error_code open_ec;
+    this->socket_.open(endpoints->endpoint().protocol(), open_ec);
+    if (open_ec) {
+      GLOGERROR("Error opening client P2P TCP socket: " + open_ec.message());
+      this->close();
+      return;
+    }
+    boost::system::error_code opt_ec;
+    this->socket_.set_option(net::socket_base::linger(true, 0), opt_ec);
+    if (opt_ec) {
+      GLOGERROR("Error tring to set up SO_LINGER for a P2P client socket: " + opt_ec.message());
+      this->close();
+      return;
+    }
+
     net::async_connect(this->socket_, endpoints, net::bind_executor(
       this->writeStrand_, std::bind(
         &Session::on_connect, shared_from_this(), std::placeholders::_1, std::placeholders::_2
@@ -66,7 +92,7 @@ namespace P2P {
   void Session::finish_handshake(boost::system::error_code ec, std::size_t) {
     if (ec) { this->handle_error(__func__, ec); return; }
     if (this->inboundHandshake_.size() != 3) {
-      LOGERROR("Invalid handshake size");
+      LOGERROR("Invalid handshake size from " + this->addressAndPortStr());
       this->close();
       return;
     }
@@ -77,7 +103,14 @@ namespace P2P {
     boost::system::error_code nec;
     this->socket_.set_option(boost::asio::ip::tcp::no_delay(true), nec);
     if (nec) { this->handle_error(__func__, nec); this->close(); return; }
-    if (!this->manager_.registerSession(shared_from_this())) { this->close(); return; }
+    if (!this->manager_.registerSession(shared_from_this())) {
+      // registered_ is false here, so this close() will not try to deregister the session (which would
+      //   be catastrophic for when two peers simultaneously connect to each other, as the handshaked
+      //   Node ID is the same for both, and this would close the *other*, registered session).
+      this->close();
+      return;
+    }
+    this->registered_ = true;
     this->do_read_header(); // Start reading messages.
   }
 
@@ -94,9 +127,8 @@ namespace P2P {
     if (ec) { this->handle_error(__func__, ec); return; }
     uint64_t messageSize = Utils::bytesToUint64(this->inboundHeader_);
     if (messageSize > this->maxMessageSize_) {
-      LOGWARNING("Message size too large: " + std::to_string(messageSize)
-        + " max: " + std::to_string(this->maxMessageSize_) + " closing session"
-      );
+      LOGWARNING("Peer " + toString(nodeId_) + " message too large: " + std::to_string(messageSize) +
+                 ", max: " + std::to_string(this->maxMessageSize_) + ", closing session");
       this->close();
       return;
     }
@@ -114,7 +146,7 @@ namespace P2P {
 
   void Session::on_read_message(boost::system::error_code ec, std::size_t) {
     if (ec) { this->handle_error(__func__, ec); return; }
-    this->manager_.asyncHandleMessage(this->nodeId_, this->inboundMessage_);
+    this->manager_.handleMessage(this->nodeId_, this->inboundMessage_);
     this->inboundMessage_ = nullptr;
     this->do_read_header();
   }
@@ -157,10 +189,10 @@ namespace P2P {
 
   void Session::run() {
     if (this->connectionType_ == ConnectionType::INBOUND) {
-      LOGTRACE("Starting new inbound session");
+      LOGTRACE("Connecting to " + this->addressAndPortStr() + " (inbound)");
       boost::asio::dispatch(this->socket_.get_executor(), std::bind(&Session::write_handshake, shared_from_this()));
     } else {
-      LOGTRACE("Starting new outbound session");
+      LOGTRACE("Connecting to " + this->addressAndPortStr() + " (outbound)");
       boost::asio::dispatch(this->socket_.get_executor(), std::bind(&Session::do_connect, shared_from_this()));
     }
   }
@@ -170,24 +202,48 @@ namespace P2P {
   }
 
   void Session::do_close() {
+    // This can only be called once per Session object
+    if (closed_) return;
+    this->closed_ = true;
+
+    std::string peerStr;
+    if (this->doneHandshake_) {
+      peerStr = toString(nodeId_);
+    } else {
+      peerStr = this->addressAndPortStr() + " (non-handshaked)";
+    }
+
+    LOGTRACE("Closing peer connection: " + peerStr);
+
     boost::system::error_code ec;
-    // Cancel all pending operations.
+
+    // Attempt to cancel all pending operations.
     this->socket_.cancel(ec);
-    if (ec) {
-      LOGDEBUG("Failed to cancel socket operations: " + ec.message());
-      return;
-    }
-    // Shutdown the socket;
-    this->socket_.shutdown(net::socket_base::shutdown_both, ec);
-    if (ec) {
-      LOGDEBUG("Failed to shutdown socket: " + ec.message());
-      return;
-    }
-    // Close the socket.
+    if (ec) { LOGTRACE("Failed to cancel socket operations [" + peerStr + "]: " + ec.message()); }
+
+    // This causes TIME_WAIT even with SO_LINGER enabled (l_onoff = 1) with a timeout of zero.
+    // If we want to close a socket, then we just close it: at that point, it means we do not
+    //   care about pending data. If we want useful pending data to be acknowledged, then our
+    //   node protocol should ensure it in-band with its own shutdown/flush negotiation, and
+    //   not rely on the TCP shutdown sequence to do it.
+    //
+    // Attempt to shutdown the socket.
+    //this->socket_.shutdown(net::socket_base::shutdown_both, ec);
+    //if (ec) { LOGTRACE("Failed to shutdown socket [" + peerStr + "]: " + ec.message()); }
+
+    // Attempt to close the socket.
     this->socket_.close(ec);
-    if (ec) {
-      LOGDEBUG("Failed to close socket: " + ec.message());
-      return;
+    if (ec) { LOGTRACE("Failed to close socket [" + peerStr + "]: " + ec.message()); }
+
+    // We have to ensure the manager is going to unregister the socket as a result of closing,
+    //   since the connection is guaranteed dead at this point.
+    // This is almost a recursive call, since disconnectSession() calls close() which calls do_close().
+    // However, that recursive call will do nothing because we already set closed_ = true above.
+    //
+    // Also, this deregistration is only performed if this session has registered itself. If it is
+    //   not registered, then only the socket closing above is relevant; there's nothing left to do.
+    if (this->registered_) {
+      this->manager_.disconnectSession(this->nodeId_);
     }
   }
 

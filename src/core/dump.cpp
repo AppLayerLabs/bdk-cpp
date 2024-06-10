@@ -102,13 +102,13 @@ DumpWorker::DumpWorker(const Options& options,
     storage_(storage),
     dumpManager_(dumpManager)
 {
-  LOGINFO("DumpWorker Started.");
+  LOGXTRACE("DumpWorker Started.");
 }
 
 DumpWorker::~DumpWorker()
 {
   stopWorker();
-  LOGINFO("DumpWorker Stopped.");
+  LOGXTRACE("DumpWorker Stopped.");
 }
 
 bool DumpWorker::workerLoop()

@@ -29,8 +29,8 @@ struct TestBlockchainWrapper {
   Storage storage;        ///< Blockchain storage.
   State state;            ///< Blockchain state.
   HTTPServer http;        ///< HTTP server.
-  Syncer syncer;             ///< Blockchain syncer.
-  Consensus consensus;       ///< Block and transaction processing.
+  Syncer syncer;          ///< Blockchain syncer.
+  Consensus consensus;    ///< Block and transaction processing.
 
   /**
    * Constructor.
@@ -39,7 +39,7 @@ struct TestBlockchainWrapper {
 
   explicit TestBlockchainWrapper(const Options& options_) :
     options(options_),
-    p2p(boost::asio::ip::address::from_string("127.0.0.1"), options, storage, state),
+    p2p(LOCALHOST, options, storage, state),
     db(std::get<0>(DumpManager::getBestStateDBPath(options))),
     storage(p2p.getLogicalLocation(), options_),
     state(db, storage, p2p, std::get<1>(DumpManager::getBestStateDBPath(options)), options),
@@ -87,7 +87,7 @@ inline TestBlockchainWrapper initialize(const std::vector<Hash>& validatorPrivKe
         1,
         8080,
         Address(Hex::toBytes("0x00dead00665771855a34155f5e7405489df2c3c6")),
-        boost::asio::ip::address::from_string("127.0.0.1"),
+        LOCALHOST,
         serverPort,
         9999,
         11,
@@ -112,7 +112,7 @@ inline TestBlockchainWrapper initialize(const std::vector<Hash>& validatorPrivKe
       1,
       8080,
       Address(Hex::toBytes("0x00dead00665771855a34155f5e7405489df2c3c6")),
-      boost::asio::ip::address::from_string("127.0.0.1"),
+      LOCALHOST,
       serverPort,
       9999,
       11,

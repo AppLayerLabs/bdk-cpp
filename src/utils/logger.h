@@ -21,7 +21,7 @@ See the LICENSE.txt file in the project root for more information.
 #include <boost/core/demangle.hpp>
 
 /// Enum for the log message types.
-enum class LogType { TRACE, DEBUG, INFO, WARNING, ERROR, NONE };
+enum class LogType { XTRACE, TRACE, DEBUG, INFO, WARNING, ERROR, FATAL, NONE };
 
 ///@{
 /// Internal helper macros for logging
@@ -29,64 +29,76 @@ enum class LogType { TRACE, DEBUG, INFO, WARNING, ERROR, NONE };
           std::is_base_of<Log::LogicalLocationProvider, \
           std::decay<decltype(*this)>::type>{})
 #define INSTANCE_LOG_BASE(type, message) Logger::logToDebug(type, GET_LOGICAL_LOCATION, \
-          Log::getMethodName<std::remove_pointer_t<decltype(this)>>(__func__), message);
+          Log::getMethodName<std::remove_pointer_t<decltype(this)>>(__func__), message)
 #define GET_FILE_NAME_FROM_PATH (strrchr(__FILE__, '/') ? strrchr(__FILE__, '/') + 1 : __FILE__)
-#define STATIC_LOG_BASE(type, message) Logger::logToDebug(type, GET_FILE_NAME_FROM_PATH, __func__, message);
-#define GEN_LOG_BASE(type, message) Logger::logToDebug(type, GET_FILE_NAME_FROM_PATH, "L" + std::to_string(__LINE__), message);
+#define STATIC_LOG_BASE(type, message) Logger::logToDebug(type, GET_FILE_NAME_FROM_PATH, __func__, message)
+#define GEN_LOG_BASE(type, message) Logger::logToDebug(type, GET_FILE_NAME_FROM_PATH, "L" + std::to_string(__LINE__), message)
 ///@}
 
 ///@{
 /// Logging macros to be used with a `this` (non-static context)
-#define LOGTRACE(message)   INSTANCE_LOG_BASE(LogType::TRACE, message);
-#define LOGDEBUG(message)   INSTANCE_LOG_BASE(LogType::DEBUG, message);
-#define LOGINFO(message)    INSTANCE_LOG_BASE(LogType::INFO, message);
-#define LOGWARNING(message) INSTANCE_LOG_BASE(LogType::WARNING, message);
-#define LOGERROR(message)   INSTANCE_LOG_BASE(LogType::ERROR, message);
+#define LOGXTRACE(message)  INSTANCE_LOG_BASE(LogType::XTRACE, message)
+#define LOGTRACE(message)   INSTANCE_LOG_BASE(LogType::TRACE, message)
+#define LOGDEBUG(message)   INSTANCE_LOG_BASE(LogType::DEBUG, message)
+#define LOGINFO(message)    INSTANCE_LOG_BASE(LogType::INFO, message)
+#define LOGWARNING(message) INSTANCE_LOG_BASE(LogType::WARNING, message)
+#define LOGERROR(message)   INSTANCE_LOG_BASE(LogType::ERROR, message)
+#define LOGFATAL_THROW(message)   { INSTANCE_LOG_BASE(LogType::FATAL, message); throw DynamicException(message); }
 ///@}
 
 ///@{
 /// Logging macros to be used with a `this` (non-static context) and that also Log::safePrint() the message.
+#define LOGXTRACEP(message)  { INSTANCE_LOG_BASE(LogType::XTRACE, message); Log::safePrint(message); }
 #define LOGTRACEP(message)   { INSTANCE_LOG_BASE(LogType::TRACE, message); Log::safePrint(message); }
 #define LOGDEBUGP(message)   { INSTANCE_LOG_BASE(LogType::DEBUG, message); Log::safePrint(message); }
 #define LOGINFOP(message)    { INSTANCE_LOG_BASE(LogType::INFO, message); Log::safePrint(message); }
 #define LOGWARNINGP(message) { INSTANCE_LOG_BASE(LogType::WARNING, message); Log::safePrint(message); }
 #define LOGERRORP(message)   { INSTANCE_LOG_BASE(LogType::ERROR, message); Log::safePrint(message); }
+#define LOGFATALP_THROW(message)   { INSTANCE_LOG_BASE(LogType::FATAL, message); Log::safePrint(message); throw DynamicException(message); }
 ///@}
 
 ///@{
 /// Logging macros to be used in a static context (does not log class name, even if available)
-#define SLOGTRACE(message)   STATIC_LOG_BASE(LogType::TRACE, message);
-#define SLOGDEBUG(message)   STATIC_LOG_BASE(LogType::DEBUG, message);
-#define SLOGINFO(message)    STATIC_LOG_BASE(LogType::INFO, message);
-#define SLOGWARNING(message) STATIC_LOG_BASE(LogType::WARNING, message);
-#define SLOGERROR(message)   STATIC_LOG_BASE(LogType::ERROR, message);
+#define SLOGXTRACE(message)  STATIC_LOG_BASE(LogType::XTRACE, message)
+#define SLOGTRACE(message)   STATIC_LOG_BASE(LogType::TRACE, message)
+#define SLOGDEBUG(message)   STATIC_LOG_BASE(LogType::DEBUG, message)
+#define SLOGINFO(message)    STATIC_LOG_BASE(LogType::INFO, message)
+#define SLOGWARNING(message) STATIC_LOG_BASE(LogType::WARNING, message)
+#define SLOGERROR(message)   STATIC_LOG_BASE(LogType::ERROR, message)
+#define SLOGFATAL_THROW(message)   { STATIC_LOG_BASE(LogType::FATAL, message); throw DynamicException(message); }
 ///@}
 
 ///@{
 /// Logging macros to be used in a static context (does not log class name, even if available) and that also Log::safePrint() the message.
+#define SLOGXTRACEP(message)  { STATIC_LOG_BASE(LogType::XTRACE, message); Log::safePrint(message); }
 #define SLOGTRACEP(message)   { STATIC_LOG_BASE(LogType::TRACE, message); Log::safePrint(message); }
 #define SLOGDEBUGP(message)   { STATIC_LOG_BASE(LogType::DEBUG, message); Log::safePrint(message); }
 #define SLOGINFOP(message)    { STATIC_LOG_BASE(LogType::INFO, message); Log::safePrint(message); }
 #define SLOGWARNINGP(message) { STATIC_LOG_BASE(LogType::WARNING, message); Log::safePrint(message); }
 #define SLOGERRORP(message)   { STATIC_LOG_BASE(LogType::ERROR, message); Log::safePrint(message); }
+#define SLOGFATALP_THROW(message)   { STATIC_LOG_BASE(LogType::FATAL, message); Log::safePrint(message); throw DynamicException(message); }
 ///@}
 
 ///@{
 /// Logging macros that omit the function name (to be used in generated functions)
-#define GLOGTRACE(message)   GEN_LOG_BASE(LogType::TRACE, message);
-#define GLOGDEBUG(message)   GEN_LOG_BASE(LogType::DEBUG, message);
-#define GLOGINFO(message)    GEN_LOG_BASE(LogType::INFO, message);
-#define GLOGWARNING(message) GEN_LOG_BASE(LogType::WARNING, message);
-#define GLOGERROR(message)   GEN_LOG_BASE(LogType::ERROR, message);
+#define GLOGXTRACE(message)  GEN_LOG_BASE(LogType::XTRACE, message)
+#define GLOGTRACE(message)   GEN_LOG_BASE(LogType::TRACE, message)
+#define GLOGDEBUG(message)   GEN_LOG_BASE(LogType::DEBUG, message)
+#define GLOGINFO(message)    GEN_LOG_BASE(LogType::INFO, message)
+#define GLOGWARNING(message) GEN_LOG_BASE(LogType::WARNING, message)
+#define GLOGERROR(message)   GEN_LOG_BASE(LogType::ERROR, message)
+#define GLOGFATAL_THROW(message)   { GEN_LOG_BASE(LogType::FATAL, message); throw DynamicException(message); }
 ///@}
 
 ///@{
 /// Logging macros that omit the function name (to be used in generated functions) and that also Log::safePrint() the message.
+#define GLOGXTRACEP(message)  { GEN_LOG_BASE(LogType::XTRACE, message); Log::safePrint(message); }
 #define GLOGTRACEP(message)   { GEN_LOG_BASE(LogType::TRACE, message); Log::safePrint(message); }
 #define GLOGDEBUGP(message)   { GEN_LOG_BASE(LogType::DEBUG, message); Log::safePrint(message); }
 #define GLOGINFOP(message)    { GEN_LOG_BASE(LogType::INFO, message); Log::safePrint(message); }
 #define GLOGWARNINGP(message) { GEN_LOG_BASE(LogType::WARNING, message); Log::safePrint(message); }
 #define GLOGERRORP(message)   { GEN_LOG_BASE(LogType::ERROR, message); Log::safePrint(message); }
+#define GLOGFATALP_THROW(message)   { GEN_LOG_BASE(LogType::FATAL, message); Log::safePrint(message); throw DynamicException(message); }
 ///@}
 
 /// Namespace with logging utilities
@@ -119,7 +131,7 @@ namespace Log {
   inline void safePrintTest(std::string_view str) {
     std::lock_guard lock(__safePrintMutex);
     std::cout << str << std::endl;
-  };
+  }
 
   /**
    * Interface implemented by any object that wishes to provide a custom
@@ -196,7 +208,8 @@ class LogInfo {
      * @param message The message to log.
      */
     LogInfo(LogType type, const std::string& logSrc, std::string&& func, std::string&& message) :
-      type_(type), logSrc_(logSrc), func_(std::move(func)), message_(std::move(message)) {};
+      type_(type), logSrc_(logSrc.length() > 0 ? " " + logSrc : logSrc), func_(std::move(func)), message_(std::move(message))
+    {}
 
     ~LogInfo() = default; ///< Default destructor.
 
@@ -204,7 +217,7 @@ class LogInfo {
     LogInfo(LogInfo&& other) noexcept :
       type_(other.type_), func_(std::move(other.func_)),
       logSrc_(std::move(other.logSrc_)), message_(std::move(other.message_))
-    {};
+    {}
 
     /// Move assign operator
     LogInfo& operator=(LogInfo&& other) noexcept {
@@ -228,22 +241,17 @@ class LogInfo {
 class Logger {
   private:
     /// Private constructor as it is a singleton.
-    Logger() : activeLogFileName_("bdk.log") {
-      logLevel_ = LogType::NONE; // The logger component does not log anything by default
-      logLineLimit_ = 100000;
-      logFileLimit_ = 0; // No limit to the number of log files by default
-      logThreadFuture_ = std::async(std::launch::async, &Logger::logger, this);
-    }
+    Logger() { logThreadFuture_ = std::async(std::launch::async, &Logger::logger, this); }
     Logger(const Logger&) = delete;             ///< Make it non-copyable
     Logger& operator=(const Logger&) = delete;  ///< Make it non-assignable.
 
     /// Get the instance.
     static Logger& getInstance() { static Logger instance; return instance; }
 
-    const std::string activeLogFileName_;   ///< Base name for log files
-    std::atomic<LogType> logLevel_;         ///< Current log level (doesn't log anything less than this).
-    std::atomic<int> logLineLimit_;         ///< Number of log lines until the log rotates.
-    std::atomic<int> logFileLimit_;         ///< Number of log files to keep before deleting older ones.
+    const std::string activeLogFileName_= "bdk.log"; ///< Base name for log files
+    std::atomic<LogType> logLevel_ = LogType::NONE; ///< Current log level (doesn't log anything less than this).
+    std::atomic<int> logLineLimit_ = 500000; ///< Number of log lines until the log rotates.
+    std::atomic<int> logFileLimit_ = 0;     ///< Number of log files to keep before deleting older ones (0 = none)
     std::ofstream logFile_;                 ///< The file stream.
     std::mutex logQueueMutex_;              ///< Mutex for protecting access to the log queue.
     std::condition_variable cv_;            ///< Conditional variable to wait for new tasks.
@@ -258,7 +266,8 @@ class Logger {
       int logFileNum = -1;
       int logLineCount = INT_MAX;
       while (true) {
-        if (logLineCount > logLineLimit_) {
+        // logLineLimit == 0 means the limit is disabled
+        if ((logLineLimit_ != 0 && logLineCount > logLineLimit_) || logFileNum < 0) {
           if (logFileNum >= 0) {
             std::string archiveLogFileName = activeLogFileName_ + "." + std::to_string(logFileNum);
             curTask_ = LogInfo(LogType::NONE, Log::logger, __func__,
@@ -308,7 +317,7 @@ class Logger {
         logFileInternal();
         ++logLineCount;
       }
-    };
+    }
 
     /**
      * Log something to the debug file.
@@ -317,11 +326,13 @@ class Logger {
     void logFileInternal() {
       std::string logType = "";
       switch (curTask_.getType()) {
+        case LogType::XTRACE:  logType = "XTR"; break;
         case LogType::TRACE:   logType = "TRA"; break;
         case LogType::DEBUG:   logType = "DBG"; break;
         case LogType::INFO:    logType = "INF"; break;
         case LogType::WARNING: logType = "WAR"; break;
         case LogType::ERROR:   logType = "ERR"; break;
+        case LogType::FATAL:   logType = "FAT"; break;
         case LogType::NONE:    logType = "SYS"; break;
         default:               logType = "BAD"; break;
       }
@@ -330,7 +341,7 @@ class Logger {
         << getCurrentTimestamp()
         << " "
         << logType
-        << " "
+        //<< " " // logSrc has to include its own left padding because it can be ommitted ("")
         << curTask_.getLogSrc()
         << " "
         << curTask_.getFunc()
@@ -345,7 +356,7 @@ class Logger {
           + getCurrentTimestamp()
           + " "
           + logType
-          + " "
+          //+ " "  // logSrc has to include its own left padding because it can be ommitted ("")
           + curTask_.getLogSrc()
           + " "
           + curTask_.getFunc()
@@ -362,7 +373,7 @@ class Logger {
         logQueue_.emplace(std::move(infoToLog));
       }
       cv_.notify_one();
-    };
+    }
 
   public:
 

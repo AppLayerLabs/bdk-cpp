@@ -10,35 +10,58 @@ See the LICENSE.txt file in the project root for more information.
 
 #include "session.h"
 #include "encoding.h"
-#include "server.h"
-#include "client.h"
 #include "discovery.h"
 #include "../../utils/options.h"
 #include "../../libs/BS_thread_pool_light.hpp"
 
 namespace P2P {
+
   /**
    * Base manager class meant to be inherited by the respective managers for
    * both node types (Normal and Discovery).
    */
   class ManagerBase : public Log::LogicalLocationProvider {
     protected:
+
+      /// Helper class that encapsulates our ASIO-based networking engine
+      class Net : public Log::LogicalLocationProvider, public std::enable_shared_from_this<Net> {
+      private:
+        ManagerBase& manager_;
+        net::io_context io_context_; ///< io_context for the P2P engine
+        net::executor_work_guard<net::io_context::executor_type> work_guard_; ///< Work guard for the io_context
+        int netThreads_; ///< Size of thread pool
+        boost::asio::thread_pool threadPool_; ///< thread pool that runs the P2P engine
+        net::strand<net::io_context::executor_type> connectorStrand_; ///< strand for outbound connections
+        net::strand<net::io_context::executor_type> acceptorStrand_; ///< strand for inbound connections
+        net::ip::tcp::acceptor acceptor_; ///< listen socket
+        bool stopped_ = false; ///< Set to true as soon as stop() starts
+        std::mutex stoppedMutex_; ///< Mutex to control stopping
+        void handleOutbound(const boost::asio::ip::address &address, const unsigned short &port); ///< Complete TCP connection
+        void handleInbound(boost::system::error_code ec, net::ip::tcp::socket socket); ///< Complete TCP connection
+        void doAccept(); ///< Wait for the next inbound TCP connection request
+      public:
+        std::string getLogicalLocation() const override { return manager_.getLogicalLocation(); }
+        Net(ManagerBase& manager, int netThreads); ///< Start net engine with netThreads threads, can throw DynamicException
+        virtual ~Net(); ///< Stop net engine
+        void start(); ///< Initialize the engine
+        void stop(); ///< Stop the engine
+        void connect(const boost::asio::ip::address& address, uint16_t port); ///< Request connection to a peer
+      };
+
       static std::atomic<int> instanceIdGen_; ///< Instance ID generator.
       static std::atomic<int> netThreads_; ///< Size of the IO thread pool (this is read and used in start()).
 
+      std::shared_ptr<Net> net_; ///< Core P2P networking components instantiated when the P2P Manager is running (started)
+      const net::ip::address serverLocalAddress_; ///< The manager's local IP address.
       const unsigned short serverPort_; ///< The manager's port.
       const NodeType nodeType_; ///< The manager's node type.
+      const Options& options_; /// Reference to the options singleton.
       const unsigned int minConnections_; ///< Minimum number of simultaneous connections. @see DiscoveryWorker
       const unsigned int maxConnections_; ///< Maximum number of simultaneous connections.
       std::atomic<bool> started_ = false; ///< Check if manager is in the start() state (stop() not called yet).
-      std::atomic<bool> stopping_ = false; ///< Indicates whether the manager is in the process of stopping.
-      std::unique_ptr<BS::thread_pool_light> threadPool_; ///< Pointer to the thread pool.
-      const Options& options_; /// Reference to the options singleton.
       mutable std::shared_mutex stateMutex_; ///< Mutex for serializing start(), stop(), and threadPool_.
       mutable std::shared_mutex sessionsMutex_; ///< Mutex for managing read/write access to the sessions list.
       mutable std::shared_mutex requestsMutex_; ///< Mutex for managing read/write access to the requests list.
-      Server server_; ///< Server object.
-      ClientFactory clientfactory_; ///< ClientFactory object.
       DiscoveryWorker discoveryWorker_; ///< DiscoveryWorker object.
       const std::string instanceIdStr_; ///< Instance ID for LOGxxx().
 
@@ -48,15 +71,6 @@ namespace P2P {
       // TODO: Somehow find a way to clean up requests_ after a certain time/being used.
       /// List of currently active requests.
       std::unordered_map<RequestID, std::shared_ptr<Request>, SafeHash> requests_;
-
-      /// Internal register function for sessions.
-      bool registerSessionInternal(const std::shared_ptr<Session>& session);
-
-      /// Internal unregister function for sessions.
-      bool unregisterSessionInternal(const std::shared_ptr<Session>& session);
-
-      /// Internal disconnect function for sessions.
-      bool disconnectSessionInternal(const NodeID& session);
 
       /**
        * Send a Request to a given node.
@@ -111,7 +125,10 @@ namespace P2P {
       /// Destructor. Automatically stops the manager.
       virtual ~ManagerBase() { this->stopDiscovery(); this->stop(); }
 
-      virtual std::string getLogicalLocation() const { return this->instanceIdStr_; }
+      std::string getLogicalLocation() const override { return this->instanceIdStr_; }
+
+      /// Ensures the logging ID is not zero, which would generate instanceIdStr_ == "" (for production logs)
+      static void setTesting();
 
       static void setNetThreads(int netThreads);
 
@@ -119,6 +136,8 @@ namespace P2P {
 
       virtual void start(); ///< Start P2P::Server and P2P::ClientFactory.
       virtual void stop(); ///< Stop the P2P::Server and P2P::ClientFactory.
+
+      bool isActive() const { return this->started_; }
 
       /// Start the discovery thread.
       void startDiscovery() { this->discoveryWorker_.start(); }
@@ -144,19 +163,13 @@ namespace P2P {
       uint64_t getPeerCount() const { std::shared_lock lock(this->sessionsMutex_); return this->sessions_.size(); }
 
       /// Check if the P2P server is running.
-      bool isServerRunning() const { return this->server_.isRunning(); }
+      bool isServerRunning() const { return started_; }
 
       /**
        * Register a session into the list.
        * @param session The session to register.
        */
       bool registerSession(const std::shared_ptr<Session>& session);
-
-      /**
-       * Unregister a session from the list.
-       * @param session The session to unregister.
-       */
-      bool unregisterSession(const std::shared_ptr<Session>& session);
 
       /**
        * Disconnect from a session.
@@ -172,13 +185,6 @@ namespace P2P {
        * @param port The websocket's port.
        */
       void connectToServer(const boost::asio::ip::address& address, uint16_t port);
-
-      /**
-       * Entrust the internal thread pool to call handleMessage() with the supplied arguments.
-       * @param session The session to send an answer to.
-       * @param message The message to handle.
-       */
-      void asyncHandleMessage(const NodeID &nodeId, const std::shared_ptr<const Message> message);
 
       /**
        * Handle a message from a session.

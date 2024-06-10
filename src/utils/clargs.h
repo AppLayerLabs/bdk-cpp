@@ -57,9 +57,9 @@ ProcessOptions parseCommandLineArgs(int argc, char* argv[], BDKTool tool) {
         ("loglevel,l", boost::program_options::value<std::string>(),
           "Set the log level ([T]RACE, [D]EBUG, [I]NFO, [W]ARNING, [E]RROR, [N]ONE)")
         ("loglinelimit", boost::program_options::value<int>(),
-          "Set the log line limit for rotating the log file")
+          "Set the log line limit (# of lines per file); 0 = no limit")
         ("logfilelimit", boost::program_options::value<int>(),
-          "Set the log file limit (erases older log files); 0 = no limit")
+          "Set the log file limit (# of files); 0 = no limit")
         ("netthreads", boost::program_options::value<int>(),
           "Set ManagerBase::netThreads_ (main IO thread count)")
         ;
@@ -127,19 +127,23 @@ bool applyProcessOptions(ProcessOptions& opt) {
 
   boost::to_upper(opt.logLevel);
 
-  if (opt.logLevel == "T") { opt.logLevel = "TRACE"; }
+  if (opt.logLevel == "X") { opt.logLevel = "XTRACE"; }
+  else if (opt.logLevel == "T") { opt.logLevel = "TRACE"; }
   else if (opt.logLevel == "D") { opt.logLevel = "DEBUG"; }
   else if (opt.logLevel == "I") { opt.logLevel = "INFO"; }
   else if (opt.logLevel == "W") { opt.logLevel = "WARNING"; }
   else if (opt.logLevel == "E") { opt.logLevel = "ERROR"; }
+  else if (opt.logLevel == "F") { opt.logLevel = "FATAL"; }
   else if (opt.logLevel == "N") { opt.logLevel = "NONE"; }
 
   if (opt.logLevel == "") { }
+  else if (opt.logLevel == "XTRACE")  { Logger::setLogLevel(LogType::XTRACE); }
   else if (opt.logLevel == "TRACE")   { Logger::setLogLevel(LogType::TRACE); }
   else if (opt.logLevel == "DEBUG")   { Logger::setLogLevel(LogType::DEBUG); }
   else if (opt.logLevel == "INFO")    { Logger::setLogLevel(LogType::INFO); }
   else if (opt.logLevel == "WARNING") { Logger::setLogLevel(LogType::WARNING); }
   else if (opt.logLevel == "ERROR")   { Logger::setLogLevel(LogType::ERROR); }
+  else if (opt.logLevel == "FATAL")   { Logger::setLogLevel(LogType::FATAL); }
   else if (opt.logLevel == "NONE")    { Logger::setLogLevel(LogType::NONE); }
   else {
     std::cout << "ERROR: Invalid log level requested: " << opt.logLevel << std::endl;

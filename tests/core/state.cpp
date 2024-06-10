@@ -14,6 +14,7 @@ See the LICENSE.txt file in the project root for more information.
 #include "../../src/net/p2p/managerdiscovery.h"
 #include "../../src/contract/abi.h"
 #include "../blockchainwrapper.hpp"
+#include "../sdktestsuite.hpp"
 
 #include <filesystem>
 #include <utility>
@@ -371,28 +372,28 @@ namespace TState {
         randomAccounts.emplace_back(PrivKey(Utils::randBytes(32)));
       }
 
-      auto blockchainWrapper1 = initialize(validatorPrivKeysState, validatorPrivKeysState[0], 8080, true,
+      auto blockchainWrapper1 = initialize(validatorPrivKeysState, validatorPrivKeysState[0], SDKTestSuite::getTestPort(), true,
                  testDumpPath + "/stateNode1NetworkCapabilities");
 
-      auto blockchainWrapper2 = initialize(validatorPrivKeysState, validatorPrivKeysState[1], 8081, true,
+      auto blockchainWrapper2 = initialize(validatorPrivKeysState, validatorPrivKeysState[1], SDKTestSuite::getTestPort(), true,
                   testDumpPath + "/stateNode2NetworkCapabilities");
 
-      auto blockchainWrapper3 = initialize(validatorPrivKeysState, validatorPrivKeysState[2], 8082, true,
+      auto blockchainWrapper3 = initialize(validatorPrivKeysState, validatorPrivKeysState[2], SDKTestSuite::getTestPort(), true,
                   testDumpPath + "/stateNode3NetworkCapabilities");
 
-      auto blockchainWrapper4 = initialize(validatorPrivKeysState, validatorPrivKeysState[3], 8083, true,
+      auto blockchainWrapper4 = initialize(validatorPrivKeysState, validatorPrivKeysState[3], SDKTestSuite::getTestPort(), true,
                   testDumpPath + "/stateNode4NetworkCapabilities");
 
-      auto blockchainWrapper5 = initialize(validatorPrivKeysState, validatorPrivKeysState[4], 8084, true,
+      auto blockchainWrapper5 = initialize(validatorPrivKeysState, validatorPrivKeysState[4], SDKTestSuite::getTestPort(), true,
                   testDumpPath + "/stateNode5NetworkCapabilities");
 
-      auto blockchainWrapper6 = initialize(validatorPrivKeysState, validatorPrivKeysState[5], 8085, true,
+      auto blockchainWrapper6 = initialize(validatorPrivKeysState, validatorPrivKeysState[5], SDKTestSuite::getTestPort(), true,
                   testDumpPath + "/stateNode6NetworkCapabilities");
 
-      auto blockchainWrapper7 = initialize(validatorPrivKeysState, validatorPrivKeysState[6], 8086, true,
+      auto blockchainWrapper7 = initialize(validatorPrivKeysState, validatorPrivKeysState[6], SDKTestSuite::getTestPort(), true,
                   testDumpPath + "/stateNode7NetworkCapabilities");
 
-      auto blockchainWrapper8 = initialize(validatorPrivKeysState, validatorPrivKeysState[7], 8087, true,
+      auto blockchainWrapper8 = initialize(validatorPrivKeysState, validatorPrivKeysState[7], SDKTestSuite::getTestPort(), true,
                   testDumpPath + "/stateNode8NetworkCapabilities");
 
       // Initialize state with all balances
@@ -424,8 +425,8 @@ namespace TState {
           1,
           8080,
           Address(Hex::toBytes("0x00dead00665771855a34155f5e7405489df2c3c6")),
-          boost::asio::ip::address::from_string("127.0.0.1"),
-          8090,
+          LOCALHOST,
+          SDKTestSuite::getTestPort(),
           9999,
           11,
           11,
@@ -442,8 +443,7 @@ namespace TState {
           genesisBalances,
           genesisValidators
       );
-      P2P::ManagerDiscovery p2pDiscovery(
-          boost::asio::ip::address::from_string("127.0.0.1"), discoveryOptions);
+      P2P::ManagerDiscovery p2pDiscovery(LOCALHOST, discoveryOptions);
 
       // Vector of references for the states' rdPoS workers
       // (rdPoS is exclusively owned by State and can't be exposed in any way,
@@ -471,14 +471,14 @@ namespace TState {
       blockchainWrapper8.p2p.start();
 
       // Connect nodes to the discovery node.
-      blockchainWrapper1.p2p.connectToServer(boost::asio::ip::address::from_string("127.0.0.1"), 8090);
-      blockchainWrapper2.p2p.connectToServer(boost::asio::ip::address::from_string("127.0.0.1"), 8090);
-      blockchainWrapper3.p2p.connectToServer(boost::asio::ip::address::from_string("127.0.0.1"), 8090);
-      blockchainWrapper4.p2p.connectToServer(boost::asio::ip::address::from_string("127.0.0.1"), 8090);
-      blockchainWrapper5.p2p.connectToServer(boost::asio::ip::address::from_string("127.0.0.1"), 8090);
-      blockchainWrapper6.p2p.connectToServer(boost::asio::ip::address::from_string("127.0.0.1"), 8090);
-      blockchainWrapper7.p2p.connectToServer(boost::asio::ip::address::from_string("127.0.0.1"), 8090);
-      blockchainWrapper8.p2p.connectToServer(boost::asio::ip::address::from_string("127.0.0.1"), 8090);
+      blockchainWrapper1.p2p.connectToServer(LOCALHOST, p2pDiscovery.serverPort());
+      blockchainWrapper2.p2p.connectToServer(LOCALHOST, p2pDiscovery.serverPort());
+      blockchainWrapper3.p2p.connectToServer(LOCALHOST, p2pDiscovery.serverPort());
+      blockchainWrapper4.p2p.connectToServer(LOCALHOST, p2pDiscovery.serverPort());
+      blockchainWrapper5.p2p.connectToServer(LOCALHOST, p2pDiscovery.serverPort());
+      blockchainWrapper6.p2p.connectToServer(LOCALHOST, p2pDiscovery.serverPort());
+      blockchainWrapper7.p2p.connectToServer(LOCALHOST, p2pDiscovery.serverPort());
+      blockchainWrapper8.p2p.connectToServer(LOCALHOST, p2pDiscovery.serverPort());
 
       // After a while, the discovery thread should have found all the nodes and connected between each other.
       auto discoveryFuture = std::async(std::launch::async, [&]() {
@@ -612,28 +612,28 @@ namespace TState {
 
     SECTION("State test with networking capabilities, 8 nodes, rdPoS fully active, no transactions") {
       // Initialize 8 different node instances, with different ports and DBs.
-      auto blockchainWrapper1 = initialize(validatorPrivKeysState, validatorPrivKeysState[0], 8080, true,
+      auto blockchainWrapper1 = initialize(validatorPrivKeysState, validatorPrivKeysState[0], SDKTestSuite::getTestPort(), true,
                   testDumpPath + "/stateNode1NetworkCapabilities");
 
-      auto blockchainWrapper2 = initialize(validatorPrivKeysState, validatorPrivKeysState[1], 8081, true,
+      auto blockchainWrapper2 = initialize(validatorPrivKeysState, validatorPrivKeysState[1], SDKTestSuite::getTestPort(), true,
                   testDumpPath + "/stateNode2NetworkCapabilities");
 
-      auto blockchainWrapper3 = initialize(validatorPrivKeysState, validatorPrivKeysState[2], 8082, true,
+      auto blockchainWrapper3 = initialize(validatorPrivKeysState, validatorPrivKeysState[2], SDKTestSuite::getTestPort(), true,
                   testDumpPath + "/stateNode3NetworkCapabilities");
 
-      auto blockchainWrapper4 = initialize(validatorPrivKeysState, validatorPrivKeysState[3], 8083, true,
+      auto blockchainWrapper4 = initialize(validatorPrivKeysState, validatorPrivKeysState[3], SDKTestSuite::getTestPort(), true,
                   testDumpPath + "/stateNode4NetworkCapabilities");
 
-      auto blockchainWrapper5 = initialize(validatorPrivKeysState, validatorPrivKeysState[4], 8084, true,
+      auto blockchainWrapper5 = initialize(validatorPrivKeysState, validatorPrivKeysState[4], SDKTestSuite::getTestPort(), true,
                   testDumpPath + "/stateNode5NetworkCapabilities");
 
-      auto blockchainWrapper6 = initialize(validatorPrivKeysState, validatorPrivKeysState[5], 8085, true,
+      auto blockchainWrapper6 = initialize(validatorPrivKeysState, validatorPrivKeysState[5], SDKTestSuite::getTestPort(), true,
                   testDumpPath + "/stateNode6NetworkCapabilities");
 
-      auto blockchainWrapper7 = initialize(validatorPrivKeysState, validatorPrivKeysState[6], 8086, true,
+      auto blockchainWrapper7 = initialize(validatorPrivKeysState, validatorPrivKeysState[6], SDKTestSuite::getTestPort(), true,
                   testDumpPath + "/stateNode7NetworkCapabilities");
 
-      auto blockchainWrapper8 = initialize(validatorPrivKeysState, validatorPrivKeysState[7], 8087, true,
+      auto blockchainWrapper8 = initialize(validatorPrivKeysState, validatorPrivKeysState[7], SDKTestSuite::getTestPort(), true,
                   testDumpPath + "/stateNode8NetworkCapabilities");
 
       // Initialize the discovery node.
@@ -652,8 +652,8 @@ namespace TState {
           1,
           8080,
           Address(Hex::toBytes("0x00dead00665771855a34155f5e7405489df2c3c6")),
-          boost::asio::ip::address::from_string("127.0.0.1"),
-          8090,
+          LOCALHOST,
+          SDKTestSuite::getTestPort(),
           9999,
           11,
           11,
@@ -670,8 +670,7 @@ namespace TState {
           genesisBalances,
           genesisValidators
       );
-      P2P::ManagerDiscovery p2pDiscovery(
-          boost::asio::ip::address::from_string("127.0.0.1"), discoveryOptions);
+      P2P::ManagerDiscovery p2pDiscovery(LOCALHOST, discoveryOptions);
 
       // Vector of references for the states' rdPoS workers
       // (rdPoS is exclusively owned by State and can't be exposed in any way,
@@ -699,14 +698,14 @@ namespace TState {
       blockchainWrapper8.p2p.start();
 
       // Connect nodes to the discovery node.
-      blockchainWrapper1.p2p.connectToServer(boost::asio::ip::address::from_string("127.0.0.1"), 8090);
-      blockchainWrapper2.p2p.connectToServer(boost::asio::ip::address::from_string("127.0.0.1"), 8090);
-      blockchainWrapper3.p2p.connectToServer(boost::asio::ip::address::from_string("127.0.0.1"), 8090);
-      blockchainWrapper4.p2p.connectToServer(boost::asio::ip::address::from_string("127.0.0.1"), 8090);
-      blockchainWrapper5.p2p.connectToServer(boost::asio::ip::address::from_string("127.0.0.1"), 8090);
-      blockchainWrapper6.p2p.connectToServer(boost::asio::ip::address::from_string("127.0.0.1"), 8090);
-      blockchainWrapper7.p2p.connectToServer(boost::asio::ip::address::from_string("127.0.0.1"), 8090);
-      blockchainWrapper8.p2p.connectToServer(boost::asio::ip::address::from_string("127.0.0.1"), 8090);
+      blockchainWrapper1.p2p.connectToServer(LOCALHOST, p2pDiscovery.serverPort());
+      blockchainWrapper2.p2p.connectToServer(LOCALHOST, p2pDiscovery.serverPort());
+      blockchainWrapper3.p2p.connectToServer(LOCALHOST, p2pDiscovery.serverPort());
+      blockchainWrapper4.p2p.connectToServer(LOCALHOST, p2pDiscovery.serverPort());
+      blockchainWrapper5.p2p.connectToServer(LOCALHOST, p2pDiscovery.serverPort());
+      blockchainWrapper6.p2p.connectToServer(LOCALHOST, p2pDiscovery.serverPort());
+      blockchainWrapper7.p2p.connectToServer(LOCALHOST, p2pDiscovery.serverPort());
+      blockchainWrapper8.p2p.connectToServer(LOCALHOST, p2pDiscovery.serverPort());
 
       // After a while, the discovery thread should have found all the nodes and connected between each other.
       auto discoveryFuture = std::async(std::launch::async, [&]() {
@@ -884,28 +883,28 @@ namespace TState {
       uint256_t targetExpectedValue = 0;
       // Initialize 8 different node instances, with different ports and DBs.
       auto blockchainWrapper1 = initialize(
-        validatorPrivKeysState, validatorPrivKeysState[0], 8080, true, testDumpPath + "/stateNode1NetworkCapabilitiesWithTx"
+        validatorPrivKeysState, validatorPrivKeysState[0], SDKTestSuite::getTestPort(), true, testDumpPath + "/stateNode1NetworkCapabilitiesWithTx"
       );
       auto blockchainWrapper2 = initialize(
-        validatorPrivKeysState, validatorPrivKeysState[1], 8081, true, testDumpPath + "/stateNode2NetworkCapabilitiesWithTx"
+        validatorPrivKeysState, validatorPrivKeysState[1], SDKTestSuite::getTestPort(), true, testDumpPath + "/stateNode2NetworkCapabilitiesWithTx"
       );
       auto blockchainWrapper3 = initialize(
-        validatorPrivKeysState, validatorPrivKeysState[2], 8082, true, testDumpPath + "/stateNode3NetworkCapabilitiesWithTx"
+        validatorPrivKeysState, validatorPrivKeysState[2], SDKTestSuite::getTestPort(), true, testDumpPath + "/stateNode3NetworkCapabilitiesWithTx"
       );
       auto blockchainWrapper4 = initialize(
-        validatorPrivKeysState, validatorPrivKeysState[3], 8083, true, testDumpPath + "/stateNode4NetworkCapabilitiesWithTx"
+        validatorPrivKeysState, validatorPrivKeysState[3], SDKTestSuite::getTestPort(), true, testDumpPath + "/stateNode4NetworkCapabilitiesWithTx"
       );
       auto blockchainWrapper5 = initialize(
-        validatorPrivKeysState, validatorPrivKeysState[4], 8084, true, testDumpPath + "/stateNode5NetworkCapabilitiesWithTx"
+        validatorPrivKeysState, validatorPrivKeysState[4], SDKTestSuite::getTestPort(), true, testDumpPath + "/stateNode5NetworkCapabilitiesWithTx"
       );
       auto blockchainWrapper6 = initialize(
-        validatorPrivKeysState, validatorPrivKeysState[5], 8085, true, testDumpPath + "/stateNode6NetworkCapabilitiesWithTx"
+        validatorPrivKeysState, validatorPrivKeysState[5], SDKTestSuite::getTestPort(), true, testDumpPath + "/stateNode6NetworkCapabilitiesWithTx"
       );
       auto blockchainWrapper7 = initialize(
-        validatorPrivKeysState, validatorPrivKeysState[6], 8086, true, testDumpPath + "/stateNode7NetworkCapabilitiesWithTx"
+        validatorPrivKeysState, validatorPrivKeysState[6], SDKTestSuite::getTestPort(), true, testDumpPath + "/stateNode7NetworkCapabilitiesWithTx"
       );
       auto blockchainWrapper8 = initialize(
-        validatorPrivKeysState, validatorPrivKeysState[7], 8087, true, testDumpPath + "/stateNode8NetworkCapabilitiesWithTx"
+        validatorPrivKeysState, validatorPrivKeysState[7], SDKTestSuite::getTestPort(), true, testDumpPath + "/stateNode8NetworkCapabilitiesWithTx"
       );
 
       // Initialize the discovery node.
@@ -924,8 +923,8 @@ namespace TState {
           1,
           8080,
           Address(Hex::toBytes("0x00dead00665771855a34155f5e7405489df2c3c6")),
-          boost::asio::ip::address::from_string("127.0.0.1"),
-          8090,
+          LOCALHOST,
+          SDKTestSuite::getTestPort(),
           9999,
           11,
           11,
@@ -942,8 +941,7 @@ namespace TState {
           genesisBalances,
           genesisValidators
       );
-      P2P::ManagerDiscovery p2pDiscovery(
-          boost::asio::ip::address::from_string("127.0.0.1"), discoveryOptions);
+      P2P::ManagerDiscovery p2pDiscovery(LOCALHOST, discoveryOptions);
 
       // Initialize state with all balances
       for (const auto &[privkey, account]: randomAccounts) {
@@ -984,14 +982,14 @@ namespace TState {
       blockchainWrapper8.p2p.start();
 
       // Connect nodes to the discovery node.
-      blockchainWrapper1.p2p.connectToServer(boost::asio::ip::address::from_string("127.0.0.1"), 8090);
-      blockchainWrapper2.p2p.connectToServer(boost::asio::ip::address::from_string("127.0.0.1"), 8090);
-      blockchainWrapper3.p2p.connectToServer(boost::asio::ip::address::from_string("127.0.0.1"), 8090);
-      blockchainWrapper4.p2p.connectToServer(boost::asio::ip::address::from_string("127.0.0.1"), 8090);
-      blockchainWrapper5.p2p.connectToServer(boost::asio::ip::address::from_string("127.0.0.1"), 8090);
-      blockchainWrapper6.p2p.connectToServer(boost::asio::ip::address::from_string("127.0.0.1"), 8090);
-      blockchainWrapper7.p2p.connectToServer(boost::asio::ip::address::from_string("127.0.0.1"), 8090);
-      blockchainWrapper8.p2p.connectToServer(boost::asio::ip::address::from_string("127.0.0.1"), 8090);
+      blockchainWrapper1.p2p.connectToServer(LOCALHOST, p2pDiscovery.serverPort());
+      blockchainWrapper2.p2p.connectToServer(LOCALHOST, p2pDiscovery.serverPort());
+      blockchainWrapper3.p2p.connectToServer(LOCALHOST, p2pDiscovery.serverPort());
+      blockchainWrapper4.p2p.connectToServer(LOCALHOST, p2pDiscovery.serverPort());
+      blockchainWrapper5.p2p.connectToServer(LOCALHOST, p2pDiscovery.serverPort());
+      blockchainWrapper6.p2p.connectToServer(LOCALHOST, p2pDiscovery.serverPort());
+      blockchainWrapper7.p2p.connectToServer(LOCALHOST, p2pDiscovery.serverPort());
+      blockchainWrapper8.p2p.connectToServer(LOCALHOST, p2pDiscovery.serverPort());
 
       // Wait everyone be connected with the discovery node.
       std::this_thread::sleep_for(std::chrono::milliseconds(100));
@@ -1212,28 +1210,28 @@ namespace TState {
 
       // Initialize 8 different node instances, with different ports and DBs.
       auto blockchainWrapper1 = initialize(
-        validatorPrivKeysState, validatorPrivKeysState[0], 8080, true, testDumpPath + "/stateNode1NetworkCapabilitiesWithERC20TxBlockBroadcast"
+        validatorPrivKeysState, validatorPrivKeysState[0], SDKTestSuite::getTestPort(), true, testDumpPath + "/stateNode1NetworkCapabilitiesWithERC20TxBlockBroadcast"
       );
       auto blockchainWrapper2 = initialize(
-        validatorPrivKeysState, validatorPrivKeysState[1], 8081, true,  testDumpPath + "/stateNode2NetworkCapabilitiesWithERC20TxBlockBroadcast"
+        validatorPrivKeysState, validatorPrivKeysState[1], SDKTestSuite::getTestPort(), true,  testDumpPath + "/stateNode2NetworkCapabilitiesWithERC20TxBlockBroadcast"
       );
       auto blockchainWrapper3 = initialize(
-        validatorPrivKeysState, validatorPrivKeysState[2], 8082, true,  testDumpPath + "/stateNode3NetworkCapabilitiesWithERC20TxBlockBroadcast"
+        validatorPrivKeysState, validatorPrivKeysState[2], SDKTestSuite::getTestPort(), true,  testDumpPath + "/stateNode3NetworkCapabilitiesWithERC20TxBlockBroadcast"
       );
       auto blockchainWrapper4 = initialize(
-        validatorPrivKeysState, validatorPrivKeysState[3], 8083, true,  testDumpPath + "/stateNode4NetworkCapabilitiesWithERC20TxBlockBroadcast"
+        validatorPrivKeysState, validatorPrivKeysState[3], SDKTestSuite::getTestPort(), true,  testDumpPath + "/stateNode4NetworkCapabilitiesWithERC20TxBlockBroadcast"
       );
       auto blockchainWrapper5 = initialize(
-        validatorPrivKeysState, validatorPrivKeysState[4], 8084, true,  testDumpPath + "/stateNode5NetworkCapabilitiesWithERC20TxBlockBroadcast"
+        validatorPrivKeysState, validatorPrivKeysState[4], SDKTestSuite::getTestPort(), true,  testDumpPath + "/stateNode5NetworkCapabilitiesWithERC20TxBlockBroadcast"
       );
       auto blockchainWrapper6 = initialize(
-        validatorPrivKeysState, validatorPrivKeysState[5], 8085, true,  testDumpPath + "/stateNode6NetworkCapabilitiesWithERC20TxBlockBroadcast"
+        validatorPrivKeysState, validatorPrivKeysState[5], SDKTestSuite::getTestPort(), true,  testDumpPath + "/stateNode6NetworkCapabilitiesWithERC20TxBlockBroadcast"
       );
       auto blockchainWrapper7 = initialize(
-        validatorPrivKeysState, validatorPrivKeysState[6], 8086, true,  testDumpPath + "/stateNode7NetworkCapabilitiesWithERC20TxBlockBroadcast"
+        validatorPrivKeysState, validatorPrivKeysState[6], SDKTestSuite::getTestPort(), true,  testDumpPath + "/stateNode7NetworkCapabilitiesWithERC20TxBlockBroadcast"
       );
       auto blockchainWrapper8 = initialize(
-        validatorPrivKeysState, validatorPrivKeysState[7], 8087, true,  testDumpPath + "/stateNode8NetworkCapabilitiesWithERC20TxBlockBroadcast"
+        validatorPrivKeysState, validatorPrivKeysState[7], SDKTestSuite::getTestPort(), true,  testDumpPath + "/stateNode8NetworkCapabilitiesWithERC20TxBlockBroadcast"
       );
 
       // Initialize the discovery node.
@@ -1252,8 +1250,8 @@ namespace TState {
           1,
           8080,
           Address(Hex::toBytes("0x00dead00665771855a34155f5e7405489df2c3c6")),
-          boost::asio::ip::address::from_string("127.0.0.1"),
-          8090,
+          LOCALHOST,
+          SDKTestSuite::getTestPort(),
           9999,
           11,
           11,
@@ -1270,8 +1268,7 @@ namespace TState {
           genesisBalances,
           genesisValidators
       );
-      P2P::ManagerDiscovery p2pDiscovery(
-          boost::asio::ip::address::from_string("127.0.0.1"), discoveryOptions);
+      P2P::ManagerDiscovery p2pDiscovery(LOCALHOST, discoveryOptions);
 
       // Initialize state with all balances
       blockchainWrapper1.state.addBalance(owner);
@@ -1309,14 +1306,14 @@ namespace TState {
       blockchainWrapper8.p2p.start();
 
       // Connect nodes to the discovery node.
-      blockchainWrapper1.p2p.connectToServer(boost::asio::ip::address::from_string("127.0.0.1"), 8090);
-      blockchainWrapper2.p2p.connectToServer(boost::asio::ip::address::from_string("127.0.0.1"), 8090);
-      blockchainWrapper3.p2p.connectToServer(boost::asio::ip::address::from_string("127.0.0.1"), 8090);
-      blockchainWrapper4.p2p.connectToServer(boost::asio::ip::address::from_string("127.0.0.1"), 8090);
-      blockchainWrapper5.p2p.connectToServer(boost::asio::ip::address::from_string("127.0.0.1"), 8090);
-      blockchainWrapper6.p2p.connectToServer(boost::asio::ip::address::from_string("127.0.0.1"), 8090);
-      blockchainWrapper7.p2p.connectToServer(boost::asio::ip::address::from_string("127.0.0.1"), 8090);
-      blockchainWrapper8.p2p.connectToServer(boost::asio::ip::address::from_string("127.0.0.1"), 8090);
+      blockchainWrapper1.p2p.connectToServer(LOCALHOST, p2pDiscovery.serverPort());
+      blockchainWrapper2.p2p.connectToServer(LOCALHOST, p2pDiscovery.serverPort());
+      blockchainWrapper3.p2p.connectToServer(LOCALHOST, p2pDiscovery.serverPort());
+      blockchainWrapper4.p2p.connectToServer(LOCALHOST, p2pDiscovery.serverPort());
+      blockchainWrapper5.p2p.connectToServer(LOCALHOST, p2pDiscovery.serverPort());
+      blockchainWrapper6.p2p.connectToServer(LOCALHOST, p2pDiscovery.serverPort());
+      blockchainWrapper7.p2p.connectToServer(LOCALHOST, p2pDiscovery.serverPort());
+      blockchainWrapper8.p2p.connectToServer(LOCALHOST, p2pDiscovery.serverPort());
 
       // Wait everyone be connected with the discovery node.
       std::this_thread::sleep_for(std::chrono::milliseconds(100));

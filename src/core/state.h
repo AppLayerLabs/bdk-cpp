@@ -89,7 +89,7 @@ class State : Dumpable, public Log::LogicalLocationProvider {
 
     ~State(); ///< Destructor.
 
-    virtual std::string getLogicalLocation() const { return p2pManager_.getLogicalLocation(); } ///< Log instance from P2P
+    std::string getLogicalLocation() const override { return p2pManager_.getLogicalLocation(); } ///< Log instance from P2P
 
     // ======================================================================
     // RDPOS WRAPPER FUNCTIONS

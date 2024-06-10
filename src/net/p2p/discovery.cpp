@@ -53,7 +53,7 @@ namespace P2P {
 
   bool DiscoveryWorker::discoverLoop() {
     bool discoveryPass = false;
-    LOGINFO("Discovery thread started minConnections: "
+    LOGDEBUG("Discovery thread started minConnections: "
                         + std::to_string(this->manager_.minConnections()) + " maxConnections: " + std::to_string(this->manager_.maxConnections()));
     uint64_t lastLogged = 0;
     while (!this->stopWorker_) {
@@ -65,13 +65,13 @@ namespace P2P {
       }
 
       if (lastLogged != sessionSize) {
-        LOGINFO("DiscoveryWorker current sessionSize: " + std::to_string(sessionSize));
+        LOGDEBUG("DiscoveryWorker current sessionSize: " + std::to_string(sessionSize));
         lastLogged = sessionSize;
       }
 
       std::this_thread::sleep_for(std::chrono::milliseconds(100));
       if (sessionSize >= this->manager_.maxConnections()) {
-         LOGINFO("Max connections reached, sleeping...");
+         LOGDEBUG("Max connections reached, sleeping...");
          std::this_thread::sleep_for(std::chrono::seconds(10));
          continue;
       }

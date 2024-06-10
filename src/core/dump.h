@@ -68,7 +68,7 @@ public:
    */
   DumpManager(const Storage& storage, const Options& options, EventManager& eventManager, std::shared_mutex& stateMutex);
 
-  virtual std::string getLogicalLocation() const { return storage_.getLogicalLocation(); } ///< Log instance from Storage
+  std::string getLogicalLocation() const override { return storage_.getLogicalLocation(); } ///< Log instance from Storage
 
   /**
    * Function that will register dumpable objects.
@@ -161,7 +161,7 @@ public:
    */
   ~DumpWorker();
 
-  virtual std::string getLogicalLocation() const { return storage_.getLogicalLocation(); } ///< Log instance from Storage
+  std::string getLogicalLocation() const override { return storage_.getLogicalLocation(); } ///< Log instance from Storage
 
   ///< Start `workerFuture_` and `workerLoop()`.
   void startWorker();
