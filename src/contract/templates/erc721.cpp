@@ -15,7 +15,7 @@ ERC721::ERC721(const Address& address, const DB& db
   this->symbol_ = Utils::bytesToString(db.get(std::string("symbol_"), this->getDBPrefix()));
   auto owners = db.getBatch(this->getNewPrefix("owners_"));
   for (const auto& dbEntry : owners) {
-    BytesArrView valueView(dbEntry.value);
+    bytes::View valueView(dbEntry.value);
     this->owners_[Utils::fromBigEndian<uint256_t>(dbEntry.key)] = Address(valueView.subspan(0, 20));
   }
   auto balances = db.getBatch(this->getNewPrefix("balances_"));
@@ -28,7 +28,7 @@ ERC721::ERC721(const Address& address, const DB& db
   }
   auto operatorAddressApprovals = db.getBatch(this->getNewPrefix("operatorAddressApprovals_"));
   for (const auto& dbEntry : operatorAddressApprovals) {
-    BytesArrView keyView(dbEntry.key);
+    bytes::View keyView(dbEntry.key);
     Address owner(keyView.subspan(0, 20));
     Address operatorAddress(keyView.subspan(20));
     this->operatorAddressApprovals_[owner][operatorAddress] = dbEntry.value[0];
@@ -272,7 +272,7 @@ void ERC721::transferFrom(const Address& from, const Address& to, const uint256_
 
 DBBatch ERC721::dump() const {
   DBBatch dbBatch = BaseContract::dump();
-  boost::unordered_flat_map<std::string, BytesArrView> data {
+  boost::unordered_flat_map<std::string, bytes::View> data {
       {"name_",  Utils::stringToBytes(name_.get())},
       {"symbol_", Utils::stringToBytes(symbol_.get())}
   };
@@ -285,19 +285,19 @@ DBBatch ERC721::dump() const {
   for (auto it = owners_.cbegin(), end = owners_.cend(); it != end; ++it) {
     // key: uint -> value: Address
     dbBatch.push_back(Utils::uintToBytes(it->first),
-                      it->second.get(),
+                      it->second,
                       this->getNewPrefix("owners_"));
   }
   for (auto it = balances_.cbegin(), end = balances_.cend(); it != end; ++it) {
     // key: Address -> value: uint
-    dbBatch.push_back(it->first.get(),
+    dbBatch.push_back(it->first,
                       Utils::uintToBytes(it->second),
                       this->getNewPrefix("balances_"));
   }
   for (auto it = tokenApprovals_.cbegin(), end = tokenApprovals_.cend(); it != end; ++it) {
     // key: uint -> value: Address
     dbBatch.push_back(Utils::uintToBytes(it->first),
-                      it->second.get(),
+                      it->second,
                       this->getNewPrefix("tokenApprovals_"));
   }
   for (auto i = operatorAddressApprovals_.cbegin(); i != operatorAddressApprovals_.cend(); ++i) {

@@ -43,12 +43,12 @@ struct SafeHash {
     return wyhash(std::bit_cast<const void*>(bytesArr.data()), bytesArr.size(), 0, _wyp);
   }
 
-  size_t operator()(const BytesArrView& bytesArrView) const {
+  size_t operator()(const bytes::View& bytesArrView) const {
     return wyhash(std::bit_cast<const void*>(bytesArrView.data()), bytesArrView.size(), 0, _wyp);
   }
 
   size_t operator()(const Address& address) const {
-    return wyhash(std::bit_cast<const void*>(address.raw()), address.size(), 0, _wyp);
+    return wyhash(std::bit_cast<const void*>(address.data()), address.size(), 0, _wyp);
   }
 
   size_t operator()(const Functor& functor) const {
@@ -56,7 +56,7 @@ struct SafeHash {
   }
 
   size_t operator()(const Hash& hash) const {
-    return wyhash(std::bit_cast<const void*>(hash.raw()), hash.size(), 0, _wyp);
+    return wyhash(std::bit_cast<const void*>(hash.data()), hash.size(), 0, _wyp);
   }
 
   size_t operator()(const TxValidator& tx) const { return SafeHash()(tx.hash()); }
@@ -66,7 +66,7 @@ struct SafeHash {
   }
 
   template <unsigned N> size_t operator()(const FixedBytes<N>& bytes) const {
-    return wyhash(std::bit_cast<const void*>(bytes.raw()), bytes.size(), 0, _wyp);
+    return wyhash(std::bit_cast<const void*>(bytes.data()), bytes.size(), 0, _wyp);
   }
 
   template <typename Key, typename T> size_t operator()(const boost::unordered_flat_map<Key, T, SafeHash>& a) const {
@@ -99,7 +99,7 @@ struct FNVHash {
    * Call operator.
    * @param s The string to hash.
    */
-  size_t operator()(BytesArrView s) const {
+  size_t operator()(bytes::View s) const {
     size_t result = 2166136261U;
     for (auto it = s.begin(); it != s.end(); it++) result = (16777619 * result) ^ (*it);
     return result;

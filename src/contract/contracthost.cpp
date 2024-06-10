@@ -41,7 +41,7 @@ ContractHost::~ContractHost() {
         this->manager_.pushBack(dynamic_cast<Dumpable*>(contract));
       } else {
         // If the contract is nullptr, it means that it was a EVM contract, we need to link txHash and txIndex
-        this->txToAddr_[txHash_] = address;
+        this->storage_.setContractAddress(txHash_, address);
       }
     }
   } else {
@@ -103,7 +103,7 @@ Address ContractHost::deriveContractAddress(const uint64_t& nonce, const Address
     ? (char)nonce
     : (char)0x80 + Utils::bytesRequired(nonce)
   );
-  return {Utils::sha3(rlp).view(12)};
+  return Address(Utils::sha3(rlp).view(12));
 }
 
 void ContractHost::createEVMContract(const evmc_message& msg, const Address& contractAddr) {

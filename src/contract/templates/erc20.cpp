@@ -21,7 +21,7 @@ ERC20::ERC20(const Address& address, const DB& db)
   }
   auto allowances = db.getBatch(this->getNewPrefix("allowed_"));
   for (const auto& dbEntry : allowances) {
-    BytesArrView key(dbEntry.key);
+    bytes::View key(dbEntry.key);
     Address owner(key.subspan(0,20));
     Address spender(key.subspan(20));
     this->allowed_[owner][spender] = Utils::bytesToUint256(dbEntry.value);
@@ -181,7 +181,7 @@ DBBatch ERC20::dump() const
   dbBatch.push_back(Utils::stringToBytes("totalSupply_"), Utils::uint256ToBytes(totalSupply_.get()), this->getDBPrefix());
   // Balances
   for (auto it = balances_.cbegin(); it != balances_.cend(); ++it) {
-    const auto& key = it->first.get();
+    const auto& key = it->first;
     Bytes value = Utils::uintToBytes(it->second);
     dbBatch.push_back(key, value, this->getNewPrefix("balances_"));
   }

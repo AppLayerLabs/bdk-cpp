@@ -476,7 +476,7 @@ json eth_getTransactionReceipt(const json& request, const Storage& storage, cons
     ret["effectiveGasPrice"] = Hex::fromBytes(Utils::uintToBytes(tx->getMaxFeePerGas()),true).forRPC();
     ret["gasUsed"] = Hex::fromBytes(Utils::uintToBytes(tx->getGasLimit()), true).forRPC();
     if (tx->getTo() == Address()) {
-      ret["contractAddress"] = state.getAddressForTx(txHash).hex(true);
+      ret["contractAddress"] = storage.getContractAddress(txHash).hex(true);
     } else {
       ret["contractAddress"] = json::value_t::null;
     }

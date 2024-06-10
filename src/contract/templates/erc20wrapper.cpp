@@ -12,7 +12,7 @@ ERC20Wrapper::ERC20Wrapper(const Address& contractAddress, const DB& db
 {
   auto tokensAndBalances = db.getBatch(this->getNewPrefix("tokensAndBalances_"));
   for (const auto& dbEntry : tokensAndBalances) {
-    BytesArrView valueView(dbEntry.value);
+    bytes::View valueView(dbEntry.value);
     this->tokensAndBalances_[Address(dbEntry.key)][Address(valueView.subspan(0, 20))] = Utils::fromBigEndian<uint256_t>(valueView.subspan(20));
   }
 
@@ -86,7 +86,7 @@ DBBatch ERC20Wrapper::dump () const {
 
   for (auto i = tokensAndBalances_.cbegin(); i != tokensAndBalances_.cend(); ++i) {
     for (auto j = i->second.cbegin(); j != i->second.cend(); ++j) {
-      const auto& key = i->first.get();
+      const auto& key = i->first;
       Bytes value = j->first.asBytes();
       Utils::appendBytes(value, Utils::uintToBytes(j->second));
       dbBatch.push_back(key, value, this->getNewPrefix("tokensAndBalances_"));

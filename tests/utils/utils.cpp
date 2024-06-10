@@ -9,6 +9,7 @@ See the LICENSE.txt file in the project root for more information.
 #include "../../src/utils/utils.h"
 #include "../../src/utils/strings.h"
 #include "../../src/utils/hex.h"
+#include "bytes/view.h"
 
 using Catch::Matchers::Equals;
 
@@ -18,7 +19,7 @@ namespace TUtils {
       std::string sha3Input = "My SHA3 Input";
       auto sha3Output = Utils::sha3(Utils::stringToBytes(sha3Input));
       Bytes sha3ExpectedOutput = Bytes{0x10, 0x11, 0x40, 0xd6, 0xe7, 0x50, 0x6f, 0x80, 0x4c, 0xf7, 0xb0, 0x37, 0x0f, 0xa9, 0x0b, 0x04, 0xc5, 0xe9, 0x37, 0x4d, 0xdb, 0x0c, 0x8c, 0xbe, 0x12, 0xaf, 0x15, 0x0c, 0x8f, 0xf3, 0xee, 0x36};
-      REQUIRE(sha3Output == sha3ExpectedOutput);
+      REQUIRE(sha3Output == Hash(sha3ExpectedOutput));
     }
 
     SECTION("uint256ToBytes Test") {
@@ -251,8 +252,8 @@ namespace TUtils {
     }
 
     SECTION("bytesToUint256 Test") {
-      FixedBytes<32> bytesStr(std::string("\xcb\x06\x75\x32\x90\xff\xac\x16\x72\x05\xd0\xf5\x3b\x64\xac\xfd\x80\xbe\x11\xed\xbb\x26\xa2\x24\xbe\xd9\x23\x9a\xe6\x74\x0e\x67"));
-      auto uint256Output = Utils::bytesToUint256(bytesStr.get());
+      FixedBytes<32> bytesStr(bytes::view("\xcb\x06\x75\x32\x90\xff\xac\x16\x72\x05\xd0\xf5\x3b\x64\xac\xfd\x80\xbe\x11\xed\xbb\x26\xa2\x24\xbe\xd9\x23\x9a\xe6\x74\x0e\x67"));
+      auto uint256Output = Utils::bytesToUint256(bytesStr);
       uint256_t uint256ExpectedOutput = uint256_t("91830918212381802449294565349763096207758814059154440393436864477986483867239");
       REQUIRE(uint256Output == uint256ExpectedOutput);
 
@@ -384,8 +385,9 @@ namespace TUtils {
     }
 
     SECTION("bytesToUint192 Test") {
-      FixedBytes<24> bytesStr = BytesArr<24> {0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xf9, 0x1c, 0xc2, 0x2b, 0x56, 0x36, 0x47, 0xc5, 0x7c, 0xa2, 0x1a, 0x93, 0xf3, 0x08, 0x5a, 0x8b, 0x25, 0x7f};
-      auto uint192Output = Utils::bytesToUint192(bytesStr.get());
+      std::vector<int> vec;
+      FixedBytes<24> bytesStr = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xf9, 0x1c, 0xc2, 0x2b, 0x56, 0x36, 0x47, 0xc5, 0x7c, 0xa2, 0x1a, 0x93, 0xf3, 0x08, 0x5a, 0x8b, 0x25, 0x7f}; // TODO: initializer_list constructor for FixedBytes
+      auto uint192Output = Utils::bytesToUint192(bytesStr);
       uint192_t uint192ExpectedOutput = uint192_t("6277101735386680163835789423207166416102355144464034112895");
       REQUIRE(uint192Output == uint192ExpectedOutput);
 
@@ -452,8 +454,8 @@ namespace TUtils {
     }
 
     SECTION("bytesToUint160 Test") {
-      FixedBytes<20> bytesStr(std::string("\x58\xc5\x95\xbe\xdf\x1d\xea\x53\x2c\xf0\x6a\xf9\x09\x1a\x51\xb7\x5a\x11\xda\x61"));
-      auto uint160Output = Utils::bytesToUint160(bytesStr.get());
+      FixedBytes<20> bytesStr(bytes::view("\x58\xc5\x95\xbe\xdf\x1d\xea\x53\x2c\xf0\x6a\xf9\x09\x1a\x51\xb7\x5a\x11\xda\x61"));
+      auto uint160Output = Utils::bytesToUint160(bytesStr);
       uint160_t uint160ExpectedOutput = uint160_t("506797479317435130489084083375319966488594602593");
       REQUIRE(uint160Output == uint160ExpectedOutput);
 
@@ -650,8 +652,8 @@ namespace TUtils {
     }
 
     SECTION("bytesToUint64 Test") {
-      FixedBytes<8> bytesStr(std::string("\x9a\xce\x8e\x96\x24\xe4\xed\x56"));
-      auto uint64Output = Utils::bytesToUint64(bytesStr.get());
+      FixedBytes<8> bytesStr(bytes::view("\x9a\xce\x8e\x96\x24\xe4\xed\x56"));
+      auto uint64Output = Utils::bytesToUint64(bytesStr);
       uint64_t uint64ExpectedOutput = uint64_t(11155010102558518614ULL);
       REQUIRE(uint64Output == uint64ExpectedOutput);
 
@@ -714,8 +716,8 @@ namespace TUtils {
     }
 
     SECTION("bytesToUint32 Test") {
-      FixedBytes<4> bytesStr(std::string("\x77\x7b\xca\x9a"));
-      auto uint32Output = Utils::bytesToUint32(bytesStr.get());
+      FixedBytes<4> bytesStr(bytes::view("\x77\x7b\xca\x9a"));
+      auto uint32Output = Utils::bytesToUint32(bytesStr);
       uint32_t uint32ExpectedOutput = 2004601498;
       REQUIRE(uint32Output == uint32ExpectedOutput);
 
@@ -746,8 +748,8 @@ namespace TUtils {
     }
 
     SECTION("bytesToUint16 Test") {
-      FixedBytes<2> bytesStr(std::string("\xff\xac"));
-      auto uint16Output = Utils::bytesToUint16(bytesStr.get());
+      FixedBytes<2> bytesStr(bytes::view("\xff\xac"));
+      auto uint16Output = Utils::bytesToUint16(bytesStr);
       uint16_t uint16ExpectedOutput = 65452;
       REQUIRE(uint16Output == uint16ExpectedOutput);
 
@@ -762,8 +764,8 @@ namespace TUtils {
     }
 
     SECTION("bytesToUint8 Test") {
-      FixedBytes<1> bytesStr(std::string("\x78"));
-      auto uint8Output = Utils::bytesToUint8(bytesStr.get());
+      FixedBytes<1> bytesStr(bytes::view("\x78"));
+      auto uint8Output = Utils::bytesToUint8(bytesStr);
       uint8_t uint8ExpectedOutput = 120;
       REQUIRE(uint8Output == uint8ExpectedOutput);
 

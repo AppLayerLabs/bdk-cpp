@@ -15,6 +15,8 @@ See the LICENSE.txt file in the project root for more information.
 
 #include <evmc/evmc.hpp>
 #include "hex.h"
+#include "bytes/range.h"
+#include "bytes/initializer.h"
 
 // TODO: It is possible to implement **fast** operators for some types,
 // such as Address, Functor and Hash. Taking advantage that memory located within
@@ -34,54 +36,49 @@ See the LICENSE.txt file in the project root for more information.
  * Used as a base for both aliases (e.g. PrivKey, PubKey, etc.) and classes inheriting it (e.g. Hash, Signature, etc.).
  */
 template <unsigned N> class FixedBytes {
-  protected:
-    BytesArr<N> data_; ///< Internal data string, in raw bytes.
+  private:
+    BytesArr<N> data_;
 
   public:
-    /// Empty constructor.
-    constexpr inline FixedBytes() { this->data_.fill(uint8_t{0x00}); };
+    constexpr FixedBytes() : data_() {};
 
-    /// Move constructor.
-    constexpr inline FixedBytes(BytesArr<N>&& data) noexcept { this->data_ = std::move(data); }
+    constexpr FixedBytes(std::initializer_list<Byte> initList) {
+      if (initList.size() != N)
+        throw DynamicException("Incompatible Size."); // TODO: better message containing the sizes
 
-    /// Copy constructor.
-    constexpr inline FixedBytes(const Bytes& data) {
-      if (data.size() != N) throw std::invalid_argument("Invalid size.");
-      std::copy(data.begin(), data.end(), this->data_.begin());
+      std::ranges::copy(initList, data_.begin());
     }
 
-    /// Copy constructor.
-    constexpr inline FixedBytes(const BytesArr<N>& data) { this->data_ = data; }
+    constexpr FixedBytes(bytes::Initializer auto&& initializer) { initializer(data_); }
 
-    /// Copy constructor.
-    constexpr inline FixedBytes(const BytesArrView& data) {
-      if (data.size() != N) throw std::invalid_argument("Invalid size.");
-      std::copy(data.begin(), data.end(), this->data_.begin());
+    constexpr explicit FixedBytes(const bytes::DataRange auto& data) {
+      if (std::ranges::size(data) != N)
+        throw DynamicException("Incompatible Size."); // TODO: better message containing the sizes
+
+      std::ranges::copy(data, data_.begin());
     }
 
-    /// Copy constructor.
-    constexpr inline FixedBytes(const std::string_view data) {
-      if (data.size() != N) throw std::invalid_argument("Invalid size.");
-      std::copy(data.begin(), data.end(), this->data_.begin());
-    }
+    auto begin() { return data_.begin(); }
 
-    /// Copy constructor.
-    constexpr inline FixedBytes(const FixedBytes& other) {
-      if (other.size() != N) throw std::invalid_argument("Invalid size.");
-      this->data_ = other.data_;
-    }
+    auto begin() const { return data_.begin(); }
 
-    /// Getter for `data_`, const version.
-    inline const BytesArr<N>& get() const { return this->data_; }
+    auto cbegin() const { return data_.cbegin(); }
 
-    /// Getter for `data_`, non-const version.
-    inline BytesArr<N>& get_non_const() const { return this->data_; }
+    auto end() { return data_.end(); }
 
-    /// Getter for `data_`, but returns it as a const C-style string.
-    inline const Byte* raw() const { return this->data_.data(); }
+    auto end() const { return data_.end(); }
 
-    /// Getter for `data_`, but returns it as a non-const C-style string.
-    inline Byte* raw_non_const() { return this->data_.data(); }
+    auto cend() const { return data_.cend(); }
+
+    Byte* data() { return data_.data(); }
+
+    const Byte* data() const { return data_.data(); }
+
+    size_t size() const { return data_.size(); }
+
+    Byte& operator[](size_t index) { return data_[index]; }
+
+    const Byte& operator[](size_t index) const { return data_[index]; }
 
     /**
      * Getter for `data_`, but returns it as a hex string.
@@ -95,23 +92,14 @@ template <unsigned N> class FixedBytes {
      * @param len (optional) Number of chars to get. Defaults to the whole string.
      * @return A string view of the data, in bytes.
      */
-    inline BytesArrView view(size_t pos = 0, size_t len = N) const {
+    inline bytes::View view(size_t pos = 0, size_t len = N) const {
       auto real_len = std::min(len, N - pos);
       if (pos + real_len > N) { throw std::out_of_range("len > N"); }
-      return BytesArrView(this->data_.begin() + pos, this->data_.begin() + pos + real_len);
+      return bytes::View(this->data_.begin() + pos, this->data_.begin() + pos + real_len);
     }
 
     /// Create a Bytes object from the internal data string.
     inline Bytes asBytes() const { return Bytes(this->data_.begin(), this->data_.end()); }
-
-    /// Get the data string's size.
-    inline size_t size() const { return this->data_.size(); }
-
-    /// Get an iterator pointing to the start of the data string.
-    inline BytesArr<N>::const_iterator cbegin() const { return this->data_.cbegin(); }
-
-    /// Get an iterator pointing to the end of the data string.
-    inline BytesArr<N>::const_iterator cend() const { return this->data_.cend(); }
 
     /// Equality operator. Checks if both internal strings are the same.
     inline bool operator==(const FixedBytes& other) const { return (this->data_ == other.data_); }
@@ -128,27 +116,13 @@ template <unsigned N> class FixedBytes {
     /// Greater operator. Does a lexicographical check on both data strings.
     inline bool operator>(const FixedBytes& other) const { return (this->data_ > other.data_); }
 
-    /// Copy assignment operator.
-    inline FixedBytes& operator=(const FixedBytes& other) {
-      if (&other != this) this->data_ = other.data_;
-      return *this;
-    }
-
-    /// Copy assignment operator.
-    inline FixedBytes& operator=(const BytesArrView& other) {
-      if (other.size() != this->size()) { throw std::invalid_argument("Invalid size."); }
-      std::copy(other.begin(), other.end(), this->data_.begin());
-      return *this;
-    }
-
-    /// Indexing operator.
-    inline const Byte& operator[](const size_t pos) const { return this->data_[pos]; }
-
     /**
      * Operator for checking the string's "real emptyness" (all zeroes).
      * @return `true` if string is an empty value, `false` otherwise.
      */
-    explicit operator bool() const { return std::any_of(this->data_.begin(), this->data_.end(), [](uint8_t _b) { return _b != 0; }); }
+    explicit operator bool() const {
+      return std::ranges::any_of(*this, [] (Byte b) { return b != 0; });
+    }
 };
 
 /// Abstraction of a 32-byte hash. Inherits `FixedBytes<32>`.
@@ -183,7 +157,7 @@ class Hash : public FixedBytes<32> {
     evmc::bytes32 toEvmcBytes32() const;  ///< Convert the hash string back to an evmc::bytes32 pointer.
 
     /// Generate a CRYPTOGRAPHICALLY SECURE random 32-byte/256-bit hash.
-    inline static Hash random() { Hash h; RAND_bytes(h.data_.data(), 32); return h; }
+    inline static Hash random() { Hash h; RAND_bytes(h.data(), 32); return h; }
 };
 
 /// Abstraction of a functor (the first 4 bytes of a function's keccak hash).
@@ -204,14 +178,12 @@ class Signature : public FixedBytes<65> {
 /// Abstraction for a single 20-byte address (e.g. "1234567890abcdef..."). Inherits `FixedBytes<20>`.
 class Address : public FixedBytes<20> {
   public:
+    using FixedBytes<20>::FixedBytes;
     using FixedBytes<20>::operator<;
     using FixedBytes<20>::operator<=;
     using FixedBytes<20>::operator>;
     using FixedBytes<20>::operator>=;
     using FixedBytes<20>::operator=;
-
-    /// Empty constructor.
-    inline Address() { this->data_.fill(uint8_t{0x00}); };
 
     /**
      * Constructor using a reference to evmc::address
@@ -232,23 +204,6 @@ class Address : public FixedBytes<20> {
      * @throw DynamicException if address has wrong size or is invalid.
      */
     Address(const std::string_view add, bool inBytes);
-
-    ///@{
-    /** Copy constructor. */
-    inline Address(const Address& other) { this->data_ = other.data_; }
-    Address(const BytesArrView add) {
-      if (add.size() != 20) throw std::invalid_argument("Invalid address size");
-      std::copy(add.begin(), add.end(), this->data_.begin());
-    }
-    Address(const BytesArr<20>& add) { std::copy(add.begin(), add.end(), this->data_.begin()); }
-    template <unsigned N> Address(const BytesArr<N>& add) {
-      if (add.size() != 20) throw std::invalid_argument("Invalid address size");
-      std::copy(add.begin(), add.end(), this->data_.begin());
-    }
-    ///@}
-
-    /// Move constructor.
-    Address(BytesArr<20>&& add) : FixedBytes<20>(std::move(add)) {}
 
     evmc::address toEvmcAddress() const;  ///< Convert the address string back to an evmc::address.
 
@@ -274,12 +229,6 @@ class Address : public FixedBytes<20> {
      * @return `true` if the address is checksummed, `false` otherwise.
      */
     static bool isChksum(const std::string_view add);
-
-    /// Copy assignment operator.
-    inline Address& operator=(const Address& other) {
-      this->data_ = other.data_;
-      return *this;
-    }
 };
 
 /// Abstraction of a EVM Storage key (20-bytes address + 32 bytes slot key). Inherits `FixedBytes<52>`.
@@ -292,12 +241,12 @@ class StorageKey : public FixedBytes<52> {
     using FixedBytes<52>::operator=;
 
     /**
-     * Constructor using a BytesArrView
-     * @param data The BytesArrView pointer to convert into a storage key.
+     * Constructor using a bytes::View
+     * @param data The bytes::View pointer to convert into a storage key.
      */
-    StorageKey(const BytesArrView& data) {
+    StorageKey(const bytes::View& data) {
       if (data.size() != 52) throw std::invalid_argument("Invalid StorageKey size.");
-      std::copy(data.begin(), data.end(), this->data_.begin());
+      std::copy(data.begin(), data.end(), this->begin());
     }
 
     /**

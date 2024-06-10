@@ -65,14 +65,13 @@ class ContractHost : public evmc::Host {
     evmc_vm* vm_;
     DumpManager& manager_;
     EventManager& eventManager_;
-    const Storage& storage_;
+    Storage& storage_;
     mutable ContractStack stack_;
     mutable RandomGen randomGen_; // Random generator for the contract.
     const evmc_tx_context& currentTxContext_; // MUST be initialized within the constructor.
     boost::unordered_flat_map<Address, std::unique_ptr<BaseContract>, SafeHash>& contracts_;
     boost::unordered_flat_map<Address, NonNullUniquePtr<Account>, SafeHash>& accounts_;
     boost::unordered_flat_map<StorageKey, Hash, SafeHash>& vmStorage_;
-    boost::unordered_flat_map<Hash, Address, SafeHash>& txToAddr_;
     boost::unordered_flat_map<StorageKey, Hash, SafeHash> transientStorage_;
     bool mustRevert_ = true; // We always assume that we must revert until proven otherwise.
     mutable bool evmcThrow_ = false; // Did the EVMC throw an exception?
@@ -116,13 +115,12 @@ class ContractHost : public evmc::Host {
     ContractHost(evmc_vm* vm,
                  DumpManager& manager,
                  EventManager& eventManager,
-                 const Storage& storage,
+                 Storage& storage,
                  const Hash& randomnessSeed,
                  const evmc_tx_context& currentTxContext,
                  boost::unordered_flat_map<Address, std::unique_ptr<BaseContract>, SafeHash>& contracts,
                  boost::unordered_flat_map<Address, NonNullUniquePtr<Account>, SafeHash>& accounts,
                  boost::unordered_flat_map<StorageKey, Hash, SafeHash>& vmStorage,
-                 boost::unordered_flat_map<Hash, Address, SafeHash>& txToAddr,
                  const Hash& txHash,
                  const uint64_t txIndex,
                  const Hash& blockHash,
@@ -136,7 +134,6 @@ class ContractHost : public evmc::Host {
     contracts_(contracts),
     accounts_(accounts),
     vmStorage_(vmStorage),
-    txToAddr_(txToAddr),
     txHash_(txHash),
     txIndex_(txIndex),
     blockHash_(blockHash),
@@ -237,12 +234,12 @@ class ContractHost : public evmc::Host {
           evmc_revision::EVMC_LATEST_STABLE_REVISION, &msg, recipientAcc.code.data(), recipientAcc.code.size()));
           this->leftoverGas_ = result.gas_left;
           if (result.status_code) {
-            auto hexResult = Hex::fromBytes(BytesArrView(result.output_data, result.output_data + result.output_size));
+            auto hexResult = Hex::fromBytes(bytes::View(result.output_data, result.output_data + result.output_size));
             throw DynamicException("ContractHost::callContractViewFunction: EVMC call failed - Type: "
               + Utils::getRealTypeName<C>() + " at address: " + targetAddr.hex().get() + " - Result: " + hexResult.get()
             );
           }
-          return std::get<0>(ABI::Decoder::decodeData<R>(BytesArrView(result.output_data, result.output_data + result.output_size)));
+          return std::get<0>(ABI::Decoder::decodeData<R>(bytes::View(result.output_data, result.output_data + result.output_size)));
         } break;
         case ContractType::CPP : {
           this->deduceGas(1000);
@@ -309,12 +306,12 @@ class ContractHost : public evmc::Host {
           evmc_revision::EVMC_LATEST_STABLE_REVISION, &msg, recipientAcc.code.data(), recipientAcc.code.size()));
           this->leftoverGas_ = result.gas_left;
           if (result.status_code) {
-            auto hexResult = Hex::fromBytes(BytesArrView(result.output_data, result.output_data + result.output_size));
+            auto hexResult = Hex::fromBytes(bytes::View(result.output_data, result.output_data + result.output_size));
             throw DynamicException("ContractHost::callContractViewFunction: EVMC call failed - Type: "
               + Utils::getRealTypeName<C>() + " at address: " + targetAddr.hex().get() + " - Result: " + hexResult.get()
             );
           }
-          return std::get<0>(ABI::Decoder::decodeData<R>(BytesArrView(result.output_data, result.output_data + result.output_size)));
+          return std::get<0>(ABI::Decoder::decodeData<R>(bytes::View(result.output_data, result.output_data + result.output_size)));
         } break;
         case ContractType::CPP : {
           this->deduceGas(1000);
@@ -387,12 +384,12 @@ class ContractHost : public evmc::Host {
           evmc_revision::EVMC_LATEST_STABLE_REVISION, &msg, recipientAcc.code.data(), recipientAcc.code.size()));
           this->leftoverGas_ = result.gas_left;
           if (result.status_code) {
-            auto hexResult = Hex::fromBytes(BytesArrView(result.output_data, result.output_data + result.output_size));
+            auto hexResult = Hex::fromBytes(bytes::View(result.output_data, result.output_data + result.output_size));
             throw DynamicException("ContractHost::callContractFunction: EVMC call failed - Type: "
               + Utils::getRealTypeName<C>() + " at address: " + targetAddr.hex().get() + " - Result: " + hexResult.get()
             );
           }
-          return std::get<0>(ABI::Decoder::decodeData<R>(BytesArrView(result.output_data, result.output_data + result.output_size)));
+          return std::get<0>(ABI::Decoder::decodeData<R>(bytes::View(result.output_data, result.output_data + result.output_size)));
         } break;
         case ContractType::CPP : {
           this->deduceGas(1000);
@@ -471,7 +468,7 @@ class ContractHost : public evmc::Host {
           evmc_revision::EVMC_LATEST_STABLE_REVISION, &msg, recipientAcc.code.data(), recipientAcc.code.size()));
           this->leftoverGas_ = result.gas_left;
           if (result.status_code) {
-            auto hexResult = Hex::fromBytes(BytesArrView(result.output_data, result.output_data + result.output_size));
+            auto hexResult = Hex::fromBytes(bytes::View(result.output_data, result.output_data + result.output_size));
             throw DynamicException("ContractHost::callContractFunction: EVMC call failed - Type: "
               + Utils::getRealTypeName<C>() + " at address: " + targetAddr.hex().get() + " - Result: " + hexResult.get()
             );
@@ -550,7 +547,7 @@ class ContractHost : public evmc::Host {
           evmc_revision::EVMC_LATEST_STABLE_REVISION, &msg, recipientAcc.code.data(), recipientAcc.code.size()));
           this->leftoverGas_ = result.gas_left;
           if (result.status_code) {
-            auto hexResult = Hex::fromBytes(BytesArrView(result.output_data, result.output_data + result.output_size));
+            auto hexResult = Hex::fromBytes(bytes::View(result.output_data, result.output_data + result.output_size));
             throw DynamicException("ContractHost::callContractFunction: EVMC call failed - Type: "
               + Utils::getRealTypeName<C>() + " at address: " + targetAddr.hex().get() + " - Result: " + hexResult.get()
             );
@@ -630,7 +627,7 @@ class ContractHost : public evmc::Host {
           evmc_revision::EVMC_LATEST_STABLE_REVISION, &msg, recipientAcc.code.data(), recipientAcc.code.size()));
           this->leftoverGas_ = result.gas_left;
           if (result.status_code) {
-            auto hexResult = Hex::fromBytes(BytesArrView(result.output_data, result.output_data + result.output_size));
+            auto hexResult = Hex::fromBytes(bytes::View(result.output_data, result.output_data + result.output_size));
             throw DynamicException("ContractHost::callContractFunction: EVMC call failed - Type: "
               + Utils::getRealTypeName<C>() + " at address: " + targetAddr.hex().get() + " - Result: " + hexResult.get()
             );
