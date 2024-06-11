@@ -174,10 +174,10 @@ void Consensus::doValidatorBlock() {
 
 void Consensus::doValidatorTx(const uint64_t& nHeight, const Validator& me) {
   Hash randomness = Hash::random();
-  Hash randomHash = Utils::sha3(randomness.get());
+  Hash randomHash = Utils::sha3(randomness);
   LOGDEBUG("Creating random Hash transaction");
   Bytes randomHashBytes = Hex::toBytes("0xcfffe746");
-  randomHashBytes.insert(randomHashBytes.end(), randomHash.get().begin(), randomHash.get().end());
+  randomHashBytes.insert(randomHashBytes.end(), randomHash.begin(), randomHash.end());
   TxValidator randomHashTx(
     me.address(),
     randomHashBytes,
@@ -187,7 +187,7 @@ void Consensus::doValidatorTx(const uint64_t& nHeight, const Validator& me) {
   );
 
   Bytes seedBytes = Hex::toBytes("0x6fc5a2d6");
-  seedBytes.insert(seedBytes.end(), randomness.get().begin(), randomness.get().end());
+  seedBytes.insert(seedBytes.end(), randomness.begin(), randomness.end());
   TxValidator seedTx(
     me.address(),
     seedBytes,
@@ -197,9 +197,9 @@ void Consensus::doValidatorTx(const uint64_t& nHeight, const Validator& me) {
   );
 
   // Sanity check if tx is valid
-  BytesArrView randomHashTxView(randomHashTx.getData());
-  BytesArrView randomSeedTxView(seedTx.getData());
-  if (Utils::sha3(randomSeedTxView.subspan(4)) != randomHashTxView.subspan(4)) {
+  bytes::View randomHashTxView(randomHashTx.getData());
+  bytes::View randomSeedTxView(seedTx.getData());
+  if (Utils::sha3(randomSeedTxView.subspan(4)) != Hash(randomHashTxView.subspan(4))) {
     LOGDEBUG("RandomHash transaction is not valid!!!");
     return;
   }

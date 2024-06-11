@@ -35,7 +35,6 @@ class StateTest : public State {
         this->contracts_,
         this->accounts_,
         this->vmStorage_,
-        this->txToAddr_,
         txHash,
         0,
         blockHash,

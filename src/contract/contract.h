@@ -101,8 +101,8 @@ class BaseContract : public ContractLocals, public Dumpable {
     DBBatch dump() const override {
       DBBatch batch;
       batch.push_back(Utils::stringToBytes("contractName_"), Utils::stringToBytes(contractName_), this->getDBPrefix());
-      batch.push_back(Utils::stringToBytes("contractAddress_"), contractAddress_.get(), this->getDBPrefix());
-      batch.push_back(Utils::stringToBytes("contractCreator_"), contractCreator_.get(), this->getDBPrefix());
+      batch.push_back(Utils::stringToBytes("contractAddress_"), contractAddress_, this->getDBPrefix());
+      batch.push_back(Utils::stringToBytes("contractCreator_"), contractCreator_, this->getDBPrefix());
       batch.push_back(Utils::stringToBytes("contractChainId_"), Utils::uint64ToBytes(contractChainId_), this->getDBPrefix());
       return batch;
     }

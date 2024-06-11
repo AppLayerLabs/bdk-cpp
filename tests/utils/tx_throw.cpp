@@ -25,7 +25,7 @@ namespace TTX {
         uint256_t("65612315125671"),        /// maxPriorityFeePerGas
         uint256_t("712471569147246"),       /// maxFeePerGas
         uint256_t("61182866117425671"),     /// gasLimit
-        Hex::toBytes("ce974dad85cf9593db9d5c3e89ca8c67ca0f841dc97f2c58c6ea2038e4fa6d8d")
+        PrivKey(Hex::toBytes("ce974dad85cf9593db9d5c3e89ca8c67ca0f841dc97f2c58c6ea2038e4fa6d8d"))
       );
       Bytes txStr = tx.rlpSerialize();
       txStr[1] = 0xf6;
@@ -46,7 +46,7 @@ namespace TTX {
         uint256_t("65612315125671"),        /// maxPriorityFeePerGas
         uint256_t("712471569147246"),       /// maxFeePerGas
         uint256_t("61182866117425671"),     /// gasLimit
-        Hex::toBytes("ce974dad85cf9593db9d5c3e89ca8c67ca0f841dc97f2c58c6ea2038e4fa6d8d")
+        PrivKey(Hex::toBytes("ce974dad85cf9593db9d5c3e89ca8c67ca0f841dc97f2c58c6ea2038e4fa6d8d"))
       );
       Bytes txShortStr = tx.rlpSerialize();
       auto txView = Utils::create_view_span(txShortStr);

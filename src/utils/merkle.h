@@ -48,7 +48,7 @@ class Merkle {
     template <typename TxType> explicit Merkle(const std::vector<TxType>& txs) {
       // Mount the base leaves
       std::vector<Hash> tmp;
-      for (auto tx : txs) tmp.emplace_back(std::move(Utils::sha3(tx.hash().get())));
+      for (auto tx : txs) tmp.emplace_back(Utils::sha3(tx.hash()));
       this->tree_.emplace_back(tmp);
       // Make the layers up to root
       while (this->tree_.back().size() > 1) this->tree_.emplace_back(newLayer(this->tree_.back()));

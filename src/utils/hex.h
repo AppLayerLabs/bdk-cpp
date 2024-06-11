@@ -19,11 +19,12 @@ See the LICENSE.txt file in the project root for more information.
 #include <boost/multiprecision/cpp_int.hpp>
 #include "dynamicexception.h"
 
+#include "bytes/view.h"
+
 using Byte = uint8_t;
 using Bytes = std::vector<Byte>;
 template <std::size_t N>
 using BytesArr = std::array<Byte, N>;
-using BytesArrView = std::span<const Byte, std::dynamic_extent>;
 
 using uint256_t = boost::multiprecision::number<boost::multiprecision::cpp_int_backend<256, 256, boost::multiprecision::unsigned_magnitude, boost::multiprecision::cpp_int_check_type::checked, void>>;
 
@@ -62,7 +63,7 @@ class Hex {
      * @param strict (optional) If `true`, includes "0x". Defaults to `false`.
      * @return The constructed Hex object.
      */
-    static Hex fromBytes(const BytesArrView bytes, bool strict = false);
+    static Hex fromBytes(const bytes::View bytes, bool strict = false);
 
     /**
      * Build a Hex object from a UTF-8 string ("example" = "6578616d706c65").
@@ -112,7 +113,7 @@ class Hex {
     inline uint256_t getUint() const {
       Bytes b = Hex::toBytes(this->hex_);
       if (b.size() > 32) throw std::length_error("Hex too big for uint conversion");
-      BytesArrView bV(b.data(), b.size());
+      bytes::View bV(b.data(), b.size());
       uint256_t ret;
       boost::multiprecision::import_bits(ret, bV.begin(), bV.end(), 8);
       return ret;

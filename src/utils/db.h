@@ -22,16 +22,18 @@ See the LICENSE.txt file in the project root for more information.
 
 /// Namespace for accessing database prefixes.
 namespace DBPrefix {
-  const Bytes blocks =          { 0x00, 0x01 }; ///< "blocks" = "0001"
-  const Bytes blockHeightMaps = { 0x00, 0x02 }; ///< "blockHeightMaps" = "0002"
-  const Bytes nativeAccounts =  { 0x00, 0x03 }; ///< "nativeAccounts" = "0003"
-  const Bytes txToBlocks =      { 0x00, 0x04 }; ///< "txToBlocks" = "0004"
-  const Bytes rdPoS =           { 0x00, 0x05 }; ///< "rdPoS" = "0005"
-  const Bytes contracts =       { 0x00, 0x06 }; ///< "contracts" = "0006"
-  const Bytes contractManager = { 0x00, 0x07 }; ///< "contractManager" = "0007"
-  const Bytes events =          { 0x00, 0x08 }; ///< "events" = "0008"
-  const Bytes vmStorage =       { 0x00, 0x09 }; ///< "evmHost" = "0009"
-  const Bytes txToAddr =        { 0x00, 0x0A }; ///< "txToAddr" = "000A"
+  const Bytes blocks =            { 0x00, 0x01 }; ///< "blocks" = "0001"
+  const Bytes heightToBlock =     { 0x00, 0x02 }; ///< "heightToBlock" = "0002"
+  const Bytes nativeAccounts =    { 0x00, 0x03 }; ///< "nativeAccounts" = "0003"
+  const Bytes txToBlock =         { 0x00, 0x04 }; ///< "txToBlock" = "0004"
+  const Bytes rdPoS =             { 0x00, 0x05 }; ///< "rdPoS" = "0005"
+  const Bytes contracts =         { 0x00, 0x06 }; ///< "contracts" = "0006"
+  const Bytes contractManager =   { 0x00, 0x07 }; ///< "contractManager" = "0007"
+  const Bytes events =            { 0x00, 0x08 }; ///< "events" = "0008"
+  const Bytes vmStorage =         { 0x00, 0x09 }; ///< "evmHost" = "0009"
+  const Bytes txToAddr =          { 0x00, 0x0A }; ///< "txToAddr" = "000A"
+  const Bytes tagToBlock =        { 0x00, 0x0B }; ///< "tagToBlock" = "000B"
+  const Bytes txToGasUsed =       { 0x00, 0x0C }; ///< "tagToBlock" = "000C"
 };
 
 /// Struct for a database connection/endpoint.
@@ -90,7 +92,7 @@ public:
    * @param value The entry's value.
    * @param prefix The entry's prefix.
    */
-  void push_back(const BytesArrView key, const BytesArrView value, const Bytes& prefix) {
+  void push_back(const bytes::View key, const bytes::View value, const Bytes& prefix) {
     Bytes tmp = prefix;
     tmp.reserve(prefix.size() + key.size());
     tmp.insert(tmp.end(), key.begin(), key.end());
@@ -102,7 +104,7 @@ public:
    * @param key The entry's key.
    * @param prefix The entry's prefix.
    */
-  void delete_key(const BytesArrView key, const Bytes& prefix) {
+  void delete_key(const bytes::View key, const Bytes& prefix) {
     Bytes tmp = prefix;
     tmp.reserve(prefix.size() + key.size());
     tmp.insert(tmp.end(), key.begin(), key.end());

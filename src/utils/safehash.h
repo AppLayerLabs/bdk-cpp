@@ -68,14 +68,14 @@ struct SafeHash {
     return splitmix(boost::hash_range(bytesArr.begin(), bytesArr.end()) + FIXED_RANDOM);
   }
 
-  size_t operator()(const BytesArrView& bytesArrView) const {
+  size_t operator()(const bytes::View& view) const {
     static const uint64_t FIXED_RANDOM = clock::now().time_since_epoch().count();
-    return splitmix(boost::hash_range(bytesArrView.begin(), bytesArrView.end()) + FIXED_RANDOM);
+    return splitmix(boost::hash_range(view.begin(), view.end()) + FIXED_RANDOM);
   }
 
   size_t operator()(const Address& address) const {
     static const uint64_t FIXED_RANDOM = clock::now().time_since_epoch().count();
-    auto data = reinterpret_cast<uint32_t const*>(address.raw()); // Faster hashing for 20 bytes of data.
+    auto data = reinterpret_cast<uint32_t const*>(address.data()); // Faster hashing for 20 bytes of data.
     return splitmix(boost::hash_range(data, data + 5) + FIXED_RANDOM); // 160 / 32 = 5
   }
 
@@ -85,7 +85,7 @@ struct SafeHash {
 
   size_t operator()(const Hash& hash) const {
     static const uint64_t FIXED_RANDOM = clock::now().time_since_epoch().count();
-    auto data = reinterpret_cast<uint64_t const*>(hash.raw());  // Fast compatible object for hashing 32 bytes of data.
+    auto data = reinterpret_cast<uint64_t const*>(hash.data());  // Fast compatible object for hashing 32 bytes of data.
     return splitmix(boost::hash_range(data, data + 4) + FIXED_RANDOM);
   }
 
@@ -131,7 +131,7 @@ struct FNVHash {
    * Call operator.
    * @param s The string to hash.
    */
-  size_t operator()(BytesArrView s) const {
+  size_t operator()(bytes::View s) const {
     size_t result = 2166136261U;
     for (auto it = s.begin(); it != s.end(); it++) result = (16777619 * result) ^ (*it);
     return result;

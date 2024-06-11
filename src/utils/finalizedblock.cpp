@@ -8,7 +8,7 @@ See the LICENSE.txt file in the project root for more information.
 #include "finalizedblock.h"
 #include "../core/rdpos.h"
 
-FinalizedBlock FinalizedBlock::fromBytes(const BytesArrView bytes, const uint64_t& requiredChainId) {
+FinalizedBlock FinalizedBlock::fromBytes(const bytes::View bytes, const uint64_t& requiredChainId) {
   try {
     SLOGTRACE("Deserializing block...");
     // Verify minimum size for a valid block
@@ -133,7 +133,7 @@ FinalizedBlock FinalizedBlock::fromBytes(const BytesArrView bytes, const uint64_
     }
 
     /// Block header to hash is the 144 after the signature
-    BytesArrView headerBytes = bytes.subspan(65, 144);
+    bytes::View headerBytes = bytes.subspan(65, 144);
     Hash hash = Utils::sha3(headerBytes);
     UPubKey validatorPubKey = Secp256k1::recover(validatorSig, hash);
     return {

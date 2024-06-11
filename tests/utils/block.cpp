@@ -81,7 +81,7 @@ namespace TBlock {
       // Create and append 8
       std::vector<Hash> randomSeeds(8, Hash::random());
       Bytes randomSeed; // Concatenated random seed of block.
-      for (const auto &seed : randomSeeds) randomSeed.insert(randomSeed.end(), seed.get().begin(), seed.get().end());
+      for (const auto &seed : randomSeeds) randomSeed.insert(randomSeed.end(), seed.begin(), seed.end());
 
       std::vector<TxValidator> txValidators;
       Address validatorAddress = Secp256k1::toAddress(Secp256k1::toUPub(txValidatorPrivKey));
@@ -89,7 +89,7 @@ namespace TBlock {
       // Create 8 TxValidator transactions with type 0xcfffe746 (random hash)
       for (const auto &seed : randomSeeds) {
         Bytes data = Hex::toBytes("0xcfffe746");
-        Utils::appendBytes(data, Utils::sha3(seed.get()));
+        Utils::appendBytes(data, Utils::sha3(seed));
         txValidators.emplace_back(
           validatorAddress,
           data,
@@ -174,7 +174,7 @@ namespace TBlock {
       // Create and append 32 randomSeeds
       std::vector<Hash> randomSeeds(32, Hash::random());
       Bytes randomSeed; // Concatenated random seed of block.
-      for (const auto &seed : randomSeeds) randomSeed.insert(randomSeed.end(), seed.get().begin(), seed.get().end());
+      for (const auto &seed : randomSeeds) randomSeed.insert(randomSeed.end(), seed.begin(), seed.end());
 
       std::vector<TxValidator> txValidators;
 
@@ -183,7 +183,7 @@ namespace TBlock {
         PrivKey txValidatorPrivKey = PrivKey::random();
         Address validatorAddress = Secp256k1::toAddress(Secp256k1::toUPub(txValidatorPrivKey));
         Bytes hashTxData = Hex::toBytes("0xcfffe746");
-        Utils::appendBytes(hashTxData, Utils::sha3(seed.get()));
+        Utils::appendBytes(hashTxData, Utils::sha3(seed));
         txValidators.emplace_back(
           validatorAddress,
           hashTxData,
@@ -283,7 +283,7 @@ namespace TBlock {
       // Create and append 32 randomSeeds
       std::vector<Hash> randomSeeds(128, Hash::random());
       Bytes randomSeed; // Concatenated random seed of block.
-      for (const auto &seed : randomSeeds) Utils::appendBytes(randomSeed, seed.get());
+      for (const auto &seed : randomSeeds) Utils::appendBytes(randomSeed, seed);
 
       std::vector<TxValidator> txValidators;
 
@@ -292,7 +292,7 @@ namespace TBlock {
         PrivKey txValidatorPrivKey = PrivKey::random();
         Address validatorAddress = Secp256k1::toAddress(Secp256k1::toUPub(txValidatorPrivKey));
         Bytes hashTxData = Hex::toBytes("0xcfffe746");
-        Utils::appendBytes(hashTxData, Utils::sha3(seed.get()));
+        Utils::appendBytes(hashTxData, Utils::sha3(seed));
         txValidators.emplace_back(
           validatorAddress,
           hashTxData,

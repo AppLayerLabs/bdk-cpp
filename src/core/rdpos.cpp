@@ -152,10 +152,10 @@ bool rdPoS::validateBlock(const FinalizedBlock& block) const {
       return false;
     }
     // Check if the randomHash transaction matches the random transaction.
-    BytesArrView hashTxData = hashTx.getData();
-    BytesArrView seedTxData = seedTx.getData();
-    BytesArrView hash = hashTxData.subspan(4);
-    BytesArrView random = seedTxData.subspan(4);
+    bytes::View hashTxData = hashTx.getData();
+    bytes::View seedTxData = seedTx.getData();
+    bytes::View hash = hashTxData.subspan(4);
+    bytes::View random = seedTxData.subspan(4);
 
     // Size sanity check, should be 32 bytes.
     if (hash.size() != 32) {
@@ -168,7 +168,7 @@ bool rdPoS::validateBlock(const FinalizedBlock& block) const {
       return false;
     }
 
-    if (Utils::sha3(random) != hash) {
+    if (Utils::sha3(random) != Hash(hash)) {
       LOGERROR(std::string("TxValidator ") + seedTx.hash().hex().get()
         + " does not match TxValidator " + hashTx.hash().hex().get() + " randomness"
       );
@@ -278,7 +278,7 @@ DBBatch rdPoS::dump() const
   uint64_t i = 0;
   // add batch operations
   for (const auto &validator : this->validators_) {
-    dbBatch.push_back(Utils::uint64ToBytes(i), validator.get(), DBPrefix::rdPoS);
+    dbBatch.push_back(Utils::uint64ToBytes(i), validator, DBPrefix::rdPoS);
     i++;
   }
   return dbBatch;

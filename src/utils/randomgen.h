@@ -56,7 +56,7 @@ class RandomGen {
     template <typename Vector> void shuffle(Vector& v) {
       std::lock_guard lock(seedLock_);
       for (uint64_t i = 0; i < v.size(); ++i) {
-        this->seed_ = Utils::sha3(this->seed_.get());
+        this->seed_ = Utils::sha3(this->seed_);
         // Print seed as hex here if you want to debug it
         uint64_t n = uint64_t(i + this->seed_.toUint256() % (v.size() - i));
         std::swap(v[n], v[i]);
