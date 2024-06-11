@@ -225,7 +225,7 @@ using SafeInt256_t = SafeInt_t<256>;
  * destroyed or dynamically deployed like other contracts.
  * Instead, they are deployed in the constructor of State.
  */
-const std::unordered_map<std::string, Address> ProtocolContractAddresses = {
+const ankerl::unordered_dense::map<std::string, Address> ProtocolContractAddresses = {
   {"rdPoS", Address(Hex::toBytes("0xb23aa52dbeda59277ab8a962c69f5971f22904cf"))},           // Sha3("randomDeterministicProofOfStake").substr(0,20)
   {"ContractManager", Address(Hex::toBytes("0x0001cb47ea6d8b55fe44fdd6b1bdb579efb43e61"))}  // Sha3("ContractManager").substr(0,20)
 };
