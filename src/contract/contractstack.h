@@ -13,10 +13,10 @@
 
 class ContractStack {
   private:
-    std::unordered_map<Address, Bytes, SafeHash> code_;
-    std::unordered_map<Address, uint256_t, SafeHash> balance_;
-    std::unordered_map<Address, uint64_t, SafeHash> nonce_;
-    std::unordered_map<StorageKey, Hash, SafeHash> storage_;
+    ankerl::unordered_dense::map<Address, Bytes, SafeHash> code_;
+    ankerl::unordered_dense::map<Address, uint256_t, SafeHash> balance_;
+    ankerl::unordered_dense::map<Address, uint64_t, SafeHash> nonce_;
+    ankerl::unordered_dense::map<StorageKey, Hash, SafeHash> storage_;
     std::vector<Event> events_;
     std::vector<std::pair<Address,BaseContract*>> contracts_; // Contracts that have been created during the execution of the call, we need to revert them if the call reverts.
     std::vector<std::reference_wrapper<SafeBase>> usedVars_;
@@ -51,10 +51,10 @@ class ContractStack {
     }
 
     /// Getters
-    inline const std::unordered_map<Address, Bytes, SafeHash>& getCode() const { return this->code_; }
-    inline const std::unordered_map<Address, uint256_t, SafeHash>& getBalance() const { return this->balance_; }
-    inline const std::unordered_map<Address, uint64_t, SafeHash>& getNonce() const { return this->nonce_; }
-    inline const std::unordered_map<StorageKey, Hash, SafeHash>& getStorage() const { return this->storage_; }
+    inline const ankerl::unordered_dense::map<Address, Bytes, SafeHash>& getCode() const { return this->code_; }
+    inline const ankerl::unordered_dense::map<Address, uint256_t, SafeHash>& getBalance() const { return this->balance_; }
+    inline const ankerl::unordered_dense::map<Address, uint64_t, SafeHash>& getNonce() const { return this->nonce_; }
+    inline const ankerl::unordered_dense::map<StorageKey, Hash, SafeHash>& getStorage() const { return this->storage_; }
     inline std::vector<Event>& getEvents() { return this->events_; }
     inline const std::vector<std::pair<Address,BaseContract*>>& getContracts() const { return this->contracts_; }
     inline const std::vector<std::reference_wrapper<SafeBase>>& getUsedVars() const { return this->usedVars_; }

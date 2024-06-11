@@ -41,7 +41,7 @@ namespace P2P {
     return connectedNodes;
   }
 
-  std::unordered_map<NodeID, NodeType, SafeHash> DiscoveryWorker::getConnectedNodes(const NodeID& nodeId) {
+  ankerl::unordered_dense::map<NodeID, NodeType, SafeHash> DiscoveryWorker::getConnectedNodes(const NodeID& nodeId) {
     return this->manager_.requestNodes(nodeId);
   }
 

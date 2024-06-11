@@ -17,8 +17,8 @@ See the LICENSE.txt file in the project root for more information.
 #include "tx.h"
 
 /**
- * Custom hashing implementation for use in `std::unordered_map`, based on [this article](https://codeforces.com/blog/entry/62393).
- * The default `std::unordered_map` implementation uses `uint64_t` hashes,
+ * Custom hashing implementation for use in `ankerl::unordered_dense::map`, based on [this article](https://codeforces.com/blog/entry/62393).
+ * The default `ankerl::unordered_dense::map` implementation uses `uint64_t` hashes,
  * which makes collisions possible by having many Accounts and distributing them
  * in a way that they have the same hash across all nodes.
  * This struct is a workaround for that, it's not perfect because it still uses
@@ -101,9 +101,9 @@ struct SafeHash {
     return splitmix(boost::hash_range(bytes.cbegin(), bytes.cend()) + FIXED_RANDOM);
   }
 
-  template <typename Key, typename T> size_t operator()(const std::unordered_map<Key, T, SafeHash>& a) const {
+  template <typename Key, typename T> size_t operator()(const ankerl::unordered_dense::map<Key, T, SafeHash>& a) const {
     static const uint64_t FIXED_RANDOM = clock::now().time_since_epoch().count();
-    return splitmix(std::hash<std::unordered_map<Key, T, SafeHash>>()(a) + FIXED_RANDOM);
+    return splitmix(std::hash<ankerl::unordered_dense::map<Key, T, SafeHash>>()(a) + FIXED_RANDOM);
   }
 
   size_t operator()(const std::pair<boost::asio::ip::address, uint16_t>& nodeId) const {

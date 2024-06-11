@@ -23,7 +23,7 @@ class DynamicContract : public BaseContract {
     * The key is the function signature (first 4 hex bytes of keccak).
     * The value is a function that takes a vector of bytes (the arguments) and returns a ReturnType.
     */
-    std::unordered_map<
+    ankerl::unordered_dense::map<
       Functor, std::function<void(const evmc_message& callInfo)>, SafeHash
     > publicFunctions_;
 
@@ -32,7 +32,7 @@ class DynamicContract : public BaseContract {
     * The key is the function signature (first 4 hex bytes of keccak).
     * The value is a function that takes a vector of bytes (the arguments) and returns a ReturnType.
     */
-    std::unordered_map<
+    ankerl::unordered_dense::map<
       Functor, std::function<void(const evmc_message& callInfo)>, SafeHash
     > payableFunctions_;
 
@@ -42,7 +42,7 @@ class DynamicContract : public BaseContract {
     * The value is a function that takes a vector of bytes (the arguments) and returns a ReturnType.
     * Function return type is the encoded return value as viewFunctions is only used by eth_call.
     */
-    std::unordered_map<
+    ankerl::unordered_dense::map<
       Functor, std::function<Bytes(const evmc_message& callInfo)>, SafeHash
     > viewFunctions_;
 
@@ -54,7 +54,7 @@ class DynamicContract : public BaseContract {
      * stored in the previous 3 maps but with the ABI serialized data as the return value
      * We still check if we are calling a payable if the evmc_message has value.
      */
-    std::unordered_map<
+    ankerl::unordered_dense::map<
       Functor, std::function<Bytes(const evmc_message& callInfo)>, SafeHash
     > evmFunctions_;
 

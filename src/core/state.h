@@ -8,10 +8,11 @@ See the LICENSE.txt file in the project root for more information.
 #ifndef STATE_H
 #define STATE_H
 
+#include "../utils/db.h"
+#include "../utils/utils.h"
 #include "../contract/contract.h"
 #include "../contract/contractmanager.h"
-#include "../utils/utils.h"
-#include "../utils/db.h"
+#include "../libs/unordered_dense.h"
 #include "storage.h"
 #include "rdpos.h"
 #include "dump.h"
@@ -35,12 +36,12 @@ class State : Dumpable, public Log::LogicalLocationProvider {
     DumpWorker dumpWorker_; ///< Dump Manager object
     P2P::ManagerNormal& p2pManager_;  ///< Reference to the P2P connection manager.
     rdPoS rdpos_; ///< rdPoS object (consensus).
-    std::unordered_map<Address, std::unique_ptr<BaseContract>, SafeHash> contracts_; ///< Map with information about blockchain contracts (Address -> Contract).
-    std::unordered_map<StorageKey, Hash, SafeHash> vmStorage_; ///< Map with the storage of the EVM.
-    std::unordered_map<Address, NonNullUniquePtr<Account>, SafeHash> accounts_; ///< Map with information about blockchain accounts (Address -> Account).
-    std::unordered_map<Hash, TxBlock, SafeHash> mempool_; ///< TxBlock mempool.
+    ankerl::unordered_dense::map<Address, std::unique_ptr<BaseContract>, SafeHash> contracts_; ///< Map with information about blockchain contracts (Address -> Contract).
+    ankerl::unordered_dense::map<StorageKey, Hash, SafeHash> vmStorage_; ///< Map with the storage of the EVM.
+    ankerl::unordered_dense::map<Address, NonNullUniquePtr<Account>, SafeHash> accounts_; ///< Map with information about blockchain accounts (Address -> Account).
+    ankerl::unordered_dense::map<Hash, TxBlock, SafeHash> mempool_; ///< TxBlock mempool.
     /// TODO: Make a txDb instead of having to rely on this nasty map of tx hash -> created block.
-    std::unordered_map<Hash, Address, SafeHash> txToAddr_; ///< Map with information about EVM transactions that created contracts (Hash -> Address).
+    ankerl::unordered_dense::map<Hash, Address, SafeHash> txToAddr_; ///< Map with information about EVM transactions that created contracts (Hash -> Address).
     /**
      * Verify if a transaction can be accepted within the current state.
      * @param tx The transaction to check.
@@ -100,7 +101,7 @@ class State : Dumpable, public Log::LogicalLocationProvider {
     const std::set<Validator> rdposGetValidators() const { std::shared_lock lock(this->stateMutex_); return this->rdpos_.getValidators(); }
     const std::vector<Validator> rdposGetRandomList() const { std::shared_lock lock(this->stateMutex_); return this->rdpos_.getRandomList(); }
     const size_t rdposGetMempoolSize() const { std::shared_lock lock(this->stateMutex_); return this->rdpos_.getMempoolSize(); }
-    const std::unordered_map<Hash, TxValidator, SafeHash> rdposGetMempool() const { std::shared_lock lock(this->stateMutex_); return this->rdpos_.getMempool(); }
+    const ankerl::unordered_dense::map<Hash, TxValidator, SafeHash> rdposGetMempool() const { std::shared_lock lock(this->stateMutex_); return this->rdpos_.getMempool(); }
     const Hash& rdposGetBestRandomSeed() const { std::shared_lock lock(this->stateMutex_); return this->rdpos_.getBestRandomSeed(); }
     bool rdposGetIsValidator() const { std::shared_lock lock(this->stateMutex_); return this->rdpos_.getIsValidator(); }
     const uint32_t& rdposGetMinValidators() const { std::shared_lock lock(this->stateMutex_); return this->rdpos_.getMinValidators(); }

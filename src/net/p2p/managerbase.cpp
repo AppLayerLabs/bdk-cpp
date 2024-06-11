@@ -637,7 +637,7 @@ namespace P2P {
 
   // TODO: Both ping and requestNodes is a blocking call on .wait()
   // Somehow change to wait_for.
-  std::unordered_map<NodeID, NodeType, SafeHash> ManagerBase::requestNodes(const NodeID& nodeId) {
+  ankerl::unordered_dense::map<NodeID, NodeType, SafeHash> ManagerBase::requestNodes(const NodeID& nodeId) {
     if (!this->isActive()) {
       LOGTRACE("Skipping request to " + toString(nodeId) + ": Net engine not active.");
       return {};

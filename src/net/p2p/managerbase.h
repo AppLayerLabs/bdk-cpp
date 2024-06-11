@@ -12,6 +12,7 @@ See the LICENSE.txt file in the project root for more information.
 #include "encoding.h"
 #include "discovery.h"
 #include "../../utils/options.h"
+#include "../../libs/unordered_dense.h"
 #include "../../libs/BS_thread_pool_light.hpp"
 
 namespace P2P {
@@ -66,11 +67,11 @@ namespace P2P {
       const NodeID nodeId_; ///< This ManagerBase's own NodeID.
 
       /// List of currently active sessions.
-      std::unordered_map<NodeID, std::shared_ptr<Session>, SafeHash> sessions_;
+      ankerl::unordered_dense::map<NodeID, std::shared_ptr<Session>, SafeHash> sessions_;
 
       // TODO: Somehow find a way to clean up requests_ after a certain time/being used.
       /// List of currently active requests.
-      std::unordered_map<RequestID, std::shared_ptr<Request>, SafeHash> requests_;
+      ankerl::unordered_dense::map<RequestID, std::shared_ptr<Request>, SafeHash> requests_;
 
       /**
        * Send a Request to a given node.
@@ -236,7 +237,7 @@ namespace P2P {
        * @param nodeId The node to ask for.
        * @return The node's list of connected nodes.
        */
-      std::unordered_map<NodeID, NodeType, SafeHash> requestNodes(const NodeID& nodeId);
+      ankerl::unordered_dense::map<NodeID, NodeType, SafeHash> requestNodes(const NodeID& nodeId);
 
       friend class DiscoveryWorker;
       friend class Session;

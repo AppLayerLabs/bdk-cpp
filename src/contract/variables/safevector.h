@@ -20,7 +20,7 @@ See the LICENSE.txt file in the project root for more information.
  * This class employs a `std::map` for temporary storage of changes to the vector,
  * ensuring efficient memory usage without necessitating a full vector copy or
  * initializing an entire vector of nullptrs for each access.
- * `std::map` is preferred over `std::unordered_map` due to its inherent ordering.
+ * `std::map` is preferred over `ankerl::unordered_dense::map` due to its inherent ordering.
  * This allows safe and efficient access to indices within the current size of the vector.
  * Additionally, ordered iteration over newly accessed keys and prior keys is required.
  * For instance, with a vector of size 10, accessing indices 3, 5, 7, 10, 11, 12, 13 should

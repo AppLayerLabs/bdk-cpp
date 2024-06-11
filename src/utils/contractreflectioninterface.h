@@ -8,8 +8,9 @@ See the LICENSE.txt file in the project root for more information.
 #ifndef CONTRACTREFLECTIONINTERFACE_H
 #define CONTRACTREFLECTIONINTERFACE_H
 
-#include "contract/abi.h"
 #include <unordered_set>
+#include "contract/abi.h"
+#include "../libs/unordered_dense.h"
 
 /**
  * Namespace for the reflection interface used for registering contract classes.
@@ -121,12 +122,12 @@ namespace ContractReflectionInterface {
   };
 
   // All declared in the cpp file.
-  extern std::unordered_map<std::string, bool> registeredContractsFunctionsMap;
-  extern std::unordered_map<std::string, bool> registeredContractsEventsMap;
-  extern std::unordered_map<std::string, std::vector<std::string>> ctorArgNamesMap;
-  extern std::unordered_map<std::string, std::unordered_multimap<std::string, ABI::MethodDescription>> methodDescsMap;
-  extern std::unordered_map<std::string, std::unordered_multimap<std::string, ABI::EventDescription>> eventDescsMap;
-  extern std::unordered_map<UniqueFunctionPointerIdentifier, std::string, UniqueFunctionPointerIdentifier::Hash> pointerNamesMap;
+  extern ankerl::unordered_dense::map<std::string, bool> registeredContractsFunctionsMap;
+  extern ankerl::unordered_dense::map<std::string, bool> registeredContractsEventsMap;
+  extern ankerl::unordered_dense::map<std::string, std::vector<std::string>> ctorArgNamesMap;
+  extern ankerl::unordered_dense::map<std::string, std::unordered_multimap<std::string, ABI::MethodDescription>> methodDescsMap;
+  extern ankerl::unordered_dense::map<std::string, std::unordered_multimap<std::string, ABI::EventDescription>> eventDescsMap;
+  extern ankerl::unordered_dense::map<UniqueFunctionPointerIdentifier, std::string, UniqueFunctionPointerIdentifier::Hash> pointerNamesMap;
 
   /**
    * Helper struct to extract arguments from a function pointer.

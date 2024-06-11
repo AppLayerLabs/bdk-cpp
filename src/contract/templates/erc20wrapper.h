@@ -26,7 +26,7 @@ class ERC20Wrapper : public DynamicContract {
      * Map for tokens and balances. Solidity counterpart:
      * mapping(address => mapping(address => uint256)) internal tokensAndBalances_;
      */
-    SafeUnorderedMap<Address, std::unordered_map<Address, uint256_t, SafeHash>> tokensAndBalances_;
+    SafeUnorderedMap<Address, ankerl::unordered_dense::map<Address, uint256_t, SafeHash>> tokensAndBalances_;
 
     /// Function for calling the register functions for contracts.
     void registerContractFunctions() override;

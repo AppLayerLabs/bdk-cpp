@@ -1,20 +1,19 @@
 #ifndef CONTRACT_HOST_H
 #define CONTRACT_HOST_H
 
-
 #include <evmc/evmc.hpp>
+#include <evmone/evmone.h>
+#include "../utils/db.h"
+#include "../utils/hex.h"
 #include "../utils/utils.h"
 #include "../utils/strings.h"
-#include "../utils/hex.h"
 #include "../utils/safehash.h"
-#include "../utils/db.h"
-#include "../core/storage.h"
-#include <evmone/evmone.h>
-#include "contractstack.h"
-#include "../core/rdpos.h"
 #include "../utils/contractreflectioninterface.h"
-#include "contractmanager.h"
 #include "../core/dump.h"
+#include "../core/rdpos.h"
+#include "../core/storage.h"
+#include "contractstack.h"
+#include "contractmanager.h"
 
 
 // TODO: EVMC Static Mode Handling
@@ -70,11 +69,11 @@ class ContractHost : public evmc::Host {
     mutable ContractStack stack_;
     mutable RandomGen randomGen_; // Random generator for the contract.
     const evmc_tx_context& currentTxContext_; // MUST be initialized within the constructor.
-    std::unordered_map<Address, std::unique_ptr<BaseContract>, SafeHash>& contracts_;
-    std::unordered_map<Address, NonNullUniquePtr<Account>, SafeHash>& accounts_;
-    std::unordered_map<StorageKey, Hash, SafeHash>& vmStorage_;
-    std::unordered_map<Hash, Address, SafeHash>& txToAddr_;
-    std::unordered_map<StorageKey, Hash, SafeHash> transientStorage_;
+    ankerl::unordered_dense::map<Address, std::unique_ptr<BaseContract>, SafeHash>& contracts_;
+    ankerl::unordered_dense::map<Address, NonNullUniquePtr<Account>, SafeHash>& accounts_;
+    ankerl::unordered_dense::map<StorageKey, Hash, SafeHash>& vmStorage_;
+    ankerl::unordered_dense::map<Hash, Address, SafeHash>& txToAddr_;
+    ankerl::unordered_dense::map<StorageKey, Hash, SafeHash> transientStorage_;
     bool mustRevert_ = true; // We always assume that we must revert until proven otherwise.
     mutable bool evmcThrow_ = false; // Did the EVMC throw an exception?
     mutable std::vector<std::string> evmcThrows_;
@@ -120,10 +119,10 @@ class ContractHost : public evmc::Host {
                  const Storage& storage,
                  const Hash& randomnessSeed,
                  const evmc_tx_context& currentTxContext,
-                 std::unordered_map<Address, std::unique_ptr<BaseContract>, SafeHash>& contracts,
-                 std::unordered_map<Address, NonNullUniquePtr<Account>, SafeHash>& accounts,
-                 std::unordered_map<StorageKey, Hash, SafeHash>& vmStorage,
-                 std::unordered_map<Hash, Address, SafeHash>& txToAddr,
+                 ankerl::unordered_dense::map<Address, std::unique_ptr<BaseContract>, SafeHash>& contracts,
+                 ankerl::unordered_dense::map<Address, NonNullUniquePtr<Account>, SafeHash>& accounts,
+                 ankerl::unordered_dense::map<StorageKey, Hash, SafeHash>& vmStorage,
+                 ankerl::unordered_dense::map<Hash, Address, SafeHash>& txToAddr,
                  const Hash& txHash,
                  const uint64_t txIndex,
                  const Hash& blockHash,

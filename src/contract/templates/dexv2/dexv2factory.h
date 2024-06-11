@@ -30,7 +30,7 @@ class DEXV2Factory : public DynamicContract {
     SafeVector<Address> allPairs_;
 
     /// Solidity: mapping(address => mapping(address => address)) public getPair;
-    SafeUnorderedMap<Address, std::unordered_map<Address, Address, SafeHash>> getPair_;
+    SafeUnorderedMap<Address, ankerl::unordered_dense::map<Address, Address, SafeHash>> getPair_;
 
     /// Function for calling the register functions for contracts.
     void registerContractFunctions() override;

@@ -80,12 +80,12 @@ namespace P2P {
     this->nodeType_[sender] = nodeType;
   }
 
-  std::unordered_map<NodeID, NodeInfo, SafeHash> NodeConns::getConnected() {
+  ankerl::unordered_dense::map<NodeID, NodeInfo, SafeHash> NodeConns::getConnected() {
     std::scoped_lock lock(this->stateMutex_);
     return this->nodeInfo_;
   }
 
-  std::unordered_map<NodeID, NodeType, SafeHash> NodeConns::getConnectedWithNodeType() {
+  ankerl::unordered_dense::map<NodeID, NodeType, SafeHash> NodeConns::getConnectedWithNodeType() {
     std::scoped_lock lock(this->stateMutex_);
     return this->nodeType_;
   }

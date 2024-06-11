@@ -173,7 +173,7 @@ namespace P2P{
       return;
     }
 
-    std::unordered_map<NodeID, NodeType, SafeHash> nodes;
+    ankerl::unordered_dense::map<NodeID, NodeType, SafeHash> nodes;
 
     {
       std::shared_lock lock(this->sessionsMutex_);

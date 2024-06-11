@@ -16,7 +16,7 @@ See the LICENSE.txt file in the project root for more information.
 #include <algorithm>
 #include <thread>
 #include <shared_mutex>
-#include <unordered_map>
+#include "../../libs/unordered_dense.h"
 
 // Forward declaration.
 class Storage;
@@ -75,7 +75,7 @@ namespace P2P {
        * @param message The message that was broadcast.
        */
       void handleInfoBroadcast(const NodeID &nodeId, const std::shared_ptr<const Message>& message);
-  
+
     public:
       /**
        * Constructor.
@@ -83,8 +83,8 @@ namespace P2P {
        * @param storage Pointer to the blockchain's storage.
        * @param state Pointer to the blockchain's state.
        */
-      explicit Broadcaster(ManagerNormal& manager, const Storage &storage, State &state) 
-        : manager_(manager), storage_(storage), state_(state) 
+      explicit Broadcaster(ManagerNormal& manager, const Storage &storage, State &state)
+        : manager_(manager), storage_(storage), state_(state)
       {}
 
       /**

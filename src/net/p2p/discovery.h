@@ -13,6 +13,8 @@ See the LICENSE.txt file in the project root for more information.
 #include <unordered_set>
 #include "session.h"
 
+#include "../../libs/unordered_dense.h"
+
 namespace P2P {
   // Forward declarations.
   class ManagerBase;
@@ -37,7 +39,7 @@ namespace P2P {
     std::future<bool> workerFuture_;
 
     /// Map for previously requested nodes (Node ID -> time of last request).
-    std::unordered_map<NodeID, uint64_t, SafeHash> requestedNodes_;
+    ankerl::unordered_dense::map<NodeID, uint64_t, SafeHash> requestedNodes_;
 
     /// Mutex for managing read/write access to requestedNodes.
     std::shared_mutex requestedNodesMutex_;
@@ -61,7 +63,7 @@ namespace P2P {
      * @param nodeId The node ID to search for.
      * @return A map with matching node IDs and their corresponding type, IP and port.
      */
-    std::unordered_map<NodeID, NodeType, SafeHash> getConnectedNodes(const NodeID& nodeId);
+    ankerl::unordered_dense::map<NodeID, NodeType, SafeHash> getConnectedNodes(const NodeID& nodeId);
 
     /**
      * Connect to a node (checks if not connected already).
