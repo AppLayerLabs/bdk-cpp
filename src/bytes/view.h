@@ -1,3 +1,4 @@
+
 #ifndef BYTES_VIEW_H
 #define BYTES_VIEW_H
 
@@ -40,7 +41,7 @@ constexpr Span span(BorrowedDataRange auto&& r) { return Span(r); }
  * @param str the target string
  * @return a bytes view of the string bytes
 */
-inline constexpr View view(std::string_view str) {
+inline View view(std::string_view str) {
   return View(reinterpret_cast<const Byte*>(str.data()), str.size());
 }
 
@@ -50,7 +51,7 @@ inline constexpr View view(std::string_view str) {
  * @param str the target string
  * @return a bytes span of the string bytes
 */
-inline constexpr Span span(std::string& str) {
+inline Span span(std::string& str) {
   return Span(reinterpret_cast<Byte*>(str.data()), str.size());
 }
 
