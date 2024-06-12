@@ -62,8 +62,7 @@ namespace P2P {
       /// Reference back to the Manager object.
       ManagerBase& manager_;
 
-      net::strand<net::any_io_executor> readStrand_; ///< Strand for read operations.
-      net::strand<net::any_io_executor> writeStrand_; ///< Strand for write operations.
+      net::strand<net::any_io_executor> strand_; ///< Strand that synchronizes all access to the socket object.
 
       std::shared_ptr<Message> inboundMessage_; ///< Pointer to the inbound message.
       std::shared_ptr<const Message> outboundMessage_; ///< Pointer to the outbound message.
@@ -144,8 +143,7 @@ namespace P2P {
             port_(socket_.remote_endpoint().port()),
             connectionType_(connectionType),
             manager_(manager),
-            readStrand_(socket_.get_executor()),
-            writeStrand_(socket_.get_executor())
+            strand_(socket_.get_executor())
             {
               if (connectionType == ConnectionType::OUTBOUND) {
                 /// Not a server, it will not call do_connect().
@@ -165,8 +163,7 @@ namespace P2P {
             port_(port),
             connectionType_(connectionType),
             manager_(manager),
-            readStrand_(socket_.get_executor()),
-            writeStrand_(socket_.get_executor())
+            strand_(socket_.get_executor())
       {
         if (connectionType == ConnectionType::INBOUND) {
           /// Not a client, it will try to write handshake without connecting.
