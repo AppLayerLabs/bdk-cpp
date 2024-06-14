@@ -32,7 +32,7 @@ The project has a Dockerfile at the root of the repository that will build the p
   * [Docker for Windows](https://docs.docker.com/docker-for-windows/install/)
   * [Docker for Mac](https://docs.docker.com/docker-for-mac/install/)
   * [Docker for Linux](https://docs.docker.com/desktop/install/linux-install/)
-* Build the image locally with `docker build -t docker build -t bdk-cpp-dev:latest ` (if using Linux or Mac, run as `sudo`)
+* Build the image locally with `docker build -t bdk-cpp-dev:latest ` (if using Linux or Mac, run as `sudo`)
   * This will build the image and tag it as `bdk-cpp-dev:latest` - you can change the tag to whatever you want, but remember to change it on the next step
 * Run the container (you will be logged in as root):
   * **For Linux/Mac**: `sudo docker run -it -v $(pwd):/orbitersdk-volume -p 8080-8099:8080-8099 -p 8110-8111:8110-8111 orbitersdk-cpp-dev:latest`
