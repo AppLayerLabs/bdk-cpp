@@ -19,7 +19,7 @@ See the LICENSE.txt file in the project root for more information.
 class SafeAddress : public SafeBase {
   private:
     Address value_; ///< Current ("original") value.
-    std::unique_ptr<Address> copy_; ///< Previous ("temporary") value.
+    Address copy_; ///< Previous ("temporary") value.
 
   public:
     /**
@@ -28,17 +28,17 @@ class SafeAddress : public SafeBase {
      * @param address The initial value. Defaults to an empty address.
      */
     SafeAddress(DynamicContract* owner, const Address& address = Address())
-      : SafeBase(owner), value_(address), copy_(nullptr) {}
+      : SafeBase(owner), value_(address), copy_(address) {}
 
     /**
      * Empty constructor.
      * @param address The initial value. Defaults to an empty address.
      */
     explicit SafeAddress(const Address& address = Address())
-      : SafeBase(nullptr), value_(address), copy_(nullptr) {}
+      : SafeBase(nullptr), value_(address), copy_(address) {}
 
     /// Copy constructor. Only copies the CURRENT value.
-    SafeAddress(const SafeAddress& other) : SafeBase(nullptr), value_(other.value_), copy_(nullptr) {}
+    SafeAddress(const SafeAddress& other) : SafeBase(nullptr), value_(other.value_), copy_(other.value_) {}
 
     /// Getter for the CURRENT value.
     inline const Address& get() const { return this->value_; }
@@ -46,12 +46,10 @@ class SafeAddress : public SafeBase {
     ///@{
     /** Assignment operator. Assigns only the CURRENT value. */
     inline SafeAddress& operator=(const Address& address) {
-      if (this->copy_ == nullptr) this->copy_ = std::make_unique<Address>(this->value_);
       markAsUsed(); this->value_ = address; return *this;
     };
     inline SafeAddress& operator=(const SafeAddress& other) {
-      if (this->copy_ == nullptr) this->copy_ = std::make_unique<Address>(this->value_);
-      markAsUsed(); this->value_ = other.get(); return *this;
+      markAsUsed(); this->value_ = other.value_; return *this;
     };
     ///@}
 
@@ -62,12 +60,12 @@ class SafeAddress : public SafeBase {
     ///@}
 
     /// Commit the value.
-    inline void commit() override { this->copy_ = nullptr; this->registered_ = false; }
+    inline void commit() override { this->copy_ = this->value_; this->registered_ = false; }
 
     /// Revert the value.
     inline void revert() override {
-      if (this->copy_ != nullptr) this->value_ = *this->copy_;
-      this->copy_ = nullptr; this->registered_ = false;
+      this->value_ = this->copy_;
+      this->registered_ = false;
     }
 };
 
