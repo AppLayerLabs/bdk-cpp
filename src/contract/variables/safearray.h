@@ -41,12 +41,13 @@ template <typename T, unsigned N> class SafeArray : public SafeBase {
     /// Undo all changes in the undo stack on top of the current value.
     void processUndoStack() {
       while (!this->undo_->empty()) {
-        UndoOp op = this->undo_->top();
-        switch (std::get<0>(op)) {
-          case AT: this->value_.at(std::get<1>(op)) = std::get<2>(op); break;
-          case OPERATOR_BRACKETS: this->value_[std::get<1>(op)] = std::get<2>(op); break;
-          case FRONT: this->value_.at(0) = std::get<2>(op); break;
-          case BACK: this->value_.at(N-1) = std::get<2>(op); break;
+        const UndoOp& op = this->undo_->top();
+        const auto& [operation, index, value] = op;
+        switch (operation) {
+          case AT: this->value_.at(index) = value; break;
+          case OPERATOR_BRACKETS: this->value_[index] = value; break;
+          case FRONT: this->value_.at(0) = value; break;
+          case BACK: this->value_.at(N-1) = value; break;
           // at(0)/(N-1) are hardcoded on purpose - std::get<1>(op) is not really
           // needed for FRONT and BACK, but it could be used as well
         }
