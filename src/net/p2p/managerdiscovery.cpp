@@ -20,8 +20,7 @@ namespace P2P {
         handleAnswer(nodeId, message);
         break;
       default:
-        Logger::logToDebug(LogType::ERROR, Log::P2PParser, __func__,
-                           "Invalid message type from " + nodeId.first.to_string() + ":" + std::to_string(nodeId.second) +
+        LOGERROR("Invalid message type from " + toString(nodeId) +
                            " closing session.");
         this->disconnectSession(nodeId);
         break;
@@ -39,8 +38,7 @@ namespace P2P {
         handleRequestNodesRequest(nodeId, message);
         break;
       default:
-        Logger::logToDebug(LogType::ERROR, Log::P2PParser, __func__,
-                           "Invalid Request Command Type from " + nodeId.first.to_string() + ":" + std::to_string(nodeId.second) +
+        LOGERROR("Invalid Request Command Type from " + toString(nodeId) +
                            ", closing session.");
         this->disconnectSession(nodeId);
         break;
@@ -60,8 +58,7 @@ namespace P2P {
         handleRequestNodesAnswer(nodeId, message);
         break;
       default:
-        Logger::logToDebug(LogType::ERROR, Log::P2PParser, __func__,
-                           "Invalid Answer Command Type from " + nodeId.first.to_string() + ":" + std::to_string(nodeId.second) +
+        LOGERROR("Invalid Answer Command Type from " + toString(nodeId) +
                            ", closing session.");
         this->disconnectSession(nodeId);
         break;
@@ -72,8 +69,7 @@ namespace P2P {
     const NodeID &nodeId, const std::shared_ptr<const Message>& message
   ) {
     if (!RequestDecoder::ping(*message)) {
-      Logger::logToDebug(LogType::ERROR, Log::P2PParser, __func__,
-                         "Invalid ping request from " + nodeId.first.to_string() + ":" + std::to_string(nodeId.second) +
+      LOGERROR("Invalid ping request from " + toString(nodeId) +
                          " closing session.");
       this->disconnectSession(nodeId);
       return;
@@ -85,8 +81,7 @@ namespace P2P {
     const NodeID &nodeId, const std::shared_ptr<const Message>& message
   ) {
     if (!RequestDecoder::requestNodes(*message)) {
-      Logger::logToDebug(LogType::ERROR, Log::P2PParser, __func__,
-                         "Invalid requestNodes request from " + nodeId.first.to_string() + ":" + std::to_string(nodeId.second) + " closing session.");
+      LOGERROR("Invalid requestNodes request from " + toString(nodeId) + " closing session.");
       this->disconnectSession(nodeId);
       return;
     }
@@ -110,8 +105,7 @@ namespace P2P {
     std::unique_lock lock(this->requestsMutex_);
     if (!requests_.contains(message->id())) {
       lock.unlock(); // Unlock before calling logToDebug to avoid waiting for the lock in the logToDebug function.
-      Logger::logToDebug(LogType::ERROR, Log::P2PParser, __func__,
-                         "Answer to invalid request from " + nodeId.first.to_string() + ":" + std::to_string(nodeId.second) +
+      LOGERROR("Answer to invalid request from " + toString(nodeId) +
                          " closing session.");
       this->disconnectSession(nodeId);
       return;
@@ -125,8 +119,7 @@ namespace P2P {
     std::unique_lock lock(this->requestsMutex_);
     if (!requests_.contains(message->id())) {
       lock.unlock(); // Unlock before calling logToDebug to avoid waiting for the lock in the logToDebug function.
-      Logger::logToDebug(LogType::ERROR, Log::P2PParser, __func__,
-                         "Answer to invalid request from " + nodeId.first.to_string() + ":" + std::to_string(nodeId.second) +
+      LOGERROR("Answer to invalid request from " + toString(nodeId) +
                          " closing session.");
       this->disconnectSession(nodeId);
       return;

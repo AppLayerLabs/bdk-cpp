@@ -25,6 +25,7 @@ See the LICENSE.txt file in the project root for more information.
 #include <boost/multiprecision/cpp_dec_float.hpp>
 #include <boost/multiprecision/cpp_int.hpp>
 #include <boost/beast/core/error.hpp>
+#include <boost/asio/ip/address.hpp>
 
 #include <ethash/keccak.h>
 #include <openssl/rand.h>
@@ -35,6 +36,9 @@ See the LICENSE.txt file in the project root for more information.
 #include "src/libs/json.hpp"
 #include "src/contract/variables/safeuint.h"
 #include "src/contract/variables/safeint.h"
+
+/// Localhost IPv4 address constant
+inline const boost::asio::ip::address LOCALHOST = boost::asio::ip::address::from_string("127.0.0.1");
 
 /// @file utils.h
 // Forward declaration.
@@ -416,8 +420,6 @@ namespace Utils {
     using type = typename makeTupleTypeHelper<std::tuple<>, EventParam<Args, Flags>...>::type;  ///< Typedef.
   };
 
-  extern std::atomic<bool> logToCout; ///< Indicates whether logging to stdout is allowed (for safePrint()).
-
   /**
    * %Log a string to a file called `log.txt`.
    * @param str The string to log.
@@ -785,10 +787,18 @@ namespace Utils {
 
   /**
    * Shorthand for obtaining a milliseconds-since-epoch uint64_t timestamp from std::chrono
+   * @return Milliseconds elapsed since epoch.
    */
   inline uint64_t getCurrentTimeMillisSinceEpoch() {
     return std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now().time_since_epoch()).count();
   }
+
+  /**
+   * Given an UNIX signal number, return the name followed by the number in parenthesis.
+   * @param signum The signal number.
+   * @return A string containing the signal name (or "Unknown signal") and number.
+   */
+  std::string getSignalName(int signum);
 };
 
 #endif  // UTILS_H

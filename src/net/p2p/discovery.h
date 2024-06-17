@@ -21,7 +21,7 @@ namespace P2P {
    * Worker class for the Discovery manager, as a separate thread.
    * Responsible for the process of actually discovering other nodes.
    */
-  class DiscoveryWorker {
+  class DiscoveryWorker : public Log::LogicalLocationProvider {
   private:
     /// Reference to the parent connection manager.
     ManagerBase& manager_;
@@ -96,6 +96,8 @@ namespace P2P {
 
     /// Destructor. Automatically stops the worker thread.
     ~DiscoveryWorker() { this->stop(); }
+
+    std::string getLogicalLocation() const override; ///< Log instance from P2P
 
     /// Start the discovery thread.
     void start();

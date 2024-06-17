@@ -155,9 +155,7 @@ namespace THTTPJsonRPC{
 
       auto newBestBlock = createValidBlock(validatorPrivKeysHttpJsonRpc, blockchainWrapper.state, blockchainWrapper.storage, std::move(transactionsCopy));
 
-      REQUIRE(blockchainWrapper.state.validateNextBlock(newBestBlock));
-
-      blockchainWrapper.state.processNextBlock(FinalizedBlock(newBestBlock));
+      REQUIRE(blockchainWrapper.state.tryProcessNextBlock(std::move(newBestBlock)) == BlockValidationStatus::valid);
 
       blockchainWrapper.http.start();
       std::this_thread::sleep_for(std::chrono::milliseconds(100));
@@ -386,6 +384,19 @@ namespace THTTPJsonRPC{
         REQUIRE(eth_getTransactionReceiptResponse["result"]["root"] == Hash().hex(true));
         REQUIRE(eth_getTransactionReceiptResponse["result"]["status"] == "0x1");
       }
+
+      json eth_feeHistoryResponse = requestMethod("eth_feeHistory", json::array({ "0x2", "latest" }));
+      REQUIRE(eth_feeHistoryResponse["result"]["baseFeePerGas"][0] == "0x9502f900");
+      REQUIRE(eth_feeHistoryResponse["result"]["baseFeePerGas"][1] == "0x9502f900");
+      REQUIRE(eth_feeHistoryResponse["result"]["gasUsedRatio"][0] == 1.0); // TODO: properly compare float pointing values
+      REQUIRE(eth_feeHistoryResponse["result"]["gasUsedRatio"][1] == 1.0);
+      REQUIRE(eth_feeHistoryResponse["result"]["oldestBlock"] == "0x0");
+
+      eth_feeHistoryResponse = requestMethod("eth_feeHistory", json::array({ "0x1", "0x0" }));
+      REQUIRE(eth_feeHistoryResponse["result"]["baseFeePerGas"][0] == "0x9502f900");
+      REQUIRE(eth_feeHistoryResponse["result"]["baseFeePerGas"][1] == "0x9502f900");
+      REQUIRE(eth_feeHistoryResponse["result"]["gasUsedRatio"][0] == 1.0); // TODO: properly compare float pointing values
+      REQUIRE(eth_feeHistoryResponse["result"]["oldestBlock"] == "0x0");
     }
   }
 }

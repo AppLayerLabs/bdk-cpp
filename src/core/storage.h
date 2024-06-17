@@ -25,11 +25,12 @@ enum StorageStatus { NotFound, OnChain, OnCache, OnDB };
  * Used to store blocks in memory and on disk, and helps the State process
  * new blocks, transactions and RPC queries.
  */
-class Storage {
+class Storage : public Log::LogicalLocationProvider {
   // TODO: possibly replace `std::shared_ptr<const Block>` with a better solution.
 private:
   DB db_;  ///< Database object that contains all the blockchain blocks
   const Options& options_;  ///< Reference to the options singleton.
+  const std::string instanceIdStr_; ///< Identifier for logging
   /**
    * Recent blockchain history, up to the 1000 most recent blocks or 1M transactions, whichever comes first.
    * This limit is required because it would be too expensive to keep every single transaction in memory
@@ -61,9 +62,6 @@ private:
 
   mutable std::shared_mutex chainLock_; ///< Mutex for managing read/write access to the blockchain.
   mutable std::shared_mutex cacheLock_; ///< Mutex to manage read/write access to the cache.
-  std::thread periodicSaveThread_;  ///< Thread that periodically saves the blockchain history to the database.
-  uint64_t periodicSaveCooldown_ = 15;  ///< Cooldown for the periodic save thread, in seconds.
-  bool stopPeriodicSave_ = false; ///< Flag for stopping the periodic save thread, if required.
 
   // Temporary fix for SaveLatest threads
   std::atomic<int> slThreads_;
@@ -134,11 +132,17 @@ public:
   /**
    * Constructor. Automatically loads the chain from the database
    * and starts the periodic save thread.
-   * @param db Reference to the database.
+   * @param instanceIdStr Instance ID string to use for logging.
    * @param options Reference to the options singleton.
    */
-  Storage(const Options& options);
-  ~Storage(); ///< Destructor. Automatically saves the chain to the database.
+  Storage(const std::string& instanceIdStr, const Options& options);
+  // Rule of 5, no copy/move allowed.
+  Storage(const Storage&) = delete; ///< No copy constructor allowed.
+  Storage& operator=(const Storage&) = delete; ///< No copy assignment allowed.
+  Storage(Storage&&) = delete; ///< No move constructor allowed.
+  Storage& operator=(Storage&&) = delete; ///< No move assignment allowed.
+  virtual ~Storage() noexcept; ///< Destructor. Automatically saves the chain to the database.
+  virtual std::string getLogicalLocation() const { return instanceIdStr_; } ///< Log instance (provided in ctor)
   void pushBack(FinalizedBlock block); ///< Wrapper for `pushBackInternal()`. Use this as it properly locks `chainLock_`.
   void pushFront(FinalizedBlock block);  ///< Wrapper for `pushFrontInternal()`. Use this as it properly locks `chainLock_`.
   void popBack(); ///< Remove a block from the end of the chain.
@@ -216,14 +220,6 @@ public:
 
   /// Get the number of blocks currently in the chain (nHeight of latest block + 1).
   uint64_t currentChainSize() const;
-
-  // TODO: both functions below should be called by the ctor/dtor respectively.
-
-  /// Start the periodic save thread.
-  void periodicSaveToDB();
-
-  /// Stop the periodic save thread.
-  void stopPeriodicSaveToDB() { this->stopPeriodicSave_ = true; }
 };
 
 #endif  // STORAGE_H

@@ -7,11 +7,10 @@ See the LICENSE.txt file in the project root for more information.
 
 #include "utils.h"
 
+#include <csignal>
+
 std::mutex log_lock;
 std::mutex debug_mutex;
-std::mutex cout_mutex;
-
-std::atomic<bool> Utils::logToCout = false;
 
 void fail(const std::string& cl, std::string&& func, boost::beast::error_code ec, const char* what) {
   Logger::logToDebug(LogType::ERROR, cl, std::move(func), std::string("HTTP Fail ") + what + " : " + ec.message());
@@ -50,14 +49,11 @@ BytesArrView Utils::getFunctionArgs(const evmc_message& msg) {
 }
 
 void Utils::safePrint(std::string_view str) {
-  if (!Utils::logToCout) return; // Never print if we are in a test
-  std::lock_guard lock(cout_mutex);
-  std::cout << str << std::endl;
+  Log::safePrint(str);
 }
 
 void Utils::safePrintTest(std::string_view str) {
-  std::lock_guard lock(cout_mutex);
-  std::cout << str << std::endl;
+  Log::safePrintTest(str);
 }
 
 Hash Utils::sha3(const BytesArrView input) {
@@ -797,7 +793,7 @@ Bytes Utils::padRightBytes(const BytesArrView bytes, unsigned int charAmount, ui
 
 json Utils::readConfigFile() {
   if (!std::filesystem::exists("config.json")) {
-    Logger::logToDebug(LogType::INFO, Log::utils, __func__, "No config file found, generating default");
+    SLOGINFO("No config file found, generating default");
     json config;
     config["rpcport"] = 8080;
     config["p2pport"] = 8081;
@@ -811,5 +807,14 @@ json Utils::readConfigFile() {
   std::ifstream configFile("config.json");
   json config = json::parse(configFile);
   return config;
+}
+
+std::string Utils::getSignalName(int signum) {
+  std::string n;
+  if (signum == SIGINT) n = "SIGINT";
+  else if (signum == SIGHUP) n = "SIGHUP";
+  else n = "Unknown signal";
+  n += " (" + std::to_string(signum) + ")";
+  return n;
 }
 

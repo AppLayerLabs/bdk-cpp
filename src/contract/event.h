@@ -109,9 +109,7 @@ class Event {
       if (!anonymous) this->topics_.push_back(eventSignature);
       for (const auto& topic : topics) {
         if (this->topics_.size() >= 4) {
-          Logger::logToDebug(LogType::WARNING, Log::event, std::source_location::current().function_name(),
-            "Attention! Event " + name + " has more than 3 indexed parameters. Only the first 3 will be indexed."
-          );
+          LOGWARNING("Attention! Event " + name + " has more than 3 indexed parameters. Only the first 3 will be indexed.");
           break;
         }
         this->topics_.push_back(topic);
@@ -265,7 +263,7 @@ class EventManager {
     /**
      * Register the event.
      */
-    void registerEvent(Event&& event) { this->events_.insert(std::move(event)); }
+    void registerEvent(Event&& event) noexcept { this->events_.insert(std::move(event)); }
 
     /**
      * Dump function.

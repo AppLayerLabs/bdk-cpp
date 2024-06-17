@@ -26,8 +26,20 @@ void DumpManager::pushBack(Dumpable* dumpable)
   dumpables_.push_back(dumpable);
 }
 
-std::pair<std::vector<DBBatch>, uint64_t> DumpManager::dumpState() const {
-  std::pair<std::vector<DBBatch>,uint64_t> ret;
+std::vector<DBBatch> DumpManager::dumpToBatch(unsigned int threadOffset,
+                                              unsigned int threadItems) const
+{
+  std::vector<DBBatch> ret;
+
+  for (auto i = threadOffset; i < (threadOffset + threadItems); ++i)
+    ret.emplace_back(this->dumpables_[i]->dump());
+
+  return ret;
+}
+
+std::pair<std::vector<DBBatch>, uint64_t> DumpManager::dumpState() const
+{
+  std::pair<std::vector<DBBatch>, uint64_t> ret;
   auto& [batches, blockHeight] = ret;
   {
     // state mutex lock
@@ -36,14 +48,34 @@ std::pair<std::vector<DBBatch>, uint64_t> DumpManager::dumpState() const {
     // or state changes are happening)
     blockHeight = storage_.latest()->getNHeight();
     // Emplace DBBatch operations
-    Logger::logToDebug(LogType::INFO,
-                       Log::dumpManager,
-                       __func__,
-                       "Emplace DBBatch operations");
-    for (const auto dumpable: dumpables_) {
-      // call dump functions and put the operations ate the database
-      batches.emplace_back(dumpable->dump());
+    LOGDEBUG("Emplace DBBatch operations");
+
+    const auto nThreads = std::thread::hardware_concurrency();
+    auto requiredOffset = this->dumpables_.size() / nThreads;
+    auto remaining = (this->dumpables_.size() - (requiredOffset * nThreads));
+    auto currentOffset = 0;
+    std::vector<std::future<std::vector<DBBatch>>> futures(nThreads);
+    std::vector<std::vector<DBBatch>> outputs(nThreads);
+
+    for (decltype(futures)::size_type i = 0; i < nThreads; ++i) {
+      auto nItems = requiredOffset;
+      if (remaining != 0) {
+        /// Add a extra job if the division was not perfect and we have remainings
+        ++nItems;
+        --remaining;
+      }
+      futures[i] = std::async(&DumpManager::dumpToBatch, this, currentOffset, nItems);
+      currentOffset += nItems;
     }
+    // get futures output (wait thread, implicit)
+    for (auto i = 0; i < nThreads; ++i)
+      outputs[i] = futures[i].get();
+
+    // emplace futures return into batches
+    for (auto i = 0; i < nThreads; ++i)
+      for (auto j = 0; j < outputs[i].size(); ++j)
+        batches.emplace_back(outputs[i][j]);
+
     // Also dump the events
     // EventManager has its own database.
     // We just need to make sure that its data is dumped
@@ -70,12 +102,13 @@ DumpWorker::DumpWorker(const Options& options,
     storage_(storage),
     dumpManager_(dumpManager)
 {
-  Logger::logToDebug(LogType::INFO, Log::dumpWorker, __func__, "DumpWorker Started.");
+  LOGXTRACE("DumpWorker Started.");
 }
 
 DumpWorker::~DumpWorker()
 {
-  Logger::logToDebug(LogType::INFO, Log::dumpWorker, __func__, "DumpWorker Stopped.");
+  stopWorker();
+  LOGXTRACE("DumpWorker Stopped.");
 }
 
 bool DumpWorker::workerLoop()
@@ -83,10 +116,7 @@ bool DumpWorker::workerLoop()
   uint64_t latestBlock = this->storage_.currentChainSize();
   while (!this->stopWorker_) {
     if (latestBlock + this->options_.getStateDumpTrigger() < this->storage_.currentChainSize()) {
-      Logger::logToDebug(LogType::INFO,
-                         Log::dumpWorker,
-                         __func__,
-                         "Current size >= 100");
+      LOGDEBUG("Current size >= 100");
       dumpManager_.dumpToDB();
       latestBlock = this->storage_.currentChainSize();
     }

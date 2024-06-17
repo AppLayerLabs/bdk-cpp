@@ -20,13 +20,11 @@ See the LICENSE.txt file in the project root for more information.
 #include "../utils/options.h"
 #include "../utils/db.h"
 
-class Blockchain; // Forward declaration for Syncer.
-
 /**
  * Helper class that syncs the node with other nodes in the network.
  * Currently it's *single threaded*, meaning that it doesn't require mutexes.
  */
-class Syncer {
+class Syncer : public Log::LogicalLocationProvider {
   private:
     P2P::ManagerNormal& p2p_;  ///< Reference to the P2P networking engine.
     const Storage& storage_;   ///< Reference to the blockchain storage.
@@ -41,6 +39,8 @@ class Syncer {
      */
     explicit Syncer(P2P::ManagerNormal& p2p, const Storage& storage, State& state) :
       p2p_(p2p), storage_(storage), state_(state) {}
+
+    std::string getLogicalLocation() const override { return p2p_.getLogicalLocation(); } ///< Log instance from P2P
 
     /**
      * Synchronize this node to the latest known blocks among all connected peers at the time this method is called.
@@ -63,13 +63,13 @@ class Syncer {
  * Contains, and acts as the middleman of, every other part of the core and net protocols.
  * Those parts interact with one another by communicating through this class.
  */
-class Blockchain {
+class Blockchain : public Log::LogicalLocationProvider {
   private:
     Options options_;           ///< Options singleton.
-    const DB db_;                     ///< Database.
+    P2P::ManagerNormal p2p_;    ///< P2P connection manager. NOTE: must be initialized first due to getLogicalLocation()
+    const DB db_;               ///< Database.
     Storage storage_;           ///< Blockchain storage.
     State state_;               ///< Blockchain state.
-    P2P::ManagerNormal p2p_;    ///< P2P connection manager.
     HTTPServer http_;           ///< HTTP server.
     Syncer syncer_;             ///< Blockchain syncer.
     Consensus consensus_;       ///< Block and transaction processing.
@@ -81,6 +81,7 @@ class Blockchain {
      */
     explicit Blockchain(const std::string& blockchainPath);
     ~Blockchain() = default;  ///< Default destructor.
+    std::string getLogicalLocation() const override { return p2p_.getLogicalLocation(); } ///< Log instance from P2P
     void start(); ///< Start the blockchain. Initializes P2P, HTTP and Syncer, in this order.
     void stop();  ///< Stop/shutdown the blockchain. Stops Syncer, HTTP and P2P, in this order (reverse order of start()).
 

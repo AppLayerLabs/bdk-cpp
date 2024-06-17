@@ -33,8 +33,8 @@ namespace P2P {
   * It contains the basic functionality for reading and writing messages to the
   * socket.
   */
-  class Session : public std::enable_shared_from_this<Session> {
-    protected:
+  class Session : public std::enable_shared_from_this<Session>, public Log::LogicalLocationProvider {
+    private:
       /// The socket used to communicate with the client.
       net::ip::tcp::socket socket_;
 
@@ -55,6 +55,9 @@ namespace P2P {
 
       /// Indicates which type of connection this session is.
       const ConnectionType connectionType_;
+
+      /// True if the associated socket was already closed.
+      std::atomic<bool> closed_ = false;
 
       /// Reference back to the Manager object.
       ManagerBase& manager_;
@@ -79,6 +82,9 @@ namespace P2P {
 
       /// Handshake flag
       std::atomic<bool> doneHandshake_ = false;
+
+      /// Set when the Session is successfully registered with the manager (after handshake is done)
+      std::atomic<bool> registered_ = false;
 
       /// CLIENT SPECIFIC FUNCTIONS (CONNECTING TO A SERVER)
       /// Connect to a specific endpoint.
@@ -125,7 +131,7 @@ namespace P2P {
       void do_close();
 
       /// Handle an error from the socket.
-      bool handle_error(const std::string& func, const boost::system::error_code& ec);
+      void handle_error(const std::string& func, const boost::system::error_code& ec);
 
     public:
 
@@ -134,12 +140,12 @@ namespace P2P {
                        ConnectionType connectionType,
                        ManagerBase& manager)
           : socket_(std::move(socket)),
-            readStrand_(socket_.get_executor()),
-            writeStrand_(socket_.get_executor()),
-            manager_(manager),
             address_(socket_.remote_endpoint().address()),
             port_(socket_.remote_endpoint().port()),
-            connectionType_(connectionType)
+            connectionType_(connectionType),
+            manager_(manager),
+            readStrand_(socket_.get_executor()),
+            writeStrand_(socket_.get_executor())
             {
               if (connectionType == ConnectionType::OUTBOUND) {
                 /// Not a server, it will not call do_connect().
@@ -155,18 +161,20 @@ namespace P2P {
                        unsigned short port
                        )
           : socket_(std::move(socket)),
-            readStrand_(socket_.get_executor()),
-            writeStrand_(socket_.get_executor()),
-            manager_(manager),
             address_(address),
             port_(port),
-            connectionType_(connectionType)
+            connectionType_(connectionType),
+            manager_(manager),
+            readStrand_(socket_.get_executor()),
+            writeStrand_(socket_.get_executor())
       {
         if (connectionType == ConnectionType::INBOUND) {
           /// Not a client, it will try to write handshake without connecting.
           throw DynamicException("Session: Invalid connection type.");
         }
       }
+
+      std::string getLogicalLocation() const override; ///< Log instance from P2P
 
       /// Max message size
       const uint64_t maxMessageSize_ = 1024 * 1024 * 128; // (128 MB)
@@ -180,34 +188,22 @@ namespace P2P {
       /// Function for writing a message to the socket.
       void write(const std::shared_ptr<const Message>& message);
 
-      /// Check if the session is closed.
-      inline bool isDisconnected() const { return !socket_.is_open(); }
-
       /// Getter for `address_`.
       const net::ip::address& address() const { return this->address_; }
 
       /// Getter for `port_`.
       const unsigned short& port() const { return port_; }
 
-      /// Getter for `address_` and `port_`, in form of a pair.
-      std::pair<const net::ip::address, const unsigned short> addressAndPort() const {
-        return std::make_pair(this->address_, this->port_);
+      /// Getter for an `address_:port_` string.
+      std::string addressAndPortStr() const {
+        return this->address_.to_string() + ":" + std::to_string(this->port_);
       }
 
       /// Getter for `hostNodeId_`.
       const NodeID& hostNodeId() const { return this->nodeId_; }
 
-      /// Getter for `connectionType_`.
-      const ConnectionType& connectionType() const { return connectionType_; }
-
       /// Getter for `hostType_`.
       const NodeType& hostType() const { return this->type_; }
-
-      /// Getter for `hostServerPort_`.
-      const unsigned short& hostServerPort() const { return this->port_; }
-
-      /// Getter for `doneHandshake_`.
-      const std::atomic<bool>& doneHandshake() const { return this->doneHandshake_; }
   };
 }
 

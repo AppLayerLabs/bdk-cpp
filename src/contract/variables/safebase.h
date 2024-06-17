@@ -9,7 +9,7 @@ See the LICENSE.txt file in the project root for more information.
 #define SAFEBASE_H
 
 #include <memory>
-
+#include <cassert>
 #include "../utils/dynamicexception.h"
 
 // Forward declarations.
@@ -80,9 +80,7 @@ class SafeBase {
      * Child class should always do `this->registered = false;` at the end of commit().
      * @throw DynamicException if not overridden by the child class.
      */
-    inline virtual void commit() {
-      throw DynamicException("Derived Class from SafeBase does not override commit()");
-    }
+    inline virtual void commit() { assert(false); }
 
     /**
      * Revert a structure value. Should always be overridden by the child class.
@@ -90,9 +88,7 @@ class SafeBase {
      * Child class should always do `this->registered = false;` at the end of revert().
      * @throw DynamicException if not overridden by the child class.
      */
-    inline virtual void revert() {
-      throw DynamicException("Derived Class from SafeBase does not override revert()");
-    }
+    inline virtual void revert() { assert(false); }
 };
 
 #endif // SAFEBASE_H

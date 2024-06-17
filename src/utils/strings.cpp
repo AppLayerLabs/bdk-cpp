@@ -91,7 +91,7 @@ bool Address::isValid(const std::string_view add, bool inBytes) {
 
 bool Address::isChksum(const std::string_view add) {
   Address myAdd(add, false);
-  return (add == myAdd.toChksum());
+  return (add == std::string_view(myAdd.toChksum()));
 }
 
 StorageKey::StorageKey(const evmc::address& addr, const evmc::bytes32& slot) {

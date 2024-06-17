@@ -2,6 +2,7 @@ set(TESTS_HEADERS
   ""
   ${CMAKE_SOURCE_DIR}/tests/sdktestsuite.hpp
   ${CMAKE_SOURCE_DIR}/tests/blockchainwrapper.hpp
+  ${CMAKE_SOURCE_DIR}/tests/statetest.hpp
   PARENT_SCOPE
 )
 
@@ -47,6 +48,14 @@ set (TESTS_SOURCES
   ${CMAKE_SOURCE_DIR}/tests/net/p2p/p2p.cpp
   ${CMAKE_SOURCE_DIR}/tests/net/http/httpjsonrpc.cpp
   ${CMAKE_SOURCE_DIR}/tests/sdktestsuite.cpp
-  PARENT_SCOPE
 )
 
+# Add benchmark.cpp if BUILD_BENCHMARK is set
+if (BUILD_BENCHMARK)
+  message(STATUS "Building benchmark tests")
+  list(APPEND TESTS_SOURCES
+    ${CMAKE_SOURCE_DIR}/tests/benchmark/erc20.cpp
+  )
+endif()
+
+set(TESTS_SOURCES "${TESTS_SOURCES}" PARENT_SCOPE)

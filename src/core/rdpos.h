@@ -60,7 +60,7 @@ class Validator : public Address {
 };
 
 /// Abstraction of the %rdPoS (Random Deterministic Proof of Stake) consensus algorithm.
-class rdPoS : public BaseContract {
+class rdPoS : public BaseContract, public Log::LogicalLocationProvider {
   private:
     const Options& options_;  ///< Reference to the options singleton.
     const Storage& storage_;  ///< Reference to the blockchain's storage.
@@ -94,6 +94,8 @@ class rdPoS : public BaseContract {
     rdPoS(const DB& db, DumpManager& manager, const Storage& storage, P2P::ManagerNormal& p2p, const Options& options, State& state);
 
     ~rdPoS() override;  ///< Destructor.
+
+    std::string getLogicalLocation() const override { return p2p_.getLogicalLocation(); } ///< Log instance from P2P
 
     ///@{
     /** Getter. */

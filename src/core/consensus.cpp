@@ -9,7 +9,7 @@ See the LICENSE.txt file in the project root for more information.
 #include "blockchain.h"
 
 void Consensus::validatorLoop() {
-  Logger::logToDebug(LogType::INFO, Log::consensus, __func__, "Starting validator loop.");
+  LOGINFO("Starting validator loop.");
   Validator me(Secp256k1::toAddress(Secp256k1::toUPub(this->options_.getValidatorPrivKey())));
   while (!this->stop_) {
     std::shared_ptr<const FinalizedBlock> latestBlock = this->storage_.latest();
@@ -28,7 +28,7 @@ void Consensus::validatorLoop() {
     bool logged = false;
     while (latestBlock == this->storage_.latest() && !this->stop_) {
       if (!logged) {
-        Logger::logToDebug(LogType::INFO, Log::consensus, __func__, "Waiting for next block to be created.");
+        LOGDEBUG("Waiting for next block to be created.");
         logged = true;
       }
       // Wait for next block to be created.
@@ -41,15 +41,13 @@ void Consensus::doValidatorBlock() {
   // TODO: Improve this somehow.
   // Wait until we are ready to create the block
   auto start = std::chrono::high_resolution_clock::now();
-  Logger::logToDebug(LogType::INFO, Log::consensus, __func__, "Block creator: waiting for txs");
+  LOGDEBUG("Block creator: waiting for txs");
   uint64_t validatorMempoolSize = 0;
   std::unique_ptr<uint64_t> lastLog = nullptr;
   while (validatorMempoolSize != this->state_.rdposGetMinValidators() * 2 && !this->stop_) {
     if (lastLog == nullptr || *lastLog != validatorMempoolSize) {
       lastLog = std::make_unique<uint64_t>(validatorMempoolSize);
-      Logger::logToDebug(LogType::INFO, Log::consensus, __func__,
-        "Block creator has: " + std::to_string(validatorMempoolSize) + " transactions in mempool"
-      );
+      LOGDEBUG("Block creator has: " + std::to_string(validatorMempoolSize) + " transactions in mempool");
     }
     validatorMempoolSize = this->state_.rdposGetMempoolSize();
     // Try to get more transactions from other nodes within the network
@@ -61,7 +59,7 @@ void Consensus::doValidatorBlock() {
     }
     std::this_thread::sleep_for(std::chrono::microseconds(10));
   }
-  Logger::logToDebug(LogType::INFO, Log::consensus, __func__, "Validator ready to create a block");
+  LOGDEBUG("Validator ready to create a block");
 
   // Wait until we have all required transactions to create the block.
   auto waitForTxs = std::chrono::high_resolution_clock::now();
@@ -69,14 +67,14 @@ void Consensus::doValidatorBlock() {
   while (this->state_.getMempoolSize() < 1) {
     if (!logged) {
       logged = true;
-      Logger::logToDebug(LogType::INFO, Log::consensus, __func__, "Waiting for at least one transaction in the mempool.");
+      LOGDEBUG("Waiting for at least one transaction in the mempool.");
     }
     if (this->stop_) return;
 
     // Try to get transactions from the network.
     auto connectedNodesList = this->p2p_.getSessionsIDs(P2P::NodeType::NORMAL_NODE);
     for (auto const& nodeId : connectedNodesList) {
-      Logger::logToDebug(LogType::INFO, Log::consensus, __func__, "Requesting txs...");
+      LOGDEBUG("Requesting txs...");
       if (this->stop_) break;
       auto txList = this->p2p_.requestTxs(nodeId);
       if (this->stop_) break;
@@ -91,7 +89,7 @@ void Consensus::doValidatorBlock() {
   auto creatingBlock = std::chrono::high_resolution_clock::now();
 
   // Create the block.
-  Logger::logToDebug(LogType::INFO, Log::consensus, __func__, "Ordering transactions and creating block");
+  LOGDEBUG("Ordering transactions and creating block");
   if (this->stop_) return;
   auto mempool = this->state_.rdposGetMempool();
   auto randomList = this->state_.rdposGetRandomList();
@@ -138,28 +136,28 @@ void Consensus::doValidatorBlock() {
   auto timestamp = std::chrono::duration_cast<std::chrono::microseconds>(
     std::chrono::system_clock::now().time_since_epoch()
   ).count();
-  Logger::logToDebug(LogType::INFO, Log::consensus, __func__, "Create a new valid block.");
+  LOGDEBUG("Create a new valid block.");
   auto block = FinalizedBlock::createNewValidBlock(std::move(chainTxs),
                                                    std::move(validatorTxs),
                                                    latestBlock->getHash(),
                                                    timestamp,
                                                    latestBlock->getNHeight() + 1,
                                                    this->options_.getValidatorPrivKey());
-  Logger::logToDebug(LogType::INFO, Log::consensus, __func__, "Block created, validating.");
-  if (!this->state_.validateNextBlock(block)) {
-    Logger::logToDebug(LogType::ERROR, Log::consensus, __func__, "Block is not valid!");
+  LOGDEBUG("Block created, validating.");
+  Hash latestBlockHash = block.getHash();
+  BlockValidationStatus bvs = state_.tryProcessNextBlock(std::move(block));
+  if (bvs != BlockValidationStatus::valid) {
+    LOGERROR("Block is not valid!");
     throw DynamicException("Block is not valid!");
   }
   if (this->stop_) return;
-  Hash latestBlockHash = block.getHash();
-  this->state_.processNextBlock(std::move(block));
   if (this->storage_.latest()->getHash() != latestBlockHash) {
-    Logger::logToDebug(LogType::ERROR, Log::consensus, __func__, "Block is not valid!");
+    LOGERROR("Block is not valid!");
     throw DynamicException("Block is not valid!");
   }
 
   // Broadcast the block through P2P
-  Logger::logToDebug(LogType::INFO, Log::consensus, __func__, "Broadcasting block.");
+  LOGDEBUG("Broadcasting block.");
   if (this->stop_) return;
   this->p2p_.getBroadcaster().broadcastBlock(this->storage_.latest());
   auto end = std::chrono::high_resolution_clock::now();
@@ -167,8 +165,7 @@ void Consensus::doValidatorBlock() {
   long double timeToConsensus = std::chrono::duration_cast<std::chrono::milliseconds>(waitForTxs - start).count();
   long double timeToTxs = std::chrono::duration_cast<std::chrono::milliseconds>(creatingBlock - waitForTxs).count();
   long double timeToBlock = std::chrono::duration_cast<std::chrono::milliseconds>(end - creatingBlock).count();
-  Logger::logToDebug(LogType::INFO, Log::consensus, __func__,
-    "Block created in: " + std::to_string(duration) + "ms, " +
+  LOGDEBUG("Block created in: " + std::to_string(duration) + "ms, " +
     "Time to consensus: " + std::to_string(timeToConsensus) + "ms, " +
     "Time to txs: " + std::to_string(timeToTxs) + "ms, " +
     "Time to block: " + std::to_string(timeToBlock) + "ms"
@@ -178,7 +175,7 @@ void Consensus::doValidatorBlock() {
 void Consensus::doValidatorTx(const uint64_t& nHeight, const Validator& me) {
   Hash randomness = Hash::random();
   Hash randomHash = Utils::sha3(randomness.get());
-  Logger::logToDebug(LogType::INFO, Log::consensus, __func__, "Creating random Hash transaction");
+  LOGDEBUG("Creating random Hash transaction");
   Bytes randomHashBytes = Hex::toBytes("0xcfffe746");
   randomHashBytes.insert(randomHashBytes.end(), randomHash.get().begin(), randomHash.get().end());
   TxValidator randomHashTx(
@@ -203,25 +200,23 @@ void Consensus::doValidatorTx(const uint64_t& nHeight, const Validator& me) {
   BytesArrView randomHashTxView(randomHashTx.getData());
   BytesArrView randomSeedTxView(seedTx.getData());
   if (Utils::sha3(randomSeedTxView.subspan(4)) != randomHashTxView.subspan(4)) {
-    Logger::logToDebug(LogType::INFO, Log::consensus, __func__, "RandomHash transaction is not valid!!!");
+    LOGDEBUG("RandomHash transaction is not valid!!!");
     return;
   }
 
   // Append to mempool and broadcast the transaction across all nodes.
-  Logger::logToDebug(LogType::INFO, Log::consensus, __func__, "Broadcasting randomHash transaction");
+  LOGDEBUG("Broadcasting randomHash transaction");
   this->state_.rdposAddValidatorTx(randomHashTx);
   this->p2p_.getBroadcaster().broadcastTxValidator(randomHashTx);
 
   // Wait until we received all randomHash transactions to broadcast the randomness transaction
-  Logger::logToDebug(LogType::INFO, Log::consensus, __func__, "Waiting for randomHash transactions to be broadcasted");
+  LOGDEBUG("Waiting for randomHash transactions to be broadcasted");
   uint64_t validatorMempoolSize = 0;
   std::unique_ptr<uint64_t> lastLog = nullptr;
   while (validatorMempoolSize < this->state_.rdposGetMinValidators() && !this->stop_) {
     if (lastLog == nullptr || *lastLog != validatorMempoolSize) {
       lastLog = std::make_unique<uint64_t>(validatorMempoolSize);
-      Logger::logToDebug(LogType::INFO, Log::consensus, __func__,
-        "Validator has: " + std::to_string(validatorMempoolSize) + " transactions in mempool"
-      );
+      LOGDEBUG("Validator has: " + std::to_string(validatorMempoolSize) + " transactions in mempool");
     }
     validatorMempoolSize = this->state_.rdposGetMempoolSize();
     // Try to get more transactions from other nodes within the network
@@ -234,7 +229,7 @@ void Consensus::doValidatorTx(const uint64_t& nHeight, const Validator& me) {
     std::this_thread::sleep_for(std::chrono::microseconds(10));
   }
 
-  Logger::logToDebug(LogType::INFO, Log::consensus, __func__, "Broadcasting random transaction");
+  LOGDEBUG("Broadcasting random transaction");
   // Append and broadcast the randomness transaction.
   this->state_.addValidatorTx(seedTx);
   this->p2p_.getBroadcaster().broadcastTxValidator(seedTx);

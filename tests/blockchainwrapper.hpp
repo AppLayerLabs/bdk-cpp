@@ -24,13 +24,13 @@ See the LICENSE.txt file in the project root for more information.
  */
 struct TestBlockchainWrapper {
   const Options options;  ///< Options singleton.
+  P2P::ManagerNormal p2p; ///< P2P connection manager. NOTE: p2p needs to be constructed first due to getLogicalLocation().
   DB db;                  ///< Database.
   Storage storage;        ///< Blockchain storage.
   State state;            ///< Blockchain state.
-  P2P::ManagerNormal p2p; ///< P2P connection manager.
   HTTPServer http;        ///< HTTP server.
-  Syncer syncer;             ///< Blockchain syncer.
-  Consensus consensus;       ///< Block and transaction processing.
+  Syncer syncer;          ///< Blockchain syncer.
+  Consensus consensus;    ///< Block and transaction processing.
 
   /**
    * Constructor.
@@ -39,10 +39,10 @@ struct TestBlockchainWrapper {
 
   explicit TestBlockchainWrapper(const Options& options_) :
     options(options_),
+    p2p(LOCALHOST, options, storage, state),
     db(std::get<0>(DumpManager::getBestStateDBPath(options))),
-    storage(options_),
+    storage(p2p.getLogicalLocation(), options_),
     state(db, storage, p2p, std::get<1>(DumpManager::getBestStateDBPath(options)), options),
-    p2p(boost::asio::ip::address::from_string("127.0.0.1"), options, storage, state),
     http(state, storage, p2p, options),
     syncer(p2p, storage, state),
     consensus(state, p2p, storage, options)
@@ -87,7 +87,7 @@ inline TestBlockchainWrapper initialize(const std::vector<Hash>& validatorPrivKe
         1,
         8080,
         Address(Hex::toBytes("0x00dead00665771855a34155f5e7405489df2c3c6")),
-        boost::asio::ip::address::from_string("127.0.0.1"),
+        LOCALHOST,
         serverPort,
         9999,
         11,
@@ -112,7 +112,7 @@ inline TestBlockchainWrapper initialize(const std::vector<Hash>& validatorPrivKe
       1,
       8080,
       Address(Hex::toBytes("0x00dead00665771855a34155f5e7405489df2c3c6")),
-      boost::asio::ip::address::from_string("127.0.0.1"),
+      LOCALHOST,
       serverPort,
       9999,
       11,
@@ -224,5 +224,59 @@ inline FinalizedBlock createValidBlock(const std::vector<Hash>& validatorPrivKey
                                                                  blockSignerPrivKey);
   return finalized;
 }
+
+/**
+ * Soft time limit check that can be placed inside test macros like REQUIRE().
+ * TEST_CHECK_TIME: prints only if the limit is exceeded.
+ * TEST_CHECK_TIME_VERBOSE: always prints the time elapsed.
+ */
+template<typename Func>
+bool testCheckTime(const char* file, int line, Func&& func, int timeLimitSeconds, bool printInfo) {
+  std::filesystem::path filePath(file);
+  std::string fileName = filePath.filename().string();
+  auto start = std::chrono::high_resolution_clock::now();
+  bool result = func();
+  auto end = std::chrono::high_resolution_clock::now();
+  auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
+  auto timeLimit = std::chrono::milliseconds(timeLimitSeconds * 1000);
+  bool warn = duration > timeLimit;
+  if (printInfo || warn) {
+    std::string msg = warn ? "WARNING" : "INFO";
+    msg += " [TIME]: " + std::to_string(duration.count()) + "/" + std::to_string(timeLimit.count())
+           + " ms (" + fileName + ":" + std::to_string(line) + ")";
+    Utils::safePrintTest(msg);
+  }
+  return result;
+}
+
+#define TEST_CHECK_TIME(func, timeLimitSeconds) \
+    testCheckTime(__FILE__, __LINE__, [&]() { return (func); }, timeLimitSeconds, false)
+
+#define TEST_CHECK_TIME_VERBOSE(func, timeLimitSeconds) \
+    testCheckTime(__FILE__, __LINE__, [&]() { return (func); }, timeLimitSeconds, true)
+
+/**
+ * Helper class for temporarily changing the log level in the scope of unit tests.
+ */
+class TempLogLevel {
+  LogType old_;
+public:
+  TempLogLevel(LogType tmp) {
+    old_ = Logger::getLogLevel();
+    Logger::setLogLevel(tmp);
+  }
+  ~TempLogLevel() {
+    Logger::setLogLevel(old_);
+  }
+};
+
+/**
+ * Helper class for temporarily enabling echoing to stdout in the scope of unit tests.
+ */
+class TempEchoToCout {
+public:
+  TempEchoToCout() { Logger::setEchoToCout(true); }
+  ~TempEchoToCout() { Logger::setEchoToCout(false); }
+};
 
 #endif // BLOCKCHAINWRAPPER_H
