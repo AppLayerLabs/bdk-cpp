@@ -184,6 +184,9 @@ class Hash : public FixedBytes<32> {
 
     /// Generate a CRYPTOGRAPHICALLY SECURE random 32-byte/256-bit hash.
     inline static Hash random() { Hash h; RAND_bytes(h.data_.data(), 32); return h; }
+
+    /// Overload operator<< (print it in test asserts, ...)
+    friend std::ostream& operator<<(std::ostream& os, const Hash& hash) { return os << hash.hex().get(); }
 };
 
 /// Abstraction of a functor (the first 4 bytes of a function's keccak hash). Inherits FixedBytes<4>.

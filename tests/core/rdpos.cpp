@@ -32,7 +32,7 @@ const std::vector<Hash> validatorPrivKeysRdpos {
 
 namespace TRdPoS {
   // Simple rdPoS execution, does not test network functionality neither validator execution (rdPoSWorker)
-  TEST_CASE("rdPoS Class", "[core][rdpos]") {
+  TEST_CASE("rdPoS Class", "[core][rdpos][sus]") {
     PrivKey chainOwnerPrivKey(Hex::toBytes("0xe89ef6409c467285bcae9f80ab1cfeb3487cfe61ab28fb7d36443e1daa0c2867"));
     Address chainOwnerAddress = Secp256k1::toAddress(Secp256k1::toUPub(chainOwnerPrivKey));
     std::string testDumpPath = Utils::getTestDumpPath();
@@ -107,6 +107,8 @@ namespace TRdPoS {
 
           // Process block on rdPoS.
           blockchainWrapper.state.rdposProcessBlock(block);
+
+          GLOGDEBUG("[TEST] block height: " + std::to_string(block.getNHeight()) + ", randomness: " + block.getBlockRandomness().hex().get());
 
           // Add the block to the storage.
           blockchainWrapper.storage.pushBack(std::move(block));
