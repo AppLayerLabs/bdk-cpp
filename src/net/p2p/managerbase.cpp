@@ -435,12 +435,12 @@ namespace P2P {
     return nodes;
   }
 
-  bool ManagerBase::sessionHandshaked(const std::shared_ptr<Session> &session) {
+  bool ManagerBase::sessionHandshaked(const std::shared_ptr<Session>& callerSession) {
     if (!this->isActive()) {
       return false;
     }
 
-    auto& nodeId = session->hostNodeId();
+    auto& nodeId = callerSession->hostNodeId();
     bool replaced = false;
     bool replacedWasHandshaked = false;
 
@@ -448,7 +448,7 @@ namespace P2P {
     //   callback is only useful for raising a "Peer Connected" event.
     // For INBOUND connections, the handshaked session contains the correct NodeID of the remote host now,
     //   and can finally attempt registration (or maybe replace an OUTBOUND session for the same node).
-    if (session->connectionType() == ConnectionType::INBOUND)
+    if (callerSession->connectionType() == ConnectionType::INBOUND)
     {
       std::unique_lock lockSession(this->sessionsMutex_);
       // Check if this is a duplicate connection; if not, register it and log a new peer connection.
@@ -504,7 +504,7 @@ namespace P2P {
         LOGXTRACE("ManagerBase is already stopping -- cannot register session.");
         return false;
       }
-      sessions_.try_emplace(nodeId, session);
+      sessions_.try_emplace(nodeId, callerSession);
     }
 
     if (replaced) {

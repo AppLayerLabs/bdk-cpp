@@ -113,7 +113,7 @@ namespace P2P {
        * @param session The session that has completed the handshake.
        * @return `true` if registration is successful (relevant for INBOUND connections only), `false` on registration error.
        */
-      bool sessionHandshaked(const std::shared_ptr<Session>& session);
+      bool sessionHandshaked(const std::shared_ptr<Session>& callerSession);
 
       /**
        * Called by a Session object when it closes itself.

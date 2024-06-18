@@ -94,17 +94,6 @@ namespace P2P {
     }
 
     // Close the socket.
-    //
-    // Since this posts a call to do_close() for later, it is possible that handle_error is called multiple
-    //   times with multiple errors for the same Session object before closed_ is set to true. In any case,
-    //   the "winner" posted do_close() call does something, and the others are just no-ops since do_close()
-    //   checks for closed_ == true already before doing anything.
-    //
-    // FIXME/TODO: since we are calling this from the single strand_, we could just chain this
-    //   handler with the do_close handler directly, instead of posting the do_close() call for later.
-    //   And that can be done in every handler that is executing inside the strand_ already, which may
-    //   make the whole close()/do_close() indirection unnecessary from within Session (it is still needed
-    //   for external calls, that is, from within ManagerBase::disconnectSession()).
     this->close("Session::handle_error: " + ec.message());
   }
 
@@ -227,10 +216,6 @@ namespace P2P {
     // For INBOUND sessions, it will attempt to register them, and in that case this call
     //   can return false if the registration failed (which is expected in some cases of
     //   e.g. double connection attempts).
-
-    // FIXME: there is probably no need to create a shared_from_this in this call, because this
-    //        is being called by an ASIO handler, which is keeping the object alive itself with
-    //        its own shared_ptr to it until the handler finishes.
     if (!this->manager_.sessionHandshaked(shared_from_this())) {
 
       // Now, this is a bit tricky:
@@ -375,17 +360,20 @@ namespace P2P {
   }
 
   void Session::close(std::string&& reason) {
-    net::post(
+    // This net::dispatch (vs. net::post) should immediately call do_close() if the caller
+    //   is already a handler that is holding strand_, otherwise it will post the handler
+    //   (when close() is called from ManagerBase, for example).
+    net::dispatch(
       net::bind_executor(
         strand_,
-        [self = shared_from_this(), reason = std::move(reason)]() mutable {
-          self->do_close(std::move(reason));
+        [self = shared_from_this(), reasonStr = std::move(reason)]() mutable {
+          self->do_close(std::move(reasonStr));
         }
       )
     );
   }
 
-  void Session::do_close(std::string&& reason) {
+  void Session::do_close(std::string reason) {
     // This can only be called once per Session object
     if (closed_) {
       return;
