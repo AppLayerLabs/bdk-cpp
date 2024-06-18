@@ -55,6 +55,11 @@ template <int Size> struct SafeUintTester {
   using UnderlyingType = typename UnderlyingType<Size>::type;
 
   void operator()() const {
+    SECTION (std::string("SafeUint_t<") + std::to_string(Size) + "> underlying type") {
+      SafeUint val;
+      REQUIRE(std::is_same_v<std::decay_t<decltype(val.get())>, std::decay_t<UnderlyingType>>);
+    }
+
     SECTION(std::string("SafeUint_t<") + std::to_string(Size) + "> constructor") {
       SafeUint val(UnderlyingType(42));
       SafeUint copyVal(val);
