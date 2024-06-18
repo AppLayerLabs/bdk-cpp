@@ -141,7 +141,11 @@ namespace P2P {
       static RequestID random();
   };
 
+  /// A remote node is uniquely identified by its IP address and the port that it is listening for incoming TCP connections.
   using NodeID = std::pair<boost::asio::ip::address, uint16_t>;
+
+  /// Implements ordering between NodeIDs, which allows for simultaneous duplicate connections to be resolved.
+  bool operator<(const NodeID& a, const NodeID& b);
 
   /// Struct with information about a given node.
   class NodeInfo {

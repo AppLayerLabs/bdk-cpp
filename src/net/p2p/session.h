@@ -56,7 +56,7 @@ namespace P2P {
       /// Indicates which type of connection this session is.
       const ConnectionType connectionType_;
 
-      /// True if the associated socket was already closed.
+      /// Set to `true` when `socket_` is closed.
       std::atomic<bool> closed_ = false;
 
       /// Reference back to the Manager object.
@@ -82,8 +82,20 @@ namespace P2P {
       /// Handshake flag
       std::atomic<bool> doneHandshake_ = false;
 
-      /// Set when the Session is successfully registered with the manager (after handshake is done)
+      /// Track if this Session is currently registered with the manager
       std::atomic<bool> registered_ = false;
+
+      /// Track if this Session was ever unregistered by the manager
+      std::atomic<bool> unregistered_ = false;
+
+      /// Mutex to guard callbacks to ManagerBase vs. internal state transitions (such as registered_)
+      std::mutex stateMutex_;
+
+      /// My value for getLogicalLocation() LOG macros
+      std::string logSrc_;
+
+      /// Update logSrc_
+      void setLogSrc();
 
       /// CLIENT SPECIFIC FUNCTIONS (CONNECTING TO A SERVER)
       /// Connect to a specific endpoint.
@@ -127,7 +139,7 @@ namespace P2P {
       void on_write_message(boost::system::error_code ec, std::size_t);
 
       /// do_close, for closing using the io_context
-      void do_close();
+      void do_close(std::string reason);
 
       /// Handle an error from the socket.
       void handle_error(const std::string& func, const boost::system::error_code& ec);
@@ -137,39 +149,14 @@ namespace P2P {
       /// Construct a session with the given socket. (Used by the server)
       explicit Session(tcp::socket &&socket,
                        ConnectionType connectionType,
-                       ManagerBase& manager)
-          : socket_(std::move(socket)),
-            address_(socket_.remote_endpoint().address()),
-            port_(socket_.remote_endpoint().port()),
-            connectionType_(connectionType),
-            manager_(manager),
-            strand_(socket_.get_executor())
-            {
-              if (connectionType == ConnectionType::OUTBOUND) {
-                /// Not a server, it will not call do_connect().
-                throw DynamicException("Session: Invalid connection type.");
-              }
-            }
+                       ManagerBase& manager);
 
       /// Construct a session with the given socket (Used by the client)
       explicit Session(tcp::socket &&socket,
                        ConnectionType connectionType,
                        ManagerBase& manager,
                        const net::ip::address& address,
-                       unsigned short port
-                       )
-          : socket_(std::move(socket)),
-            address_(address),
-            port_(port),
-            connectionType_(connectionType),
-            manager_(manager),
-            strand_(socket_.get_executor())
-      {
-        if (connectionType == ConnectionType::INBOUND) {
-          /// Not a client, it will try to write handshake without connecting.
-          throw DynamicException("Session: Invalid connection type.");
-        }
-      }
+                       unsigned short port);
 
       std::string getLogicalLocation() const override; ///< Log instance from P2P
 
@@ -180,10 +167,13 @@ namespace P2P {
       void run();
 
       /// Function for closing the session.
-      void close();
+      void close(std::string reason = "");
 
       /// Function for writing a message to the socket.
       void write(const std::shared_ptr<const Message>& message);
+
+      /// ManagerBase notifies this session that it has been unregistered; returns whether this session was handshaked.
+      bool notifyUnregistered();
 
       /// Getter for `address_`.
       const net::ip::address& address() const { return this->address_; }
@@ -201,6 +191,9 @@ namespace P2P {
 
       /// Getter for `hostType_`.
       const NodeType& hostType() const { return this->type_; }
+
+      /// Getter for `connectionType_`
+      const ConnectionType& connectionType() const { return this->connectionType_; }
   };
 }
 
