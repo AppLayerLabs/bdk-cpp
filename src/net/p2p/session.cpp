@@ -191,6 +191,8 @@ namespace P2P {
     if (connectionType_ == ConnectionType::INBOUND) {
       this->nodeId_ = {this->address_, this->serverPort_};
       setLogSrc();
+      LOGTRACE("INBOUND handshaked connection port " + std::to_string(this->port_) +
+               " to listen port " + std::to_string(this->serverPort_));
     }
 
     // This mutex is acquired here because we want to set doneHandshake_ simultaneously with
@@ -218,46 +220,59 @@ namespace P2P {
     //   e.g. double connection attempts).
     if (!this->manager_.sessionHandshaked(shared_from_this())) {
 
-      // Now, this is a bit tricky:
-      // When you get "false" from sessionHandshaked(), it means the registration failed. But if we are
-      //   an INBOUND connection that was not eligible for replacing an OUTBOUND one (due to our nodeid vs.
-      //   the remote node id), and the node is not just shutting down, we need to WAIT for the other side
-      //   to close the connection, otherwise we send a TCP RST which risks causing the remote OUTBOUND
-      //   being closed before the INBOUND has a chance to replace it, generating an extraneous
-      //   "Peer Disconnected" event instead of the proper transparent socket/session replacement.
-      //
-      //   The remaining question is -- should we create a timer to close this session sometime later,
-      //   or just leave it active?
-      //   During shutdown, disconnect()s should be explicitly called, so that's covered.
-      //   And what if the other side just goes away? Then in that case this side get an RST or
-      //   timeout in this one.
-      //   If not, we are left here with a dangling TCP connection that is awaiting cooperation
-      //   from the other endpoint.
+      // Handle having failed to register this session that has just completed its handshake.
 
-      //   If we are OUTBOUND, then we can afford to close.
-      //   But OUTBOUND only returns false from sessionHandshaked() if we detected a bug, so this is
-      //   also a bit of a no-op.
+      // If it was a failed OUTBOUND, post a socket close and return.
       if (connectionType_ == ConnectionType::OUTBOUND) {
+        // OUTBOUND only returns false from sessionHandshaked() if the code is bugged elsewhere, so this
+        //   branch should not normally execute (leave it here as defense).
         lock.unlock();
         // registered_ is false here, so the implied close() here will not try to deregister the session.
-        this->close("finish_handshake sessionHandshaked failure");
+        this->close("finish_handshake OUTBOUND sessionHandshaked failure (should never happen)");
         return;
       }
 
-      // FIXME/TODO: Here we know we are a defunct INBOUND session, and ideally we'd set up a timer
-      //   to clean it up if the other side is not going to do it for us.
+      // It was a failed INBOUND.
 
-      // OK, so what we are going to do here, is to NOT set the registered flag.
-      // We set the handshaked flag above. which is correct: the session is handshaked but NOT registered,
-      //  because it is a defunct INBOUND that needs to wait for the session/socket replacement process to
-      //  be completed from the remote end.
-      // But, we still want to start reading headers/messages, because we want to at least get an error
-      //  when the connection IS closed from the other end. This could have been done in some other way,
-      //  but that's what we are doing here, for now.
-      // The registered_ flag being set to false as you read messages should be enough to discard them and
-      //  avoid sending them to the application -- if the session/socket is not registered, then the
-      //  communication from this session/socket is all irrelevant. That was already imposed by the
-      //  connection replacement logic, so we are just coasting on that here.
+      // This is a defunct (failed-registration) INBOUND TCP connection that we can't immediately close,
+      //   otherwise that creates an extraneous "Peer Disconnected" event at the other side.
+      // That's not bad per se, but it makes it more difficult to write tests, as you can no longer
+      //   assume our Session registrations are "stable"; they would flicker out and back into existence
+      //   during a connection replacement process, which is not what we want.
+      //
+      // So, what we do here, is set up a 10-second timer:
+      // - In production, the node software does not actually care if a session dies and is
+      //   immediately reestablished (a "replacement" that does not replace), so there's nothing
+      //   really at stake in production environments other than (potentially) extra logging.
+      //   So there's no reason we need to wait for any "minimum" amount of time; the timer can
+      //   be small (that is, 10s).
+      // - In any case, 10s is pretty good for the modern internet, so it is likely that this
+      //   timer will actually "never" trigger (aside from bugs, ...)
+      // - 10s is plenty for localhost testing.
+      // - 10s is enough time to tolerate a stale TCP connection unnecessarily spending resources.
+      // - any close/do_close that happens first will replace this timer; correct nodes should
+      //   close this from their end much faster than 10s.
+
+      LOGXTRACE("INBOUND session failed to register, waiting replacement at remote w/ 10s timeout");
+
+      // Create a shared pointer to a steady timer
+      auto timer = std::make_shared<net::steady_timer>(strand_, std::chrono::seconds(10));
+
+      // Post the handler to be executed after the specified duration, binding the shared pointer to keep it alive
+      timer->async_wait(boost::asio::bind_executor(
+        strand_,
+        [self = shared_from_this(), timer](const boost::system::error_code& ec) mutable {
+          if (!ec) {
+            self->do_close(std::move("Failed-to-register INBOUND Session 10s timer expired"));
+          } else {
+            GLOGDEBUG("Failed-to-register INBOUND Session 10s timer error: " + ec.message());
+          }
+        }
+      ));
+
+      // Fallthrough to do_read_hreader() below, which allows our INBOUND session to benefit
+      //   from socket read errors and close early. registered_ is not set, which discards
+      //   all received data (as it should, as the session is dead).
     } else {
       // Handshake completion was OK, so we know that we are registered
       this->registered_ = true; // OUTBOUND already set this to true, but this is relevant to INBOUND
