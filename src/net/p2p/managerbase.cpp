@@ -289,7 +289,7 @@ namespace P2P {
   }
 
   void ManagerBase::start() {
-    std::scoped_lock lock(this->stateMutex_);
+    std::scoped_lock state_lock(this->stateMutex_);
     if (this->started_) return;
 
     LOGINFO("Net creating " + std::to_string(ManagerBase::netThreads_) + " P2P worker threads; default: " +
@@ -311,7 +311,7 @@ namespace P2P {
   }
 
   void ManagerBase::stop() {
-    std::scoped_lock lock(this->stateMutex_);
+    std::scoped_lock state_lock(this->stateMutex_);
     if (!this->started_) return;
 
     LOGDEBUG("Net stopping - requesting close of all sessions");
@@ -458,8 +458,7 @@ namespace P2P {
       // The side with the lowest NodeID will prioritize an OUTBOUND connection over an INBOUND one.
       // The side with the highest NodeID will prioritize an INBOUND connection over an OUTBOUND one.
       // (Connection to self, i.e. equal NodeIDs, must have been handled prior by preventing any connection attempt).
-      auto it = sessions_.find(nodeId);
-      if (it != sessions_.end()) {
+      if (auto it = sessions_.find(nodeId); it != sessions_.end()) {
 
         // Get a copy of the shared_ptr<Session>
         auto registeredSession = it->second;
@@ -672,7 +671,7 @@ namespace P2P {
     NodeID nodeId({address, port});
 
     // Sync posting the handler, checking started_ etc. with ManagerBase::stop() using the sessions mutex.
-    std::unique_lock<std::shared_mutex> lock(this->sessionsMutex_);
+    std::unique_lock lock(this->sessionsMutex_);
 
     // If we are not started (e.g. ManagerBase::stop() called), nothing will be done.
     // Do not create a Session object!

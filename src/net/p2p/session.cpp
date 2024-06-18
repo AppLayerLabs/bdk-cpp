@@ -112,7 +112,7 @@ namespace P2P {
     // Create a resolver with the strand's executor
     // (resolver(this->socket_.get_executor()) would also work since do_connect()
     //  should already be synchronized by strand_)
-    boost::asio::ip::tcp::resolver resolver(this->strand_);
+    net::ip::tcp::resolver resolver(this->strand_);
 
     auto endpoints = resolver.resolve({this->address_, this->port_});
 
@@ -141,8 +141,8 @@ namespace P2P {
     }
 
     net::async_connect(this->socket_, endpoints, net::bind_executor(
-      this->strand_, std::bind(
-        &Session::on_connect, shared_from_this(), std::placeholders::_1, std::placeholders::_2
+      this->strand_, std::bind_front(
+        &Session::on_connect, shared_from_this()
       )
     ));
   }
@@ -158,8 +158,8 @@ namespace P2P {
     this->outboundHandshake_[1] = serverPort[0];
     this->outboundHandshake_[2] = serverPort[1];
     net::async_write(this->socket_, net::buffer(this->outboundHandshake_, 3), net::bind_executor(
-      this->strand_, std::bind(
-        &Session::read_handshake, shared_from_this(), std::placeholders::_1, std::placeholders::_2
+      this->strand_, std::bind_front(
+        &Session::read_handshake, shared_from_this()
       )
     ));
   }
@@ -167,8 +167,8 @@ namespace P2P {
   void Session::read_handshake(boost::system::error_code ec, std::size_t) {
     if (ec) { this->handle_error(__func__, ec); return; }
     net::async_read(this->socket_, net::buffer(this->inboundHandshake_, 3), net::bind_executor(
-      this->strand_, std::bind(
-        &Session::finish_handshake, shared_from_this(), std::placeholders::_1, std::placeholders::_2
+      this->strand_, std::bind_front(
+        &Session::finish_handshake, shared_from_this()
       )
     ));
   }
@@ -286,8 +286,8 @@ namespace P2P {
   void Session::do_read_header() {
     inboundHeader_.fill(0x00);
     net::async_read(this->socket_, net::buffer(this->inboundHeader_), net::bind_executor(
-      this->strand_, std::bind(
-        &Session::on_read_header, shared_from_this(), std::placeholders::_1, std::placeholders::_2
+      this->strand_, std::bind_front(
+        &Session::on_read_header, shared_from_this()
       )
     ));
   }
@@ -308,8 +308,8 @@ namespace P2P {
     this->inboundMessage_ = std::make_shared<Message>();
     net::dynamic_vector_buffer readBuffer(this->inboundMessage_->rawMessage_);
     auto mutableBuffer = readBuffer.prepare(messageSize);
-    net::async_read(this->socket_, mutableBuffer, net::bind_executor(this->strand_, std::bind(
-      &Session::on_read_message, shared_from_this(), std::placeholders::_1, std::placeholders::_2
+    net::async_read(this->socket_, mutableBuffer, net::bind_executor(this->strand_, std::bind_front(
+      &Session::on_read_message, shared_from_this()
     )));
   }
 
@@ -333,8 +333,8 @@ namespace P2P {
     if (this->outboundMessage_ == nullptr) return;
     this->outboundHeader_ = Utils::uint64ToBytes(this->outboundMessage_->rawMessage_.size());
     net::async_write(this->socket_, net::buffer(this->outboundHeader_), net::bind_executor(
-      this->strand_, std::bind(
-        &Session::on_write_header, shared_from_this(), std::placeholders::_1, std::placeholders::_2
+      this->strand_, std::bind_front(
+        &Session::on_write_header, shared_from_this()
       )
     ));
   }
@@ -347,8 +347,8 @@ namespace P2P {
   void Session::do_write_message() {
     net::async_write(this->socket_, net::buffer(
       this->outboundMessage_->rawMessage_, this->outboundMessage_->rawMessage_.size()
-    ), net::bind_executor(this->strand_, std::bind(
-      &Session::on_write_message, shared_from_this(), std::placeholders::_1, std::placeholders::_2
+    ), net::bind_executor(this->strand_, std::bind_front(
+      &Session::on_write_message, shared_from_this()
     )));
   }
 
@@ -367,26 +367,25 @@ namespace P2P {
   void Session::run() {
     if (this->connectionType_ == ConnectionType::INBOUND) {
       LOGTRACE("Connecting to " + this->addressAndPortStr() + " (inbound)");
-      boost::asio::post(net::bind_executor(this->strand_, std::bind(&Session::write_handshake, shared_from_this())));
+      net::post(net::bind_executor(this->strand_, std::bind_front(&Session::write_handshake, shared_from_this())));
     } else {
       LOGTRACE("Connecting to " + this->addressAndPortStr() + " (outbound)");
-      boost::asio::post(net::bind_executor(this->strand_, std::bind(&Session::do_connect, shared_from_this())));
+      net::post(net::bind_executor(this->strand_, std::bind_front(&Session::do_connect, shared_from_this())));
     }
   }
 
-  void Session::close(std::string reason) {
-    boost::asio::post(
+  void Session::close(std::string&& reason) {
+    net::post(
       net::bind_executor(
-        this->strand_,
-        std::bind(
-          &Session::do_close,
-          shared_from_this(),
-          reason)
+        strand_,
+        [self = shared_from_this(), reason = std::move(reason)]() mutable {
+          self->do_close(std::move(reason));
+        }
       )
     );
   }
 
-  void Session::do_close(std::string reason) {
+  void Session::do_close(std::string&& reason) {
     // This can only be called once per Session object
     if (closed_) {
       return;
@@ -459,7 +458,7 @@ namespace P2P {
     std::unique_lock lock(this->writeQueueMutex_);
     if (this->outboundMessage_ == nullptr) {
       this->outboundMessage_ = message;
-      net::post(this->strand_, std::bind(&Session::do_write_header, shared_from_this()));
+      net::post(this->strand_, std::bind_front(&Session::do_write_header, shared_from_this()));
     } else {
       this->outboundMessages_.push_back(message);
     }
