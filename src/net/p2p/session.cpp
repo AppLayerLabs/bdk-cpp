@@ -261,11 +261,11 @@ namespace P2P {
       // Post the handler to be executed after the specified duration, binding the shared pointer to keep it alive
       timer->async_wait(boost::asio::bind_executor(
         strand_,
-        [self = shared_from_this(), timer](const boost::system::error_code& ec) mutable {
-          if (!ec) {
-            self->do_close(std::move("Failed-to-register INBOUND Session 10s timer expired"));
+        [self = shared_from_this(), timer](const boost::system::error_code& timer_ec) mutable {
+          if (!timer_ec) {
+            self->do_close("Failed-to-register INBOUND Session 10s timer expired");
           } else {
-            GLOGDEBUG("Failed-to-register INBOUND Session 10s timer error: " + ec.message());
+            GLOGDEBUG("Failed-to-register INBOUND Session 10s timer error: " + timer_ec.message());
           }
         }
       ));
@@ -382,13 +382,13 @@ namespace P2P {
       net::bind_executor(
         strand_,
         [self = shared_from_this(), reasonStr = std::move(reason)]() mutable {
-          self->do_close(std::move(reasonStr));
+          self->do_close(reasonStr);
         }
       )
     );
   }
 
-  void Session::do_close(std::string reason) {
+  void Session::do_close(const std::string& reason) {
     // This can only be called once per Session object
     if (closed_) {
       return;

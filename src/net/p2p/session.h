@@ -139,7 +139,7 @@ namespace P2P {
       void on_write_message(boost::system::error_code ec, std::size_t);
 
       /// do_close, for closing using the io_context
-      void do_close(std::string reason);
+      void do_close(const std::string& reason);
 
       /// Handle an error from the socket.
       void handle_error(const std::string& func, const boost::system::error_code& ec);
