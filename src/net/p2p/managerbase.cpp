@@ -441,7 +441,12 @@ namespace P2P {
     }
 
     auto& nodeId = callerSession->hostNodeId();
+
+    // Whether the callerSession replaced another session that was in the sessions map already.
     bool replaced = false;
+
+    // Whether the session that the callerSession replaced, that was already in the sessions map,
+    //   was already handshaked at the time it was replaced here.
     bool replacedWasHandshaked = false;
 
     // For OUTBOUND connections, there's no registration to be done upon handshake completion, so this
@@ -471,17 +476,17 @@ namespace P2P {
           // Replace the registered session with the new one only if the specific condition for replacement
           //   formally specified above is true. NOTE: This cannot block on any I/O.
 
-          // Release the sessions lock while we notify the Session being replaced of its forced unregistration.
+          // Release the sessions lock while we notify the session being replaced of its forced unregistration.
           lockSession.unlock();
 
           replaced = true;
 
-          // Mark the session as unregistered inside Session::stateMutex_, which will prevent the now dead Session
-          //   from making any subsequent callbacks to us.
+          // Mark the session as unregistered inside Session::stateMutex_, which will prevent the now dead
+          //   session from making any subsequent callbacks to us.
           // Since the Session now knows it was unregistered, it will also take care of closing itself.
           replacedWasHandshaked = registeredSession->notifyUnregistered();
 
-          // Unregister the existing session that is being replaced.
+          // Unregister the existing session that will be replaced by callerSession below.
           // Since we are reacquiring the sessions mutex, we can't use 'it' anymore.
           lockSession.lock();
           sessions_.erase(nodeId);
@@ -489,14 +494,16 @@ namespace P2P {
           //   still holding the lock (we need the replacement to be an atomic operation).
 
         } else {
-          // Keep the old registered session and discard the new one
+          // There is already a session registered for the same remote host (NodeID) that the
+          //   callerSession is connected to, and it is not going to replace it.
+          // Keep the old registered session and discard the new one.
           lockSession.unlock(); // Unlock before calling logToDebug to avoid waiting for the lock in the logToDebug function.
           LOGXTRACE("Peer already connected: " + toString(nodeId));
           return false;
         }
       }
 
-      // Register the session (peer socket connection).
+      // Register the callerSession (peer socket connection).
       // The sessionsMutex is being used to set and read the started_ flag, which tells us
       //   whether we can still register nodes or whether we are shutting down and so the
       //   sessions_ map should not receive any more insertions.
@@ -507,20 +514,24 @@ namespace P2P {
       sessions_.try_emplace(nodeId, callerSession);
     }
 
+    // If callerSession was replacing another session mapped to the same nodeId, then have to check
+    //   whether a "Connected Peer" event just happened now or not, which depends on whether the
+    //   old, replaced session was already handshaked or not.
     if (replaced) {
-      // If the OUTBOUND connection being replaced is a non-handshaked connecton, then we never emitted
-      //   the "Peer connected" info message -- it was registered but not considered an established
-      //   connection. So the new Session is the one that is going to count as a new, actual peer connection.
       if (replacedWasHandshaked) {
-        LOGTRACE("Replaced Session to " + toString(nodeId));
+        LOGTRACE("Replaced handshaked Session to " + toString(nodeId));
+        // Return to avoid fallthrough to the "Connected peer" log message, since the session that was
+        //   replaced was already handshaked, meaning it already raised that event.
+        return true;
       } else {
         LOGTRACE("Replaced non-handshaked Session to " + toString(nodeId));
-        LOGINFO("Connected peer: " + toString(nodeId));
+        // Fallthrough to raise "Connected peer" event, since the session that was replaced was never
+        //   handshaked, so it did not raise the peer-connection event before, which we will do now
+        //   for this new (replacement) session.
       }
-    } else {
-      LOGINFO("Connected peer: " + toString(nodeId));
     }
 
+    LOGINFO("Connected peer: " + toString(nodeId));
     return true;
   }
 
@@ -554,8 +565,10 @@ namespace P2P {
     return true;
   }
 
-  // This should only be called by the Session object that is notifying its manager of the Session's closure/teardown.
-  void ManagerBase::sessionClosed(const Session& callerSession, bool wasHandshaked, bool wasReplaced) {
+  // This should only be called by the Session object that is notifying its manager of the
+  //   Session's closure/teardown, and should only ever be called by sessions that are in the
+  //   registered_ == true state.
+  void ManagerBase::sessionClosed(const Session& callerSession, bool wasHandshaked) {
 
     // Important: do not quit this callback if started_ == false, since this is also called to empty out the sessions_
     //   map during ManagerBase::stop().
@@ -573,25 +586,18 @@ namespace P2P {
       return;
     }
 
-    // If this session was replaced by another one, then do NOT unregister: the
-    //   replacement code takes care of updating the sessions_ map, so it does not
-    //   even matter if the session that is in the sessions_ map right now is the
-    //   old one (callerSession) or the new one.
-    if (!wasReplaced) {
-      sessions_.erase(it); // No replacement going on, so unregister callerSession.
-    }
+    // Replaced sessions never call sessionClosed(), because they are unregistered_, so this is being called
+    //   by an actual session that is registered_, so we are removing that registration.
+    // That is, *(it->second) is guaranteed to be the same object as callerSession here.
+    sessions_.erase(it);
 
     lockSession.unlock();
 
     // Raise the appropriate event and/or debug log as appropriate
-    if (wasReplaced) {
-      LOGTRACE("Session to " + toString(nodeId) + " was sessionClosed() (replaced); handskahed: " + std::to_string(wasHandshaked));
+    if (wasHandshaked) {
+      LOGINFO("Disconnected peer: " + toString(nodeId));
     } else {
-      if (wasHandshaked) {
-        LOGINFO("Disconnected peer: " + toString(nodeId));
-      } else {
-        LOGINFO("Failed to connect: " + toString(nodeId));
-      }
+      LOGINFO("Failed to connect: " + toString(nodeId));
     }
   }
 

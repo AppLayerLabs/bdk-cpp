@@ -121,7 +121,7 @@ namespace P2P {
        * @param wasHandshaked Whether the closed session was already handshaked, that is, "Peer Connected" was already raised for it.
        * @param wasReplaced `true` if this session was replaced by this ManagerBase, `false` if the TCP connection just failed.
        */
-      void sessionClosed(const Session& callerSession, bool wasHandshaked, bool wasReplaced);
+      void sessionClosed(const Session& callerSession, bool wasHandshaked);
 
       /**
        * Called by a Session object when it receives a Message.

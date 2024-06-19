@@ -444,14 +444,11 @@ namespace P2P {
       //   the sessions_ map, we also want to send, along with the notification, the doneHandshake_ status of
       //   the Session, so that when it is `false`, it can know that it should not generate a "Peer Disconnected"
       //   event, because it never generated a `Peer Connected` one in the first place.
-      // - Also for OUTBOUND sessions, we send the value of the unregistered flag, which is only set when the
-      //   Manager itself has unregistered the session from its own side, which is a thing it only needs to do
-      //   when it is transparently replacing this OUTBOUND session with an equivalent INBOUND session with the
-      //   same remote peer, to solve the simultaneous double connection attempt between two TCP endpoints. If
-      //   sessionClosed() receives a (doneHandshake == unregistered_ == false) callback, then it knows that's
-      //   not the case and that what happened is that the OUTBOUND session in question just failed to connect,
-      //   which elicits a "Failed to connect to remote peer: xxx" event at its interface.
-      this->manager_.sessionClosed(*this, this->doneHandshake_, this->unregistered_);
+      // - Note that unregistered_ cannot ever be true when registered_ is true, so the unregistered_ flag
+      //   is guaranteed to be false at this point (because both registered_ and unregistered_ are set
+      //   inside the stateMutex_ within notifyUnregistered(), which is the only place unregistered_ is set
+      //   to true). This means sessionClosed() is never called for a defunct Session that is being replaced.
+      this->manager_.sessionClosed(*this, this->doneHandshake_);
       this->registered_ = false;
     }
     lock.unlock();
