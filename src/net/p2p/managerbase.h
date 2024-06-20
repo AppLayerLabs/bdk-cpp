@@ -119,7 +119,6 @@ namespace P2P {
        * Called by a Session object when it closes itself.
        * @param callerSession The Session object that is calling this to notifying the ManagerBase of its closing.
        * @param wasHandshaked Whether the closed session was already handshaked, that is, "Peer Connected" was already raised for it.
-       * @param wasReplaced `true` if this session was replaced by this ManagerBase, `false` if the TCP connection just failed.
        */
       void sessionClosed(const Session& callerSession, bool wasHandshaked);
 
