@@ -53,33 +53,34 @@ template <typename T> class SafeVector : public SafeBase {
     /// Undo all changes in the undo stack on top of the current value.
     void processUndoStack() {
       while (!this->undo_->empty()) {
-        UndoOp op = this->undo_->top();
-        switch (std::get<0>(op)) {
-          case AT: this->value_.at(std::get<1>(op)) = std::get<3>(op)[0]; break;
-          case OPERATOR_BRACKETS: this->value_[std::get<1>(op)] = std::get<3>(op)[0]; break;
-          case FRONT: this->value_.at(0) = std::get<3>(op)[0]; break;
-          case BACK: this->value_.at(this->value_.size() - 1) = std::get<3>(op)[0]; break;
+        const auto& op = this->undo_->top();
+        const auto& [opType, index, quantity, oldVals] = op;
+        switch (opType) {
+          case AT: this->value_.at(index) = oldVals[0]; break;
+          case OPERATOR_BRACKETS: this->value_[index] = oldVals[0]; break;
+          case FRONT: this->value_.at(0) = oldVals[0]; break;
+          case BACK: this->value_.at(this->value_.size() - 1) = oldVals[0]; break;
           case INSERT:
-          case EMPLACE: this->value_.erase(this->value_.begin() + std::get<1>(op)); break;
-          case ERASE: this->value_.insert(this->value_.begin() + std::get<1>(op), std::get<3>(op)[0]); break;
+          case EMPLACE: this->value_.erase(this->value_.begin() + index); break;
+          case ERASE: this->value_.insert(this->value_.begin() + index, oldVals[0]); break;
           case INSERT_BULK:
-            for (std::size_t i = 0; i < std::get<2>(op); i++) {
-              this->value_.erase(this->value_.begin() + std::get<1>(op));
+            for (std::size_t i = 0; i < quantity; i++) {
+              this->value_.erase(this->value_.begin() + index);
             }
             break;
           case ERASE_BULK:
-            for (std::size_t i = 0; i < std::get<2>(op); i++) {
-              this->value_.insert(this->value_.begin() + std::get<1>(op) + i, std::get<3>(op)[i]);
+            for (std::size_t i = 0; i < quantity; i++) {
+              this->value_.insert(this->value_.begin() + index + i, oldVals[i]);
             }
             break;
           case PUSH_BACK:
           case EMPLACE_BACK: this->value_.pop_back(); break;
-          case POP_BACK: this->value_.push_back(std::get<3>(op)[0]); break;
+          case POP_BACK: this->value_.push_back(oldVals[0]); break;
           // For resize(), treat index as quantity
           case RESIZE_MORE:
-            for (std::size_t i = 0; i < std::get<1>(op); i++) this->value_.pop_back(); break;
+            for (std::size_t i = 0; i < index; i++) this->value_.pop_back(); break;
           case RESIZE_LESS:
-            for (std::size_t i = 0; i < std::get<1>(op); i++) this->value_.push_back(std::get<3>(op)[i]); break;
+            for (std::size_t i = 0; i < index; i++) this->value_.push_back(oldVals[i]); break;
             break;
         }
         this->undo_->pop();
