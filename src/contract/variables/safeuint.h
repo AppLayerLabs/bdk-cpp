@@ -61,7 +61,7 @@ template <int Size> class SafeUint_t : public SafeBase {
   private:
     using uint_t = typename UintType<Size>::type; ///< Type of the uint.
     uint_t value_; ///< Current ("original") value.
-    std::unique_ptr<uint_t> copy_; ///< Previous ("temporary") value.
+    uint_t copy_; ///< Previous ("temporary") value.
 
   public:
     static_assert(Size >= 8 && Size <= 256 && Size % 8 == 0, "Size must be between 8 and 256 and a multiple of 8.");
@@ -70,17 +70,17 @@ template <int Size> class SafeUint_t : public SafeBase {
      * Constructor.
      * @param value The initial value of the variable. Defaults to 0.
      */
-    explicit SafeUint_t(const uint_t& value = 0) : SafeBase(nullptr), value_(value), copy_(nullptr) {}
+    explicit SafeUint_t(const uint_t& value = 0) : SafeBase(nullptr), value_(value), copy_(value) {}
 
     /**
      * Constructor with owner.
      * @param owner The DynamicContract that owns this variable.
      * @param value The initial value of the variable. Defaults to 0.
      */
-    SafeUint_t(DynamicContract* owner, const uint_t& value = 0) : SafeBase(owner), value_(value), copy_(nullptr) {}
+    SafeUint_t(DynamicContract* owner, const uint_t& value = 0) : SafeBase(owner), value_(value), copy_(value) {}
 
     /// Copy constructor. Only copies the CURRENT value.
-    SafeUint_t(const SafeUint_t<Size>& other) : SafeBase(nullptr), value_(other.value_), copy_(nullptr) {}
+    SafeUint_t(const SafeUint_t<Size>& other) : SafeBase(nullptr), value_(other.value_), copy_(other.value_) {}
 
     /// Getter for the temporary value.
     inline const uint_t& get() const { return this->value_; }
@@ -94,10 +94,10 @@ template <int Size> class SafeUint_t : public SafeBase {
      * @return A new SafeUint_t with the result of the addition.
      */
     inline SafeUint_t<Size> operator+(const SafeUint_t<Size>& other) const {
-      if (this->value_ > std::numeric_limits<uint_t>::max() - other.get()) {
+      if (this->value_ > std::numeric_limits<uint_t>::max() - other.value_) {
         throw std::overflow_error("Overflow in addition operation.");
       }
-      return SafeUint_t<Size>(this->value_ + other.get());
+      return SafeUint_t<Size>(this->value_ + other.value_);
     }
     inline SafeUint_t<Size> operator+(const uint_t& other) const {
       if (this->value_ > std::numeric_limits<uint_t>::max() - other) {
@@ -133,8 +133,8 @@ template <int Size> class SafeUint_t : public SafeBase {
      * @return A new SafeUint_t with the result of the subtraction.
      */
     inline SafeUint_t<Size> operator-(const SafeUint_t<Size>& other) const {
-      if (this->value_ < other.get()) throw std::underflow_error("Underflow in subtraction operation.");
-      return SafeUint_t<Size>(this->value_ - other.get());
+      if (this->value_ < other.value_) throw std::underflow_error("Underflow in subtraction operation.");
+      return SafeUint_t<Size>(this->value_ - other.value_);
     }
     inline SafeUint_t<Size> operator-(const uint_t& other) const {
       if (this->value_ < other) throw std::underflow_error("Underflow in subtraction operation.");
@@ -163,11 +163,11 @@ template <int Size> class SafeUint_t : public SafeBase {
      * @return A new SafeUint_t with the result of the multiplication.
      */
     inline SafeUint_t<Size> operator*(const SafeUint_t<Size>& other) const {
-      if (other.get() == 0 || this->value_ == 0) throw std::domain_error("Multiplication by zero");
-      if (this->value_ > std::numeric_limits<uint_t>::max() / other.get()) {
+      if (other.value_ == 0 || this->value_ == 0) throw std::domain_error("Multiplication by zero");
+      if (this->value_ > std::numeric_limits<uint_t>::max() / other.value_) {
         throw std::overflow_error("Overflow in multiplication operation.");
       }
-      return SafeUint_t<Size>(this->value_ * other.get());
+      return SafeUint_t<Size>(this->value_ * other.value_);
     }
     inline SafeUint_t<Size> operator*(const uint_t& other) const {
       if (other == 0 || this->value_ == 0) throw std::domain_error("Multiplication by zero");
@@ -197,8 +197,8 @@ template <int Size> class SafeUint_t : public SafeBase {
      * @return A new SafeUint_t with the result of the division.
      */
     inline SafeUint_t<Size> operator/(const SafeUint_t<Size>& other) const {
-      if (this->value_ == 0 || other.get() == 0) throw std::domain_error("Division by zero");
-      return SafeUint_t<Size>(this->value_ / other.get());
+      if (this->value_ == 0 || other.value_ == 0) throw std::domain_error("Division by zero");
+      return SafeUint_t<Size>(this->value_ / other.value_);
     }
     inline SafeUint_t<Size> operator/(const uint_t& other) const {
       if (this->value_ == 0 || other == 0) throw std::domain_error("Division by zero");
@@ -220,8 +220,8 @@ template <int Size> class SafeUint_t : public SafeBase {
      * @return A new SafeUint_t with the result of the modulus.
      */
     inline SafeUint_t<Size> operator%(const SafeUint_t<Size>& other) const {
-      if (this->value_ == 0 || other.get() == 0) throw std::domain_error("Modulus by zero");
-      return SafeUint_t<Size>(this->value_ % other.get());
+      if (this->value_ == 0 || other.value_ == 0) throw std::domain_error("Modulus by zero");
+      return SafeUint_t<Size>(this->value_ % other.value_);
     }
     inline SafeUint_t<Size> operator%(const uint_t& other) const {
       if (this->value_ == 0 || other == 0) throw std::domain_error("Modulus by zero");
@@ -241,7 +241,7 @@ template <int Size> class SafeUint_t : public SafeBase {
      * @throw std::domain_error if AND is done with a negative number.
      */
     inline SafeUint_t<Size> operator&(const SafeUint_t<Size>& other) const {
-      return SafeUint_t<Size>(this->value_ & other.get());
+      return SafeUint_t<Size>(this->value_ & other.value_);
     }
     inline SafeUint_t<Size> operator&(const uint_t& other) const {
       return SafeUint_t<Size>(this->value_ & other);
@@ -260,7 +260,7 @@ template <int Size> class SafeUint_t : public SafeBase {
      * @throw std::domain_error if OR is done with a negative number.
      */
     inline SafeUint_t<Size> operator|(const SafeUint_t<Size>& other) const {
-      return SafeUint_t<Size>(this->value_ | other.get());
+      return SafeUint_t<Size>(this->value_ | other.value_);
     }
     inline SafeUint_t<Size> operator|(const uint_t& other) const {
       return SafeUint_t<Size>(this->value_ | other);
@@ -279,7 +279,7 @@ template <int Size> class SafeUint_t : public SafeBase {
      * @throw std::domain_error if XOR is done with a negative number.
      */
     inline SafeUint_t<Size> operator^(const SafeUint_t<Size>& other) const {
-      return SafeUint_t<Size>(this->value_ ^ other.get());
+      return SafeUint_t<Size>(this->value_ ^ other.value_);
     }
     inline SafeUint_t<Size> operator^(const uint_t& other) const {
       return SafeUint_t<Size>(this->value_ ^ other);
@@ -322,7 +322,7 @@ template <int Size> class SafeUint_t : public SafeBase {
      * @param other The integer to apply AND.
      * @return `true` if both values are not zero, `false` otherwise.
      */
-    inline bool operator&&(const SafeUint_t<Size>& other) const { return this->value_ && other.get(); }
+    inline bool operator&&(const SafeUint_t<Size>& other) const { return this->value_ && other.value_; }
     inline bool operator&&(const uint_t& other) const { return this->value_ && other; }
     ///@}
 
@@ -332,7 +332,7 @@ template <int Size> class SafeUint_t : public SafeBase {
      * @param other The integer to apply OR.
      * @return `true` if at least one value is not zero, `false` otherwise.
      */
-    inline bool operator||(const SafeUint_t<Size>& other) const { return this->value_ || other.get(); }
+    inline bool operator||(const SafeUint_t<Size>& other) const { return this->value_ || other.value_; }
     inline bool operator||(const uint_t& other) const { return this->value_ || other; }
     ///@}
 
@@ -342,7 +342,7 @@ template <int Size> class SafeUint_t : public SafeBase {
      * @param other The integer to compare.
      * @return `true` if both values are equal, `false` otherwise.
      */
-    inline bool operator==(const SafeUint_t<Size>& other) const { return this->value_ == other.get(); }
+    inline bool operator==(const SafeUint_t<Size>& other) const { return this->value_ == other.value_; }
     inline bool operator==(const uint_t& other) const { return this->value_ == other; }
     inline bool operator==(const int& other) const {
       if (other < 0) return false;  // Unsigned value will never equal a negative
@@ -356,7 +356,7 @@ template <int Size> class SafeUint_t : public SafeBase {
      * @param other The integer to compare.
      * @return `true` if both values are not equal, `false` otherwise.
      */
-    inline bool operator!=(const SafeUint_t<Size>& other) const { return this->value_ != other.get(); }
+    inline bool operator!=(const SafeUint_t<Size>& other) const { return this->value_ != other.value_; }
     inline bool operator!=(const uint_t& other) const { return this->value_ != other; }
     inline bool operator!=(const int& other) const {
       if (other < 0) return true;  // Unsigned value will always differ from a negative
@@ -370,7 +370,7 @@ template <int Size> class SafeUint_t : public SafeBase {
      * @param other The integer to compare.
      * @return `true` if the value is less than the other value, `false` otherwise.
      */
-    inline bool operator<(const SafeUint_t<Size>& other) const { return this->value_ < other.get(); }
+    inline bool operator<(const SafeUint_t<Size>& other) const { return this->value_ < other.value_; }
     inline bool operator<(const uint_t& other) const { return this->value_ < other; }
     inline bool operator<(const int& other) const {
       if (other < 0) return false;  // Unsigned value will never be less than a negative
@@ -384,7 +384,7 @@ template <int Size> class SafeUint_t : public SafeBase {
      * @param other The integer to compare.
      * @return `true` if the value is less than or equal to the other value, `false` otherwise.
      */
-    inline bool operator<=(const SafeUint_t<Size>& other) const { return this->value_ <= other.get(); }
+    inline bool operator<=(const SafeUint_t<Size>& other) const { return this->value_ <= other.value_; }
     inline bool operator<=(const uint_t& other) const { return this->value_ <= other; }
     inline bool operator<=(const int& other) const {
       if (other < 0) return false;  // Unsigned value will never be less nor equal than a negative
@@ -398,7 +398,7 @@ template <int Size> class SafeUint_t : public SafeBase {
      * @param other The integer to compare.
      * @return `true` if the value is greater than the other value, `false` otherwise.
      */
-    inline bool operator>(const SafeUint_t<Size>& other) const { return this->value_ > other.get(); }
+    inline bool operator>(const SafeUint_t<Size>& other) const { return this->value_ > other.value_; }
     inline bool operator>(const uint_t& other) const { return this->value_ > other; }
     inline bool operator>(const int& other) const {
       if (other < 0) return true;  // Unsigned value will always be more than a negative
@@ -412,7 +412,7 @@ template <int Size> class SafeUint_t : public SafeBase {
      * @param other The integer to compare.
      * @return `true` if the value is greater than or equal to the other value, `false` otherwise.
      */
-    inline bool operator>=(const SafeUint_t<Size>& other) const { return this->value_ >= other.get(); }
+    inline bool operator>=(const SafeUint_t<Size>& other) const { return this->value_ >= other.value_; }
     inline bool operator>=(const uint_t& other) const { return this->value_ >= other; }
     inline bool operator>=(const int& other) const {
       if (other < 0) return true;  // Unsigned value will be never equal, but always more than a negative
@@ -428,16 +428,13 @@ template <int Size> class SafeUint_t : public SafeBase {
      * @throw std::domain_error if a negative value is assigned.
      */
     inline SafeUint_t<Size>& operator=(const SafeUint_t<Size>& other) {
-      if (this->copy_ == nullptr) this->copy_ = std::make_unique<uint_t>(this->value_);
-      markAsUsed(); this->value_ = other.get(); return *this;
+      markAsUsed(); this->value_ = other.value_; return *this;
     }
     inline SafeUint_t<Size>& operator=(const uint_t& other) {
-      if (this->copy_ == nullptr) this->copy_ = std::make_unique<uint_t>(this->value_);
       markAsUsed(); this->value_ = other; return *this;
     }
     inline SafeUint_t<Size>& operator=(const int& other) {
       if (other < 0) throw std::domain_error("Cannot assign negative value to SafeUint_t");
-      if (this->copy_ == nullptr) this->copy_ = std::make_unique<uint_t>(this->value_);
       markAsUsed(); this->value_ = static_cast<uint_t>(other); return *this;
     }
     ///@}
@@ -451,17 +448,15 @@ template <int Size> class SafeUint_t : public SafeBase {
      * @throw std::underflow_error if an underflow happens (for signed values).
      */
     inline SafeUint_t<Size>& operator+=(const SafeUint_t<Size>& other) {
-      if (this->value_ > std::numeric_limits<uint_t>::max() - other.get()) {
+      if (this->value_ > std::numeric_limits<uint_t>::max() - other.value_) {
         throw std::overflow_error("Overflow in addition assignment operation.");
       }
-      if (this->copy_ == nullptr) this->copy_ = std::make_unique<uint_t>(this->value_);
-      markAsUsed(); this->value_ += other.get(); return *this;
+      markAsUsed(); this->value_ += other.value_; return *this;
     }
     inline SafeUint_t<Size>& operator+=(const uint_t& other) {
       if (this->value_ > std::numeric_limits<uint_t>::max() - other) {
         throw std::overflow_error("Overflow in addition assignment operation.");
       }
-      if (this->copy_ == nullptr) this->copy_ = std::make_unique<uint_t>(this->value_);
       markAsUsed(); this->value_ += other; return *this;
     }
     inline SafeUint_t<Size>& operator+=(const int& other) {
@@ -473,7 +468,6 @@ template <int Size> class SafeUint_t : public SafeBase {
       } else if (tmp > static_cast<int256_t>(std::numeric_limits<uint_t>::max())) {
         throw std::overflow_error("Overflow in addition assignment operation.");
       }
-      if (this->copy_ == nullptr) this->copy_ = std::make_unique<uint_t>(this->value_);
       markAsUsed(); this->value_ = static_cast<uint_t>(tmp); return *this;
     }
     ///@}
@@ -487,13 +481,11 @@ template <int Size> class SafeUint_t : public SafeBase {
      * @throw std::overflow_error if an overflow happens (for signed values).
      */
     inline SafeUint_t<Size>& operator-=(const SafeUint_t<Size>& other) {
-      if (this->value_ < other.get()) throw std::underflow_error("Underflow in subtraction assignment operation.");
-      if (this->copy_ == nullptr) this->copy_ = std::make_unique<uint_t>(this->value_);
-      markAsUsed(); this->value_ -= other.get(); return *this;
+      if (this->value_ < other.value_) throw std::underflow_error("Underflow in subtraction assignment operation.");
+      markAsUsed(); this->value_ -= other.value_; return *this;
     }
     inline SafeUint_t<Size>& operator-=(const uint_t& other) {
       if (this->value_ < other) throw std::underflow_error("Underflow in subtraction assignment operation.");
-      if (this->copy_ == nullptr) this->copy_ = std::make_unique<uint_t>(this->value_);
       markAsUsed(); this->value_ -= other; return *this;
     }
     inline SafeUint_t<Size>& operator-=(const int& other) {
@@ -505,7 +497,6 @@ template <int Size> class SafeUint_t : public SafeBase {
       } else if (tmp > static_cast<int256_t>(std::numeric_limits<uint_t>::max())) {
         throw std::overflow_error("Overflow in addition assignment operation.");
       }
-      if (this->copy_ == nullptr) this->copy_ = std::make_unique<uint_t>(this->value_);
       markAsUsed(); this->value_ = static_cast<uint_t>(tmp); return *this;
     }
     ///@}
@@ -520,19 +511,17 @@ template <int Size> class SafeUint_t : public SafeBase {
      * @throw std::underflow_error if an underflow happens (for signed values).
      */
     inline SafeUint_t<Size>& operator*=(const SafeUint_t<Size>& other) {
-      if (other.get() == 0 || this->value_ == 0) throw std::domain_error("Multiplication assignment by zero");
-      if (this->value_ > std::numeric_limits<uint_t>::max() / other.get()) {
+      if (other.value_ == 0 || this->value_ == 0) throw std::domain_error("Multiplication assignment by zero");
+      if (this->value_ > std::numeric_limits<uint_t>::max() / other.value_) {
         throw std::overflow_error("Overflow in multiplication assignment operation.");
       }
-      if (this->copy_ == nullptr) this->copy_ = std::make_unique<uint_t>(this->value_);
-      markAsUsed(); this->value_ *= other.get(); return *this;
+      markAsUsed(); this->value_ *= other.value_; return *this;
     }
     inline SafeUint_t<Size>& operator*=(const uint_t& other) {
       if (other == 0 || this->value_ == 0) throw std::domain_error("Multiplication assignment by zero");
       if (this->value_ > std::numeric_limits<uint_t>::max() / other) {
         throw std::overflow_error("Overflow in multiplication assignment operation.");
       }
-      if (this->copy_ == nullptr) this->copy_ = std::make_unique<uint_t>(this->value_);
       markAsUsed(); this->value_ *= other; return *this;
     }
     inline SafeUint_t<Size>& operator*=(const int& other) {
@@ -544,7 +533,6 @@ template <int Size> class SafeUint_t : public SafeBase {
           throw std::overflow_error("Overflow in multiplication assignment operation.");
         }
       }
-      if (this->copy_ == nullptr) this->copy_ = std::make_unique<uint_t>(this->value_);
       markAsUsed(); this->value_ *= other; return *this;
     }
     ///@}
@@ -557,20 +545,17 @@ template <int Size> class SafeUint_t : public SafeBase {
      * @throw std::domain_error if the other value is zero or a negative number.
      */
     inline SafeUint_t<Size>& operator/=(const SafeUint_t<Size>& other) {
-      if (this->value_ == 0 || other.get() == 0) throw std::domain_error("Division assignment by zero");
-      if (this->copy_ == nullptr) this->copy_ = std::make_unique<uint_t>(this->value_);
-      markAsUsed(); this->value_ /= other.get(); return *this;
+      if (this->value_ == 0 || other.value_ == 0) throw std::domain_error("Division assignment by zero");
+      markAsUsed(); this->value_ /= other.value_; return *this;
     }
     inline SafeUint_t<Size>& operator/=(const uint_t& other) {
       if (this->value_ == 0 || other == 0) throw std::domain_error("Division assignment by zero");
-      if (this->copy_ == nullptr) this->copy_ = std::make_unique<uint_t>(this->value_);
       markAsUsed(); this->value_ /= other; return *this;
     }
     inline SafeUint_t<Size>& operator/=(const int& other) {
       if (other == 0) throw std::domain_error("Division assignment by zero");
       // Division by a negative number results in a negative result, which cannot be represented in an unsigned integer.
       if (other < 0) throw std::domain_error("Division assignment by a negative number");
-      if (this->copy_ == nullptr) this->copy_ = std::make_unique<uint_t>(this->value_);
       markAsUsed(); this->value_ /= other; return *this;
     }
     ///@}
@@ -583,18 +568,15 @@ template <int Size> class SafeUint_t : public SafeBase {
      * @throw std::domain_error if the other value is zero.
      */
     inline SafeUint_t<Size>& operator%=(const SafeUint_t<Size>& other) {
-      if (this->value_ == 0 || other.get() == 0) throw std::domain_error("Modulus assignment by zero");
-      if (this->copy_ == nullptr) this->copy_ = std::make_unique<uint_t>(this->value_);
-      markAsUsed(); this->value_ %= other.get(); return *this;
+      if (this->value_ == 0 || other.value_ == 0) throw std::domain_error("Modulus assignment by zero");
+      markAsUsed(); this->value_ %= other.value_; return *this;
     }
     inline SafeUint_t<Size>& operator%=(const uint_t& other) {
       if (this->value_ == 0 || other == 0) throw std::domain_error("Modulus assignment by zero");
-      if (this->copy_ == nullptr) this->copy_ = std::make_unique<uint_t>(this->value_);
       markAsUsed(); this->value_ %= other; return *this;
     }
     inline SafeUint_t<Size>& operator%=(const int& other) {
       if (this->value_ == 0 || other == 0) throw std::domain_error("Modulus assignment by zero");
-      if (this->copy_ == nullptr) this->copy_ = std::make_unique<uint_t>(this->value_);
       markAsUsed(); this->value_ %= other; return *this;
     }
     ///@}
@@ -607,16 +589,13 @@ template <int Size> class SafeUint_t : public SafeBase {
      * @throw std::domain_error if the other value is negative.
      */
     inline SafeUint_t<Size>& operator&=(const SafeUint_t<Size>& other) {
-      if (this->copy_ == nullptr) this->copy_ = std::make_unique<uint_t>(this->value_);
-      markAsUsed(); this->value_ &= other.get(); return *this;
+      markAsUsed(); this->value_ &= other.value_; return *this;
     }
     inline SafeUint_t<Size>& operator&=(const uint_t& other) {
-      if (this->copy_ == nullptr) this->copy_ = std::make_unique<uint_t>(this->value_);
       markAsUsed(); this->value_ &= other; return *this;
     }
     inline SafeUint_t<Size>& operator&=(const int& other) {
       if (other < 0) throw std::domain_error("Bitwise AND assignment with a negative value");
-      if (this->copy_ == nullptr) this->copy_ = std::make_unique<uint_t>(this->value_);
       markAsUsed(); this->value_ &= other; return *this;
     }
     ///@}
@@ -629,16 +608,13 @@ template <int Size> class SafeUint_t : public SafeBase {
      * @throw std::domain_error if the other value is negative.
      */
     inline SafeUint_t<Size>& operator|=(const SafeUint_t<Size>& other) {
-      if (this->copy_ == nullptr) this->copy_ = std::make_unique<uint_t>(this->value_);
-      markAsUsed(); this->value_ |= other.get(); return *this;
+      markAsUsed(); this->value_ |= other.value_; return *this;
     }
     inline SafeUint_t<Size>& operator|=(const uint_t& other) {
-      if (this->copy_ == nullptr) this->copy_ = std::make_unique<uint_t>(this->value_);
       markAsUsed(); this->value_ |= other; return *this;
     }
     inline SafeUint_t<Size>& operator|=(const int& other) {
       if (other < 0) throw std::domain_error("Bitwise OR assignment with a negative value");
-      if (this->copy_ == nullptr) this->copy_ = std::make_unique<uint_t>(this->value_);
       markAsUsed(); this->value_ |= other; return *this;
     }
     ///@}
@@ -651,16 +627,13 @@ template <int Size> class SafeUint_t : public SafeBase {
      * @throw std::domain_error if the other value is negative.
      */
     inline SafeUint_t<Size>& operator^=(const SafeUint_t<Size>& other) {
-      if (this->copy_ == nullptr) this->copy_ = std::make_unique<uint_t>(this->value_);
-      markAsUsed(); this->value_ ^= other.get(); return *this;
+      markAsUsed(); this->value_ ^= other.value_; return *this;
     }
     inline SafeUint_t<Size>& operator^=(const uint_t& other) {
-      if (this->copy_ == nullptr) this->copy_ = std::make_unique<uint_t>(this->value_);
       markAsUsed(); this->value_ ^= other; return *this;
     }
     inline SafeUint_t<Size>& operator^=(const int& other) {
       if (other < 0) throw std::domain_error("Bitwise XOR assignment with a negative value.");
-      if (this->copy_ == nullptr) this->copy_ = std::make_unique<uint_t>(this->value_);
       markAsUsed(); this->value_ ^= other; return *this;
     }
     ///@}
@@ -671,7 +644,6 @@ template <int Size> class SafeUint_t : public SafeBase {
      * @return A reference to this SafeUint_t.
      */
     inline SafeUint_t<Size>& operator<<=(const uint8_t& other) {
-      if (this->copy_ == nullptr) this->copy_ = std::make_unique<uint_t>(this->value_);
       markAsUsed(); this->value_ <<= other; return *this;
     }
 
@@ -681,7 +653,6 @@ template <int Size> class SafeUint_t : public SafeBase {
      * @return A reference to this SafeUint_t.
      */
     inline SafeUint_t<Size>& operator>>=(const uint8_t& other) {
-      if (this->copy_ == nullptr) this->copy_ = std::make_unique<uint_t>(this->value_);
       markAsUsed(); this->value_ >>= other; return *this;
     }
 
@@ -694,7 +665,6 @@ template <int Size> class SafeUint_t : public SafeBase {
       if (this->value_ == std::numeric_limits<uint_t>::max()) {
         throw std::overflow_error("Overflow in prefix increment operation.");
       }
-      if (this->copy_ == nullptr) this->copy_ = std::make_unique<uint_t>(this->value_);
       markAsUsed(); ++(this->value_); return *this;
     }
 
@@ -707,7 +677,6 @@ template <int Size> class SafeUint_t : public SafeBase {
       if (this->value_ == std::numeric_limits<uint_t>::max()) {
         throw std::overflow_error("Overflow in postfix increment operation.");
       }
-      if (this->copy_ == nullptr) this->copy_ = std::make_unique<uint_t>(this->value_);
       SafeUint_t<Size> tmp(this->value_);
       markAsUsed(); ++(this->value_); return tmp;
     }
@@ -719,7 +688,6 @@ template <int Size> class SafeUint_t : public SafeBase {
      */
     inline SafeUint_t<Size>& operator--() {
       if (this->value_ == 0) throw std::underflow_error("Underflow in prefix decrement operation.");
-      if (this->copy_ == nullptr) this->copy_ = std::make_unique<uint_t>(this->value_);
       markAsUsed(); --(this->value_); return *this;
     }
 
@@ -730,18 +698,17 @@ template <int Size> class SafeUint_t : public SafeBase {
      */
     inline SafeUint_t<Size> operator--(int) {
       if (this->value_ == 0) throw std::underflow_error("Underflow in postfix decrement operation.");
-      if (this->copy_ == nullptr) this->copy_ = std::make_unique<uint_t>(this->value_);
       SafeUint_t<Size> tmp(this->value_);
       markAsUsed(); --(this->value_); return tmp;
     }
 
     /// Commit the value.
-    inline void commit() override { this->copy_ = nullptr; this->registered_ = false; }
+    inline void commit() override { this->copy_ = this->value_; this->registered_ = false; }
 
     /// Revert the value.
     inline void revert() override {
-      if (this->copy_ != nullptr) this->value_ = *this->copy_;
-      this->copy_ = nullptr; this->registered_ = false;
+      this->value_ = this->copy_;
+      this->registered_ = false;
     }
 };
 
