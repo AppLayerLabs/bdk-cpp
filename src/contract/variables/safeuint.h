@@ -8,10 +8,7 @@ See the LICENSE.txt file in the project root for more information.
 #ifndef SAFEUINT_T_H
 #define SAFEUINT_T_H
 
-#include <memory>
-
 #include <boost/multiprecision/cpp_int.hpp>
-
 #include "safebase.h"
 
 /**
@@ -77,7 +74,7 @@ template <int Size> class SafeUint_t : public SafeBase {
      * @param owner The DynamicContract that owns this variable.
      * @param value The initial value of the variable. Defaults to 0.
      */
-    SafeUint_t(DynamicContract* owner, const uint_t& value = 0) : SafeBase(owner), value_(value), copy_(value) {}
+    explicit SafeUint_t(DynamicContract* owner, const uint_t& value = 0) : SafeBase(owner), value_(value), copy_(value) {}
 
     /// Copy constructor. Only copies the CURRENT value.
     SafeUint_t(const SafeUint_t<Size>& other) : SafeBase(nullptr), value_(other.value_), copy_(other.value_) {}
@@ -113,7 +110,7 @@ template <int Size> class SafeUint_t : public SafeBase {
       // Another option is to disable `checked` in the Boost types, but then we lose the
       // intrinsic over/underflow checks and rely on Boost itself to do the conversion correctly.
       // See https://www.boost.org/doc/libs/1_77_0/libs/multiprecision/doc/html/boost_multiprecision/tut/ints/cpp_int.html
-      int256_t tmp = static_cast<int256_t>(this->value_);
+      auto tmp = static_cast<int256_t>(this->value_);
       tmp = tmp + other;
       if (tmp < 0) {
         throw std::underflow_error("Underflow in addition operation.");
@@ -142,7 +139,7 @@ template <int Size> class SafeUint_t : public SafeBase {
     }
     inline SafeUint_t<Size> operator-(const int& other) const {
       // See operator+.
-      int256_t tmp = static_cast<int256_t>(this->value_);
+      auto tmp = static_cast<int256_t>(this->value_);
       tmp = tmp - other;
       if (tmp < 0) {
         throw std::underflow_error("Underflow in addition operation.");
@@ -461,7 +458,7 @@ template <int Size> class SafeUint_t : public SafeBase {
     }
     inline SafeUint_t<Size>& operator+=(const int& other) {
       // See operator+.
-      int256_t tmp = static_cast<int256_t>(this->value_);
+      auto tmp = static_cast<int256_t>(this->value_);
       tmp += other;
       if (tmp < 0) {
         throw std::underflow_error("Underflow in addition assignment operation.");
@@ -490,7 +487,7 @@ template <int Size> class SafeUint_t : public SafeBase {
     }
     inline SafeUint_t<Size>& operator-=(const int& other) {
       // See operator+.
-      int256_t tmp = static_cast<int256_t>(this->value_);
+      auto tmp = static_cast<int256_t>(this->value_);
       tmp -= other;
       if (tmp < 0) {
         throw std::underflow_error("Underflow in addition assignment operation.");

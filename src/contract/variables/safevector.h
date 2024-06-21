@@ -8,7 +8,6 @@ See the LICENSE.txt file in the project root for more information.
 #ifndef SAFEVECTOR_H
 #define SAFEVECTOR_H
 
-#include <array>
 #include <iterator>
 #include <stack>
 #include <tuple>
@@ -93,14 +92,14 @@ template <typename T> class SafeVector : public SafeBase {
      * @param owner The owner of the variable.
      * @param vec (optional) A vector of T to use during construction. Defaults to an empty vector.
      */
-    explicit SafeVector(DynamicContract* owner, std::vector<T> vec = {})
+    explicit SafeVector(DynamicContract* owner, const std::vector<T>& vec = {})
       : SafeBase(owner), value_(vec), copy_(nullptr), undo_(nullptr) {}
 
     /**
      * Empty constructor.
      * @param vec (optional) A vector of T to use during construction. Defaults to an empty vector.
      */
-    SafeVector(std::vector<T> vec = {}) : SafeBase(nullptr), value_(vec), copy_(nullptr), undo_(nullptr) {}
+    explicit SafeVector(const std::vector<T>& vec = {}) : SafeBase(nullptr), value_(vec), copy_(nullptr), undo_(nullptr) {}
 
     /**
      * Constructor with repeating value.
@@ -129,7 +128,7 @@ template <typename T> class SafeVector : public SafeBase {
      * Constructor with initializer list.
      * @param init The initializer list to use.
      */
-    explicit SafeVector(std::initializer_list<T> init)
+    SafeVector(std::initializer_list<T> init)
       : SafeBase(nullptr), value_(init), copy_(nullptr), undo_(nullptr) {}
 
     /// Copy constructor. Only copies the CURRENT value.
@@ -163,7 +162,7 @@ template <typename T> class SafeVector : public SafeBase {
      * Replace the contents with elements from an initializer list.
      * @param ilist The initializer list to use.
      */
-    inline void assign(std::initializer_list<T> ilist) {
+    inline void assign(const std::initializer_list<T>& ilist) {
       if (this->copy_ == nullptr) this->copy_ = std::make_unique<std::vector<T>>(this->value_);
       markAsUsed(); this->value_.assign(ilist);
     }
@@ -230,16 +229,16 @@ template <typename T> class SafeVector : public SafeBase {
     inline const T* data() const { return this->value_.data(); }
 
     /// Get an iterator to the beginning of the vector.
-    inline std::vector<T>::const_iterator cbegin() const { return this->value_.cbegin(); }
+    inline typename std::vector<T>::const_iterator cbegin() const { return this->value_.cbegin(); }
 
     /// Get an iterator to the end of the vector.
-    inline std::vector<T>::const_iterator cend() const { return this->value_.cend(); }
+    inline typename std::vector<T>::const_iterator cend() const { return this->value_.cend(); }
 
     /// Get a reverse iterator to the beginning of the vector.
-    inline std::vector<T>::const_reverse_iterator crbegin() const { return this->value_.crbegin(); }
+    inline typename std::vector<T>::const_reverse_iterator crbegin() const { return this->value_.crbegin(); }
 
     /// Get a reverse iterator to the end of the vector.
-    inline std::vector<T>::const_reverse_iterator crend() const { return this->value_.crend(); }
+    inline typename std::vector<T>::const_reverse_iterator crend() const { return this->value_.crend(); }
 
     /// Check if the vector is empty.
     inline bool empty() const { return this->value_.empty(); }
@@ -281,7 +280,7 @@ template <typename T> class SafeVector : public SafeBase {
      * @param value The element to insert.
      * @return An iterator to the element that was inserted.
      */
-    std::vector<T>::const_iterator insert(std::vector<T>::const_iterator pos, const T& value) {
+    typename std::vector<T>::const_iterator insert(typename std::vector<T>::const_iterator pos, const T& value) {
       if (this->copy_ == nullptr) {
         if (this->undo_ == nullptr) this->undo_ = std::make_unique<std::stack<UndoOp, std::vector<UndoOp>>>();
         std::size_t index = std::distance(this->value_.begin(), pos);
@@ -296,7 +295,7 @@ template <typename T> class SafeVector : public SafeBase {
      * @param value The element to insert.
      * @return An iterator to the element that was inserted.
      */
-    std::vector<T>::const_iterator insert(std::vector<T>::const_iterator pos, T&& value) {
+    typename std::vector<T>::const_iterator insert(typename std::vector<T>::const_iterator pos, T&& value) {
       if (this->copy_ == nullptr) {
         if (this->undo_ == nullptr) this->undo_ = std::make_unique<std::stack<UndoOp, std::vector<UndoOp>>>();
         std::size_t index = std::distance(this->value_.cbegin(), pos);
@@ -312,7 +311,7 @@ template <typename T> class SafeVector : public SafeBase {
      * @param value The element to insert.
      * @return An iterator to the first element that was inserted.
      */
-    std::vector<T>::const_iterator insert(std::vector<T>::const_iterator pos, std::size_t count, const T& value) {
+    typename std::vector<T>::const_iterator insert(typename std::vector<T>::const_iterator pos, std::size_t count, const T& value) {
       if (this->copy_ == nullptr) {
         if (this->undo_ == nullptr) this->undo_ = std::make_unique<std::stack<UndoOp, std::vector<UndoOp>>>();
         std::size_t index = std::distance(this->value_.cbegin(), pos);
@@ -328,8 +327,8 @@ template <typename T> class SafeVector : public SafeBase {
      * @param last An iterator to the last value.
      * @return An iterator to the first element that was inserted.
      */
-    template<class InputIt> requires std::input_iterator<InputIt> std::vector<T>::const_iterator insert(
-      std::vector<T>::const_iterator pos, InputIt first, InputIt last
+    template<class InputIt> requires std::input_iterator<InputIt> typename std::vector<T>::const_iterator insert(
+      typename std::vector<T>::const_iterator pos, InputIt first, InputIt last
     ) {
       if (this->copy_ == nullptr) {
         if (this->undo_ == nullptr) this->undo_ = std::make_unique<std::stack<UndoOp, std::vector<UndoOp>>>();
@@ -346,7 +345,7 @@ template <typename T> class SafeVector : public SafeBase {
      * @param ilist The list of elements to insert.
      * @return An iterator to the first element that was inserted.
      */
-    std::vector<T>::const_iterator insert(std::vector<T>::const_iterator pos, std::initializer_list<T> ilist) {
+    typename std::vector<T>::const_iterator insert(typename std::vector<T>::const_iterator pos, std::initializer_list<T> ilist) {
       if (this->copy_ == nullptr) {
         if (this->undo_ == nullptr) this->undo_ = std::make_unique<std::stack<UndoOp, std::vector<UndoOp>>>();
         std::size_t index = std::distance(this->value_.cbegin(), pos);
@@ -361,7 +360,7 @@ template <typename T> class SafeVector : public SafeBase {
      * @param args The element to emplace.
      * @return An iterator to the element that was emplaced.
      */
-    template <class... Args> std::vector<T>::const_iterator emplace(std::vector<T>::const_iterator pos, Args&&... args) {
+    template <class... Args> typename std::vector<T>::const_iterator emplace(typename std::vector<T>::const_iterator pos, Args&&... args) {
       if (this->copy_ == nullptr) {
         if (this->undo_ == nullptr) this->undo_ = std::make_unique<std::stack<UndoOp, std::vector<UndoOp>>>();
         this->undo_->emplace(std::make_tuple(VectorOp::EMPLACE, std::distance(this->value_.cbegin(), pos), 1, std::vector<T>()));
@@ -374,7 +373,7 @@ template <typename T> class SafeVector : public SafeBase {
      * @param pos The index of the element to erase.
      * @return An iterator to the element after the removed one.
      */
-    std::vector<T>::const_iterator erase(std::vector<T>::const_iterator pos) {
+    typename std::vector<T>::const_iterator erase(typename std::vector<T>::const_iterator pos) {
       if (this->copy_ == nullptr) {
         if (this->undo_ == nullptr) this->undo_ = std::make_unique<std::stack<UndoOp, std::vector<UndoOp>>>();
         std::size_t index = std::distance(this->value_.cbegin(), pos);
@@ -389,8 +388,8 @@ template <typename T> class SafeVector : public SafeBase {
      * @param last An iterator to the last value.
      * @return An iterator to the element after the last removed one.
      */
-    std::vector<T>::const_iterator erase(
-      std::vector<T>::const_iterator first, std::vector<T>::const_iterator last
+    typename std::vector<T>::const_iterator erase(
+      typename std::vector<T>::const_iterator first, typename std::vector<T>::const_iterator last
     ) {
       if (this->copy_ == nullptr) {
         if (this->undo_ == nullptr) this->undo_ = std::make_unique<std::stack<UndoOp, std::vector<UndoOp>>>();

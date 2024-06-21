@@ -27,7 +27,7 @@ class SafeAddress : public SafeBase {
      * @param owner The contract that owns the variable.
      * @param address The initial value. Defaults to an empty address.
      */
-    SafeAddress(DynamicContract* owner, const Address& address = Address())
+    explicit SafeAddress(DynamicContract* owner, const Address& address = Address())
       : SafeBase(owner), value_(address), copy_(address) {}
 
     /**

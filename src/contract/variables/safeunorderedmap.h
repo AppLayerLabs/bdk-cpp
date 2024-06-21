@@ -33,7 +33,7 @@ template <typename Key, typename T> class SafeUnorderedMap : public SafeBase {
      * @param owner The contract that owns the variable.
      * @param map The initial value. Defaults to an empty map.
      */
-    SafeUnorderedMap(
+    explicit SafeUnorderedMap(
       DynamicContract* owner, const std::unordered_map<Key, T, SafeHash>& map = {}
     ) : SafeBase(owner), value_(map), copy_() {}
 
@@ -244,7 +244,7 @@ template <typename Key, typename T> class SafeUnorderedMap : public SafeBase {
     template <class InputIt> void insert(InputIt first, InputIt last) {
       // On this insert, we copy everything because we cannot check the insert
       // return to see what keys were insertted.
-      for (auto it = first; it != last; it++) {
+      for (auto it = first; it != last; ++it) {
         auto valueIt = this->value_.find(it->first);
         if (valueIt != this->value_.end()) {
           this->copy_.try_emplace(it->first, std::in_place, valueIt->second);
@@ -463,7 +463,7 @@ template <typename Key, typename T> class SafeUnorderedMap : public SafeBase {
      * @param args The argument to build the value for emplace (not variadic! it's just one value).
      * @return An iterator to the emplaced value.
      */
-    template <typename... Args> std::unordered_map<Key, T, SafeHash>::const_iterator
+    template <typename... Args> typename std::unordered_map<Key, T, SafeHash>::const_iterator
     try_emplace(typename std::unordered_map<Key, T, SafeHash>::const_iterator hint, const Key& key, Args&&... args) {
       // Only copy the value if key already exists (this overload doesn't return
       // a pair so we don't know if insertion was successful)
@@ -478,7 +478,7 @@ template <typename Key, typename T> class SafeUnorderedMap : public SafeBase {
      * @param args The argument to build the value for emplace (not variadic! it's just one value).
      * @return An iterator to the emplaced value.
      */
-    template <typename... Args> std::unordered_map<Key, T, SafeHash>::const_iterator
+    template <typename... Args> typename std::unordered_map<Key, T, SafeHash>::const_iterator
     try_emplace(typename std::unordered_map<Key, T, SafeHash>::const_iterator hint, Key&& key, Args&&... args) {
       // Only copy the value if key already exists (this overload doesn't return
       // a pair so we don't know if insertion was successful)
@@ -513,7 +513,7 @@ template <typename Key, typename T> class SafeUnorderedMap : public SafeBase {
       typename std::unordered_map<Key, T, SafeHash>::const_iterator first,
       typename std::unordered_map<Key, T, SafeHash>::const_iterator last
     ) {
-      for (auto it = first; it != last; it++) {
+      for (auto it = first; it != last; ++it) {
         auto itValue = this->value_.find((*it).first);
         if (itValue != this->value_.end()) {
           this->copy_.try_emplace((*itValue).first, std::in_place, (*itValue).second);
@@ -544,8 +544,8 @@ template <typename Key, typename T> class SafeUnorderedMap : public SafeBase {
      * @param pos The position of the node to extract.
      * @return The extracted node handle.
      */
-    inline std::unordered_map<Key, T, SafeHash>::node_type extract(
-      std::unordered_map<Key, T, SafeHash>::const_iterator pos
+    inline typename std::unordered_map<Key, T, SafeHash>::node_type extract(
+      typename std::unordered_map<Key, T, SafeHash>::const_iterator pos
     ) {
       auto itValue = this->value_.find((*pos).first);
       if (itValue != this->value_.cend()) {
@@ -561,7 +561,7 @@ template <typename Key, typename T> class SafeUnorderedMap : public SafeBase {
      * @param k The key of the node to extract.
      * @return The extracted node handle.
      */
-    inline std::unordered_map<Key, T, SafeHash>::node_type extract(const Key& k) {
+    inline typename std::unordered_map<Key, T, SafeHash>::node_type extract(const Key& k) {
       auto itValue = this->value_.find(k);
       if (itValue != this->value_.cend()) {
         this->copy_.try_emplace((*itValue).first, std::in_place, (*itValue).second);

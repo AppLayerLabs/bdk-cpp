@@ -60,14 +60,14 @@ template <typename T, unsigned N> class SafeArray : public SafeBase {
      * Default constructor.
      * @param a (optional) An array of T with fixed size of N to use during construction. Defaults to an empty array.
      */
-    SafeArray(const std::array<T,N>& a = {}) : SafeBase(nullptr), value_(a), copy_(nullptr), undo_(nullptr) {}
+    explicit SafeArray(const std::array<T,N>& a = {}) : SafeBase(nullptr), value_(a), copy_(nullptr), undo_(nullptr) {}
 
     /**
      * Constructor with owner, for contracts.
      * @param owner The owner of the variable.
      * @param a (optional) An array of T with fixed size of N to use during construction. Defaults to an empty array.
      */
-    SafeArray(DynamicContract* owner, const std::array<T, N>& a = {})
+    explicit SafeArray(DynamicContract* owner, const std::array<T, N>& a = {})
       : SafeBase(owner), value_(a), copy_(nullptr), undo_(nullptr) {}
 
     ///@{
@@ -131,28 +131,28 @@ template <typename T, unsigned N> class SafeArray : public SafeBase {
     inline const T* data() const { return this->value_.data(); }
 
     /// Get an iterator to the beginning of the array.
-    inline std::array<T, N>::const_iterator cbegin() const { return this->value_.cbegin(); }
+    inline typename std::array<T, N>::const_iterator cbegin() const { return this->value_.cbegin(); }
 
     /// Get an iterator to the end of the array.
-    inline std::array<T, N>::const_iterator cend() const { return this->value_.cend(); }
+    inline typename std::array<T, N>::const_iterator cend() const { return this->value_.cend(); }
 
     /// Get a reverse iterator to the beginning of the array.
-    inline std::array<T, N>::const_reverse_iterator crbegin() const { return this->value_.crbegin(); }
+    inline typename std::array<T, N>::const_reverse_iterator crbegin() const { return this->value_.crbegin(); }
 
     /// Get a reverse iterator to the end of the array.
-    inline std::array<T, N>::const_reverse_iterator crend() const { return this->value_.crend(); }
+    inline typename std::array<T, N>::const_reverse_iterator crend() const { return this->value_.crend(); }
 
     /**
      * Check if the array is empty (has no elements).
      * @return `true` if array is empty, `false` otherwise.
      */
-    inline bool empty() const { return (N == 0); }
+    constexpr bool empty() { return std::array<T, N>::empty(); }
 
     /// Get the current size of the array.
-    inline std::size_t size() const { return N; }
+    constexpr std::size_t size() { return std::array<T, N>::size(); }
 
     /// Get the maximum possible size of the array.
-    inline std::size_t max_size() const { return N; }
+    constexpr std::size_t max_size() { return std::array<T, N>::max_size(); }
 
     /**
      * Fill the array with a given value.

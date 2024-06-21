@@ -182,15 +182,15 @@ template<typename... Types> class SafeTuple : public SafeBase {
      * Empty constructor with owner.
      * @param owner The contract that owns the variable.
      */
-    SafeTuple(DynamicContract* owner) : SafeBase(owner), value_(), copy_() {}
+    explicit SafeTuple(DynamicContract* owner) : SafeBase(owner), value_(), copy_() {}
 
     ///@{
     /**
      * Forward declaration constructor.
      * @param tpl The tuple to forward.
      */
-    template<typename... U> SafeTuple(const std::tuple<U...>& tpl) : value_(tpl), copy_() {}
-    template<typename... U> SafeTuple(std::tuple<U...>&& tpl) : value_(std::move(tpl)), copy_() {}
+    template<typename... U> explicit SafeTuple(const std::tuple<U...>& tpl) : value_(tpl), copy_() {}
+    template<typename... U> explicit SafeTuple(std::tuple<U...>&& tpl) : value_(std::move(tpl)), copy_() {}
     ///@}
 
     /// Copy constructor. Copies only the CURRENT value.
@@ -205,7 +205,7 @@ template<typename... Types> class SafeTuple : public SafeBase {
      * @tparam V The second type of the pair.
      * @param pair The pair to construct the tuple with.
      */
-    template<typename U, typename V> SafeTuple(const std::pair<U, V>& pair) {
+    template<typename U, typename V> explicit SafeTuple(const std::pair<U, V>& pair) {
       static_assert(sizeof...(Types) == 2, "Tuple must have 2 elements to be constructed from a pair");
       this->value_ = std::make_tuple(pair.first, pair.second);
     }

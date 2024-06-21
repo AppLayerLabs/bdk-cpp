@@ -8,9 +8,7 @@ See the LICENSE.txt file in the project root for more information.
 #ifndef SAFEBASE_H
 #define SAFEBASE_H
 
-#include <memory>
 #include <cassert>
-#include "../utils/dynamicexception.h"
 
 // Forward declarations.
 class DynamicContract;

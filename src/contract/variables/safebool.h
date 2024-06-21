@@ -8,8 +8,6 @@ See the LICENSE.txt file in the project root for more information.
 #ifndef SAFEBOOL_H
 #define SAFEBOOL_H
 
-#include <memory>
-
 #include "safebase.h"
 
 /**
@@ -27,13 +25,13 @@ class SafeBool : public SafeBase {
      * @param owner The contract that owns the variable.
      * @param value The initial value. Defaults to `false`.
      */
-    SafeBool(DynamicContract* owner, bool value = false) : SafeBase(owner), value_(value), copy_(value) {}
+    explicit SafeBool(DynamicContract* owner, bool value = false) : SafeBase(owner), value_(value), copy_(value) {}
 
     /**
      * Empty constructor.
      * @param value The initial value. Defaults to `false`.
      */
-    SafeBool(bool value = false) : SafeBase(nullptr), value_(value), copy_(value) {}
+    explicit SafeBool(bool value = false) : SafeBase(nullptr), value_(value), copy_(value) {}
 
     /// Copy constructor.
     SafeBool(const SafeBool& other) : SafeBase(nullptr), value_(other.value_), copy_(other.copy_) {}

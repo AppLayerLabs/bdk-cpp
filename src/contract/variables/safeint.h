@@ -8,10 +8,7 @@ See the LICENSE.txt file in the project root for more information.
 #ifndef SAFEINT_T_H
 #define SAFEINT_T_H
 
-#include <memory>
-
 #include <boost/multiprecision/cpp_int.hpp>
-
 #include "safebase.h"
 
 /**
@@ -69,7 +66,7 @@ template <int Size> class SafeInt_t : public SafeBase {
      * @param owner The DynamicContract that owns this variable.
      * @param value The initial value of the variable. Defaults to 0.
      */
-    SafeInt_t(DynamicContract* owner, const int_t& value = 0) : SafeBase(owner), value_(value), copy_(value) {}
+    explicit SafeInt_t(DynamicContract* owner, const int_t& value = 0) : SafeBase(owner), value_(value), copy_(value) {}
 
     /// Copy constructor. Only copies the CURRENT value.
     SafeInt_t(const SafeInt_t<Size>& other) : SafeBase(nullptr), value_(other.value_), copy_(other.value_) {}

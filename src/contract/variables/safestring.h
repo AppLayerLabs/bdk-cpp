@@ -29,7 +29,7 @@ class SafeString : public SafeBase {
      * @param owner The contract that owns the variable.
      * @param str The initial value. Defaults to an empty string.
      */
-    SafeString(DynamicContract *owner, const std::string& str = std::string())
+    explicit SafeString(DynamicContract *owner, const std::string& str = std::string())
       : SafeBase(owner), value_(str), copy_(nullptr)
     {};
 
@@ -997,7 +997,7 @@ class SafeString : public SafeBase {
      * Swap the contents of this string with another SafeString.
      * @param other The string to swap with.
      */
-    inline void swap(SafeString& other) {
+    inline void swap(SafeString& other) noexcept {
       if (this->copy_ == nullptr) this->copy_ = std::make_unique<std::string>(this->value_);
       if (other.copy_ == nullptr) other.copy_ = std::make_unique<std::string>(other.value_);
       markAsUsed(); other.markAsUsed(); this->value_.swap(other.value_);
