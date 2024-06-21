@@ -41,13 +41,9 @@ uint256_t ERC20Wrapper::getContractBalance(const Address& token) const {
 
 uint256_t ERC20Wrapper::getUserBalance(const Address& token, const Address& user) const {
   auto it = this->tokensAndBalances_.find(token);
-  if (it == this->tokensAndBalances_.end()) {
-    return 0;
-  }
+  if (it == this->tokensAndBalances_.cend()) return 0;
   auto itUser = it->second.find(user);
-  if (itUser == it->second.end()) {
-    return 0;
-  }
+  if (itUser == it->second.cend()) return 0;
   return itUser->second;
 }
 

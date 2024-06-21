@@ -12,6 +12,7 @@ See the LICENSE.txt file in the project root for more information.
 #include <tuple>
 
 #include "../../utils/db.h"
+#include "../../utils/utils.h" // using uint256_t
 #include "../abi.h"
 #include "../contractmanager.h"
 #include "../dynamiccontract.h"

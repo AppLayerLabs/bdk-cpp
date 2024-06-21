@@ -7,591 +7,339 @@ See the LICENSE.txt file in the project root for more information.
 
 #include "../../src/libs/catch2/catch_amalgamated.hpp"
 #include "../../src/contract/variables/safevector.h"
-#include <iostream>
-
 
 namespace TSafeVector {
   TEST_CASE("SafeVector Class", "[contract][variables][safevector]") {
-    SECTION("SafeVector Constructor (default)") {
-      SafeVector<std::string> safeVectorEmpty;
-      REQUIRE(safeVectorEmpty.empty());
-      REQUIRE(safeVectorEmpty.size() == 0);
+    SECTION("SafeVector constructor") { // also tests some common const funcs
+      SafeVector<int> emptyVec;
+      SafeVector<int> vec({1,2,3,4,5});
+      SafeVector<int> repeatVec(5, 50);
+      SafeVector<int> emptyRepeatVec(5);
+      SafeVector<int> iterVec(vec.cbegin(), vec.cend() - 2);
+      std::initializer_list<int> ilist {100,200,300,400,500};
+      SafeVector<int> ilistVec(ilist);
+      SafeVector<int> copyVec(vec);
+      REQUIRE((emptyVec.empty() && emptyVec.size() == 0));
+      REQUIRE((!vec.empty() && vec.size() == 5));
+      REQUIRE((!repeatVec.empty() && repeatVec.size() == 5));
+      REQUIRE((!emptyRepeatVec.empty() && emptyRepeatVec.size() == 5));
+      REQUIRE((!iterVec.empty() && iterVec.size() == 3));
+      REQUIRE((!ilistVec.empty() && ilistVec.size() == 5));
+      REQUIRE((!copyVec.empty() && copyVec.size() == 5 && copyVec == vec));
+      REQUIRE(vec.front() == 1);
+      REQUIRE(vec.back() == 5);
+      REQUIRE(vec.at(2) == 3);
+      REQUIRE(vec[3] == 4);
+      for (std::size_t i = 0; i < vec.size(); i++) REQUIRE(vec[i] == i + 1);
+      for (std::size_t i = 0; i < repeatVec.size(); i++) REQUIRE(repeatVec[i] == 50);
+      for (std::size_t i = 0; i < emptyRepeatVec.size(); i++) REQUIRE(emptyRepeatVec[i] == 0);
+      for (std::size_t i = 0; i < iterVec.size(); i++) REQUIRE(iterVec[i] == i + 1);
+      for (std::size_t i = 0; i < ilistVec.size(); i++) REQUIRE(ilistVec[i] == (i + 1) * 100);
+      for (std::size_t i = 0; i < copyVec.size(); i++) REQUIRE(copyVec[i] == i + 1);
     }
 
-    SECTION("SafeVector Constructor (count, value)") {
-      SafeVector<std::string> safeVectorThree(3, "test");
-      SafeVector<std::string> safeVectorThreeCommit(3, "test");
-      REQUIRE(safeVectorThree[0] == "test");
-      REQUIRE(safeVectorThree[1] == "test");
-      REQUIRE(safeVectorThree[2] == "test");
-      REQUIRE(safeVectorThree.size() == 3);
-      safeVectorThree.revert();
-      REQUIRE(safeVectorThree.empty());
-      REQUIRE_THROWS_AS(safeVectorThree[0], std::out_of_range);
-      safeVectorThreeCommit.commit();
-      safeVectorThreeCommit.revert();
-      REQUIRE(safeVectorThreeCommit[0] == "test");
-      REQUIRE(safeVectorThreeCommit[1] == "test");
-      REQUIRE(safeVectorThreeCommit[2] == "test");
-      REQUIRE(safeVectorThreeCommit.size() == 3);
+    SECTION("SafeVector assign") {
+      SafeVector<std::string> vec;
+      SafeVector<std::string> vec2;
+      SafeVector<std::string> vec3;
+      std::initializer_list<std::string> ilist { "AAAAA", "AAAAA", "AAAAA", "AAAAA" };
+      // assign with repeating value
+      vec.assign(5, "AAAAA");
+      vec.revert();
+      REQUIRE(vec.empty());
+      vec.assign(5, "AAAAA");
+      vec.commit();
+      REQUIRE((!vec.empty() && vec.size() == 5));
+      for (std::size_t i = 0; i < vec.size(); i++) REQUIRE(vec[i] == "AAAAA");
+      // assign with iterators
+      vec2.assign(vec.cbegin(), vec.cend() - 2);
+      vec2.revert();
+      REQUIRE(vec2.empty());
+      vec2.assign(vec.cbegin(), vec.cend() - 2);
+      vec2.commit();
+      REQUIRE((!vec2.empty() && vec2.size() == 3));
+      for (std::size_t i = 0; i < vec2.size(); i++) REQUIRE(vec2[i] == "AAAAA");
+      // assign with ilist
+      vec3.assign(ilist);
+      vec3.revert();
+      REQUIRE(vec3.empty());
+      vec3.assign(ilist);
+      vec3.commit();
+      REQUIRE((!vec3.empty() && vec3.size() == 4));
+      for (std::size_t i = 0; i < vec3.size(); i++) REQUIRE(vec3[i] == "AAAAA");
     }
 
-    SECTION("SafeVector Constructor (count)") {
-      SafeVector<std::string> safeVectorThree(3);
-      SafeVector<std::string> safeVectorThreeCommit(3);
-      REQUIRE(safeVectorThree[0] == "");
-      REQUIRE(safeVectorThree[1] == "");
-      REQUIRE(safeVectorThree[2] == "");
-      REQUIRE(safeVectorThree.size() == 3);
-      safeVectorThree.revert();
-      REQUIRE(safeVectorThree.empty());
-      REQUIRE_THROWS_AS(safeVectorThree[0], std::out_of_range);
-      safeVectorThreeCommit.commit();
-      safeVectorThreeCommit.revert();
-      REQUIRE(safeVectorThreeCommit[0] == "");
-      REQUIRE(safeVectorThreeCommit[1] == "");
-      REQUIRE(safeVectorThreeCommit[2] == "");
-      REQUIRE(safeVectorThreeCommit.size() == 3);
-    }
-
-    SECTION("SafeVector Constructor (initializer list)") {
-      SafeVector<uint64_t> safeVectorThree({10, 20, 30});
-      SafeVector<uint64_t> safeVectorThreeCommit({10, 20, 30});
-      REQUIRE(safeVectorThree[0] == 10);
-      REQUIRE(safeVectorThree[1] == 20);
-      REQUIRE(safeVectorThree[2] == 30);
-      REQUIRE(safeVectorThree.size() == 3);
-      safeVectorThree.revert();
-      REQUIRE(safeVectorThree.empty());
-      REQUIRE_THROWS_AS(safeVectorThree[0], std::out_of_range);
-      safeVectorThreeCommit.commit();
-      safeVectorThreeCommit.revert();
-      REQUIRE(safeVectorThreeCommit[0] == 10);
-      REQUIRE(safeVectorThreeCommit[1] == 20);
-      REQUIRE(safeVectorThreeCommit[2] == 30);
-    }
-
-    SECTION("SafeVector Constructor (iterator first, iterator last)") {
-      std::vector<std::string> vectorThree({"test1", "test2", "test3"});
-      SafeVector<std::string> safeVectorThree(vectorThree.begin(), vectorThree.end());
-      SafeVector<std::string> safeVectorThreeCommit(vectorThree.begin(), vectorThree.end());
-      REQUIRE(safeVectorThree[0] == "test1");
-      REQUIRE(safeVectorThree[1] == "test2");
-      REQUIRE(safeVectorThree[2] == "test3");
-      REQUIRE(safeVectorThree.size() == 3);
-      safeVectorThree.revert();
-      REQUIRE(safeVectorThree.empty());
-      REQUIRE_THROWS_AS(safeVectorThree[0], std::out_of_range);
-      safeVectorThreeCommit.commit();
-      safeVectorThreeCommit.revert();
-      REQUIRE(safeVectorThreeCommit[0] == "test1");
-      REQUIRE(safeVectorThreeCommit[1] == "test2");
-      REQUIRE(safeVectorThreeCommit[2] == "test3");
-      REQUIRE(safeVectorThreeCommit.size() == 3);
-    }
-
-    SECTION("SafeVector Constructor(SafeVector)") {
-      SafeVector<std::string> safeVectorThreeExample({"test1", "test2", "test3"});
-      SafeVector<std::string> safeVectorThree(safeVectorThreeExample);
-      SafeVector<std::string> safeVectorThreeCommit(safeVectorThreeExample);
-      REQUIRE(safeVectorThree[0] == "test1");
-      REQUIRE(safeVectorThree[1] == "test2");
-      REQUIRE(safeVectorThree[2] == "test3");
-      REQUIRE(safeVectorThree.size() == 3);
-      safeVectorThree.revert();
-      REQUIRE(safeVectorThree.empty());
-      REQUIRE_THROWS_AS(safeVectorThree[0], std::out_of_range);
-      safeVectorThreeCommit.commit();
-      safeVectorThreeCommit.revert();
-      REQUIRE(safeVectorThreeCommit[0] == "test1");
-      REQUIRE(safeVectorThreeCommit[1] == "test2");
-      REQUIRE(safeVectorThreeCommit[2] == "test3");
-      REQUIRE(safeVectorThreeCommit.size() == 3);
-    }
-
-    SECTION("SafeVector assign(count, value)") {
-      SafeVector<std::string> safeVectorThree;
-      SafeVector<std::string> safeVectorThreeCommit;
-      safeVectorThree.assign(3, "test");
-      safeVectorThreeCommit.assign(3, "test");
-      REQUIRE(safeVectorThree[0] == "test");
-      REQUIRE(safeVectorThree[1] == "test");
-      REQUIRE(safeVectorThree[2] == "test");
-      REQUIRE(safeVectorThree.size() == 3);
-      safeVectorThree.revert();
-      REQUIRE(safeVectorThree.empty());
-      REQUIRE_THROWS_AS(safeVectorThree[0], std::out_of_range);
-      safeVectorThreeCommit.commit();
-      safeVectorThreeCommit.revert();
-      REQUIRE(safeVectorThreeCommit[0] == "test");
-      REQUIRE(safeVectorThreeCommit[1] == "test");
-      REQUIRE(safeVectorThreeCommit[2] == "test");
-      REQUIRE(safeVectorThreeCommit.size() == 3);
-    }
-
-    SECTION("SafeVector assign(iterator first, iterator last)") {
-      std::vector<std::string> vectorThree({"test1", "test2", "test3"});
-      SafeVector<std::string> safeVectorThree;
-      SafeVector<std::string> safeVectorThreeCommit;
-      safeVectorThree.assign(vectorThree.begin(), vectorThree.end());
-      safeVectorThreeCommit.assign(vectorThree.begin(), vectorThree.end());
-      REQUIRE(safeVectorThree[0] == "test1");
-      REQUIRE(safeVectorThree[1] == "test2");
-      REQUIRE(safeVectorThree[2] == "test3");
-      REQUIRE(safeVectorThree.size() == 3);
-      safeVectorThree.revert();
-      REQUIRE(safeVectorThree.empty());
-      REQUIRE_THROWS_AS(safeVectorThree[0], std::out_of_range);
-      safeVectorThreeCommit.commit();
-      safeVectorThreeCommit.revert();
-      REQUIRE(safeVectorThreeCommit[0] == "test1");
-      REQUIRE(safeVectorThreeCommit[1] == "test2");
-      REQUIRE(safeVectorThreeCommit[2] == "test3");
-      REQUIRE(safeVectorThreeCommit.size() == 3);
-    }
-
-    SECTION("SafeVector at()") {
-      SafeVector<std::string> safeVectorThree({"test1", "test2", "test3"});
-      SafeVector<std::string> safeVectorThreeCommit({"test1", "test2", "test3"});
-      REQUIRE(safeVectorThree.at(0) == "test1");
-      REQUIRE(safeVectorThree.at(1) == "test2");
-      REQUIRE(safeVectorThree.at(2) == "test3");
-      REQUIRE(safeVectorThree.size() == 3);
-      REQUIRE_THROWS_AS(safeVectorThree.at(3), std::out_of_range);
-      safeVectorThree.revert();
-      REQUIRE(safeVectorThree.empty());
-      REQUIRE_THROWS_AS(safeVectorThree[0], std::out_of_range);
-      safeVectorThreeCommit.commit();
-      safeVectorThreeCommit.revert();
-      REQUIRE(safeVectorThreeCommit.at(0) == "test1");
-      REQUIRE(safeVectorThreeCommit.at(1) == "test2");
-      REQUIRE(safeVectorThreeCommit.at(2) == "test3");
-      REQUIRE(safeVectorThreeCommit.size() == 3);
-      REQUIRE_THROWS_AS(safeVectorThreeCommit.at(3), std::out_of_range);
+    SECTION("SafeVector at") {
+      SafeVector<std::string> vec({"a", "b", "c", "d", "e"});
+      REQUIRE_THROWS(vec.at(5));
+      for (std::size_t i = 0; i < vec.size(); i++) vec.at(i) = "x";
+      vec.revert();
+      REQUIRE(vec.at(0) == "a");
+      REQUIRE(vec.at(1) == "b");
+      REQUIRE(vec.at(2) == "c");
+      REQUIRE(vec.at(3) == "d");
+      REQUIRE(vec.at(4) == "e");
+      for (std::size_t i = 0; i < vec.size(); i++) vec.at(i) = "x";
+      vec.commit();
+      REQUIRE(vec.at(0) == "x");
+      REQUIRE(vec.at(1) == "x");
+      REQUIRE(vec.at(2) == "x");
+      REQUIRE(vec.at(3) == "x");
+      REQUIRE(vec.at(4) == "x");
     }
 
     SECTION("SafeVector operator[]") {
-      // A little redundant, but it's good to be thorough
-      SafeVector<std::string> safeVectorThree({"test1", "test2", "test3"});
-      SafeVector<std::string> safeVectorThreeCommit({"test1", "test2", "test3"});
-      REQUIRE(safeVectorThree[0] == "test1");
-      REQUIRE(safeVectorThree[1] == "test2");
-      REQUIRE(safeVectorThree[2] == "test3");
-      REQUIRE(safeVectorThree.size() == 3);
-      REQUIRE_THROWS_AS(safeVectorThree[3], std::out_of_range);
-      safeVectorThree.revert();
-      REQUIRE(safeVectorThree.empty());
-      REQUIRE_THROWS_AS(safeVectorThree[0], std::out_of_range);
-      safeVectorThreeCommit.commit();
-      safeVectorThreeCommit.revert();
-      REQUIRE(safeVectorThreeCommit[0] == "test1");
-      REQUIRE(safeVectorThreeCommit[1] == "test2");
-      REQUIRE(safeVectorThreeCommit[2] == "test3");
-      REQUIRE(safeVectorThreeCommit.size() == 3);
-      REQUIRE_THROWS_AS(safeVectorThreeCommit[3], std::out_of_range);
+      SafeVector<std::string> vec({"a", "b", "c", "d", "e"});
+      for (std::size_t i = 0; i < vec.size(); i++) vec[i] = "x";
+      vec.revert();
+      REQUIRE(vec[0] == "a");
+      REQUIRE(vec[1] == "b");
+      REQUIRE(vec[2] == "c");
+      REQUIRE(vec[3] == "d");
+      REQUIRE(vec[4] == "e");
+      for (std::size_t i = 0; i < vec.size(); i++) vec[i] = "x";
+      vec.commit();
+      REQUIRE(vec[0] == "x");
+      REQUIRE(vec[1] == "x");
+      REQUIRE(vec[2] == "x");
+      REQUIRE(vec[3] == "x");
+      REQUIRE(vec[4] == "x");
     }
 
-
-    SECTION("SafeVector cbegin() and crbegin()") {
-      SafeVector<std::string> safeVectorThree({"test1", "test2", "test3"});
-      SafeVector<std::string> safeVectorThreeCommit({"test1", "test2", "test3"});
-      /// cbegin() ONLY RETURNS THE ORIGINAL ITERATOR
-      /// YOU NEED TO COMMIT() TO GET THE DATA OR LOOP MANUALLY
-      REQUIRE(safeVectorThree.cbegin() == safeVectorThree.cend());
-      REQUIRE(safeVectorThree.crbegin() == safeVectorThree.crend());
-      REQUIRE(safeVectorThree.size() == 3);
-      safeVectorThree.revert();
-      REQUIRE(safeVectorThree.empty());
-      safeVectorThreeCommit.commit();
-      safeVectorThreeCommit.revert();
-      REQUIRE(*safeVectorThreeCommit.cbegin() == "test1");
-      REQUIRE(*(safeVectorThreeCommit.cbegin() + 1) == "test2");
-      REQUIRE(*(safeVectorThreeCommit.cbegin() + 2) == "test3");
-      REQUIRE(*(safeVectorThreeCommit.crbegin() + 2) == "test1");
-      REQUIRE(*(safeVectorThreeCommit.crbegin() + 1) == "test2");
-      REQUIRE(*(safeVectorThreeCommit.crbegin()) == "test3");
-      REQUIRE(safeVectorThreeCommit.size() == 3);
+    SECTION("SafeVector front and back") {
+      SafeVector<std::string> vec({"a", "b", "c", "d", "e"});
+      vec.front() = "x";
+      vec.revert();
+      REQUIRE(vec.front() == "a");
+      vec.front() = "x";
+      vec.commit();
+      REQUIRE(vec.front() == "x");
+      vec.back() = "y";
+      vec.revert();
+      REQUIRE(vec.back() == "e");
+      vec.back() = "y";
+      vec.commit();
+      REQUIRE(vec.back() == "y");
     }
 
-    SECTION("SafeVector cend() and crend()") {
-      SafeVector<std::string> safeVectorThree({"test1", "test2", "test3"});
-      SafeVector<std::string> safeVectorThreeCommit({"test1", "test2", "test3"});
-      /// cend() ONLY RETURNS THE ORIGINAL ITERATOR
-      /// YOU NEED TO COMMIT() TO GET THE DATA OR LOOP MANUALLY
-      REQUIRE(safeVectorThree.cbegin() == safeVectorThree.cend());
-      REQUIRE(safeVectorThree.crbegin() == safeVectorThree.crend());
-      REQUIRE(safeVectorThree.size() == 3);
-      safeVectorThree.revert();
-      REQUIRE(safeVectorThree.empty());
-      safeVectorThreeCommit.commit();
-      safeVectorThreeCommit.revert();
-      /// .cend() is the element after the last element.
-      REQUIRE(*(safeVectorThreeCommit.cend() - 1) == "test3");
-      REQUIRE(*(safeVectorThreeCommit.cend() - 2) == "test2");
-      REQUIRE(*(safeVectorThreeCommit.cend() - 3) == "test1");
-      REQUIRE(*(safeVectorThreeCommit.crend() - 3) == "test3");
-      REQUIRE(*(safeVectorThreeCommit.crend() - 2) == "test2");
-      REQUIRE(*(safeVectorThreeCommit.crend() - 1) == "test1");
-      REQUIRE(safeVectorThreeCommit.size() == 3);
+    // TODO: missing tests for cbegin, cend, crbegin and crend - check SafeUnorderedMap for more info
+
+    SECTION("SafeVector clear") {
+      SafeVector<std::string> vec({"a", "b", "c"});
+      vec.clear();
+      vec.revert();
+      REQUIRE(!vec.empty());
+      REQUIRE(vec.size() == 3);
+      REQUIRE(vec[0] == "a");
+      REQUIRE(vec[1] == "b");
+      REQUIRE(vec[2] == "c");
+      vec.clear();
+      vec.commit();
+      REQUIRE(vec.empty());
+      REQUIRE(vec.size() == 0);
     }
 
-    SECTION("SafeVector iterator loop") {
-      SafeVector<std::string> safeVectorThree({"test1", "test2", "test3"});
-      SafeVector<std::string> safeVectorThreeCommit({"test1", "test2", "test3"});
-      REQUIRE(safeVectorThree.size() == 3);
-      safeVectorThree.revert();
-      REQUIRE(safeVectorThree.empty());
-      safeVectorThreeCommit.commit();
-      safeVectorThreeCommit.revert();
-      int i = 0;
-      for (auto it = safeVectorThreeCommit.cbegin(); it != safeVectorThreeCommit.cend(); ++it) {
-        REQUIRE(*it == safeVectorThreeCommit[i]);
-        ++i;
-      }
-      i = 0;
-      for (auto it = safeVectorThreeCommit.crbegin(); it != safeVectorThreeCommit.crend(); ++it) {
-        REQUIRE(*it == safeVectorThreeCommit[safeVectorThreeCommit.size() - 1 - i]);
-        ++i;
-      }
-      REQUIRE(safeVectorThreeCommit.size() == 3);
+    SECTION("SafeVector insert") {
+      SafeVector<int> vec({1,2,3,4,5});
+      // insert by copy (pos and value)
+      vec.insert(vec.cbegin(), 0);
+      vec.revert();
+      REQUIRE(vec.size() == 5);
+      REQUIRE(*(vec.cbegin()) == 1);
+      vec.insert(vec.cbegin(), 0);
+      vec.commit();
+      REQUIRE(vec.size() == 6);
+      REQUIRE(*(vec.cbegin()) == 0);  // vec = {0,1,2,3,4,5}
+      // insert by move (pos and value)
+      int n = 6;
+      int n2 = 6;
+      vec.insert(vec.cend(), std::move(n));
+      vec.revert();
+      REQUIRE(vec.size() == 6);
+      REQUIRE(*(vec.cend() - 1) == 5);
+      vec.insert(vec.cend(), std::move(n2));
+      vec.commit();
+      REQUIRE(vec.size() == 7);
+      REQUIRE(*(vec.cend() - 1) == 6);  // vec = {0,1,2,3,4,5,6}
+      // insert with repeat (pos count and value)
+      vec.insert(vec.cbegin() + 2, 3, 7);
+      vec.revert();
+      REQUIRE(vec.size() == 7);
+      REQUIRE(*(vec.cbegin() + 2) == 2);
+      vec.insert(vec.cbegin() + 2, 3, 7);
+      vec.commit();
+      REQUIRE(vec.size() == 10);
+      REQUIRE(*(vec.cbegin() + 2) == 7);
+      REQUIRE(*(vec.cbegin() + 3) == 7);
+      REQUIRE(*(vec.cbegin() + 4) == 7);
+      REQUIRE(*(vec.cbegin() + 5) == 2);  // vec = {0,1,7,7,7,2,3,4,5,6}
+      // insert with iterators
+      std::vector<int> vec2({10,20,30});
+      vec.insert(vec.cbegin(), vec2.cbegin(), vec2.cend());
+      vec.revert();
+      REQUIRE(vec.size() == 10);
+      REQUIRE(*(vec.cbegin()) == 0);
+      vec.insert(vec.cbegin(), vec2.cbegin(), vec2.cend());
+      vec.commit();
+      REQUIRE(vec.size() == 13);
+      REQUIRE(*(vec.cbegin()) == 10);
+      REQUIRE(*(vec.cbegin() + 1) == 20);
+      REQUIRE(*(vec.cbegin() + 2) == 30);
+      REQUIRE(*(vec.cbegin() + 3) == 0); // vec = {10,20,30,0,1,7,7,7,2,3,4,5,6}
+      // insert with pos and ilist
+      std::initializer_list<int> ilist {1000, 2000, 3000};
+      vec.insert(vec.cend(), ilist);
+      vec.revert();
+      REQUIRE(vec.size() == 13);
+      REQUIRE(*(vec.cend() - 1) == 6);
+      vec.insert(vec.cend(), ilist);
+      vec.commit();
+      REQUIRE(vec.size() == 16);
+      REQUIRE(*(vec.cend() - 4) == 6);
+      REQUIRE(*(vec.cend() - 3) == 1000);
+      REQUIRE(*(vec.cend() - 2) == 2000);
+      REQUIRE(*(vec.cend() - 1) == 3000);
     }
 
-    SECTION("SafeVector empty()") {
-      // Also redundant, but good to be thorough
-      SafeVector<std::string> safeVectorThree({"test1", "test2", "test3"});
-      SafeVector<std::string> safeVectorThreeCommit({"test1", "test2", "test3"});
-      REQUIRE_FALSE(safeVectorThree.empty());
-      safeVectorThree.revert();
-      REQUIRE(safeVectorThree.empty());
-      safeVectorThreeCommit.commit();
-      safeVectorThreeCommit.revert();
-      REQUIRE_FALSE(safeVectorThreeCommit.empty());
+    SECTION("SafeVector emplace") {
+      // Same as insert, but there's only one overload to care about
+      SafeVector<int> vec({1,2,3,4,5});
+      vec.emplace(vec.cbegin(), 0);
+      vec.revert();
+      REQUIRE(vec.size() == 5);
+      REQUIRE(*(vec.cbegin()) == 1);
+      vec.emplace(vec.cbegin(), 0);
+      vec.commit();
+      REQUIRE(vec.size() == 6);
+      REQUIRE(*(vec.cbegin()) == 0);
     }
 
-    SECTION("SafeVector size()") {
-      // Too redundant? hah
-      SafeVector<std::string> safeVectorThree({"test1", "test2", "test3"});
-      SafeVector<std::string> safeVectorThreeCommit({"test1", "test2", "test3"});
-      REQUIRE(safeVectorThree.size() == 3);
-      safeVectorThree.revert();
-      REQUIRE(safeVectorThree.size() == 0);
-      safeVectorThreeCommit.commit();
-      safeVectorThreeCommit.revert();
-      REQUIRE(safeVectorThreeCommit.size() == 3);
+    SECTION("SafeVector erase") {
+      SafeVector<int> vec({0,1,2,3,4,5});
+      // erase a single value (pos)
+      vec.erase(vec.cbegin());
+      vec.revert();
+      REQUIRE(vec.size() == 6);
+      REQUIRE(*(vec.cbegin()) == 0);
+      vec.erase(vec.cbegin());
+      vec.commit();
+      REQUIRE(vec.size() == 5);
+      REQUIRE(*(vec.cbegin()) == 1);
+      // erase a range of values (iterator)
+      vec.erase(vec.cbegin() + 1, vec.cend() - 1); // {2,3,4}
+      vec.revert();
+      REQUIRE(vec.size() == 5);
+      REQUIRE(vec[0] == 1);
+      REQUIRE(vec[1] == 2);
+      REQUIRE(vec[2] == 3);
+      REQUIRE(vec[3] == 4);
+      REQUIRE(vec[4] == 5);
+      vec.erase(vec.cbegin() + 1, vec.cend() - 1);
+      vec.commit();
+      REQUIRE(vec.size() == 2);
+      REQUIRE(vec[0] == 1);
+      REQUIRE(vec[1] == 5);
     }
 
-    SECTION("SafeVector clear()") {
-      SafeVector<std::string> safeVectorThree({"test1", "test2", "test3"});
-      SafeVector<std::string> safeVectorThreeCommit({"test1", "test2", "test3"});
-      REQUIRE(safeVectorThree.size() == 3);
-      safeVectorThree.clear();
-      REQUIRE(safeVectorThree.size() == 0);
-      safeVectorThreeCommit.commit();
-      safeVectorThreeCommit.revert();
-      REQUIRE(safeVectorThreeCommit.size() == 3);
-      safeVectorThreeCommit.clear();
-      REQUIRE(safeVectorThreeCommit.size() == 0);
-      safeVectorThreeCommit.revert();
-      REQUIRE(safeVectorThreeCommit.size() == 3);
+    SECTION("SafeVector push_back, emplace_back and pop_back") {
+      SafeVector<std::string> vec({"a", "b", "c"});
+      // push back by copy
+      vec.push_back("d");
+      vec.revert();
+      REQUIRE((vec.size() == 3 && vec.back() == "c"));
+      vec.push_back("d");
+      vec.commit();
+      REQUIRE((vec.size() == 4 && vec.back() == "d")); // vec = {a,b,c,d}
+      // push back by move
+      std::string mv1 = "e";
+      std::string mv2 = "e";
+      vec.push_back(std::move(mv1));
+      vec.revert();
+      REQUIRE((vec.size() == 4 && vec.back() == "d"));
+      vec.push_back(std::move(mv2));
+      vec.commit();
+      REQUIRE((vec.size() == 5 && vec.back() == "e")); // vec = {a,b,c,d,e}
+      // emplace back
+      vec.emplace_back("f");
+      vec.revert();
+      REQUIRE((vec.size() == 5 && vec.back() == "e"));
+      vec.emplace_back("f");
+      vec.commit();
+      REQUIRE((vec.size() == 6 && vec.back() == "f")); // vec = {a,b,c,d,e,f}
+      // pop back
+      for (int i = 0; i < 5; i++) vec.pop_back();
+      vec.revert();
+      REQUIRE((vec.size() == 6 && vec.back() == "f"));
+      for (int i = 0; i < 5; i++) vec.pop_back();
+      vec.commit();
+      REQUIRE((vec.size() == 1 && vec.back() == "a")); // vec = {a}
     }
 
-    SECTION("SafeVector insert()") {
-      SafeVector<std::string> safeVectorThree({"test1", "test2", "test3"});
-      SafeVector<std::string> safeVectorThreeCommit({"test1", "test2", "test3"});
-      REQUIRE(safeVectorThree.size() == 3);
-      safeVectorThree.insert(0, "test0");
-      REQUIRE(safeVectorThree.size() == 4);
-      REQUIRE(safeVectorThree[0] == "test0");
-      REQUIRE(safeVectorThree[1] == "test1");
-      REQUIRE(safeVectorThree[2] == "test2");
-      REQUIRE(safeVectorThree[3] == "test3");
-      safeVectorThreeCommit.commit();
-      safeVectorThreeCommit.revert();
-      REQUIRE(safeVectorThreeCommit.size() == 3);
-      safeVectorThreeCommit.insert(0, "test0");
-      REQUIRE(safeVectorThreeCommit.size() == 4);
-      REQUIRE(safeVectorThreeCommit[0] == "test0");
-      REQUIRE(safeVectorThreeCommit[1] == "test1");
-      REQUIRE(safeVectorThreeCommit[2] == "test2");
-      REQUIRE(safeVectorThreeCommit[3] == "test3");
-      safeVectorThreeCommit.revert();
-      REQUIRE(safeVectorThreeCommit.size() == 3);
-      safeVectorThreeCommit.insert(1, "test0");
-      REQUIRE(safeVectorThreeCommit.size() == 4);
-      REQUIRE(safeVectorThreeCommit[0] == "test1");
-      REQUIRE(safeVectorThreeCommit[1] == "test0");
-      REQUIRE(safeVectorThreeCommit[2] == "test2");
-      REQUIRE(safeVectorThreeCommit[3] == "test3");
-      safeVectorThreeCommit.revert();
-      REQUIRE(safeVectorThreeCommit.size() == 3);
-    }
-
-    SECTION("SafeVector erase(pos)") {
-      SafeVector<std::string> safeVectorThree({"test1", "test2", "test3"});
-      SafeVector<std::string> safeVectorThreeCommit({"test1", "test2", "test3"});
-      REQUIRE(safeVectorThree.size() == 3);
-      safeVectorThree.erase(0);
-      REQUIRE(safeVectorThree.size() == 2);
-      REQUIRE(safeVectorThree[0] == "test2");
-      REQUIRE(safeVectorThree[1] == "test3");
-      safeVectorThreeCommit.commit();
-      safeVectorThreeCommit.revert();
-      REQUIRE(safeVectorThreeCommit.size() == 3);
-      safeVectorThreeCommit.erase(0);
-      REQUIRE(safeVectorThreeCommit.size() == 2);
-      REQUIRE(safeVectorThreeCommit[0] == "test2");
-      REQUIRE(safeVectorThreeCommit[1] == "test3");
-      safeVectorThreeCommit.revert();
-      REQUIRE(safeVectorThreeCommit.size() == 3);
-      safeVectorThreeCommit.erase(1);
-      REQUIRE(safeVectorThreeCommit.size() == 2);
-      REQUIRE(safeVectorThreeCommit[0] == "test1");
-      REQUIRE(safeVectorThreeCommit[1] == "test3");
-      safeVectorThreeCommit.revert();
-      REQUIRE(safeVectorThreeCommit.size() == 3);
-      REQUIRE(safeVectorThreeCommit[0] == "test1");
-      REQUIRE(safeVectorThreeCommit[1] == "test2");
-      REQUIRE(safeVectorThreeCommit[2] == "test3");
-      safeVectorThreeCommit.erase(1);
-      REQUIRE(safeVectorThreeCommit.size() == 2);
-      REQUIRE(safeVectorThreeCommit[0] == "test1");
-      REQUIRE(safeVectorThreeCommit[1] == "test3");
-      safeVectorThreeCommit.commit();
-      safeVectorThreeCommit.revert();
-      REQUIRE(safeVectorThreeCommit.size() == 2);
-    }
-
-    SECTION("SafeVector erase(first, last)") {
-      SafeVector<std::string> safeVectorFive({"test1", "test2", "test3", "test4", "test5"});
-      SafeVector<std::string> safeVectorFiveCommit({"test1", "test2", "test3", "test4", "test5"});
-      REQUIRE(safeVectorFive.size() == 5);
-      safeVectorFive.erase(0, 2);
-      REQUIRE(safeVectorFive.size() == 3);
-      REQUIRE(safeVectorFive[0] == "test3");
-      REQUIRE(safeVectorFive[1] == "test4");
-      REQUIRE(safeVectorFive[2] == "test5");
-      safeVectorFive.revert();
-      REQUIRE(safeVectorFive.size() == 0);
-      safeVectorFiveCommit.erase(2, 4);
-      safeVectorFiveCommit.commit();
-      safeVectorFiveCommit.revert();
-      REQUIRE(safeVectorFiveCommit.size() == 3);
-      REQUIRE(safeVectorFiveCommit[0] == "test1");
-      REQUIRE(safeVectorFiveCommit[1] == "test2");
-      REQUIRE(safeVectorFiveCommit[2] == "test5");
-      safeVectorFiveCommit.erase(0,3);
-      REQUIRE(safeVectorFiveCommit.size() == 0);
-      safeVectorFiveCommit.revert();
-      REQUIRE(safeVectorFiveCommit.size() == 3);
-    }
-
-    SECTION("SafeVector push_back") {
-      SafeVector<std::string> safeVectorThree({"test1", "test2", "test3"});
-      SafeVector<std::string> safeVectorThreeCommit({"test1", "test2", "test3"});
-      REQUIRE(safeVectorThree.size() == 3);
-      safeVectorThree.push_back("test4");
-      REQUIRE(safeVectorThree.size() == 4);
-      REQUIRE(safeVectorThree[0] == "test1");
-      REQUIRE(safeVectorThree[1] == "test2");
-      REQUIRE(safeVectorThree[2] == "test3");
-      REQUIRE(safeVectorThree[3] == "test4");
-      safeVectorThree.revert();
-      REQUIRE(safeVectorThree.empty());
-      safeVectorThreeCommit.commit();
-      safeVectorThreeCommit.revert();
-      REQUIRE(safeVectorThreeCommit.size() == 3);
-      safeVectorThreeCommit.push_back("test4");
-      REQUIRE(safeVectorThreeCommit.size() == 4);
-      REQUIRE(safeVectorThreeCommit[0] == "test1");
-      REQUIRE(safeVectorThreeCommit[1] == "test2");
-      REQUIRE(safeVectorThreeCommit[2] == "test3");
-      REQUIRE(safeVectorThreeCommit[3] == "test4");
-      safeVectorThreeCommit.revert();
-      REQUIRE(safeVectorThreeCommit.size() == 3);
-    }
-
-    SECTION("SafeVector emplace_back") {
-      SafeVector<std::string> safeVectorThree({"test1", "test2", "test3"});
-      SafeVector<std::string> safeVectorThreeCommit({"test1", "test2", "test3"});
-      REQUIRE(safeVectorThree.size() == 3);
-      safeVectorThree.emplace_back("test4");
-      REQUIRE(safeVectorThree.size() == 4);
-      REQUIRE(safeVectorThree[0] == "test1");
-      REQUIRE(safeVectorThree[1] == "test2");
-      REQUIRE(safeVectorThree[2] == "test3");
-      REQUIRE(safeVectorThree[3] == "test4");
-      safeVectorThree.revert();
-      REQUIRE(safeVectorThree.empty());
-      safeVectorThreeCommit.commit();
-      safeVectorThreeCommit.revert();
-      REQUIRE(safeVectorThreeCommit.size() == 3);
-      safeVectorThreeCommit.emplace_back("test4");
-      REQUIRE(safeVectorThreeCommit.size() == 4);
-      REQUIRE(safeVectorThreeCommit[0] == "test1");
-      REQUIRE(safeVectorThreeCommit[1] == "test2");
-      REQUIRE(safeVectorThreeCommit[2] == "test3");
-      REQUIRE(safeVectorThreeCommit[3] == "test4");
-      safeVectorThreeCommit.revert();
-      REQUIRE(safeVectorThreeCommit.size() == 3);
-    }
-
-    SECTION("SafeVector pop_back()") {
-      SafeVector<std::string> safeVectorThree({"test1", "test2", "test3"});
-      SafeVector<std::string> safeVectorThreeCommit({"test1", "test2", "test3"});
-      REQUIRE(safeVectorThree.size() == 3);
-      safeVectorThree.pop_back();
-      REQUIRE(safeVectorThree.size() == 2);
-      REQUIRE(safeVectorThree[0] == "test1");
-      REQUIRE(safeVectorThree[1] == "test2");
-      safeVectorThree.revert();
-      REQUIRE(safeVectorThree.size() == 0);
-      safeVectorThreeCommit.commit();
-      safeVectorThreeCommit.revert();
-      REQUIRE(safeVectorThreeCommit.size() == 3);
-      safeVectorThreeCommit.pop_back();
-      REQUIRE(safeVectorThreeCommit.size() == 2);
-      REQUIRE(safeVectorThreeCommit[0] == "test1");
-      REQUIRE(safeVectorThreeCommit[1] == "test2");
-      safeVectorThreeCommit.revert();
-      REQUIRE(safeVectorThreeCommit.size() == 3);
-      safeVectorThreeCommit.pop_back();
-      REQUIRE(safeVectorThreeCommit.size() == 2);
-      safeVectorThreeCommit.commit();
-      safeVectorThreeCommit.revert();
-      REQUIRE(safeVectorThreeCommit.size() == 2);
-      REQUIRE(safeVectorThreeCommit[0] == "test1");
-      REQUIRE(safeVectorThreeCommit[1] == "test2");
-    }
-
-    SECTION("SafeVector resize(count)") {
-      SafeVector<std::string> safeVectorFiveLower({"test1", "test2", "test3", "test4", "test5"});
-      SafeVector<std::string> safeVectorFiveHigher({"test1", "test2", "test3", "test4", "test5"});
-      SafeVector<std::string> safeVectorFiveCommitLower({"test1", "test2", "test3", "test4", "test5"});
-      SafeVector<std::string> safeVectorFiveCommitHigher({"test1", "test2", "test3", "test4", "test5"});
-      REQUIRE(safeVectorFiveLower.size() == 5);
-      safeVectorFiveLower.resize(3);
-      REQUIRE(safeVectorFiveLower.size() == 3);
-      REQUIRE(safeVectorFiveLower[0] == "test1");
-      REQUIRE(safeVectorFiveLower[1] == "test2");
-      REQUIRE(safeVectorFiveLower[2] == "test3");
-      safeVectorFiveLower.revert();
-      REQUIRE(safeVectorFiveLower.size() == 0);
-      REQUIRE(safeVectorFiveHigher.size() == 5);
-      safeVectorFiveHigher.resize(7);
-      REQUIRE(safeVectorFiveHigher.size() == 7);
-      REQUIRE(safeVectorFiveHigher[0] == "test1");
-      REQUIRE(safeVectorFiveHigher[1] == "test2");
-      REQUIRE(safeVectorFiveHigher[2] == "test3");
-      REQUIRE(safeVectorFiveHigher[3] == "test4");
-      REQUIRE(safeVectorFiveHigher[4] == "test5");
-      REQUIRE(safeVectorFiveHigher[5] == "");
-      REQUIRE(safeVectorFiveHigher[6] == "");
-      safeVectorFiveHigher.revert();
-      REQUIRE(safeVectorFiveHigher.size() == 0);
-      REQUIRE(safeVectorFiveCommitLower.size() == 5);
-      safeVectorFiveCommitLower.resize(3);
-      safeVectorFiveCommitLower.commit();
-      safeVectorFiveCommitLower.revert();
-      REQUIRE(safeVectorFiveCommitLower.size() == 3);
-      REQUIRE(safeVectorFiveCommitLower[0] == "test1");
-      REQUIRE(safeVectorFiveCommitLower[1] == "test2");
-      REQUIRE(safeVectorFiveCommitLower[2] == "test3");
-      REQUIRE(safeVectorFiveCommitHigher.size() == 5);
-      safeVectorFiveCommitHigher.resize(7);
-      safeVectorFiveCommitHigher.commit();
-      safeVectorFiveCommitHigher.revert();
-      REQUIRE(safeVectorFiveCommitHigher.size() == 7);
-      REQUIRE(safeVectorFiveCommitHigher[0] == "test1");
-      REQUIRE(safeVectorFiveCommitHigher[1] == "test2");
-      REQUIRE(safeVectorFiveCommitHigher[2] == "test3");
-      REQUIRE(safeVectorFiveCommitHigher[3] == "test4");
-      REQUIRE(safeVectorFiveCommitHigher[4] == "test5");
-      REQUIRE(safeVectorFiveCommitHigher[5] == "");
-      REQUIRE(safeVectorFiveCommitHigher[6] == "");
-      safeVectorFiveCommitHigher.resize(3);
-      safeVectorFiveCommitHigher.commit();
-      safeVectorFiveCommitHigher.revert();
-      REQUIRE(safeVectorFiveCommitHigher.size() == 3);
-      REQUIRE(safeVectorFiveCommitHigher[0] == "test1");
-      REQUIRE(safeVectorFiveCommitHigher[1] == "test2");
-      REQUIRE(safeVectorFiveCommitHigher[2] == "test3");
-      safeVectorFiveCommitHigher.resize(8);
-      safeVectorFiveCommitHigher.commit();
-      safeVectorFiveCommitHigher.revert();
-      REQUIRE(safeVectorFiveCommitHigher[0] == "test1");
-      REQUIRE(safeVectorFiveCommitHigher[1] == "test2");
-      REQUIRE(safeVectorFiveCommitHigher[2] == "test3");
-      REQUIRE(safeVectorFiveCommitHigher[3] == "");
-      REQUIRE(safeVectorFiveCommitHigher[4] == "");
-      REQUIRE(safeVectorFiveCommitHigher[5] == "");
-      REQUIRE(safeVectorFiveCommitHigher[6] == "");
-      REQUIRE(safeVectorFiveCommitHigher[7] == "");
-    }
-
-    SECTION("SafeVector resize(count, value)") {
-      SafeVector<std::string> safeVectorFiveLower({"test1", "test2", "test3", "test4", "test5"});
-      SafeVector<std::string> safeVectorFiveHigher({"test1", "test2", "test3", "test4", "test5"});
-      SafeVector<std::string> safeVectorFiveCommitLower({"test1", "test2", "test3", "test4", "test5"});
-      SafeVector<std::string> safeVectorFiveCommitHigher({"test1", "test2", "test3", "test4", "test5"});
-      REQUIRE(safeVectorFiveLower.size() == 5);
-      safeVectorFiveLower.resize(3, "TEST");
-      REQUIRE(safeVectorFiveLower.size() == 3);
-      REQUIRE(safeVectorFiveLower[0] == "test1");
-      REQUIRE(safeVectorFiveLower[1] == "test2");
-      REQUIRE(safeVectorFiveLower[2] == "test3");
-      safeVectorFiveLower.revert();
-      REQUIRE(safeVectorFiveLower.size() == 0);
-      REQUIRE(safeVectorFiveHigher.size() == 5);
-      safeVectorFiveHigher.resize(7, "TEST");
-      REQUIRE(safeVectorFiveHigher.size() == 7);
-      REQUIRE(safeVectorFiveHigher[0] == "test1");
-      REQUIRE(safeVectorFiveHigher[1] == "test2");
-      REQUIRE(safeVectorFiveHigher[2] == "test3");
-      REQUIRE(safeVectorFiveHigher[3] == "test4");
-      REQUIRE(safeVectorFiveHigher[4] == "test5");
-      REQUIRE(safeVectorFiveHigher[5] == "TEST");
-      REQUIRE(safeVectorFiveHigher[6] == "TEST");
-      safeVectorFiveHigher.revert();
-      REQUIRE(safeVectorFiveHigher.size() == 0);
-      REQUIRE(safeVectorFiveCommitLower.size() == 5);
-      safeVectorFiveCommitLower.resize(3, "TEST");
-      safeVectorFiveCommitLower.commit();
-      safeVectorFiveCommitLower.revert();
-      REQUIRE(safeVectorFiveCommitLower.size() == 3);
-      REQUIRE(safeVectorFiveCommitLower[0] == "test1");
-      REQUIRE(safeVectorFiveCommitLower[1] == "test2");
-      REQUIRE(safeVectorFiveCommitLower[2] == "test3");
-      REQUIRE(safeVectorFiveCommitHigher.size() == 5);
-      safeVectorFiveCommitHigher.resize(7, "TEST");
-      safeVectorFiveCommitHigher.commit();
-      safeVectorFiveCommitHigher.revert();
-      REQUIRE(safeVectorFiveCommitHigher.size() == 7);
-      REQUIRE(safeVectorFiveCommitHigher[0] == "test1");
-      REQUIRE(safeVectorFiveCommitHigher[1] == "test2");
-      REQUIRE(safeVectorFiveCommitHigher[2] == "test3");
-      REQUIRE(safeVectorFiveCommitHigher[3] == "test4");
-      REQUIRE(safeVectorFiveCommitHigher[4] == "test5");
-      REQUIRE(safeVectorFiveCommitHigher[5] == "TEST");
-      REQUIRE(safeVectorFiveCommitHigher[6] == "TEST");
-      safeVectorFiveCommitHigher.resize(3, "TEST");
-      safeVectorFiveCommitHigher.commit();
-      safeVectorFiveCommitHigher.revert();
-      REQUIRE(safeVectorFiveCommitHigher.size() == 3);
-      REQUIRE(safeVectorFiveCommitHigher[0] == "test1");
-      REQUIRE(safeVectorFiveCommitHigher[1] == "test2");
-      REQUIRE(safeVectorFiveCommitHigher[2] == "test3");
-      safeVectorFiveCommitHigher.resize(8, "TEST");
-      REQUIRE(safeVectorFiveCommitHigher.size() == 8);
-      REQUIRE(safeVectorFiveCommitHigher[0] == "test1");
-      REQUIRE(safeVectorFiveCommitHigher[1] == "test2");
-      REQUIRE(safeVectorFiveCommitHigher[2] == "test3");
-      REQUIRE(safeVectorFiveCommitHigher[3] == "TEST");
-      REQUIRE(safeVectorFiveCommitHigher[4] == "TEST");
-      REQUIRE(safeVectorFiveCommitHigher[5] == "TEST");
-      REQUIRE(safeVectorFiveCommitHigher[6] == "TEST");
-      REQUIRE(safeVectorFiveCommitHigher[7] == "TEST");
-      safeVectorFiveCommitHigher.revert();
-      REQUIRE(safeVectorFiveCommitHigher.size() == 3);
+    SECTION("SafeVector resize") {
+      SafeVector<int> vec({1,2,3,4,5});
+      // resize to a bigger size, with default elements
+      vec.resize(10);
+      vec.revert();
+      REQUIRE(vec.size() == 5);
+      for (std::size_t i = 0; i < 5; i++) REQUIRE(vec[i] == i + 1);
+      vec.resize(10);
+      vec.commit();
+      REQUIRE(vec.size() == 10);
+      for (std::size_t i = 0; i < 5; i++) REQUIRE(vec[i] == i + 1);
+      for (std::size_t i = 5; i < 10; i++) REQUIRE(vec[i] == 0); // vec = {1,2,3,4,5,0,0,0,0,0}
+      // resize to a smaller size, with default elements
+      vec.resize(3);
+      vec.revert();
+      REQUIRE(vec.size() == 10);
+      for (std::size_t i = 0; i < 5; i++) REQUIRE(vec[i] == i + 1);
+      for (std::size_t i = 5; i < 10; i++) REQUIRE(vec[i] == 0);
+      vec.resize(3);
+      vec.commit();
+      REQUIRE(vec.size() == 3);
+      for (std::size_t i = 0; i < 3; i++) REQUIRE(vec[i] == i + 1);
+      // resize to a bigger size, with repeated elements
+      vec.resize(6, 100);
+      vec.revert();
+      REQUIRE(vec.size() == 3);
+      for (std::size_t i = 0; i < 3; i++) REQUIRE(vec[i] == i + 1);
+      vec.resize(6, 100);
+      vec.commit();
+      REQUIRE(vec.size() == 6);
+      for (std::size_t i = 0; i < 3; i++) REQUIRE(vec[i] == i + 1);
+      for (std::size_t i = 3; i < 6; i++) REQUIRE(vec[i] == 100);
+      // resize to a smaller size, with repeated elements
+      vec.resize(3, 100);
+      vec.revert();
+      REQUIRE(vec.size() == 6);
+      for (std::size_t i = 0; i < 3; i++) REQUIRE(vec[i] == i + 1);
+      for (std::size_t i = 3; i < 6; i++) REQUIRE(vec[i] == 100);
+      vec.resize(3, 100);
+      vec.commit();
+      REQUIRE(vec.size() == 3);
+      for (std::size_t i = 0; i < 3; i++) REQUIRE(vec[i] == i + 1);
+      // resize to the same size (do nothing basically)
+      vec.resize(3);
+      REQUIRE(vec.size() == 3);
+      for (std::size_t i = 0; i < 3; i++) REQUIRE(vec[i] == i + 1);
+      // resize to 0 with both overloads
+      vec.resize(0);
+      vec.revert();
+      REQUIRE(vec.size() == 3);
+      for (std::size_t i = 0; i < 3; i++) REQUIRE(vec[i] == i + 1);
+      vec.resize(0, 100);
+      vec.revert();
+      REQUIRE(vec.size() == 3);
+      for (std::size_t i = 0; i < 3; i++) REQUIRE(vec[i] == i + 1);
+      vec.resize(0);
+      vec.commit();
+      REQUIRE(vec.empty());
+      vec.resize(5, 10); // temporarily fill the vector for the other overload
+      vec.commit();
+      for (std::size_t i = 0; i < 5; i++) REQUIRE(vec[i] == 10);
+      vec.resize(0, 100);
+      vec.commit();
+      REQUIRE(vec.empty());
     }
   }
 }
+

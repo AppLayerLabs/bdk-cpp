@@ -7,255 +7,767 @@ See the LICENSE.txt file in the project root for more information.
 
 #include "../../src/libs/catch2/catch_amalgamated.hpp"
 #include "../../src/contract/variables/safeunorderedmap.h"
-#include <iostream>
+#include "../../src/utils/safehash.h"
+#include <iterator>
+#include <utility>
 
 namespace TSafeUnorderedMap {
   TEST_CASE("SafeUnorderedMap Class", "[contract][variables][safeunorderedmap]") {
-    SECTION("SafeUnorderedMap Constructor") {
-      SafeUnorderedMap<Address, uint256_t> safeUnorderedMap;
-      auto randomAddress = Address(Utils::randBytes(20));
-      safeUnorderedMap[randomAddress] = uint256_t("19283815712031512");
-      REQUIRE(safeUnorderedMap.size() == 1);
-      auto found = safeUnorderedMap.find(randomAddress);
-      REQUIRE(found != safeUnorderedMap.end());
-      REQUIRE(found->second == uint256_t("19283815712031512"));
+    SECTION("SafeUnorderedMap constructor") {
+      Address add1(Utils::randBytes(20));
+      Address add2(Utils::randBytes(20));
+      Address add3(Utils::randBytes(20));
+      uint256_t bal1("19283815712031512");
+      uint256_t bal2("96482364197823643");
+      uint256_t bal3("29884639238924532");
 
-      REQUIRE(safeUnorderedMap[randomAddress] == uint256_t("19283815712031512"));
-      safeUnorderedMap.revert();
-      REQUIRE(safeUnorderedMap.size() == 0);
-      found = safeUnorderedMap.find(randomAddress);
-      REQUIRE(found == safeUnorderedMap.end());
+      SafeUnorderedMap<Address, uint256_t> emptyMap;
+      SafeUnorderedMap<Address, uint256_t> map({{add1,bal1},{add2,bal2},{add3,bal3}});
+      SafeUnorderedMap<Address, uint256_t> copyMap(map);
+      REQUIRE(emptyMap.empty());
+      REQUIRE(map.size() == 3);
+      REQUIRE(copyMap == map);
+      // using count
+      REQUIRE(map.count(add1) == 1);
+      REQUIRE(map.count(add2) == 1);
+      REQUIRE(map.count(add3) == 1);
+      // using contains
+      REQUIRE(map.contains(add1));
+      REQUIRE(map.contains(add2));
+      REQUIRE(map.contains(add3));
     }
 
-    SECTION("SafeUnorderedMap Insert") {
-      std::vector<Address> randomAddresses;
-      for (uint64_t i = 0; i < 100; ++i) {
-        randomAddresses.emplace_back(Address(Utils::randBytes(20)));
-      }
+    SECTION("SafeUnorderedMap clear") {
+      Address add1(Utils::randBytes(20));
+      Address add2(Utils::randBytes(20));
+      Address add3(Utils::randBytes(20));
+      uint256_t bal1("19283815712031512");
+      uint256_t bal2("96482364197823643");
+      uint256_t bal3("29884639238924532");
+      SafeUnorderedMap<Address, uint256_t> map({{add1,bal1},{add2,bal2},{add3,bal3}});
 
-      SafeUnorderedMap<Address, uint256_t> safeUnorderedMap;
-
-      for (const auto& address : randomAddresses) {
-        safeUnorderedMap.insert({address, uint256_t("124918123712956236125812263412317341")});
-      }
-
-      SafeUnorderedMap safeUnorderedMapCopy = safeUnorderedMap;
-
-      for (const auto& [address, balance] : safeUnorderedMap) {
-        REQUIRE(balance == uint256_t("124918123712956236125812263412317341"));
-      }
-      safeUnorderedMap.commit();
-      safeUnorderedMapCopy.revert();
-      REQUIRE(safeUnorderedMap.size() == 100);
-      for (const auto& address : randomAddresses) {
-        auto found = safeUnorderedMap.find(address);
-        REQUIRE(found != safeUnorderedMap.end());
-      }
-      REQUIRE(safeUnorderedMapCopy.size() == 0);
-      for (const auto& address : randomAddresses) {
-        auto found = safeUnorderedMapCopy.find(address);
-        REQUIRE(found == safeUnorderedMapCopy.end());
-      }
+      map.clear();
+      map.revert();
+      REQUIRE(map.contains(add1));
+      REQUIRE(map.contains(add2));
+      REQUIRE(map.contains(add3));
+      map.clear();
+      map.commit();
+      REQUIRE(map.empty());
     }
 
-    SECTION("SafeUnorderedMap insert_or_assign") {
-      std::vector<Address> randomAddresses;
-      for (uint64_t i = 0; i < 100; ++i) {
-        randomAddresses.emplace_back(Address(Utils::randBytes(20)));
-      }
+    SECTION("SafeUnorderedMap extract") {
+      Address add1(Utils::randBytes(20));
+      Address add2(Utils::randBytes(20));
+      Address add3(Utils::randBytes(20));
+      uint256_t bal1("19283815712031512");
+      uint256_t bal2("96482364197823643");
+      uint256_t bal3("29884639238924532");
+      SafeUnorderedMap<Address, uint256_t> map({{add1,bal1},{add2,bal2},{add3,bal3}});
 
-      SafeUnorderedMap<Address, uint256_t> safeUnorderedMap;
+      // Extract with iterator
+      std::pair<Address, uint256_t> firstVal = (*map.cbegin());
+      map.extract(map.cbegin());
+      map.revert();
+      REQUIRE(map.size() == 3);
+      REQUIRE((map.cbegin()->first == firstVal.first && map.cbegin()->second == firstVal.second));
+      auto node1 = map.extract(map.cbegin());
+      map.commit();
+      REQUIRE(map.size() == 2);
+      REQUIRE(!map.contains(node1.key()));
+      map[firstVal.first] = firstVal.second; map.commit(); REQUIRE(map.size() == 3); // re-add the key for next test
 
-      for (const auto& address : randomAddresses) {
-        safeUnorderedMap.insert_or_assign(address, uint256_t("124918123712956236125812263412317341"));
-      }
-
-      SafeUnorderedMap safeUnorderedMapCopy = safeUnorderedMap;
-
-      for (const auto& [address, balance] : safeUnorderedMap) {
-        REQUIRE(balance == uint256_t("124918123712956236125812263412317341"));
-      }
-      safeUnorderedMap.commit();
-      safeUnorderedMapCopy.revert();
-      REQUIRE(safeUnorderedMap.size() == 100);
-      for (const auto& address : randomAddresses) {
-        auto found = safeUnorderedMap.find(address);
-        REQUIRE(found != safeUnorderedMap.end());
-      }
-      REQUIRE(safeUnorderedMapCopy.size() == 0);
-      for (const auto& address : randomAddresses) {
-        auto found = safeUnorderedMapCopy.find(address);
-        REQUIRE(found == safeUnorderedMapCopy.end());
-      }
-    }
-
-    SECTION("SafeUnorderedMap emplace") {
-      std::vector<Address> randomAddresses;
-      for (uint64_t i = 0; i < 100; ++i) {
-        randomAddresses.emplace_back(Address(Utils::randBytes(20)));
-      }
-
-      SafeUnorderedMap<Address, uint256_t> safeUnorderedMap;
-
-      for (const auto& address : randomAddresses) {
-        safeUnorderedMap.emplace(address, uint256_t("124918123712956236125812263412317341"));
-      }
-
-      SafeUnorderedMap safeUnorderedMapCopy = safeUnorderedMap;
-
-      for (const auto& [address, balance] : safeUnorderedMap) {
-        REQUIRE(balance == uint256_t("124918123712956236125812263412317341"));
-      }
-      safeUnorderedMap.commit();
-      safeUnorderedMapCopy.revert();
-      REQUIRE(safeUnorderedMap.size() == 100);
-      for (const auto& address : randomAddresses) {
-        auto found = safeUnorderedMap.find(address);
-        REQUIRE(found != safeUnorderedMap.end());
-      }
-      REQUIRE(safeUnorderedMapCopy.size() == 0);
-      for (const auto& address : randomAddresses) {
-        auto found = safeUnorderedMapCopy.find(address);
-        REQUIRE(found == safeUnorderedMapCopy.end());
-      }
-    }
-
-    SECTION("SafeUnorderedMap erase") {
-      SafeUnorderedMap<Address, uint256_t> safeUnorderedMap;
-      auto randomAddress = Address(Utils::randBytes(20));
-      safeUnorderedMap[randomAddress] = uint256_t("19283815712031512");
-      REQUIRE(safeUnorderedMap.size() == 1);
-      auto found = safeUnorderedMap.find(randomAddress);
-      REQUIRE(found != safeUnorderedMap.end());
-      REQUIRE(found->second == uint256_t("19283815712031512"));
-      safeUnorderedMap.commit();
-      REQUIRE(safeUnorderedMap.size() == 1);
-      REQUIRE(safeUnorderedMap[randomAddress] == uint256_t("19283815712031512"));
-      safeUnorderedMap.erase(randomAddress);
-      safeUnorderedMap.commit();
-      REQUIRE(safeUnorderedMap.size() == 0);
-      found = safeUnorderedMap.find(randomAddress);
-      REQUIRE(found == safeUnorderedMap.end());
-    }
-
-    SECTION("SafeUnorderedMap at") {
-      SafeUnorderedMap<Address, uint256_t> safeUnorderedMap;
-      auto randomAddress = Address(Utils::randBytes(20));
-      safeUnorderedMap[randomAddress] = uint256_t("19283815712031512");
-      REQUIRE(safeUnorderedMap.size() == 1);
-      auto found = safeUnorderedMap.find(randomAddress);
-      REQUIRE(found != safeUnorderedMap.end());
-      REQUIRE(found->second == uint256_t("19283815712031512"));
-      safeUnorderedMap.commit();
-      REQUIRE(safeUnorderedMap.size() == 1);
-      REQUIRE(safeUnorderedMap[randomAddress] == uint256_t("19283815712031512"));
-      REQUIRE(safeUnorderedMap.at(randomAddress) == uint256_t("19283815712031512"));
-      REQUIRE_THROWS(safeUnorderedMap.at(Address(Utils::randBytes(20))));
+      // Extract with key
+      map.extract(add1);
+      map.revert();
+      REQUIRE(map.size() == 3);
+      REQUIRE(map.contains(add1));
+      auto node2 = map.extract(add1);
+      map.commit();
+      REQUIRE(map.size() == 2);
+      REQUIRE(!map.contains(node2.key()));
+      REQUIRE(node2.key() == add1);
+      REQUIRE(node2.mapped() == bal1);
     }
 
     SECTION("SafeUnorderedMap operator[]") {
-      SafeUnorderedMap<Address, uint256_t> safeUnorderedMap;
-      auto randomAddress = Address(Utils::randBytes(20));
-      safeUnorderedMap[randomAddress] = uint256_t("19283815712031512");
-      REQUIRE(safeUnorderedMap.size() == 1);
-      auto found = safeUnorderedMap.find(randomAddress);
-      REQUIRE(found != safeUnorderedMap.end());
-      REQUIRE(found->second == uint256_t("19283815712031512"));
-      safeUnorderedMap.commit();
-      REQUIRE(safeUnorderedMap.size() == 1);
-      REQUIRE(safeUnorderedMap[randomAddress] == uint256_t("19283815712031512"));
+      Address add(Utils::randBytes(20));
+      uint256_t bal1("19283815712031512");
+      uint256_t bal2("96482364197823643");
+      SafeUnorderedMap<Address, uint256_t> map;
+
+      // Create an empty key and revert - key should be removed and its value should be empty
+      uint256_t emptyVal = map[add];
+      map.revert();
+      REQUIRE(!map.contains(add));
+      REQUIRE(emptyVal == 0);
+      // Create a key, assign a value and revert - same as above
+      map[add] = bal1;
+      map.revert();
+      REQUIRE(!map.contains(add));
+      // Create a key, assign a value by copy and commit - key and value should remain
+      map[add] = bal1;
+      map.commit();
+      REQUIRE(map.contains(add));
+      REQUIRE(map[add] == bal1);
+      // Change key value by move and commit - value should be the new one
+      uint256_t bal2Ref = bal2;
+      map[add] = std::move(bal2);
+      map.commit();
+      REQUIRE(map[add] == bal2Ref);
     }
 
-    SECTION("SafeUnorderedMap operator=") {
-      SafeUnorderedMap<Address, uint256_t> safeUnorderedMap;
-      auto randomAddress = Address(Utils::randBytes(20));
-      safeUnorderedMap[randomAddress] = uint256_t("19283815712031512");
-      REQUIRE(safeUnorderedMap.size() == 1);
-      auto found = safeUnorderedMap.find(randomAddress);
-      REQUIRE(found != safeUnorderedMap.end());
-      REQUIRE(found->second == uint256_t("19283815712031512"));
-      safeUnorderedMap.commit();
-      SafeUnorderedMap<Address, uint256_t> safeUnorderedMapCopy;
-      safeUnorderedMapCopy = safeUnorderedMap;
-      safeUnorderedMapCopy.commit();
-      REQUIRE(safeUnorderedMap.size() == 1);
-      REQUIRE(safeUnorderedMap[randomAddress] == uint256_t("19283815712031512"));
-      REQUIRE(safeUnorderedMapCopy.size() == 1);
-      REQUIRE(safeUnorderedMapCopy[randomAddress] == uint256_t("19283815712031512"));
-      auto randomAddress2 = Address(Utils::randBytes(20));
-      REQUIRE(randomAddress != randomAddress2);
-      safeUnorderedMap[randomAddress2] = uint256_t("11111111111111111");
-      REQUIRE(safeUnorderedMap.size() == 2);
-      auto it = safeUnorderedMap.find(randomAddress);
-      safeUnorderedMap.erase(it);
-      REQUIRE(safeUnorderedMap.size() == 1);
-      safeUnorderedMapCopy = safeUnorderedMap;
-      REQUIRE(safeUnorderedMapCopy.size() == 1);
-      it = safeUnorderedMapCopy.find(randomAddress);
-      REQUIRE(it == safeUnorderedMapCopy.end());
-      it = safeUnorderedMapCopy.find(randomAddress2);
-      REQUIRE(it != safeUnorderedMapCopy.end());
-      REQUIRE(it->second == uint256_t("11111111111111111"));
-      safeUnorderedMap[randomAddress] = uint256_t("19283815712031512");
-      REQUIRE(safeUnorderedMap.size() == 2);
-    }
+    SECTION("SafeUnorderedMap at") {
+      Address add(Utils::randBytes(20));
+      uint256_t bal1("19283815712031512");
+      uint256_t bal2("96482364197823643");
+      SafeUnorderedMap<Address, uint256_t> map({{add,bal1}});
 
-    SECTION("SafeUnorderedMap erase-insert-commit regression") {
-      SafeUnorderedMap<Address, uint256_t> safeUnorderedMap;
-      auto randomAddress = Address(Utils::randBytes(20));
-      safeUnorderedMap[randomAddress] = uint256_t("19283815712031512");
-      safeUnorderedMap.commit();
-      auto it = safeUnorderedMap.find(randomAddress);
-      safeUnorderedMap.erase(it);
-      safeUnorderedMap[randomAddress] = uint256_t("19283815712031512");
-      safeUnorderedMap.commit();
-      REQUIRE(safeUnorderedMap[randomAddress] == uint256_t("19283815712031512"));
-    }
-
-    SECTION("SafeUnorderedMap count") {
-      SafeUnorderedMap<Address, uint256_t> safeUnorderedMap;
-      auto randomAddress = Address(Utils::randBytes(20));
-      safeUnorderedMap[randomAddress] = uint256_t("19283815712031512");
-      REQUIRE(safeUnorderedMap.size() == 1);
-      auto found = safeUnorderedMap.find(randomAddress);
-      REQUIRE(found != safeUnorderedMap.end());
-      REQUIRE(found->second == uint256_t("19283815712031512"));
-      safeUnorderedMap.commit();
-      REQUIRE(safeUnorderedMap.size() == 1);
-      REQUIRE(safeUnorderedMap[randomAddress] == uint256_t("19283815712031512"));
-      REQUIRE(safeUnorderedMap.count(randomAddress) == 1);
-      REQUIRE(safeUnorderedMap.count(Address(Utils::randBytes(20))) == 0);
+      // Roughly the same as operator[] but we check for throws if the key doesn't exist
+      REQUIRE(std::as_const(map).at(add) == bal1); // const at
+      REQUIRE_THROWS(std::as_const(map).at(Address(Utils::randBytes(20))));
+      // Assign a value and revert - value should remain the same
+      map.at(add) = bal2; // non-const at
+      map.revert();
+      REQUIRE(std::as_const(map).at(add) == bal1);
+      // Assign a value and commit - value should be the new one
+      map.at(add) = bal2;
+      map.commit();
+      REQUIRE(std::as_const(map).at(add) == bal2);
     }
 
     SECTION("SafeUnorderedMap find") {
-      SafeUnorderedMap<Address, uint256_t> safeUnorderedMap;
-      auto randomAddress = Address(Utils::randBytes(20));
-      safeUnorderedMap[randomAddress] = uint256_t("19285123125124152");
-      REQUIRE(safeUnorderedMap.size() == 1);
-      auto found = safeUnorderedMap.find(randomAddress);
-      REQUIRE(found != safeUnorderedMap.end());
-      REQUIRE(found->second == uint256_t("19285123125124152"));
-      found->second = uint256_t("64512342624123513");
-      safeUnorderedMap.commit();
-      REQUIRE(safeUnorderedMap.size() == 1);
-      REQUIRE(safeUnorderedMap[randomAddress] == uint256_t("64512342624123513"));
-      REQUIRE(safeUnorderedMap.count(randomAddress) == 1);
-      REQUIRE(safeUnorderedMap.count(Address(Utils::randBytes(20))) == 0);
+      Address add(Utils::randBytes(20));
+      uint256_t bal("19283815712031512");
+      uint256_t bal2("64512342624123513");
+      SafeUnorderedMap<Address, uint256_t> map({{add,bal}});
+
+      // Const find: check for existing and non-existing key
+      auto found = std::as_const(map).find(add);
+      REQUIRE(found != map.end());
+      auto notFound = std::as_const(map).find(Address(Utils::randBytes(20)));
+      REQUIRE(notFound == map.end());
+      // Non-const find: check existing key, assign and revert
+      auto found2 = map.find(add);
+      found2->second = bal2;
+      map.revert();
+      REQUIRE(std::as_const(map).find(add)->second == bal);
+      // Non-const find: check existing key, assign and commit
+      auto found3 = map.find(add);
+      found3->second = bal2;
+      map.commit();
+      REQUIRE(std::as_const(map).find(add)->second == bal2);
+      // Non-const find: check for non-existing key
+      auto notFound2 = map.find(Address(Utils::randBytes(20)));
+      REQUIRE(notFound2 == map.end());
     }
 
-    SECTION("SafeUnorderedMap contains") {
-      SafeUnorderedMap<Address, uint256_t> safeUnorderedMap;
-      auto randomAddress = Address(Utils::randBytes(20));
-      safeUnorderedMap[randomAddress] = uint256_t("19283815712031512");
-      REQUIRE(safeUnorderedMap.size() == 1);
-      auto found = safeUnorderedMap.find(randomAddress);
-      REQUIRE(found != safeUnorderedMap.end());
-      REQUIRE(found->second == uint256_t("19283815712031512"));
-      safeUnorderedMap.commit();
-      REQUIRE(safeUnorderedMap.size() == 1);
-      REQUIRE(safeUnorderedMap[randomAddress] == uint256_t("19283815712031512"));
-      REQUIRE(safeUnorderedMap.contains(randomAddress));
-      REQUIRE(!safeUnorderedMap.contains(Address(Utils::randBytes(20))));
+    // TODO: missing tests for begin(), end() cbegin() and cend() due to lack of SafeIterators
+    // This is commented on purpose for future reference
+    /*
+    SECTION("SafeUnorderedMap begin, end, cbegin and cend") {
+      Address add1(Utils::randBytes(20));
+      Address add2(Utils::randBytes(20));
+      Address add3(Utils::randBytes(20));
+      uint256_t bal1("19283815712031512");
+      uint256_t bal2("96482364197823643");
+      uint256_t bal3("29884639238924532");
+      uint256_t bal0(0);
+      SafeUnorderedMap<Address, uint256_t> map({{add1,bal1},{add2,bal2},{add3,bal3}});
+
+      // Const iteration: check that values are not altered
+      auto cB = map.cbegin();
+      auto cE = map.cend();
+      REQUIRE(std::as_const(map).at(add1) == bal1);
+      REQUIRE(std::as_const(map).at(add2) == bal2);
+      REQUIRE(std::as_const(map).at(add3) == bal3);
+
+      // Non-const iteration: alter all values, then revert
+      auto cB2 = map.begin();
+      while (cB2 != map.end()) {
+        (*cB2).second = bal0;
+        std::advance(cB2, 1);
+      }
+      map.revert();
+      REQUIRE(std::as_const(map).at(add1) == bal1);
+      REQUIRE(std::as_const(map).at(add2) == bal2);
+      REQUIRE(std::as_const(map).at(add3) == bal3);
+
+      // Non-const iteration: alter all values, then commit
+      auto cE2 = map.end(); // backwards on purpose - begin() makes copies, end() doesn't
+      while (cE2 != map.begin()) {
+        std::advance(cE2, -1);
+        (*cE2).second = bal0;
+      }
+      map.commit();
+      REQUIRE(std::as_const(map).at(add1) == bal0);
+      REQUIRE(std::as_const(map).at(add2) == bal0);
+      REQUIRE(std::as_const(map).at(add3) == bal0);
+    }
+    */
+
+    SECTION("SafeUnorderedMap insert (simple)") {
+      Address add0(Utils::randBytes(20));
+      uint256_t bal0("19283815712031512");
+      SafeUnorderedMap<Address, uint256_t> map({{add0,bal0}});
+
+      // Attempt inserting an existing key, then prepare mass insertions
+      REQUIRE(map.insert(std::make_pair(add0, bal0)).second == false);
+      std::pair<Address, uint256_t> movePair = std::make_pair(add0, bal0);
+      REQUIRE(map.insert(std::move(movePair)).second == false);
+      std::vector<std::pair<Address, uint256_t>> values;
+      for (uint8_t i = 0; i < 100; i++) { // inserting 100 values
+        values.emplace_back(std::make_pair(Address(Utils::randBytes(20)), bal0));
+      }
+      std::vector<std::pair<Address, uint256_t>> valCopy1 = values; // copies for move ops
+      std::vector<std::pair<Address, uint256_t>> valCopy2 = values;
+
+      // Mass insert by copy, then revert
+      for (std::pair<Address, uint256_t> val : values) map.insert(val);
+      map.revert();
+      REQUIRE(map.size() == 1);
+      REQUIRE(map.at(add0) == bal0);
+
+      // Mass insert by copy, then commit
+      for (std::pair<Address, uint256_t> val : values) map.insert(val);
+      map.commit();
+      REQUIRE(map.size() == 101);
+      for (std::pair<Address, uint256_t> val : values) REQUIRE(map.at(val.first) == val.second);
+
+      map.clear(); map.insert(std::make_pair(add0, bal0)); map.commit(); // revert to starting map
+
+      // Mass insert by move, then revert
+      for (std::pair<Address, uint256_t> val : valCopy1) map.insert(std::move(val));
+      map.revert();
+      REQUIRE(map.size() == 1);
+      REQUIRE(map.at(add0) == bal0);
+
+      // Mass insert by move, then commit
+      for (std::pair<Address, uint256_t> val : valCopy2) map.insert(std::move(val));
+      map.commit();
+      REQUIRE(map.size() == 101);
+      for (std::pair<Address, uint256_t> val : values) REQUIRE(map.at(val.first) == val.second);
+    }
+
+    SECTION("SafeUnorderedMap insert (hint)") {
+      Address add0(Utils::randBytes(20));
+      uint256_t bal0("19283815712031512");
+      SafeUnorderedMap<Address, uint256_t> map({{add0,bal0}});
+
+      // Same as insert (simple), but hint is set to cbegin() anyway, we test this just for conscience's sake
+      std::vector<std::pair<Address, uint256_t>> values;
+      for (uint8_t i = 0; i < 100; i++) { // inserting 100 values
+        values.emplace_back(std::make_pair(Address(Utils::randBytes(20)), bal0));
+      }
+      std::vector<std::pair<Address, uint256_t>> valCopy1 = values; // copies for move ops
+      std::vector<std::pair<Address, uint256_t>> valCopy2 = values;
+
+      // Mass insert by copy, then revert
+      for (std::pair<Address, uint256_t> val : values) map.insert(map.cbegin(), val);
+      map.revert();
+      REQUIRE(map.size() == 1);
+      REQUIRE(map.at(add0) == bal0);
+
+      // Mass insert by copy, then commit
+      for (std::pair<Address, uint256_t> val : values) map.insert(map.cbegin(), val);
+      map.commit();
+      REQUIRE(map.size() == 101);
+      for (std::pair<Address, uint256_t> val : values) REQUIRE(map.at(val.first) == val.second);
+
+      map.clear(); map.insert(std::make_pair(add0, bal0)); map.commit(); // revert to starting map
+
+      // Mass insert by move, then revert
+      for (std::pair<Address, uint256_t> val : valCopy1) map.insert(map.cbegin(), std::move(val));
+      map.revert();
+      REQUIRE(map.size() == 1);
+      REQUIRE(map.at(add0) == bal0);
+
+      // Mass insert by move, then commit
+      for (std::pair<Address, uint256_t> val : valCopy2) map.insert(map.cbegin(), std::move(val));
+      map.commit();
+      REQUIRE(map.size() == 101);
+      for (std::pair<Address, uint256_t> val : values) REQUIRE(map.at(val.first) == val.second);
+    }
+
+    SECTION("SafeUnorderedMap insert (range)") {
+      Address add0(Utils::randBytes(20));
+      uint256_t bal0("19283815712031512");
+      SafeUnorderedMap<Address, uint256_t> map({{add0,bal0}});
+
+      // Same as insert (simple), but we use iterators to the vector instead (also an ilist)
+      std::vector<std::pair<Address, uint256_t>> values;
+      for (uint8_t i = 0; i < 100; i++) { // inserting 100 values
+        values.emplace_back(std::make_pair(Address(Utils::randBytes(20)), bal0));
+      }
+      std::initializer_list<std::pair<const Address, uint256_t>> ilist { // creating 10 values
+        std::make_pair(Address(Utils::randBytes(20)), bal0),
+        std::make_pair(Address(Utils::randBytes(20)), bal0),
+        std::make_pair(Address(Utils::randBytes(20)), bal0),
+        std::make_pair(Address(Utils::randBytes(20)), bal0),
+        std::make_pair(Address(Utils::randBytes(20)), bal0),
+        std::make_pair(Address(Utils::randBytes(20)), bal0),
+        std::make_pair(Address(Utils::randBytes(20)), bal0),
+        std::make_pair(Address(Utils::randBytes(20)), bal0),
+        std::make_pair(Address(Utils::randBytes(20)), bal0),
+        std::make_pair(Address(Utils::randBytes(20)), bal0)
+      };
+
+      // Mass insert by iterators, then revert
+      map.insert(values.cbegin(), values.cend());
+      map.revert();
+      REQUIRE(map.size() == 1);
+      REQUIRE(map.at(add0) == bal0);
+
+      // Mass insert by iterators, then commit
+      map.insert(values.cbegin(), values.cend());
+      map.commit();
+      REQUIRE(map.size() == 101);
+      for (std::pair<Address, uint256_t> val : values) REQUIRE(map.at(val.first) == val.second);
+
+      map.clear(); map.insert(std::make_pair(add0, bal0)); map.commit(); // revert to starting map
+
+      // Mass insert by ilist, then revert
+      map.insert(ilist);
+      map.revert();
+      REQUIRE(map.size() == 1);
+      REQUIRE(map.at(add0) == bal0);
+
+      // Mass insert by ilist, then commit
+      map.insert(ilist);
+      map.commit();
+      REQUIRE(map.size() == 11);
+      for (auto it = ilist.begin(); it != ilist.end(); it++) REQUIRE(map.at(it->first) == it->second);
+    }
+
+    SECTION("SafeUnorderedMap insert (node)") {
+      Address add0(Utils::randBytes(20));
+      uint256_t bal0("19283815712031512");
+      SafeUnorderedMap<Address, uint256_t> map({{add0,bal0}});
+
+      // Same as insert (simple), but extracts nodes from another map instead.
+      // Doing one full copy per operation because node handles are movable-only
+      SafeUnorderedMap<Address, uint256_t> otherMapRef;
+      SafeUnorderedMap<Address, uint256_t> otherMap1;
+      SafeUnorderedMap<Address, uint256_t> otherMap2;
+      SafeUnorderedMap<Address, uint256_t> otherMap3;
+      SafeUnorderedMap<Address, uint256_t> otherMap4;
+      std::vector<std::unordered_map<Address, uint256_t>::node_type> nodesRef;
+      std::vector<std::unordered_map<Address, uint256_t>::node_type> nodes1;
+      std::vector<std::unordered_map<Address, uint256_t>::node_type> nodes2;
+      std::vector<std::unordered_map<Address, uint256_t>::node_type> nodes3;
+      std::vector<std::unordered_map<Address, uint256_t>::node_type> nodes4;
+      for (uint8_t i = 0; i < 100; i++) { // extracting 100 values
+        Address newAdd = Address(Utils::randBytes(20));
+        otherMapRef[newAdd] = bal0;
+        otherMap1[newAdd] = bal0;
+        otherMap2[newAdd] = bal0;
+        otherMap3[newAdd] = bal0;
+        otherMap4[newAdd] = bal0;
+        nodesRef.emplace_back(std::move(otherMapRef.extract(newAdd)));
+        nodes1.emplace_back(std::move(otherMap1.extract(newAdd)));
+        nodes2.emplace_back(std::move(otherMap2.extract(newAdd)));
+        nodes3.emplace_back(std::move(otherMap3.extract(newAdd)));
+        nodes4.emplace_back(std::move(otherMap4.extract(newAdd)));
+      }
+
+      // Mass insert by move, then revert
+      for (std::size_t i = 0; i < nodes1.size(); i++) map.insert(std::move(nodes1[i]));
+      map.revert();
+      REQUIRE(map.size() == 1);
+      REQUIRE(map.at(add0) == bal0);
+
+      // Mass insert by move, then commit
+      for (std::size_t i = 0; i < nodes2.size(); i++) map.insert(std::move(nodes2[i]));
+      map.commit();
+      REQUIRE(map.size() == 101);
+      for (std::size_t i = 0; i < nodesRef.size(); i++) REQUIRE(map.at(nodesRef[i].key()) == nodesRef[i].mapped());
+
+      map.clear(); map.insert(std::make_pair(add0, bal0)); map.commit(); // revert to starting map
+
+      // Mass insert by move and hint, then revert
+      for (std::size_t i = 0; i < nodes3.size(); i++) map.insert(map.cbegin(), std::move(nodes3[i]));
+      map.revert();
+      REQUIRE(map.size() == 1);
+      REQUIRE(map.at(add0) == bal0);
+
+      // Mass insert by move and hint, then commit
+      for (std::size_t i = 0; i < nodes4.size(); i++) map.insert(map.cbegin(), std::move(nodes4[i]));
+      map.commit();
+      REQUIRE(map.size() == 101);
+      for (std::size_t i = 0; i < nodesRef.size(); i++) REQUIRE(map.at(nodesRef[i].key()) == nodesRef[i].mapped());
+    }
+
+    SECTION("SafeUnorderedMap insert_or_assign (copy)") {
+      Address add0(Utils::randBytes(20));
+      uint256_t bal0("19283815712031512");
+      SafeUnorderedMap<Address, uint256_t> map({{add0,bal0}});
+
+      // Two rounds: one for insert, another for assign
+      uint256_t oldBal("93847329875983254");
+      uint256_t newBal("38975489237598433");
+      std::vector<std::pair<Address, uint256_t>> oldVals;
+      std::vector<std::pair<Address, uint256_t>> newVals;
+      for (uint8_t i = 0; i < 100; i++) { // inserting 100 values
+        Address newAdd(Utils::randBytes(20));
+        oldVals.emplace_back(std::make_pair(newAdd, oldBal));
+        newVals.emplace_back(std::make_pair(newAdd, newBal));
+      }
+
+      // Insert and revert
+      for (std::pair<Address, uint256_t> val : oldVals) map.insert_or_assign(val.first, val.second);
+      map.revert();
+      REQUIRE(map.size() == 1);
+      REQUIRE(map.at(add0) == bal0);
+
+      // Insert and commit
+      for (std::pair<Address, uint256_t> val : oldVals) map.insert_or_assign(val.first, val.second);
+      map.commit();
+      REQUIRE(map.size() == 101);
+      for (std::pair<Address, uint256_t> val : oldVals) REQUIRE(map.at(val.first) == val.second);
+
+      // Assign and revert
+      for (std::pair<Address, uint256_t> val : newVals) map.insert_or_assign(val.first, val.second);
+      map.revert();
+      REQUIRE(map.size() == 101);
+      for (std::pair<Address, uint256_t> val : oldVals) REQUIRE(map.at(val.first) == val.second);
+
+      // Assign and commit
+      for (std::pair<Address, uint256_t> val : newVals) map.insert_or_assign(val.first, val.second);
+      map.commit();
+      REQUIRE(map.size() == 101);
+      for (std::pair<Address, uint256_t> val : newVals) REQUIRE(map.at(val.first) == val.second);
+    }
+
+    SECTION("SafeUnorderedMap insert_or_assign (move)") {
+      Address add0(Utils::randBytes(20));
+      uint256_t bal0("19283815712031512");
+      SafeUnorderedMap<Address, uint256_t> map({{add0,bal0}});
+
+      // Same logic, but calls the move function instead
+      uint256_t oldBal("93847329875983254");
+      uint256_t newBal("38975489237598433");
+      std::vector<std::pair<Address, uint256_t>> oldVals;
+      std::vector<std::pair<Address, uint256_t>> newVals;
+      for (uint8_t i = 0; i < 100; i++) { // inserting 100 values
+        Address newAdd(Utils::randBytes(20));
+        oldVals.emplace_back(std::make_pair(newAdd, oldBal));
+        newVals.emplace_back(std::make_pair(newAdd, newBal));
+      }
+      // We make copies because it'll all be moved, but we still need a reference to compare to
+      std::vector<std::pair<Address, uint256_t>> oldVals1 = oldVals;
+      std::vector<std::pair<Address, uint256_t>> oldVals2 = oldVals;
+      std::vector<std::pair<Address, uint256_t>> newVals1 = newVals;
+      std::vector<std::pair<Address, uint256_t>> newVals2 = newVals;
+
+      // Insert and revert
+      for (std::pair<Address, uint256_t> val : oldVals1) {
+        map.insert_or_assign(std::move(val.first), std::move(val.second));
+      }
+      map.revert();
+      REQUIRE(map.size() == 1);
+      REQUIRE(map.at(add0) == bal0);
+
+      // Insert and commit
+      for (std::pair<Address, uint256_t> val : oldVals2) {
+        map.insert_or_assign(std::move(val.first), std::move(val.second));
+      }
+      map.commit();
+      REQUIRE(map.size() == 101);
+      for (std::pair<Address, uint256_t> val : oldVals) REQUIRE(map.at(val.first) == val.second);
+
+      // Assign and revert
+      for (std::pair<Address, uint256_t> val : newVals1) {
+        map.insert_or_assign(std::move(val.first), std::move(val.second));
+      }
+      map.revert();
+      REQUIRE(map.size() == 101);
+      for (std::pair<Address, uint256_t> val : oldVals) REQUIRE(map.at(val.first) == val.second);
+
+      // Assign and commit
+      for (std::pair<Address, uint256_t> val : newVals2) {
+        map.insert_or_assign(std::move(val.first), std::move(val.second));
+      }
+      map.commit();
+      REQUIRE(map.size() == 101);
+      for (std::pair<Address, uint256_t> val : newVals) REQUIRE(map.at(val.first) == val.second);
+    }
+
+    SECTION("SafeUnorderedMap insert_or_assign (copy+hint)") {
+      Address add0(Utils::randBytes(20));
+      uint256_t bal0("19283815712031512");
+      SafeUnorderedMap<Address, uint256_t> map({{add0,bal0}});
+
+      // Same as insert(hint), again, for conscience's sake
+      uint256_t oldBal("93847329875983254");
+      uint256_t newBal("38975489237598433");
+      std::vector<std::pair<Address, uint256_t>> oldVals;
+      std::vector<std::pair<Address, uint256_t>> newVals;
+      for (uint8_t i = 0; i < 100; i++) { // inserting 100 values
+        Address newAdd(Utils::randBytes(20));
+        oldVals.emplace_back(std::make_pair(newAdd, oldBal));
+        newVals.emplace_back(std::make_pair(newAdd, newBal));
+      }
+
+      // Insert and revert
+      for (std::pair<Address, uint256_t> val : oldVals) map.insert_or_assign(map.cbegin(), val.first, val.second);
+      map.revert();
+      REQUIRE(map.size() == 1);
+      REQUIRE(map.at(add0) == bal0);
+
+      // Insert and commit
+      for (std::pair<Address, uint256_t> val : oldVals) map.insert_or_assign(map.cbegin(), val.first, val.second);
+      map.commit();
+      REQUIRE(map.size() == 101);
+      for (std::pair<Address, uint256_t> val : oldVals) REQUIRE(map.at(val.first) == val.second);
+
+      // Assign and revert
+      for (std::pair<Address, uint256_t> val : newVals) map.insert_or_assign(map.cbegin(), val.first, val.second);
+      map.revert();
+      REQUIRE(map.size() == 101);
+      for (std::pair<Address, uint256_t> val : oldVals) REQUIRE(map.at(val.first) == val.second);
+
+      // Assign and commit
+      for (std::pair<Address, uint256_t> val : newVals) map.insert_or_assign(map.cbegin(), val.first, val.second);
+      map.commit();
+      REQUIRE(map.size() == 101);
+      for (std::pair<Address, uint256_t> val : newVals) REQUIRE(map.at(val.first) == val.second);
+    }
+
+    SECTION("SafeUnorderedMap insert_or_assign (move+hint)") {
+      Address add0(Utils::randBytes(20));
+      uint256_t bal0("19283815712031512");
+      SafeUnorderedMap<Address, uint256_t> map({{add0,bal0}});
+
+      // Ditto (I know this is dumb but hey testing is testing)
+      uint256_t oldBal("93847329875983254");
+      uint256_t newBal("38975489237598433");
+      std::vector<std::pair<Address, uint256_t>> oldVals;
+      std::vector<std::pair<Address, uint256_t>> newVals;
+      for (uint8_t i = 0; i < 100; i++) { // inserting 100 values
+        Address newAdd(Utils::randBytes(20));
+        oldVals.emplace_back(std::make_pair(newAdd, oldBal));
+        newVals.emplace_back(std::make_pair(newAdd, newBal));
+      }
+      // We make copies because it'll all be moved, but we still need a reference to compare to
+      std::vector<std::pair<Address, uint256_t>> oldVals1 = oldVals;
+      std::vector<std::pair<Address, uint256_t>> oldVals2 = oldVals;
+      std::vector<std::pair<Address, uint256_t>> newVals1 = newVals;
+      std::vector<std::pair<Address, uint256_t>> newVals2 = newVals;
+
+      // Insert and revert
+      for (std::pair<Address, uint256_t> val : oldVals1) {
+        map.insert_or_assign(map.cbegin(), std::move(val.first), std::move(val.second));
+      }
+      map.revert();
+      REQUIRE(map.size() == 1);
+      REQUIRE(map.at(add0) == bal0);
+
+      // Insert and commit
+      for (std::pair<Address, uint256_t> val : oldVals2) {
+        map.insert_or_assign(map.cbegin(), std::move(val.first), std::move(val.second));
+      }
+      map.commit();
+      REQUIRE(map.size() == 101);
+      for (std::pair<Address, uint256_t> val : oldVals) REQUIRE(map.at(val.first) == val.second);
+
+      // Assign and revert
+      for (std::pair<Address, uint256_t> val : newVals1) {
+        map.insert_or_assign(map.cbegin(), std::move(val.first), std::move(val.second));
+      }
+      map.revert();
+      REQUIRE(map.size() == 101);
+      for (std::pair<Address, uint256_t> val : oldVals) REQUIRE(map.at(val.first) == val.second);
+
+      // Assign and commit
+      for (std::pair<Address, uint256_t> val : newVals2) {
+        map.insert_or_assign(map.cbegin(), std::move(val.first), std::move(val.second));
+      }
+      map.commit();
+      REQUIRE(map.size() == 101);
+      for (std::pair<Address, uint256_t> val : newVals) REQUIRE(map.at(val.first) == val.second);
+    }
+
+    SECTION("SafeUnorderedMap emplace + emplace_hint") {
+      Address add0(Utils::randBytes(20));
+      uint256_t bal0("19283815712031512");
+      SafeUnorderedMap<Address, uint256_t> map({{add0,bal0}});
+
+      // Same as insert but it's emplace... yadda yadda yadda...
+      REQUIRE(map.emplace(std::make_pair(add0, bal0)).second == false);
+      std::pair<Address, uint256_t> movePair = std::make_pair(add0, bal0);
+      REQUIRE(map.emplace(std::move(movePair)).second == false);
+      std::vector<std::pair<Address, uint256_t>> values;
+      for (uint8_t i = 0; i < 100; i++) { // emplacing 100 values
+        values.emplace_back(std::make_pair(Address(Utils::randBytes(20)), bal0));
+      }
+
+      // Mass emplace, then revert
+      for (std::pair<Address, uint256_t> val : values) map.emplace(val);
+      map.revert();
+      REQUIRE(map.size() == 1);
+      REQUIRE(map.at(add0) == bal0);
+
+      // Mass emplace, then commit
+      for (std::pair<Address, uint256_t> val : values) map.emplace(val);
+      map.commit();
+      REQUIRE(map.size() == 101);
+      for (std::pair<Address, uint256_t> val : values) REQUIRE(map.at(val.first) == val.second);
+
+      map.clear(); map.insert(std::make_pair(add0, bal0)); map.commit(); // revert to starting map
+
+      // Mass emplace with hint, then revert
+      for (std::pair<Address, uint256_t> val : values) map.emplace_hint(map.cbegin(), val);
+      map.revert();
+      REQUIRE(map.size() == 1);
+      REQUIRE(map.at(add0) == bal0);
+
+      // Mass emplace with hint, then commit
+      for (std::pair<Address, uint256_t> val : values) map.emplace_hint(map.cbegin(), val);
+      map.commit();
+      REQUIRE(map.size() == 101);
+      for (std::pair<Address, uint256_t> val : values) REQUIRE(map.at(val.first) == val.second);
+    }
+
+    SECTION("SafeUnorderedMap try_emplace (copy key + move key)") {
+      Address add0(Utils::randBytes(20));
+      uint256_t bal0("19283815712031512");
+      SafeUnorderedMap<Address, uint256_t> map({{add0,bal0}});
+
+      // ...yadda yadda yadda but there's one extra step to test the
+      // "do nothing if key exists" part ok I think we all get it by now
+      std::vector<std::pair<Address, uint256_t>> values;
+      for (uint8_t i = 0; i < 100; i++) { // emplacing 100 values
+        values.emplace_back(std::make_pair(Address(Utils::randBytes(20)), bal0));
+      }
+      std::vector<std::pair<Address, uint256_t>> values1 = values; // copies for move ops
+      std::vector<std::pair<Address, uint256_t>> values2 = values;
+      std::vector<std::pair<Address, uint256_t>> values3 = values;
+
+      // Mass emplace by key copy, then revert
+      for (std::pair<Address, uint256_t> val : values) map.try_emplace(val.first, val.second);
+      map.revert();
+      REQUIRE(map.size() == 1);
+      REQUIRE(map.at(add0) == bal0);
+
+      // Mass emplace by key copy, then commit
+      for (std::pair<Address, uint256_t> val : values) map.try_emplace(val.first, val.second);
+      map.commit();
+      REQUIRE(map.size() == 101);
+      for (std::pair<Address, uint256_t> val : values) REQUIRE(map.at(val.first) == val.second);
+
+      // Mass emplace again, but confirm it's doing nothing
+      for (std::pair<Address, uint256_t> val : values) {
+        REQUIRE(map.try_emplace(val.first, val.second).second == false);
+      }
+
+      map.clear(); map.insert(std::make_pair(add0, bal0)); map.commit(); // revert to starting map
+
+      // Mass emplace by key move, then revert
+      for (std::pair<Address, uint256_t> val : values1) map.try_emplace(std::move(val.first), val.second);
+      map.revert();
+      REQUIRE(map.size() == 1);
+      REQUIRE(map.at(add0) == bal0);
+
+      // Mass emplace by key move, then commit
+      for (std::pair<Address, uint256_t> val : values2) map.try_emplace(std::move(val.first), val.second);
+      map.commit();
+      REQUIRE(map.size() == 101);
+      for (std::pair<Address, uint256_t> val : values) REQUIRE(map.at(val.first) == val.second);
+
+      // Mass emplace again, but confirm it's doing nothing
+      for (std::pair<Address, uint256_t> val : values3) {
+        REQUIRE(map.try_emplace(val.first, val.second).second == false);
+      }
+    }
+
+    SECTION("SafeUnorderedMap try_emplace (copy key hint + move key hint)") {
+      Address add0(Utils::randBytes(20));
+      uint256_t bal0("19283815712031512");
+      SafeUnorderedMap<Address, uint256_t> map({{add0,bal0}});
+
+      // literally feeling like youtube id ILoWMEWd7Yk rn
+      std::vector<std::pair<Address, uint256_t>> values;
+      for (uint8_t i = 0; i < 100; i++) { // emplacing 100 values
+        values.emplace_back(std::make_pair(Address(Utils::randBytes(20)), bal0));
+      }
+      std::vector<std::pair<Address, uint256_t>> values1 = values; // copies for move ops
+      std::vector<std::pair<Address, uint256_t>> values2 = values;
+
+      // Mass emplace by key copy, then revert
+      for (std::pair<Address, uint256_t> val : values) map.try_emplace(map.cbegin(), val.first, val.second);
+      map.revert();
+      REQUIRE(map.size() == 1);
+      REQUIRE(map.at(add0) == bal0);
+
+      // Mass emplace by key copy, then commit
+      for (std::pair<Address, uint256_t> val : values) map.try_emplace(map.cbegin(), val.first, val.second);
+      map.commit();
+      REQUIRE(map.size() == 101);
+      for (std::pair<Address, uint256_t> val : values) REQUIRE(map.at(val.first) == val.second);
+
+      map.clear(); map.insert(std::make_pair(add0, bal0)); map.commit(); // revert to starting map
+
+      // Mass emplace by key move, then revert
+      for (std::pair<Address, uint256_t> val : values1) map.try_emplace(map.cbegin(), std::move(val.first), val.second);
+      map.revert();
+      REQUIRE(map.size() == 1);
+      REQUIRE(map.at(add0) == bal0);
+
+      // Mass emplace by key move, then commit
+      for (std::pair<Address, uint256_t> val : values2) map.try_emplace(map.cbegin(), std::move(val.first), val.second);
+      map.commit();
+      REQUIRE(map.size() == 101);
+      for (std::pair<Address, uint256_t> val : values) REQUIRE(map.at(val.first) == val.second);
+    }
+
+    SECTION("SafeUnorderedMap erase") {
+      Address add0(Utils::randBytes(20));
+      uint256_t bal0("19283815712031512");
+      SafeUnorderedMap<Address, uint256_t> map({{add0,bal0}});
+      std::vector<std::pair<Address, uint256_t>> values;
+      for (uint8_t i = 0; i < 100; i++) { // emplacing 100 values
+        values.emplace_back(std::make_pair(Address(Utils::randBytes(20)), bal0));
+      }
+      map.insert(values.cbegin(), values.cend());
+      map.commit();
+      REQUIRE(map.size() == 101);
+
+      // Erase a single key using an iterator
+      std::pair<Address, uint256_t> firstVal = (*map.cbegin());
+      map.erase(map.cbegin());
+      map.revert();
+      REQUIRE(map.size() == 101);
+      REQUIRE((map.cbegin()->first == firstVal.first && map.cbegin()->second == firstVal.second));
+      map.erase(map.cbegin());
+      map.commit();
+      REQUIRE(map.size() == 100);
+      REQUIRE(!map.contains(firstVal.first));
+      map[firstVal.first] = firstVal.second; map.commit(); REQUIRE(map.size() == 101); // re-add the key for next test
+
+      // Erase a single key using a value
+      map.erase(add0);
+      map.revert();
+      REQUIRE(map.size() == 101);
+      REQUIRE(map[add0] == bal0);
+      map.erase(add0);
+      map.commit();
+      REQUIRE(map.size() == 100);
+      REQUIRE(!map.contains(add0));
+
+      // Erase a range of keys using iterators
+      auto itB = map.cbegin();
+      auto itE = map.cbegin();
+      std::advance(itE, map.size() / 2); // thanos snap, half the map is gone
+      map.erase(itB, itE);
+      map.revert();
+      REQUIRE(map.size() == 100);
+      itB = map.cbegin(); // refresh iterators just in case
+      itE = map.cbegin();
+      std::advance(itE, map.size() / 2);
+      map.erase(itB, itE);
+      map.commit();
+      REQUIRE(map.size() == 50);
     }
   }
 }
+
