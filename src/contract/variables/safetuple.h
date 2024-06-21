@@ -261,6 +261,16 @@ template<typename... Types> class SafeTuple : public SafeBase {
     }
 
     /**
+     * Tuple assignment operator.
+     * @tparam
+     * @param tpl The tuple to assign.
+     */
+    SafeTuple& operator=(const std::tuple<Types...>& tpl) {
+      copyAll(this->value_, this->copy_); markAsUsed();
+      this->value_ = tpl; return *this;
+    }
+
+    /**
      * Swap the contents of two SafeTuples. Swaps only the CURRENT value.
      * @param other The other SafeTuple to swap with.
      */
