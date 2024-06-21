@@ -146,13 +146,13 @@ template <typename T, unsigned N> class SafeArray : public SafeBase {
      * Check if the array is empty (has no elements).
      * @return `true` if array is empty, `false` otherwise.
      */
-    constexpr bool empty() { return std::array<T, N>::empty(); }
+    constexpr bool empty() const noexcept { return this->value_.empty(); }
 
     /// Get the current size of the array.
-    constexpr std::size_t size() { return std::array<T, N>::size(); }
+    constexpr std::size_t size() const noexcept { return this->value_.size(); }
 
     /// Get the maximum possible size of the array.
-    constexpr std::size_t max_size() { return std::array<T, N>::max_size(); }
+    constexpr std::size_t max_size() const noexcept { return this->value_.max_size(); }
 
     /**
      * Fill the array with a given value.
