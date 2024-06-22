@@ -29,10 +29,9 @@ namespace P2P {
   class ManagerBase;
 
   /**
-  * The session class is the base class for both the client and server sessions.
-  * It contains the basic functionality for reading and writing messages to the
-  * socket.
-  */
+   * The session class is the base class for both client and server connections.
+   * It contains the basic functionality for reading and writing messages to the socket.
+   */
   class Session : public std::enable_shared_from_this<Session>, public Log::LogicalLocationProvider {
     private:
       /// The socket used to communicate with the client.
@@ -134,76 +133,44 @@ namespace P2P {
       void handle_error(const std::string& func, const boost::system::error_code& ec);
 
     public:
-
-      /// Construct a session with the given socket. (Used by the server)
-      explicit Session(tcp::socket &&socket,
-                       ConnectionType connectionType,
-                       ManagerBase& manager)
-          : socket_(std::move(socket)),
-            address_(socket_.remote_endpoint().address()),
-            port_(socket_.remote_endpoint().port()),
-            connectionType_(connectionType),
-            manager_(manager),
-            readStrand_(socket_.get_executor()),
-            writeStrand_(socket_.get_executor())
-            {
-              if (connectionType == ConnectionType::OUTBOUND) {
-                /// Not a server, it will not call do_connect().
-                throw DynamicException("Session: Invalid connection type.");
-              }
-            }
-
-      /// Construct a session with the given socket (Used by the client)
-      explicit Session(tcp::socket &&socket,
-                       ConnectionType connectionType,
-                       ManagerBase& manager,
-                       const net::ip::address& address,
-                       unsigned short port
-                       )
-          : socket_(std::move(socket)),
-            address_(address),
-            port_(port),
-            connectionType_(connectionType),
-            manager_(manager),
-            readStrand_(socket_.get_executor()),
-            writeStrand_(socket_.get_executor())
+      /// Construct a server session with the given socket.
+      explicit Session(tcp::socket &&socket, ConnectionType connectionType, ManagerBase& manager)
+        : socket_(std::move(socket)), address_(socket_.remote_endpoint().address()),
+          port_(socket_.remote_endpoint().port()), connectionType_(connectionType),
+          manager_(manager), readStrand_(socket_.get_executor()), writeStrand_(socket_.get_executor())
       {
-        if (connectionType == ConnectionType::INBOUND) {
-          /// Not a client, it will try to write handshake without connecting.
-          throw DynamicException("Session: Invalid connection type.");
-        }
+        // If not a server, will not call do_connect().
+        if (connectionType == ConnectionType::OUTBOUND) throw DynamicException("Session: Invalid connection type.");
       }
 
-      std::string getLogicalLocation() const override; ///< Log instance from P2P
+      /// Construct a client session with the given socket.
+      explicit Session(
+        tcp::socket &&socket, ConnectionType connectionType,
+        ManagerBase& manager, const net::ip::address& address, unsigned short port
+      ) : socket_(std::move(socket)), address_(address), port_(port),
+        connectionType_(connectionType), manager_(manager),
+        readStrand_(socket_.get_executor()), writeStrand_(socket_.get_executor())
+      {
+        // If not a client, will try to write handshake without connecting.
+        if (connectionType == ConnectionType::INBOUND) throw DynamicException("Session: Invalid connection type.");
+      }
 
-      /// Max message size
-      const uint64_t maxMessageSize_ = 1024 * 1024 * 128; // (128 MB)
+      std::string getLogicalLocation() const override; ///< Log instance from P2P.
+      const uint64_t maxMessageSize_ = 1024 * 1024 * 128; ///< Max message size (128 MB).
+      void run(); ///< Runs the session.
+      void close(); /// Closes the session.
+      void write(const std::shared_ptr<const Message>& message); ///< Writes a message to the socket.
 
-      /// Function for running the session.
-      void run();
-
-      /// Function for closing the session.
-      void close();
-
-      /// Function for writing a message to the socket.
-      void write(const std::shared_ptr<const Message>& message);
-
-      /// Getter for `address_`.
+      ///@{
+      /* Getter. */
       const net::ip::address& address() const { return this->address_; }
-
-      /// Getter for `port_`.
       const unsigned short& port() const { return port_; }
-
-      /// Getter for an `address_:port_` string.
       std::string addressAndPortStr() const {
         return this->address_.to_string() + ":" + std::to_string(this->port_);
       }
-
-      /// Getter for `hostNodeId_`.
       const NodeID& hostNodeId() const { return this->nodeId_; }
-
-      /// Getter for `hostType_`.
       const NodeType& hostType() const { return this->type_; }
+      ///@}
   };
 }
 

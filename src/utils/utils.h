@@ -274,44 +274,56 @@ struct Account {
   /// Deserialize constructor.
   Account(const BytesArrView& bytes);
 
-  /// Serialize the account.
-  /// We serialize as balance + nonce + codeHash + contractType + code (if any)
-  /// 32 bytes + 8 bytes + 32 bytes + 1 byte + N (0 or more bytes) = 73 + N bytes
+  /**
+   * Serialize the account.
+   * We serialize as balance + nonce + codeHash + contractType + code (if any)
+   * 32 bytes + 8 bytes + 32 bytes + 1 byte + N (0 or more bytes) = 73 + N bytes
+   */
   Bytes serialize() const;
+
+  /// Check if the account address is a contract.
   bool isContract() const { return contractType != ContractType::NOT_A_CONTRACT; }
 };
 
-/**
- * NonNullUniquePtr is a wrapper around std::unique_ptr that ensures the pointer is never null.
- */
-template<typename T>
-class NonNullUniquePtr {
-private:
-  std::unique_ptr<T> ptr;
+/// Wrapper around std::unique_ptr that ensures the pointer is never null.
+template<typename T> class NonNullUniquePtr {
+  private:
+    std::unique_ptr<T> ptr; /// Pointer value.
 
-public:
-  // Constructor that calls T<Ts...> with the provided arguments.
-  template<typename... Ts>
-  explicit NonNullUniquePtr(Ts&&... args) : ptr(std::make_unique<T>(std::forward<Ts>(args)...)) {}
+  public:
+    /// Constructor that calls T<Ts...> with the provided arguments.
+    template<typename... Ts> explicit NonNullUniquePtr(Ts&&... args) : ptr(std::make_unique<T>(std::forward<Ts>(args)...)) {}
 
-  // Move construction and assignment allowed
-  NonNullUniquePtr(NonNullUniquePtr&& other) = default;
-  NonNullUniquePtr& operator=(NonNullUniquePtr&&) = default;
+    /// Move construction and assignment allowed.
+    NonNullUniquePtr(NonNullUniquePtr&& other) = default;
+    NonNullUniquePtr& operator=(NonNullUniquePtr&&) = default;
 
-  // Deleted copy constructor and copy assignment operator to prevent copying
-  NonNullUniquePtr(const NonNullUniquePtr&) = delete;
-  NonNullUniquePtr& operator=(const NonNullUniquePtr&) = delete;
+    /// Deleted copy constructor and copy assignment operator to prevent copying.
+    NonNullUniquePtr(const NonNullUniquePtr&) = delete;
+    NonNullUniquePtr& operator=(const NonNullUniquePtr&) = delete;
 
-  // Dereference operator
-  T& operator*() const { return *ptr; }
+    /// Dereference operator.
+    T& operator*() const { return *ptr; }
 
-  // Member access operator
-  T* operator->() const { return ptr.get(); }
+    /// Member access operator.
+    T* operator->() const { return ptr.get(); }
 
-  // Getter for raw pointer (optional, use with care)
-  T* get() const { return ptr.get(); }
+    /// Getter for raw pointer (optional, use with care).
+    T* get() const { return ptr.get(); }
 };
 
+/// Wrapper around a raw pointer that ensures the pointer will be null at destruction.
+template<typename T> class PointerNullifier {
+  private:
+    T*& ptr; ///< Pointer value.
+
+  public:
+    /// Constructor.
+    PointerNullifier(T*& item) : ptr(item) {}
+
+    /// Destructor.
+    ~PointerNullifier() { ptr = nullptr; }
+};
 
 /**
  * Struct for abstracting a Solidity event parameter.
@@ -323,17 +335,6 @@ template<typename T, bool Index> struct EventParam {
   const T& value; ///< Event param value.
   static constexpr bool isIndexed = Index;  ///< Indexed status.
   EventParam(const T& value) : value(value) {}  ///< Constructor.
-};
-
-template<typename T>
-class PointerNullifier {
-private:
-  T*& ptr;
-
-public:
-  PointerNullifier(T*& item) : ptr(item) {}
-  ~PointerNullifier() { ptr = nullptr; }
-
 };
 
 /// Namespace for utility functions.
@@ -473,14 +474,26 @@ namespace Utils {
    */
   Bytes randBytes(const int& size);
 
+  ///@{
   /**
-   * Special functions to convert to evmc_uint256be types.
+   * Convert a given EVMC type to a BDK type, or vice-versa.
+   * @param i (or b) The type to convert.
+   * @return The converted type.
    */
   uint256_t evmcUint256ToUint256(const evmc::uint256be& i);
   evmc::uint256be uint256ToEvmcUint256(const uint256_t& i);
   BytesArr<32> evmcUint256ToBytes(const evmc::uint256be& i);
   evmc::uint256be bytesToEvmcUint256(const BytesArrView b);
+  ///@}
 
+  /**
+   * Wrapper for EVMC's `ecrecover()` function.
+   * @param hash The hash to recover an address from.
+   * @param v The recover ID.
+   * @param r The first half of the ECDSA signature.
+   * @param s The second half of the ECDSA signature.
+   * @return The recovered address.
+   */
   evmc::address ecrecover(evmc::bytes32 hash, evmc::bytes32 v, evmc::bytes32 r, evmc::bytes32 s);
 
   ///@{
@@ -564,8 +577,14 @@ namespace Utils {
   uint16_t bytesToUint16(const BytesArrView b);
   uint8_t bytesToUint8(const BytesArrView b);
   int256_t bytesToInt256(const BytesArrView b);
+  ///@}
 
-
+  /**
+   * Convert a C-style raw byte array to a raw bytes string.
+   * @param arr The array to convert.
+   * @param size The size of the array.
+   * @return The converted raw bytes string.
+   */
   Bytes cArrayToBytes(const uint8_t* arr, size_t size);
 
   /**

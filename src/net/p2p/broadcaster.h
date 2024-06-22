@@ -23,15 +23,13 @@ class Storage;
 class State;
 
 namespace P2P {
-
   // Forward declaration.
   class ManagerNormal;
 
   /**
-   * The Broadcaster is the component of the P2P engine that encapsulates all P2P multi-hop 
-   * networking needs, which ultimately involves sending and receiving all messages that have 
-   * the 'Broadcast' command code.
-   *
+   * The Broadcaster is the component of the P2P engine that encapsulates all
+   * P2P multi-hop networking needs, which ultimately involves sending and
+   * receiving all messages that have  the 'Broadcast' command code.
    * @see net/p2p/encoding.h
    * @see net/p2p/managernormal.h
    */

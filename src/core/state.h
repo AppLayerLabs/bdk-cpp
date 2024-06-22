@@ -272,14 +272,20 @@ class State : Dumpable, public Log::LogicalLocationProvider {
       const Hash& txHash, const uint64_t& blockIndex, const uint64_t& txIndex
     ) const;
 
+    DBBatch dump() const final; ///< State dumping function.
+
     /**
-     * State dumping function
+     * Get the address that made a given transaction.
+     * @param txHash The transaction hash.
+     * @return The address that made the transaction.
      */
-    DBBatch dump() const final;
-
-
     Address getAddressForTx(const Hash& txHash) const;
 
+    /**
+     * Get the code section of a given contract.
+     * @param addr The address of the contract.
+     * @return The code section as a raw bytes string.
+     */
     Bytes getContractCode(const Address& addr) const;
 };
 

@@ -10,13 +10,11 @@ See the LICENSE.txt file in the project root for more information.
 #include "../../core/blockchain.h"
 
 namespace P2P {
-
   void NodeConns::forceRefresh() {
-
     // forceRefresh() reduces the interval between a peer node having a TCP connection to us and it appearing
-    //   in the NodeConns peer tracking data structure (nodeInfo_), since it actually requests the NodeInfo
-    //   from the remote nodes immediately; this may be faster than waiting ~100ms for it to appear organically
-    //   via an incomingInfo() callback.
+    // in the NodeConns peer tracking data structure (nodeInfo_), since it actually requests the NodeInfo
+    // from the remote nodes immediately; this may be faster than waiting ~100ms for it to appear organically
+    // via an incomingInfo() callback.
     // It is also useful when the caller wants to ensure that we have the latest NodeInfo from all peers.
 
     // Get the list of currently connected nodes, preserving the NodeType property for each
@@ -100,9 +98,7 @@ namespace P2P {
   }
 
   void NodeConns::loop() {
-
     while (!this->stop_) {
-
       // work every 100ms
       std::this_thread::sleep_for(std::chrono::milliseconds(100));
 

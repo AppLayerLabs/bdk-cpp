@@ -57,7 +57,7 @@ template <typename Key, typename T> class SafeUnorderedMap : public SafeBase {
      */
     inline size_t count(const Key &key) const { return this->value_.count(key); }
 
-    // TODO: find, begin() and end() return const iterator on purpose! we need SafeIterators to do this right (normal iterator doesn't have copy logic)
+    // TODO: find, begin() and end() are NOT safe at the moment! we need SafeIterators to do this right (normal iterator doesn't have copy logic)
 
     /**
      * Find a given key (non-const).
