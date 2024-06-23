@@ -24,14 +24,12 @@ namespace P2P {
         strand_(socket_.get_executor())
   {
     if (connectionType == ConnectionType::OUTBOUND) {
-      /// Not a server, it will not call do_connect().
       throw DynamicException("Session: Invalid connection type.");
     }
 
     setLogSrc();
   }
 
-  /// Construct a session with the given socket (Used by the client)
   Session::Session(tcp::socket &&socket,
                     ConnectionType connectionType,
                     ManagerBase& manager,
@@ -45,7 +43,6 @@ namespace P2P {
         strand_(socket_.get_executor())
   {
     if (connectionType == ConnectionType::INBOUND) {
-      /// Not a client, it will try to write handshake without connecting.
       throw DynamicException("Session: Invalid connection type.");
     }
 

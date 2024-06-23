@@ -8,9 +8,7 @@ See the LICENSE.txt file in the project root for more information.
 #ifndef SAFEBASE_H
 #define SAFEBASE_H
 
-#include <memory>
 #include <cassert>
-#include "../utils/dynamicexception.h"
 
 // Forward declarations.
 class DynamicContract;
@@ -19,7 +17,7 @@ void registerVariableUse(DynamicContract &contract, SafeBase &variable);
 
 /**
  * Base class for all safe variables. Used to safely store a variable within a contract.
- * @see SafeAddress, SafeBool, SafeInt_t, SafeUint_t, SafeString, SafeUnorderedMap, SafeTuple, SafeVector
+ * @see SafeArray, SafeAddress, SafeBool, SafeInt_t, SafeUint_t, SafeString, SafeUnorderedMap, SafeTuple, SafeVector
  */
 class SafeBase {
   private:
@@ -41,6 +39,12 @@ class SafeBase {
 
     inline DynamicContract* getOwner() const { return this->owner_; } ///< Getter for `owner`.
 
+    /**
+     * Check if the variable is registered within the contract.
+     * @return `true` if the variable is registered, `false` otherwise.
+     */
+    inline bool isRegistered() const { return this->registered_; }
+
     /// Register the use of the variable within the contract.
     void markAsUsed() {
       if (this->owner_ != nullptr && !this->registered_ && this->shouldRegister_) {
@@ -48,20 +52,6 @@ class SafeBase {
         this->registered_ = true;
       }
     }
-
-    /**
-     * Check if the variable is initialized (and initialize it if not).
-     * @throw DynamicException if not overridden by the child class.
-     */
-    inline virtual void check() const {
-      throw DynamicException("Derived Class from SafeBase does not override check()");
-    };
-
-    /**
-     * Check if the variable is registered within the contract.
-     * @return `true` if the variable is registered, `false` otherwise.
-     */
-    inline bool isRegistered() const { return this->registered_; }
 
   public:
     /// Empty constructor. Should be used only within local variables within functions.
@@ -81,17 +71,22 @@ class SafeBase {
 
     void enableRegister() { this->shouldRegister_ = true; } ///< Enable variable registration.
 
-   /**
-    * Commit a structure value to the contract. Should always be overridden by the child class.
-    * Child class should always do `this->registered = false;` at the end of commit().
-    */
+    /**
+     * Commit a structure value. Should always be overridden by the child class.
+     * This function should simply discard the previous/temporary value, as the
+     * current/original value is always operated on (optimist approach).
+     * Child class should always do `this->registered = false;` at the end of commit().
+     * @throw DynamicException if not overridden by the child class.
+     */
     inline virtual void commit() { assert(false); }
 
-   /**
-    * Revert a structure value (nullify). Should always be overridden by the child class.
-    * Child class should always do `this->registered = false;` at the end of revert().
-    */
-    inline virtual void revert() const { assert(false); }
+    /**
+     * Revert a structure value. Should always be overridden by the child class.
+     * This function should copy the previous/temporary value back to the current/original value.
+     * Child class should always do `this->registered = false;` at the end of revert().
+     * @throw DynamicException if not overridden by the child class.
+     */
+    inline virtual void revert() { assert(false); }
 };
 
 #endif // SAFEBASE_H

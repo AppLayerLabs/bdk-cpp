@@ -29,10 +29,9 @@ namespace P2P {
   class ManagerBase;
 
   /**
-  * The session class is the base class for both the client and server sessions.
-  * It contains the basic functionality for reading and writing messages to the
-  * socket.
-  */
+   * The session class is the base class for both client and server connections.
+   * It contains the basic functionality for reading and writing messages to the socket.
+   */
   class Session : public std::enable_shared_from_this<Session>, public Log::LogicalLocationProvider {
     private:
       /// The socket used to communicate with the client.
@@ -146,57 +145,47 @@ namespace P2P {
 
     public:
 
-      /// Construct a session with the given socket. (Used by the server)
+      /// Construct a server session with the given socket.
       explicit Session(tcp::socket &&socket,
                        ConnectionType connectionType,
                        ManagerBase& manager);
 
-      /// Construct a session with the given socket (Used by the client)
+      /// Construct a client session with the given socket.
       explicit Session(tcp::socket &&socket,
                        ConnectionType connectionType,
                        ManagerBase& manager,
                        const net::ip::address& address,
                        unsigned short port);
 
-      std::string getLogicalLocation() const override; ///< Log instance from P2P
+      std::string getLogicalLocation() const override; ///< Log instance from P2P.
+      const uint64_t maxMessageSize_ = 1024 * 1024 * 128; ///< Max message size (128 MB).
 
-      /// Max message size
-      const uint64_t maxMessageSize_ = 1024 * 1024 * 128; // (128 MB)
-
-      /// Function for running the session.
+      /// Runs the session.
       void run();
 
-      /// Function for closing the session with a reason.
+      /// Closes the session with a reason log message.
       void close(std::string&& reason);
 
-      /// Function for closing the session without a reason.
+      /// Closes the session without a reason log message.
       void close() { close(""); }
 
-      /// Function for writing a message to the socket.
+      /// Writes a message to the socket.
       void write(const std::shared_ptr<const Message>& message);
 
       /// ManagerBase notifies this session that it has been unregistered; returns whether this session was handshaked.
       bool notifyUnregistered();
 
-      /// Getter for `address_`.
+      ///@{
+      /* Getter. */
       const net::ip::address& address() const { return this->address_; }
-
-      /// Getter for `port_`.
       const unsigned short& port() const { return port_; }
-
-      /// Getter for an `address_:port_` string.
       std::string addressAndPortStr() const {
         return this->address_.to_string() + ":" + std::to_string(this->port_);
       }
-
-      /// Getter for `hostNodeId_`.
       const NodeID& hostNodeId() const { return this->nodeId_; }
-
-      /// Getter for `hostType_`.
       const NodeType& hostType() const { return this->type_; }
-
-      /// Getter for `connectionType_`
       const ConnectionType& connectionType() const { return this->connectionType_; }
+      ///@}
   };
 }
 

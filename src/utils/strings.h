@@ -186,10 +186,9 @@ class Hash : public FixedBytes<32> {
     inline static Hash random() { Hash h; RAND_bytes(h.data_.data(), 32); return h; }
 };
 
-/// Abstraction of a functor (the first 4 bytes of a function's keccak hash). Inherits FixedBytes<4>.
+/// Abstraction of a functor (the first 4 bytes of a function's keccak hash).
 struct Functor {
   uint32_t value = 0;
-  // Operator==
   inline bool operator==(const Functor& other) const { return this->value == other.value; }
 };
 

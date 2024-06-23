@@ -21,7 +21,6 @@ See the LICENSE.txt file in the project root for more information.
 // TODO: tests for NodeConns (if necessary)
 
 namespace P2P {
-
   // Forward declaration.
   class ManagerNormal;
 
@@ -74,12 +73,9 @@ namespace P2P {
       std::optional<NodeInfo> getNodeInfo(const NodeID& nodeId);
 
       void forceRefresh(); ///< Caller synchronously forces a refresh of the nodeInfos of all currently connected nodes.
-
-      void loop(); ///< Nodeconns loop (sends nodeinfo to peers and times out remote peer nodeinfo as needed).
-
-      void start(); ///< Start the nodeconns worker thread if necessary.
-
-      void stop();  ///< Stop the nodeconns worker thread if any.
+      void loop(); ///< NodeConns loop (sends node info to peers and times out remote peer node info as needed).
+      void start(); ///< Start the NodeConns worker thread if necessary.
+      void stop();  ///< Stop the NodeConns worker thread if any.
   };
 };
 
