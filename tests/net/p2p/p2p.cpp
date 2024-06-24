@@ -92,6 +92,8 @@ namespace TP2P {
       P2P::NodeID node2Id = { LOCALHOST, blockchainWrapper2.p2p.serverPort() };
       P2P::NodeID node3Id = { LOCALHOST, blockchainWrapper3.p2p.serverPort() };
 
+      GLOGDEBUGP("[TEST] Starting 3 P2P nodes");
+
       blockchainWrapper1.p2p.start();
       blockchainWrapper2.p2p.start();
       blockchainWrapper3.p2p.start();
@@ -101,10 +103,14 @@ namespace TP2P {
       REQUIRE(blockchainWrapper2.p2p.isServerRunning() == true);
       REQUIRE(blockchainWrapper3.p2p.isServerRunning() == true);
 
+      GLOGDEBUGP("[TEST] Connecting all 3 P2P nodes");
+
       blockchainWrapper1.p2p.connectToServer(LOCALHOST, blockchainWrapper2.p2p.serverPort());
       blockchainWrapper1.p2p.connectToServer(LOCALHOST, blockchainWrapper3.p2p.serverPort());
       blockchainWrapper2.p2p.connectToServer(LOCALHOST, blockchainWrapper3.p2p.serverPort());
       std::this_thread::sleep_for(std::chrono::milliseconds(100));
+
+      GLOGDEBUGP("[TEST] Starting discovery");
 
       // Start discovery
       blockchainWrapper1.p2p.startDiscovery();
@@ -119,6 +125,8 @@ namespace TP2P {
       REQUIRE(node2SessionsIDs.size() == 2);
       REQUIRE(node3SessionsIDs.size() == 2);
 
+      GLOGDEBUGP("[TEST] Pinging all nodes");
+
       // Try pinging each other
       for (auto session : node1SessionsIDs) {
         blockchainWrapper1.p2p.ping(session);
@@ -132,11 +140,15 @@ namespace TP2P {
         blockchainWrapper3.p2p.ping(session);
       }
 
+      GLOGDEBUGP("[TEST] Stopping discovery");
+
       // Stop discovery on nodes, disconnect and check.
       blockchainWrapper1.p2p.stopDiscovery();
       blockchainWrapper2.p2p.stopDiscovery();
       blockchainWrapper3.p2p.stopDiscovery();
-      GLOGDEBUG("Test is disconnecting session: " + toString(node2Id));
+
+      GLOGDEBUG("[TEST] Disconnecting node 1 from node 2: " + toString(node2Id));
+
       blockchainWrapper1.p2p.disconnectSession(node2Id);
 
       auto futureSessionNode1 = std::async(std::launch::async, [&]() {
@@ -153,7 +165,6 @@ namespace TP2P {
       });
       REQUIRE(futureSessionNode2.wait_for(std::chrono::seconds(5)) != std::future_status::timeout);
 
-
       node1SessionsIDs = blockchainWrapper1.p2p.getSessionsIDs();
       node2SessionsIDs = blockchainWrapper2.p2p.getSessionsIDs();
       node3SessionsIDs = blockchainWrapper3.p2p.getSessionsIDs();
@@ -162,11 +173,15 @@ namespace TP2P {
       REQUIRE(node2SessionsIDs.size() == 1);
       REQUIRE(node3SessionsIDs.size() == 2);
 
+      GLOGDEBUGP("[TEST] nodes 1 and 2 rediscovering themselves via node 3");
+
       // Request Nodes from Node 3.
       auto nodesFromNode1 = blockchainWrapper3.p2p.requestNodes(node1Id);
       auto nodesFromNode2 = blockchainWrapper3.p2p.requestNodes(node2Id);
 
       REQUIRE(nodesFromNode1 == nodesFromNode2); // Node 1 and Node 2 should have the same nodes (only connected to the same node 3)
+
+      GLOGDEBUGP("[TEST] Restarting discovery");
 
       // Start discovery, should recover the lost connection
       blockchainWrapper1.p2p.startDiscovery();
@@ -195,6 +210,8 @@ namespace TP2P {
       REQUIRE(node2SessionsIDs.size() == 2);
       REQUIRE(node3SessionsIDs.size() == 2);
 
+      GLOGDEBUGP("[TEST] Retry pinging all nodes");
+
       // Try pinging again each other again.
       for (auto session : node1SessionsIDs) {
         blockchainWrapper1.p2p.ping(session);
@@ -207,11 +224,13 @@ namespace TP2P {
       for (auto session : node3SessionsIDs) {
         blockchainWrapper3.p2p.ping(session);
       }
+
+      GLOGDEBUGP("[TEST] Stoping all P2P engines");
+
       // Stop the servers
       blockchainWrapper1.p2p.stop();
       blockchainWrapper2.p2p.stop();
       blockchainWrapper3.p2p.stop();
-
 
       REQUIRE(blockchainWrapper1.p2p.getSessionsIDs().size() == 0);
       REQUIRE(blockchainWrapper2.p2p.getSessionsIDs().size() == 0);
@@ -249,6 +268,7 @@ namespace TP2P {
     }
 
     SECTION("10 P2P::ManagerNormal 1 P2P::ManagerDiscovery") {
+
       // Initialize the discovery node.
       std::vector<std::pair<boost::asio::ip::address, uint64_t>> discoveryNodes;
       PrivKey genesisPrivKey(Hex::toBytes("0xe89ef6409c467285bcae9f80ab1cfeb3487cfe61ab28fb7d36443e1daa0c2867"));
@@ -296,6 +316,8 @@ namespace TP2P {
       auto blockchainWrapper9 = initialize(validatorPrivKeysP2P, PrivKey(), SDKTestSuite::getTestPort(), true, testDumpPath + "/testP2PManagerDiscoveryNetworkNode9");
       auto blockchainWrapper10 = initialize(validatorPrivKeysP2P, PrivKey(), SDKTestSuite::getTestPort(), true, testDumpPath + "/testP2PManagerDiscoveryNetworkNode10");
 
+      GLOGDEBUGP("[TEST] Starting all nodes");
+
       p2pDiscoveryNode.start();
       blockchainWrapper1.p2p.start();
       blockchainWrapper2.p2p.start();
@@ -308,6 +330,8 @@ namespace TP2P {
       blockchainWrapper9.p2p.start();
       blockchainWrapper10.p2p.start();
 
+      GLOGDEBUGP("[TEST] Connecting all regular nodes to discovery node");
+
       blockchainWrapper1.p2p.connectToServer(LOCALHOST, p2pDiscoveryNode.serverPort());
       blockchainWrapper2.p2p.connectToServer(LOCALHOST, p2pDiscoveryNode.serverPort());
       blockchainWrapper3.p2p.connectToServer(LOCALHOST, p2pDiscoveryNode.serverPort());
@@ -318,6 +342,8 @@ namespace TP2P {
       blockchainWrapper8.p2p.connectToServer(LOCALHOST, p2pDiscoveryNode.serverPort());
       blockchainWrapper9.p2p.connectToServer(LOCALHOST, p2pDiscoveryNode.serverPort());
       blockchainWrapper10.p2p.connectToServer(LOCALHOST, p2pDiscoveryNode.serverPort());
+
+      GLOGDEBUGP("[TEST] Starting discovery");
 
       // Start discovery
       p2pDiscoveryNode.startDiscovery();
@@ -376,6 +402,9 @@ namespace TP2P {
       REQUIRE(node8SessionsIDs.size() == 10);
       REQUIRE(node9SessionsIDs.size() == 10);
       REQUIRE(node10SessionsIDs.size() == 10);
+
+      GLOGDEBUGP("[TEST] Pinging all nodes");
+
       // Try pinging each other.
 
       for (auto session : nodeDiscoverySessionsIDs) {
@@ -423,6 +452,8 @@ namespace TP2P {
       }
 
       std::this_thread::sleep_for(std::chrono::milliseconds(100));
+
+      GLOGDEBUGP("[TEST] Stopping all P2P engines");
 
       // Close all the nodes.
       p2pDiscoveryNode.stop();
@@ -481,7 +512,12 @@ namespace TP2P {
         REQUIRE(futureSessionNode1.wait_for(std::chrono::seconds(5)) != std::future_status::timeout);
         auto invalidMessage = std::make_shared<P2P::Message>(Bytes(P2P::Message::minValidMessageSize, 0xFF));
         node1.p2p.handleMessage(node2Id, invalidMessage);
-        REQUIRE(node1.p2p.getSessionsIDs().size() == 0);
+        auto futureDisconnectSessionNode1 = std::async(std::launch::async, [&]() {
+          while (node1.p2p.getSessionsIDs().size() != 0) {
+            std::this_thread::sleep_for(std::chrono::milliseconds(10));
+          }
+        });
+        REQUIRE(futureDisconnectSessionNode1.wait_for(std::chrono::seconds(5)) != std::future_status::timeout);
       }
     }
   }

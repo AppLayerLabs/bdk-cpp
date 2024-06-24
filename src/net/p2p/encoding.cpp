@@ -175,6 +175,16 @@ namespace P2P {
 
   const Bytes& getRequestTypePrefix(const RequestType& type) { return typePrefixes[type]; }
 
+  bool operator<(const NodeID& a, const NodeID& b) {
+    if (a.first < b.first) {
+      return true;
+    } else if (a.first == b.first) {
+      return a.second < b.second;
+    } else {
+      return false;
+    }
+  }
+
   Message RequestEncoder::ping() {
     Bytes message = getRequestTypePrefix(Requesting);
     message.reserve(message.size() + 8 + 2);

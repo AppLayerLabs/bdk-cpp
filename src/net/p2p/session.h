@@ -55,14 +55,13 @@ namespace P2P {
       /// Indicates which type of connection this session is.
       const ConnectionType connectionType_;
 
-      /// True if the associated socket was already closed.
+      /// Set to `true` when `socket_` is closed.
       std::atomic<bool> closed_ = false;
 
       /// Reference back to the Manager object.
       ManagerBase& manager_;
 
-      net::strand<net::any_io_executor> readStrand_; ///< Strand for read operations.
-      net::strand<net::any_io_executor> writeStrand_; ///< Strand for write operations.
+      net::strand<net::any_io_executor> strand_; ///< Strand that synchronizes all access to the socket object.
 
       std::shared_ptr<Message> inboundMessage_; ///< Pointer to the inbound message.
       std::shared_ptr<const Message> outboundMessage_; ///< Pointer to the outbound message.
@@ -82,8 +81,20 @@ namespace P2P {
       /// Handshake flag
       std::atomic<bool> doneHandshake_ = false;
 
-      /// Set when the Session is successfully registered with the manager (after handshake is done)
+      /// Track if this Session is currently registered with the manager
       std::atomic<bool> registered_ = false;
+
+      /// Track if this Session was ever unregistered by the manager
+      std::atomic<bool> unregistered_ = false;
+
+      /// Mutex to guard callbacks to ManagerBase vs. internal state transitions (such as registered_)
+      std::mutex stateMutex_;
+
+      /// My value for getLogicalLocation() LOG macros
+      std::string logSrc_;
+
+      /// Update logSrc_
+      void setLogSrc();
 
       /// CLIENT SPECIFIC FUNCTIONS (CONNECTING TO A SERVER)
       /// Connect to a specific endpoint.
@@ -127,39 +138,42 @@ namespace P2P {
       void on_write_message(boost::system::error_code ec, std::size_t);
 
       /// do_close, for closing using the io_context
-      void do_close();
+      void do_close(const std::string& reason);
 
       /// Handle an error from the socket.
       void handle_error(const std::string& func, const boost::system::error_code& ec);
 
     public:
+
       /// Construct a server session with the given socket.
-      explicit Session(tcp::socket &&socket, ConnectionType connectionType, ManagerBase& manager)
-        : socket_(std::move(socket)), address_(socket_.remote_endpoint().address()),
-          port_(socket_.remote_endpoint().port()), connectionType_(connectionType),
-          manager_(manager), readStrand_(socket_.get_executor()), writeStrand_(socket_.get_executor())
-      {
-        // If not a server, will not call do_connect().
-        if (connectionType == ConnectionType::OUTBOUND) throw DynamicException("Session: Invalid connection type.");
-      }
+      explicit Session(tcp::socket &&socket,
+                       ConnectionType connectionType,
+                       ManagerBase& manager);
 
       /// Construct a client session with the given socket.
-      explicit Session(
-        tcp::socket &&socket, ConnectionType connectionType,
-        ManagerBase& manager, const net::ip::address& address, unsigned short port
-      ) : socket_(std::move(socket)), address_(address), port_(port),
-        connectionType_(connectionType), manager_(manager),
-        readStrand_(socket_.get_executor()), writeStrand_(socket_.get_executor())
-      {
-        // If not a client, will try to write handshake without connecting.
-        if (connectionType == ConnectionType::INBOUND) throw DynamicException("Session: Invalid connection type.");
-      }
+      explicit Session(tcp::socket &&socket,
+                       ConnectionType connectionType,
+                       ManagerBase& manager,
+                       const net::ip::address& address,
+                       unsigned short port);
 
       std::string getLogicalLocation() const override; ///< Log instance from P2P.
       const uint64_t maxMessageSize_ = 1024 * 1024 * 128; ///< Max message size (128 MB).
-      void run(); ///< Runs the session.
-      void close(); /// Closes the session.
-      void write(const std::shared_ptr<const Message>& message); ///< Writes a message to the socket.
+
+      /// Runs the session.
+      void run();
+
+      /// Closes the session with a reason log message.
+      void close(std::string&& reason);
+
+      /// Closes the session without a reason log message.
+      void close() { close(""); }
+
+      /// Writes a message to the socket.
+      void write(const std::shared_ptr<const Message>& message);
+
+      /// ManagerBase notifies this session that it has been unregistered; returns whether this session was handshaked.
+      bool notifyUnregistered();
 
       ///@{
       /* Getter. */
@@ -170,6 +184,7 @@ namespace P2P {
       }
       const NodeID& hostNodeId() const { return this->nodeId_; }
       const NodeType& hostType() const { return this->type_; }
+      const ConnectionType& connectionType() const { return this->connectionType_; }
       ///@}
   };
 }

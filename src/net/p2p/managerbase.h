@@ -34,8 +34,7 @@ namespace P2P {
         net::strand<net::io_context::executor_type> connectorStrand_; ///< strand for outbound connections
         net::strand<net::io_context::executor_type> acceptorStrand_; ///< strand for inbound connections
         net::ip::tcp::acceptor acceptor_; ///< listen socket
-        bool stopped_ = false; ///< Set to true as soon as stop() starts
-        std::mutex stoppedMutex_; ///< Mutex to control stopping
+        std::atomic<bool> stopped_ = false; ///< Set to true as soon as stop() starts
         void handleOutbound(const boost::asio::ip::address &address, const unsigned short &port); ///< Complete TCP connection
         void handleInbound(boost::system::error_code ec, net::ip::tcp::socket socket); ///< Complete TCP connection
         void doAccept(); ///< Wait for the next inbound TCP connection request
@@ -64,6 +63,7 @@ namespace P2P {
       mutable std::shared_mutex requestsMutex_; ///< Mutex for managing read/write access to the requests list.
       DiscoveryWorker discoveryWorker_; ///< DiscoveryWorker object.
       const std::string instanceIdStr_; ///< Instance ID for LOGxxx().
+      const NodeID nodeId_; ///< This ManagerBase's own NodeID.
 
       /// List of currently active sessions.
       std::unordered_map<NodeID, std::shared_ptr<Session>, SafeHash> sessions_;
@@ -108,6 +108,41 @@ namespace P2P {
         // Do nothing by default, child classes are meant to override this
       }
 
+      /**
+       * Called by a Session to notify handshake completion (successful peer connection).
+       * @param session The session that has completed the handshake.
+       * @return `true` if registration is successful (relevant for INBOUND connections only), `false` on registration error.
+       */
+      bool sessionHandshaked(const std::shared_ptr<Session>& callerSession);
+
+      /**
+       * Called by a Session object when it closes itself.
+       * @param callerSession The Session object that is calling this to notifying the ManagerBase of its closing.
+       * @param wasHandshaked Whether the closed session was already handshaked, that is, "Peer Connected" was already raised for it.
+       */
+      void sessionClosed(const Session& callerSession, bool wasHandshaked);
+
+      /**
+       * Called by a Session object when it receives a Message.
+       * @param session The session to send an answer to.
+       * @param message The message to handle.
+       */
+      void incomingMessage(const Session& callerSession, const std::shared_ptr<const Message> message);
+
+      /**
+       * Called by ManagerBase::Net to try to create, register and run() a new OUTBOUND Session.
+       * @param socket TCP socket for the new Session to manage.
+       * @param address Remote peer's address.
+       * @param port Remote peer's port.
+       */
+      void trySpawnOutboundSession(tcp::socket&& socket, const boost::asio::ip::address &address, const unsigned short &port);
+
+      /**
+       * Called by ManagerBase::Net to try to create and run() a new INBOUND Session.
+       * @param socket TCP socket for the new Session to manage.
+       */
+      void trySpawnInboundSession(tcp::socket&& socket);
+
     public:
       /**
        * Constructor.
@@ -137,7 +172,7 @@ namespace P2P {
       virtual void start(); ///< Start P2P::Server and P2P::ClientFactory.
       virtual void stop(); ///< Stop the P2P::Server and P2P::ClientFactory.
 
-      bool isActive() const { return this->started_; }
+      bool isActive() const;
 
       /// Start the discovery thread.
       void startDiscovery() { this->discoveryWorker_.start(); }
@@ -160,16 +195,10 @@ namespace P2P {
       ///@}
 
       /// Get the size of the session list.
-      uint64_t getPeerCount() const { std::shared_lock lock(this->sessionsMutex_); return this->sessions_.size(); }
+      uint64_t getPeerCount() const;
 
       /// Check if the P2P server is running.
       bool isServerRunning() const { return started_; }
-
-      /**
-       * Register a session into the list.
-       * @param session The session to register.
-       */
-      bool registerSession(const std::shared_ptr<Session>& session);
 
       /**
        * Disconnect from a session.
@@ -187,16 +216,13 @@ namespace P2P {
       void connectToServer(const boost::asio::ip::address& address, uint16_t port);
 
       /**
-       * Handle a message from a session.
-       * The pointer is a weak_ptr because the parser doesn't need to own the session.
-       * The session is owned by the manager (if registered) and the session io_context itself.
-       * Other handler functions are called from the same thread.
-       * (from handleMessage) and therefore can use a reference.
-       * @param session The session to send an answer to.
+       * Handle a message from a Session (or from a unit test that is injecting messages).
+       * @param nodeId The message sender.
        * @param message The message to handle.
        */
       virtual void handleMessage(const NodeID &nodeId, const std::shared_ptr<const Message> message) {
         // Do nothing by default, child classes are meant to override this
+        LOGERROR("Unexpected error: ManagerBase::handleMessage() called; dropping Message.");
       }
 
       /**
@@ -213,6 +239,7 @@ namespace P2P {
       std::unordered_map<NodeID, NodeType, SafeHash> requestNodes(const NodeID& nodeId);
 
       friend class DiscoveryWorker;
+      friend class Session;
   };
 }
 
