@@ -19,6 +19,7 @@ See the LICENSE.txt file in the project root for more information.
 #include <optional>
 #include <shared_mutex>
 #include <set>
+#include <boost/unordered/unordered_flat_map.hpp>
 
 // Forward declarations.
 class rdPoS;
@@ -68,7 +69,7 @@ class rdPoS : public BaseContract, public Log::LogicalLocationProvider {
     State& state_;  ///< Reference to the blockchain state.
     std::set<Validator> validators_;  ///< Ordered list of rdPoS validators.
     std::vector<Validator> randomList_; ///< Shuffled version of the validator list, used at block creation/signing.
-    std::unordered_map<Hash, TxValidator, SafeHash> validatorMempool_;  ///< Mempool for validator transactions.
+    boost::unordered_flat_map<Hash, TxValidator, SafeHash> validatorMempool_;  ///< Mempool for validator transactions.
     const PrivKey validatorKey_;  ///< Private key for operating a validator.
     const bool isValidator_ = false;  ///< Indicates whether node is a Validator.
     RandomGen randomGen_; ///< Randomness generator (for use in seeding).
@@ -101,7 +102,7 @@ class rdPoS : public BaseContract, public Log::LogicalLocationProvider {
     /** Getter. */
     const std::set<Validator> getValidators() const { return this->validators_; }
     const std::vector<Validator> getRandomList() const { return this->randomList_; }
-    const std::unordered_map<Hash, TxValidator, SafeHash> getMempool() const { return this->validatorMempool_; }
+    const boost::unordered_flat_map<Hash, TxValidator, SafeHash> getMempool() const { return this->validatorMempool_; }
     const size_t getMempoolSize() const { return this->validatorMempool_.size(); }
     const Hash& getBestRandomSeed() const { return this->bestRandomSeed_; }
     bool getIsValidator() const { return this->isValidator_; }

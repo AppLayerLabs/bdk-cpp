@@ -86,7 +86,7 @@ namespace P2P {
       return;
     }
 
-    std::unordered_map<NodeID, NodeType, SafeHash> nodes;
+    boost::unordered_flat_map<NodeID, NodeType, SafeHash> nodes;
 
     {
       std::shared_lock lock(this->sessionsMutex_);

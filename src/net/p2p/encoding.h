@@ -261,7 +261,7 @@ namespace P2P {
        */
       static Message info(
         const std::shared_ptr<const FinalizedBlock>& latestBlock,
-        const std::unordered_map<NodeID, NodeType, SafeHash>& nodes,
+        const boost::unordered_flat_map<NodeID, NodeType, SafeHash>& nodes,
         const Options& options
       );
 
@@ -363,7 +363,7 @@ namespace P2P {
       static Message info(
         const Message& request,
         const std::shared_ptr<const FinalizedBlock>& latestBlock,
-        const std::unordered_map<NodeID, NodeType, SafeHash>& nodes,
+        const boost::unordered_flat_map<NodeID, NodeType, SafeHash>& nodes,
         const Options& options
       );
 
@@ -374,7 +374,7 @@ namespace P2P {
        * @return The formatted answer.
        */
       static Message requestNodes(const Message& request,
-        const std::unordered_map<NodeID, NodeType, SafeHash>& nodes
+        const boost::unordered_flat_map<NodeID, NodeType, SafeHash>& nodes
       );
 
       /**
@@ -384,7 +384,7 @@ namespace P2P {
        * @return The formatted answer.
        */
       static Message requestValidatorTxs(const Message& request,
-        const std::unordered_map<Hash, TxValidator, SafeHash>& txs
+        const boost::unordered_flat_map<Hash, TxValidator, SafeHash>& txs
       );
 
       /**
@@ -430,7 +430,7 @@ namespace P2P {
        * @param message The answer to parse.
        * @return A list of requested nodes.
        */
-      static std::unordered_map<
+      static boost::unordered_flat_map<
         NodeID, NodeType, SafeHash
       > requestNodes(const Message& message);
 
@@ -530,7 +530,7 @@ namespace P2P {
        */
       static Message notifyInfo(
         const std::shared_ptr<const FinalizedBlock>& latestBlock,
-        const std::unordered_map<NodeID, NodeType, SafeHash>& nodes,
+        const boost::unordered_flat_map<NodeID, NodeType, SafeHash>& nodes,
         const Options& options
       );
   };
