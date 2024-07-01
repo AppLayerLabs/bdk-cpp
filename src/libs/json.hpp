@@ -60,7 +60,7 @@ SOFTWARE.
 // #include <nlohmann/detail/input/position_t.hpp>
 // #include <nlohmann/detail/exceptions.hpp>
 
-#include "unordered_dense.h"
+#include <boost/unordered/unordered_flat_map.hpp>
 
 namespace nlohmann
 {
@@ -3748,7 +3748,7 @@ void from_json(const BasicJsonType& j, std::map<Key, Value, Compare, Allocator>&
 template < typename BasicJsonType, typename Key, typename Value, typename Hash, typename KeyEqual, typename Allocator,
            typename = enable_if_t < !std::is_constructible <
                                         typename BasicJsonType::string_t, Key >::value >>
-void from_json(const BasicJsonType& j, ankerl::unordered_dense::map<Key, Value, Hash, KeyEqual, Allocator>& m)
+void from_json(const BasicJsonType& j, boost::unordered_flat_map<Key, Value, Hash, KeyEqual, Allocator>& m)
 {
     if (JSON_HEDLEY_UNLIKELY(!j.is_array()))
     {
@@ -16897,7 +16897,7 @@ class basic_json
     described below.
 
     @tparam ObjectType  the container to store objects (e.g., `std::map` or
-    `ankerl::unordered_dense::map`)
+    `boost::unordered_flat_map`)
     @tparam StringType the type of the keys or names (e.g., `std::string`).
     The comparison function `std::less<StringType>` is used to order elements
     inside the container.
@@ -17857,7 +17857,7 @@ class basic_json
       `std::multiset`, and `std::unordered_multiset` with a `value_type` from
       which a @ref basic_json value can be constructed.
     - **objects**: @ref object_t and all kinds of compatible associative
-      containers such as `std::map`, `ankerl::unordered_dense::map`, `std::multimap`,
+      containers such as `std::map`, `boost::unordered_flat_map`, `std::multimap`,
       and `std::unordered_multimap` with a `key_type` compatible to
       @ref string_t and a `value_type` from which a @ref basic_json value can
       be constructed.
@@ -19379,7 +19379,7 @@ class basic_json
     to other types. There a few things to note: (1) Floating-point numbers can
     be converted to integers\, (2) A JSON array can be converted to a standard
     `std::vector<short>`\, (3) A JSON object can be converted to C++
-    associative containers such as `ankerl::unordered_dense::map<std::string\,
+    associative containers such as `boost::unordered_flat_map<std::string\,
     json>`.,get__ValueType_const}
 
     @since version 2.1.0
@@ -19477,7 +19477,7 @@ class basic_json
     to other types. There a few things to note: (1) Floating-point numbers can
     be converted to integers\, (2) A JSON array can be converted to a standard
     `std::vector<short>`\, (3) A JSON object can be converted to C++
-    associative containers such as `ankerl::unordered_dense::map<std::string\,
+    associative containers such as `boost::unordered_flat_map<std::string\,
     json>`.,get_to}
 
     @since version 3.3.0
@@ -19685,7 +19685,7 @@ class basic_json
     to other types. There a few things to note: (1) Floating-point numbers can
     be converted to integers\, (2) A JSON array can be converted to a standard
     `std::vector<short>`\, (3) A JSON object can be converted to C++
-    associative containers such as `ankerl::unordered_dense::map<std::string\,
+    associative containers such as `boost::unordered_flat_map<std::string\,
     json>`.,operator__ValueType}
 
     @since version 1.0.0

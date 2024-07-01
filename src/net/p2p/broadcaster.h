@@ -16,7 +16,6 @@ See the LICENSE.txt file in the project root for more information.
 #include <algorithm>
 #include <thread>
 #include <shared_mutex>
-#include "../../libs/unordered_dense.h"
 
 // Forward declaration.
 class Storage;

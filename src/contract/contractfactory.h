@@ -23,12 +23,12 @@ See the LICENSE.txt file in the project root for more information.
 /**
  *
  * The main argument used through the program is the following:
- * ankerl::unordered_dense::map<
+ * boost::unordered_flat_map<
  *       Functor,
  *       std::function<
  *         void(const evmc_message&,
  *              const Address&,
- *              ankerl::unordered_dense::map<Address, std::unique_ptr<BaseContract>, SafeHash>& contracts_,
+ *              boost::unordered_flat_map<Address, std::unique_ptr<BaseContract>, SafeHash>& contracts_,
  *              const uint64_t&,
  *              ContractHost*
  *              )>,
@@ -116,7 +116,7 @@ namespace ContractFactory {
      */
     template <typename TContract> void createNewContract(const evmc_message& callInfo,
                                                          const Address& derivedAddress,
-                                                         ankerl::unordered_dense::map<Address, std::unique_ptr<BaseContract>, SafeHash>& contracts,
+                                                         boost::unordered_flat_map<Address, std::unique_ptr<BaseContract>, SafeHash>& contracts,
                                                          const uint64_t& chainId,
                                                          ContractHost* host) {
       using ConstructorArguments = typename TContract::ConstructorArguments;
@@ -143,12 +143,12 @@ namespace ContractFactory {
     void addContractFuncs(const std::function<
                        void(const evmc_message&,
                             const Address&,
-                            ankerl::unordered_dense::map<Address, std::unique_ptr<BaseContract>, SafeHash>& contracts_,
+                            boost::unordered_flat_map<Address, std::unique_ptr<BaseContract>, SafeHash>& contracts_,
                             const uint64_t&,
                             ContractHost* host)>& createFunc
-                      ,ankerl::unordered_dense::map<Functor,std::function<void(const evmc_message&,
+                      ,boost::unordered_flat_map<Functor,std::function<void(const evmc_message&,
                                                                      const Address&,
-                                                                     ankerl::unordered_dense::map<Address, std::unique_ptr<BaseContract>, SafeHash>& contracts_,
+                                                                     boost::unordered_flat_map<Address, std::unique_ptr<BaseContract>, SafeHash>& contracts_,
                                                                      const uint64_t&,
                                                                      ContractHost*)>,SafeHash>& createContractFuncs
     ) {
@@ -166,15 +166,15 @@ namespace ContractFactory {
      * Register all contracts in the variadic template.
      * @tparam Contracts The contracts to register.
      */
-    template <typename Tuple, std::size_t... Is> void addAllContractFuncsHelper(ankerl::unordered_dense::map<Functor,std::function<void(const evmc_message&,
+    template <typename Tuple, std::size_t... Is> void addAllContractFuncsHelper(boost::unordered_flat_map<Functor,std::function<void(const evmc_message&,
                                                                      const Address&,
-                                                                     ankerl::unordered_dense::map<Address, std::unique_ptr<BaseContract>, SafeHash>& contracts_,
+                                                                     boost::unordered_flat_map<Address, std::unique_ptr<BaseContract>, SafeHash>& contracts_,
                                                                      const uint64_t&,
                                                                      ContractHost*)>,SafeHash>& createContractFuncs,
                                                                    std::index_sequence<Is...>) {
       ((addContractFuncs<std::tuple_element_t<Is, Tuple>>( [&](const evmc_message &callInfo,
                                                                 const Address &derivedAddress,
-                                                                ankerl::unordered_dense::map<Address, std::unique_ptr<BaseContract>, SafeHash> &contracts,
+                                                                boost::unordered_flat_map<Address, std::unique_ptr<BaseContract>, SafeHash> &contracts,
                                                                 const uint64_t &chainId,
                                                                 ContractHost* host) {
         createNewContract<std::tuple_element_t<Is, Tuple>>(callInfo, derivedAddress, contracts, chainId, host);
@@ -186,9 +186,9 @@ namespace ContractFactory {
      * @tparam Tuple The tuple of contracts to add.
      */
     template <typename Tuple> requires Utils::is_tuple<Tuple>::value void addAllContractFuncs(
-                                                                   ankerl::unordered_dense::map<Functor,std::function<void(const evmc_message&,
+                                                                   boost::unordered_flat_map<Functor,std::function<void(const evmc_message&,
                                                                    const Address&,
-                                                                   ankerl::unordered_dense::map<Address, std::unique_ptr<BaseContract>, SafeHash>& contracts_,
+                                                                   boost::unordered_flat_map<Address, std::unique_ptr<BaseContract>, SafeHash>& contracts_,
                                                                    const uint64_t&,
                                                                    ContractHost*)>,SafeHash>& createContractFuncs) {
       addAllContractFuncsHelper<Tuple>(createContractFuncs, std::make_index_sequence<std::tuple_size<Tuple>::value>{});

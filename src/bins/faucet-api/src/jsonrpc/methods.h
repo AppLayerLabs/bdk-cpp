@@ -42,7 +42,7 @@ namespace Faucet {
     };
 
     /// Lookup table for the implemented methods.
-    inline extern const ankerl::unordered_dense::map<std::string, Methods> methodsLookupTable = {
+    inline extern const boost::unordered_flat_map<std::string, Methods> methodsLookupTable = {
       { "dripToAddress", dripToAddress },
     };
   }

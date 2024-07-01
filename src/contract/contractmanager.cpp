@@ -15,7 +15,7 @@ See the LICENSE.txt file in the project root for more information.
 #include "contracthost.h"
 
 ContractManager::ContractManager(const DB& db,
-                                 ankerl::unordered_dense::map<Address, std::unique_ptr<BaseContract>, SafeHash>& contracts,
+                                 boost::unordered_flat_map<Address, std::unique_ptr<BaseContract>, SafeHash>& contracts,
                                  DumpManager& manager,
                                  const Options& options)
 : BaseContract("ContractManager", ProtocolContractAddresses.at("ContractManager"), options.getChainOwner(), options.getChainID()),

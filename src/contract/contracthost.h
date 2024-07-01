@@ -69,11 +69,11 @@ class ContractHost : public evmc::Host {
     mutable ContractStack stack_;
     mutable RandomGen randomGen_; // Random generator for the contract.
     const evmc_tx_context& currentTxContext_; // MUST be initialized within the constructor.
-    ankerl::unordered_dense::map<Address, std::unique_ptr<BaseContract>, SafeHash>& contracts_;
-    ankerl::unordered_dense::map<Address, NonNullUniquePtr<Account>, SafeHash>& accounts_;
-    ankerl::unordered_dense::map<StorageKey, Hash, SafeHash>& vmStorage_;
-    ankerl::unordered_dense::map<Hash, Address, SafeHash>& txToAddr_;
-    ankerl::unordered_dense::map<StorageKey, Hash, SafeHash> transientStorage_;
+    boost::unordered_flat_map<Address, std::unique_ptr<BaseContract>, SafeHash>& contracts_;
+    boost::unordered_flat_map<Address, NonNullUniquePtr<Account>, SafeHash>& accounts_;
+    boost::unordered_flat_map<StorageKey, Hash, SafeHash>& vmStorage_;
+    boost::unordered_flat_map<Hash, Address, SafeHash>& txToAddr_;
+    boost::unordered_flat_map<StorageKey, Hash, SafeHash> transientStorage_;
     bool mustRevert_ = true; // We always assume that we must revert until proven otherwise.
     mutable bool evmcThrow_ = false; // Did the EVMC throw an exception?
     mutable std::vector<std::string> evmcThrows_;
@@ -119,10 +119,10 @@ class ContractHost : public evmc::Host {
                  const Storage& storage,
                  const Hash& randomnessSeed,
                  const evmc_tx_context& currentTxContext,
-                 ankerl::unordered_dense::map<Address, std::unique_ptr<BaseContract>, SafeHash>& contracts,
-                 ankerl::unordered_dense::map<Address, NonNullUniquePtr<Account>, SafeHash>& accounts,
-                 ankerl::unordered_dense::map<StorageKey, Hash, SafeHash>& vmStorage,
-                 ankerl::unordered_dense::map<Hash, Address, SafeHash>& txToAddr,
+                 boost::unordered_flat_map<Address, std::unique_ptr<BaseContract>, SafeHash>& contracts,
+                 boost::unordered_flat_map<Address, NonNullUniquePtr<Account>, SafeHash>& accounts,
+                 boost::unordered_flat_map<StorageKey, Hash, SafeHash>& vmStorage,
+                 boost::unordered_flat_map<Hash, Address, SafeHash>& txToAddr,
                  const Hash& txHash,
                  const uint64_t txIndex,
                  const Hash& blockHash,

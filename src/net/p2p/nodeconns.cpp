@@ -39,7 +39,7 @@ namespace P2P {
       while (it != this->nodeInfo_.end()) {
         const auto& nodeId = it->first;
         if (std::find(connectedNodes.begin(), connectedNodes.end(), nodeId) == connectedNodes.end()) {
-          it = this->nodeInfo_.erase(it);
+          this->nodeInfo_.erase(it++);
           nodeInfoTime_.erase(nodeId);
           nodeType_.erase(nodeId);
         } else {
@@ -80,12 +80,12 @@ namespace P2P {
     this->nodeType_[sender] = nodeType;
   }
 
-  ankerl::unordered_dense::map<NodeID, NodeInfo, SafeHash> NodeConns::getConnected() {
+  boost::unordered_flat_map<NodeID, NodeInfo, SafeHash> NodeConns::getConnected() {
     std::scoped_lock lock(this->stateMutex_);
     return this->nodeInfo_;
   }
 
-  ankerl::unordered_dense::map<NodeID, NodeType, SafeHash> NodeConns::getConnectedWithNodeType() {
+  boost::unordered_flat_map<NodeID, NodeType, SafeHash> NodeConns::getConnectedWithNodeType() {
     std::scoped_lock lock(this->stateMutex_);
     return this->nodeType_;
   }
@@ -114,13 +114,13 @@ namespace P2P {
           const auto nodeId = it->first;
           auto timeIt = this->nodeInfoTime_.find(nodeId);
           if (timeIt == this->nodeInfoTime_.end()) { // never happens
-            it = this->nodeInfo_.erase(it);
+            this->nodeInfo_.erase(it++);
             this->nodeType_.erase(nodeId);
           } else {
             uint64_t currentTimeMillis = Utils::getCurrentTimeMillisSinceEpoch();
             if (currentTimeMillis - timeIt->second >= 10000) {
               // 10 seconds elapsed since last update: remove the nodeInfo
-              it = this->nodeInfo_.erase(it); // Node not responding to info request, remove it from list
+              this->nodeInfo_.erase(it++); // Node not responding to info request, remove it from list
               this->nodeInfoTime_.erase(timeIt);
               this->nodeType_.erase(nodeId);
             } else {

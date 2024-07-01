@@ -38,7 +38,7 @@ protected:
   SafeUnorderedMap<uint256_t, Address> tokenApprovals_;
 
   /// Solidity: mapping(address => mapping(address => bool)) internal operatorAddressApprovals_;
-  SafeUnorderedMap<Address, ankerl::unordered_dense::map<Address, bool, SafeHash>> operatorAddressApprovals_;
+  SafeUnorderedMap<Address, boost::unordered_flat_map<Address, bool, SafeHash>> operatorAddressApprovals_;
 
   /// Get the baseURI of the contract.
   virtual std::string baseURI_() const { return ""; }

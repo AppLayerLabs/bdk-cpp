@@ -10,7 +10,7 @@ See the LICENSE.txt file in the project root for more information.
 
 #include <unordered_set>
 #include "contract/abi.h"
-#include "../libs/unordered_dense.h"
+#include <boost/unordered/unordered_flat_map.hpp>
 
 /**
  * Namespace for the reflection interface used for registering contract classes.
@@ -122,12 +122,12 @@ namespace ContractReflectionInterface {
   };
 
   // All declared in the cpp file.
-  extern ankerl::unordered_dense::map<std::string, bool> registeredContractsFunctionsMap;
-  extern ankerl::unordered_dense::map<std::string, bool> registeredContractsEventsMap;
-  extern ankerl::unordered_dense::map<std::string, std::vector<std::string>> ctorArgNamesMap;
-  extern ankerl::unordered_dense::map<std::string, std::unordered_multimap<std::string, ABI::MethodDescription>> methodDescsMap;
-  extern ankerl::unordered_dense::map<std::string, std::unordered_multimap<std::string, ABI::EventDescription>> eventDescsMap;
-  extern ankerl::unordered_dense::map<UniqueFunctionPointerIdentifier, std::string, UniqueFunctionPointerIdentifier::Hash> pointerNamesMap;
+  extern boost::unordered_flat_map<std::string, bool> registeredContractsFunctionsMap;
+  extern boost::unordered_flat_map<std::string, bool> registeredContractsEventsMap;
+  extern boost::unordered_flat_map<std::string, std::vector<std::string>> ctorArgNamesMap;
+  extern boost::unordered_flat_map<std::string, std::unordered_multimap<std::string, ABI::MethodDescription>> methodDescsMap;
+  extern boost::unordered_flat_map<std::string, std::unordered_multimap<std::string, ABI::EventDescription>> eventDescsMap;
+  extern boost::unordered_flat_map<UniqueFunctionPointerIdentifier, std::string, UniqueFunctionPointerIdentifier::Hash> pointerNamesMap;
 
   /**
    * Helper struct to extract arguments from a function pointer.

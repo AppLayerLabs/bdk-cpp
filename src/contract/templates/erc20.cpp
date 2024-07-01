@@ -185,7 +185,7 @@ DBBatch ERC20::dump() const
     Bytes value = Utils::uintToBytes(it->second);
     dbBatch.push_back(key, value, this->getNewPrefix("balances_"));
   }
-  // SafeUnorderedMap<Address, ankerl::unordered_dense::map<Address, uint256_t, SafeHash>>
+  // SafeUnorderedMap<Address, boost::unordered_flat_map<Address, uint256_t, SafeHash>>
   for (auto i = allowed_.cbegin(); i != allowed_.cend(); ++i) {
     for (auto j = i->second.cbegin(); j != i->second.cend(); ++j) {
       // Key = Address + Address, Value = uint256_t

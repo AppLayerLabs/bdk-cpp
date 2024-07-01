@@ -16,7 +16,7 @@ namespace P2P {
       if (std::chrono::duration_cast<std::chrono::seconds>(
         std::chrono::high_resolution_clock::now().time_since_epoch()
       ).count() - it->second > 10) {
-        it = this->requestedNodes_.erase(it);
+        this->requestedNodes_.erase(it++);
       } else {
         ++it;
       }
@@ -41,7 +41,7 @@ namespace P2P {
     return connectedNodes;
   }
 
-  ankerl::unordered_dense::map<NodeID, NodeType, SafeHash> DiscoveryWorker::getConnectedNodes(const NodeID& nodeId) {
+  boost::unordered_flat_map<NodeID, NodeType, SafeHash> DiscoveryWorker::getConnectedNodes(const NodeID& nodeId) {
     return this->manager_.requestNodes(nodeId);
   }
 

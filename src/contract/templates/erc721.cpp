@@ -272,7 +272,7 @@ void ERC721::transferFrom(const Address& from, const Address& to, const uint256_
 
 DBBatch ERC721::dump() const {
   DBBatch dbBatch = BaseContract::dump();
-  ankerl::unordered_dense::map<std::string, BytesArrView> data {
+  boost::unordered_flat_map<std::string, BytesArrView> data {
       {"name_",  Utils::stringToBytes(name_.get())},
       {"symbol_", Utils::stringToBytes(symbol_.get())}
   };

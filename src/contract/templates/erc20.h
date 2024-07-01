@@ -37,7 +37,7 @@ class ERC20 : public DynamicContract {
     SafeUnorderedMap<Address, uint256_t> balances_;
 
     /// Solidity: mapping(address => mapping(address => uint256)) internal allowed_;
-    SafeUnorderedMap<Address, ankerl::unordered_dense::map<Address, uint256_t, SafeHash>> allowed_;
+    SafeUnorderedMap<Address, boost::unordered_flat_map<Address, uint256_t, SafeHash>> allowed_;
 
     /**
      * Mint new tokens and assign them to the specified address.

@@ -14,8 +14,8 @@ namespace P2P {
   // These are shared between messages of various types that share the same encoding and decoding patterns.
   // ------------------------------------------------------------------------------------------------------------------
 
-  ankerl::unordered_dense::map<NodeID, NodeType, SafeHash> nodesFromMessage(const BytesArrView& data) {
-    ankerl::unordered_dense::map<NodeID, NodeType, SafeHash> nodes;
+  boost::unordered_flat_map<NodeID, NodeType, SafeHash> nodesFromMessage(const BytesArrView& data) {
+    boost::unordered_flat_map<NodeID, NodeType, SafeHash> nodes;
     size_t index = 0;
     while (index < data.size()) {
       boost::asio::ip::address address;
@@ -44,7 +44,7 @@ namespace P2P {
     return nodes;
   }
 
-  void nodesToMessage(Bytes& message, const ankerl::unordered_dense::map<NodeID, NodeType, SafeHash>& nodes) {
+  void nodesToMessage(Bytes& message, const boost::unordered_flat_map<NodeID, NodeType, SafeHash>& nodes) {
     for (const auto& [nodeId, nodeType] : nodes) {
       const auto& [address, port] = nodeId;
       Utils::appendBytes(message, Utils::uint8ToBytes(nodeType)); // Node type
@@ -76,7 +76,7 @@ namespace P2P {
   void nodeInfoToMessage(
     Bytes& message,
     const std::shared_ptr<const FinalizedBlock>& latestBlock,
-    const ankerl::unordered_dense::map<NodeID, NodeType, SafeHash>& nodes,
+    const boost::unordered_flat_map<NodeID, NodeType, SafeHash>& nodes,
     const Options& options)
   {
     Utils::appendBytes(message, Utils::uint64ToBytes(options.getVersion()));
@@ -108,7 +108,7 @@ namespace P2P {
 
   // FIXME/TODO: This duplication is pointless; Make it into one template or get rid of it.
   template<typename TxType>
-  void txsToMessage(Bytes& message, const ankerl::unordered_dense::map<Hash, TxType, SafeHash>& txs) {
+  void txsToMessage(Bytes& message, const boost::unordered_flat_map<Hash, TxType, SafeHash>& txs) {
     for (const auto& [txHash, tx] : txs) {
       Bytes rlp = tx.rlpSerialize();
       Utils::appendBytes(message, Utils::uint32ToBytes(rlp.size()));
@@ -195,7 +195,7 @@ namespace P2P {
 
   Message RequestEncoder::info(
     const std::shared_ptr<const FinalizedBlock>& latestBlock,
-    const ankerl::unordered_dense::map<NodeID, NodeType, SafeHash>& nodes,
+    const boost::unordered_flat_map<NodeID, NodeType, SafeHash>& nodes,
     const Options& options)
   {
     Bytes message = getRequestTypePrefix(Requesting);
@@ -285,7 +285,7 @@ namespace P2P {
 
   Message AnswerEncoder::info(const Message& request,
     const std::shared_ptr<const FinalizedBlock>& latestBlock,
-    const ankerl::unordered_dense::map<NodeID, NodeType, SafeHash>& nodes,
+    const boost::unordered_flat_map<NodeID, NodeType, SafeHash>& nodes,
     const Options& options
   ) {
     Bytes message = getRequestTypePrefix(Answering);
@@ -296,7 +296,7 @@ namespace P2P {
   }
 
   Message AnswerEncoder::requestNodes(const Message& request,
-    const ankerl::unordered_dense::map<NodeID, NodeType, SafeHash>& nodes
+    const boost::unordered_flat_map<NodeID, NodeType, SafeHash>& nodes
   ) {
     Bytes message = getRequestTypePrefix(Answering);
     Utils::appendBytes(message, request.id());
@@ -306,7 +306,7 @@ namespace P2P {
   }
 
   Message AnswerEncoder::requestValidatorTxs(const Message& request,
-    const ankerl::unordered_dense::map<Hash, TxValidator, SafeHash>& txs
+    const boost::unordered_flat_map<Hash, TxValidator, SafeHash>& txs
   ) {
     Bytes message = getRequestTypePrefix(Answering);
     Utils::appendBytes(message, request.id());
@@ -348,7 +348,7 @@ namespace P2P {
     return nodeInfoFromMessage(message.message());
   }
 
-  ankerl::unordered_dense::map<NodeID, NodeType, SafeHash> AnswerDecoder::requestNodes(const Message& message) {
+  boost::unordered_flat_map<NodeID, NodeType, SafeHash> AnswerDecoder::requestNodes(const Message& message) {
     if (message.type() != Answering) { throw DynamicException("Invalid message type."); }
     if (message.command() != RequestNodes) { throw DynamicException("Invalid command."); }
     return nodesFromMessage(message.message());
@@ -433,7 +433,7 @@ namespace P2P {
 
   Message NotificationEncoder::notifyInfo(
     const std::shared_ptr<const FinalizedBlock>& latestBlock,
-    const ankerl::unordered_dense::map<NodeID, NodeType, SafeHash>& nodes,
+    const boost::unordered_flat_map<NodeID, NodeType, SafeHash>& nodes,
     const Options& options)
   {
     Bytes message = getRequestTypePrefix(Notifying);
