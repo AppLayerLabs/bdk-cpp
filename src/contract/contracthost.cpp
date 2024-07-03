@@ -106,16 +106,19 @@ Address ContractHost::deriveContractAddress(const uint64_t& nonce, const Address
   return {Utils::sha3(rlp).view(12)};
 }
 
-void ContractHost::createEVMContract(const evmc_message& msg, const Address& contractAddr) {
+evmc::Result ContractHost::createEVMContract(const evmc_message& msg, const Address& contractAddr, const evmc_call_kind& kind) {
+  assert (kind == evmc_call_kind::EVMC_CREATE || kind == evmc_call_kind::EVMC_CREATE2);
   // Create a new contract
   auto createMsg = msg;
+
   createMsg.recipient = contractAddr.toEvmcAddress();
-  createMsg.kind = evmc_call_kind::EVMC_CREATE;
+  createMsg.kind = kind;
   createMsg.input_data = nullptr;
   createMsg.input_size = 0;
   auto result = evmc::Result(evmc_execute(this->vm_, &this->get_interface(), this->to_context(),
                  evmc_revision::EVMC_LATEST_STABLE_REVISION, &createMsg,
                  msg.input_data, msg.input_size));
+
   this->leftoverGas_ = result.gas_left; // gas_left is not linked with leftoverGas_, we need to link it.
   this->deduceGas(100000);
   if (result.status_code) {
@@ -128,8 +131,8 @@ void ContractHost::createEVMContract(const evmc_message& msg, const Address& con
   if (result.output_size > 50000) {
     throw DynamicException("ContractHost createEVMContract: contract code too large");
   }
-
   this->registerNewEVMContract(contractAddr, result.output_data, result.output_size);
+  return evmc::Result{result.status_code, this->leftoverGas_, 0, msg.recipient};
 }
 
 evmc::Result ContractHost::processBDKPrecompile(const evmc_message& msg) const {
@@ -172,7 +175,7 @@ void ContractHost::execute(const evmc_message& msg, const ContractType& type) {
       if (this->accounts_.contains(contractAddress)) {
         throw DynamicException("ContractHost create/execute: contract already exists");
       }
-      this->createEVMContract(msg, contractAddress);
+      this->createEVMContract(msg, contractAddress, EVMC_CREATE);
     } else {
       switch (type) {
         case ContractType::CPP: {
@@ -398,6 +401,33 @@ bool ContractHost::selfdestruct(const evmc::address& addr, const evmc::address& 
 // evmc::Result will have the gas left after the execution
 evmc::Result ContractHost::call(const evmc_message& msg) noexcept {
   // Check against bdk static precompiles
+  std::cout << "Calling ContractHost::call" << std::endl;
+  std::cout << Address(msg.recipient).hex() << std::endl;
+  std::cout << msg.kind << std::endl;
+
+  try {
+    if (msg.kind == EVMC_CREATE) {
+      auto fromAddress = Address(msg.sender);
+      auto& fromNonce = this->getNonce(fromAddress);
+      this->stack_.registerNonce(fromAddress, fromNonce);
+      auto derivedContractAddress = this->deriveContractAddress(fromNonce, fromAddress);
+      ++fromNonce;
+      uint256_t value = Utils::evmcUint256ToUint256(msg.value);
+      if (value) {
+        this->transfer(fromAddress, derivedContractAddress, value);
+      }
+      std::cout << "Calling createEVMContract to: " << derivedContractAddress.hex() << std::endl;
+      return this->createEVMContract(msg, derivedContractAddress, EVMC_CREATE);
+    }
+    if (msg.kind == EVMC_CREATE2) {
+
+    }
+  } catch (const std::exception &e) {
+    this->evmcThrows_.emplace_back(e.what());
+    this->evmcThrow_ = true;
+    return evmc::Result(EVMC_REVERT, this->leftoverGas_, 0, nullptr, 0);
+  }
+
   this->leftoverGas_ = msg.gas;
   if (msg.recipient == BDK_PRECOMPILE) {
     this->deduceGas(1000); // CPP contract call is 1000 gas
@@ -535,12 +565,8 @@ void ContractHost::sendTokens(const BaseContract* from, const Address& to, const
   this->transfer(from->getContractAddress(), to, amount);
 }
 
-uint64_t ContractHost::getNonce(const Address& nonce) const {
-  auto it = this->accounts_.find(nonce);
-  if (it == this->accounts_.end()) {
-    return 0;
-  }
-  return it->second->nonce;
+uint64_t& ContractHost::getNonce(const Address& nonce) {
+  return this->accounts_[nonce]->nonce;
 }
 
 void ContractHost::registerNewCPPContract(const Address& address, BaseContract* contract) {

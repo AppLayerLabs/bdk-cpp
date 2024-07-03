@@ -42,6 +42,7 @@
 
 // Address for static BDKD precompile contracts.
 using namespace evmc::literals;
+const auto ZERO_ADDRESS = 0x0000000000000000000000000000000000000000_address;
 const auto BDK_PRECOMPILE = 0x1000000000000000000000000000100000000001_address;
 
 class ContractHost : public evmc::Host {
@@ -107,7 +108,7 @@ class ContractHost : public evmc::Host {
       }
     }
 
-    void createEVMContract(const evmc_message& msg, const Address& contractAddr);
+    evmc::Result createEVMContract(const evmc_message& msg, const Address& contractAddr, const evmc_call_kind& kind);
 
 
     evmc::Result processBDKPrecompile(const evmc_message& msg) const;
@@ -701,7 +702,7 @@ class ContractHost : public evmc::Host {
       // Get the ContractManager from the this->accounts_ map
       ContractManager* contractManager = dynamic_cast<ContractManager*>(this->contracts_.at(to).get());
       this->setContractVars(contractManager, from, 0);
-      auto callerNonce = this->accounts_[from]->nonce;
+      auto& callerNonce = this->accounts_[from]->nonce;
       Address newContractAddress = ContractHost::deriveContractAddress(callerNonce, from);
       this->stack_.registerNonce(from, callerNonce);
       NestedCallSafeGuard guard(caller, caller->caller_, caller->value_);
@@ -780,9 +781,10 @@ class ContractHost : public evmc::Host {
 
     /**
      * Get the current nonce of a given Account
+     * Returns a REFERENCE to the nonce, so it can be modified.
      * @param acc The address of the account to get the nonce from.
      */
-    uint64_t getNonce(const Address& acc) const;
+    uint64_t& getNonce(const Address& acc);
 
     template <typename... Args, bool... Flags>
     void emitEvent(
