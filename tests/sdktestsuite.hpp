@@ -509,6 +509,7 @@ class SDKTestSuite {
       const uint64_t& timestamp = 0
     ) {
       // Create the transaction data
+      TContract::registerContract();
       Hash ret;
       Functor txFunctor = ABI::FunctorEncoder::encode<>(
         ContractReflectionInterface::getFunctionName(func)
@@ -551,6 +552,7 @@ class SDKTestSuite {
       const Args&... args
     ) {
       // Create the transaction data
+      TContract::registerContract();
       Hash ret;
       Functor txFunctor = ABI::FunctorEncoder::encode<Args...>(
         ContractReflectionInterface::getFunctionName(func)
@@ -561,6 +563,7 @@ class SDKTestSuite {
         txData, ABI::Encoder::encodeData<Args...>(std::forward<decltype(args)>(args)...)
       );
       // Use the chain owner account if no account is provided
+
       TxBlock tx = this->createNewTx(
         ((!testAccount) ? this->getChainOwnerAccount() : testAccount),
         contractAddress, value, txData
