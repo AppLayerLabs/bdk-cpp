@@ -35,6 +35,22 @@ namespace P2P {
    *
    * "NotifyAll" methods mean sending a notification to all peers
    *   (this is not routed; the routed version is a Broadcast).
+   *
+   * Exception: "Notification" type messages are used to implement routed
+   *   messages. A routed message is a notification that has a list of NodeIDs
+   *   in the network as the receivers (this is encoded as the first field of
+   *   the Message body; it is not in the header). The concept of routed message
+   *   is transparent to the encoder, and is implemented at the P2P Manager
+   *   level. Upon calling p2p->routeMessage(Message m, int f), m is a
+   *   message where its first data field is r, the intended recipients. If r
+   *   are direct peers, the message is sent to them directly. If not, it is
+   *   sent to up to f peers that are known to have them as direct peers. And
+   *   if that's still not the case, the message is sent to all peers via
+   *   sendMessageToAll().
+   *   The "Notification" type is used to implement routed messages, as
+   *   "Request/Answer" are not suitable to it, and "Broadcast" is reserved
+   *   for when the message recipient is "Everyone" (*).
+   *   See: ManagerNormal::routeMessage()
    */
 
   /**
@@ -546,6 +562,12 @@ namespace P2P {
       static NodeInfo notifyInfo(const Message& message);
   };
 
+  /// Decode a list of NodeIDs from a byte buffer.
+  std::unordered_map<NodeID, NodeType, SafeHash> nodesFromMessage(const BytesArrView& data);
+
+  /// Encode a list of NodeIDs into a byte buffer.
+  void nodesToMessage(Bytes& message, const std::unordered_map<NodeID, NodeType, SafeHash>& nodes);
+
   /**
    * Abstraction of a %P2P message.
    * The structure is a bytes string (1 byte = 2 chars), as follows:
@@ -603,6 +625,9 @@ namespace P2P {
 
       /// Get the message's size.
       size_t size() const { return this->rawMessage_.size(); }
+
+      /// Get the NodeID(s) to route this message to (if present, it is the first field in message()).
+      std::unordered_map<NodeID, NodeType, SafeHash> recipients() const { return nodesFromMessage(message()); }
 
       // rawMessage_ access
       friend class Session;

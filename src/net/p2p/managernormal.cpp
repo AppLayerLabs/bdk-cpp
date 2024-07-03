@@ -36,6 +36,55 @@ namespace P2P{
     }
   }
 
+  void ManagerNormal::routeMessage(const std::shared_ptr<const Message> message, const std::optional<NodeID>& originalSender, int fanout) {
+
+    // FIXME/TODO: incorporate Trusted Peers logic -- an attribute to NodeIDs (peer addresses) that
+    //   are in the configuration file (bootstrap peers).
+    // Trusted Peers should be the ones the fanout factor applies to. Untrusted Peers should always get a
+    //   full broadcast because they cannot be trusted (this can be changed/discussed; may be overkill).
+
+    // Note: whether to route a message or not is an attribute of the message itself, that is, each message
+    //  handler. Each message command/type, if it knows itself to be a routed message, it will know to
+    //  parse the intended recipient(s) from the beginning of message.message(), and if it is a single
+    //  recipient and it is that recipient, it knows to e.g. consume the message and not rebroadcast.
+    // Also, the message handler is entirely responsible for using some application-level (above the
+    //  network engine) data model that absorbs messages and is used to detect duplicates and thus avoid
+    //  infinite rebroadcasting to the network. This is orthogonal to whether the "broadcasting" itself
+    //  (routing) is optimized (e.g. send directly to the interested peer) or not; all routed messages
+    //  need custom application-level data model backing to detect duplicates.
+    // It is *possible* to add duplicate dissemination detection at the net engine level (both for
+    //  "route to everyone" i.e. "broadcasts" like blocks and transactions, and route to specific node(s)),
+    //  but that is, more often than not, unnecessary if the rest of the protocol is implemented correctly.
+    //  We already have fully custom, relatively low-level message handlers that allow the application and
+    //  the net engine to easily cooperate, so all that is needed is for each message (command/type) to
+    //  handle duplication by leveraging whatever backing data model it has (and it almost always has it).
+
+    // This will throw an exception if the message is malformed w.r.t. the NodeIDs field (1st field).
+    auto recipients = message->recipients();
+
+    // If for any reason the recipient list is empty, then it is already delivered to all recipients.
+    if (recipients.size() == 0) {
+      return;
+    }
+
+    // If there is one recipient and it is a direct peer, send to that peer directly and we are done.
+    if (recipients.size() == 1) {
+      auto destNodeId = recipients.begin()->first;
+      std::shared_lock sessionsLock(this->sessionsMutex_);
+      auto it = sessions_.find(destNodeId);
+      if (it != sessions_.end()) {
+        it->second->write(message);
+        return;
+      }
+    }
+
+    // If no direct route to a single peer, just send to all for now.
+    // TODO: If there is a direct route to the multiple recipients, send the message to
+    //       each one of them only; no need to spread the message to any other peers.
+    // TODO: Apply (Trusted Peers + int fanout) optimization.
+    this->sendMessageToAll(message, originalSender);
+  }
+
   void ManagerNormal::handleMessage(
     const NodeID &nodeId, const std::shared_ptr<const Message> message
   ) {
@@ -129,6 +178,20 @@ namespace P2P{
   void ManagerNormal::handleNotification(
     const NodeID &nodeId, const std::shared_ptr<const Message>& message
   ) {
+
+    // NOTE: The handlers for ManagerNormal::routeMessage() messages should all be in here.
+    //       The handler for a routed message should check for duplication in the backing
+    //       data model, and if it is not a duplicate, it should call routeMessage() again
+    //       *unless* it is its single intented recipient, in which case it knows no other
+    //       node is interested in the message.
+    //
+    //       Whenever some part of the application wants to send an original routed message,
+    //       it will construct the Message object using its NotificationEncoder, which is
+    //       aware that it is a message intended for routing and that will know to put the
+    //       intended recipient(s) in the first field of the message body using the
+    //       P2P::nodesToMessage() global helper function, and then call
+    //       ManagerNormal::routeMessage() to dispatch it to the netwowrk.
+
     switch (message->command()) {
       case NotifyInfo:
         handleInfoNotification(nodeId, message);

@@ -60,6 +60,18 @@ namespace P2P {
       void sendMessageToAll(const std::shared_ptr<const Message> message, const std::optional<NodeID>& originalSender);
 
       /**
+       * Send a message to specific NodeIDs in the network (may not be direct peer(s)).
+       * @param message The routable message that has the encoded NodeID(s) as its first data field.
+       * @param originalSender Node whose latest known peers won't receive the message from us (optional).
+       * @param fanout Maximum number of trusted nodes that have the recipient as a reported peer to replicate the message to.
+       */
+      void routeMessage(
+        const std::shared_ptr<const Message> message,
+        const std::optional<NodeID>& originalSender,
+        int fanout = 3
+      );
+
+      /**
        * Handle a `Ping` request.
        * @param session The session that sent the request.
        * @param message The request message to handle.
