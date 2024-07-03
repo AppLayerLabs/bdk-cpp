@@ -65,10 +65,16 @@ namespace TP2P {
       /// Start the servers and connect them
       blockchainWrapper.p2p.start();
       blockchainWrapper2.p2p.start();
-      std::this_thread::sleep_for(std::chrono::milliseconds(100));
       blockchainWrapper.p2p.connectToServer(LOCALHOST, blockchainWrapper2.p2p.serverPort());
-      std::this_thread::sleep_for(std::chrono::milliseconds(100));
+      auto futureConnect = std::async(std::launch::async, [&]() {
+        while (blockchainWrapper.p2p.getSessionsIDs().size() != 1 ||
+               blockchainWrapper2.p2p.getSessionsIDs().size() != 1) {
+          std::this_thread::sleep_for(std::chrono::milliseconds(10));
+        }
+      });
+      REQUIRE(futureConnect.wait_for(std::chrono::seconds(5)) != std::future_status::timeout);
       REQUIRE(blockchainWrapper.p2p.getSessionsIDs().size() == 1);
+      REQUIRE(blockchainWrapper2.p2p.getSessionsIDs().size() == 1);
 
       /// Run blockchainWrapper2's Syncer
       // - At most "3" blocks per block range request answer
@@ -250,13 +256,17 @@ namespace TP2P {
       blockchainWrapper1.p2p.start();
       blockchainWrapper2.p2p.start();
 
-      std::this_thread::sleep_for(std::chrono::milliseconds(100));
-
       /// Connect to each other
       blockchainWrapper1.p2p.connectToServer(LOCALHOST, blockchainWrapper2.p2p.serverPort());
-      std::this_thread::sleep_for(std::chrono::milliseconds(100));
-
+      auto futureConnect = std::async(std::launch::async, [&]() {
+        while (blockchainWrapper1.p2p.getSessionsIDs().size() != 1 ||
+               blockchainWrapper2.p2p.getSessionsIDs().size() != 1) {
+          std::this_thread::sleep_for(std::chrono::milliseconds(10));
+        }
+      });
+      REQUIRE(futureConnect.wait_for(std::chrono::seconds(5)) != std::future_status::timeout);
       REQUIRE(blockchainWrapper1.p2p.getSessionsIDs().size() == 1);
+      REQUIRE(blockchainWrapper2.p2p.getSessionsIDs().size() == 1);
 
       auto p2p2NodeId = blockchainWrapper1.p2p.getSessionsIDs()[0];
 
