@@ -146,10 +146,16 @@ namespace TRdPoS {
       // Start respective p2p servers, and connect each other.
       blockchainWrapper1.p2p.start();
       blockchainWrapper2.p2p.start();
-      std::this_thread::sleep_for(std::chrono::milliseconds(100));
       blockchainWrapper1.p2p.connectToServer(LOCALHOST, blockchainWrapper2.p2p.serverPort());
-      std::this_thread::sleep_for(std::chrono::milliseconds(100));
+      auto futureConnect = std::async(std::launch::async, [&]() {
+        while (blockchainWrapper1.p2p.getSessionsIDs().size() != 1 ||
+               blockchainWrapper2.p2p.getSessionsIDs().size() != 1) {
+          std::this_thread::sleep_for(std::chrono::milliseconds(10));
+        }
+      });
+      REQUIRE(futureConnect.wait_for(std::chrono::seconds(5)) != std::future_status::timeout);
       REQUIRE(blockchainWrapper1.p2p.getSessionsIDs().size() == 1);
+      REQUIRE(blockchainWrapper2.p2p.getSessionsIDs().size() == 1);
 
       // Create valid TxValidator transactions (8 in total), append them to node 1's storage.
       // After appending to node 1's storage, broadcast them to all nodes.
