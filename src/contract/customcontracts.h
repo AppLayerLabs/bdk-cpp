@@ -19,6 +19,7 @@ See the LICENSE.txt file in the project root for more information.
 #include "templates/erc721test.h"
 #include "templates/testThrowVars.h"
 #include "templates/randomnesstest.h"
+#include "templates/snailtracer.h"
 
 /// Typedef for the blockchain's registered contracts.
 #ifdef BUILD_TESTNET
@@ -30,6 +31,8 @@ using ContractTypes = std::tuple<
 /// Typedef for the blockchain's registered contracts in normal mode.
 using ContractTypes = std::tuple<
   ERC20, ERC20Wrapper, NativeWrapper, SimpleContract, DEXV2Pair, DEXV2Factory,
-  DEXV2Router02, ERC721, ThrowTestA, ThrowTestB, ThrowTestC, ERC721Test, TestThrowVars, RandomnessTest
+  DEXV2Router02, ERC721, ThrowTestA, ThrowTestB, ThrowTestC, ERC721Test, TestThrowVars,
+  RandomnessTest, SnailTracer
 >;
 #endif
+
