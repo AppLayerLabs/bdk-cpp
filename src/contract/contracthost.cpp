@@ -5,10 +5,10 @@ void ContractHost::transfer(const Address& from, const Address& to, const uint25
   // the from account **Must exist** on the unordered_map.
   // unordered_map references to values are valid **until** you insert a new element
   // So we can safely take a reference from it and create a reference from the to account.
-  auto& toAccount = accounts_[to];
-  auto& fromAccount = accounts_[from];
-  auto& toBalance = toAccount->balance;
-  auto& fromBalance = fromAccount->balance;
+  auto& toAccount = *accounts_[to];
+  auto& fromAccount = *accounts_[from];
+  auto& toBalance = toAccount.balance;
+  auto& fromBalance = fromAccount.balance;
   if (fromBalance < value) {
     throw DynamicException("ContractHost transfer: insufficient funds");
   }
