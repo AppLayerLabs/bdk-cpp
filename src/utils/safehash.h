@@ -10,100 +10,68 @@ See the LICENSE.txt file in the project root for more information.
 
 #include <memory>
 #include <boost/asio/ip/address.hpp>
-#include <boost/container_hash/hash.hpp>
 
+#include "../libs/wyhash.h"
 #include "strings.h"
 #include "utils.h"
 #include "tx.h"
 
 /**
- * Custom hashing implementation for use in `boost::unordered_flat_map`, based on [this article](https://codeforces.com/blog/entry/62393).
- * The default `boost::unordered_flat_map` implementation uses `uint64_t` hashes,
- * which makes collisions possible by having many Accounts and distributing them
- * in a way that they have the same hash across all nodes.
- * This struct is a workaround for that, it's not perfect because it still uses
- * `uint64_t`, but it's better than nothing since nodes keep different hashes.
+ * Custom hashing implementation for use in `boost::unordered_flat_map`
+ * We use the highest and fastest quality hash function available for size_t (64-bit) hashes (Wyhash)
  */
 struct SafeHash {
-  using clock = std::chrono::steady_clock;  ///< Typedef for a less verbose clock.
-
-  /**
-   * %Hash a given unsigned integer.
-   * Operators() are expected to call this function for proper hashing.
-   * Based on [Sebastiano Vigna's original implementation](http://xorshift.di.unimi.it/splitmix64.c).
-   * @param i The 64-bit unsigned integer to hash.
-   * @returns The hashed data, as a 64-bit unsigned integer.
-   */
-  inline static uint64_t splitmix(uint64_t i) {
-    i += 0x9e3779b97f4a7c15;
-    i = (i ^ (i >> 30)) * 0xbf58476d1ce4e5b9;
-    i = (i ^ (i >> 27)) * 0x94d049bb133111eb;
-    return i ^ (i >> 31);
-  }
-
   ///@{
   /** Wrapper for `splitmix()`. */
   size_t operator()(const uint64_t& i) const {
-    static const uint64_t FIXED_RANDOM = clock::now().time_since_epoch().count();
-    return splitmix(i + FIXED_RANDOM);
+    return wyhash(reinterpret_cast<const char*>(&i), sizeof(i), 0, _wyp);
   }
 
   size_t operator()(const std::string& str) const {
-    static const uint64_t FIXED_RANDOM = clock::now().time_since_epoch().count();
-    return splitmix(std::hash<std::string>()(str) + FIXED_RANDOM);
+    return wyhash(str.c_str(), str.size(), 0, _wyp);
   }
 
   size_t operator()(const std::string_view& str) const {
-    static const uint64_t FIXED_RANDOM = clock::now().time_since_epoch().count();
-    return splitmix(std::hash<std::string_view>()(str) + FIXED_RANDOM);
+    return wyhash(str.data(), str.size(), 0, _wyp);
   }
 
   size_t operator()(const Bytes& bytes) const {
-    static const uint64_t FIXED_RANDOM = clock::now().time_since_epoch().count();
-    return splitmix(boost::hash_range(bytes.begin(), bytes.end()) + FIXED_RANDOM);
+    return wyhash(reinterpret_cast<const char*>(bytes.data()), bytes.size(), 0, _wyp);
   }
 
   template <unsigned N> size_t operator()(const BytesArr<N>& bytesArr) const {
-    static const uint64_t FIXED_RANDOM = clock::now().time_since_epoch().count();
-    return splitmix(boost::hash_range(bytesArr.begin(), bytesArr.end()) + FIXED_RANDOM);
+    return wyhash(reinterpret_cast<const char*>(bytesArr.data()), bytesArr.size(), 0, _wyp);
   }
 
   size_t operator()(const BytesArrView& bytesArrView) const {
-    static const uint64_t FIXED_RANDOM = clock::now().time_since_epoch().count();
-    return splitmix(boost::hash_range(bytesArrView.begin(), bytesArrView.end()) + FIXED_RANDOM);
+    return wyhash(reinterpret_cast<const char*>(bytesArrView.data()), bytesArrView.size(), 0, _wyp);
   }
 
   size_t operator()(const Address& address) const {
-    static const uint64_t FIXED_RANDOM = clock::now().time_since_epoch().count();
-    auto data = reinterpret_cast<uint32_t const*>(address.raw()); // Faster hashing for 20 bytes of data.
-    return splitmix(boost::hash_range(data, data + 5) + FIXED_RANDOM); // 160 / 32 = 5
+    return wyhash(reinterpret_cast<const char*>(address.raw()), address.size(), 0, _wyp);
   }
 
   size_t operator()(const Functor& functor) const {
-    return functor.value;
+    return functor.value; // Functor is already a hash. Just return it.
   }
 
   size_t operator()(const Hash& hash) const {
-    static const uint64_t FIXED_RANDOM = clock::now().time_since_epoch().count();
-    auto data = reinterpret_cast<uint64_t const*>(hash.raw());  // Fast compatible object for hashing 32 bytes of data.
-    return splitmix(boost::hash_range(data, data + 4) + FIXED_RANDOM);
+    return wyhash(reinterpret_cast<const char*>(hash.raw()), hash.size(), 0, _wyp);
   }
 
   size_t operator()(const TxValidator& tx) const { return SafeHash()(tx.hash()); }
 
   template <typename T> size_t operator()(const std::shared_ptr<T>& ptr) const {
-    static const uint64_t FIXED_RANDOM = clock::now().time_since_epoch().count();
-    return splitmix(std::hash<std::shared_ptr<T>>()(ptr) + FIXED_RANDOM);
+    return SafeHash()(*ptr->get());
   }
 
   template <unsigned N> size_t operator()(const FixedBytes<N>& bytes) const {
-    static const uint64_t FIXED_RANDOM = clock::now().time_since_epoch().count();
-    return splitmix(boost::hash_range(bytes.cbegin(), bytes.cend()) + FIXED_RANDOM);
+    return wyhash(reinterpret_cast<const char*>(bytes.raw()), bytes.size(), 0, _wyp);
   }
 
   template <typename Key, typename T> size_t operator()(const boost::unordered_flat_map<Key, T, SafeHash>& a) const {
-    static const uint64_t FIXED_RANDOM = clock::now().time_since_epoch().count();
-    return splitmix(std::hash<boost::unordered_flat_map<Key, T, SafeHash>>()(a) + FIXED_RANDOM);
+    // TODO: replace this with wyhash somehow.
+    return splitmix(std::hash<boost::unordered_flat_map<Key, T, SafeHash>>()(a));
   }
 
   size_t operator()(const std::pair<boost::asio::ip::address, uint16_t>& nodeId) const {
