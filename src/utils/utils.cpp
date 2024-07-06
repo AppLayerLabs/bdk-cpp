@@ -751,6 +751,27 @@ BytesArr<32> Utils::int256ToBytes(const int256_t& i) {
   return ret;
 }
 
+BytesArr<8> Utils::int64ToBytes(const int64_t& i) {
+  BytesArr<8> ret;
+  std::memcpy(&ret[0], &i, 8);
+  #if __BYTE_ORDER == __LITTLE_ENDIAN
+    std::reverse(ret.begin(), ret.end());
+  #endif
+  return ret;
+}
+
+int64_t Utils::bytesToInt64(const BytesArrView b) {
+  if (b.size() != 8) throw DynamicException(std::string(__func__)
+    + ": Invalid bytes size - expected 8, got " + std::to_string(b.size())
+  );
+  int64_t ret = 0;
+  std::memcpy(&ret, b.data(), 8);
+  #if __BYTE_ORDER == __LITTLE_ENDIAN
+    return __builtin_bswap64(ret);
+  #endif
+  return ret;
+}
+
 Bytes Utils::randBytes(const int& size) {
   Bytes bytes(size, 0x00);
   RAND_bytes(bytes.data(), size);

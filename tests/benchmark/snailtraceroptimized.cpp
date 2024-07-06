@@ -33,7 +33,7 @@ namespace TSNAILTRACEROPTIMIZEDBENCHMARK {
       // Create the transaction for transfer
       auto functor = Utils::uint32ToBytes(ABI::FunctorEncoder::encode("Benchmark").value);
       Bytes benchmarkEncoded(functor.cbegin(), functor.cend());
-      //Utils::appendBytes(benchmarkEncoded, ABI::Encoder::encodeData<int64_t, int64_t>(1024, 768));
+      //Utils::appendBytes(benchmarkEncoded, ABI::Encoder::encodeData<int64_t, int64_t>(1024, 768)); // TODO: this is a bug, the function does not take any params yet it is called with them just fine
       TxBlock benchmarkTx = sdk.createNewTx(sdk.getChainOwnerAccount(), snailtracerAddress, 0, benchmarkEncoded);
 
       auto& state = sdk.getState();
@@ -78,7 +78,7 @@ namespace TSNAILTRACEROPTIMIZEDBENCHMARK {
       // Create the transaction for transfer
       auto functor = Utils::uint32ToBytes(ABI::FunctorEncoder::encode("Benchmark").value);
       Bytes benchmarkEncoded(functor.cbegin(), functor.cend());
-      Utils::appendBytes(benchmarkEncoded, ABI::Encoder::encodeData<int64_t, int64_t>(1024, 768));
+      //Utils::appendBytes(benchmarkEncoded, ABI::Encoder::encodeData<int64_t, int64_t>(1024, 768)); // TODO: this is a bug, the function does not take any params yet it is called with them just fine
 
       TxBlock benchmarkTx = sdk.createNewTx(sdk.getChainOwnerAccount(), snailtracerAddress, 0, benchmarkEncoded);
       auto& state = sdk.getState();

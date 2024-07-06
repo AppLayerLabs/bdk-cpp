@@ -72,7 +72,14 @@ SnailTracerOptimized::SnailTracerOptimized(
   const Address& address,
   const DB& db
 ) : DynamicContract(address, db) {
-  // TODO (optional): load vars from DB (see dump())
+  this->width_ = Utils::bytesToInt64(db.get(std::string("width_"), this->getDBPrefix()));
+  this->height_ = Utils::bytesToInt64(db.get(std::string("height_"), this->getDBPrefix()));
+  this->camera_ = std::get<0>(ABI::Decoder::decodeData<Ray>(db.get(std::string("camera_"), this->getDBPrefix())));
+  this->deltaX_ = std::get<0>(ABI::Decoder::decodeData<Vector>(db.get(std::string("deltaX_"), this->getDBPrefix())));
+  this->deltaY_ = std::get<0>(ABI::Decoder::decodeData<Vector>(db.get(std::string("deltaY_"), this->getDBPrefix())));
+  this->spheres_ = std::get<0>(ABI::Decoder::decodeData<std::vector<Sphere>>(db.get(std::string("spheres_"), this->getDBPrefix())));
+  this->triangles_ = std::get<0>(ABI::Decoder::decodeData<std::vector<Triangle>>(db.get(std::string("triangles_"), this->getDBPrefix())));
+
   width_.commit();
   height_.commit();
   camera_.commit();
@@ -495,8 +502,15 @@ void SnailTracerOptimized::registerContractFunctions() {
 
 DBBatch SnailTracerOptimized::dump() const {
   DBBatch dbBatch = BaseContract::dump();
-  // TODO (optional): save internal vars to DB
-  // width_, height_, camera_, deltaX_, deltaY_, spheres_ and triangles_
+
+  dbBatch.push_back(Utils::stringToBytes("width_"), Utils::int64ToBytes(width_.get()), this->getDBPrefix());
+  dbBatch.push_back(Utils::stringToBytes("height_"), Utils::int64ToBytes(height_.get()), this->getDBPrefix());
+  dbBatch.push_back(Utils::stringToBytes("camera_"), ABI::Encoder::encodeData<Ray>(camera_.raw()), this->getDBPrefix());
+  dbBatch.push_back(Utils::stringToBytes("deltaX_"), ABI::Encoder::encodeData<Vector>(deltaX_.raw()), this->getDBPrefix());
+  dbBatch.push_back(Utils::stringToBytes("deltaY_"), ABI::Encoder::encodeData<Vector>(deltaY_.raw()), this->getDBPrefix());
+  dbBatch.push_back(Utils::stringToBytes("spheres_"), ABI::Encoder::encodeData<std::vector<Sphere>>(spheres_.get()), this->getDBPrefix());
+  dbBatch.push_back(Utils::stringToBytes("triangles_"), ABI::Encoder::encodeData<std::vector<Triangle>>(triangles_.get()), this->getDBPrefix());
+
   return dbBatch;
 }
 

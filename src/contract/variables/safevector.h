@@ -504,6 +504,18 @@ template <typename T> class SafeVector : public SafeBase {
     }
 
     ///@{
+    /* Assignment operator. Assigns only the CURRENT value. */
+    inline SafeVector& operator=(const std::vector<T>& other) {
+      if (this->copy_ == nullptr) this->copy_ = std::make_unique<std::vector<T>>(this->value_);
+      markAsUsed(); this->value_ = other; return *this;
+    }
+    inline SafeVector& operator=(const SafeVector<T>& other) {
+      if (this->copy_ == nullptr) this->copy_ = std::make_unique<std::vector<T>>(this->value_);
+      markAsUsed(); this->value_ = other.get(); return *this;
+    }
+    ///@}
+
+    ///@{
     /** Equality operator. Checks only the CURRENT value. */
     inline bool operator==(const std::vector<T>& other) const { return (this->value_ == other); }
     inline bool operator==(const SafeVector<T>& other) const { return (this->value_ == other.get()); }
