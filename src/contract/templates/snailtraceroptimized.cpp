@@ -1,8 +1,8 @@
-#include "snailtracer.h"
+#include "snailtraceroptimized.h"
 
-SnailTracer::SnailTracer(
-  int256_t w, int256_t h, const Address& address, const Address& creator, const uint64_t& chainId
-) : DynamicContract("SnailTracer", address, creator, chainId), width_(w), height_(h) {
+SnailTracerOptimized::SnailTracerOptimized(
+  int64_t w, int64_t h, const Address& address, const Address& creator, const uint64_t& chainId
+) : DynamicContract("SnailTracerOptimized", address, creator, chainId), width_(w), height_(h) {
   // Initialize the image and rendering parameters
   camera_ = Ray(Vector(50000000, 52000000, 295600000), norm(Vector(0, -42612, -1000000)), 0, false);
   deltaX_ = Vector(width_.get() * 513500 / height_.get(), 0, 0);
@@ -68,7 +68,7 @@ SnailTracer::SnailTracer(
   triangles_.enableRegister();
 }
 
-SnailTracer::SnailTracer(
+SnailTracerOptimized::SnailTracerOptimized(
   const Address& address,
   const DB& db
 ) : DynamicContract(address, db) {
@@ -90,16 +90,16 @@ SnailTracer::SnailTracer(
   triangles_.enableRegister();
 }
 
-SnailTracer::~SnailTracer() {};
+SnailTracerOptimized::~SnailTracerOptimized() {};
 
-std::tuple<uint8_t, uint8_t, uint8_t> SnailTracer::TracePixel(const int256_t& x, const int256_t& y, const uint256_t& spp) {
+std::tuple<uint8_t, uint8_t, uint8_t> SnailTracerOptimized::TracePixel(const int64_t& x, const int64_t& y, const uint64_t& spp) {
   Vector color = trace(x, y, spp);
   auto& [colorX, colorY, colorZ] = color;
   return std::make_tuple(uint8_t(colorX), uint8_t(colorY), uint8_t(colorZ));
 }
 
-Bytes SnailTracer::TraceScanline(const int256_t& y, const int256_t& spp) {
-  for (int256_t x = 0; x < width_.get(); x++) {
+Bytes SnailTracerOptimized::TraceScanline(const int64_t& y, const int64_t& spp) {
+  for (int64_t x = 0; x < width_.get(); x++) {
     Vector color = trace(x, y, spp);
     auto& [colorX, colorY, colorZ] = color;
     buffer_.push_back(uint8_t(colorX));
@@ -109,9 +109,9 @@ Bytes SnailTracer::TraceScanline(const int256_t& y, const int256_t& spp) {
   return buffer_.get();
 }
 
-Bytes SnailTracer::TraceImage(const int256_t& spp) {
-  for (int256_t y = height_.get() - 1; y >= 0; y--) {
-    for (int256_t x = 0; x < width_.get(); x++) {
+Bytes SnailTracerOptimized::TraceImage(const int64_t& spp) {
+  for (int64_t y = height_.get() - 1; y >= 0; y--) {
+    for (int64_t x = 0; x < width_.get(); x++) {
       Vector color = trace(x, y, spp);
       auto& [colorX, colorY, colorZ] = color;
       buffer_.push_back(uint8_t(colorX));
@@ -122,7 +122,7 @@ Bytes SnailTracer::TraceImage(const int256_t& spp) {
   return buffer_.get();
 }
 
-std::tuple<uint8_t, uint8_t, uint8_t> SnailTracer::Benchmark() {
+std::tuple<uint8_t, uint8_t, uint8_t> SnailTracerOptimized::Benchmark() {
   // Configure scene for benchmarking
   width_ = 1024; height_ = 768;
   deltaX_ = Vector(width_.get() * 513500 / height_.get(), 0, 0);
@@ -138,10 +138,10 @@ std::tuple<uint8_t, uint8_t, uint8_t> SnailTracer::Benchmark() {
   return std::make_tuple(uint8_t(x), uint8_t(y), uint8_t(z));
 }
 
-SnailTracer::Vector SnailTracer::trace(const int256_t& x, const int256_t& y, const int256_t& spp) {
+SnailTracerOptimized::Vector SnailTracerOptimized::trace(const int64_t& x, const int64_t& y, const int64_t& spp) {
   seed_ = uint32_t(y * width_.get() + x); // Deterministic image irrelevant of render chunks
   Vector color;
-  for (int256_t k = 0; k < spp; k++) {
+  for (int64_t k = 0; k < spp; k++) {
     Vector pixel = add(div(add(
       mul(deltaX_.raw(), (1000000 * x + rand() % 500000) / width_.get() - 500000),
       mul(deltaY_.raw(), (1000000 * y + rand() % 500000) / height_.get() - 500000)
@@ -152,20 +152,20 @@ SnailTracer::Vector SnailTracer::trace(const int256_t& x, const int256_t& y, con
   return div(mul(clamp(color), 255), 1000000);
 }
 
-uint32_t SnailTracer::rand() {
+uint32_t SnailTracerOptimized::rand() {
   seed_ = 1103515245 * seed_.get() + 12345;
   return seed_.get();
 }
 
-int256_t SnailTracer::clamp(const int256_t& x) {
+int64_t SnailTracerOptimized::clamp(const int64_t& x) {
   if (x < 0) return 0;
   if (x > 1000000) return 1000000;
   return x;
 }
 
-int256_t SnailTracer::sqrt(const int256_t& x) {
-  int256_t z = (x + 1) / 2;
-  int256_t y = x;
+int64_t SnailTracerOptimized::sqrt(const int64_t& x) {
+  int64_t z = (x + 1) / 2;
+  int64_t y = x;
   while (z < y) {
     y = z;
     z = (x/z + z) / 2;
@@ -173,16 +173,16 @@ int256_t SnailTracer::sqrt(const int256_t& x) {
   return y;
 }
 
-int256_t SnailTracer::sin(int256_t x) {
+int64_t SnailTracerOptimized::sin(int64_t x) {
   // Ensure x is between [0, 2PI) (Taylor expansion is picky with large numbers)
   while (x < 0) x += 6283184;
   while (x >= 6283184) x -= 6283184;
   // Calculate the sin based on the Taylor series
-  int256_t s = 1;
-  int256_t n = x;
-  int256_t d = 1;
-  int256_t f = 2;
-  int256_t y;
+  int64_t s = 1;
+  int64_t n = x;
+  int64_t d = 1;
+  int64_t f = 2;
+  int64_t y;
   while (n > d) {
     y += s * n / d;
     n = n * x * x / 1000000 / 1000000;
@@ -193,77 +193,77 @@ int256_t SnailTracer::sin(int256_t x) {
   return y;
 }
 
-int256_t SnailTracer::cos(const int256_t& x) {
-  int256_t s = sin(x);
+int64_t SnailTracerOptimized::cos(const int64_t& x) {
+  int64_t s = sin(x);
   return sqrt(1000000000000 - s*s);
 }
 
-int256_t SnailTracer::abs(const int256_t& x) {
+int64_t SnailTracerOptimized::abs(const int64_t& x) {
   if (x > 0) return x;
   return -x;
 }
 
-SnailTracer::Vector SnailTracer::add(const Vector& u, const Vector& v) {
+SnailTracerOptimized::Vector SnailTracerOptimized::add(const Vector& u, const Vector& v) {
   auto& [ux, uy, uz] = u;
   auto& [vx, vy, vz] = v;
   return Vector(ux+vx, uy+vy, uz+vz);
 }
 
-SnailTracer::Vector SnailTracer::sub(const Vector& u, const Vector& v) {
+SnailTracerOptimized::Vector SnailTracerOptimized::sub(const Vector& u, const Vector& v) {
   auto& [ux, uy, uz] = u;
   auto& [vx, vy, vz] = v;
   return Vector(ux-vx, uy-vy, uz-vz);
 }
 
-SnailTracer::Vector SnailTracer::mul(const Vector& u, const Vector& v) {
+SnailTracerOptimized::Vector SnailTracerOptimized::mul(const Vector& u, const Vector& v) {
   auto& [ux, uy, uz] = u;
   auto& [vx, vy, vz] = v;
   return Vector(ux*vx, uy*vy, uz*vz);
 }
 
-SnailTracer::Vector SnailTracer::mul(const Vector& v, const int256_t& m) {
+SnailTracerOptimized::Vector SnailTracerOptimized::mul(const Vector& v, const int64_t& m) {
   auto& [vx, vy, vz] = v;
   return Vector(m*vx, m*vy, m*vz);
 }
 
-SnailTracer::Vector SnailTracer::div(const Vector& v, const int256_t& d) {
+SnailTracerOptimized::Vector SnailTracerOptimized::div(const Vector& v, const int64_t& d) {
   auto& [vx, vy, vz] = v;
   return Vector(vx/d, vy/d, vz/d);
 }
 
-int256_t SnailTracer::dot(const Vector& u, const Vector& v) {
+int64_t SnailTracerOptimized::dot(const Vector& u, const Vector& v) {
   auto& [ux, uy, uz] = u;
   auto& [vx, vy, vz] = v;
   return ux*vx + uy*vy + uz*vz;
 }
 
-SnailTracer::Vector SnailTracer::cross(const Vector& u, const Vector& v) {
+SnailTracerOptimized::Vector SnailTracerOptimized::cross(const Vector& u, const Vector& v) {
   auto& [ux, uy, uz] = u;
   auto& [vx, vy, vz] = v;
   return Vector(uy*vz - uz*vy, uz*vx - ux*vz, ux*vy - uy*vx);
 }
 
-SnailTracer::Vector SnailTracer::norm(const Vector& v) {
+SnailTracerOptimized::Vector SnailTracerOptimized::norm(const Vector& v) {
   auto& [vx, vy, vz] = v;
-  int256_t length = sqrt(vx*vx + vy*vy + vz*vz);
+  int64_t length = sqrt(vx*vx + vy*vy + vz*vz);
   return Vector(vx * 1000000 / length, vy * 1000000 / length, vz * 1000000 / length);
 }
 
-SnailTracer::Vector SnailTracer::clamp(const Vector& v) {
+SnailTracerOptimized::Vector SnailTracerOptimized::clamp(const Vector& v) {
   auto& [vx, vy, vz] = v;
   return Vector(clamp(vx), clamp(vy), clamp(vz));
 }
 
-int256_t SnailTracer::intersect(const Sphere& s, const Ray& r) {
-  const int256_t& sRad = std::get<0>(s);
+int64_t SnailTracerOptimized::intersect(const Sphere& s, const Ray& r) {
+  const int64_t& sRad = std::get<0>(s);
   const Vector& sPos = std::get<1>(s);
   const Vector& rOri = std::get<0>(r);
   const Vector& rDir = std::get<1>(r);
 
   Vector op = sub(sPos, rOri);
-  int256_t b = dot(op, rDir) / 1000000;
+  int64_t b = dot(op, rDir) / 1000000;
   // Bail out if ray misses the sphere
-  int256_t det = b*b - dot(op, op) + sRad*sRad;
+  int64_t det = b*b - dot(op, op) + sRad*sRad;
   if (det < 0) return 0;
   // Calculate the closer intersection point
   det = sqrt(det);
@@ -272,7 +272,7 @@ int256_t SnailTracer::intersect(const Sphere& s, const Ray& r) {
   return 0;
 }
 
-int256_t SnailTracer::intersect(const Triangle& t, const Ray& r) {
+int64_t SnailTracerOptimized::intersect(const Triangle& t, const Ray& r) {
   const Vector& tA = std::get<0>(t);
   const Vector& tB = std::get<1>(t);
   const Vector& tC = std::get<2>(t);
@@ -283,23 +283,23 @@ int256_t SnailTracer::intersect(const Triangle& t, const Ray& r) {
   Vector e2 = sub(tC, tA);
   Vector p = cross(rDir, e2);
   // Bail out if ray is parallel to the triangle
-  int256_t det = dot(e1, p) / 1000000;
+  int64_t det = dot(e1, p) / 1000000;
   if (det > -1000 && det < 1000) return 0;
   // Calculate and test the 'u' parameter
   Vector d = sub(rOri, tA);
-  int256_t u = dot(d, p) / det;
+  int64_t u = dot(d, p) / det;
   if (u < 0 || u > 1000000) return 0;
   // Calculate and test the 'v' parameter
   Vector q = cross(d, e1);
-  int256_t v = dot(rDir, q) / det;
+  int64_t v = dot(rDir, q) / det;
   if (v < 0 || u + v > 1000000) return 0;
   // Calculate and return the distance
-  int256_t dist = dot(e2, q) / det;
+  int64_t dist = dot(e2, q) / det;
   if (dist < 1000) return 0;
   return dist;
 }
 
-SnailTracer::Vector SnailTracer::radiance(Ray& ray) {
+SnailTracerOptimized::Vector SnailTracerOptimized::radiance(Ray& ray) {
   // Place a limit on the depth to prevent stack overflows
   auto& [rOri, rDir, rDep, rRef] = ray;
   if (rDep > 10) return Vector(0,0,0);
@@ -321,7 +321,7 @@ SnailTracer::Vector SnailTracer::radiance(Ray& ray) {
   }
   // After a number of reflections, randomly stop radiance calculation
   auto& [colorX, colorY, colorZ] = color;
-  int256_t ref = 1;
+  int64_t ref = 1;
   if (colorZ > ref) ref = colorZ; // original code checks Z twice instead of X, not sure if typo or intended, keeping it 1:1
   if (colorY > ref) ref = colorY;
   if (colorZ > ref) ref = colorZ;
@@ -343,7 +343,7 @@ SnailTracer::Vector SnailTracer::radiance(Ray& ray) {
   return add(emission, div(mul(color, result), 1000000));
 }
 
-SnailTracer::Vector SnailTracer::radiance(const Ray& ray, const Sphere& obj, const int256_t& dist) {
+SnailTracerOptimized::Vector SnailTracerOptimized::radiance(const Ray& ray, const Sphere& obj, const int64_t& dist) {
   const Vector& rOri = std::get<0>(ray);
   const Vector& rDir = std::get<1>(ray);
   const Vector& sPos = std::get<1>(obj);
@@ -362,7 +362,7 @@ SnailTracer::Vector SnailTracer::radiance(const Ray& ray, const Sphere& obj, con
   }
 }
 
-SnailTracer::Vector SnailTracer::radiance(const Ray& ray, const Triangle& obj, const int256_t& dist) {
+SnailTracerOptimized::Vector SnailTracerOptimized::radiance(const Ray& ray, const Triangle& obj, const int64_t& dist) {
   const Vector& rOri = std::get<0>(ray);
   const Vector& rDir = std::get<1>(ray);
   const bool& rRef = std::get<3>(ray);
@@ -372,25 +372,25 @@ SnailTracer::Vector SnailTracer::radiance(const Ray& ray, const Triangle& obj, c
   // We're cheating here, we don't have diffuse triangles :P
   Vector intersect = add(rOri, div(mul(rDir, dist), 1000000));
   // Calculate the refractive indices based on whether we're in or out
-  int256_t nnt = 666666; // (1 air / 1.5 glass)
+  int64_t nnt = 666666; // (1 air / 1.5 glass)
   if (rRef) nnt = 1500000; // (1.5 glass / 1 air)
-  int256_t ddn = dot(tNor, rDir) / 1000000;
+  int64_t ddn = dot(tNor, rDir) / 1000000;
   if (ddn >= 0) ddn = -ddn;
   // If the angle is too shallow, all light is reflected
-  int256_t cos2t = 1000000000000 - nnt * nnt * (1000000000000 - ddn * ddn) / 1000000000000;
+  int64_t cos2t = 1000000000000 - nnt * nnt * (1000000000000 - ddn * ddn) / 1000000000000;
   if (cos2t < 0) return specular(ray, intersect, tNor);
   return refractive(ray, intersect, tNor, nnt, ddn, cos2t);
 }
 
-SnailTracer::Vector SnailTracer::diffuse(const Ray& ray, const Vector& intersect, const Vector& normal) {
-  const int256_t& normalX = std::get<0>(normal);
-  const int256_t& rDep = std::get<2>(ray);
+SnailTracerOptimized::Vector SnailTracerOptimized::diffuse(const Ray& ray, const Vector& intersect, const Vector& normal) {
+  const int64_t& normalX = std::get<0>(normal);
+  const int64_t& rDep = std::get<2>(ray);
   const bool& rRef = std::get<3>(ray);
 
   // Generate a random angle and distance from center
-  int256_t r1 = int256_t(6283184) * (rand() % 1000000) / 1000000;
-  int256_t r2 = rand() % 1000000;
-  int256_t r2s = sqrt(r2) * 1000;
+  int64_t r1 = int64_t(6283184) * (rand() % 1000000) / 1000000;
+  int64_t r2 = rand() % 1000000;
+  int64_t r2s = sqrt(r2) * 1000;
   // Create orthonormal coordinate frame
   Vector u = (abs(normalX) > 100000) ? Vector(0, 1000000, 0) : Vector(1000000, 0, 0);
   u = norm(cross(u, normal));
@@ -401,9 +401,9 @@ SnailTracer::Vector SnailTracer::diffuse(const Ray& ray, const Vector& intersect
   return radiance(rayy);
 }
 
-SnailTracer::Vector SnailTracer::specular(const Ray& ray, const Vector& intersect, const Vector& normal) {
+SnailTracerOptimized::Vector SnailTracerOptimized::specular(const Ray& ray, const Vector& intersect, const Vector& normal) {
   const Vector& rDir = std::get<1>(ray);
-  const int256_t& rDep = std::get<2>(ray);
+  const int64_t& rDep = std::get<2>(ray);
   const bool& rRef = std::get<3>(ray);
 
   Vector reflection = norm(sub(rDir, mul(normal, 2 * dot(normal, rDir) / 1000000)));
@@ -411,20 +411,20 @@ SnailTracer::Vector SnailTracer::specular(const Ray& ray, const Vector& intersec
   return radiance(rayy);
 }
 
-SnailTracer::Vector SnailTracer::refractive(
+SnailTracerOptimized::Vector SnailTracerOptimized::refractive(
   const Ray& ray, const Vector& intersect, const Vector& normal,
-  const int256_t& nnt, const int256_t& ddn, const int256_t& cos2t
+  const int64_t& nnt, const int64_t& ddn, const int64_t& cos2t
 ) {
   const Vector& rDir = std::get<1>(ray);
-  const int256_t& rDep = std::get<2>(ray);
+  const int64_t& rDep = std::get<2>(ray);
   const bool& rRef = std::get<3>(ray);
 
   // Calculate the refraction rays for fresnel effects
-  int256_t sign = (rRef) ? 1 : -1;
+  int64_t sign = (rRef) ? 1 : -1;
   Vector refraction = norm(div(sub(mul(rDir, nnt), mul(normal, sign * (ddn * nnt / 1000000 + sqrt(cos2t)))), 1000000));
   // Calculate the fresnel probabilities
-  int256_t c = (!rRef) ? 1000000 - dot(refraction, normal) / 1000000 : 1000000 + ddn;
-  int256_t re = 40000 + (1000000 - 40000) * c * c * c * c * c / int256_t("1000000000000000000000000000000");
+  int64_t c = (!rRef) ? 1000000 - dot(refraction, normal) / 1000000 : 1000000 + ddn;
+  int64_t re = 40000 + (1000000 - 40000) * c * c * c * c * c / int64_t("1000000000000000000000000000000");
   // Split a direct hit, otherwise trace only one ray
   if (rDep <= 2) {
     Ray ray(intersect, refraction, rDep, !rRef);
@@ -439,19 +439,19 @@ SnailTracer::Vector SnailTracer::refractive(
   return div(mul(radiance(rayy), 1000000 - re), 750000 - re / 2);
 }
 
-std::tuple<int256_t, SnailTracer::Primitive, uint256_t> SnailTracer::traceray(const Ray& ray) {
-  int256_t dist = 0; Primitive p; uint256_t id;
+std::tuple<int64_t, SnailTracerOptimized::Primitive, uint64_t> SnailTracerOptimized::traceray(const Ray& ray) {
+  int64_t dist = 0; Primitive p; uint64_t id;
 
   // Intersect the ray with all the spheres
   for (std::size_t i = 0; i < spheres_.size(); i++) { // NOTE: original code uses int for i
-    int256_t d = intersect(spheres_[i], ray);
+    int64_t d = intersect(spheres_[i], ray);
     if (d > 0 && (dist == 0 || d < dist)) {
       dist = d; p = Primitive::PSphere; id = i;
     }
   }
   // Intersect the ray with all the triangles
   for (std::size_t i = 0; i < triangles_.size(); i++) { // NOTE: original code uses int for i
-    int256_t d = intersect(triangles_[i], ray);
+    int64_t d = intersect(triangles_[i], ray);
     if (d > 0 && (dist == 0 || d < dist)) {
       dist = d; p = Primitive::PTriangle; id = i;
     }
@@ -460,40 +460,40 @@ std::tuple<int256_t, SnailTracer::Primitive, uint256_t> SnailTracer::traceray(co
   return std::make_tuple(dist, p, id);
 }
 
-void SnailTracer::registerContractFunctions() {
+void SnailTracerOptimized::registerContractFunctions() {
   registerContract();
-  this->registerMemberFunction("TracePixel", &SnailTracer::TracePixel, FunctionTypes::NonPayable, this);
-  this->registerMemberFunction("TraceScanline", &SnailTracer::TraceScanline, FunctionTypes::NonPayable, this);
-  this->registerMemberFunction("TraceImage", &SnailTracer::TraceImage, FunctionTypes::NonPayable, this);
-  this->registerMemberFunction("Benchmark", &SnailTracer::Benchmark, FunctionTypes::NonPayable, this);
-  this->registerMemberFunction("trace", &SnailTracer::trace, FunctionTypes::NonPayable, this);
-  this->registerMemberFunction("rand", &SnailTracer::rand, FunctionTypes::NonPayable, this);
-  this->registerMemberFunction("clamp", static_cast<int256_t(SnailTracer::*)(const int256_t&)>(&SnailTracer::clamp), FunctionTypes::NonPayable, this);
-  this->registerMemberFunction("sqrt", &SnailTracer::sqrt, FunctionTypes::NonPayable, this);
-  this->registerMemberFunction("sin", &SnailTracer::sin, FunctionTypes::NonPayable, this);
-  this->registerMemberFunction("cos", &SnailTracer::cos, FunctionTypes::NonPayable, this);
-  this->registerMemberFunction("abs", &SnailTracer::abs, FunctionTypes::NonPayable, this);
-  this->registerMemberFunction("add", &SnailTracer::add, FunctionTypes::NonPayable, this);
-  this->registerMemberFunction("sub", &SnailTracer::sub, FunctionTypes::NonPayable, this);
-  this->registerMemberFunction("mul", static_cast<Vector(SnailTracer::*)(const Vector&, const Vector&)>(&SnailTracer::mul), FunctionTypes::NonPayable, this);
-  this->registerMemberFunction("mul", static_cast<Vector(SnailTracer::*)(const Vector&, const int256_t&)>(&SnailTracer::mul), FunctionTypes::NonPayable, this);
-  this->registerMemberFunction("div", &SnailTracer::div, FunctionTypes::NonPayable, this);
-  this->registerMemberFunction("dot", &SnailTracer::dot, FunctionTypes::NonPayable, this);
-  this->registerMemberFunction("cross", &SnailTracer::cross, FunctionTypes::NonPayable, this);
-  this->registerMemberFunction("norm", &SnailTracer::norm, FunctionTypes::NonPayable, this);
-  this->registerMemberFunction("clamp", static_cast<Vector(SnailTracer::*)(const Vector&)>(&SnailTracer::clamp), FunctionTypes::NonPayable, this);
-  this->registerMemberFunction("intersect", static_cast<int256_t(SnailTracer::*)(const Sphere&, const Ray&)>(&SnailTracer::intersect), FunctionTypes::NonPayable, this);
-  this->registerMemberFunction("intersect", static_cast<int256_t(SnailTracer::*)(const Triangle&, const Ray&)>(&SnailTracer::intersect), FunctionTypes::NonPayable, this);
-  this->registerMemberFunction("radiance", static_cast<Vector(SnailTracer::*)(Ray&)>(&SnailTracer::radiance), FunctionTypes::NonPayable, this);
-  this->registerMemberFunction("radiance", static_cast<Vector(SnailTracer::*)(const Ray&, const Sphere&, const int256_t&)>(&SnailTracer::radiance), FunctionTypes::NonPayable, this);
-  this->registerMemberFunction("radiance", static_cast<Vector(SnailTracer::*)(const Ray&, const Triangle&, const int256_t&)>(&SnailTracer::radiance), FunctionTypes::NonPayable, this);
-  this->registerMemberFunction("diffuse", &SnailTracer::diffuse, FunctionTypes::NonPayable, this);
-  this->registerMemberFunction("specular", &SnailTracer::specular, FunctionTypes::NonPayable, this);
-  this->registerMemberFunction("refractive", &SnailTracer::refractive, FunctionTypes::NonPayable, this);
-  this->registerMemberFunction("traceray", &SnailTracer::traceray, FunctionTypes::NonPayable, this);
+  this->registerMemberFunction("TracePixel", &SnailTracerOptimized::TracePixel, FunctionTypes::NonPayable, this);
+  this->registerMemberFunction("TraceScanline", &SnailTracerOptimized::TraceScanline, FunctionTypes::NonPayable, this);
+  this->registerMemberFunction("TraceImage", &SnailTracerOptimized::TraceImage, FunctionTypes::NonPayable, this);
+  this->registerMemberFunction("Benchmark", &SnailTracerOptimized::Benchmark, FunctionTypes::NonPayable, this);
+  this->registerMemberFunction("trace", &SnailTracerOptimized::trace, FunctionTypes::NonPayable, this);
+  this->registerMemberFunction("rand", &SnailTracerOptimized::rand, FunctionTypes::NonPayable, this);
+  this->registerMemberFunction("clamp", static_cast<int64_t(SnailTracerOptimized::*)(const int64_t&)>(&SnailTracerOptimized::clamp), FunctionTypes::NonPayable, this);
+  this->registerMemberFunction("sqrt", &SnailTracerOptimized::sqrt, FunctionTypes::NonPayable, this);
+  this->registerMemberFunction("sin", &SnailTracerOptimized::sin, FunctionTypes::NonPayable, this);
+  this->registerMemberFunction("cos", &SnailTracerOptimized::cos, FunctionTypes::NonPayable, this);
+  this->registerMemberFunction("abs", &SnailTracerOptimized::abs, FunctionTypes::NonPayable, this);
+  this->registerMemberFunction("add", &SnailTracerOptimized::add, FunctionTypes::NonPayable, this);
+  this->registerMemberFunction("sub", &SnailTracerOptimized::sub, FunctionTypes::NonPayable, this);
+  this->registerMemberFunction("mul", static_cast<Vector(SnailTracerOptimized::*)(const Vector&, const Vector&)>(&SnailTracerOptimized::mul), FunctionTypes::NonPayable, this);
+  this->registerMemberFunction("mul", static_cast<Vector(SnailTracerOptimized::*)(const Vector&, const int64_t&)>(&SnailTracerOptimized::mul), FunctionTypes::NonPayable, this);
+  this->registerMemberFunction("div", &SnailTracerOptimized::div, FunctionTypes::NonPayable, this);
+  this->registerMemberFunction("dot", &SnailTracerOptimized::dot, FunctionTypes::NonPayable, this);
+  this->registerMemberFunction("cross", &SnailTracerOptimized::cross, FunctionTypes::NonPayable, this);
+  this->registerMemberFunction("norm", &SnailTracerOptimized::norm, FunctionTypes::NonPayable, this);
+  this->registerMemberFunction("clamp", static_cast<Vector(SnailTracerOptimized::*)(const Vector&)>(&SnailTracerOptimized::clamp), FunctionTypes::NonPayable, this);
+  this->registerMemberFunction("intersect", static_cast<int64_t(SnailTracerOptimized::*)(const Sphere&, const Ray&)>(&SnailTracerOptimized::intersect), FunctionTypes::NonPayable, this);
+  this->registerMemberFunction("intersect", static_cast<int64_t(SnailTracerOptimized::*)(const Triangle&, const Ray&)>(&SnailTracerOptimized::intersect), FunctionTypes::NonPayable, this);
+  this->registerMemberFunction("radiance", static_cast<Vector(SnailTracerOptimized::*)(Ray&)>(&SnailTracerOptimized::radiance), FunctionTypes::NonPayable, this);
+  this->registerMemberFunction("radiance", static_cast<Vector(SnailTracerOptimized::*)(const Ray&, const Sphere&, const int64_t&)>(&SnailTracerOptimized::radiance), FunctionTypes::NonPayable, this);
+  this->registerMemberFunction("radiance", static_cast<Vector(SnailTracerOptimized::*)(const Ray&, const Triangle&, const int64_t&)>(&SnailTracerOptimized::radiance), FunctionTypes::NonPayable, this);
+  this->registerMemberFunction("diffuse", &SnailTracerOptimized::diffuse, FunctionTypes::NonPayable, this);
+  this->registerMemberFunction("specular", &SnailTracerOptimized::specular, FunctionTypes::NonPayable, this);
+  this->registerMemberFunction("refractive", &SnailTracerOptimized::refractive, FunctionTypes::NonPayable, this);
+  this->registerMemberFunction("traceray", &SnailTracerOptimized::traceray, FunctionTypes::NonPayable, this);
 }
 
-DBBatch SnailTracer::dump() const {
+DBBatch SnailTracerOptimized::dump() const {
   DBBatch dbBatch = BaseContract::dump();
   // TODO (optional): save internal vars to DB
   // width_, height_, camera_, deltaX_, deltaY_, spheres_ and triangles_

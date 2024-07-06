@@ -57,6 +57,7 @@ if (BUILD_BENCHMARK)
   list(APPEND TESTS_SOURCES
     ${CMAKE_SOURCE_DIR}/tests/benchmark/erc20.cpp
     ${CMAKE_SOURCE_DIR}/tests/benchmark/snailtracer.cpp
+    ${CMAKE_SOURCE_DIR}/tests/benchmark/snailtraceroptimized.cpp
   )
 endif()
 
