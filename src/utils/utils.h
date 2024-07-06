@@ -535,7 +535,7 @@ namespace Utils {
   BytesArr<2> uint16ToBytes(const uint16_t& i);
   BytesArr<1> uint8ToBytes(const uint8_t& i);
   BytesArr<32> int256ToBytes(const int256_t& i);
-  BytesArr<24> int192ToBytes(const int192_t& i);
+  BytesArr<17> int136ToBytes(const int136_t& i);
   BytesArr<8> int64ToBytes(const int64_t& i);
   ///@}
 
@@ -579,7 +579,7 @@ namespace Utils {
   uint16_t bytesToUint16(const BytesArrView b);
   uint8_t bytesToUint8(const BytesArrView b);
   int256_t bytesToInt256(const BytesArrView b);
-  int192_t bytesToInt192(const BytesArrView b);
+  int136_t bytesToInt136(const BytesArrView b);
   int64_t bytesToInt64(const BytesArrView b);
   ///@}
 

@@ -24,8 +24,8 @@ namespace TSNAILTRACEROPTIMIZEDBENCHMARK {
       Address to(Utils::randBytes(20));
 
       SDKTestSuite sdk = SDKTestSuite::createNewEnvironment("testSnailTracerOptimizedCppBenchmark");
-      // const TestAccount& from, const Address& to, const uint192_t& value, Bytes data = Bytes()
-      auto snailtracerAddress = sdk.deployContract<SnailTracerOptimized>(int192_t(1024), int192_t(768));
+      // const TestAccount& from, const Address& to, const uint136_t& value, Bytes data = Bytes()
+      auto snailtracerAddress = sdk.deployContract<SnailTracerOptimized>(int136_t(1024), int136_t(768));
       // Now for the funny part, we are NOT a C++ contract, but we can
       // definitely take advantage of the templated ABI to interact with it
       // as the encoding is the same
@@ -33,7 +33,7 @@ namespace TSNAILTRACEROPTIMIZEDBENCHMARK {
       // Create the transaction for transfer
       auto functor = Utils::uint32ToBytes(ABI::FunctorEncoder::encode("Benchmark").value);
       Bytes benchmarkEncoded(functor.cbegin(), functor.cend());
-      //Utils::appendBytes(benchmarkEncoded, ABI::Encoder::encodeData<int192_t, int192_t>(1024, 768)); // TODO: this is a bug, the function does not take any params yet it is called with them just fine
+      //Utils::appendBytes(benchmarkEncoded, ABI::Encoder::encodeData<int136_t, int136_t>(1024, 768)); // TODO: this is a bug, the function does not take any params yet it is called with them just fine
       TxBlock benchmarkTx = sdk.createNewTx(sdk.getChainOwnerAccount(), snailtracerAddress, 0, benchmarkEncoded);
 
       auto& state = sdk.getState();
@@ -78,7 +78,7 @@ namespace TSNAILTRACEROPTIMIZEDBENCHMARK {
       // Create the transaction for transfer
       auto functor = Utils::uint32ToBytes(ABI::FunctorEncoder::encode("Benchmark").value);
       Bytes benchmarkEncoded(functor.cbegin(), functor.cend());
-      //Utils::appendBytes(benchmarkEncoded, ABI::Encoder::encodeData<int192_t, int192_t>(1024, 768)); // TODO: this is a bug, the function does not take any params yet it is called with them just fine
+      //Utils::appendBytes(benchmarkEncoded, ABI::Encoder::encodeData<int136_t, int136_t>(1024, 768)); // TODO: this is a bug, the function does not take any params yet it is called with them just fine
 
       TxBlock benchmarkTx = sdk.createNewTx(sdk.getChainOwnerAccount(), snailtracerAddress, 0, benchmarkEncoded);
       auto& state = sdk.getState();

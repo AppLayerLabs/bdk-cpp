@@ -751,12 +751,12 @@ BytesArr<32> Utils::int256ToBytes(const int256_t& i) {
   return ret;
 }
 
-BytesArr<24> Utils::int192ToBytes(const int192_t &i) {
-  BytesArr<24> ret;
+BytesArr<17> Utils::int136ToBytes(const int136_t &i) {
+  BytesArr<17> ret;
   Bytes tmp;
-  tmp.reserve(24);
+  tmp.reserve(17);
   boost::multiprecision::export_bits(i, std::back_inserter(tmp), 8);
-  for (signed ii = 0; ii < tmp.size(); ii++) ret[23 - ii] = tmp[tmp.size() - ii - 1];
+  for (signed ii = 0; ii < tmp.size(); ii++) ret[16 - ii] = tmp[tmp.size() - ii - 1];
   return ret;
 }
 
@@ -769,11 +769,11 @@ BytesArr<8> Utils::int64ToBytes(const int64_t& i) {
   return ret;
 }
 
-int192_t Utils::bytesToInt192(const BytesArrView b) {
-  if (b.size() != 24) throw DynamicException(std::string(__func__)
-    + ": Invalid bytes size - expected 24, got " + std::to_string(b.size())
+int136_t Utils::bytesToInt136(const BytesArrView b) {
+  if (b.size() != 18) throw DynamicException(std::string(__func__)
+    + ": Invalid bytes size - expected 18, got " + std::to_string(b.size())
   );
-  int192_t ret;
+  int136_t ret;
   boost::multiprecision::import_bits(ret, b.begin(), b.end(), 8);
   return ret;
 }
