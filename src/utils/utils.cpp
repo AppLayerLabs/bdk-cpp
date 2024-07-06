@@ -751,12 +751,30 @@ BytesArr<32> Utils::int256ToBytes(const int256_t& i) {
   return ret;
 }
 
+BytesArr<24> Utils::int192ToBytes(const int192_t &i) {
+  BytesArr<24> ret;
+  Bytes tmp;
+  tmp.reserve(24);
+  boost::multiprecision::export_bits(i, std::back_inserter(tmp), 8);
+  for (signed ii = 0; ii < tmp.size(); ii++) ret[23 - ii] = tmp[tmp.size() - ii - 1];
+  return ret;
+}
+
 BytesArr<8> Utils::int64ToBytes(const int64_t& i) {
   BytesArr<8> ret;
   std::memcpy(&ret[0], &i, 8);
   #if __BYTE_ORDER == __LITTLE_ENDIAN
     std::reverse(ret.begin(), ret.end());
   #endif
+  return ret;
+}
+
+int192_t Utils::bytesToInt192(const BytesArrView b) {
+  if (b.size() != 24) throw DynamicException(std::string(__func__)
+    + ": Invalid bytes size - expected 24, got " + std::to_string(b.size())
+  );
+  int192_t ret;
+  boost::multiprecision::import_bits(ret, b.begin(), b.end(), 8);
   return ret;
 }
 
