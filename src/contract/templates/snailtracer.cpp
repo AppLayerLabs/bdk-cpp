@@ -150,7 +150,7 @@ Vector SnailTracer::trace(const int256_t& x, const int256_t& y, const int256_t& 
     color = add(color, div(radiance(ray), spp));
   }
   return div(mul(clamp(color), 255), 1000000);
-} lo
+}
 
 uint32_t SnailTracer::rand() {
   seed_ = 1103515245 * seed_.get() + 12345;
