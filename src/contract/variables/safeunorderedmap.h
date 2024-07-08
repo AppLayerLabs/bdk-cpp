@@ -15,15 +15,15 @@ See the LICENSE.txt file in the project root for more information.
 
 // TODO: somehow figure out a way to make loops work with this class (for (const auto& [key, value] : map) { ... })
 /**
- * Safe wrapper for a `std::unordered_map`. Used to safely store an unordered map within a contract.
+ * Safe wrapper for a `boost::unordered_flat_map`. Used to safely store an unordered map within a contract.
  * @tparam Key The map's key type.
  * @tparam T The map's value type.
  * @see SafeBase
  */
 template <typename Key, typename T> class SafeUnorderedMap : public SafeBase {
   private:
-    std::unordered_map<Key, T, SafeHash> value_; ///< Current ("original") value.
-    std::unordered_map<Key, std::optional<T>, SafeHash> copy_; ///< Previous ("temporary") value. Stores changed keys only.
+    boost::unordered_flat_map<Key, T, SafeHash> value_; ///< Current ("original") value.
+    boost::unordered_flat_map<Key, std::optional<T>, SafeHash> copy_; ///< Previous ("temporary") value. Stores changed keys only.
 
   public:
     /**
@@ -32,21 +32,21 @@ template <typename Key, typename T> class SafeUnorderedMap : public SafeBase {
      * @param map The initial value. Defaults to an empty map.
      */
     explicit SafeUnorderedMap(
-      DynamicContract* owner, const std::unordered_map<Key, T, SafeHash>& map = {}
+      DynamicContract* owner, const boost::unordered_flat_map<Key, T, SafeHash>& map = {}
     ) : SafeBase(owner), value_(map), copy_() {}
 
     /**
      * Empty constructor.
      * @param map The initial value. Defaults to an empty map.
      */
-    explicit SafeUnorderedMap(const std::unordered_map<Key, T, SafeHash>& map = {})
+    explicit SafeUnorderedMap(const boost::unordered_flat_map<Key, T, SafeHash>& map = {})
       : SafeBase(nullptr), value_(map), copy_() {}
 
     /// Copy constructor. Copies only the CURRENT value.
     SafeUnorderedMap(const SafeUnorderedMap& other) : SafeBase(nullptr), value_(other.value_), copy_() {}
 
     /// Get the current value.
-    std::unordered_map<Key, T, SafeHash> get() const { return this->value_; }
+    boost::unordered_flat_map<Key, T, SafeHash> get() const { return this->value_; }
 
     /**
      * Get the number of values with the given key.
@@ -62,7 +62,7 @@ template <typename Key, typename T> class SafeUnorderedMap : public SafeBase {
      * @param key The key to find.
      * @return An iterator to the found key and its value.
      */
-    const typename std::unordered_map<Key, T, SafeHash>::iterator find(const Key& key) {
+    const typename boost::unordered_flat_map<Key, T, SafeHash>::iterator find(const Key& key) {
       auto it = this->value_.find(key);
       if (it != this->value_.end()) this->copy_.try_emplace((*it).first, std::in_place, (*it).second);
       return it;
@@ -73,7 +73,7 @@ template <typename Key, typename T> class SafeUnorderedMap : public SafeBase {
      * @param key The key to find.
      * @return An iterator to the found key and its value.
      */
-    typename std::unordered_map<Key, T, SafeHash>::const_iterator find(const Key& key) const {
+    typename boost::unordered_flat_map<Key, T, SafeHash>::const_iterator find(const Key& key) const {
       return this->value_.find(key);
     }
 
@@ -85,7 +85,7 @@ template <typename Key, typename T> class SafeUnorderedMap : public SafeBase {
     inline bool contains(const Key &key) const { return this->value_.contains(key); }
 
     /// Get an iterator to the start of the original map value.
-    inline const typename std::unordered_map<Key, T>::iterator begin() noexcept {
+    inline const typename boost::unordered_flat_map<Key, T>::iterator begin() noexcept {
       // begin() points to *the* first element (if it exists), so a copy is required
       auto itValue = this->value_.find((*this->value_.begin()).first);
       if (itValue != this->value_.end()) {
@@ -95,16 +95,16 @@ template <typename Key, typename T> class SafeUnorderedMap : public SafeBase {
     }
 
     /// Get an iterator to the end of the original map value.
-    inline const typename std::unordered_map<Key, T>::iterator end() noexcept {
+    inline const typename boost::unordered_flat_map<Key, T>::iterator end() noexcept {
       // end() points to *past* the last element (not *the* last one), so no copy is required
       markAsUsed(); return this->value_.end();
     }
 
     /// Get a const iterator to the start of the original map value.
-    inline typename std::unordered_map<Key, T>::const_iterator cbegin() const noexcept { return this->value_.cbegin(); }
+    inline typename boost::unordered_flat_map<Key, T>::const_iterator cbegin() const noexcept { return this->value_.cbegin(); }
 
     /// Get a const iterator to the end of the original map value.
-    inline typename std::unordered_map<Key, T>::const_iterator cend() const noexcept { return this->value_.cend(); }
+    inline typename boost::unordered_flat_map<Key, T>::const_iterator cend() const noexcept { return this->value_.cend(); }
 
     /**
      * Check if the map is empty (has no values).
@@ -133,8 +133,8 @@ template <typename Key, typename T> class SafeUnorderedMap : public SafeBase {
      * @return A pair consisting of an iterator to the inserted value and a
      *         boolean indicating whether the insertion was successful.
      */
-    std::pair<typename std::unordered_map<Key, T, SafeHash>::const_iterator, bool> insert(
-      const typename std::unordered_map<Key, T, SafeHash>::value_type& value
+    std::pair<typename boost::unordered_flat_map<Key, T, SafeHash>::const_iterator, bool> insert(
+      const typename boost::unordered_flat_map<Key, T, SafeHash>::value_type& value
     ) {
       auto ret = this->value_.insert(value);
       // Only register as changed if insert was successful.
@@ -153,8 +153,8 @@ template <typename Key, typename T> class SafeUnorderedMap : public SafeBase {
      * @return A pair consisting of an iterator to the inserted value and a
      *         boolean indicating whether the insertion was successful.
      */
-    std::pair<typename std::unordered_map<Key, T, SafeHash>::const_iterator, bool> insert(
-      typename std::unordered_map<Key, T, SafeHash>::value_type&& value
+    std::pair<typename boost::unordered_flat_map<Key, T, SafeHash>::const_iterator, bool> insert(
+      typename boost::unordered_flat_map<Key, T, SafeHash>::value_type&& value
     ) {
       auto ret = this->value_.insert(std::move(value));
       // Only register as changed if insert was successful.
@@ -167,7 +167,7 @@ template <typename Key, typename T> class SafeUnorderedMap : public SafeBase {
     }
 
     template <typename P> requires std::is_same_v<P, std::pair<Key, T>>
-    std::pair<typename std::unordered_map<Key, T, SafeHash>::const_iterator, bool> insert(P&& value) {
+    std::pair<typename boost::unordered_flat_map<Key, T, SafeHash>::const_iterator, bool> insert(P&& value) {
       auto ret = this->value_.insert(std::move(value));
       // Only register as changed if insert was successful.
       if (ret.second) {
@@ -185,9 +185,9 @@ template <typename Key, typename T> class SafeUnorderedMap : public SafeBase {
      * @param value The value to insert.
      * @return An iterator to the inserted value.
      */
-    typename std::unordered_map<Key, T, SafeHash>::const_iterator insert(
-      typename std::unordered_map<Key, T, SafeHash>::const_iterator hint,
-      const typename std::unordered_map<Key, T, SafeHash>::value_type& value
+    typename boost::unordered_flat_map<Key, T, SafeHash>::const_iterator insert(
+      typename boost::unordered_flat_map<Key, T, SafeHash>::const_iterator hint,
+      const typename boost::unordered_flat_map<Key, T, SafeHash>::value_type& value
     ) {
       auto ret = this->value_.insert(hint, value);
       // Only register as changed if insert was successful.
@@ -206,9 +206,9 @@ template <typename Key, typename T> class SafeUnorderedMap : public SafeBase {
      * @param value The value to insert.
      * @return An iterator to the inserted value.
      */
-    typename std::unordered_map<Key, T, SafeHash>::const_iterator insert(
-      typename std::unordered_map<Key, T, SafeHash>::const_iterator hint,
-      typename std::unordered_map<Key, T, SafeHash>::value_type&& value
+    typename boost::unordered_flat_map<Key, T, SafeHash>::const_iterator insert(
+      typename boost::unordered_flat_map<Key, T, SafeHash>::const_iterator hint,
+      typename boost::unordered_flat_map<Key, T, SafeHash>::value_type&& value
     ) {
       auto ret = this->value_.insert(hint, std::move(value));
       // Only register as changed if insert was successful.
@@ -219,8 +219,8 @@ template <typename Key, typename T> class SafeUnorderedMap : public SafeBase {
       }
       return ret;
     }
-    template <class P> typename std::unordered_map<Key, T, SafeHash>::const_iterator insert(
-      typename std::unordered_map<Key, T, SafeHash>::const_iterator hint, P&& value
+    template <class P> typename boost::unordered_flat_map<Key, T, SafeHash>::const_iterator insert(
+      typename boost::unordered_flat_map<Key, T, SafeHash>::const_iterator hint, P&& value
     ) {
       auto ret = this->value_.insert(hint, std::move(value));
       // Only register as changed if insert was successful.
@@ -258,7 +258,7 @@ template <typename Key, typename T> class SafeUnorderedMap : public SafeBase {
      * @param ilist The list of values to insert.
      */
     void insert(std::initializer_list<
-      typename std::unordered_map<Key, T, SafeHash>::value_type
+      typename boost::unordered_flat_map<Key, T, SafeHash>::value_type
     > ilist) {
       for (const std::pair<Key, T>& item : ilist) {
         auto valueIt = this->value_.find(item.first);
@@ -279,11 +279,11 @@ template <typename Key, typename T> class SafeUnorderedMap : public SafeBase {
      * @return A pair consisting of an iterator to the inserted value and a
      *         boolean indicating whether the insertion was successful.
      */
-    typename std::unordered_map<Key, T, SafeHash>::insert_return_type
-    insert(typename std::unordered_map<Key, T, SafeHash>::node_type&& nh) {
+    std::pair<typename boost::unordered_flat_map<Key, T, SafeHash>::iterator, bool>
+    insert(typename boost::unordered_flat_map<Key, T, SafeHash>::init_type&& nh) {
       // Since node will be moved we can't rely on insert return as it'll be empty,
       // so we have to predict if insert will fail or not
-      if (!this->value_.contains(nh.key())) { markAsUsed(); this->copy_.try_emplace(nh.key(), std::nullopt); }
+      if (!this->value_.contains(nh.first)) { markAsUsed(); this->copy_.try_emplace(nh.first, std::nullopt); }
       return this->value_.insert(std::move(nh));
     }
 
@@ -293,13 +293,13 @@ template <typename Key, typename T> class SafeUnorderedMap : public SafeBase {
      * @param hint The hint to use.
      * @return An iterator to the inserted value.
      */
-    typename std::unordered_map<Key, T, SafeHash>::const_iterator insert(
-      typename std::unordered_map<Key, T, SafeHash>::const_iterator hint,
-      typename std::unordered_map<Key, T, SafeHash>::node_type&& nh
+    typename boost::unordered_flat_map<Key, T, SafeHash>::const_iterator insert(
+      typename boost::unordered_flat_map<Key, T, SafeHash>::const_iterator hint,
+      typename boost::unordered_flat_map<Key, T, SafeHash>::init_type&& nh
     ) {
       // Since node will be moved we can't rely on insert return as it'll be empty,
       // so we have to predict if insert will fail or not
-      if (!this->value_.contains(nh.key())) { markAsUsed(); this->copy_.try_emplace(nh.key(), std::nullopt); }
+      if (!this->value_.contains(nh.first)) { markAsUsed(); this->copy_.try_emplace(nh.first, std::nullopt); }
       return this->value_.insert(hint, std::move(nh));
     }
 
@@ -310,7 +310,7 @@ template <typename Key, typename T> class SafeUnorderedMap : public SafeBase {
      * @return A pair consisting of an iterator to the inserted value and a
      *         boolean indicating whether the insertion was successful.
      */
-    std::pair<typename std::unordered_map<Key, T, SafeHash>::const_iterator, bool>
+    std::pair<typename boost::unordered_flat_map<Key, T, SafeHash>::const_iterator, bool>
     insert_or_assign(const Key& k, const T& obj) {
       auto valueIt = this->value_.find(k);
       if (valueIt != this->value_.end()) {
@@ -328,7 +328,7 @@ template <typename Key, typename T> class SafeUnorderedMap : public SafeBase {
      * @return A pair consisting of an iterator to the inserted value and a
      *         boolean indicating whether the insertion was successful.
      */
-    std::pair<typename std::unordered_map<Key, T, SafeHash>::const_iterator, bool> insert_or_assign(Key&& k, T&& obj) {
+    std::pair<typename boost::unordered_flat_map<Key, T, SafeHash>::const_iterator, bool> insert_or_assign(Key&& k, T&& obj) {
       auto valueIt = this->value_.find(k);
       if (valueIt != this->value_.end()) {
         this->copy_.try_emplace(k, std::in_place, valueIt->second);
@@ -346,8 +346,8 @@ template <typename Key, typename T> class SafeUnorderedMap : public SafeBase {
      * @param obj The value to insert.
      * @return An iterator to the inserted value.
      */
-    typename std::unordered_map<Key, T, SafeHash>::const_iterator insert_or_assign(
-      typename std::unordered_map<Key, T, SafeHash>::const_iterator hint,
+    typename boost::unordered_flat_map<Key, T, SafeHash>::const_iterator insert_or_assign(
+      typename boost::unordered_flat_map<Key, T, SafeHash>::const_iterator hint,
       const Key& k, const T& obj
     ) {
       auto valueIt = this->value_.find(k);
@@ -367,8 +367,8 @@ template <typename Key, typename T> class SafeUnorderedMap : public SafeBase {
      * @param obj The value to insert.
      * @return An iterator to the inserted value.
      */
-    typename std::unordered_map<Key, T, SafeHash>::const_iterator insert_or_assign(
-      typename std::unordered_map<Key, T, SafeHash>::const_iterator hint,
+    typename boost::unordered_flat_map<Key, T, SafeHash>::const_iterator insert_or_assign(
+      typename boost::unordered_flat_map<Key, T, SafeHash>::const_iterator hint,
       Key&& k, T&& obj
     ) {
       auto valueIt = this->value_.find(k);
@@ -387,7 +387,7 @@ template <typename Key, typename T> class SafeUnorderedMap : public SafeBase {
      *         boolean indicating whether the insertion was successful.
      */
     template <typename... Args> std::pair<
-      typename std::unordered_map<Key, T, SafeHash>::const_iterator, bool
+      typename boost::unordered_flat_map<Key, T, SafeHash>::const_iterator, bool
     > emplace(Args&&... args) {
       // emplace is the same as insert, it doesn`t replace the value if it already exists.
       // So as there is no "copy" is the
@@ -406,8 +406,8 @@ template <typename Key, typename T> class SafeUnorderedMap : public SafeBase {
      * @param args The arguments to build the value for insertion.
      * @return An iterator to the inserted value.
      */
-    template <typename... Args> typename std::unordered_map<Key, T, SafeHash>::const_iterator emplace_hint(
-      typename std::unordered_map<Key, T, SafeHash>::const_iterator hint, Args&&... args
+    template <typename... Args> typename boost::unordered_flat_map<Key, T, SafeHash>::const_iterator emplace_hint(
+      typename boost::unordered_flat_map<Key, T, SafeHash>::const_iterator hint, Args&&... args
     ) {
       auto ret = this->value_.emplace_hint(hint, std::forward<Args>(args)...);
       if (ret != this->value_.cend()) {
@@ -425,7 +425,7 @@ template <typename Key, typename T> class SafeUnorderedMap : public SafeBase {
      * @return A pair consisting of an iterator to the emplaced value and a
      *         boolean indicating whether the emplace was successful.
      */
-    template <typename... Args> std::pair<typename std::unordered_map<Key, T, SafeHash>::const_iterator, bool>
+    template <typename... Args> std::pair<typename boost::unordered_flat_map<Key, T, SafeHash>::const_iterator, bool>
     try_emplace(const Key& key, Args&&... args) {
       auto ret = this->value_.try_emplace(key, std::forward<Args>(args)...);
       if (ret.second) {
@@ -443,7 +443,7 @@ template <typename Key, typename T> class SafeUnorderedMap : public SafeBase {
      * @return A pair consisting of an iterator to the emplaced value and a
      *         boolean indicating whether the emplace was successful.
      */
-    template <typename... Args> std::pair<typename std::unordered_map<Key, T, SafeHash>::const_iterator, bool>
+    template <typename... Args> std::pair<typename boost::unordered_flat_map<Key, T, SafeHash>::const_iterator, bool>
     try_emplace(Key&& key, Args&&... args) {
       auto ret = this->value_.try_emplace(std::move(key), std::forward<Args>(args)...);
       if (ret.second) {
@@ -461,8 +461,8 @@ template <typename Key, typename T> class SafeUnorderedMap : public SafeBase {
      * @param args The argument to build the value for emplace (not variadic! it's just one value).
      * @return An iterator to the emplaced value.
      */
-    template <typename... Args> typename std::unordered_map<Key, T, SafeHash>::const_iterator
-    try_emplace(typename std::unordered_map<Key, T, SafeHash>::const_iterator hint, const Key& key, Args&&... args) {
+    template <typename... Args> typename boost::unordered_flat_map<Key, T, SafeHash>::const_iterator
+    try_emplace(typename boost::unordered_flat_map<Key, T, SafeHash>::const_iterator hint, const Key& key, Args&&... args) {
       // Only copy the value if key already exists (this overload doesn't return
       // a pair so we don't know if insertion was successful)
       if (!this->value_.contains(key)) { markAsUsed(); this->copy_.try_emplace(key, std::nullopt); }
@@ -476,8 +476,8 @@ template <typename Key, typename T> class SafeUnorderedMap : public SafeBase {
      * @param args The argument to build the value for emplace (not variadic! it's just one value).
      * @return An iterator to the emplaced value.
      */
-    template <typename... Args> typename std::unordered_map<Key, T, SafeHash>::const_iterator
-    try_emplace(typename std::unordered_map<Key, T, SafeHash>::const_iterator hint, Key&& key, Args&&... args) {
+    template <typename... Args> typename boost::unordered_flat_map<Key, T, SafeHash>::const_iterator
+    try_emplace(typename boost::unordered_flat_map<Key, T, SafeHash>::const_iterator hint, Key&& key, Args&&... args) {
       // Only copy the value if key already exists (this overload doesn't return
       // a pair so we don't know if insertion was successful)
       if (!this->value_.contains(key)) { markAsUsed(); this->copy_.try_emplace(key, std::nullopt); }
@@ -489,8 +489,8 @@ template <typename Key, typename T> class SafeUnorderedMap : public SafeBase {
      * @param pos The position of the value to erase.
      * @return An iterator to the next value.
      */
-    typename std::unordered_map<Key, T, SafeHash>::const_iterator erase(
-      typename std::unordered_map<Key, T, SafeHash>::const_iterator pos
+    typename boost::unordered_flat_map<Key, T, SafeHash>::const_iterator erase(
+      typename boost::unordered_flat_map<Key, T, SafeHash>::const_iterator pos
     ) {
       auto itValue = this->value_.find((*pos).first);
       if (itValue != this->value_.end()) {
@@ -507,9 +507,9 @@ template <typename Key, typename T> class SafeUnorderedMap : public SafeBase {
      * @param last The last position to erase.
      * @return An iterator to the next value.
      */
-    typename std::unordered_map<Key, T, SafeHash>::const_iterator erase(
-      typename std::unordered_map<Key, T, SafeHash>::const_iterator first,
-      typename std::unordered_map<Key, T, SafeHash>::const_iterator last
+    typename boost::unordered_flat_map<Key, T, SafeHash>::const_iterator erase(
+      typename boost::unordered_flat_map<Key, T, SafeHash>::const_iterator first,
+      typename boost::unordered_flat_map<Key, T, SafeHash>::const_iterator last
     ) {
       for (auto it = first; it != last; ++it) {
         auto itValue = this->value_.find((*it).first);
@@ -527,7 +527,7 @@ template <typename Key, typename T> class SafeUnorderedMap : public SafeBase {
      * @param key The key of the value to erase.
      * @return The number of values erased.
      */
-    typename std::unordered_map<Key, T, SafeHash>::size_type erase(const Key& key) {
+    typename boost::unordered_flat_map<Key, T, SafeHash>::size_type erase(const Key& key) {
       auto itValue = this->value_.find(key);
       if (itValue != this->value_.end()) {
         this->copy_.try_emplace((*itValue).first, std::in_place, (*itValue).second);
@@ -535,38 +535,6 @@ template <typename Key, typename T> class SafeUnorderedMap : public SafeBase {
         this->copy_.try_emplace((*itValue).first, std::nullopt);
       }
       markAsUsed(); return this->value_.erase(key);
-    }
-
-    /**
-     * Extract a node (key+value) from the map, using an iterator.
-     * @param pos The position of the node to extract.
-     * @return The extracted node handle.
-     */
-    inline typename std::unordered_map<Key, T, SafeHash>::node_type extract(
-      typename std::unordered_map<Key, T, SafeHash>::const_iterator pos
-    ) {
-      auto itValue = this->value_.find((*pos).first);
-      if (itValue != this->value_.cend()) {
-        this->copy_.try_emplace((*itValue).first, std::in_place, (*itValue).second);
-      } else {
-        this->copy_.try_emplace((*itValue).first, std::nullopt);
-      }
-      markAsUsed(); return this->value_.extract(pos);
-    }
-
-    /**
-     * Extract a node (key+value) from the map, using a key.
-     * @param k The key of the node to extract.
-     * @return The extracted node handle.
-     */
-    inline typename std::unordered_map<Key, T, SafeHash>::node_type extract(const Key& k) {
-      auto itValue = this->value_.find(k);
-      if (itValue != this->value_.cend()) {
-        this->copy_.try_emplace((*itValue).first, std::in_place, (*itValue).second);
-      } else {
-        this->copy_.try_emplace((*itValue).first, std::nullopt);
-      }
-      markAsUsed(); return this->value_.extract(k);
     }
 
     ///@{
@@ -612,7 +580,7 @@ template <typename Key, typename T> class SafeUnorderedMap : public SafeBase {
 
     ///@{
     /** Equality operator. Checks only the CURRENT value. */
-    inline bool operator==(const std::unordered_map<Key, T, SafeHash>& other) { return this->value_ == other; }
+    inline bool operator==(const boost::unordered_flat_map<Key, T, SafeHash>& other) { return this->value_ == other; }
     inline bool operator==(const SafeUnorderedMap& other) { return this->value_ == other.get(); }
     ///@}
 
