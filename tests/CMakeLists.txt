@@ -55,6 +55,7 @@ if (BUILD_BENCHMARK)
   message(STATUS "Building benchmark tests")
   list(APPEND TESTS_SOURCES
     ${CMAKE_SOURCE_DIR}/tests/benchmark/erc20.cpp
+    ${CMAKE_SOURCE_DIR}/tests/benchmark/uniswapv2.cpp
   )
 endif()
 
