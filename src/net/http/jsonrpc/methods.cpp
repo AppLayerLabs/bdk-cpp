@@ -69,6 +69,7 @@ static json getBlockJson(const FinalizedBlock *block, bool includeTransactions) 
       txJson["nonce"] = Hex::fromBytes(Utils::uintToBytes(tx.getNonce()),true).forRPC();
       txJson["hash"] = tx.hash().hex(true);
       txJson["to"] = tx.getTo().hex(true);
+      txJson["from"] = tx.getFrom().hex(true);
       txJson["gas"] = Hex::fromBytes(Utils::uintToBytes(tx.getGasLimit()),true).forRPC();
       txJson["value"] = Hex::fromBytes(Utils::uintToBytes(tx.getValue()),true).forRPC();
       txJson["input"] = Hex::fromBytes(tx.getData(),true).forRPC();
