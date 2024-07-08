@@ -1,3 +1,10 @@
+/*
+Copyright (c) [2023-2024] [AppLayer Developers]
+
+This software is distributed under the MIT License.
+See the LICENSE.txt file in the project root for more information.
+*/
+
 #ifndef CONTRACT_HOST_H
 #define CONTRACT_HOST_H
 
@@ -113,6 +120,11 @@ class ContractHost : public evmc::Host {
 
 
     evmc::Result processBDKPrecompile(const evmc_message& msg) const;
+
+  Address computeNewAccountAddress(const Address& fromAddress,
+                                   const uint64_t& nonce,
+                                   const Hash& salt,
+                                   const BytesArrView& init_code);
 
   public:
     ContractHost(evmc_vm* vm,
