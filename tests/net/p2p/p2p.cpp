@@ -311,7 +311,8 @@ namespace TP2P {
         genesisTimestamp,
         genesisPrivKey,
         genesisBalances,
-        genesisValidators
+        genesisValidators,
+        IndexingMode::RPC
       );
 
       P2P::ManagerDiscovery p2pDiscoveryNode(LOCALHOST, discoveryOptions);

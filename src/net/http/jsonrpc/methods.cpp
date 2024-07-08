@@ -493,4 +493,96 @@ json eth_getTransactionReceipt(const json& request, const Storage& storage, cons
   return json::value_t::null;
 }
 
+json eth_getUncleByBlockHashAndIndex(const json& request, const Storage& storage) {
+  return json::value_t::null;
+}
+
+json txpool_content(const json& request, const Storage& storage, const State& state) {
+  // TODO: forbid?
+  json result;
+  result["queued"] = json::array();
+  json& pending = result["pending"];
+
+  pending = json::array();
+
+  state.forEachPendingTx([&pending, &storage] (const TxBlock& tx) {
+    json& txJson = pending[tx.getFrom().hex(true)][tx.getNonce().str()];
+
+    txJson["blockHash"] = json::value_t::null;
+    txJson["blockNumber"] = json::value_t::null;
+    txJson["from"] = tx.getFrom().hex(true);
+    txJson["to"] = tx.getTo().hex(true);
+    txJson["gasUsed"] = storage.getGasUsed(tx.hash())
+    .transform([] (const uint256_t& gasUsed) { return Utils::uint256ToBytes(gasUsed); })
+    .transform([] (const auto& bytes) { return Hex::fromBytes(bytes).forRPC(); })
+    .transform([] (std::string_view str) { return json(str); })
+    .value_or(json::value_t::null);
+    txJson["gasPrice"] = Hex::fromBytes(Utils::uintToBytes(tx.getMaxFeePerGas()),true).forRPC();
+    txJson["getMaxFeePerGas"] = Hex::fromBytes(Utils::uintToBytes(tx.getMaxFeePerGas()),true).forRPC();
+    txJson["chainId"] = Hex::fromBytes(Utils::uintToBytes(tx.getChainId()),true).forRPC(); 
+    txJson["input"] = Hex::fromBytes(tx.getData(), true).forRPC();
+    txJson["nonce"] = Hex::fromBytes(Utils::uintToBytes(tx.getNonce()), true).forRPC();
+    txJson["transactionIndex"] = json::value_t::null;
+    txJson["type"] = "0x0"; // Legacy Transactions ONLY. TODO: change this to 0x2 when we support EIP-1559
+    txJson["v"] = Hex::fromBytes(Utils::uintToBytes(tx.getV()), true).forRPC();
+    txJson["r"] = Hex::fromBytes(Utils::uintToBytes(tx.getR()), true).forRPC();
+    txJson["s"] = Hex::fromBytes(Utils::uintToBytes(tx.getS()), true).forRPC();
+    // TODO: add accesslist from EIP-2929
+  });
+
+  return result;
+}
+
+json debug_traceBlockByNumber(const json& request, const Storage& storage) {
+  json res = json::array();
+  auto [blockNumber, traceJson] = parseAllParams<uint64_t, json>(request);
+
+  if (!traceJson.contains("tracer"))
+    throw Error(-32000, "trace type missing");
+
+  if (traceJson["tracer"] != "callTracer")
+    throw Error(-32000, std::string("trace mode \"") + traceJson["tracer"].get<std::string>() + "\" not supported");
+
+  const auto block = storage.getBlock(blockNumber);
+
+  if (!block)
+    throw Error(-32000, std::string("block ") + std::to_string(blockNumber) + " not found");
+
+  for (const auto& tx : block->getTxs()) {
+    json txTrace;
+
+    auto callTrace = storage.getCallTrace(tx.hash());
+
+    if (!callTrace)
+      continue;
+
+    txTrace["txHash"] = tx.hash().hex(true);
+    txTrace["result"] = callTrace->toJson();
+
+    res.push_back(std::move(txTrace));
+  }
+
+  return res;
+}
+
+json debug_traceTransaction(const json& request, const Storage& storage) {
+  json res;
+  auto [txHash, traceJson] = parseAllParams<Hash, json>(request);
+
+  if (!traceJson.contains("tracer"))
+    throw Error(-32000, "trace mode missing");
+
+  if (traceJson["tracer"] != "callTracer")
+    throw Error(-32000, std::string("trace mode \"") + traceJson["tracer"].get<std::string>() + "\" not supported");
+
+  std::optional<trace::Call> callTrace = storage.getCallTrace(txHash);
+
+  if (!callTrace)
+    return json::value_t::null;
+
+  res = callTrace->toJson();
+
+  return res;
+}
+
 } // namespace jsonrpc

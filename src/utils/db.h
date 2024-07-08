@@ -34,6 +34,7 @@ namespace DBPrefix {
   const Bytes txToAddr =          { 0x00, 0x0A }; ///< "txToAddr" = "000A"
   const Bytes tagToBlock =        { 0x00, 0x0B }; ///< "tagToBlock" = "000B"
   const Bytes txToGasUsed =       { 0x00, 0x0C }; ///< "tagToBlock" = "000C"
+  const Bytes txToCallTrace =     { 0x00, 0x0D }; ///< "tagToBlock" = "000C"
 };
 
 /// Struct for a database connection/endpoint.

@@ -17,6 +17,7 @@ See the LICENSE.txt file in the project root for more information.
 #include "hex.h"
 #include "bytes/range.h"
 #include "bytes/initializer.h"
+#include "zpp_bits.h"
 
 // TODO: It is possible to implement **fast** operators for some types,
 // such as Address, Functor and Hash. Taking advantage that memory located within
@@ -40,6 +41,9 @@ template <unsigned N> class FixedBytes {
     BytesArr<N> data_;
 
   public:
+    friend zpp::bits::access;
+    using serialize = zpp::bits::members<1>;
+
     constexpr FixedBytes() : data_() {};
 
     constexpr FixedBytes(std::initializer_list<Byte> initList) {

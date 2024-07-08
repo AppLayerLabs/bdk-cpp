@@ -118,6 +118,14 @@ json eth_getTransactionByBlockNumberAndIndex(const json& request, const Storage&
 
 json eth_getTransactionReceipt(const json& request, const Storage& storage, const State& state);
 
+json eth_getUncleByBlockHashAndIndex(const json& request, const Storage& storage);
+
+json txpool_content(const json& request, const Storage& storage, const State& state);
+
+json debug_traceBlockByNumber(const json& request, const Storage& storage);
+
+json debug_traceTransaction(const json& request, const Storage& storage);
+
 } // namespace jsonrpc
 
 #endif // JSONRPC_METHODS_H

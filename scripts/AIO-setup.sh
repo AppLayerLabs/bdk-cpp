@@ -163,7 +163,8 @@ if [ "$DEPLOY" = true ]; then
       "balances": [
         { "address": "0x00dead00665771855a34155f5e7405489df2c3c6", "balance": "100000000000000000000000000000000000000000" }
       ]
-    }
+    },
+    "indexingMode" : "RPC"
   }' >> local_testnet_discovery/discoveryNode/options.json
 
   # Create the JSON file for the Validators
@@ -204,7 +205,8 @@ if [ "$DEPLOY" = true ]; then
         "address" : "127.0.0.1",
         "port" : 8080
       }
-    ]
+    ],
+    "indexingMode" : "RPC"
   }' >> local_testnet_validator1/blockchain/options.json
 
   echo '{
@@ -244,7 +246,8 @@ if [ "$DEPLOY" = true ]; then
         "address" : "127.0.0.1",
         "port" : 8080
       }
-    ]
+    ],
+    "indexingMode" : "RPC"
   }' >> local_testnet_validator2/blockchain/options.json
 
   echo '{
@@ -284,7 +287,8 @@ if [ "$DEPLOY" = true ]; then
         "address" : "127.0.0.1",
         "port" : 8080
       }
-    ]
+    ],
+    "indexingMode" : "RPC"
   }' >> local_testnet_validator3/blockchain/options.json
 
   echo '{
@@ -324,7 +328,8 @@ if [ "$DEPLOY" = true ]; then
         "address" : "127.0.0.1",
         "port" : 8080
       }
-    ]
+    ],
+    "indexingMode" : "RPC"
   }' >> local_testnet_validator4/blockchain/options.json
 
   echo '{
@@ -364,7 +369,8 @@ if [ "$DEPLOY" = true ]; then
         "address" : "127.0.0.1",
         "port" : 8080
       }
-    ]
+    ],
+    "indexingMode" : "RPC"
   }' >> local_testnet_validator5/blockchain/options.json
 
   # Create the json file for the Normal Nodes
@@ -404,7 +410,8 @@ if [ "$DEPLOY" = true ]; then
         "address" : "127.0.0.1",
         "port" : 8080
       }
-    ]
+    ],
+    "indexingMode" : "RPC"
   }' >> local_testnet_normal1/blockchain/options.json
 
   echo '{
@@ -443,7 +450,8 @@ if [ "$DEPLOY" = true ]; then
         "address" : "127.0.0.1",
         "port" : 8080
       }
-    ]
+    ],
+    "indexingMode" : "RPC"
   }' >> local_testnet_normal2/blockchain/options.json
 
   echo '{
@@ -482,7 +490,8 @@ if [ "$DEPLOY" = true ]; then
         "address" : "127.0.0.1",
         "port" : 8080
       }
-    ]
+    ],
+    "indexingMode" : "RPC"
   }' >> local_testnet_normal3/blockchain/options.json
 
   echo '{
@@ -521,7 +530,8 @@ if [ "$DEPLOY" = true ]; then
         "address" : "127.0.0.1",
         "port" : 8080
       }
-    ]
+    ],
+    "indexingMode" : "RPC"
   }' >> local_testnet_normal4/blockchain/options.json
 
   echo '{
@@ -560,7 +570,8 @@ if [ "$DEPLOY" = true ]; then
         "address" : "127.0.0.1",
         "port" : 8080
       }
-    ]
+    ],
+    "indexingMode" : "RPC"
   }' >> local_testnet_normal5/blockchain/options.json
 
   echo '{
@@ -599,7 +610,8 @@ if [ "$DEPLOY" = true ]; then
         "address" : "127.0.0.1",
         "port" : 8080
       }
-    ]
+    ],
+    "indexingMode" : "RPC"
   }' >> local_testnet_normal6/blockchain/options.json
 
   echo '{
@@ -638,7 +650,8 @@ if [ "$DEPLOY" = true ]; then
         "address" : "127.0.0.1",
         "port" : 8080
       }
-    ]
+    ],
+    "indexingMode" : "RPC"
   }' >> local_testnet_normal5/blockchain/options.json
 
   echo '{
@@ -677,7 +690,8 @@ if [ "$DEPLOY" = true ]; then
         "address" : "127.0.0.1",
         "port" : 8080
       }
-    ]
+    ],
+    "indexingMode" : "RPC"
   }' >> local_testnet_normal6/blockchain/options.json
 
   # Launch the Discovery Node through tmux

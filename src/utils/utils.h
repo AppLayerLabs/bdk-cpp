@@ -20,6 +20,7 @@ See the LICENSE.txt file in the project root for more information.
 #include <cxxabi.h>
 #include <variant>
 #include <evmc/evmc.hpp>
+#include "zpp_bits.h"
 
 #include <boost/lexical_cast.hpp>
 #include <boost/multiprecision/cpp_dec_float.hpp>

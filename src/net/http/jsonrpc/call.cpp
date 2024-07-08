@@ -74,6 +74,14 @@ json call(const json& request, State& state, const Storage& storage,
       result = jsonrpc::eth_getTransactionByBlockNumberAndIndex(request, storage);
     else if (method == "eth_getTransactionReceipt")
       result = jsonrpc::eth_getTransactionReceipt(request, storage, state);
+    else if (method == "eth_getUncleByBlockHashAndIndex")
+      result = jsonrpc::eth_getUncleByBlockHashAndIndex(request, storage);
+    else if (method == "txpool_content")
+      result = jsonrpc::txpool_content(request, storage, state);
+    else if (method == "debug_traceBlockByNumber")
+      result = jsonrpc::debug_traceBlockByNumber(request, storage);
+    else if (method == "debug_traceTransaction")
+      result = jsonrpc::debug_traceTransaction(request, storage);
     else
       throw DynamicException("Method not found");
 

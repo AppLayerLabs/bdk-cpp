@@ -441,7 +441,8 @@ namespace TState {
           genesisTimestamp,
           genesisPrivKey,
           genesisBalances,
-          genesisValidators
+          genesisValidators,
+          IndexingMode::RPC
       );
       P2P::ManagerDiscovery p2pDiscovery(LOCALHOST, discoveryOptions);
 
@@ -668,7 +669,8 @@ namespace TState {
           genesisTimestamp,
           genesisPrivKey,
           genesisBalances,
-          genesisValidators
+          genesisValidators,
+          IndexingMode::RPC
       );
       P2P::ManagerDiscovery p2pDiscovery(LOCALHOST, discoveryOptions);
 
@@ -939,7 +941,8 @@ namespace TState {
           genesisTimestamp,
           genesisPrivKey,
           genesisBalances,
-          genesisValidators
+          genesisValidators,
+          IndexingMode::RPC
       );
       P2P::ManagerDiscovery p2pDiscovery(LOCALHOST, discoveryOptions);
 
@@ -1266,7 +1269,8 @@ namespace TState {
           genesisTimestamp,
           genesisPrivKey,
           genesisBalances,
-          genesisValidators
+          genesisValidators,
+          IndexingMode::RPC
       );
       P2P::ManagerDiscovery p2pDiscovery(LOCALHOST, discoveryOptions);
 

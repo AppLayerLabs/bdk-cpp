@@ -453,7 +453,7 @@ Bytes State::ethCall(const evmc_message& callInfo) {
     txContext.blob_hashes_count = 0;
     // As we are simulating, the randomSeed can be anything
     Hash randomSeed = Hash::random();
-    ContractHost host(
+    return ContractHost(
       this->vm_,
       this->dumpManager_,
       this->eventManager_,
@@ -467,8 +467,7 @@ Bytes State::ethCall(const evmc_message& callInfo) {
       0,
       Hash(),
       leftOverGas
-    );
-    return host.ethCallView(callInfo, acc->contractType);
+    ).ethCallView(callInfo, acc->contractType);
   } else {
     return {};
   }

@@ -87,6 +87,8 @@ ContractHost::~ContractHost() {
       }
     }
   }
+
+  safelyPersistCallTrace();
 }
 
 Address ContractHost::deriveContractAddress(const uint64_t& nonce, const Address& address) {
@@ -132,6 +134,55 @@ void ContractHost::createEVMContract(const evmc_message& msg, const Address& con
   this->registerNewEVMContract(contractAddr, result.output_data, result.output_size);
 }
 
+void ContractHost::safelyTraceFunctionStart(const evmc_message& msg) noexcept {
+  if (storage_.getIndexingMode() != IndexingMode::RPC_TRACE || !txHash_)
+    return;
+
+  try {
+    callTracer_.traceFunctionStart(trace::Call(msg));
+  } catch (const std::exception& err) {
+    LOGERROR(std::string("Fail to trace call start: ") + err.what());
+  }
+}
+
+void ContractHost::safelyTraceFunctionEnd(bytes::View output, int64_t gasUsed) noexcept {
+  if (storage_.getIndexingMode() != IndexingMode::RPC_TRACE || !txHash_)
+    return;
+
+  try {
+    callTracer_.traceFunctionEnd(output, gasUsed);
+  } catch (const std::exception& err) {
+    LOGERROR(std::string("Fail to trace call end: ") + err.what());
+  }
+}
+
+void ContractHost::safelyTraceFunctionError(std::string error, int64_t gasUsed) noexcept {
+  if (storage_.getIndexingMode() != IndexingMode::RPC_TRACE || !txHash_)
+    return;
+
+  try {
+    callTracer_.traceFunctionError(std::move(error), gasUsed);
+  } catch (const std::exception& err) {
+    LOGERROR(std::string("Fail to trace call error: ") + err.what());
+  }
+}
+
+void ContractHost::safelyPersistCallTrace() noexcept {
+  if (storage_.getIndexingMode() != IndexingMode::RPC_TRACE || !txHash_ || !callTracer_.hasCalls())
+    return;
+
+  if (!callTracer_.isFinished()) {
+    LOGERROR("Function call was traced on its start but not on its end");
+    return;
+  }
+
+  try {
+    storage_.putCallTrace(txHash_, callTracer_.root());
+  } catch (const std::exception& err) {
+    LOGERROR(std::string("Fail to persist call trace: ") + err.what());
+  }
+}
+
 evmc::Result ContractHost::processBDKPrecompile(const evmc_message& msg) const {
   /**
   *  interface BDKPrecompile {
@@ -174,6 +225,8 @@ void ContractHost::execute(const evmc_message& msg, const ContractType& type) {
       }
       this->createEVMContract(msg, contractAddress);
     } else {
+      safelyTraceFunctionStart(msg);
+
       switch (type) {
         case ContractType::CPP: {
           auto contractIt = this->contracts_.find(to);
@@ -182,6 +235,11 @@ void ContractHost::execute(const evmc_message& msg, const ContractType& type) {
           }
           this->setContractVars(contractIt->second.get(), from, value);
           contractIt->second->ethCall(msg, this);
+
+          // TODO: gasUsed
+          // TODO: how to get the output from here?
+          safelyTraceFunctionEnd(bytes::View(), 1000);
+
           break;
         }
         case ContractType::EVM: {
@@ -189,12 +247,19 @@ void ContractHost::execute(const evmc_message& msg, const ContractType& type) {
           auto result = evmc::Result(evmc_execute(this->vm_, &this->get_interface(), this->to_context(),
                      evmc_revision::EVMC_LATEST_STABLE_REVISION, &msg,
                       this->accounts_[to]->code.data(), this->accounts_[to]->code.size()));
+          
+          const int64_t gasUsed = this->leftoverGas_ - result.gas_left; // TODO: gasUsed should be this or 21000?
+
           this->leftoverGas_ = result.gas_left; // gas_left is not linked with leftoverGas_, we need to link it.
+
           if (result.status_code) {
+            safelyTraceFunctionError(std::string("EVMC error code: " + std::to_string(result.status_code)), gasUsed);
             // Set the leftOverGas_ to the gas left after the execution
             throw DynamicException("Error when executing EVM contract, EVM status code: " +
               std::string(evmc_status_code_to_string(result.status_code)) + " bytes: " +
               Hex::fromBytes(Utils::cArrayToBytes(result.output_data, result.output_size)).get());
+          } else {
+            safelyTraceFunctionEnd(bytes::View(result.output_data, result.output_size), gasUsed);
           }
           break;
         }
@@ -397,6 +462,8 @@ bool ContractHost::selfdestruct(const evmc::address& addr, const evmc::address& 
 // EVM -> EVM calls don't need to use this->leftOverGas_ as the final
 // evmc::Result will have the gas left after the execution
 evmc::Result ContractHost::call(const evmc_message& msg) noexcept {
+  safelyTraceFunctionStart(msg);
+
   // Check against bdk static precompiles
   this->leftoverGas_ = msg.gas;
   if (msg.recipient == BDK_PRECOMPILE) {
@@ -416,11 +483,14 @@ evmc::Result ContractHost::call(const evmc_message& msg) noexcept {
         throw DynamicException("ContractHost call: contract not found");
       }
       this->setContractVars(contract.get(), Address(msg.sender), Utils::evmcUint256ToUint256(msg.value));
-      Bytes ret = contract->evmEthCall(msg, this);
-      return evmc::Result(EVMC_SUCCESS, this->leftoverGas_, 0, ret.data(), ret.size());
+      const Bytes ret = contract->evmEthCall(msg, this);
+      evmc::Result result(EVMC_SUCCESS, this->leftoverGas_, 0, ret.data(), ret.size());
+      safelyTraceFunctionEnd(bytes::View(result.output_data, result.output_size), 1000);
+      return result;
     } catch (std::exception& e) {
       this->evmcThrows_.emplace_back(e.what());
       this->evmcThrow_ = true;
+      safelyTraceFunctionError("EVMC PRECOMPILE FAILURE", 1000);
       return evmc::Result(EVMC_PRECOMPILE_FAILURE, this->leftoverGas_, 0, nullptr, 0);
     }
   }
@@ -430,6 +500,13 @@ evmc::Result ContractHost::call(const evmc_message& msg) noexcept {
   this->leftoverGas_ = result.gas_left; // gas_left is not linked with leftoverGas_, we need to link it.
   this->deduceGas(5000); // EVM contract call is 5000 gas
   result.gas_left = this->leftoverGas_; // We need to set the gas left to the leftoverGas_
+
+  if (result.status_code == EVMC_SUCCESS) {
+    safelyTraceFunctionEnd(bytes::View(result.output_data, result.output_size), 5000);
+  } else {
+    safelyTraceFunctionError(std::string("EVMC Error code: ") + std::to_string(result.status_code), 5000);
+  }
+
   return result;
 }
 

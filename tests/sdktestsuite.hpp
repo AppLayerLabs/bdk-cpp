@@ -184,7 +184,8 @@ class SDKTestSuite {
           genesisTimestamp,
           genesisSigner,
           genesisBalances,
-          genesisValidators
+          genesisValidators,
+          IndexingMode::RPC_TRACE
         );
       } else {
         options_ = std::make_unique<Options>(*options);

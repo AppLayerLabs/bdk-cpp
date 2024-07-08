@@ -41,7 +41,7 @@ struct TestBlockchainWrapper {
     options(options_),
     p2p(LOCALHOST, options, storage, state),
     db(std::get<0>(DumpManager::getBestStateDBPath(options))),
-    storage(p2p.getLogicalLocation(), options_),
+    storage(p2p.getLogicalLocation(), options),
     state(db, storage, p2p, std::get<1>(DumpManager::getBestStateDBPath(options)), options),
     http(state, storage, p2p, options),
     syncer(p2p, storage, state),
@@ -103,7 +103,8 @@ inline TestBlockchainWrapper initialize(const std::vector<Hash>& validatorPrivKe
         genesisTimestamp,
         genesisPrivKey,
         genesisBalances,
-        genesisValidators
+        genesisValidators,
+        IndexingMode::RPC_TRACE
       ));
   } else {
     return TestBlockchainWrapper(Options(
@@ -129,7 +130,8 @@ inline TestBlockchainWrapper initialize(const std::vector<Hash>& validatorPrivKe
       genesisPrivKey,
       genesisBalances,
       genesisValidators,
-      validatorKey
+      validatorKey,
+      IndexingMode::RPC
     ));
   }
 }

@@ -14,7 +14,7 @@
 #include "../core/storage.h"
 #include "contractstack.h"
 #include "contractmanager.h"
-
+#include "calltracer.h"
 
 // TODO: EVMC Static Mode Handling
 // TODO: Contract creating other contracts (EVM Factories)
@@ -83,6 +83,7 @@ class ContractHost : public evmc::Host {
     const Hash& blockHash_;
     int64_t& leftoverGas_; /// Reference to the leftover gas from the transaction.
                             /// The leftoverGas_ is a object given by the State
+    trace::CallTracer callTracer_;
 
     // Private as this is not available for contracts as it has safety checks
     void transfer(const Address& from, const Address& to, const uint256_t& value);
@@ -110,6 +111,14 @@ class ContractHost : public evmc::Host {
 
 
     evmc::Result processBDKPrecompile(const evmc_message& msg) const;
+
+    void safelyTraceFunctionStart(const evmc_message& msg) noexcept;
+
+    void safelyTraceFunctionEnd(bytes::View output, int64_t gasUsed) noexcept;
+
+    void safelyTraceFunctionError(std::string error, int64_t gasUsed) noexcept;
+
+    void safelyPersistCallTrace() noexcept;
 
   public:
     ContractHost(evmc_vm* vm,

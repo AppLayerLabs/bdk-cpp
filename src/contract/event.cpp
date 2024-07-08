@@ -21,7 +21,7 @@ Event::Event(const std::string& jsonstr) {
   this->anonymous_ = obj["anonymous"].get<bool>();
 }
 
-std::string Event::serialize() const {
+std::string Event::serializeToJson() const {
   json topicArr = json::array();
   for (const Hash& b : this->topics_) topicArr.push_back(b.hex(true).get());
   json obj = {
@@ -77,7 +77,7 @@ void EventManager::dump() {
       Utils::appendBytes(key, Utils::uint64ToBytes(e.getLogIndex()));
       Utils::appendBytes(key, e.getAddress().asBytes());
       // Serialize the value to a JSON string and insert into the batch
-      batchedOperations.push_back(key, Utils::stringToBytes(e.serialize()), DBPrefix::events);
+      batchedOperations.push_back(key, Utils::stringToBytes(e.serializeToJson()), DBPrefix::events);
     }
   }
   // Batch save to database and clear the list

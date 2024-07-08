@@ -16,6 +16,8 @@ See the LICENSE.txt file in the project root for more information.
 #include "../utils/safehash.h"
 #include "../utils/utils.h"
 #include "../utils/options.h"
+#include "../contract/calltracer.h"
+#include "../libs/zpp_bits.h"
 
 /**
  * Abstraction of the blockchain history.
@@ -125,7 +127,15 @@ public:
 
   void setGasUsed(const Hash& txHash, const uint256_t& gasUsed);
 
-  uint256_t getGasUsed(const Hash& txHash) const;
+  std::optional<uint256_t> getGasUsed(const Hash& txHash) const; // TODO: return optional
+
+  void putCallTrace(const Hash& txHash, const trace::Call& callTrace);
+
+  std::optional<trace::Call> getCallTrace(const Hash& txHash) const;
+
+  IndexingMode getIndexingMode() const {
+    return options_.getIndexingMode();
+  }
 };
 
 #endif  // STORAGE_H

@@ -10,21 +10,23 @@ See the LICENSE.txt file in the project root for more information.
 #include "boost/asio/post.hpp"
 #include "bytes/join.h"
 
-static void storeBlock(DB& db, const FinalizedBlock& block) {
+static void storeBlock(DB& db, const FinalizedBlock& block, bool indexingEnabled) {
   DBBatch batch;
 
   batch.push_back(block.getHash(), block.serializeBlock(), DBPrefix::blocks);
   batch.push_back(Utils::uint64ToBytes(block.getNHeight()), block.getHash(), DBPrefix::heightToBlock);
 
-  const auto& Txs = block.getTxs();
+  if (indexingEnabled) {
+    const auto& Txs = block.getTxs();
 
-  for (uint32_t i = 0; i < Txs.size(); i++) {
-    const auto& TxHash = Txs[i].hash();
+    for (uint32_t i = 0; i < Txs.size(); i++) {
+      const auto& TxHash = Txs[i].hash();
 
-    const FixedBytes<44> value(
-      bytes::join(block.getHash(), Utils::uint32ToBytes(i), Utils::uint64ToBytes(block.getNHeight())));
+      const FixedBytes<44> value(
+        bytes::join(block.getHash(), Utils::uint32ToBytes(i), Utils::uint64ToBytes(block.getNHeight())));
 
-    batch.push_back(TxHash, value, DBPrefix::txToBlock);
+      batch.push_back(TxHash, value, DBPrefix::txToBlock);
+    }
   }
 
   const std::string latestTag = "latest";
@@ -70,7 +72,7 @@ void Storage::initializeBlockchain() {
     if (genesis.getNHeight() != 0)
       throw DynamicException("Genesis block height is not 0");
 
-    storeBlock(db_, genesis);
+    storeBlock(db_, genesis, options_.getIndexingMode() != IndexingMode::DISABLED);
 
     const Hash blockHash = genesis.getHash();
 
@@ -112,7 +114,7 @@ void Storage::pushBlock(FinalizedBlock block) {
   auto newBlock = std::make_shared<FinalizedBlock>(std::move(block));
   latest_.store(newBlock);
 
-  storeBlock(db_, *newBlock);
+  storeBlock(db_, *newBlock, options_.getIndexingMode() != IndexingMode::DISABLED);
 }
 
 bool Storage::blockExists(const Hash& hash) const {
@@ -218,7 +220,31 @@ void Storage::setGasUsed(const Hash& txHash, const uint256_t& gasUsed) {
   db_.put(txHash, Utils::uintToBytes(gasUsed), DBPrefix::txToGasUsed);
 }
 
-uint256_t Storage::getGasUsed(const Hash& txHash) const {
+std::optional<uint256_t> Storage::getGasUsed(const Hash& txHash) const {
   const Bytes gasUsedInBytes = db_.get(txHash, DBPrefix::txToGasUsed);
+
+  if (gasUsedInBytes.empty())
+    return std::nullopt;
+
   return Utils::bytesToUint256(gasUsedInBytes);
+}
+
+void Storage::putCallTrace(const Hash& txHash, const trace::Call& callTrace) {
+  Bytes serial;
+  zpp::bits::out out(serial);
+  out(callTrace).or_throw();
+  db_.put(txHash, serial, DBPrefix::txToCallTrace);
+}
+
+std::optional<trace::Call> Storage::getCallTrace(const Hash& txHash) const {
+  Bytes serial = db_.get(txHash, DBPrefix::txToCallTrace);
+
+  if (serial.empty())
+    return std::nullopt;
+
+  trace::Call callTrace;
+  zpp::bits::in in(serial);
+  in(callTrace).or_throw();
+
+  return callTrace;
 }

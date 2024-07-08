@@ -57,6 +57,51 @@ See the LICENSE.txt file in the project root for more information.
  * }
  */
 
+class IndexingMode {
+private:
+  int value_;
+
+  constexpr explicit IndexingMode(int value) : value_(value) {}
+
+public:
+  static const IndexingMode DISABLED;
+  static const IndexingMode RPC;
+  static const IndexingMode RPC_TRACE;
+
+  constexpr explicit IndexingMode(std::string_view mode) {
+    if (mode == "DISABLED") {
+      value_ = DISABLED.value_;
+    } else if (mode == "RPC") {
+      value_ = RPC.value_;
+    } else if (mode == "RPC_TRACE") {
+      value_ = RPC.value_;
+    } else {
+      std::stringstream errorMessage;
+      errorMessage << "Invalid indexing mode value: \"" << mode << "\"";
+      throw DynamicException(errorMessage.str());
+    }
+  }
+
+  constexpr std::string_view toString() const {
+    if (*this == DISABLED)
+      return "DISABLED";
+    
+    if (*this == RPC)
+      return "RPC";
+
+    if (*this == RPC_TRACE)
+      return "RPC_TRACE";
+
+    throw DynamicException("Unknown indexing mode");
+  }
+
+  constexpr bool operator==(const IndexingMode&) const = default;
+};
+
+constexpr const IndexingMode IndexingMode::DISABLED{0};
+constexpr const IndexingMode IndexingMode::RPC{1};
+constexpr const IndexingMode IndexingMode::RPC_TRACE{2};
+
 /// Singleton class for global node data.
 class Options {
   private:
@@ -85,6 +130,7 @@ class Options {
     const FinalizedBlock genesisBlock_;  ///< Genesis block.
     const std::vector<std::pair<Address, uint256_t>> genesisBalances_;  ///< List of addresses and their respective initial balances.
     const std::vector<Address> genesisValidators_;  ///< List of genesis validators.
+    const IndexingMode indexingMode_;
 
   public:
     /**
@@ -125,7 +171,7 @@ class Options {
       const std::vector<std::pair<boost::asio::ip::address, uint64_t>>& discoveryNodes,
       const FinalizedBlock& genesisBlock, const uint64_t genesisTimestamp, const PrivKey& genesisSigner,
       const std::vector<std::pair<Address, uint256_t>>& genesisBalances,
-      const std::vector<Address>& genesisValidators
+      const std::vector<Address>& genesisValidators, IndexingMode indexingMode
     );
 
     /**
@@ -168,7 +214,7 @@ class Options {
       const FinalizedBlock& genesisBlock, const uint64_t genesisTimestamp, const PrivKey& genesisSigner,
       const std::vector<std::pair<Address, uint256_t>>& genesisBalances,
       const std::vector<Address>& genesisValidators,
-      const PrivKey& privKey
+      const PrivKey& privKey, IndexingMode indexingMode
     );
 
     /// Copy constructor.
@@ -197,7 +243,8 @@ class Options {
       discoveryNodes_(other.discoveryNodes_),
       genesisBlock_(other.genesisBlock_),
       genesisBalances_(other.genesisBalances_),
-      genesisValidators_(other.genesisValidators_)
+      genesisValidators_(other.genesisValidators_),
+      indexingMode_(other.indexingMode_)
     {}
 
     ///@{
@@ -227,6 +274,7 @@ class Options {
     const FinalizedBlock& getGenesisBlock() const { return this->genesisBlock_; }
     const std::vector<std::pair<Address, uint256_t>>& getGenesisBalances() const { return this->genesisBalances_; }
     const std::vector<Address>& getGenesisValidators() const { return this->genesisValidators_; }
+    IndexingMode getIndexingMode() const { return indexingMode_; }
     ///@}
 
     /// Get the full SDK version as a SemVer string ("x.y.z").
