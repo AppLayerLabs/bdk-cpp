@@ -45,38 +45,22 @@ SOFTWARE.
 #include <string> // string, stoi, to_string
 #include <utility> // declval, forward, move, pair, swap
 #include <vector> // vector
-
-// #include <nlohmann/adl_serializer.hpp>
-
-
-#include <utility>
-
-// #include <nlohmann/detail/conversions/from_json.hpp>
-
-
-#include <algorithm> // transform
 #include <array> // array
+#include <valarray> // valarray
 #include <forward_list> // forward_list
 #include <iterator> // inserter, front_inserter, end
 #include <map> // map
-#include <string> // string
 #include <tuple> // tuple, make_tuple
 #include <type_traits> // is_arithmetic, is_same, is_enum, underlying_type, is_convertible
-#include <unordered_map> // unordered_map
-#include <utility> // pair, declval
-#include <valarray> // valarray
-
-// #include <nlohmann/detail/exceptions.hpp>
-
-
 #include <exception> // exception
 #include <stdexcept> // runtime_error
-#include <string> // to_string
 
+// #include <nlohmann/adl_serializer.hpp>
+// #include <nlohmann/detail/conversions/from_json.hpp>
 // #include <nlohmann/detail/input/position_t.hpp>
+// #include <nlohmann/detail/exceptions.hpp>
 
-
-#include <cstddef> // size_t
+#include <boost/unordered/unordered_flat_map.hpp>
 
 namespace nlohmann
 {
@@ -3764,7 +3748,7 @@ void from_json(const BasicJsonType& j, std::map<Key, Value, Compare, Allocator>&
 template < typename BasicJsonType, typename Key, typename Value, typename Hash, typename KeyEqual, typename Allocator,
            typename = enable_if_t < !std::is_constructible <
                                         typename BasicJsonType::string_t, Key >::value >>
-void from_json(const BasicJsonType& j, std::unordered_map<Key, Value, Hash, KeyEqual, Allocator>& m)
+void from_json(const BasicJsonType& j, boost::unordered_flat_map<Key, Value, Hash, KeyEqual, Allocator>& m)
 {
     if (JSON_HEDLEY_UNLIKELY(!j.is_array()))
     {
@@ -16913,7 +16897,7 @@ class basic_json
     described below.
 
     @tparam ObjectType  the container to store objects (e.g., `std::map` or
-    `std::unordered_map`)
+    `boost::unordered_flat_map`)
     @tparam StringType the type of the keys or names (e.g., `std::string`).
     The comparison function `std::less<StringType>` is used to order elements
     inside the container.
@@ -17873,7 +17857,7 @@ class basic_json
       `std::multiset`, and `std::unordered_multiset` with a `value_type` from
       which a @ref basic_json value can be constructed.
     - **objects**: @ref object_t and all kinds of compatible associative
-      containers such as `std::map`, `std::unordered_map`, `std::multimap`,
+      containers such as `std::map`, `boost::unordered_flat_map`, `std::multimap`,
       and `std::unordered_multimap` with a `key_type` compatible to
       @ref string_t and a `value_type` from which a @ref basic_json value can
       be constructed.
@@ -19395,7 +19379,7 @@ class basic_json
     to other types. There a few things to note: (1) Floating-point numbers can
     be converted to integers\, (2) A JSON array can be converted to a standard
     `std::vector<short>`\, (3) A JSON object can be converted to C++
-    associative containers such as `std::unordered_map<std::string\,
+    associative containers such as `boost::unordered_flat_map<std::string\,
     json>`.,get__ValueType_const}
 
     @since version 2.1.0
@@ -19493,7 +19477,7 @@ class basic_json
     to other types. There a few things to note: (1) Floating-point numbers can
     be converted to integers\, (2) A JSON array can be converted to a standard
     `std::vector<short>`\, (3) A JSON object can be converted to C++
-    associative containers such as `std::unordered_map<std::string\,
+    associative containers such as `boost::unordered_flat_map<std::string\,
     json>`.,get_to}
 
     @since version 3.3.0
@@ -19701,7 +19685,7 @@ class basic_json
     to other types. There a few things to note: (1) Floating-point numbers can
     be converted to integers\, (2) A JSON array can be converted to a standard
     `std::vector<short>`\, (3) A JSON object can be converted to C++
-    associative containers such as `std::unordered_map<std::string\,
+    associative containers such as `boost::unordered_flat_map<std::string\,
     json>`.,operator__ValueType}
 
     @since version 1.0.0

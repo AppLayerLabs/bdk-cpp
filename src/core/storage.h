@@ -24,6 +24,7 @@ enum StorageStatus { NotFound, OnChain, OnCache, OnDB };
  * Abstraction of the blockchain history.
  * Used to store blocks in memory and on disk, and helps the State process
  * new blocks, transactions and RPC queries.
+ * TODO: Replace std::unordered_map with boost::unordered_flat_map AFTER we finish Storage refactor (Currently being done by Leonardo)
  */
 class Storage : public Log::LogicalLocationProvider {
   // TODO: possibly replace `std::shared_ptr<const Block>` with a better solution.

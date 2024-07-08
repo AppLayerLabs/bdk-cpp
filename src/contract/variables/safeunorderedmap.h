@@ -8,12 +8,10 @@ See the LICENSE.txt file in the project root for more information.
 #ifndef SAFEUNORDEREDMAP_H
 #define SAFEUNORDEREDMAP_H
 
-#include <unordered_map>
-#include <utility>
-
-#include "../../utils/safehash.h"
-
+#include <memory>
+#include <unordered_set>
 #include "safebase.h"
+#include "../../utils/safehash.h"
 
 // TODO: somehow figure out a way to make loops work with this class (for (const auto& [key, value] : map) { ... })
 /**
