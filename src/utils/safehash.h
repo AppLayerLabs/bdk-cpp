@@ -24,7 +24,7 @@ struct SafeHash {
   ///@{
   /** Wrapper for `splitmix()`. */
   size_t operator()(const uint64_t& i) const {
-    return wyhash(reinterpret_cast<const char*>(&i), sizeof(i), 0, _wyp);
+    return wyhash(std::bit_cast<const void*>(&i), sizeof(i), 0, _wyp);
   }
 
   size_t operator()(const std::string& str) const {
@@ -36,19 +36,19 @@ struct SafeHash {
   }
 
   size_t operator()(const Bytes& bytes) const {
-    return wyhash(reinterpret_cast<const char*>(bytes.data()), bytes.size(), 0, _wyp);
+    return wyhash(std::bit_cast<const void*>(bytes.data()), bytes.size(), 0, _wyp);
   }
 
   template <unsigned N> size_t operator()(const BytesArr<N>& bytesArr) const {
-    return wyhash(reinterpret_cast<const char*>(bytesArr.data()), bytesArr.size(), 0, _wyp);
+    return wyhash(std::bit_cast<const void*>(bytesArr.data()), bytesArr.size(), 0, _wyp);
   }
 
   size_t operator()(const BytesArrView& bytesArrView) const {
-    return wyhash(reinterpret_cast<const char*>(bytesArrView.data()), bytesArrView.size(), 0, _wyp);
+    return wyhash(std::bit_cast<const void*>(bytesArrView.data()), bytesArrView.size(), 0, _wyp);
   }
 
   size_t operator()(const Address& address) const {
-    return wyhash(reinterpret_cast<const char*>(address.raw()), address.size(), 0, _wyp);
+    return wyhash(std::bit_cast<const void*>(address.raw()), address.size(), 0, _wyp);
   }
 
   size_t operator()(const Functor& functor) const {
@@ -56,7 +56,7 @@ struct SafeHash {
   }
 
   size_t operator()(const Hash& hash) const {
-    return wyhash(reinterpret_cast<const char*>(hash.raw()), hash.size(), 0, _wyp);
+    return wyhash(std::bit_cast<const void*>(hash.raw()), hash.size(), 0, _wyp);
   }
 
   size_t operator()(const TxValidator& tx) const { return SafeHash()(tx.hash()); }
@@ -66,7 +66,7 @@ struct SafeHash {
   }
 
   template <unsigned N> size_t operator()(const FixedBytes<N>& bytes) const {
-    return wyhash(reinterpret_cast<const char*>(bytes.raw()), bytes.size(), 0, _wyp);
+    return wyhash(std::bit_cast<const void*>(bytes.raw()), bytes.size(), 0, _wyp);
   }
 
   template <typename Key, typename T> size_t operator()(const boost::unordered_flat_map<Key, T, SafeHash>& a) const {
