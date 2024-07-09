@@ -117,13 +117,7 @@ class ContractHost : public evmc::Host {
 
     evmc::Result createEVMContract(const evmc_message& msg, const Address& contractAddr, const evmc_call_kind& kind);
 
-
     evmc::Result processBDKPrecompile(const evmc_message& msg) const;
-
-  Address computeNewAccountAddress(const Address& fromAddress,
-                                   const uint64_t& nonce,
-                                   const Hash& salt,
-                                   const BytesArrView& init_code);
 
   public:
     ContractHost(evmc_vm* vm,
@@ -162,7 +156,12 @@ class ContractHost : public evmc::Host {
     ContractHost& operator=(ContractHost&&) = delete;
     ~ContractHost() noexcept override;
 
-    static Address deriveContractAddress(const uint64_t& nonce, const Address& address);
+    static Address deriveContractAddress(const uint64_t& nonce,
+                                         const Address& address);
+
+    static Address deriveContractAddress2(const Address& fromAddress,
+                                          const Hash& salt,
+                                          const BytesArrView& init_code);
 
     /// Executes a call
     void execute(const evmc_message& msg, const ContractType& type);
