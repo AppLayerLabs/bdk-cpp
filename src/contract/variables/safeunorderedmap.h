@@ -580,8 +580,8 @@ template <typename Key, typename T> class SafeUnorderedMap : public SafeBase {
 
     ///@{
     /** Equality operator. Checks only the CURRENT value. */
-    inline bool operator==(const boost::unordered_flat_map<Key, T, SafeHash>& other) { return this->value_ == other; }
-    inline bool operator==(const SafeUnorderedMap& other) { return this->value_ == other.get(); }
+    inline bool operator==(const boost::unordered_flat_map<Key, T, SafeHash>& other) const { return this->value_ == other; }
+    inline bool operator==(const SafeUnorderedMap& other) const { return this->value_ == other.get(); }
     ///@}
 
     /// Commit the value.
