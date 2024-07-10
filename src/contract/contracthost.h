@@ -115,8 +115,9 @@ class ContractHost : public evmc::Host {
       }
     }
 
-    evmc::Result createEVMContract(const evmc_message& msg, const Address& contractAddr, const evmc_call_kind& kind);
-
+    evmc::Result createEVMContract(const evmc_message& msg,
+                                   const Address& contractAddr,
+                                   const evmc_call_kind& kind);
     evmc::Result processBDKPrecompile(const evmc_message& msg) const;
 
   public:
@@ -156,12 +157,19 @@ class ContractHost : public evmc::Host {
     ContractHost& operator=(ContractHost&&) = delete;
     ~ContractHost() noexcept override;
 
+    const ContractType decodeContractCallType(const evmc_message& msg);
+
     static Address deriveContractAddress(const uint64_t& nonce,
                                          const Address& address);
 
-    static Address deriveContractAddress2(const Address& fromAddress,
-                                          const Hash& salt,
-                                          const BytesArrView& init_code);
+    static Address deriveContractAddress(const Address& fromAddress,
+                                         const Hash& salt,
+                                         const BytesArrView& init_code);
+
+
+    inline evmc::Result callEVMCreate(const evmc_message& msg);
+    inline evmc::Result callEVMCreate2(const evmc_message& msg);
+    evmc::Result callCPPContract(const evmc_message& msg);
 
     /// Executes a call
     void execute(const evmc_message& msg, const ContractType& type);
