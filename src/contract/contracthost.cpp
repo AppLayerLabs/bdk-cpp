@@ -244,10 +244,12 @@ void ContractHost::execute(const evmc_message& msg, const ContractType& type) {
         }
         case ContractType::EVM: {
           // Execute a EVM contract.
+          printf("[FOO] (depth = %d) msg.gas = %lld\n", msg.depth, static_cast<long long int>(msg.gas));
           auto result = evmc::Result(evmc_execute(this->vm_, &this->get_interface(), this->to_context(),
                      evmc_revision::EVMC_LATEST_STABLE_REVISION, &msg,
                       this->accounts_[to]->code.data(), this->accounts_[to]->code.size()));
-          
+          printf("[FOO] (depth = %d) result.gas_left = %lld\n\n", msg.depth, static_cast<long long int>(result.gas_left));
+
           const int64_t gasUsed = this->leftoverGas_ - result.gas_left; // TODO: gasUsed should be this or 21000?
 
           this->leftoverGas_ = result.gas_left; // gas_left is not linked with leftoverGas_, we need to link it.
@@ -305,9 +307,11 @@ Bytes ContractHost::ethCallView(const evmc_message& msg, const ContractType& typ
       }
       case ContractType::EVM: {
         // Execute a EVM contract.
+        printf("[FOO] (depth = %d) msg.gas = %lld\n", msg.depth, static_cast<long long int>(msg.gas));
         auto result = evmc::Result(evmc_execute(this->vm_, &this->get_interface(), this->to_context(),
                    evmc_revision::EVMC_LATEST_STABLE_REVISION, &msg,
                     this->accounts_[to]->code.data(), this->accounts_[to]->code.size()));
+        printf("[FOO] (depth = %d) result.gas_left = %lld\n", msg.depth, static_cast<long long int>(result.gas_left));
         this->leftoverGas_ = result.gas_left;
         if (result.status_code) {
           // Set the leftOverGas_ to the gas left after the execution
@@ -494,12 +498,17 @@ evmc::Result ContractHost::call(const evmc_message& msg) noexcept {
       return evmc::Result(EVMC_PRECOMPILE_FAILURE, this->leftoverGas_, 0, nullptr, 0);
     }
   }
+  printf("[FOO] (depth = %d) msg.gas = %lld\n", msg.depth, static_cast<long long int>(msg.gas));
   evmc::Result result (evmc_execute(this->vm_, &this->get_interface(), this->to_context(),
            evmc_revision::EVMC_LATEST_STABLE_REVISION, &msg,
            recipientAccount.code.data(), recipientAccount.code.size()));
+  printf("[FOO] (depth = %d) result.gas_left = %lld\n", msg.depth, static_cast<long long int>(result.gas_left));
+
   this->leftoverGas_ = result.gas_left; // gas_left is not linked with leftoverGas_, we need to link it.
-  this->deduceGas(5000); // EVM contract call is 5000 gas
-  result.gas_left = this->leftoverGas_; // We need to set the gas left to the leftoverGas_
+
+  // ITA: REMOVI AS 2 LINHAS ABAIXO SÓ PRA FICAR MAIS FÁCIL DE VER O QUE A EVM TA FAZENDO
+  // this->deduceGas(5000); // EVM contract call is 5000 gas
+  // result.gas_left = this->leftoverGas_; // We need to set the gas left to the leftoverGas_
 
   if (result.status_code == EVMC_SUCCESS) {
     safelyTraceFunctionEnd(bytes::View(result.output_data, result.output_size), 5000);
