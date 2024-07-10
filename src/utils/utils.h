@@ -246,7 +246,7 @@ enum Networks { Mainnet, Testnet, LocalTestnet };
 enum FunctionTypes { View, NonPayable, Payable };
 
 /// Enum for the type of the contract.
-enum ContractType { NOT_A_CONTRACT, EVM, CPP };
+enum ContractType { NOT_A_CONTRACT, EVM, CPP, CREATE, CREATE2, PRECOMPILED};
 
 /**
  * Abstraction of balance and nonce for a single account.
@@ -339,7 +339,6 @@ template<typename T, bool Index> struct EventParam {
 
 /// Namespace for utility functions.
 namespace Utils {
-  std::string getTestBasePath();
   std::string getTestDumpPath(); ///< Get the path to the test dump folder.
 
   /**
