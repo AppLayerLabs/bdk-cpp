@@ -209,6 +209,43 @@ evmc::Result ContractHost::processBDKPrecompile(const evmc_message& msg) const {
   }
 }
 
+evmc::Result ContractHost::callImpl(const evmc_message& msg) noexcept {
+  // Check against bdk static precompiles
+  this->leftoverGas_ = msg.gas;
+  if (msg.recipient == BDK_PRECOMPILE) {
+    this->deduceGas(1000); // CPP contract call is 1000 gas
+    return this->processBDKPrecompile(msg);
+  }
+
+  Address recipient(msg.recipient);
+  auto &recipientAccount = *accounts_[recipient]; // We need to take a reference to the account, not a reference to the pointer.
+  /// evmc::Result constructor is: _status_code + _gas_left + _output_data + _output_size
+  if (recipientAccount.contractType == CPP) {
+    // Uh we are an CPP contract, we need to call the contract evmEthCall function and put the result into a evmc::Result
+    try {
+      this->deduceGas(1000); // CPP contract call is 1000 gas
+      auto& contract = contracts_[recipient];
+      if (contract == nullptr) {
+        throw DynamicException("ContractHost call: contract not found");
+      }
+      this->setContractVars(contract.get(), Address(msg.sender), Utils::evmcUint256ToUint256(msg.value));
+      Bytes ret = contract->evmEthCall(msg, this);
+      return evmc::Result(EVMC_SUCCESS, this->leftoverGas_, 0, ret.data(), ret.size());
+    } catch (std::exception& e) {
+      this->evmcThrows_.emplace_back(e.what());
+      this->evmcThrow_ = true;
+      return evmc::Result(EVMC_PRECOMPILE_FAILURE, this->leftoverGas_, 0, nullptr, 0);
+    }
+  }
+  evmc::Result result (evmc_execute(this->vm_, &this->get_interface(), this->to_context(),
+           evmc_revision::EVMC_LATEST_STABLE_REVISION, &msg,
+           recipientAccount.code.data(), recipientAccount.code.size()));
+  this->leftoverGas_ = result.gas_left; // gas_left is not linked with leftoverGas_, we need to link it.
+  this->deduceGas(5000); // EVM contract call is 5000 gas
+  result.gas_left = this->leftoverGas_; // We need to set the gas left to the leftoverGas_
+  return result;
+}
+
 void ContractHost::execute(const evmc_message& msg, const ContractType& type) {
   const Address from(msg.sender);
   const Address to(msg.recipient);
@@ -236,9 +273,8 @@ void ContractHost::execute(const evmc_message& msg, const ContractType& type) {
           this->setContractVars(contractIt->second.get(), from, value);
           contractIt->second->ethCall(msg, this);
 
-          // TODO: gasUsed
-          // TODO: how to get the output from here?
-          safelyTraceFunctionEnd(bytes::View(), 1000);
+          const int64_t gasUsed = (msg.gas - this->leftoverGas_) + 21000;
+          safelyTraceFunctionEnd(bytes::View(), gasUsed); // TODO: get the contract call output
 
           break;
         }
@@ -247,13 +283,13 @@ void ContractHost::execute(const evmc_message& msg, const ContractType& type) {
           auto result = evmc::Result(evmc_execute(this->vm_, &this->get_interface(), this->to_context(),
                      evmc_revision::EVMC_LATEST_STABLE_REVISION, &msg,
                       this->accounts_[to]->code.data(), this->accounts_[to]->code.size()));
-          
-          const int64_t gasUsed = this->leftoverGas_ - result.gas_left; // TODO: gasUsed should be this or 21000?
 
           this->leftoverGas_ = result.gas_left; // gas_left is not linked with leftoverGas_, we need to link it.
 
+          const int64_t gasUsed = msg.gas - this->leftoverGas_ + 21000;
+
           if (result.status_code) {
-            safelyTraceFunctionError(std::string("EVMC error code: " + std::to_string(result.status_code)), gasUsed);
+            safelyTraceFunctionError(evmc_status_code_to_string(result.status_code), gasUsed);
             // Set the leftOverGas_ to the gas left after the execution
             throw DynamicException("Error when executing EVM contract, EVM status code: " +
               std::string(evmc_status_code_to_string(result.status_code)) + " bytes: " +
@@ -463,49 +499,14 @@ bool ContractHost::selfdestruct(const evmc::address& addr, const evmc::address& 
 // evmc::Result will have the gas left after the execution
 evmc::Result ContractHost::call(const evmc_message& msg) noexcept {
   safelyTraceFunctionStart(msg);
+  evmc::Result result = callImpl(msg);
+  
+  const int64_t gasUsed = msg.gas - result.gas_left;
 
-  // Check against bdk static precompiles
-  this->leftoverGas_ = msg.gas;
-  if (msg.recipient == BDK_PRECOMPILE) {
-    this->deduceGas(1000); // CPP contract call is 1000 gas
-    return this->processBDKPrecompile(msg);
-  }
-
-  Address recipient(msg.recipient);
-  auto &recipientAccount = *accounts_[recipient]; // We need to take a reference to the account, not a reference to the pointer.
-  /// evmc::Result constructor is: _status_code + _gas_left + _output_data + _output_size
-  if (recipientAccount.contractType == CPP) {
-    // Uh we are an CPP contract, we need to call the contract evmEthCall function and put the result into a evmc::Result
-    try {
-      this->deduceGas(1000); // CPP contract call is 1000 gas
-      auto& contract = contracts_[recipient];
-      if (contract == nullptr) {
-        throw DynamicException("ContractHost call: contract not found");
-      }
-      this->setContractVars(contract.get(), Address(msg.sender), Utils::evmcUint256ToUint256(msg.value));
-      const Bytes ret = contract->evmEthCall(msg, this);
-      evmc::Result result(EVMC_SUCCESS, this->leftoverGas_, 0, ret.data(), ret.size());
-      safelyTraceFunctionEnd(bytes::View(result.output_data, result.output_size), 1000);
-      return result;
-    } catch (std::exception& e) {
-      this->evmcThrows_.emplace_back(e.what());
-      this->evmcThrow_ = true;
-      safelyTraceFunctionError("EVMC PRECOMPILE FAILURE", 1000);
-      return evmc::Result(EVMC_PRECOMPILE_FAILURE, this->leftoverGas_, 0, nullptr, 0);
-    }
-  }
-  evmc::Result result (evmc_execute(this->vm_, &this->get_interface(), this->to_context(),
-           evmc_revision::EVMC_LATEST_STABLE_REVISION, &msg,
-           recipientAccount.code.data(), recipientAccount.code.size()));
-  this->leftoverGas_ = result.gas_left; // gas_left is not linked with leftoverGas_, we need to link it.
-  this->deduceGas(5000); // EVM contract call is 5000 gas
-  result.gas_left = this->leftoverGas_; // We need to set the gas left to the leftoverGas_
-
-  if (result.status_code == EVMC_SUCCESS) {
-    safelyTraceFunctionEnd(bytes::View(result.output_data, result.output_size), 5000);
-  } else {
-    safelyTraceFunctionError(std::string("EVMC Error code: ") + std::to_string(result.status_code), 5000);
-  }
+  if (result.status_code == EVMC_SUCCESS)
+    safelyTraceFunctionEnd(bytes::View(result.output_data, result.output_size), gasUsed);
+  else
+    safelyTraceFunctionError(evmc_status_code_to_string(result.status_code), gasUsed);
 
   return result;
 }

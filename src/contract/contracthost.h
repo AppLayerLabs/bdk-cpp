@@ -112,6 +112,8 @@ class ContractHost : public evmc::Host {
 
     evmc::Result processBDKPrecompile(const evmc_message& msg) const;
 
+    evmc::Result callImpl(const evmc_message& msg) noexcept;
+
     void safelyTraceFunctionStart(const evmc_message& msg) noexcept;
 
     void safelyTraceFunctionEnd(bytes::View output, int64_t gasUsed) noexcept;
