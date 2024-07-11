@@ -68,7 +68,7 @@ public:
   static const IndexingMode RPC;
   static const IndexingMode RPC_TRACE;
 
-  constexpr explicit IndexingMode(std::string_view mode) {
+  explicit IndexingMode(std::string_view mode) {
     if (mode == "DISABLED") {
       value_ = DISABLED.value_;
     } else if (mode == "RPC") {
