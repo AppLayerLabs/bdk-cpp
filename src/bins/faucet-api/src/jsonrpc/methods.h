@@ -8,8 +8,9 @@ See the LICENSE.txt file in the project root for more information.
 #ifndef JSONRPC_METHODS_H
 #define JSONRPC_METHODS_H
 
-#include <unordered_map>
 #include <string>
+
+#include "../../../../libs/unordered_dense.h"
 
 /**
  * Namespace for Ethereum's JSON-RPC Specification.
@@ -41,7 +42,7 @@ namespace Faucet {
     };
 
     /// Lookup table for the implemented methods.
-    inline extern const std::unordered_map<std::string, Methods> methodsLookupTable = {
+    inline extern const boost::unordered_flat_map<std::string, Methods> methodsLookupTable = {
       { "dripToAddress", dripToAddress },
     };
   }

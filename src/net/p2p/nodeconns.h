@@ -16,7 +16,7 @@ See the LICENSE.txt file in the project root for more information.
 #include <algorithm> // std::find
 #include <thread> // std::this_thread::sleep_for
 #include <shared_mutex>
-#include <unordered_map>
+
 
 // TODO: tests for NodeConns (if necessary)
 
@@ -33,13 +33,13 @@ namespace P2P {
       ManagerNormal& manager_;  ///< Reference to the P2P engine object that owns this.
 
       /// List of valid NodeInfo objects from remote nodes.
-      std::unordered_map<NodeID, NodeInfo, SafeHash> nodeInfo_;
+      boost::unordered_flat_map<NodeID, NodeInfo, SafeHash> nodeInfo_;
 
       /// List of last time since epoch in milliseconds we received a remote node's most recent info, so we can expire them.
-      std::unordered_map<NodeID, uint64_t, SafeHash> nodeInfoTime_;
+      boost::unordered_flat_map<NodeID, uint64_t, SafeHash> nodeInfoTime_;
 
       /// Map of NodeID to NodeType (cached from P2P engine's sessions_ map)
-      std::unordered_map<NodeID, NodeType, SafeHash> nodeType_;
+      boost::unordered_flat_map<NodeID, NodeType, SafeHash> nodeType_;
 
       mutable std::shared_mutex stateMutex_; ///< Mutex for serializing all inner state and requests to it.
 
@@ -60,10 +60,10 @@ namespace P2P {
       void incomingInfo(const NodeID& sender, const NodeInfo& info, const NodeType& nodeType);
 
       /// Get a copy of the nodeInfo_ map.
-      std::unordered_map<NodeID, NodeInfo, SafeHash> getConnected();
+      boost::unordered_flat_map<NodeID, NodeInfo, SafeHash> getConnected();
 
       /// Get a NodeID --> NodeType map.
-      std::unordered_map<NodeID, NodeType, SafeHash> getConnectedWithNodeType();
+      boost::unordered_flat_map<NodeID, NodeType, SafeHash> getConnectedWithNodeType();
 
       /**
        * Get the NodeInfo for a specific connected peer

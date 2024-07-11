@@ -87,7 +87,7 @@ set(Protobuf_USE_STATIC_LIBS ON)
 
 # Find system packages (built-in)
 find_package(Threads)
-find_package(Boost 1.74.0 REQUIRED COMPONENTS chrono filesystem program_options system thread nowide)
+find_package(Boost 1.83.0 REQUIRED COMPONENTS chrono filesystem program_options system thread nowide)
 find_package(OpenSSL 1.1.1 REQUIRED)
 find_package(ZLIB REQUIRED)
 

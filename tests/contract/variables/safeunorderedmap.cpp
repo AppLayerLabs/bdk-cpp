@@ -56,40 +56,6 @@ namespace TSafeUnorderedMap {
       REQUIRE(map.empty());
     }
 
-    SECTION("SafeUnorderedMap extract") {
-      Address add1(Utils::randBytes(20));
-      Address add2(Utils::randBytes(20));
-      Address add3(Utils::randBytes(20));
-      uint256_t bal1("19283815712031512");
-      uint256_t bal2("96482364197823643");
-      uint256_t bal3("29884639238924532");
-      SafeUnorderedMap<Address, uint256_t> map({{add1,bal1},{add2,bal2},{add3,bal3}});
-
-      // Extract with iterator
-      std::pair<Address, uint256_t> firstVal = (*map.cbegin());
-      map.extract(map.cbegin());
-      map.revert();
-      REQUIRE(map.size() == 3);
-      REQUIRE((map.cbegin()->first == firstVal.first && map.cbegin()->second == firstVal.second));
-      auto node1 = map.extract(map.cbegin());
-      map.commit();
-      REQUIRE(map.size() == 2);
-      REQUIRE(!map.contains(node1.key()));
-      map[firstVal.first] = firstVal.second; map.commit(); REQUIRE(map.size() == 3); // re-add the key for next test
-
-      // Extract with key
-      map.extract(add1);
-      map.revert();
-      REQUIRE(map.size() == 3);
-      REQUIRE(map.contains(add1));
-      auto node2 = map.extract(add1);
-      map.commit();
-      REQUIRE(map.size() == 2);
-      REQUIRE(!map.contains(node2.key()));
-      REQUIRE(node2.key() == add1);
-      REQUIRE(node2.mapped() == bal1);
-    }
-
     SECTION("SafeUnorderedMap operator[]") {
       Address add(Utils::randBytes(20));
       uint256_t bal1("19283815712031512");
@@ -337,64 +303,6 @@ namespace TSafeUnorderedMap {
       map.commit();
       REQUIRE(map.size() == 11);
       for (auto it = ilist.begin(); it != ilist.end(); it++) REQUIRE(map.at(it->first) == it->second);
-    }
-
-    SECTION("SafeUnorderedMap insert (node)") {
-      Address add0(Utils::randBytes(20));
-      uint256_t bal0("19283815712031512");
-      SafeUnorderedMap<Address, uint256_t> map({{add0,bal0}});
-
-      // Same as insert (simple), but extracts nodes from another map instead.
-      // Doing one full copy per operation because node handles are movable-only
-      SafeUnorderedMap<Address, uint256_t> otherMapRef;
-      SafeUnorderedMap<Address, uint256_t> otherMap1;
-      SafeUnorderedMap<Address, uint256_t> otherMap2;
-      SafeUnorderedMap<Address, uint256_t> otherMap3;
-      SafeUnorderedMap<Address, uint256_t> otherMap4;
-      std::vector<std::unordered_map<Address, uint256_t>::node_type> nodesRef;
-      std::vector<std::unordered_map<Address, uint256_t>::node_type> nodes1;
-      std::vector<std::unordered_map<Address, uint256_t>::node_type> nodes2;
-      std::vector<std::unordered_map<Address, uint256_t>::node_type> nodes3;
-      std::vector<std::unordered_map<Address, uint256_t>::node_type> nodes4;
-      for (uint8_t i = 0; i < 100; i++) { // extracting 100 values
-        Address newAdd = Address(Utils::randBytes(20));
-        otherMapRef[newAdd] = bal0;
-        otherMap1[newAdd] = bal0;
-        otherMap2[newAdd] = bal0;
-        otherMap3[newAdd] = bal0;
-        otherMap4[newAdd] = bal0;
-        nodesRef.emplace_back(std::move(otherMapRef.extract(newAdd)));
-        nodes1.emplace_back(std::move(otherMap1.extract(newAdd)));
-        nodes2.emplace_back(std::move(otherMap2.extract(newAdd)));
-        nodes3.emplace_back(std::move(otherMap3.extract(newAdd)));
-        nodes4.emplace_back(std::move(otherMap4.extract(newAdd)));
-      }
-
-      // Mass insert by move, then revert
-      for (std::size_t i = 0; i < nodes1.size(); i++) map.insert(std::move(nodes1[i]));
-      map.revert();
-      REQUIRE(map.size() == 1);
-      REQUIRE(map.at(add0) == bal0);
-
-      // Mass insert by move, then commit
-      for (std::size_t i = 0; i < nodes2.size(); i++) map.insert(std::move(nodes2[i]));
-      map.commit();
-      REQUIRE(map.size() == 101);
-      for (std::size_t i = 0; i < nodesRef.size(); i++) REQUIRE(map.at(nodesRef[i].key()) == nodesRef[i].mapped());
-
-      map.clear(); map.insert(std::make_pair(add0, bal0)); map.commit(); // revert to starting map
-
-      // Mass insert by move and hint, then revert
-      for (std::size_t i = 0; i < nodes3.size(); i++) map.insert(map.cbegin(), std::move(nodes3[i]));
-      map.revert();
-      REQUIRE(map.size() == 1);
-      REQUIRE(map.at(add0) == bal0);
-
-      // Mass insert by move and hint, then commit
-      for (std::size_t i = 0; i < nodes4.size(); i++) map.insert(map.cbegin(), std::move(nodes4[i]));
-      map.commit();
-      REQUIRE(map.size() == 101);
-      for (std::size_t i = 0; i < nodesRef.size(); i++) REQUIRE(map.at(nodesRef[i].key()) == nodesRef[i].mapped());
     }
 
     SECTION("SafeUnorderedMap insert_or_assign (copy)") {

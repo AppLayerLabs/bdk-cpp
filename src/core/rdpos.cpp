@@ -97,7 +97,7 @@ bool rdPoS::validateBlock(const FinalizedBlock& block) const {
    * The remaining 4 (minValidators) transactions from should also match randomList[1] to randomList[5] (minValidators +1)
    * The remaining 4 (minValidators) transactions should be random transactions. (0x6fc5a2d6), which contains the seed itself.
    */
-  std::unordered_map<TxValidator,TxValidator, SafeHash> txHashToSeedMap; // Tx randomHash -> Tx random
+  boost::unordered_flat_map<TxValidator,TxValidator, SafeHash> txHashToSeedMap; // Tx randomHash -> Tx random
   for (uint64_t i = 0; i < this->minValidators_; i++) {
     if (Validator(block.getTxValidators()[i].getFrom()) != randomList_[i+1]) {
       LOGERROR("TxValidator randomHash " + std::to_string(i) + " is not ordered correctly."

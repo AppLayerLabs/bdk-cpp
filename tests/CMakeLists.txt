@@ -58,6 +58,7 @@ if (BUILD_BENCHMARK)
     ${CMAKE_SOURCE_DIR}/tests/benchmark/erc20.cpp
     ${CMAKE_SOURCE_DIR}/tests/benchmark/snailtracer.cpp
     ${CMAKE_SOURCE_DIR}/tests/benchmark/snailtraceroptimized.cpp
+    ${CMAKE_SOURCE_DIR}/tests/benchmark/uniswapv2.cpp
   )
 endif()
 

@@ -206,7 +206,11 @@ namespace THTTPJsonRPC{
       for (uint64_t i = 0; i < transactions.size(); ++i) {
         const auto &txJson = eth_getBlockByHashResponse["result"]["transactions"][i];
         const auto &tx = transactions[i];
-        REQUIRE(txJson["type"] == "0x0");
+        REQUIRE(txJson["blockHash"] == newBestBlock.getHash().hex(true));
+        REQUIRE(txJson["blockNumber"] == "0x1");
+        REQUIRE(txJson["hash"] == tx.hash().hex(true));
+        REQUIRE(txJson["from"] == tx.getFrom().hex(true));
+        REQUIRE(txJson["type"] == "0x2");
         REQUIRE(txJson["nonce"] == Hex::fromBytes(Utils::uintToBytes(tx.getNonce()),true).forRPC());
         REQUIRE(txJson["to"] == tx.getTo().hex(true));
         REQUIRE(txJson["gas"] == Hex::fromBytes(Utils::uintToBytes(tx.getGasLimit()),true).forRPC());
@@ -241,7 +245,11 @@ namespace THTTPJsonRPC{
       for (uint64_t i = 0; i < transactions.size(); ++i) {
         const auto &txJson = eth_getBlockByNumberResponse["result"]["transactions"][i];
         const auto &tx = transactions[i];
-        REQUIRE(txJson["type"] == "0x0");
+        REQUIRE(txJson["blockHash"] == newBestBlock.getHash().hex(true));
+        REQUIRE(txJson["blockNumber"] == "0x1");
+        REQUIRE(txJson["hash"] == tx.hash().hex(true));
+        REQUIRE(txJson["from"] == tx.getFrom().hex(true));
+        REQUIRE(txJson["type"] == "0x2");
         REQUIRE(txJson["nonce"] == Hex::fromBytes(Utils::uintToBytes(tx.getNonce()),true).forRPC());
         REQUIRE(txJson["to"] == tx.getTo().hex(true));
         REQUIRE(txJson["gas"] == Hex::fromBytes(Utils::uintToBytes(tx.getGasLimit()),true).forRPC());

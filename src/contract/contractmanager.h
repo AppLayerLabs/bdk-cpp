@@ -10,7 +10,7 @@ See the LICENSE.txt file in the project root for more information.
 
 #include <memory>
 #include <shared_mutex>
-#include <unordered_map>
+#include <boost/unordered/unordered_flat_map.hpp>
 
 #include "abi.h"
 #include "contract.h"
@@ -34,15 +34,15 @@ class ContractManager : public BaseContract {
   private:
     /// Reference of currently deployed contracts.
     /// Owned by the State
-    std::unordered_map<Address, std::unique_ptr<BaseContract>, SafeHash>& contracts_;
+    boost::unordered_flat_map<Address, std::unique_ptr<BaseContract>, SafeHash>& contracts_;
 
     /// Functions to create contracts.
-    std::unordered_map<
+    boost::unordered_flat_map<
           Functor,
           std::function<
             void(const evmc_message&,
                  const Address&,
-                 std::unordered_map<Address, std::unique_ptr<BaseContract>, SafeHash>& contracts_,
+                 boost::unordered_flat_map<Address, std::unique_ptr<BaseContract>, SafeHash>& contracts_,
                  const uint64_t&,
                  ContractHost*
                  )>,
@@ -119,7 +119,7 @@ class ContractManager : public BaseContract {
      * @throw DynamicException if contract address doesn't exist in the database.
      */
     ContractManager(const DB& db,
-                    std::unordered_map<Address, std::unique_ptr<BaseContract>, SafeHash>& contracts,
+                    boost::unordered_flat_map<Address, std::unique_ptr<BaseContract>, SafeHash>& contracts,
                     DumpManager& manager,
                     const Options& options);
 
