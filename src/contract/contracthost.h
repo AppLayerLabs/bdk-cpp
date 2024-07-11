@@ -103,7 +103,9 @@ class ContractHost : public evmc::Host {
      * @param caller The caller address to set.
      * @param value The value to set.
      */
-    inline void setContractVars(const ContractLocals* contract, const Address& caller, const uint256_t& value) const {
+    inline void setContractVars(const ContractLocals* contract,
+                                const Address& caller,
+                                const uint256_t& value) const {
       contract->caller_ = caller;
       contract->value_ = value;
     }
@@ -116,9 +118,15 @@ class ContractHost : public evmc::Host {
     }
 
     evmc::Result createEVMContract(const evmc_message& msg,
-                                   const Address& contractAddr,
+                                   const Address& contractAddress,
                                    const evmc_call_kind& kind);
-    evmc::Result processBDKPrecompile(const evmc_message& msg) const;
+
+    const ContractType decodeContractCallType(const evmc_message& msg);
+    evmc::Result inline processBDKPrecompile(const evmc_message& msg) const;
+    evmc::Result inline callEVMCreate(const evmc_message& msg);
+    evmc::Result inline callEVMCreate2(const evmc_message& msg);
+    evmc::Result inline callEVMContract(const evmc_message& msg);
+    evmc::Result inline callCPPContract(const evmc_message& msg);
 
   public:
     ContractHost(evmc_vm* vm,
@@ -157,19 +165,12 @@ class ContractHost : public evmc::Host {
     ContractHost& operator=(ContractHost&&) = delete;
     ~ContractHost() noexcept override;
 
-    const ContractType decodeContractCallType(const evmc_message& msg);
-
     static Address deriveContractAddress(const uint64_t& nonce,
                                          const Address& address);
 
     static Address deriveContractAddress(const Address& fromAddress,
                                          const Hash& salt,
                                          const BytesArrView& init_code);
-
-
-    inline evmc::Result callEVMCreate(const evmc_message& msg);
-    inline evmc::Result callEVMCreate2(const evmc_message& msg);
-    evmc::Result callCPPContract(const evmc_message& msg);
 
     /// Executes a call
     void execute(const evmc_message& msg, const ContractType& type);
