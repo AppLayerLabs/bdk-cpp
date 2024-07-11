@@ -53,7 +53,7 @@ template <unsigned N> class FixedBytes {
       std::ranges::copy(initList, data_.begin());
     }
 
-    constexpr FixedBytes(bytes::Initializer auto&& initializer) { initializer(data_); }
+    constexpr FixedBytes(bytes::Initializer auto&& initializer) { initializer.to(data_); }
 
     constexpr explicit FixedBytes(const bytes::DataRange auto& data) {
       if (std::ranges::size(data) != N)

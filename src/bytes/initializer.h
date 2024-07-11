@@ -1,28 +1,76 @@
 #ifndef BYTES_INITIALIZER_H
 #define BYTES_INITIALIZER_H
 
+#include <concepts>
+#include <functional>
 #include "view.h"
 
 namespace bytes {
 
 /**
- * The concept of a initializer. It's basically a callable that's capable
- * of receiving a bytes Span (i.e. a sized range of contiguous bytes).
+ * The concept of a initializer. It should be able to
+ * initialize any sized span of bytes
 */
 template<typename T>
-concept Initializer = requires (T&& a) {
-  a(std::declval<Span>());
+concept Initializer = requires (const T& a) {
+  a.to(std::declval<Span>());
 };
 
 /**
- * An Initializer that has a size() member. It means that the
- * initializer can only fit containers that has capacity to
- * hold size() bytes.
+ * An Initializer with a specific size target. It's only able to
+ * initialize 
 */
 template<typename T>
-concept SizedInitializer = Initializer<T> && requires(T&& a) {
-  { a.size() } -> std::convertible_to<size_t>;
+concept SizedInitializer = Initializer<T> && requires (const T& a) {
+  a.to(std::declval<Byte*>());
+  { a.size() } -> std::convertible_to<std::size_t>;
 };
+
+
+template<std::invocable<Span> F>
+class BasicInitializer {
+public:
+  constexpr explicit BasicInitializer(F func)
+    : func_(std::move(func)) {}
+
+  constexpr void to(Span span) const { std::invoke(func_, span); }
+
+private:
+  F func_;
+};
+
+
+template<std::invocable<Byte*> F>
+class BasicSizedInitializer {
+public:
+  constexpr BasicSizedInitializer(F func, std::size_t size)
+   : func_(std::move(func)), size_(size) {}
+
+  constexpr size_t size() const { return size_; }
+
+  constexpr void to(Byte *dest) const { std::invoke(func_, dest); }
+
+  constexpr void to(Span dest) const {
+    if (dest.size() != size())
+      throw std::runtime_error("incompatible size");
+
+    to(dest.data());
+  }
+
+private:
+  F func_;
+  std::size_t size_;
+};
+
+template<typename T>
+constexpr Initializer auto makeInitializer(T&& func) {
+  return BasicInitializer<std::decay_t<T>>(std::forward<T>(func));
+}
+
+template<typename T>
+constexpr SizedInitializer auto makeInitializer(std::size_t size, T&& func) {
+  return BasicSizedInitializer<std::decay_t<T>>(std::forward<T>(func), size);
+}
 
 } // namespace bytes
 
