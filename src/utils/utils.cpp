@@ -16,8 +16,7 @@ void fail(const std::string& cl, std::string&& func, boost::beast::error_code ec
   Logger::logToDebug(LogType::ERROR, cl, std::move(func), std::string("HTTP Fail ") + what + " : " + ec.message());
 }
 
-std::string Utils::getTestBasePath() { return std::string("/tmp/"); }
-std::string Utils::getTestDumpPath() { return std::string("/tmp/testdump/"); }
+std::string Utils::getTestDumpPath() { return std::string("testdump"); }
 
 void Utils::logToFile(std::string_view str) {
   // Lock to prevent multiple memory writes
