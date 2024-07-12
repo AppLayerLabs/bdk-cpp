@@ -89,13 +89,31 @@ namespace TContractRandomness {
       auto sdk = SDKTestSuite::createNewEnvironment("ContractCreateContract");
       auto createContractAddress = sdk.deployBytecode(contractCreateAnotherContractBytecode);
       auto salt = Hash::random();
-
-      std::cout << "Create Contract Address: " << createContractAddress.hex() << std::endl;
       REQUIRE(sdk.getState().getEvmContracts().size() == 1);
       sdk.callFunction(createContractAddress, &SolCreateContract::deployWithNew, uint256_t(100));
+      Address newContractAddress = Address();
+      // We need to actually loop the list of contracts to find the new contract address
+      for (auto& contract : sdk.getState().getEvmContracts()) {
+        if (contract != createContractAddress) {
+          newContractAddress = contract;
+          break;
+        }
+      }
       REQUIRE(sdk.getState().getEvmContracts().size() == 2);
       sdk.callFunction(createContractAddress, &SolCreateContract::deployWithCreate2, uint256_t(100), salt);
+      auto newContractAddressCreate2 = Address();
+      // As above, we have to loop the list of contracts to find the new contract address
+      for (auto& contract : sdk.getState().getEvmContracts()) {
+        if (contract != createContractAddress && contract != newContractAddress) {
+          newContractAddressCreate2 = contract;
+          break;
+        }
+      }
       REQUIRE(sdk.getState().getEvmContracts().size() == 3);
+      REQUIRE(sdk.getNativeNonce(createContractAddress) == 2); // 1 when contract was created + 1 when contract called CREATE, CREATE2 does **NOT** increment nonce
+      REQUIRE(newContractAddress == ContractHost::deriveContractAddress(1, createContractAddress));
+      Bytes init_code = Hex::toBytes("6080604052348015600e575f80fd5b506040516101493803806101498339818101604052810190602e9190606b565b805f81905550506091565b5f80fd5b5f819050919050565b604d81603d565b81146056575f80fd5b50565b5f815190506065816046565b92915050565b5f60208284031215607d57607c6039565b5b5f6088848285016059565b91505092915050565b60ac8061009d5f395ff3fe6080604052348015600e575f80fd5b50600436106026575f3560e01c80633fa4f24514602a575b5f80fd5b60306044565b604051603b9190605f565b60405180910390f35b5f5481565b5f819050919050565b6059816049565b82525050565b5f60208201905060705f8301846052565b9291505056fea2646970667358221220800668e87144b8625a7e59ac82528e013d51d6ed08562ba8b641f0a2e66c0f3764736f6c634300081a00330000000000000000000000000000000000000000000000000000000000000064");
+      REQUIRE(newContractAddressCreate2 == ContractHost::deriveContractAddress(createContractAddress, salt, init_code));
     }
   }
 }
