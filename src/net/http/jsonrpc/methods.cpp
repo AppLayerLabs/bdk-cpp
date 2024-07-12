@@ -63,9 +63,13 @@ static json getBlockJson(const FinalizedBlock *block, bool includeTransactions) 
       ret["transactions"].push_back(tx.hash().hex(true));
     } else { // Include the transactions as a whole.
       json txJson = json::object();
-      txJson["type"] = "0x0"; // Legacy Transactions ONLY. TODO: change this to 0x2 when we support EIP-1559
-      txJson["nonce"] = Hex::fromBytes(Utils::uintToBytes(tx.getNonce()),true).forRPC(); // TODO: get the nonce from the transaction.
+      txJson["blockHash"] = block->getHash().hex(true);
+      txJson["blockNumber"] = Hex::fromBytes(Utils::uintToBytes(block->getNHeight()),true).forRPC();
+      txJson["type"] = "0x2"; // Legacy Transactions ONLY.
+      txJson["nonce"] = Hex::fromBytes(Utils::uintToBytes(tx.getNonce()),true).forRPC();
+      txJson["hash"] = tx.hash().hex(true);
       txJson["to"] = tx.getTo().hex(true);
+      txJson["from"] = tx.getFrom().hex(true);
       txJson["gas"] = Hex::fromBytes(Utils::uintToBytes(tx.getGasLimit()),true).forRPC();
       txJson["value"] = Hex::fromBytes(Utils::uintToBytes(tx.getValue()),true).forRPC();
       txJson["input"] = Hex::fromBytes(tx.getData(),true).forRPC();

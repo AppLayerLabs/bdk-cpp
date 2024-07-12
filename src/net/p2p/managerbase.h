@@ -66,11 +66,11 @@ namespace P2P {
       const NodeID nodeId_; ///< This ManagerBase's own NodeID.
 
       /// List of currently active sessions.
-      std::unordered_map<NodeID, std::shared_ptr<Session>, SafeHash> sessions_;
+      boost::unordered_flat_map<NodeID, std::shared_ptr<Session>, SafeHash> sessions_;
 
       // TODO: Somehow find a way to clean up requests_ after a certain time/being used.
       /// List of currently active requests.
-      std::unordered_map<RequestID, std::shared_ptr<Request>, SafeHash> requests_;
+      boost::unordered_flat_map<RequestID, std::shared_ptr<Request>, SafeHash> requests_;
 
       /**
        * Send a Request to a given node.
@@ -236,7 +236,7 @@ namespace P2P {
        * @param nodeId The node to ask for.
        * @return The node's list of connected nodes.
        */
-      std::unordered_map<NodeID, NodeType, SafeHash> requestNodes(const NodeID& nodeId);
+      boost::unordered_flat_map<NodeID, NodeType, SafeHash> requestNodes(const NodeID& nodeId);
 
       friend class DiscoveryWorker;
       friend class Session;

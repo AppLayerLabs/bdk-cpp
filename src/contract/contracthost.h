@@ -1,10 +1,3 @@
-/*
-Copyright (c) [2023-2024] [AppLayer Developers]
-
-This software is distributed under the MIT License.
-See the LICENSE.txt file in the project root for more information.
-*/
-
 #ifndef CONTRACT_HOST_H
 #define CONTRACT_HOST_H
 
@@ -78,11 +71,11 @@ class ContractHost : public evmc::Host {
     mutable ContractStack stack_;
     mutable RandomGen randomGen_; // Random generator for the contract.
     const evmc_tx_context& currentTxContext_; // MUST be initialized within the constructor.
-    std::unordered_map<Address, std::unique_ptr<BaseContract>, SafeHash>& contracts_;
-    std::unordered_map<Address, NonNullUniquePtr<Account>, SafeHash>& accounts_;
-    std::unordered_map<StorageKey, Hash, SafeHash>& vmStorage_;
-    std::unordered_map<Hash, Address, SafeHash>& txToAddr_;
-    std::unordered_map<StorageKey, Hash, SafeHash> transientStorage_;
+    boost::unordered_flat_map<Address, std::unique_ptr<BaseContract>, SafeHash>& contracts_;
+    boost::unordered_flat_map<Address, NonNullUniquePtr<Account>, SafeHash>& accounts_;
+    boost::unordered_flat_map<StorageKey, Hash, SafeHash>& vmStorage_;
+    boost::unordered_flat_map<Hash, Address, SafeHash>& txToAddr_;
+    boost::unordered_flat_map<StorageKey, Hash, SafeHash> transientStorage_;
     bool mustRevert_ = true; // We always assume that we must revert until proven otherwise.
     mutable bool evmcThrow_ = false; // Did the EVMC throw an exception?
     mutable std::vector<std::string> evmcThrows_;
@@ -104,7 +97,9 @@ class ContractHost : public evmc::Host {
      * @param caller The caller address to set.
      * @param value The value to set.
      */
-    inline void setContractVars(const ContractLocals* contract, const Address& caller, const uint256_t& value) const {
+    inline void setContractVars(const ContractLocals* contract,
+                                const Address& caller,
+                                const uint256_t& value) const {
       contract->caller_ = caller;
       contract->value_ = value;
     }
@@ -116,10 +111,16 @@ class ContractHost : public evmc::Host {
       }
     }
 
-    evmc::Result createEVMContract(const evmc_message& msg, const Address& contractAddr, const evmc_call_kind& kind);
+    evmc::Result createEVMContract(const evmc_message& msg,
+                                   const Address& contractAddress,
+                                   const evmc_call_kind& kind);
 
-
-    evmc::Result processBDKPrecompile(const evmc_message& msg) const;
+    const ContractType decodeContractCallType(const evmc_message& msg);
+    evmc::Result inline processBDKPrecompile(const evmc_message& msg) const;
+    evmc::Result inline callEVMCreate(const evmc_message& msg);
+    evmc::Result inline callEVMCreate2(const evmc_message& msg);
+    evmc::Result inline callEVMContract(const evmc_message& msg);
+    evmc::Result inline callCPPContract(const evmc_message& msg);
 
   Address computeNewAccountAddress(const Address& fromAddress,
                                    const uint64_t& nonce,
@@ -133,10 +134,10 @@ class ContractHost : public evmc::Host {
                  const Storage& storage,
                  const Hash& randomnessSeed,
                  const evmc_tx_context& currentTxContext,
-                 std::unordered_map<Address, std::unique_ptr<BaseContract>, SafeHash>& contracts,
-                 std::unordered_map<Address, NonNullUniquePtr<Account>, SafeHash>& accounts,
-                 std::unordered_map<StorageKey, Hash, SafeHash>& vmStorage,
-                 std::unordered_map<Hash, Address, SafeHash>& txToAddr,
+                 boost::unordered_flat_map<Address, std::unique_ptr<BaseContract>, SafeHash>& contracts,
+                 boost::unordered_flat_map<Address, NonNullUniquePtr<Account>, SafeHash>& accounts,
+                 boost::unordered_flat_map<StorageKey, Hash, SafeHash>& vmStorage,
+                 boost::unordered_flat_map<Hash, Address, SafeHash>& txToAddr,
                  const Hash& txHash,
                  const uint64_t txIndex,
                  const Hash& blockHash,
@@ -163,7 +164,12 @@ class ContractHost : public evmc::Host {
     ContractHost& operator=(ContractHost&&) = delete;
     ~ContractHost() noexcept override;
 
-    static Address deriveContractAddress(const uint64_t& nonce, const Address& address);
+    static Address deriveContractAddress(const uint64_t& nonce,
+                                         const Address& address);
+
+    static Address deriveContractAddress(const Address& fromAddress,
+                                         const Hash& salt,
+                                         const BytesArrView& init_code);
 
     /// Executes a call
     void execute(const evmc_message& msg, const ContractType& type);
