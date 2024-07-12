@@ -219,6 +219,9 @@ template<typename... Types> class SafeTuple : public SafeBase {
       copyIndex<I>(this->value_, this->copy_); markAsUsed(); return std::get<I>(this->value_);
     }
 
+    /// Getter for the value.
+    inline const std::tuple<Types...>& raw() const { return this->value_; }
+
     /**
      * Copy assignment operator.
      * @param other The SafeTuple to copy.
@@ -262,7 +265,6 @@ template<typename... Types> class SafeTuple : public SafeBase {
 
     /**
      * Tuple assignment operator.
-     * @tparam
      * @param tpl The tuple to assign.
      */
     SafeTuple& operator=(const std::tuple<Types...>& tpl) {

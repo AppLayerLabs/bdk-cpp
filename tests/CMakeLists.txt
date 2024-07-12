@@ -37,6 +37,7 @@ set (TESTS_SOURCES
   ${CMAKE_SOURCE_DIR}/tests/contract/variables/safeaddress.cpp
   ${CMAKE_SOURCE_DIR}/tests/contract/variables/safeunorderedmap.cpp
   ${CMAKE_SOURCE_DIR}/tests/contract/variables/safebool.cpp
+  ${CMAKE_SOURCE_DIR}/tests/contract/variables/safebytes.cpp
   ${CMAKE_SOURCE_DIR}/tests/contract/variables/safevector.cpp
   ${CMAKE_SOURCE_DIR}/tests/contract/variables/safearray.cpp
   ${CMAKE_SOURCE_DIR}/tests/contract/variables/safetuple.cpp
@@ -55,6 +56,8 @@ if (BUILD_BENCHMARK)
   message(STATUS "Building benchmark tests")
   list(APPEND TESTS_SOURCES
     ${CMAKE_SOURCE_DIR}/tests/benchmark/erc20.cpp
+    ${CMAKE_SOURCE_DIR}/tests/benchmark/snailtracer.cpp
+    ${CMAKE_SOURCE_DIR}/tests/benchmark/snailtraceroptimized.cpp
     ${CMAKE_SOURCE_DIR}/tests/benchmark/uniswapv2.cpp
   )
 endif()
