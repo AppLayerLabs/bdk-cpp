@@ -340,6 +340,32 @@ namespace TSafeVector {
       vec.commit();
       REQUIRE(vec.empty());
     }
+
+    SECTION("SafeVector operator=") {
+      SafeVector<std::string> vec({"a", "b", "c"});
+      SafeVector<std::string> vec2({"1", "2", "3"});
+      SafeVector<std::string> vec3({"X", "Y", "Z"});
+      vec = vec2;
+      vec.revert();
+      REQUIRE(vec[0] == "a");
+      REQUIRE(vec[1] == "b");
+      REQUIRE(vec[2] == "c");
+      vec = vec2;
+      vec.commit();
+      REQUIRE(vec[0] == "1");
+      REQUIRE(vec[1] == "2");
+      REQUIRE(vec[2] == "3");
+      vec = vec3.get();
+      vec.revert();
+      REQUIRE(vec[0] == "1");
+      REQUIRE(vec[1] == "2");
+      REQUIRE(vec[2] == "3");
+      vec = vec3.get();
+      vec.commit();
+      REQUIRE(vec[0] == "X");
+      REQUIRE(vec[1] == "Y");
+      REQUIRE(vec[2] == "Z");
+    }
   }
 }
 

@@ -247,6 +247,8 @@ namespace ABI {
     template<> struct TypeName<bool> { static std::string get() { return "bool"; }};
     template<> struct TypeName<Bytes> { static std::string get() { return "bytes"; }};
     template<> struct TypeName<std::string> { static std::string get() { return "string"; }};
+    template<> struct TypeName<Hash> { static std::string get() { return "bytes32"; }};
+
     /// Enum types are encoded as uint8_t
     template<typename T>
     requires std::is_enum_v<T> struct TypeName<T> {
@@ -402,6 +404,7 @@ namespace ABI {
     // Specialization for default solidity types
     template <> struct TypeEncoder<Address> { static Bytes encode(const Address& add) { return Utils::padLeftBytes(add, 32); }};
     template <> struct TypeEncoder<bool> { static Bytes encode(const bool& b) { return Utils::padLeftBytes((b ? Bytes{0x01} : Bytes{0x00}), 32); }};
+    template <> struct TypeEncoder<Hash> { static Bytes encode(const Hash& hash) { return hash.asBytes(); }; };
     template <> struct TypeEncoder<Bytes> {
       static Bytes encode(const Bytes& bytes) {
         int pad = 0;
@@ -764,6 +767,15 @@ namespace ABI {
       static Address decode(const bytes::View& bytes, uint64_t& index) {
         if (index + 32 > bytes.size()) throw std::length_error("Data too short for address");
         auto result = Address(bytes.subspan(index + 12, 20));
+        index += 32;
+        return result;
+      }
+    };
+
+    template <> struct TypeDecoder<Hash> {
+      static Hash decode(const BytesArrView& bytes, uint64_t& index) {
+        if (index + 32 > bytes.size()) { throw std::length_error("Data too short for hash"); }
+        auto result = Hash(bytes.subspan(index, 32));
         index += 32;
         return result;
       }

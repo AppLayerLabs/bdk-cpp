@@ -71,7 +71,7 @@ template <int Size> class SafeInt_t : public SafeBase {
     /// Copy constructor. Only copies the CURRENT value.
     SafeInt_t(const SafeInt_t<Size>& other) : SafeBase(nullptr), value_(other.value_), copy_(other.value_) {}
 
-    /// Getter for the temporary value.
+    /// Getter for the value.
     inline const int_t& get() const { return this->value_; }
 
     ///@{

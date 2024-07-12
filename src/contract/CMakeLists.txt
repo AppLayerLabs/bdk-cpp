@@ -14,6 +14,7 @@ set(CONTRACT_HEADERS
   ${CMAKE_SOURCE_DIR}/src/contract/variables/safearray.h
   ${CMAKE_SOURCE_DIR}/src/contract/variables/safebase.h
   ${CMAKE_SOURCE_DIR}/src/contract/variables/safebool.h
+  ${CMAKE_SOURCE_DIR}/src/contract/variables/safebytes.h
   ${CMAKE_SOURCE_DIR}/src/contract/variables/safestring.h
   ${CMAKE_SOURCE_DIR}/src/contract/variables/safeuint.h
   ${CMAKE_SOURCE_DIR}/src/contract/variables/safeunorderedmap.h
@@ -25,6 +26,8 @@ set(CONTRACT_HEADERS
   ${CMAKE_SOURCE_DIR}/src/contract/templates/erc20wrapper.h
   ${CMAKE_SOURCE_DIR}/src/contract/templates/nativewrapper.h
   ${CMAKE_SOURCE_DIR}/src/contract/templates/simplecontract.h
+  ${CMAKE_SOURCE_DIR}/src/contract/templates/snailtracer.h
+  ${CMAKE_SOURCE_DIR}/src/contract/templates/snailtraceroptimized.h
   ${CMAKE_SOURCE_DIR}/src/contract/templates/dexv2/dexv2factory.h
   ${CMAKE_SOURCE_DIR}/src/contract/templates/dexv2/dexv2library.h
   ${CMAKE_SOURCE_DIR}/src/contract/templates/dexv2/dexv2pair.h
@@ -54,6 +57,8 @@ set(CONTRACT_SOURCES
   ${CMAKE_SOURCE_DIR}/src/contract/templates/erc20wrapper.cpp
   ${CMAKE_SOURCE_DIR}/src/contract/templates/nativewrapper.cpp
   ${CMAKE_SOURCE_DIR}/src/contract/templates/simplecontract.cpp
+  ${CMAKE_SOURCE_DIR}/src/contract/templates/snailtracer.cpp
+  ${CMAKE_SOURCE_DIR}/src/contract/templates/snailtraceroptimized.cpp
   ${CMAKE_SOURCE_DIR}/src/contract/templates/dexv2/dexv2factory.cpp
   ${CMAKE_SOURCE_DIR}/src/contract/templates/dexv2/dexv2library.cpp
   ${CMAKE_SOURCE_DIR}/src/contract/templates/dexv2/dexv2pair.cpp

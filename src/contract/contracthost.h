@@ -1,20 +1,22 @@
 #ifndef CONTRACT_HOST_H
 #define CONTRACT_HOST_H
 
+
 #include <evmc/evmc.hpp>
-#include <evmone/evmone.h>
-#include "../utils/db.h"
-#include "../utils/hex.h"
 #include "../utils/utils.h"
 #include "../utils/strings.h"
+#include "../utils/hex.h"
 #include "../utils/safehash.h"
-#include "../utils/contractreflectioninterface.h"
-#include "../core/dump.h"
-#include "../core/rdpos.h"
+#include "../utils/db.h"
 #include "../core/storage.h"
+#include <evmone/evmone.h>
 #include "contractstack.h"
+#include "../core/rdpos.h"
+#include "../utils/contractreflectioninterface.h"
 #include "contractmanager.h"
+#include "../core/dump.h"
 #include "calltracer.h"
+
 
 // TODO: EVMC Static Mode Handling
 // TODO: Contract creating other contracts (EVM Factories)
@@ -42,6 +44,7 @@
 
 // Address for static BDKD precompile contracts.
 using namespace evmc::literals;
+const auto ZERO_ADDRESS = 0x0000000000000000000000000000000000000000_address;
 const auto BDK_PRECOMPILE = 0x1000000000000000000000000000100000000001_address;
 
 class ContractHost : public evmc::Host {
@@ -95,7 +98,9 @@ class ContractHost : public evmc::Host {
      * @param caller The caller address to set.
      * @param value The value to set.
      */
-    inline void setContractVars(const ContractLocals* contract, const Address& caller, const uint256_t& value) const {
+    inline void setContractVars(const ContractLocals* contract,
+                                const Address& caller,
+                                const uint256_t& value) const {
       contract->caller_ = caller;
       contract->value_ = value;
     }
@@ -107,10 +112,21 @@ class ContractHost : public evmc::Host {
       }
     }
 
-    void createEVMContract(const evmc_message& msg, const Address& contractAddr);
+    evmc::Result createEVMContract(const evmc_message& msg,
+                                   const Address& contractAddress,
+                                   const evmc_call_kind& kind);
 
+    const ContractType decodeContractCallType(const evmc_message& msg);
+    evmc::Result inline processBDKPrecompile(const evmc_message& msg) const;
+    evmc::Result inline callEVMCreate(const evmc_message& msg);
+    evmc::Result inline callEVMCreate2(const evmc_message& msg);
+    evmc::Result inline callEVMContract(const evmc_message& msg);
+    evmc::Result inline callCPPContract(const evmc_message& msg);
 
-    evmc::Result processBDKPrecompile(const evmc_message& msg) const;
+  Address computeNewAccountAddress(const Address& fromAddress,
+                                   const uint64_t& nonce,
+                                   const Hash& salt,
+                                   const BytesArrView& init_code);
 
     evmc::Result callImpl(const evmc_message& msg) noexcept;
 
@@ -157,7 +173,12 @@ class ContractHost : public evmc::Host {
     ContractHost& operator=(ContractHost&&) = delete;
     ~ContractHost() noexcept override;
 
-    static Address deriveContractAddress(const uint64_t& nonce, const Address& address);
+    static Address deriveContractAddress(const uint64_t& nonce,
+                                         const Address& address);
+
+    static Address deriveContractAddress(const Address& fromAddress,
+                                         const Hash& salt,
+                                         const BytesArrView& init_code);
 
     /// Executes a call
     void execute(const evmc_message& msg, const ContractType& type);
@@ -709,7 +730,7 @@ class ContractHost : public evmc::Host {
       // Get the ContractManager from the this->accounts_ map
       ContractManager* contractManager = dynamic_cast<ContractManager*>(this->contracts_.at(to).get());
       this->setContractVars(contractManager, from, 0);
-      auto callerNonce = this->accounts_[from]->nonce;
+      auto& callerNonce = this->accounts_[from]->nonce;
       Address newContractAddress = ContractHost::deriveContractAddress(callerNonce, from);
       this->stack_.registerNonce(from, callerNonce);
       NestedCallSafeGuard guard(caller, caller->caller_, caller->value_);
@@ -788,9 +809,10 @@ class ContractHost : public evmc::Host {
 
     /**
      * Get the current nonce of a given Account
+     * Returns a REFERENCE to the nonce, so it can be modified.
      * @param acc The address of the account to get the nonce from.
      */
-    uint64_t getNonce(const Address& acc) const;
+    uint64_t& getNonce(const Address& acc);
 
     template <typename... Args, bool... Flags>
     void emitEvent(

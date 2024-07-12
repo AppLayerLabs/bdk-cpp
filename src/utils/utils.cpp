@@ -16,8 +16,7 @@ void fail(const std::string& cl, std::string&& func, boost::beast::error_code ec
   Logger::logToDebug(LogType::ERROR, cl, std::move(func), std::string("HTTP Fail ") + what + " : " + ec.message());
 }
 
-std::string Utils::getTestBasePath() { return std::string("/tmp/"); }
-std::string Utils::getTestDumpPath() { return std::string("/tmp/testdump/"); }
+std::string Utils::getTestDumpPath() { return std::string("testdump"); }
 
 void Utils::logToFile(std::string_view str) {
   // Lock to prevent multiple memory writes
@@ -749,6 +748,45 @@ BytesArr<32> Utils::int256ToBytes(const int256_t& i) {
     std::copy(tempBytes.rbegin(), tempBytes.rend(), ret.rbegin());
   }
 
+  return ret;
+}
+
+BytesArr<17> Utils::int136ToBytes(const int136_t &i) {
+  BytesArr<17> ret;
+  Bytes tmp;
+  tmp.reserve(17);
+  boost::multiprecision::export_bits(i, std::back_inserter(tmp), 8);
+  for (signed ii = 0; ii < tmp.size(); ii++) ret[16 - ii] = tmp[tmp.size() - ii - 1];
+  return ret;
+}
+
+BytesArr<8> Utils::int64ToBytes(const int64_t& i) {
+  BytesArr<8> ret;
+  std::memcpy(&ret[0], &i, 8);
+  #if __BYTE_ORDER == __LITTLE_ENDIAN
+    std::reverse(ret.begin(), ret.end());
+  #endif
+  return ret;
+}
+
+int136_t Utils::bytesToInt136(const BytesArrView b) {
+  if (b.size() != 18) throw DynamicException(std::string(__func__)
+    + ": Invalid bytes size - expected 18, got " + std::to_string(b.size())
+  );
+  int136_t ret;
+  boost::multiprecision::import_bits(ret, b.begin(), b.end(), 8);
+  return ret;
+}
+
+int64_t Utils::bytesToInt64(const BytesArrView b) {
+  if (b.size() != 8) throw DynamicException(std::string(__func__)
+    + ": Invalid bytes size - expected 8, got " + std::to_string(b.size())
+  );
+  int64_t ret = 0;
+  std::memcpy(&ret, b.data(), 8);
+  #if __BYTE_ORDER == __LITTLE_ENDIAN
+    return __builtin_bswap64(ret);
+  #endif
   return ret;
 }
 

@@ -250,7 +250,7 @@ enum Networks { Mainnet, Testnet, LocalTestnet };
 enum FunctionTypes { View, NonPayable, Payable };
 
 /// Enum for the type of the contract.
-enum ContractType { NOT_A_CONTRACT, EVM, CPP };
+enum ContractType { NOT_A_CONTRACT, EVM, CPP, CREATE, CREATE2, PRECOMPILED};
 
 /**
  * Abstraction of balance and nonce for a single account.
@@ -343,7 +343,6 @@ template<typename T, bool Index> struct EventParam {
 
 /// Namespace for utility functions.
 namespace Utils {
-  std::string getTestBasePath();
   std::string getTestDumpPath(); ///< Get the path to the test dump folder.
 
   constexpr Bytes makeBytes(const bytes::DataRange auto& data) {
@@ -552,6 +551,8 @@ namespace Utils {
   BytesArr<2> uint16ToBytes(const uint16_t& i);
   BytesArr<1> uint8ToBytes(const uint8_t& i);
   BytesArr<32> int256ToBytes(const int256_t& i);
+  BytesArr<17> int136ToBytes(const int136_t& i);
+  BytesArr<8> int64ToBytes(const int64_t& i);
   ///@}
 
   ///@{
@@ -594,6 +595,8 @@ namespace Utils {
   uint16_t bytesToUint16(const bytes::View b);
   uint8_t bytesToUint8(const bytes::View b);
   int256_t bytesToInt256(const bytes::View b);
+  int136_t bytesToInt136(const bytes::View b);
+  int64_t bytesToInt64(const bytes::View b);
   ///@}
 
   /**
