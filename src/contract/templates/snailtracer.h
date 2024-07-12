@@ -321,7 +321,7 @@ class SnailTracer : public DynamicContract {
         SnailTracer, int256_t&, int256_t&,
         const Address&, const Address&, const uint64_t&, DB&
       >(
-        std::vector<std::string>{"width_", "height_", "buffer_", "seed_", "camera_", "deltaX_", "deltaY_", "spheres_", "triangles_"},
+        std::vector<std::string>{"w", "h"},
         std::make_tuple("TracePixel", &SnailTracer::TracePixel, FunctionTypes::NonPayable, std::vector<std::string>{"x", "y", "spp"}),
         std::make_tuple("TraceScanline", &SnailTracer::TraceScanline, FunctionTypes::NonPayable, std::vector<std::string>{"y", "spp"}),
         std::make_tuple("TraceImage", &SnailTracer::TraceImage, FunctionTypes::NonPayable, std::vector<std::string>{"spp"}),
