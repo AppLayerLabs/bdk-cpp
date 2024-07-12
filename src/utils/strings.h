@@ -44,7 +44,7 @@ template <unsigned N> class FixedBytes {
     friend zpp::bits::access;
     using serialize = zpp::bits::members<1>;
 
-    constexpr FixedBytes() : data_() {};
+    constexpr FixedBytes() {};
 
     constexpr FixedBytes(std::initializer_list<Byte> initList) {
       if (initList.size() != N)
@@ -53,7 +53,7 @@ template <unsigned N> class FixedBytes {
       std::ranges::copy(initList, data_.begin());
     }
 
-    constexpr FixedBytes(bytes::Initializer auto&& initializer) { initializer.to(data_); }
+    constexpr FixedBytes(const bytes::Initializer auto& initializer) { initializer.to(data_); }
 
     constexpr explicit FixedBytes(const bytes::DataRange auto& data) {
       if (std::ranges::size(data) != N)

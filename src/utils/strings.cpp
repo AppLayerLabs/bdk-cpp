@@ -12,7 +12,7 @@ Hash::Hash(const uint256_t& data) : FixedBytes<32>(Utils::uint256ToBytes(data)) 
 
 Hash::Hash(const std::string_view sv) {
   if (sv.size() != 32) throw std::invalid_argument("Hash must be 32 bytes long.");
-  std::copy(sv.begin(), sv.end(), this->begin());
+  std::ranges::copy(sv, this->begin());
 }
 
 Hash::Hash(const evmc::bytes32& data) {
@@ -24,7 +24,7 @@ uint256_t Hash::toUint256() const { return Utils::bytesToUint256(*this); }
 
 evmc::bytes32 Hash::toEvmcBytes32() const {
   evmc::bytes32 bytes;
-  std::memcpy(reinterpret_cast<void*>(bytes.bytes), this->data(), 32);
+  std::memcpy(bytes.bytes, this->data(), 32);
   return bytes;
 }
 
@@ -37,11 +37,11 @@ uint8_t Signature::v() const { return Utils::bytesToUint8(this->view(64, 1)); }
 Address::Address(const std::string_view add, bool inBytes) {
   if (inBytes) {
     if (add.size() != 20) throw std::invalid_argument("Address must be 20 bytes long.");
-    std::copy(add.begin(), add.end(), this->begin());
+    std::ranges::copy(add, this->begin());
   } else {
     if (!Address::isValid(add, false)) throw std::invalid_argument("Invalid Hex address.");
     auto bytes = Hex::toBytes(add);
-    std::copy(bytes.begin(), bytes.end(), this->begin());
+    std::ranges::copy(bytes, this->begin());
   }
 }
 
@@ -52,7 +52,7 @@ Address::Address(const evmc::address& data) {
 
 evmc::address Address::toEvmcAddress() const {
   evmc::address addr;
-  std::copy(this->begin(), this->end(), addr.bytes);
+  std::ranges::copy(*this, addr.bytes);
   return addr;
 }
 

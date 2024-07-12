@@ -66,7 +66,7 @@ Hash Utils::sha3(const bytes::View input) {
 
 uint256_t Utils::evmcUint256ToUint256(const evmc::uint256be& i) {
   // We can use the uint256ToBytes directly as it is std::span and we can create a span from an array
-  return Utils::bytesToUint256(bytes::View(reinterpret_cast<const uint8_t*>(&i.bytes[0]), 32));
+  return Utils::bytesToUint256(bytes::View(i.bytes, 32));
 }
 evmc::uint256be Utils::uint256ToEvmcUint256(const uint256_t& i) {
   // Convert the uint256_t to BytesArr<32> then copy it to evmc::uint256be

@@ -51,8 +51,10 @@ public:
   constexpr void to(Byte *dest) const { std::invoke(func_, dest); }
 
   constexpr void to(Span dest) const {
-    if (dest.size() != size())
-      throw std::runtime_error("incompatible size");
+    if (dest.size() != size()) [[unlikely]] {
+      throw std::invalid_argument(std::string("span size (") + std::to_string(dest.size()) + 
+        ") incompatible with initializer size (" + std::to_string(size()) + ")");
+    }
 
     to(dest.data());
   }

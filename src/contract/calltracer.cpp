@@ -3,11 +3,13 @@
 namespace trace {
 
 static Call::Type getCallType(const evmc_message& msg) {
+  using enum Call::Type;
+
   if (msg.kind == EVMC_CALL)
-    return (msg.flags == EVMC_STATIC) ? Call::Type::STATICCALL : Call::Type::CALL;
+    return (msg.flags == EVMC_STATIC) ? STATICCALL : CALL;
 
   if (msg.kind == EVMC_DELEGATECALL)
-    return Call::Type::DELEGATECALL;
+    return DELEGATECALL;
   
   throw DynamicException("evmc_message is not from a function call");
 }
@@ -17,24 +19,26 @@ Call::Call(const evmc_message& msg)
   : type(getCallType(msg)),
     from(msg.sender),
     to(msg.recipient),
-    gas(msg.gas),
     value(msg.value.bytes),
+    gas(msg.gas),
+    gasUsed(0),
     input(Utils::makeBytes(bytes::View(msg.input_data, msg.input_size))) {}
 
-
 json Call::toJson() const {
+  using enum Call::Type;
+  
   json res;
 
   switch (this->type) {
-    case Call::Type::CALL:
+    case CALL:
       res["type"] = "CALL";
       break;
 
-    case Call::Type::STATICCALL:
+    case STATICCALL:
       res["type"] = "STATICCALL";
       break;
 
-    case Call::Type::DELEGATECALL:
+    case DELEGATECALL:
       res["type"] = "DELEGATECALL";
       break;
   }
@@ -58,7 +62,7 @@ json Call::toJson() const {
   return res;
 }
 
-CallTracer::CallTracer(Call rootCall) : root_(std::make_unique<Call>(std::move(rootCall))), stack_() {
+CallTracer::CallTracer(Call rootCall) : root_(std::make_unique<Call>(std::move(rootCall))) {
   stack_.emplace_back(root_.get());
 }
 

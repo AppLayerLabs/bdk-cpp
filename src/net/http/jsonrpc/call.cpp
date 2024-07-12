@@ -75,7 +75,7 @@ json call(const json& request, State& state, const Storage& storage,
     else if (method == "eth_getTransactionReceipt")
       result = jsonrpc::eth_getTransactionReceipt(request, storage, state);
     else if (method == "eth_getUncleByBlockHashAndIndex")
-      result = jsonrpc::eth_getUncleByBlockHashAndIndex(request, storage);
+      result = jsonrpc::eth_getUncleByBlockHashAndIndex();
     else if (method == "txpool_content")
       result = jsonrpc::txpool_content(request, storage, state);
     else if (method == "debug_traceBlockByNumber")

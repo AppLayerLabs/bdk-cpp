@@ -38,9 +38,9 @@ static void storeBlock(DB& db, const FinalizedBlock& block, bool indexingEnabled
 }
 
 Storage::Storage(std::string instanceIdStr, const Options& options)
-  : instanceIdStr_(std::move(instanceIdStr)),
-    db_(options.getRootPath() + "/blocksDb/"),
-    options_(options)
+  : db_(options.getRootPath() + "/blocksDb/"),
+    options_(options),
+    instanceIdStr_(std::move(instanceIdStr))
 {
   LOGINFO("Loading blockchain from DB");
 
@@ -74,8 +74,6 @@ void Storage::initializeBlockchain() {
 
     storeBlock(db_, genesis, options_.getIndexingMode() != IndexingMode::DISABLED);
 
-    const Hash blockHash = genesis.getHash();
-
     LOGINFO(std::string("Created genesis block: ") + Hex::fromBytes(genesis.getHash()).get());
   }
 
@@ -106,9 +104,7 @@ TxBlock Storage::getTxFromBlockWithIndex(bytes::View blockData, uint64_t txIndex
 }
 
 void Storage::pushBlock(FinalizedBlock block) {
-  auto previousBlock = latest_.load();
-
-  if (previousBlock->getHash() != block.getPrevBlockHash())
+  if (auto previousBlock = latest_.load(); previousBlock->getHash() != block.getPrevBlockHash())
     throw DynamicException("\"previous hash\" of new block does not match the latest block hash");
 
   auto newBlock = std::make_shared<FinalizedBlock>(std::move(block));

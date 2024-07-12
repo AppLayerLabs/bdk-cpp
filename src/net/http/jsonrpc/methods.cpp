@@ -493,12 +493,12 @@ json eth_getTransactionReceipt(const json& request, const Storage& storage, cons
   return json::value_t::null;
 }
 
-json eth_getUncleByBlockHashAndIndex(const json& request, const Storage& storage) {
+json eth_getUncleByBlockHashAndIndex() {
   return json::value_t::null;
 }
 
 json txpool_content(const json& request, const Storage& storage, const State& state) {
-  // TODO: forbid?
+  forbidParams(request);
   json result;
   result["queued"] = json::array();
   json& pending = result["pending"];
@@ -507,7 +507,6 @@ json txpool_content(const json& request, const Storage& storage, const State& st
 
   state.forEachPendingTx([&pending, &storage] (const TxBlock& tx) {
     json& txJson = pending[tx.getFrom().hex(true)][tx.getNonce().str()];
-
     txJson["blockHash"] = json::value_t::null;
     txJson["blockNumber"] = json::value_t::null;
     txJson["from"] = tx.getFrom().hex(true);
@@ -527,7 +526,6 @@ json txpool_content(const json& request, const Storage& storage, const State& st
     txJson["v"] = Hex::fromBytes(Utils::uintToBytes(tx.getV()), true).forRPC();
     txJson["r"] = Hex::fromBytes(Utils::uintToBytes(tx.getR()), true).forRPC();
     txJson["s"] = Hex::fromBytes(Utils::uintToBytes(tx.getS()), true).forRPC();
-    // TODO: add accesslist from EIP-2929
   });
 
   return result;

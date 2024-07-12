@@ -19,7 +19,7 @@ std::size_t joinedSize(const DataRange auto& arg) {
 }
 
 std::size_t joinedSize(const auto& arg, const auto&... args) {
-  return joinedSize(arg) + joinedSize(std::forward<decltype(args)>(args)...);
+  return joinedSize(arg) + joinedSize(args...);
 }
 
 Byte *joinImpl(Byte *dest, const SizedInitializer auto& init) {
