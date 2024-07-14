@@ -154,7 +154,7 @@ evmc::Result ContractHost::createEVMContract(const evmc_message& msg,
   return evmc::Result{result.status_code, this->leftoverGas_, 0, createMsg.recipient};
 }
 
-evmc::Result ContractHost::processBDKPrecompile(const evmc_message& msg) const {
+evmc::Result ContractHost::processBDKPrecompile(const evmc_message& msg) {
   /**
    *  interface BDKPrecompile {
    *    function getRandom() external view returns (uint256);
@@ -415,8 +415,7 @@ bool ContractHost::selfdestruct(const evmc::address& addr,
   return false;
 }
 
-evmc::Result ContractHost::callEVMCreate(const evmc_message& msg)
-{
+evmc::Result ContractHost::callEVMCreate(const evmc_message& msg) {
   try {
     auto sender = Address(msg.sender);
     auto& nonce = this->getNonce(sender);
@@ -436,8 +435,7 @@ evmc::Result ContractHost::callEVMCreate(const evmc_message& msg)
   return evmc::Result(EVMC_REVERT, this->leftoverGas_, 0, nullptr, 0);
 }
 
-evmc::Result ContractHost::callEVMCreate2(const evmc_message& msg)
-{
+evmc::Result ContractHost::callEVMCreate2(const evmc_message& msg) {
   try {
     Bytes code(msg.input_data, msg.input_data + msg.input_size);
     uint256_t value = Utils::evmcUint256ToUint256(msg.value);
@@ -456,8 +454,7 @@ evmc::Result ContractHost::callEVMCreate2(const evmc_message& msg)
   return evmc::Result(EVMC_REVERT, this->leftoverGas_, 0, nullptr, 0);
 }
 
-evmc::Result ContractHost::callCPPContract(const evmc_message& msg)
-{
+evmc::Result ContractHost::callCPPContract(const evmc_message& msg) {
   Address recipient(msg.recipient);
   try {
     this->leftoverGas_ = msg.gas;
@@ -482,8 +479,7 @@ evmc::Result ContractHost::callCPPContract(const evmc_message& msg)
   }
 }
 
-evmc::Result ContractHost::callEVMContract(const evmc_message& msg)
-{
+evmc::Result ContractHost::callEVMContract(const evmc_message& msg) {
   Address recipient(msg.recipient);
   auto &recipientAccount = *accounts_[recipient];
   evmc::Result result(evmc_execute(this->vm_,
@@ -502,8 +498,7 @@ evmc::Result ContractHost::callEVMContract(const evmc_message& msg)
   return result;
 }
 
-const ContractType ContractHost::decodeContractCallType(const evmc_message& msg)
-{
+ContractType ContractHost::decodeContractCallType(const evmc_message& msg) const {
   switch (msg.kind)
   {
   case evmc_call_kind::EVMC_CREATE: {
@@ -518,7 +513,7 @@ const ContractType ContractHost::decodeContractCallType(const evmc_message& msg)
     Address recipient(msg.recipient);
     // we need to take a reference to the account, not a reference
     // to the pointer
-    auto &recipientAccount = *accounts_[recipient];
+    const auto& recipientAccount = *accounts_[recipient];
     if (recipientAccount.contractType == CPP)
       return ContractType::CPP;
     // else EVM call

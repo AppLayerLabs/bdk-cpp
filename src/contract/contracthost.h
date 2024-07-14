@@ -115,12 +115,12 @@ class ContractHost : public evmc::Host {
                                    const Address& contractAddress,
                                    const evmc_call_kind& kind);
 
-    const ContractType decodeContractCallType(const evmc_message& msg);
-    evmc::Result inline processBDKPrecompile(const evmc_message& msg) const;
-    evmc::Result inline callEVMCreate(const evmc_message& msg);
-    evmc::Result inline callEVMCreate2(const evmc_message& msg);
-    evmc::Result inline callEVMContract(const evmc_message& msg);
-    evmc::Result inline callCPPContract(const evmc_message& msg);
+    ContractType decodeContractCallType(const evmc_message& msg) const;
+    evmc::Result processBDKPrecompile(const evmc_message& msg);
+    evmc::Result callEVMCreate(const evmc_message& msg);
+    evmc::Result callEVMCreate2(const evmc_message& msg);
+    evmc::Result callEVMContract(const evmc_message& msg);
+    evmc::Result callCPPContract(const evmc_message& msg);
 
   Address computeNewAccountAddress(const Address& fromAddress,
                                    const uint64_t& nonce,
