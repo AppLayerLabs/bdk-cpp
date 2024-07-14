@@ -769,7 +769,7 @@ BytesArr<8> Utils::int64ToBytes(const int64_t& i) {
   return ret;
 }
 
-int136_t Utils::bytesToInt136(const BytesArrView b) {
+int136_t Utils::bytesToInt136(const bytes::View b) {
   if (b.size() != 18) throw DynamicException(std::string(__func__)
     + ": Invalid bytes size - expected 18, got " + std::to_string(b.size())
   );
@@ -778,7 +778,7 @@ int136_t Utils::bytesToInt136(const BytesArrView b) {
   return ret;
 }
 
-int64_t Utils::bytesToInt64(const BytesArrView b) {
+int64_t Utils::bytesToInt64(const bytes::View b) {
   if (b.size() != 8) throw DynamicException(std::string(__func__)
     + ": Invalid bytes size - expected 8, got " + std::to_string(b.size())
   );

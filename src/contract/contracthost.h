@@ -126,17 +126,19 @@ class ContractHost : public evmc::Host {
   Address computeNewAccountAddress(const Address& fromAddress,
                                    const uint64_t& nonce,
                                    const Hash& salt,
-                                   const BytesArrView& init_code);
+                                   const bytes::View& init_code);
 
-    evmc::Result callImpl(const evmc_message& msg) noexcept;
+    bool isTracingCalls() const noexcept;
 
-    void safelyTraceFunctionStart(const evmc_message& msg) noexcept;
+    void traceCallIn(const evmc_message& msg) noexcept;
 
-    void safelyTraceFunctionEnd(bytes::View output, int64_t gasUsed) noexcept;
+    void traceCallOut(const evmc_result& res) noexcept;
 
-    void safelyTraceFunctionError(std::string error, int64_t gasUsed) noexcept;
+    void traceCallOut(bytes::View output, int64_t gasUsed) noexcept;
 
-    void safelyPersistCallTrace() noexcept;
+    void traceCallError(std::string error, int64_t gasUsed) noexcept;
+
+    void saveCallTrace() noexcept;
 
   public:
     ContractHost(evmc_vm* vm,
@@ -178,7 +180,7 @@ class ContractHost : public evmc::Host {
 
     static Address deriveContractAddress(const Address& fromAddress,
                                          const Hash& salt,
-                                         const BytesArrView& init_code);
+                                         const bytes::View& init_code);
 
     /// Executes a call
     void execute(const evmc_message& msg, const ContractType& type);

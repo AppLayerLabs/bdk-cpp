@@ -42,7 +42,7 @@ private:
   std::unique_ptr<Call> root_;
   std::deque<Call*> stack_;
 
-  void traceFunctionEndInternal(bytes::View output, int64_t gasUsed, std::string error);
+  void traceOutInternal(bytes::View output, int64_t gasUsed, std::string error);
 
 public:
   CallTracer() = default;
@@ -55,11 +55,13 @@ public:
 
   const Call& root() const noexcept { return *root_; }
 
-  void traceFunctionStart(Call call);
+  const Call& current() const noexcept { return *stack_.back(); }
 
-  void traceFunctionEnd(bytes::View output, int64_t gasUsed);
+  void traceIn(Call call);
 
-  void traceFunctionError(std::string error, int64_t gasUsed);
+  void traceOut(bytes::View output, int64_t gasUsed);
+
+  void traceError(std::string error, int64_t gasUsed);
 };
 
 } // namespace trace

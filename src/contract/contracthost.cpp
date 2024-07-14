@@ -86,7 +86,7 @@ ContractHost::~ContractHost() {
     }
   }
 
-  safelyPersistCallTrace();
+  saveCallTrace();
 }
 
 Address ContractHost::deriveContractAddress(const uint64_t& nonce,
@@ -106,7 +106,7 @@ Address ContractHost::deriveContractAddress(const uint64_t& nonce,
 
 Address ContractHost::deriveContractAddress(const Address& fromAddress,
                                             const Hash& salt,
-                                            const BytesArrView& code)
+                                            const bytes::View& code)
 {
   const auto code_hash = Utils::sha3(code);
   Bytes buffer(1 + sizeof(fromAddress) + sizeof(salt) + sizeof(code_hash));
@@ -117,7 +117,7 @@ Address ContractHost::deriveContractAddress(const Address& fromAddress,
   buffer.insert(buffer.end(), salt.cbegin(), salt.cend());
   buffer.insert(buffer.end(), code_hash.cbegin(), code_hash.cend());
 
-  return {Utils::sha3(buffer).view(12)};
+  return Address(Utils::sha3(buffer).view(12));
 }
 
 evmc::Result ContractHost::createEVMContract(const evmc_message& msg,
@@ -156,45 +156,71 @@ evmc::Result ContractHost::createEVMContract(const evmc_message& msg,
   return evmc::Result{result.status_code, this->leftoverGas_, 0, createMsg.recipient};
 }
 
-void ContractHost::safelyTraceFunctionStart(const evmc_message& msg) noexcept {
-  if (storage_.getIndexingMode() != IndexingMode::RPC_TRACE || !txHash_)
+bool ContractHost::isTracingCalls() const noexcept {
+  return bool(txHash_) && storage_.getIndexingMode() == IndexingMode::RPC_TRACE;
+}
+
+void ContractHost::traceCallIn(const evmc_message& msg) noexcept {
+  if (!isTracingCalls())
     return;
 
   try {
-    callTracer_.traceFunctionStart(trace::Call(msg));
+    callTracer_.traceIn(trace::Call(msg));
   } catch (const std::exception& err) {
     LOGERROR(std::string("Fail to trace call start: ") + err.what());
   }
 }
 
-void ContractHost::safelyTraceFunctionEnd(bytes::View output, int64_t gasUsed) noexcept {
-  if (storage_.getIndexingMode() != IndexingMode::RPC_TRACE || !txHash_)
+void ContractHost::traceCallOut(const evmc_result& res) noexcept {
+  if (!isTracingCalls())
+    return;
+
+  if (!callTracer_.hasCalls()) {
+    LOGERROR("Attempt to trace the end of a function that didn't start");
+    return;
+  }
+
+  const int64_t gasUsed = callTracer_.current().gas - res.gas_left;
+
+  try {
+    if (res.status_code == EVMC_SUCCESS) {
+      callTracer_.traceOut(bytes::View(res.output_data, res.output_size), gasUsed);
+    } else {
+      callTracer_.traceError(evmc_status_code_to_string(res.status_code), gasUsed);
+    }
+  } catch (const std::exception& err) {
+    LOGERROR(std::string("Fail to trace call start: ") + err.what());
+  }
+}
+
+void ContractHost::traceCallOut(bytes::View output, int64_t gasUsed) noexcept {
+  if (!isTracingCalls())
     return;
 
   try {
-    callTracer_.traceFunctionEnd(output, gasUsed);
+    callTracer_.traceOut(output, gasUsed);
   } catch (const std::exception& err) {
     LOGERROR(std::string("Fail to trace call end: ") + err.what());
   }
 }
 
-void ContractHost::safelyTraceFunctionError(std::string error, int64_t gasUsed) noexcept {
-  if (storage_.getIndexingMode() != IndexingMode::RPC_TRACE || !txHash_)
+void ContractHost::traceCallError(std::string error, int64_t gasUsed) noexcept {
+  if (!isTracingCalls())
     return;
 
   try {
-    callTracer_.traceFunctionError(std::move(error), gasUsed);
+    callTracer_.traceError(std::move(error), gasUsed);
   } catch (const std::exception& err) {
     LOGERROR(std::string("Fail to trace call error: ") + err.what());
   }
 }
 
-void ContractHost::safelyPersistCallTrace() noexcept {
-  if (storage_.getIndexingMode() != IndexingMode::RPC_TRACE || !txHash_ || !callTracer_.hasCalls())
+void ContractHost::saveCallTrace() noexcept {
+  if (!isTracingCalls() || !callTracer_.hasCalls())
     return;
 
   if (!callTracer_.isFinished()) {
-    LOGERROR("Function call was traced on its start but not on its end");
+    LOGERROR("Attempt to persist unfinished call trace");
     return;
   }
 
@@ -231,43 +257,6 @@ evmc::Result ContractHost::processBDKPrecompile(const evmc_message& msg) const {
   return evmc::Result(EVMC_PRECOMPILE_FAILURE, this->leftoverGas_, 0, nullptr, 0);
 }
 
-evmc::Result ContractHost::callImpl(const evmc_message& msg) noexcept {
-  // Check against bdk static precompiles
-  this->leftoverGas_ = msg.gas;
-  if (msg.recipient == BDK_PRECOMPILE) {
-    this->deduceGas(1000); // CPP contract call is 1000 gas
-    return this->processBDKPrecompile(msg);
-  }
-
-  Address recipient(msg.recipient);
-  auto &recipientAccount = *accounts_[recipient]; // We need to take a reference to the account, not a reference to the pointer.
-  /// evmc::Result constructor is: _status_code + _gas_left + _output_data + _output_size
-  if (recipientAccount.contractType == CPP) {
-    // Uh we are an CPP contract, we need to call the contract evmEthCall function and put the result into a evmc::Result
-    try {
-      this->deduceGas(1000); // CPP contract call is 1000 gas
-      auto& contract = contracts_[recipient];
-      if (contract == nullptr) {
-        throw DynamicException("ContractHost call: contract not found");
-      }
-      this->setContractVars(contract.get(), Address(msg.sender), Utils::evmcUint256ToUint256(msg.value));
-      Bytes ret = contract->evmEthCall(msg, this);
-      return evmc::Result(EVMC_SUCCESS, this->leftoverGas_, 0, ret.data(), ret.size());
-    } catch (std::exception& e) {
-      this->evmcThrows_.emplace_back(e.what());
-      this->evmcThrow_ = true;
-      return evmc::Result(EVMC_PRECOMPILE_FAILURE, this->leftoverGas_, 0, nullptr, 0);
-    }
-  }
-  evmc::Result result (evmc_execute(this->vm_, &this->get_interface(), this->to_context(),
-           evmc_revision::EVMC_LATEST_STABLE_REVISION, &msg,
-           recipientAccount.code.data(), recipientAccount.code.size()));
-  this->leftoverGas_ = result.gas_left; // gas_left is not linked with leftoverGas_, we need to link it.
-  this->deduceGas(5000); // EVM contract call is 5000 gas
-  result.gas_left = this->leftoverGas_; // We need to set the gas left to the leftoverGas_
-  return result;
-}
-
 void ContractHost::execute(const evmc_message& msg, const ContractType& type) {
   const Address from(msg.sender);
   const Address to(msg.recipient);
@@ -285,6 +274,8 @@ void ContractHost::execute(const evmc_message& msg, const ContractType& type) {
       }
       this->createEVMContract(msg, contractAddress, EVMC_CREATE);
     } else {
+      traceCallIn(msg);
+
       switch (type)
       {
       case ContractType::CPP: {
@@ -294,6 +285,10 @@ void ContractHost::execute(const evmc_message& msg, const ContractType& type) {
         }
         this->setContractVars(contractIt->second.get(), from, value);
         contractIt->second->ethCall(msg, this);
+
+        // TODO: no proper way for filling these values in the current design
+        traceCallOut(bytes::View(), 0);
+
         break;
       }
       case ContractType::EVM: {
@@ -304,6 +299,11 @@ void ContractHost::execute(const evmc_message& msg, const ContractType& type) {
                                                 evmc_revision::EVMC_LATEST_STABLE_REVISION, &msg,
                                                 this->accounts_[to]->code.data(),
                                                 this->accounts_[to]->code.size()));
+
+
+
+        traceCallOut(result.raw());
+
         this->leftoverGas_ = result.gas_left; // gas_left is not linked with leftoverGas_, we need to link it.
         if (result.status_code) {
           // Set the leftOverGas_ to the gas left after the execution
@@ -618,6 +618,9 @@ const ContractType ContractHost::decodeContractCallType(const evmc_message& msg)
 // evmc::Result will have the gas left after the execution
 evmc::Result ContractHost::call(const evmc_message& msg) noexcept {
   evmc::Result result;
+
+  traceCallIn(msg);
+
   switch (this->decodeContractCallType(msg))
   {
   case ContractType::CREATE: {
@@ -640,6 +643,9 @@ evmc::Result ContractHost::call(const evmc_message& msg) noexcept {
     result = this->callEVMContract(msg);
     break;
   }
+
+  traceCallOut(result.raw());
+
   return result;
 }
 

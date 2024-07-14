@@ -66,7 +66,7 @@ CallTracer::CallTracer(Call rootCall) : root_(std::make_unique<Call>(std::move(r
   stack_.emplace_back(root_.get());
 }
 
-void CallTracer::traceFunctionStart(Call call) {
+void CallTracer::traceIn(Call call) {
   if (stack_.empty()) [[unlikely]] {
     root_ = std::make_unique<Call>(std::move(call));
     stack_.emplace_back(root_.get());
@@ -78,7 +78,7 @@ void CallTracer::traceFunctionStart(Call call) {
   stack_.emplace_back(&newCall);
 }
 
-void CallTracer::traceFunctionEndInternal(bytes::View output, int64_t gasUsed, std::string error) {
+void CallTracer::traceOutInternal(bytes::View output, int64_t gasUsed, std::string error) {
   if (stack_.empty()) [[unlikely]] {
     throw DynamicException("No function start was traced yet");
   }
@@ -90,12 +90,12 @@ void CallTracer::traceFunctionEndInternal(bytes::View output, int64_t gasUsed, s
   stack_.pop_back();
 }
 
-void CallTracer::traceFunctionEnd(bytes::View output, int64_t gasUsed) {
-  traceFunctionEndInternal(output, gasUsed, "");
+void CallTracer::traceOut(bytes::View output, int64_t gasUsed) {
+  traceOutInternal(output, gasUsed, "");
 }
 
-void CallTracer::traceFunctionError(std::string error, int64_t gasUsed) {
-  traceFunctionEndInternal(bytes::View(), gasUsed, std::move(error));
+void CallTracer::traceError(std::string error, int64_t gasUsed) {
+  traceOutInternal(bytes::View(), gasUsed, std::move(error));
 }
 
 } // namespace trace

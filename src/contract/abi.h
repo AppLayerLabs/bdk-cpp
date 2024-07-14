@@ -773,7 +773,7 @@ namespace ABI {
     };
 
     template <> struct TypeDecoder<Hash> {
-      static Hash decode(const BytesArrView& bytes, uint64_t& index) {
+      static Hash decode(const bytes::View& bytes, uint64_t& index) {
         if (index + 32 > bytes.size()) { throw std::length_error("Data too short for hash"); }
         auto result = Hash(bytes.subspan(index, 32));
         index += 32;
