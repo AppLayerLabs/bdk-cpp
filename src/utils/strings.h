@@ -44,7 +44,7 @@ template <unsigned N> class FixedBytes {
     friend zpp::bits::access;
     using serialize = zpp::bits::members<1>;
 
-    constexpr inline FixedBytes() { this->data_.fill(uint8_t{0x00}); };
+    constexpr inline FixedBytes() : data_() { };
 
     constexpr FixedBytes(std::initializer_list<Byte> initList) {
       if (initList.size() != N)
