@@ -13,7 +13,7 @@ namespace jsonrpc {
 
 static std::optional<uint64_t> getBlockNumber(const Storage& storage, const Hash& hash) {
   const auto block = storage.getBlock(hash);
-  if (block) return block->getNHeight();
+  if (block != nullptr) return block->getNHeight();
   return std::nullopt;
 }
 
@@ -247,11 +247,11 @@ json eth_feeHistory(const json& request, const Storage& storage) {
 
   // The feeHistory output includes the next block after the newest too
   std::shared_ptr<const FinalizedBlock> oneAfterLastBlock = storage.getBlock(blockNumber + 1);
-  if (oneAfterLastBlock) ret["baseFeePerGas"].push_back(FIXED_BASE_FEE_PER_GAS);
+  if (oneAfterLastBlock != nullptr) ret["baseFeePerGas"].push_back(FIXED_BASE_FEE_PER_GAS);
   uint64_t oldestBlock;
   while (blockCount--) {
     std::shared_ptr<const FinalizedBlock> block = storage.getBlock(blockNumber);
-    if (!block) break;
+    if (block == nullptr) break;
     ret["baseFeePerGas"].push_back(FIXED_BASE_FEE_PER_GAS); // TODO: fill with proper value once available
     ret["gasUsedRatio"].push_back(1.0f); // TODO: calculate as gasUsed / gasLimit
     oldestBlock = blockNumber--;
@@ -269,12 +269,12 @@ json eth_getLogs(const json& request, const Storage& storage, const State& state
   const std::optional<Hash> blockHash = parseIfExists<Hash>(logsObj, "blockHash");
 
   const uint64_t fromBlock = parseIfExists<BlockTagOrNumber>(logsObj, "fromBlock")
-    .transform([&storage](const BlockTagOrNumber& b) -> uint64_t { return b.number(storage); })
+    .transform([&storage](const BlockTagOrNumber& b) { return b.number(storage); })
     .or_else([&blockHash, &getBlockByHash]() { return blockHash.and_then(getBlockByHash); })
     .value_or(ContractGlobals::getBlockHeight());
 
   const uint64_t toBlock = parseIfExists<BlockTagOrNumber>(logsObj, "toBlock")
-    .transform([&storage](const BlockTagOrNumber& b) -> uint64_t { return b.number(storage); })
+    .transform([&storage](const BlockTagOrNumber& b) { return b.number(storage); })
     .or_else([&blockHash, &getBlockByHash]() { return blockHash.and_then(getBlockByHash); })
     .value_or(ContractGlobals::getBlockHeight());
 

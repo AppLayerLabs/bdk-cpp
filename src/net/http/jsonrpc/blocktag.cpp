@@ -22,7 +22,7 @@ bool BlockTagOrNumber::isLatest(const Storage& storage) const {
 
 uint64_t BlockTagOrNumber::number(const Storage& storage) const {
   return std::visit(Overloaded(
-    [](uint64_t number) -> uint64_t { return number; },
+    [](uint64_t number) { return number; },
     [&storage](BlockTag tag) -> uint64_t {
       if (tag == BlockTag::LATEST) return storage.latest()->getNHeight();
       if (tag == BlockTag::EARLIEST) return 0u;

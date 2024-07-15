@@ -99,7 +99,7 @@ class Event {
       // object that should be appended to the data vector.
       // We use std::apply for indexed parameters because we need to iterate over the tuple.
       Bytes encodedNonIndexed;
-      std::apply([&topics, &params](const auto&... param) {
+      std::apply([&topics](const auto&... param) {
         (..., (param.isIndexed ? topics.push_back(ABI::EventEncoder::encodeTopicSignature(param.value)) : void()));
       }, params);
 

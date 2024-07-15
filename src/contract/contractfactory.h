@@ -176,7 +176,7 @@ namespace ContractFactory {
       )>, SafeHash>& createContractFuncs,
       std::index_sequence<Is...>
     ) {
-      ((addContractFuncs<std::tuple_element_t<Is, Tuple>>([&createContractFuncs](
+      ((addContractFuncs<std::tuple_element_t<Is, Tuple>>([](
         const evmc_message &callInfo,
         const Address &derivedAddress,
         boost::unordered_flat_map<Address, std::unique_ptr<BaseContract>, SafeHash> &contracts,

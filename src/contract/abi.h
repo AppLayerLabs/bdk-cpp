@@ -489,7 +489,7 @@ namespace ABI {
         Bytes result;
         Bytes dynamicBytes;
         uint64_t nextOffset = calculateTotalOffset<Ts...>();
-        std::apply([&result, &dynamicBytes, &nextOffset, &t](const auto&... args) {
+        std::apply([&result, &dynamicBytes, &nextOffset](const auto&... args) {
           auto encodeItem = [&](const auto& item) {
             using ItemType = std::decay_t<decltype(item)>;
             if (isDynamic<ItemType>()) {
@@ -667,7 +667,7 @@ namespace ABI {
     template <typename... Ts> struct TypeEncoder<std::tuple<Ts...>> {
       static Bytes encode(const std::tuple<Ts...>& t) {
         Bytes result;
-        std::apply([&result, &t](const auto&... args) {
+        std::apply([&result](const auto&... args) {
           auto encodeItem = [&](const auto& item) {
             using ItemType = std::decay_t<decltype(item)>;
             append(result, TypeEncoder<ItemType>::encode(item));
@@ -723,7 +723,7 @@ namespace ABI {
           dynamicBytes.insert(dynamicBytes.end(), packed.begin(), packed.end());
         } else append(result, ABI::Encoder::TypeEncoder<ItemType>::encode(item.value));
       };
-      std::apply([&params, &encodeItem](const auto&... args) {
+      std::apply([&encodeItem](const auto&... args) {
         (encodeItem(args), ...);
       }, params);
 
