@@ -49,13 +49,13 @@ public:
 
   explicit CallTracer(Call rootCall);
 
-  bool hasCalls() const { return bool(root_); }
+  bool hasCalls() const noexcept { return bool(root_); }
 
-  bool isFinished() const { return root_ != nullptr && stack_.empty(); }
+  bool isFinished() const noexcept { return root_ != nullptr && stack_.empty(); }
 
-  const Call& root() const noexcept { return *root_; }
+  const Call& root() const;
 
-  const Call& current() const noexcept { return *stack_.back(); }
+  const Call& current() const;
 
   void traceIn(Call call);
 

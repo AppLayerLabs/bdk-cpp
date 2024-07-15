@@ -1,6 +1,10 @@
 #include "contracthost.h"
 #include "dynamiccontract.h"
 
+static inline bool isCall(const evmc_message& msg) {
+  return msg.kind == EVMC_CALL || msg.kind == EVMC_DELEGATECALL;
+}
+
 void ContractHost::transfer(const Address& from, const Address& to, const uint256_t& value) {
   // the from account **Must exist** on the unordered_map.
   // unordered_map references to values are valid **until** you insert a new element
@@ -614,7 +618,8 @@ ContractType ContractHost::decodeContractCallType(const evmc_message& msg) const
 evmc::Result ContractHost::call(const evmc_message& msg) noexcept {
   evmc::Result result;
 
-  traceCallIn(msg);
+  if (isCall(msg))
+    traceCallIn(msg);
 
   switch (this->decodeContractCallType(msg))
   {
@@ -639,7 +644,8 @@ evmc::Result ContractHost::call(const evmc_message& msg) noexcept {
     break;
   }
 
-  traceCallOut(result.raw());
+  if (isCall(msg))
+    traceCallOut(result.raw());
 
   return result;
 }

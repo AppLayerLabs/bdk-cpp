@@ -66,6 +66,23 @@ CallTracer::CallTracer(Call rootCall) : root_(std::make_unique<Call>(std::move(r
   stack_.emplace_back(root_.get());
 }
 
+const Call& CallTracer::root() const {
+  if (!hasCalls())
+    throw DynamicException("root call does not exists since no call was traced");
+  
+  return *root_;
+}
+
+const Call& CallTracer::current() const {
+  if (!hasCalls())
+    throw DynamicException("current call does not exists since no call was traced");
+
+  if (isFinished())
+    throw DynamicException("call tracer is already finished, no call currently opened");
+
+  return *stack_.back();
+}
+
 void CallTracer::traceIn(Call call) {
   if (stack_.empty()) [[unlikely]] {
     root_ = std::make_unique<Call>(std::move(call));
