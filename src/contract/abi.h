@@ -490,8 +490,7 @@ namespace ABI {
         Bytes dynamicBytes;
         uint64_t nextOffset = calculateTotalOffset<Ts...>();
         std::apply([&result, &dynamicBytes, &nextOffset](const auto&... args) {
-          auto encodeItem = [&](const auto& item) {
-            using ItemType = std::decay_t<decltype(item)>;
+          auto encodeItem = [&]<typename ItemType>(const ItemType& item) {
             if (isDynamic<ItemType>()) {
               Bytes packed = TypeEncoder<ItemType>::encode(item);
               append(result, Utils::padLeftBytes(Utils::uintToBytes(nextOffset), 32));
@@ -552,8 +551,7 @@ namespace ABI {
       Bytes result;
       uint64_t nextOffset = calculateTotalOffset<T, Ts...>();
       Bytes dynamicBytes;
-      auto encodeItem = [&](const auto& item) {
-        using ItemType = std::decay_t<decltype(item)>;
+      auto encodeItem = [&]<typename ItemType>(const ItemType& item) {
         if constexpr (isDynamic<ItemType>()) {
           Bytes packed = TypeEncoder<ItemType>::encode(item);
           append(result, Utils::padLeftBytes(Utils::uintToBytes(nextOffset), 32));
@@ -668,8 +666,7 @@ namespace ABI {
       static Bytes encode(const std::tuple<Ts...>& t) {
         Bytes result;
         std::apply([&result](const auto&... args) {
-          auto encodeItem = [&](const auto& item) {
-            using ItemType = std::decay_t<decltype(item)>;
+          auto encodeItem = [&]<typename ItemType>(const ItemType& item) {
             append(result, TypeEncoder<ItemType>::encode(item));
           };
           (encodeItem(args), ...);
@@ -712,8 +709,7 @@ namespace ABI {
       Bytes result;
       uint64_t nextOffset = calculateTotalOffset<Args...>();
       Bytes dynamicBytes;
-      auto encodeItem = [&](const auto& item) {
-        using EventParamType = std::decay_t<decltype(item)>;
+      auto encodeItem = [&]<typename EventParamType>(const EventParamType& item) {
         if constexpr (EventParamType::isIndexed) return;
         using ItemType = std::decay_t<decltype(item.value)>;
         if constexpr (isDynamic<ItemType>()) {

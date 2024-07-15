@@ -82,9 +82,9 @@ class FinalizedBlock {
      * Move constructor.
      * @param block The FinalizedBlock to move.
      */
-    FinalizedBlock(FinalizedBlock&& block) noexcept :
+    FinalizedBlock(FinalizedBlock&& block) :
       validatorSig_(std::move(block.validatorSig_)),
-      validatorPubKey_(std::move(block.validatorPubKey_)),
+      validatorPubKey_(std::move(block.validatorPubKey_)), // not "noexcept" because this can throw (FixedBytes)
       prevBlockHash_(std::move(block.prevBlockHash_)),
       blockRandomness_(std::move(block.blockRandomness_)),
       validatorMerkleRoot_(std::move(block.validatorMerkleRoot_)),

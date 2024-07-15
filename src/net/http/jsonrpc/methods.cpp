@@ -12,8 +12,7 @@ static inline constexpr std::string_view FIXED_BASE_FEE_PER_GAS = "0x9502f900"; 
 namespace jsonrpc {
 
 static std::optional<uint64_t> getBlockNumber(const Storage& storage, const Hash& hash) {
-  const auto block = storage.getBlock(hash);
-  if (block != nullptr) return block->getNHeight();
+  if (const auto block = storage.getBlock(hash); block != nullptr) return block->getNHeight();
   return std::nullopt;
 }
 
@@ -246,12 +245,13 @@ json eth_feeHistory(const json& request, const Storage& storage) {
   ret["gasUsedRatio"] = json::array();
 
   // The feeHistory output includes the next block after the newest too
-  std::shared_ptr<const FinalizedBlock> oneAfterLastBlock = storage.getBlock(blockNumber + 1);
-  if (oneAfterLastBlock != nullptr) ret["baseFeePerGas"].push_back(FIXED_BASE_FEE_PER_GAS);
+  if (
+    std::shared_ptr<const FinalizedBlock> oneAfterLastBlock = storage.getBlock(blockNumber + 1);
+    oneAfterLastBlock != nullptr
+  ) ret["baseFeePerGas"].push_back(FIXED_BASE_FEE_PER_GAS);
   uint64_t oldestBlock;
   while (blockCount--) {
-    std::shared_ptr<const FinalizedBlock> block = storage.getBlock(blockNumber);
-    if (block == nullptr) break;
+    if (std::shared_ptr<const FinalizedBlock> block = storage.getBlock(blockNumber); block == nullptr) break;
     ret["baseFeePerGas"].push_back(FIXED_BASE_FEE_PER_GAS); // TODO: fill with proper value once available
     ret["gasUsedRatio"].push_back(1.0f); // TODO: calculate as gasUsed / gasLimit
     oldestBlock = blockNumber--;

@@ -85,7 +85,7 @@ template <typename Key, typename T> class SafeUnorderedMap : public SafeBase {
     inline bool contains(const Key &key) const { return this->value_.contains(key); }
 
     /// Get an iterator to the start of the original map value.
-    inline const typename boost::unordered_flat_map<Key, T>::iterator begin() noexcept {
+    inline const typename boost::unordered_flat_map<Key, T>::iterator begin() {
       // begin() points to *the* first element (if it exists), so a copy is required
       auto itValue = this->value_.find((*this->value_.begin()).first);
       if (itValue != this->value_.end()) {
@@ -95,7 +95,7 @@ template <typename Key, typename T> class SafeUnorderedMap : public SafeBase {
     }
 
     /// Get an iterator to the end of the original map value.
-    inline const typename boost::unordered_flat_map<Key, T>::iterator end() noexcept {
+    inline const typename boost::unordered_flat_map<Key, T>::iterator end() {
       // end() points to *past* the last element (not *the* last one), so no copy is required
       markAsUsed(); return this->value_.end();
     }

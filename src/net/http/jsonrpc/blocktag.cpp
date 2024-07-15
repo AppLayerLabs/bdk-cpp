@@ -21,14 +21,14 @@ bool BlockTagOrNumber::isLatest(const Storage& storage) const {
 }
 
 uint64_t BlockTagOrNumber::number(const Storage& storage) const {
-  return std::visit(Overloaded(
+  return std::visit(Overloaded{
     [](uint64_t number) { return number; },
     [&storage](BlockTag tag) -> uint64_t {
       if (tag == BlockTag::LATEST) return storage.latest()->getNHeight();
       if (tag == BlockTag::EARLIEST) return 0u;
       throw Error(-32601, "Pending block not supported for operation");
     }
-  ), tagOrNumber_);
+  }, tagOrNumber_);
 }
 
 BlockTag Parser<BlockTag>::operator()(const json& data) const {
