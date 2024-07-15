@@ -274,30 +274,10 @@ template <int Size> class SafeInt_t : public SafeBase {
     }
 
     /**
-     * Logical NOT operator.
-     * @return `true` if the value is zero, `false` otherwise.
+     * Boolean operator
+     * @return `true` if the value is non-zero, `false` otherwise.
      */
-    inline bool operator!() const { return (!this->value_); }
-
-    ///@{
-    /**
-     * Logical AND operator.
-     * @param other The integer to apply AND.
-     * @return `true` if both values are non-zero, `false` otherwise.
-     */
-    inline bool operator&&(const int_t& other) const { return (this->value_ && other); }
-    inline bool operator&&(const SafeInt_t<Size>& other) const { return (this->value_ && other.get()); }
-    ///@}
-
-    ///@{
-    /**
-     * Logical OR operator.
-     * @param other The integer to apply OR.
-     * @return `true` if either value is non-zero, `false` otherwise.
-     */
-    inline bool operator||(const int_t& other) const { return (this->value_ || other); }
-    inline bool operator||(const SafeInt_t<Size>& other) const { return (this->value_ || other.get()); }
-    ///@}
+    inline explicit operator bool() const { return bool(this->value_); }
 
     ///@{
     /**
