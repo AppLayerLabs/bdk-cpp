@@ -222,7 +222,7 @@ template <typename Key, typename T> class SafeUnorderedMap : public SafeBase {
     template <class P> typename boost::unordered_flat_map<Key, T, SafeHash>::const_iterator insert(
       typename boost::unordered_flat_map<Key, T, SafeHash>::const_iterator hint, P&& value
     ) {
-      auto ret = this->value_.insert(hint, std::move(value));
+      auto ret = this->value_.insert(hint, std::forward<decltype(value)>(value));
       // Only register as changed if insert was successful.
       if (ret != this->value_.cend()) {
         markAsUsed();

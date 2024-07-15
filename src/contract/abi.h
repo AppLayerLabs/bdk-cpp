@@ -490,7 +490,7 @@ namespace ABI {
         Bytes dynamicBytes;
         uint64_t nextOffset = calculateTotalOffset<Ts...>();
         std::apply([&result, &dynamicBytes, &nextOffset, &t](const auto&... args) {
-          auto encodeItem = [&](auto&& item) {
+          auto encodeItem = [&](const auto& item) {
             using ItemType = std::decay_t<decltype(item)>;
             if (isDynamic<ItemType>()) {
               Bytes packed = TypeEncoder<ItemType>::encode(item);
@@ -552,7 +552,7 @@ namespace ABI {
       Bytes result;
       uint64_t nextOffset = calculateTotalOffset<T, Ts...>();
       Bytes dynamicBytes;
-      auto encodeItem = [&](auto&& item) {
+      auto encodeItem = [&](const auto& item) {
         using ItemType = std::decay_t<decltype(item)>;
         if constexpr (isDynamic<ItemType>()) {
           Bytes packed = TypeEncoder<ItemType>::encode(item);
@@ -668,7 +668,7 @@ namespace ABI {
       static Bytes encode(const std::tuple<Ts...>& t) {
         Bytes result;
         std::apply([&result, &t](const auto&... args) {
-          auto encodeItem = [&](auto&& item) {
+          auto encodeItem = [&](const auto& item) {
             using ItemType = std::decay_t<decltype(item)>;
             append(result, TypeEncoder<ItemType>::encode(item));
           };
@@ -712,7 +712,7 @@ namespace ABI {
       Bytes result;
       uint64_t nextOffset = calculateTotalOffset<Args...>();
       Bytes dynamicBytes;
-      auto encodeItem = [&](auto&& item) {
+      auto encodeItem = [&](const auto& item) {
         using EventParamType = std::decay_t<decltype(item)>;
         if constexpr (EventParamType::isIndexed) return;
         using ItemType = std::decay_t<decltype(item.value)>;
