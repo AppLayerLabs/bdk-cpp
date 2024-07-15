@@ -75,7 +75,7 @@ FinalizedBlock FinalizedBlock::fromBytes(const BytesArrView bytes, const uint64_
         uint64_t nTxs = txsPerThr[i];
 
         std::future<std::vector<TxBlock>> txF = std::async(
-          [&, startIdx, nTxs](){
+          [&bytes, requiredChainId, startIdx, nTxs](){
             std::vector<TxBlock> txVec;
             uint64_t idx = startIdx;
             for (uint64_t ii = 0; ii < nTxs; ii++) {
