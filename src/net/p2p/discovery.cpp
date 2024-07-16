@@ -51,6 +51,62 @@ namespace P2P {
     this->manager_.connectToServer(nodeIp, nodePort);
   }
 
+  bool DiscoveryWorker::collectDiscoveryPeers(
+    const std::unordered_set<NodeID, SafeHash>& connectedDiscoveries, const uint64_t& sessionSize
+  ) {
+    // Ask each found discovery node for their peer list,
+    // connect to said peer, and add them to the list of requested nodes
+    for (const auto& nodeId : connectedDiscoveries) {
+      // Request nodes from discovery node
+      auto nodeList = this->getConnectedNodes(nodeId);
+      if (this->stopWorker_) return false;
+
+      // Connect to all found nodes
+      for (const auto& [foundNodeId, foundNodeInfo] : nodeList) {
+        if (this->stopWorker_) return false;
+        this->connectToNode(foundNodeId, foundNodeInfo);
+      }
+      if (this->stopWorker_) return false;
+
+      // Add requested node to list of requested nodes, but only if the list is has at least minConnections and we have at least minConnections
+      if (nodeList.size() >= this->manager_.minConnections() && sessionSize >= this->manager_.minConnections()) {
+        std::unique_lock lock(this->requestedNodesMutex_);
+        this->requestedNodes_[nodeId] = std::chrono::duration_cast<std::chrono::seconds>(
+          std::chrono::high_resolution_clock::now().time_since_epoch()
+        ).count();
+      }
+    }
+    return true;
+  }
+
+  bool DiscoveryWorker::collectNormalPeers(
+    const std::unordered_set<NodeID, SafeHash>& connectedNormals, const uint64_t& sessionSize
+  ) {
+    // Ask each found normal node for their peer list
+    // Connect to said peer, and add them to the list of requested nodes
+    for (const auto& nodeId : connectedNormals) {
+      // Request nodes from normal node
+      auto nodeList = this->getConnectedNodes(nodeId);
+      if (this->stopWorker_) return false;
+
+      // Connect to all found nodes.
+      for (const auto& [foundNodeId, foundNodeInfo] : nodeList) {
+        if (this->stopWorker_) return false;
+        this->connectToNode(foundNodeId, foundNodeInfo);
+      }
+      if (this->stopWorker_) return false;
+
+      // Add requested node to list of requested nodes, but only if we have at least minConnections
+      if (sessionSize >= this->manager_.minConnections()) {
+        std::unique_lock lock(this->requestedNodesMutex_);
+        this->requestedNodes_[nodeId] = std::chrono::duration_cast<std::chrono::seconds>(
+          std::chrono::high_resolution_clock::now().time_since_epoch()
+        ).count();
+      }
+    }
+    return true;
+  }
+
   bool DiscoveryWorker::discoverLoop() {
     bool discoveryPass = false;
     LOGDEBUG("Discovery thread started minConnections: "
@@ -83,52 +139,10 @@ namespace P2P {
 
       /// Keep switching between discovery and normal nodes
       if (!discoveryPass) {
-        // Ask each found discovery node for their peer list,
-        // connect to said peer, and add them to the list of requested nodes
-        for (const auto& nodeId : connectedDiscoveries) {
-          // Request nodes from discovery node
-          auto nodeList = this->getConnectedNodes(nodeId);
-          if (this->stopWorker_) return true;
-
-          // Connect to all found nodes
-          for (const auto& [foundNodeId, foundNodeInfo] : nodeList) {
-            if (this->stopWorker_) return true;
-            this->connectToNode(foundNodeId, foundNodeInfo);
-          }
-          if (this->stopWorker_) return true;
-
-          // Add requested node to list of requested nodes, but only if the list is has at least minConnections and we have at least minConnections
-          if (nodeList.size() >= this->manager_.minConnections() && sessionSize >= this->manager_.minConnections()) {
-            std::unique_lock lock(this->requestedNodesMutex_);
-            this->requestedNodes_[nodeId] = std::chrono::duration_cast<std::chrono::seconds>(
-              std::chrono::high_resolution_clock::now().time_since_epoch()
-            ).count();
-          }
-        }
+        if (!this->collectDiscoveryPeers(connectedDiscoveries, sessionSize)) return true;
         discoveryPass = true;
       } else {
-        // Ask each found normal node for their peer list
-        // Connect to said peer, and add them to the list of requested nodes
-        for (const auto& nodeId : connectedNormals) {
-          // Request nodes from normal node
-          auto nodeList = this->getConnectedNodes(nodeId);
-          if (this->stopWorker_) return true;
-
-          // Connect to all found nodes.
-          for (const auto& [foundNodeId, foundNodeInfo] : nodeList) {
-            if (this->stopWorker_) return true;
-            this->connectToNode(foundNodeId, foundNodeInfo);
-          }
-          if (this->stopWorker_) return true;
-
-          // Add requested node to list of requested nodes, but only if we have at least minConnections
-          if (sessionSize >= this->manager_.minConnections()) {
-            std::unique_lock lock(this->requestedNodesMutex_);
-            this->requestedNodes_[nodeId] = std::chrono::duration_cast<std::chrono::seconds>(
-              std::chrono::high_resolution_clock::now().time_since_epoch()
-            ).count();
-          }
-        }
+        if (!this->collectNormalPeers(connectedNormals, sessionSize)) return true;
         discoveryPass = false;
       }
     }

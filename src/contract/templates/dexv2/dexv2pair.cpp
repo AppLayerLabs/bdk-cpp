@@ -117,16 +117,14 @@ bool DEXV2Pair::_mintFee(uint112_t reserve0, uint112_t reserve1) {
   Address feeTo = this->callContractViewFunction(this->factory_.get(), &DEXV2Factory::feeTo);
   bool feeOn = feeTo ? true : false;
   uint256_t _kLast = this->kLast_.get();
-  if (feeOn) {
-    if (_kLast != 0) {
-      uint256_t rootK = boost::multiprecision::sqrt(uint256_t(reserve0) * uint256_t(reserve1));
-      uint256_t rootKLast = boost::multiprecision::sqrt(_kLast);
-      if (rootK > rootKLast) {
-        uint256_t numerator = this->totalSupply_.get() * (rootK - rootKLast);
-        uint256_t denominator = rootK * 5 + rootKLast;
-        uint256_t liquidity = numerator / denominator;
-        if (liquidity > 0) this->mintValue_(feeTo, liquidity);
-      }
+  if (feeOn && _kLast != 0) {
+    uint256_t rootK = boost::multiprecision::sqrt(uint256_t(reserve0) * uint256_t(reserve1));
+    uint256_t rootKLast = boost::multiprecision::sqrt(_kLast);
+    if (rootK > rootKLast) {
+      uint256_t numerator = this->totalSupply_.get() * (rootK - rootKLast);
+      uint256_t denominator = rootK * 5 + rootKLast;
+      uint256_t liquidity = numerator / denominator;
+      if (liquidity > 0) this->mintValue_(feeTo, liquidity);
     }
   } else if (_kLast != 0) {
     this->kLast_ = 0;

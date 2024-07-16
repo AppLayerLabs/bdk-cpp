@@ -98,18 +98,13 @@ std::pair<uint256_t, uint256_t> DEXV2Router02::_addLiquidity(
       amountB = amountBoptimal;
     } else {
       uint256_t amountAoptimal = DEXV2Library::quote(amountBDesired, reserveB, reserveA);
-      if (amountAoptimal <= amountADesired) {
-        if (amountAoptimal < amountAMin) throw DynamicException(
-          "DEXV2Router02::_addLiquidity: INSUFFICIENT_A_AMOUNT"
-        );
-        amountA = amountAoptimal;
-        amountB = amountBDesired;
-      } else {
+      if (amountAoptimal > amountADesired || amountAoptimal < amountAMin) {
         throw DynamicException("DEXV2Router02::_addLiquidity: INSUFFICIENT_A_AMOUNT");
       }
+      amountA = amountAoptimal;
+      amountB = amountBDesired;
     }
   }
-
   return {amountA, amountB};
 }
 

@@ -110,22 +110,22 @@ namespace P2P {
       {
         std::scoped_lock lock(this->stateMutex_);
         auto it = this->nodeInfo_.begin();
-          while (it != this->nodeInfo_.end()) {
+        while (it != this->nodeInfo_.end()) {
           const auto nodeId = it->first;
           auto timeIt = this->nodeInfoTime_.find(nodeId);
           if (timeIt == this->nodeInfoTime_.end()) { // never happens
             this->nodeInfo_.erase(it++);
             this->nodeType_.erase(nodeId);
+            continue;
+          }
+          uint64_t currentTimeMillis = Utils::getCurrentTimeMillisSinceEpoch();
+          if (currentTimeMillis - timeIt->second >= 10000) {
+            // 10 seconds elapsed since last update: remove the nodeInfo
+            this->nodeInfo_.erase(it++); // Node not responding to info request, remove it from list
+            this->nodeInfoTime_.erase(timeIt);
+            this->nodeType_.erase(nodeId);
           } else {
-            uint64_t currentTimeMillis = Utils::getCurrentTimeMillisSinceEpoch();
-            if (currentTimeMillis - timeIt->second >= 10000) {
-              // 10 seconds elapsed since last update: remove the nodeInfo
-              this->nodeInfo_.erase(it++); // Node not responding to info request, remove it from list
-              this->nodeInfoTime_.erase(timeIt);
-              this->nodeType_.erase(nodeId);
-            } else {
-              ++it;
-            }
+            it++;
           }
         }
       }

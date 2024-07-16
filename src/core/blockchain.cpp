@@ -63,20 +63,17 @@ bool Syncer::sync(uint64_t blocksPerRequest, uint64_t bytesPerRequestLimit, int 
 
   // Loop downloading blocks until we are synchronized
   while (true) {
-
     // P2P is running, so we are getting updated NodeInfos via NodeConns.
     // Get the node with the highest block height available for download.
     auto connected = this->p2p_.getNodeConns().getConnected();
     if (connected.size() == 0) {
       // No one to download blocks from.
-
       // While we don't exhaust the waiting-for-a-connection timeout, sleep and try again later.
       if (waitForPeersSecs-- > 0) {
         LOGINFOP("Syncer waiting for peer connections (" + std::to_string(waitForPeersSecs) + "s left) ...");
         std::this_thread::sleep_for(std::chrono::seconds(1));
         continue;
       }
-
       // We have timed out waiting for peers, so synchronization is complete.
       LOGINFOP("Syncer quitting due to no peer connections.");
       break;
@@ -89,9 +86,7 @@ bool Syncer::sync(uint64_t blocksPerRequest, uint64_t bytesPerRequestLimit, int 
     auto currentNHeight = this->storage_.latest()->getNHeight();
 
     // If synced, quit sync loop.
-    if (highestNode.second <= currentNHeight) {
-      break;
-    }
+    if (highestNode.second <= currentNHeight) break;
 
     auto downloadNHeight = currentNHeight + 1;
     auto downloadNHeightEnd = downloadNHeight + blocksPerRequest - 1;
@@ -107,15 +102,16 @@ bool Syncer::sync(uint64_t blocksPerRequest, uint64_t bytesPerRequestLimit, int 
 
     // Request the next block we need from the chosen peer
     std::vector<FinalizedBlock> result = this->p2p_.requestBlock(
-      highestNode.first, downloadNHeight, downloadNHeightEnd, bytesPerRequestLimit);
+      highestNode.first, downloadNHeight, downloadNHeightEnd, bytesPerRequestLimit
+    );
 
     // If the request failed, retry it (unless we set a finite number of tries and we've just run out of them)
     if (result.size() == 0) {
-      if (tries > 0) {
-        --tries;
-        LOGWARNINGP("Blocks request failed (" + std::to_string(tries) + " tries left)");
-        if (tries == 0) return false;
+      bool shouldRetry = (tries > 0);
+      if (shouldRetry) {
+        tries--; LOGWARNINGP("Blocks request failed (" + std::to_string(tries) + " tries left)");
       }
+      if (shouldRetry && tries == 0) return false;
       LOGWARNINGP("Blocks request failed, restarting sync");
       continue;
     }

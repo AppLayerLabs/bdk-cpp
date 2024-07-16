@@ -90,11 +90,10 @@ FinalizedBlock FinalizedBlock::fromBytes(const BytesArrView bytes, const uint64_
         f.emplace_back(std::move(txF));
 
         // Update offset, skip if this is the last thread
-        if (i < txsPerThr.size() - 1) {
-          for (uint64_t ii = 0; ii < nTxs; ii++) {
-            uint64_t len = Utils::bytesToUint32(bytes.subspan(thrOff, 4));
-            thrOff += len + 4;
-          }
+        if (i >= txsPerThr.size() - 1) continue;
+        for (uint64_t ii = 0; ii < nTxs; ii++) {
+          uint64_t len = Utils::bytesToUint32(bytes.subspan(thrOff, 4));
+          thrOff += len + 4;
         }
       }
 
