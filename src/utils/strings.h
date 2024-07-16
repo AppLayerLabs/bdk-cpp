@@ -40,49 +40,51 @@ template <unsigned N> class FixedBytes {
   private:
     BytesArr<N> data_;
 
-  public:
     friend zpp::bits::access;
     using serialize = zpp::bits::members<1>;
 
-    constexpr inline FixedBytes() : data_() { };
+  public:
+    constexpr FixedBytes() : data_() {};
 
     constexpr FixedBytes(std::initializer_list<Byte> initList) {
       if (initList.size() != N)
-        throw DynamicException("Incompatible Size."); // TODO: better message containing the sizes
+        throw DynamicException("Given initializer list of size " + std::to_string(initList.size()) + 
+          " is not suitable for initializing a FixedBytes<" + std::to_string(N) + ">");
 
       std::ranges::copy(initList, data_.begin());
     }
 
     constexpr FixedBytes(const bytes::Initializer auto& initializer) { initializer.to(data_); }
 
-    constexpr explicit FixedBytes(const bytes::DataRange auto& data) {
-      if (std::ranges::size(data) != N)
-        throw DynamicException("Incompatible Size."); // TODO: better message containing the sizes
+    constexpr explicit FixedBytes(const bytes::Range auto& data) {
+      if (const size_t size = std::ranges::size(data); size != N)
+        throw DynamicException("Given bytes range of size " + std::to_string(size) + 
+          " is not suitable for initializing a FixedBytes<" + std::to_string(N) + ">");
 
       std::ranges::copy(data, data_.begin());
     }
 
-    auto begin() { return data_.begin(); }
+    constexpr auto begin() { return data_.begin(); }
 
-    auto begin() const { return data_.begin(); }
+    constexpr auto begin() const { return data_.begin(); }
 
-    auto cbegin() const { return data_.cbegin(); }
+    constexpr auto cbegin() const { return data_.cbegin(); }
 
-    auto end() { return data_.end(); }
+    constexpr auto end() { return data_.end(); }
 
-    auto end() const { return data_.end(); }
+    constexpr auto end() const { return data_.end(); }
 
-    auto cend() const { return data_.cend(); }
+    constexpr auto cend() const { return data_.cend(); }
 
-    Byte* data() { return data_.data(); }
+    constexpr Byte* data() { return data_.data(); }
 
-    const Byte* data() const { return data_.data(); }
+    constexpr const Byte* data() const { return data_.data(); }
 
-    size_t size() const { return data_.size(); }
+    constexpr size_t size() const { return data_.size(); }
 
-    Byte& operator[](size_t index) { return data_[index]; }
+    constexpr Byte& operator[](size_t index) { return data_[index]; }
 
-    const Byte& operator[](size_t index) const { return data_[index]; }
+    constexpr const Byte& operator[](size_t index) const { return data_[index]; }
 
     /**
      * Getter for `data_`, but returns it as a hex string.

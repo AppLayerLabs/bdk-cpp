@@ -142,7 +142,6 @@ std::shared_ptr<const FinalizedBlock> Storage::getBlock(uint64_t height) const {
 
   Bytes blockBytes = db_.get(blockHash, DBPrefix::blocks);
 
-  // TODO: replace by getBlock(hash). for now it would be more expensive to do it so.s
   return std::make_shared<FinalizedBlock>(FinalizedBlock::fromBytes(blockBytes, this->options_.getChainID()));
 }
 

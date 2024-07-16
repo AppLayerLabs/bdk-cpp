@@ -127,7 +127,7 @@ public:
 
   void setGasUsed(const Hash& txHash, const uint256_t& gasUsed);
 
-  std::optional<uint256_t> getGasUsed(const Hash& txHash) const; // TODO: return optional
+  std::optional<uint256_t> getGasUsed(const Hash& txHash) const;
 
   void putCallTrace(const Hash& txHash, const trace::Call& callTrace);
 
