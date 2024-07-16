@@ -52,6 +52,24 @@ set (TESTS_SOURCES
   ${CMAKE_SOURCE_DIR}/tests/sdktestsuite.cpp
 )
 
+# Conditionally add variables tests based on the BUILD_VARIABLES_TESTS option
+# the reason we made this is because safeuint_t and safeint_t are extremely slow to compile
+# TODO: change this when we take out boost multiprecision from the project for C23 BigInt
+if (BUILD_VARIABLES_TESTS)
+  list(APPEND TESTS_SOURCES
+    ${CMAKE_SOURCE_DIR}/tests/contract/variables/safeuint_t.cpp
+    ${CMAKE_SOURCE_DIR}/tests/contract/variables/safeint_t.cpp
+    ${CMAKE_SOURCE_DIR}/tests/contract/variables/safestring.cpp
+    ${CMAKE_SOURCE_DIR}/tests/contract/variables/safeaddress.cpp
+    ${CMAKE_SOURCE_DIR}/tests/contract/variables/safeunorderedmap.cpp
+    ${CMAKE_SOURCE_DIR}/tests/contract/variables/safebool.cpp
+    ${CMAKE_SOURCE_DIR}/tests/contract/variables/safebytes.cpp
+    ${CMAKE_SOURCE_DIR}/tests/contract/variables/safevector.cpp
+    ${CMAKE_SOURCE_DIR}/tests/contract/variables/safearray.cpp
+    ${CMAKE_SOURCE_DIR}/tests/contract/variables/safetuple.cpp
+  )
+endif()
+
 # Add benchmark.cpp if BUILD_BENCHMARK is set
 if (BUILD_BENCHMARK)
   message(STATUS "Building benchmark tests")
