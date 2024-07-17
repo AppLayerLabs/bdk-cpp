@@ -21,7 +21,7 @@ See the LICENSE.txt file in the project root for more information.
 
 /// Template for an ERC721 contract.
 /// Based on OpenZeppelin v5.0.2 ERC721 implementation.
-class ERC721 : public DynamicContract {
+class ERC721 : virtual public DynamicContract {
 protected:
   /// Solidity: string internal name_;
   SafeString name_;
@@ -206,7 +206,7 @@ public:
          const uint64_t &chainId);
 
   /// Destructor.
-  ~ERC721() override;
+  ~ERC721() override = default;
 
   /**
    * Get the name of the ERC721 token.

@@ -2,7 +2,8 @@
 
 
 ERC721URIStorage::ERC721URIStorage(const Address& address, const DB& db)
-  : ERC721(address, db),
+  : DynamicContract(address, db),
+    ERC721(address, db),
     _tokenURIs(this) {
 
   for (const auto& dbEntry : db.getBatch(this->getNewPrefix("tokenURIs_"))) {
@@ -14,7 +15,8 @@ ERC721URIStorage::ERC721URIStorage(const Address& address, const DB& db)
 ERC721URIStorage::ERC721URIStorage(
   const std::string &erc721_name, const std::string &erc721_symbol,
   const Address &address, const Address &creator, const uint64_t &chainId
-) : ERC721("ERC721URIStorage", erc721_name, erc721_symbol, address, creator, chainId),
+) : DynamicContract("ERC721URIStorage", address, creator, chainId),
+    ERC721("ERC721URIStorage", erc721_name, erc721_symbol, address, creator, chainId),
     _tokenURIs(this) {
   ERC721URIStorage::registerContractFunctions();
 }
@@ -23,7 +25,8 @@ ERC721URIStorage::ERC721URIStorage(
   const std::string &derivedTypeName,
   const std::string &erc721_name, const std::string &erc721_symbol,
   const Address &address, const Address &creator, const uint64_t &chainId
-) : ERC721(derivedTypeName, erc721_name, erc721_symbol, address, creator, chainId),
+) : DynamicContract(derivedTypeName, address, creator, chainId),
+    ERC721(derivedTypeName, erc721_name, erc721_symbol, address, creator, chainId),
     _tokenURIs(this) {
 
   ERC721URIStorage::registerContractFunctions();

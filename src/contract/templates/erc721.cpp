@@ -13,21 +13,17 @@ ERC721::ERC721(const Address& address, const DB& db
 {
   this->name_ = Utils::bytesToString(db.get(std::string("name_"), this->getDBPrefix()));
   this->symbol_ = Utils::bytesToString(db.get(std::string("symbol_"), this->getDBPrefix()));
-  auto owners = db.getBatch(this->getNewPrefix("owners_"));
-  for (const auto& dbEntry : owners) {
+  for (const auto& dbEntry : db.getBatch(this->getNewPrefix("owners_"))) {
     BytesArrView valueView(dbEntry.value);
     this->owners_[Utils::fromBigEndian<uint256_t>(dbEntry.key)] = Address(valueView.subspan(0, 20));
   }
-  auto balances = db.getBatch(this->getNewPrefix("balances_"));
-  for (const auto& dbEntry : balances) {
+  for (const auto& dbEntry : db.getBatch(this->getNewPrefix("balances_"))) {
     this->balances_[Address(dbEntry.key)] = Utils::fromBigEndian<uint256_t>(dbEntry.value);
   }
-  auto approvals = db.getBatch(this->getNewPrefix("tokenApprovals_"));
-  for (const auto& dbEntry : approvals) {
+  for (const auto& dbEntry : db.getBatch(this->getNewPrefix("tokenApprovals_"))) {
     this->tokenApprovals_[Utils::fromBigEndian<uint256_t>(dbEntry.key)] = Address(dbEntry.value);
   }
-  auto operatorAddressApprovals = db.getBatch(this->getNewPrefix("operatorAddressApprovals_"));
-  for (const auto& dbEntry : operatorAddressApprovals) {
+  for (const auto& dbEntry : db.getBatch(this->getNewPrefix("operatorAddressApprovals_"))) {
     BytesArrView keyView(dbEntry.key);
     Address owner(keyView.subspan(0, 20));
     Address operatorAddress(keyView.subspan(20));
@@ -41,7 +37,7 @@ ERC721::ERC721(const Address& address, const DB& db
   this->tokenApprovals_.commit();
   this->operatorAddressApprovals_.commit();
 
-  this->registerContractFunctions();
+  ERC721::registerContractFunctions();
 
   this->name_.enableRegister();
   this->symbol_.enableRegister();
@@ -64,7 +60,7 @@ ERC721::ERC721(
   this->tokenApprovals_.commit();
   this->operatorAddressApprovals_.commit();
 
-  this->registerContractFunctions();
+  ERC721::registerContractFunctions();
 
   this->name_.enableRegister();
   this->symbol_.enableRegister();
@@ -88,7 +84,7 @@ ERC721::ERC721(
   this->tokenApprovals_.commit();
   this->operatorAddressApprovals_.commit();
 
-  this->registerContractFunctions();
+  ERC721::registerContractFunctions();
 
   this->name_.enableRegister();
   this->symbol_.enableRegister();
@@ -98,10 +94,8 @@ ERC721::ERC721(
   this->operatorAddressApprovals_.enableRegister();
 }
 
-ERC721::~ERC721() {}
-
 void ERC721::registerContractFunctions() {
-  this->registerContract();
+  ERC721::registerContract();
   this->registerMemberFunction("name", &ERC721::name, FunctionTypes::View, this);
   this->registerMemberFunction("symbol", &ERC721::symbol, FunctionTypes::View, this);
   this->registerMemberFunction("balanceOf", &ERC721::balanceOf, FunctionTypes::View, this);
