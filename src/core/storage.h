@@ -123,7 +123,7 @@ public:
 
   void setContractAddress(const Hash& txHash, const Address& address);
 
-  Address getContractAddress(const Hash& txHash) const;
+  std::optional<Address> getContractAddress(const Hash& txHash) const;
 
   void setGasUsed(const Hash& txHash, const uint256_t& gasUsed);
 
@@ -133,9 +133,7 @@ public:
 
   std::optional<trace::Call> getCallTrace(const Hash& txHash) const;
 
-  IndexingMode getIndexingMode() const {
-    return options_.getIndexingMode();
-  }
+  inline IndexingMode getIndexingMode() const { return options_.getIndexingMode(); }
 };
 
 #endif  // STORAGE_H

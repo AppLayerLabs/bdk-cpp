@@ -33,8 +33,8 @@ namespace DBPrefix {
   const Bytes vmStorage =         { 0x00, 0x09 }; ///< "evmHost" = "0009"
   const Bytes txToAddr =          { 0x00, 0x0A }; ///< "txToAddr" = "000A"
   const Bytes tagToBlock =        { 0x00, 0x0B }; ///< "tagToBlock" = "000B"
-  const Bytes txToGasUsed =       { 0x00, 0x0C }; ///< "tagToBlock" = "000C"
-  const Bytes txToCallTrace =     { 0x00, 0x0D }; ///< "tagToBlock" = "000C"
+  const Bytes txToGasUsed =       { 0x00, 0x0C }; ///< "txToGasUsed" = "000C"
+  const Bytes txToCallTrace =     { 0x00, 0x0D }; ///< "txToCallTrace" = "000D"
 };
 
 /// Struct for a database connection/endpoint.

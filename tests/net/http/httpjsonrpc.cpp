@@ -384,7 +384,7 @@ namespace THTTPJsonRPC{
         REQUIRE(eth_getTransactionReceiptResponse["result"]["cumulativeGasUsed"] == Hex::fromBytes(Utils::uintToBytes(transactions[i].getGasLimit()), true).forRPC());
         REQUIRE(eth_getTransactionReceiptResponse["result"]["effectiveGasUsed"] == Hex::fromBytes(Utils::uintToBytes(transactions[i].getGasLimit()), true).forRPC());
         REQUIRE(eth_getTransactionReceiptResponse["result"]["effectiveGasPrice"] == Hex::fromBytes(Utils::uintToBytes(transactions[i].getMaxFeePerGas()), true).forRPC());
-        REQUIRE(eth_getTransactionReceiptResponse["result"]["gasUsed"] == Hex::fromBytes(Utils::uintToBytes(transactions[i].getGasLimit()), true).forRPC());
+        REQUIRE(eth_getTransactionReceiptResponse["result"]["gasUsed"] == "0x5208");
         REQUIRE(eth_getTransactionReceiptResponse["result"]["contractAddress"] == json::value_t::null);
         REQUIRE(eth_getTransactionReceiptResponse["result"]["logs"] == json::array());
         REQUIRE(eth_getTransactionReceiptResponse["result"]["logsBloom"] == Hash().hex(true));

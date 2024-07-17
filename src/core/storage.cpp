@@ -207,12 +207,17 @@ void Storage::setContractAddress(const Hash& txHash, const Address& address) {
   db_.put(txHash, address, DBPrefix::txToAddr);
 }
 
-Address Storage::getContractAddress(const Hash& txHash) const {
-  return Address(db_.get(txHash));
+std::optional<Address> Storage::getContractAddress(const Hash& txHash) const {
+  const Bytes address = db_.get(txHash);
+
+  if (address.empty())
+    return std::nullopt;
+
+  return Address(address);
 }
 
 void Storage::setGasUsed(const Hash& txHash, const uint256_t& gasUsed) {
-  db_.put(txHash, Utils::uintToBytes(gasUsed), DBPrefix::txToGasUsed);
+  db_.put(txHash, Utils::uint256ToBytes(gasUsed), DBPrefix::txToGasUsed);
 }
 
 std::optional<uint256_t> Storage::getGasUsed(const Hash& txHash) const {

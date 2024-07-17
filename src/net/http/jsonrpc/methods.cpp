@@ -33,6 +33,27 @@ static inline void forbidParams(const json& request) {
     throw DynamicException("\"params\" are not required for method");
 }
 
+static json getGasUsed(const Storage& storage, const Hash& txHash) {
+  std::optional<uint256_t> gasUsed = storage.getGasUsed(txHash);
+
+  if (gasUsed.has_value())
+    return Hex::fromBytes(Utils::uint256ToBytes(gasUsed.value()), true).forRPC();
+
+  throw DynamicException("Unable to fetch gas used by tx");
+}
+
+static json getContractAddress(const Storage& storage, const TxBlock& tx) {
+  if (tx.getTo() != Address())
+    return json::value_t::null;
+
+  std::optional<Address> addr = storage.getContractAddress(tx.hash());
+
+  if (addr.has_value())
+    return addr.value().hex(true).forRPC();
+
+  throw DynamicException("Unable to locate contract address");
+}
+
 static json getBlockJson(const FinalizedBlock *block, bool includeTransactions) {
   json ret;
   if (block == nullptr) { ret = json::value_t::null; return ret; }
@@ -474,12 +495,8 @@ json eth_getTransactionReceipt(const json& request, const Storage& storage, cons
     ret["cumulativeGasUsed"] = Hex::fromBytes(Utils::uintToBytes(tx->getGasLimit()), true).forRPC();
     ret["effectiveGasUsed"] = Hex::fromBytes(Utils::uintToBytes(tx->getGasLimit()), true).forRPC();
     ret["effectiveGasPrice"] = Hex::fromBytes(Utils::uintToBytes(tx->getMaxFeePerGas()),true).forRPC();
-    ret["gasUsed"] = Hex::fromBytes(Utils::uintToBytes(tx->getGasLimit()), true).forRPC();
-    if (tx->getTo() == Address()) {
-      ret["contractAddress"] = storage.getContractAddress(txHash).hex(true);
-    } else {
-      ret["contractAddress"] = json::value_t::null;
-    }
+    ret["gasUsed"] = getGasUsed(storage, tx->hash());
+    ret["contractAddress"] = getContractAddress(storage, *tx);
     ret["logs"] = json::array();
     ret["logsBloom"] = Hash().hex(true);
     ret["type"] = "0x00";
@@ -511,11 +528,7 @@ json txpool_content(const json& request, const Storage& storage, const State& st
     txJson["blockNumber"] = json::value_t::null;
     txJson["from"] = tx.getFrom().hex(true);
     txJson["to"] = tx.getTo().hex(true);
-    txJson["gasUsed"] = storage.getGasUsed(tx.hash())
-    .transform([] (const uint256_t& gasUsed) { return Utils::uint256ToBytes(gasUsed); })
-    .transform([] (const auto& bytes) { return Hex::fromBytes(bytes).forRPC(); })
-    .transform([] (std::string_view str) { return json(str); })
-    .value_or(json::value_t::null);
+    txJson["gasUsed"] = getGasUsed(storage, tx.hash());
     txJson["gasPrice"] = Hex::fromBytes(Utils::uintToBytes(tx.getMaxFeePerGas()),true).forRPC();
     txJson["getMaxFeePerGas"] = Hex::fromBytes(Utils::uintToBytes(tx.getMaxFeePerGas()),true).forRPC();
     txJson["chainId"] = Hex::fromBytes(Utils::uintToBytes(tx.getChainId()),true).forRPC(); 
