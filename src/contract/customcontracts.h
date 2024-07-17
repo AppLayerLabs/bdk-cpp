@@ -22,20 +22,20 @@ See the LICENSE.txt file in the project root for more information.
 #include "templates/snailtracer.h"
 #include "templates/snailtraceroptimized.h"
 #include "templates/ownable.h"
-
+#include "templates/pebble.h"
 
 /// Typedef for the blockchain's registered contracts.
 #ifdef BUILD_TESTNET
 /// Typedef for the blockchain's registered contracts in TESTNET mode.
 using ContractTypes = std::tuple<
-  ERC20, NativeWrapper, DEXV2Pair, DEXV2Factory, DEXV2Router02, ERC721
+  ERC20, NativeWrapper, DEXV2Pair, DEXV2Factory, DEXV2Router02, ERC721, Pebble
 >;
 #else
 /// Typedef for the blockchain's registered contracts in normal mode.
 using ContractTypes = std::tuple<
   ERC20, ERC20Wrapper, NativeWrapper, SimpleContract, DEXV2Pair, DEXV2Factory,
   DEXV2Router02, ERC721, ThrowTestA, ThrowTestB, ThrowTestC, ERC721Test, TestThrowVars,
-  RandomnessTest, SnailTracer, SnailTracerOptimized, Ownable
+  RandomnessTest, SnailTracer, SnailTracerOptimized, Pebble
 >;
 #endif
 
