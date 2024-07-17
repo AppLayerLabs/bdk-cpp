@@ -77,6 +77,16 @@ class State : Dumpable, public Log::LogicalLocationProvider {
      */
     void refreshMempool(const FinalizedBlock& block);
 
+    /**
+     * Helper function that does a sanity check on all contracts in the accounts_ map.
+     * Used exclusively by the constructor.
+     * @param addr The address of the contract.
+     * @param acc The account tied to the contract.
+     * @throw DynamicException if any contract does not have code, or if an
+     *        address that isn't a contract has any code.
+     */
+    void contractSanityCheck(const Address& addr, const NonNullUniquePtr<Account>& acc);
+
   public:
     /**
      * Constructor.

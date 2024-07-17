@@ -10,9 +10,10 @@ See the LICENSE.txt file in the project root for more information.
 
 FinalizedBlock FinalizedBlock::fromBytes(const BytesArrView bytes, const uint64_t& requiredChainId) {
   try {
-    SLOGTRACE("Deserializing block...");
     // Verify minimum size for a valid block
+    SLOGTRACE("Deserializing block...");
     if (bytes.size() < 217) throw std::runtime_error("Invalid block size - too short");
+
     // Parsing fixed-size fields
     Signature validatorSig = Signature(bytes.subspan(0, 65));
     Hash prevBlockHash = Hash(bytes.subspan(65, 32));
@@ -156,12 +157,12 @@ FinalizedBlock FinalizedBlock::fromBytes(const BytesArrView bytes, const uint64_
 }
 
 FinalizedBlock FinalizedBlock::createNewValidBlock(
-    std::vector<TxBlock>&& txs,
-    std::vector<TxValidator>&& txValidators,
-    Hash prevBlockHash,
-    const uint64_t& timestamp,
-    const uint64_t& nHeight,
-    const PrivKey& validatorPrivKey
+  std::vector<TxBlock>&& txs,
+  std::vector<TxValidator>&& txValidators,
+  Hash prevBlockHash,
+  const uint64_t& timestamp,
+  const uint64_t& nHeight,
+  const PrivKey& validatorPrivKey
 ) {
   // We need to sign the block header
   // The block header is composed of the following fields:
@@ -180,28 +181,23 @@ FinalizedBlock FinalizedBlock::createNewValidBlock(
   UPubKey validatorPubKey = Secp256k1::recover(signature, headerHash);
   // The block size is AT LEAST the size of the header
   uint64_t blockSize = 217;
-  for (const auto &tx : txs) {
-    blockSize += tx.rlpSize() + 4;
-  }
-  for (const auto &tx : txValidators) {
-    blockSize += tx.rlpSize() + 4;
-  }
+  for (const auto &tx : txs) blockSize += tx.rlpSize() + 4;
+  for (const auto &tx : txValidators) blockSize += tx.rlpSize() + 4;
 
   // For each transaction, we need to sum on the blockSize the size of the transaction + 4 bytes for the serialized size
   // In order to get the size of a transaction without actually serializing it, we can use the rlpSize() method
-
   return {
-      std::move(signature),
-      std::move(validatorPubKey),
-      std::move(prevBlockHash),
-      std::move(blockRandomness),
-      std::move(validatorMerkleRoot),
-      std::move(txMerkleRoot),
-      timestamp,
-      nHeight,
-      std::move(txValidators),
-      std::move(txs),
-      std::move(headerHash),
+    std::move(signature),
+    std::move(validatorPubKey),
+    std::move(prevBlockHash),
+    std::move(blockRandomness),
+    std::move(validatorMerkleRoot),
+    std::move(txMerkleRoot),
+    timestamp,
+    nHeight,
+    std::move(txValidators),
+    std::move(txs),
+    std::move(headerHash),
     blockSize
   };
 }

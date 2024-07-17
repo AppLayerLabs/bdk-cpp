@@ -35,6 +35,43 @@ class TxBlock {
     Hash hash_;                       ///< Transaction hash. (with signature!)
     //void* accessList_ = nullptr;      ///< Access list (not implemented).
 
+    ///@{
+    /**
+     * Parse the specified tx element from the raw byte data string starting from a given index.
+     * Used exclusively by the constructor.
+     * @param txData The raw data to parse.
+     * @param index The index to start parsing.
+     */
+    void parseChainId(const BytesArrView& txData, uint64_t& index);
+    void parseNonce(const BytesArrView& txData, uint64_t& index);
+    void parseMaxPriorityFeePerGas(const BytesArrView& txData, uint64_t& index);
+    void parseMaxFeePerGas(const BytesArrView& txData, uint64_t& index);
+    void parseGasLimit(const BytesArrView& txData, uint64_t& index);
+    void parseTo(const BytesArrView& txData, uint64_t& index);
+    void parseValue(const BytesArrView& txData, uint64_t& index);
+    void parseData(const BytesArrView& txData, uint64_t& index);
+    void parseAccessList(const BytesArrView& txData, uint64_t& index);
+    void parseVRS(const BytesArrView& txData, uint64_t& index);
+    ///@}
+
+    ///@{
+    /**
+     * Serialize the specified tx element to a raw byte string.
+     * Used exclusively by rlpSerialize().
+     * @param ret The raw byte string to serialize to.
+     * @param reqBytes The required number of bytes for the element.
+     */
+    void serializeChainId(Bytes& ret, const uint64_t& reqBytes) const;
+    void serializeNonce(Bytes& ret, const uint64_t& reqBytes) const;
+    void serializeMaxPriorityFeePerGas(Bytes& ret, const uint64_t& reqBytes) const;
+    void serializeMaxFeePerGas(Bytes& ret, const uint64_t& reqBytes) const;
+    void serializeGasLimit(Bytes& ret, const uint64_t& reqBytes) const;
+    void serializeTo(Bytes& ret) const;
+    void serializeValue(Bytes& ret, const uint64_t& reqBytes) const;
+    void serializeData(Bytes& ret, const uint64_t& reqBytes) const;
+    void serializeVRS(Bytes& ret, const uint64_t& reqBytesR, const uint64_t& reqBytesS) const;
+    ///@}
+
   public:
     /**
      * Raw constructor.
@@ -105,10 +142,9 @@ class TxBlock {
 
     /**
      * Calculates the size of the transaction in bytes.
-     * Uses the same methods as rlpSerialize() to calculate the size.
-     * But without actually serializing the transaction.
+     * Uses the same methods as rlpSerialize() to calculate the size, without actually serializing the transaction.
      * Does NOT have a option without signature, as the signature is always included in the serialized size.
-     * Serialization without the signature only happens **internally**
+     * Serialization without the signature only happens **internally**.
      * @return The size of the serialized transaction.
      */
     uint64_t rlpSize() const;
@@ -181,6 +217,31 @@ class TxValidator {
     uint256_t r_;      ///< ECDSA first half.
     uint256_t s_;      ///< ECDSA second half.
     Hash hash_;        ///< Transaction hash (with signature).
+
+    ///@{
+    /**
+     * Parse the specified tx element from the raw byte data string starting from a given index.
+     * Used exclusively by the constructor.
+     * @param bytes The raw data to parse.
+     * @param index The index to start parsing.
+     */
+    void parseData(const BytesArrView& bytes, uint64_t& index);
+    void parseNHeight(const BytesArrView& bytes, uint64_t& index);
+    void parseVRS(const BytesArrView& bytes, uint64_t& index);
+    ///@}
+
+    ///@{
+    /**
+     * Serialize the specified tx element to a raw byte string.
+     * Used exclusively by rlpSerialize().
+     * @param ret The raw byte string to serialize to.
+     * @param reqBytes The required number of bytes for the element.
+     */
+    void serializeData(Bytes& ret, const uint64_t& reqBytes) const;
+    void serializeNHeight(Bytes& ret, const uint64_t& reqBytes) const;
+    void serializeVRS(Bytes& ret, const uint64_t& reqBytesV, const uint64_t& reqBytesR, const uint64_t& reqBytesS) const;
+    void serializeChainId(Bytes& ret, const uint64_t& reqBytes) const;
+    ///@}
 
   public:
     /**

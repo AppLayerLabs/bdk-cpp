@@ -16,13 +16,14 @@ State::State(
   const uint64_t& snapshotHeight,
   const Options& options
 ) : vm_(evmc_create_evmone()),
-    options_(options),
-    storage_(storage),
-    eventManager_(options_),
-    dumpManager_(storage_, options_, this->eventManager_, this->stateMutex_),
-    dumpWorker_(options_, storage_, dumpManager_),
-    p2pManager_(p2pManager),
-    rdpos_ (db, dumpManager_, storage, p2pManager, options, *this) {
+  options_(options),
+  storage_(storage),
+  eventManager_(options_),
+  dumpManager_(storage_, options_, this->eventManager_, this->stateMutex_),
+  dumpWorker_(options_, storage_, dumpManager_),
+  p2pManager_(p2pManager),
+  rdpos_ (db, dumpManager_, storage, p2pManager, options, *this)
+{
   std::unique_lock lock(this->stateMutex_);
   auto accountsFromDB = db.getBatch(DBPrefix::nativeAccounts);
   if (accountsFromDB.empty()) {
@@ -67,32 +68,9 @@ State::State(
   ContractGlobals::blockHash_ = latestBlock->getHash();
   ContractGlobals::blockHeight_ = latestBlock->getNHeight();
   ContractGlobals::blockTimestamp_ = latestBlock->getTimestamp();
+
   // State sanity check, lets check if all found contracts in the accounts_ map really have code or are C++ contracts
-  for (const auto& [addr, acc] : this->accounts_) {
-    switch (acc->contractType) {
-      case ContractType::CPP: {
-        if (this->contracts_.find(addr) == this->contracts_.end()) {
-          LOGERROR("Contract " + addr.hex().get() + " is marked as C++ contract but doesn't have code");
-          throw DynamicException("Contract " + addr.hex().get() + " is marked as C++ contract but doesn't have code");
-        }
-        break;
-      }
-      case ContractType::EVM: {
-        if (acc->code.empty()) {
-          LOGERROR("Contract " + addr.hex().get() + " is marked as EVM contract but doesn't have code");
-          throw DynamicException("Contract " + addr.hex().get() + " is marked as EVM contract but doesn't have code");
-        }
-        break;
-      }
-      case ContractType::NOT_A_CONTRACT: {
-        if (!acc->code.empty()) {
-          LOGERROR("Contract " + addr.hex().get() + " is marked as not a contract but has code");
-          throw DynamicException("Contract " + addr.hex().get() + " is marked as not a contract but has code");
-        }
-        break;
-      }
-    }
-  }
+  for (const auto& [addr, acc] : this->accounts_) contractSanityCheck(addr, acc);
 
   if (snapshotHeight > this->storage_.latest()->getNHeight()) {
     LOGERROR("Snapshot height is higher than latest block, we can't load State! Crashing the program");
@@ -116,7 +94,7 @@ State::State(
 
     // Process transactions of the block within the current state
     uint64_t txIndex = 0;
-    for (auto const& tx : block->getTxs()) {
+    for (const auto& tx : block->getTxs()) {
       this->processTransaction(tx, blockHash, txIndex, block->getBlockRandomness());
       txIndex++;
     }
@@ -126,8 +104,32 @@ State::State(
   this->dumpManager_.pushBack(this);
 }
 
-State::~State() {
-  evmc_destroy(this->vm_);
+State::~State() { evmc_destroy(this->vm_); }
+
+void State::contractSanityCheck(const Address& addr, const NonNullUniquePtr<Account>& acc) {
+  switch (acc->contractType) {
+    case ContractType::CPP: {
+      if (this->contracts_.find(addr) == this->contracts_.end()) {
+        LOGERROR("Contract " + addr.hex().get() + " is marked as C++ contract but doesn't have code");
+        throw DynamicException("Contract " + addr.hex().get() + " is marked as C++ contract but doesn't have code");
+      }
+      break;
+    }
+    case ContractType::EVM: {
+      if (acc->code.empty()) {
+        LOGERROR("Contract " + addr.hex().get() + " is marked as EVM contract but doesn't have code");
+        throw DynamicException("Contract " + addr.hex().get() + " is marked as EVM contract but doesn't have code");
+      }
+      break;
+    }
+    case ContractType::NOT_A_CONTRACT: {
+      if (!acc->code.empty()) {
+        LOGERROR("Contract " + addr.hex().get() + " is marked as not a contract but has code");
+        throw DynamicException("Contract " + addr.hex().get() + " is marked as not a contract but has code");
+      }
+      break;
+    }
+  }
 }
 
 DBBatch State::dump() const {

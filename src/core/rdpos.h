@@ -76,6 +76,15 @@ class rdPoS : public BaseContract, public Log::LogicalLocationProvider {
     Hash bestRandomSeed_; ///< Best randomness seed (taken from the last block).
     const uint32_t minValidators_; ///< Minimum required number of Validators for creating and signing blocks.
 
+    /**
+     * Helper function that does a sanity check on a given pair of Validator txs.
+     * Used exclusively by validateBlock().
+     * @param hashTx A Validator's hash tx.
+     * @param seedTx A Validator's seed tx.
+     * @return `true` if tx data is valid, `false` otherwise.
+     */
+    bool validateBlockTxSanityCheck(const TxValidator& hashTx, const TxValidator& seedTx) const;
+    
   public:
     /// Enum for Validator transaction functions.
     enum TxValidatorFunction { INVALID, RANDOMHASH, RANDOMSEED };
