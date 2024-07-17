@@ -77,8 +77,7 @@ ERC721::ERC721(
 ERC721::ERC721(
   const std::string &derivedTypeName,
   const std::string &erc721name, const std::string &erc721symbol_,
-  const Address &address, const Address &creator, const uint64_t &chainId,
-  DB& db
+  const Address &address, const Address &creator, const uint64_t &chainId
 ) : DynamicContract(derivedTypeName, address, creator, chainId), name_(this, erc721name),
   symbol_(this, erc721symbol_), owners_(this), balances_(this), tokenApprovals_(this), operatorAddressApprovals_(this)
 {
