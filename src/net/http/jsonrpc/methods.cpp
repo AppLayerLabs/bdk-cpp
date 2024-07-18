@@ -36,7 +36,7 @@ static inline void forbidParams(const json& request) {
 static json getGasUsed(const Storage& storage, const Hash& txHash) {
   std::optional<uint256_t> gasUsed = storage.getGasUsed(txHash);
 
-  if (gasUsed.has_value())
+  if (auto gasUsed = storage.getGasUsed(txHash); gasUsed.has_value())
     return Hex::fromBytes(Utils::uint256ToBytes(gasUsed.value()), true).forRPC();
 
   throw DynamicException("Unable to fetch gas used by tx");
@@ -46,10 +46,8 @@ static json getContractAddress(const Storage& storage, const TxBlock& tx) {
   if (tx.getTo() != Address())
     return json::value_t::null;
 
-  std::optional<Address> addr = storage.getContractAddress(tx.hash());
-
-  if (addr.has_value())
-    return addr.value().hex(true).forRPC();
+  if (auto address = storage.getContractAddress(tx.hash()); address.has_value())
+    return address.value().hex(true).forRPC();
 
   throw DynamicException("Unable to locate contract address");
 }

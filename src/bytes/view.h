@@ -21,7 +21,8 @@ using Span = std::span<Byte>;
  * @param r the target data range to be viewed
  * @return a view object of the bytes
 */
-constexpr View view(BorrowedDataRange auto&& r) { return View(r); }
+template<BorrowedDataRange R>
+constexpr View view(R&& r) { return View(std::forward<R>(r)); }
 
 /**
  * Creates a span from the given data range. It needs to be Borrowed
@@ -31,7 +32,8 @@ constexpr View view(BorrowedDataRange auto&& r) { return View(r); }
  * @param r the target data range to construct the span
  * @return a span object of the bytes
 */
-constexpr Span span(BorrowedDataRange auto&& r) { return Span(r); }
+template<BorrowedDataRange R>
+constexpr Span span(R&& r) { return Span(std::forward<R>(r)); }
 
 /**
  * Overload for creating a bytes view from a char string. It's useful
