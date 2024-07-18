@@ -34,8 +34,6 @@ static inline void forbidParams(const json& request) {
 }
 
 static json getGasUsed(const Storage& storage, const Hash& txHash) {
-  std::optional<uint256_t> gasUsed = storage.getGasUsed(txHash);
-
   if (auto gasUsed = storage.getGasUsed(txHash); gasUsed.has_value())
     return Hex::fromBytes(Utils::uint256ToBytes(gasUsed.value()), true).forRPC();
 
