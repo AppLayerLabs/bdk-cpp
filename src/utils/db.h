@@ -101,19 +101,32 @@ class DBBatch {
     puts_.emplace_back(std::move(tmp), Bytes(value.begin(), value.end()));
   }
 
-  /**
-   * Add a delete entry to the batch.
-   * @param key The entry's key.
-   * @param prefix The entry's prefix.
-   */
-  void delete_key(const bytes::View key, const Bytes& prefix) {
-    Bytes tmp = prefix;
-    tmp.reserve(prefix.size() + key.size());
-    tmp.insert(tmp.end(), key.begin(), key.end());
-    dels_.emplace_back(std::move(tmp));
-  }
-  /// Get the list of put entries.
-  inline const std::vector<DBEntry>& getPuts() const { return puts_; }
+    /**
+     * Add a DBEntry to the batch.
+     * @param entry The entry to add.
+     */
+    void push_back(const DBEntry& entry) { puts_.push_back(entry); }
+
+    /**
+     * Add a delete entry to the batch.
+     * @param key The entry's key.
+     * @param prefix The entry's prefix.
+     */
+    void delete_key(const bytes::View key, const Bytes& prefix) {
+      Bytes tmp = prefix;
+      tmp.reserve(prefix.size() + key.size());
+      tmp.insert(tmp.end(), key.begin(), key.end());
+      dels_.emplace_back(std::move(tmp));
+    }
+
+    /**
+     * Add a delete entry (with a simple Bytes key) to the batch.
+     * @param bytes The entry's key.
+     */
+    void delete_key(const Bytes& bytes) { dels_.push_back(bytes); }
+
+    /// Get the list of put entries.
+    inline const std::vector<DBEntry>& getPuts() const { return puts_; }
 
     /// Get the list of delete entries.
     inline const std::vector<Bytes>& getDels() const { return dels_; }

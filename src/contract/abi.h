@@ -396,7 +396,7 @@ namespace ABI {
     template<typename T, typename Enable = void>
     struct TypeEncoder {
       static Bytes encode(const T&) {
-        static_assert(always_false<T>, "TypeName specialization for this type is not defined");
+        static_assert(std::is_same_v<T, void>, "TypeName specialization for this type is not defined");
         return Bytes();
       }
     };

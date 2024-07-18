@@ -20,7 +20,8 @@ See the LICENSE.txt file in the project root for more information.
 #include "../variables/safeunorderedmap.h"
 
 /// Template for an ERC721 contract.
-class ERC721 : public DynamicContract {
+/// Based on OpenZeppelin v5.0.2 ERC721 implementation.
+class ERC721 : virtual public DynamicContract {
 protected:
   /// Solidity: string internal name_;
   SafeString name_;
@@ -70,7 +71,7 @@ protected:
    * update_(address to, uint256 tokenId, address auth) internal returns
    * (address)
    */
-  Address update_(const Address &to, const uint256_t &tokenId,
+  virtual Address update_(const Address &to, const uint256_t &tokenId,
                   const Address &auth);
 
   /**
@@ -202,10 +203,10 @@ public:
   ERC721(const std::string &derivedTypeName, const std::string &erc721name,
          const std::string &erc721symbol,
          const Address &address, const Address &creator,
-         const uint64_t &chainId, DB& db);
+         const uint64_t &chainId);
 
   /// Destructor.
-  ~ERC721() override;
+  ~ERC721() override = default;
 
   /**
    * Get the name of the ERC721 token.
@@ -248,7 +249,7 @@ public:
    * @param tokenId The tokenId to query the URI of.
    * @return The URI of the specified tokenId.
    */
-  std::string tokenURI(const uint256_t &tokenId) const;
+  virtual std::string tokenURI(const uint256_t &tokenId) const;
 
   /**
    * Approve a token to be transferred by a third party.

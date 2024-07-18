@@ -57,7 +57,7 @@ class ERC721Test : public ERC721 {
            const Address &creator, const uint64_t &chainId);
 
     /// Destructor.
-    ~ERC721Test() override;
+    ~ERC721Test() override = default;
 
     /**
      * Mint a single token to the to address.
