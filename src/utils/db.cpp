@@ -87,7 +87,7 @@ Bytes DB::getLastByPrefix(const Bytes& pfx) const {
   Bytes nextPfx = pfx;
 
   bool overflow;
-  int i = nextPfx.size() - 1;
+  int i = static_cast<int>(nextPfx.size()) - 1;
   // increment the given prefix by 1
   do {
     overflow = (++nextPfx[i--]) == 0;
