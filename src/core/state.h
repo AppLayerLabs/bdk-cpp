@@ -86,7 +86,7 @@ class State : Dumpable, public Log::LogicalLocationProvider {
      * @throw DynamicException if any contract does not have code, or if an
      *        address that isn't a contract has any code.
      */
-    void contractSanityCheck(const Address& addr, const NonNullUniquePtr<Account>& acc);
+    void contractSanityCheck(const Address& addr, const Account& acc);
 
   public:
     /**

@@ -70,7 +70,7 @@ State::State(
   ContractGlobals::blockTimestamp_ = latestBlock->getTimestamp();
 
   // State sanity check, lets check if all found contracts in the accounts_ map really have code or are C++ contracts
-  for (const auto& [addr, acc] : this->accounts_) contractSanityCheck(addr, acc);
+  for (const auto& [addr, acc] : this->accounts_) contractSanityCheck(addr, *acc);
 
   if (snapshotHeight > this->storage_.latest()->getNHeight()) {
     LOGERROR("Snapshot height is higher than latest block, we can't load State! Crashing the program");
@@ -106,8 +106,8 @@ State::State(
 
 State::~State() { evmc_destroy(this->vm_); }
 
-void State::contractSanityCheck(const Address& addr, const NonNullUniquePtr<Account>& acc) {
-  switch (acc->contractType) {
+void State::contractSanityCheck(const Address& addr, const Account& acc) {
+  switch (acc.contractType) {
     case ContractType::CPP: {
       if (this->contracts_.find(addr) == this->contracts_.end()) {
         LOGERROR("Contract " + addr.hex().get() + " is marked as C++ contract but doesn't have code");
@@ -116,19 +116,24 @@ void State::contractSanityCheck(const Address& addr, const NonNullUniquePtr<Acco
       break;
     }
     case ContractType::EVM: {
-      if (acc->code.empty()) {
+      if (acc.code.empty()) {
         LOGERROR("Contract " + addr.hex().get() + " is marked as EVM contract but doesn't have code");
         throw DynamicException("Contract " + addr.hex().get() + " is marked as EVM contract but doesn't have code");
       }
       break;
     }
     case ContractType::NOT_A_CONTRACT: {
-      if (!acc->code.empty()) {
+      if (!acc.code.empty()) {
         LOGERROR("Contract " + addr.hex().get() + " is marked as not a contract but has code");
         throw DynamicException("Contract " + addr.hex().get() + " is marked as not a contract but has code");
       }
       break;
     }
+    default:
+      // TODO: this is a placeholder, contract types should be revised.
+      // Also we can NOT remove NOT_A_CONTRACT for now because tests will complain about it.
+      throw DynamicException("Invalid contract type");
+      break;
   }
 }
 
