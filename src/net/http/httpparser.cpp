@@ -15,7 +15,7 @@ std::string parseJsonRpcRequest(
   P2P::ManagerNormal& p2p,
   const Options& options
 ) {
-  json response = jsonrpc::call(json::parse(body), state, storage, p2p, options);
+  json response = jsonrpc::call(body, state, storage, p2p, options);
   Utils::safePrint("HTTP Response: " + response.dump());
   Utils::safePrint("Properly returning...");
   return response.dump();
