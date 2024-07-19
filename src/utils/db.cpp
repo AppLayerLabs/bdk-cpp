@@ -82,3 +82,30 @@ std::vector<Bytes> DB::getKeys(const Bytes& pfx, const Bytes& start, const Bytes
   return ret;
 }
 
+Bytes DB::getLastByPrefix(const Bytes& pfx) const {
+  std::unique_ptr<rocksdb::Iterator> it(this->db_->NewIterator(rocksdb::ReadOptions()));
+  Bytes nextPfx = pfx;
+
+  bool overflow;
+  int i = nextPfx.size() - 1;
+  // increment the given prefix by 1
+  do {
+    overflow = (++nextPfx[i--]) == 0;
+  } while (overflow && i >= 0);
+
+  if (overflow) [[unlikely]] {
+    it->SeekToLast();
+  } else [[likely]] {
+    it->SeekForPrev(rocksdb::Slice(reinterpret_cast<const char*>(nextPfx.data()), nextPfx.size()));
+  }
+
+  if (!it->Valid()) {
+    return {};
+  }
+
+  if (!it->key().starts_with(rocksdb::Slice(reinterpret_cast<const char*>(pfx.data()), pfx.size()))) {
+    return {};
+  }
+
+  return Bytes(it->value().data(), it->value().data() + it->value().size());
+}

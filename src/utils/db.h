@@ -32,9 +32,8 @@ namespace DBPrefix {
   const Bytes events =            { 0x00, 0x08 }; ///< "events" = "0008"
   const Bytes vmStorage =         { 0x00, 0x09 }; ///< "evmHost" = "0009"
   const Bytes txToAddr =          { 0x00, 0x0A }; ///< "txToAddr" = "000A"
-  const Bytes tagToBlock =        { 0x00, 0x0B }; ///< "tagToBlock" = "000B"
-  const Bytes txToGasUsed =       { 0x00, 0x0C }; ///< "txToGasUsed" = "000C"
-  const Bytes txToCallTrace =     { 0x00, 0x0D }; ///< "txToCallTrace" = "000D"
+  const Bytes txToGasUsed =       { 0x00, 0x0B }; ///< "txToGasUsed" = "000B"
+  const Bytes txToCallTrace =     { 0x00, 0x0C }; ///< "txToCallTrace" = "000C"
 };
 
 /// Struct for a database connection/endpoint.
@@ -243,6 +242,8 @@ class DB {
       }
       return true;
     }
+
+    Bytes getLastByPrefix(const Bytes& pfx) const;
 
     static Bytes makeNewPrefix(Bytes prefix, const std::string& newPrefix) {
       prefix.reserve(prefix.size() + newPrefix.size());

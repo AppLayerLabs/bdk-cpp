@@ -29,11 +29,6 @@ static void storeBlock(DB& db, const FinalizedBlock& block, bool indexingEnabled
     }
   }
 
-  const std::string latestTag = "latest";
-  const bytes::View latestTagBytes(reinterpret_cast<const Byte *>(latestTag.data()), latestTag.size());
-
-  batch.push_back(latestTagBytes, block.getHash(), DBPrefix::tagToBlock);
-
   db.putBatch(batch);
 }
 
@@ -49,7 +44,7 @@ Storage::Storage(std::string instanceIdStr, const Options& options)
 
   // Get the latest block from the database
   LOGINFO("Loading latest block");
-  const Bytes latestBlockHash = db_.get(Utils::stringToBytes("latest"), DBPrefix::tagToBlock);
+  const Bytes latestBlockHash = db_.getLastByPrefix(DBPrefix::heightToBlock);
 
   if (latestBlockHash.empty())
     throw DynamicException("Latest block hash not found in DB");
@@ -68,7 +63,9 @@ void Storage::initializeBlockchain() {
   // Genesis block comes from Options, not hardcoded
   const auto& genesis = options_.getGenesisBlock();
 
-  if (!db_.has(std::string("latest"), DBPrefix::tagToBlock)) {
+  const Bytes latestBlockHash = db_.getLastByPrefix(DBPrefix::heightToBlock);
+
+  if (latestBlockHash.empty()) {
     if (genesis.getNHeight() != 0)
       throw DynamicException("Genesis block height is not 0");
 
