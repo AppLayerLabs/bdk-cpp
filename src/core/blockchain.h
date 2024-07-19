@@ -17,6 +17,7 @@ See the LICENSE.txt file in the project root for more information.
 #include "../net/p2p/managerbase.h"
 #include "../net/p2p/nodeconns.h"
 #include "../net/http/httpserver.h"
+#include "../utils/logger.h"
 #include "../utils/options.h"
 #include "../utils/db.h"
 

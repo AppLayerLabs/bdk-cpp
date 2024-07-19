@@ -22,11 +22,11 @@ TxBlock::TxBlock(const BytesArrView bytes, const uint64_t&) {
   index += listLengthSize; // Index is now at rlp[0] size
 
   // Size sanity check
-  uint64_t listRealLength = txData.size() - listLengthSize - 1;
-  if (listLength != listRealLength) throw DynamicException(
-    "Tx RLP returns different size than reported - expected "
-    + std::to_string(listRealLength) + ", got " + std::to_string(listLength)
-  );
+  if (uint64_t listRealLength = txData.size() - listLengthSize - 1; listLength != listRealLength) {
+    throw DynamicException("Tx RLP returns different size than reported - expected "
+      + std::to_string(listRealLength) + ", got " + std::to_string(listLength)
+    );
+  }
 
   // Parse each tx element individually in sequence
   this->parseChainId(txData, index);
@@ -60,8 +60,9 @@ TxBlock::TxBlock(
   value_(value), maxPriorityFeePerGas_(maxPriorityFeePerGas), maxFeePerGas_(maxFeePerGas), gasLimit_(gasLimit)
 {
   UPubKey pubKey = Secp256k1::toUPub(privKey);
-  Address add = Secp256k1::toAddress(pubKey);
-  if (add != this->from_) throw DynamicException("Private key does not match sender address (from)");
+  if (Address add = Secp256k1::toAddress(pubKey); add != this->from_) {
+    throw DynamicException("Private key does not match sender address (from)");
+  }
 
   Hash msgHash = Utils::sha3(this->rlpSerialize(false)); // Do not include signature
   Signature sig = Secp256k1::sign(msgHash, privKey);
@@ -488,11 +489,11 @@ TxValidator::TxValidator(const BytesArrView bytes, const uint64_t&) {
   index += listLengthSize; // Index is now at rlp[0] size
 
   // Size sanity check
-  uint64_t listRealLength = bytes.size() - listLengthSize - 1;
-  if (listLength != listRealLength) throw DynamicException(
-    "Tx RLP returns different size than reported - expected "
-    + std::to_string(listRealLength) + ", got " + std::to_string(listLength)
-  );
+  if (uint64_t listRealLength = bytes.size() - listLengthSize - 1; listLength != listRealLength) {
+    throw DynamicException("Tx RLP returns different size than reported - expected "
+      + std::to_string(listRealLength) + ", got " + std::to_string(listLength)
+    );
+  }
 
   // Parse and check the tx elements individually in order
   this->parseData(bytes, index);
