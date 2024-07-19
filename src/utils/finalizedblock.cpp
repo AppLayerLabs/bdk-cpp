@@ -12,14 +12,14 @@ FinalizedBlock FinalizedBlock::fromBytes(const BytesArrView bytes, const uint64_
   try {
     // Verify minimum size for a valid block
     SLOGTRACE("Deserializing block...");
-    if (bytes.size() < 217) throw std::runtime_error("Invalid block size - too short");
+    if (bytes.size() < 217) throw std::length_error("Invalid block size - too short");
 
     // Parsing fixed-size fields
-    Signature validatorSig = Signature(bytes.subspan(0, 65));
-    Hash prevBlockHash = Hash(bytes.subspan(65, 32));
-    Hash blockRandomness = Hash(bytes.subspan(97, 32));
-    Hash validatorMerkleRoot = Hash(bytes.subspan(129, 32));
-    Hash txMerkleRoot = Hash(bytes.subspan(161, 32));
+    auto validatorSig = Signature(bytes.subspan(0, 65));
+    auto prevBlockHash = Hash(bytes.subspan(65, 32));
+    auto blockRandomness = Hash(bytes.subspan(97, 32));
+    auto validatorMerkleRoot = Hash(bytes.subspan(129, 32));
+    auto txMerkleRoot = Hash(bytes.subspan(161, 32));
     uint64_t timestamp = Utils::bytesToUint64(bytes.subspan(193, 8));
     uint64_t nHeight = Utils::bytesToUint64(bytes.subspan(201, 8));
     uint64_t txValidatorStart = Utils::bytesToUint64(bytes.subspan(209, 8));
@@ -122,37 +122,31 @@ FinalizedBlock FinalizedBlock::fromBytes(const BytesArrView bytes, const uint64_
     auto expectedTxMerkleRoot = Merkle(txs).getRoot();
     auto expectedValidatorMerkleRoot = Merkle(txValidators).getRoot();
     auto expectedRandomness = rdPoS::parseTxSeedList(txValidators);
-    if (expectedTxMerkleRoot != txMerkleRoot) {
-      throw std::runtime_error("Invalid tx merkle root");
-    }
-    if (expectedValidatorMerkleRoot != validatorMerkleRoot) {
-      throw std::runtime_error("Invalid validator merkle root");
-    }
-    if (expectedRandomness != blockRandomness) {
-      throw std::runtime_error("Invalid block randomness");
-    }
+    if (expectedTxMerkleRoot != txMerkleRoot) throw std::invalid_argument("Invalid tx merkle root");
+    if (expectedValidatorMerkleRoot != validatorMerkleRoot) throw std::invalid_argument("Invalid validator merkle root");
+    if (expectedRandomness != blockRandomness) throw std::invalid_argument("Invalid block randomness");
 
-    /// Block header to hash is the 144 after the signature
+    // Block header to hash is the 144 after the signature
     BytesArrView headerBytes = bytes.subspan(65, 144);
     Hash hash = Utils::sha3(headerBytes);
     UPubKey validatorPubKey = Secp256k1::recover(validatorSig, hash);
     return {
-        std::move(validatorSig),
-        std::move(validatorPubKey),
-        std::move(prevBlockHash),
-        std::move(blockRandomness),
-        std::move(validatorMerkleRoot),
-        std::move(txMerkleRoot),
-        timestamp,
-        nHeight,
-        std::move(txValidators),
-        std::move(txs),
-        std::move(hash),
-        bytes.size()
+      std::move(validatorSig),
+      std::move(validatorPubKey),
+      std::move(prevBlockHash),
+      std::move(blockRandomness),
+      std::move(validatorMerkleRoot),
+      std::move(txMerkleRoot),
+      timestamp,
+      nHeight,
+      std::move(txValidators),
+      std::move(txs),
+      std::move(hash),
+      bytes.size()
     };
   } catch (const std::exception &e) {
     SLOGERROR("Error when deserializing a FinalizedBlock: " + std::string(e.what()));
-    throw std::runtime_error(std::string("Error when deserializing a FinalizedBlock: ") + e.what());
+    throw std::domain_error(std::string("Error when deserializing a FinalizedBlock: ") + e.what());
   }
 }
 

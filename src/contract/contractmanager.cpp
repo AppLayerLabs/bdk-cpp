@@ -97,8 +97,9 @@ Bytes ContractManager::ethCallView(const evmc_message& callInfo, ContractHost* h
   // 0x73474f5a == uint32_t(1934053210)
   if (functor.value == 1934053210) {
     auto args = Utils::getFunctionArgs(callInfo);
-    auto addr = ABI::Decoder::decodeData<Address>(args);
+    std::tuple<Address> addr = ABI::Decoder::decodeData<Address>(args);
     return ABI::Encoder::encodeData(this->getDeployedContractsForCreator(std::get<0>(addr)));
   }
   throw DynamicException("Invalid function call");
 }
+

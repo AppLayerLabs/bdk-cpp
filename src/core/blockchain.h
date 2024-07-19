@@ -106,7 +106,7 @@ class Blockchain : public Log::LogicalLocationProvider {
     ///@{
     /** Getter. */
     Options& getOptions() { return this->options_; }
-    const DB& getDB() { return this->db_; }
+    const DB& getDB() const { return this->db_; }
     Storage& getStorage() { return this->storage_; }
     State& getState() { return this->state_; }
     P2P::ManagerNormal& getP2P() { return this->p2p_; }

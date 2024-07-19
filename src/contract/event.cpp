@@ -11,13 +11,13 @@ Event::Event(const std::string& jsonstr) {
   json obj = json::parse(jsonstr);
   this->name_ = obj["name"].get<std::string>();
   this->logIndex_ = obj["logIndex"].get<uint64_t>();
-  this->txHash_ = Hash(Hex::toBytes(obj["txHash"].get<std::string>().substr(2)));
+  this->txHash_ = Hash(Hex::toBytes(std::string_view(obj["txHash"].get<std::string>().substr(2))));
   this->txIndex_ = obj["txIndex"].get<uint64_t>();
-  this->blockHash_ = Hash(Hex::toBytes(obj["blockHash"].get<std::string>().substr(2)));
+  this->blockHash_ = Hash(Hex::toBytes(std::string_view(obj["blockHash"].get<std::string>().substr(2))));
   this->blockIndex_ = obj["blockIndex"].get<uint64_t>();
   this->address_ = Address(obj["address"].get<std::string>(), false);
   this->data_ = obj["data"].get<Bytes>();
-  for (std::string topic : obj["topics"]) this->topics_.push_back(Hex::toBytes(topic));
+  for (std::string topic : obj["topics"]) this->topics_.emplace_back(Hex::toBytes(topic));
   this->anonymous_ = obj["anonymous"].get<bool>();
 }
 
@@ -104,7 +104,7 @@ std::vector<Event> EventManager::getEvents(
   }
   if (ret.size() >= this->options_.getEventLogCap()) return ret;
   // Fetch from database if we have space left
-  for (const Event& e : this->filterFromDB(fromBlock, toBlock, address, topics)) {
+  for (Event& e : this->filterFromDB(fromBlock, toBlock, address, topics)) {
     if (ret.size() >= this->options_.getEventLogCap()) break;
     ret.push_back(std::move(e));
   }

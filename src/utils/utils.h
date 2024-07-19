@@ -58,8 +58,8 @@ using BytesArrView = std::span<const Byte, std::dynamic_extent>; ///< Typedef fo
 // Base case for the recursive helper - now using requires for an empty body function
 template<size_t I = 0, typename... Tp>
 requires (I == sizeof...(Tp))
-void printDurationsHelper(const std::string& id, std::tuple<Tp...>&, const std::array<std::string, sizeof...(Tp)>&) {
-    // Empty body, stopping condition for the recursion
+void printDurationsHelper(const std::string&, std::tuple<Tp...>&, const std::array<std::string, sizeof...(Tp)>&) {
+  // Empty body, stopping condition for the recursion
 }
 
 // Recursive helper function to print each duration - with requires

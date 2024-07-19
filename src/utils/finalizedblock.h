@@ -121,10 +121,11 @@ class FinalizedBlock {
     }
 
     /**
-     * De-serialize a given raw bytes string and turn it into a FinalizedBlock.
+     * Deserialize a given raw bytes string and turn it into a FinalizedBlock.
      * @param bytes The raw bytes string to de-serialize.
      * @param requiredChainId The chain ID to which the block belongs.
      * @return A FinalizedBlock instance.
+     * @throw std::domain_error if deserialization fails for some reason.
      */
     static FinalizedBlock fromBytes(const BytesArrView bytes, const uint64_t& requiredChainId);
 

@@ -105,7 +105,7 @@ class DynamicContract : public BaseContract {
       const std::string& funcSignature, R(T::*memFunc)() const, const FunctionTypes& methodMutability, T* instance
     ) {
       std::string functStr = funcSignature + "()";
-      auto registerEvmFunction = [this, instance, memFunc](const evmc_message& callInfo) -> Bytes {
+      auto registerEvmFunction = [this, instance, memFunc]([[maybe_unused]] const evmc_message& callInfo) -> Bytes {
         if constexpr (std::is_same_v<R, void>) {
           // If the function's return type is void, return an empty Bytes object
           (instance->*memFunc)(); // Call the member function without capturing its return
@@ -154,7 +154,7 @@ class DynamicContract : public BaseContract {
       const std::string& funcSignature, R(T::*memFunc)(), const FunctionTypes& methodMutability, T* instance
     ) {
       std::string functStr = funcSignature + "()";
-      auto registerEvmFunction = [this, instance, memFunc](const evmc_message& callInfo) -> Bytes {
+      auto registerEvmFunction = [this, instance, memFunc]([[maybe_unused]] const evmc_message& callInfo) -> Bytes {
         if constexpr (std::is_same_v<R, void>) {
           // If the function's return type is void, return an empty Bytes object
           (instance->*memFunc)(); // Call the member function without capturing its return

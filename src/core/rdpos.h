@@ -66,7 +66,6 @@ class rdPoS : public BaseContract, public Log::LogicalLocationProvider {
     const Options& options_;  ///< Reference to the options singleton.
     const Storage& storage_;  ///< Reference to the blockchain's storage.
     P2P::ManagerNormal& p2p_; ///< Reference to the P2P Manager (for sending/requesting TxValidators from other nodes).
-    State& state_;  ///< Reference to the blockchain state.
     std::set<Validator> validators_;  ///< Ordered list of rdPoS validators.
     std::vector<Validator> randomList_; ///< Shuffled version of the validator list, used at block creation/signing.
     boost::unordered_flat_map<Hash, TxValidator, SafeHash> validatorMempool_;  ///< Mempool for validator transactions.
@@ -98,10 +97,9 @@ class rdPoS : public BaseContract, public Log::LogicalLocationProvider {
      * @param storage Reference to the blockchain's storage.
      * @param p2p Reference to the P2P connection manager.
      * @param options Reference to the options singleton.
-     * @param state Reference to the blockchain's state.
      * @throw DynamicException if there are no Validators registered in the database.
      */
-    rdPoS(const DB& db, DumpManager& manager, const Storage& storage, P2P::ManagerNormal& p2p, const Options& options, State& state);
+    rdPoS(const DB& db, DumpManager& manager, const Storage& storage, P2P::ManagerNormal& p2p, const Options& options);
 
     ~rdPoS() override;  ///< Destructor.
 

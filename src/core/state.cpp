@@ -22,7 +22,7 @@ State::State(
   dumpManager_(storage_, options_, this->eventManager_, this->stateMutex_),
   dumpWorker_(options_, storage_, dumpManager_),
   p2pManager_(p2pManager),
-  rdpos_ (db, dumpManager_, storage, p2pManager, options, *this)
+  rdpos_(db, dumpManager_, storage, p2pManager, options)
 {
   std::unique_lock lock(this->stateMutex_);
   auto accountsFromDB = db.getBatch(DBPrefix::nativeAccounts);
@@ -186,16 +186,15 @@ TxStatus State::validateTransactionInternal(const TxBlock& tx) const {
   return TxStatus::ValidNew;
 }
 
-void State::processTransaction(const TxBlock& tx,
-                               const Hash& blockHash,
-                               const uint64_t& txIndex,
-                               const Hash& randomnessHash) {
+void State::processTransaction(
+  const TxBlock& tx, const Hash& blockHash, const uint64_t& txIndex, const Hash& randomnessHash
+) {
   // Lock is already called by processNextBlock.
   // processNextBlock already calls validateTransaction in every tx,
   // as it calls validateNextBlock as a sanity check.
   Account& accountFrom = *this->accounts_[tx.getFrom()];
   Account& accountTo = *this->accounts_[tx.getTo()];
-  int64_t leftOverGas = int64_t(tx.getGasLimit());
+  auto leftOverGas = int64_t(tx.getGasLimit());
   auto& fromNonce = accountFrom.nonce;
   auto& fromBalance = accountFrom.balance;
   if (fromBalance < (tx.getValue() + tx.getGasLimit() * tx.getMaxFeePerGas())) {
@@ -204,8 +203,9 @@ void State::processTransaction(const TxBlock& tx,
     return;
   }
   if (fromNonce != tx.getNonce()) {
-    LOGERROR("Transaction: " + tx.hash().hex().get() + " nonce mismatch, expected: " + std::to_string(fromNonce)
-                                            + " got: " + tx.getNonce().str());
+    LOGERROR("Transaction: " + tx.hash().hex().get() + " nonce mismatch, expected: "
+      + std::to_string(fromNonce) + " got: " + tx.getNonce().str()
+    );
     throw DynamicException("Transaction nonce mismatch");
     return;
   }
@@ -534,10 +534,8 @@ std::vector<std::pair<std::string, Address>> State::getCppContracts() const {
 std::vector<Address> State::getEvmContracts() const {
   std::shared_lock lock(this->stateMutex_);
   std::vector<Address> contracts;
-  for (const auto& acc : this->accounts_) {
-    if (acc.second->contractType == ContractType::EVM) {
-      contracts.emplace_back(acc.first);
-    }
+  for (const auto& [addr, acc] : this->accounts_) {
+    if (acc->contractType == ContractType::EVM) contracts.emplace_back(addr);
   }
   return contracts;
 }

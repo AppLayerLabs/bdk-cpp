@@ -106,7 +106,7 @@ namespace P2P {
     return txs;
   }
 
-  // FIXME/TODO: This duplication is pointless; Make it into one template or get rid of it.
+  // TODO: This duplication is pointless, make it into one template or get rid of it.
   template<typename TxType>
   void txsToMessage(Bytes& message, const boost::unordered_flat_map<Hash, TxType, SafeHash>& txs) {
     for (const auto& [txHash, tx] : txs) {

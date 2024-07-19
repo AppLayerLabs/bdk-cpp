@@ -10,20 +10,14 @@ See the LICENSE.txt file in the project root for more information.
 #include "state.h"
 #include "../contract/contractmanager.h"
 
-rdPoS::rdPoS(const DB& db,
-             DumpManager& dumpManager,
-             const Storage& storage,
-             P2P::ManagerNormal& p2p,
-             const Options& options,
-             State& state)
-  : BaseContract("rdPoS", ProtocolContractAddresses.at("rdPoS"), Address(), options.getChainID()),
-    options_(options),
-    storage_(storage),
-    p2p_(p2p),
-    state_(state),
-    validatorKey_(options.getValidatorPrivKey()),
-    isValidator_((this->validatorKey_) ? true : false),
-    randomGen_(Hash()), minValidators_(options.getMinValidators())
+rdPoS::rdPoS(
+  const DB& db, DumpManager& dumpManager, const Storage& storage,
+  P2P::ManagerNormal& p2p, const Options& options
+) : BaseContract("rdPoS", ProtocolContractAddresses.at("rdPoS"), Address(), options.getChainID()),
+  options_(options), storage_(storage), p2p_(p2p),
+  validatorKey_(options.getValidatorPrivKey()),
+  isValidator_((this->validatorKey_) ? true : false),
+  randomGen_(Hash()), minValidators_(options.getMinValidators())
 {
   // Initialize blockchain.
   LOGINFO("Initializing rdPoS.");
@@ -260,8 +254,8 @@ Hash rdPoS::parseTxSeedList(const std::vector<TxValidator>& txs) {
 }
 
 rdPoS::TxValidatorFunction rdPoS::getTxValidatorFunction(const TxValidator &tx) {
-  constexpr Functor randomHashHash(3489654598);
-  constexpr Functor randomSeedHash(1875223254);
+  constexpr Functor randomHashHash{3489654598};
+  constexpr Functor randomSeedHash{1875223254};
   if (tx.getData().size() != 36) {
     SLOGERROR("TxValidator data size is not 36 bytes.");
     // Both RandomHash and RandomSeed are 32 bytes, so if the data size is not 36 bytes, it is invalid.

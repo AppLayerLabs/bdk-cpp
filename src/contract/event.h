@@ -28,7 +28,7 @@ See the LICENSE.txt file in the project root for more information.
 #include <boost/multi_index/ordered_index.hpp>
 #include <boost/multi_index/member.hpp>
 
-  namespace bmi = boost::multi_index;
+namespace bmi = boost::multi_index;
 
 using json = nlohmann::ordered_json;
 
@@ -116,10 +116,8 @@ class Event {
       }
     }
 
-    // Copy constructor
-    Event(const Event&) = default;
-    // Move constructor
-    Event(Event&&) = default;
+    Event(const Event&) = default; ///< Copy constructor.
+    Event(Event&&) = default; ///< Move constructor.
 
     /**
      * Constructor from deserialization.

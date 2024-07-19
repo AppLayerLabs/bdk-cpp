@@ -246,7 +246,7 @@ class Logger {
     Logger& operator=(const Logger&) = delete;  ///< Make it non-assignable.
 
     /// Get the instance.
-    static Logger& getInstance() { static Logger instance; return instance; }
+    inline static Logger& getInstance() { static Logger instance; return instance; }
 
     const std::string activeLogFileName_= "bdk.log"; ///< Base name for log files
     std::atomic<LogType> logLevel_ = LogType::NONE; ///< Current log level (doesn't log anything less than this).

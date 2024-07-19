@@ -8,8 +8,8 @@ TestThrowVars::TestThrowVars(
   var1_(this), var2_(this), var3_(this)
 {
   this->var1_ = "var1";
-  this->var1_ = "var2";
-  this->var1_ = "var3";
+  this->var2_ = "var2";
+  this->var3_ = "var3";
 
   this->var1_.commit();
   this->var2_.commit();
@@ -29,16 +29,9 @@ TestThrowVars::TestThrowVars(const Address& address, const DB& db
   // Do nothing
 }
 
-TestThrowVars::~TestThrowVars() {
-  // Do nothing
-}
+TestThrowVars::~TestThrowVars() { /* Do nothing */ }
 
-DBBatch TestThrowVars::dump() const
-{
-  return BaseContract::dump();
-}
+DBBatch TestThrowVars::dump() const { return BaseContract::dump(); }
 
-void TestThrowVars::registerContractFunctions() {
-  registerContract();
-}
+void TestThrowVars::registerContractFunctions() { registerContract(); }
 

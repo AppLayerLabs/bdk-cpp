@@ -75,10 +75,9 @@ class BaseContract : public ContractLocals, public Dumpable {
 
   protected:
     mutable ContractHost* host_ = nullptr; ///< Reference to the ContractHost instance.
-
-  public:
     bool reentrancyLock_ = false; ///< Lock (for reentrancy).
 
+  public:
     /**
      * Constructor from scratch.
      * @param contractName The name of the contract.

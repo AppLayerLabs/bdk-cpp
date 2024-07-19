@@ -120,10 +120,10 @@ DBBatch DEXV2Factory::dump() const
   dbBatch.push_back(Utils::stringToBytes("feeToSetter_"), this->feeToSetter_.get().view(), this->getDBPrefix());
 
   for (const auto& address : this->allPairs_.get()) {
-    dbBatch.push_back(Utils::uint32ToBytes(i++),
-                      address.view(),
-                      this->getNewPrefix("allPairs_"));
+    dbBatch.push_back(Utils::uint32ToBytes(i), address.view(), this->getNewPrefix("allPairs_"));
+    i++;
   }
+
   for (auto tokenA = this->getPair_.cbegin(); tokenA != this->getPair_.cend(); tokenA++) {
     for (auto tokenB = tokenA->second.cbegin(); tokenB != tokenA->second.cend(); tokenB++) {
       const auto& key = tokenA->first.get();
