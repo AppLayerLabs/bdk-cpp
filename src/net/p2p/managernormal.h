@@ -45,12 +45,10 @@ namespace P2P {
       void handleNotification(const NodeID &nodeId, const std::shared_ptr<const Message>& message);
 
     private:
-      P2P::NodeConns nodeConns_; ///< P2P engine's logical peer connection tracking & keepalive component.
-
-      P2P::Broadcaster broadcaster_; ///< P2P engine's multihop networking component.
-
       const Storage& storage_; ///< Reference to the blockchain's storage.
       State& state_; ///< Reference to the blockchain's state.
+      P2P::NodeConns nodeConns_; ///< P2P engine's logical peer connection tracking & keepalive component.
+      P2P::Broadcaster broadcaster_; ///< P2P engine's multihop networking component.
 
       /**
        * Send a message to all connected nodes.
@@ -170,11 +168,8 @@ namespace P2P {
       /// Get a reference to the Broadcaster component.
       P2P::Broadcaster& getBroadcaster() { return this->broadcaster_; }
 
-      /// Start the P2P engine
-      virtual void start() override;
-
-      /// Stop the P2P engine
-      virtual void stop() override;
+      void start() override; ///< Start the P2P engine.
+      void stop() override; ///< Stop the P2P engine.
 
       /**
        * Handle a message from a session. Entry point for all the other handlers.

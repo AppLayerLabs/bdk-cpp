@@ -51,9 +51,11 @@ FinalizedBlock FinalizedBlock::fromBytes(const BytesArrView bytes, const uint64_
     // If we have up to X block txs or only one physical thread
     // for some reason, deserialize normally.
     // Otherwise, parallelize into threads/asyncs.
-    unsigned int thrNum = std::thread::hardware_concurrency();
-    if (thrNum <= 1 || txCount <= 2000) {
-      for (uint64_t i = 0; i < txCount; ++i) {
+    if (
+      unsigned int thrNum = std::thread::hardware_concurrency();
+      thrNum <= 1 || txCount <= 2000
+    ) {
+      for (uint64_t i = 0; i < txCount; i++) {
         uint64_t txSize = Utils::bytesToUint32(bytes.subspan(index, 4));
         index += 4;
         txs.emplace_back(bytes.subspan(index, txSize), requiredChainId);

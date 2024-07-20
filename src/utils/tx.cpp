@@ -82,8 +82,10 @@ TxBlock::TxBlock(
 void TxBlock::parseChainId(const BytesArrView& txData, uint64_t& index) {
   // If chainId > 0, get chainId from string.
   // chainId can be a small string or the byte itself
-  const uint8_t chainIdLength = (txData[index] >= 0x80) ? txData[index] - 0x80 : 0;
-  if (chainIdLength != 0) {
+  if (
+    const uint8_t chainIdLength = (txData[index] >= 0x80) ? txData[index] - 0x80 : 0;
+    chainIdLength != 0
+  ) {
     if (chainIdLength > 0x37) throw DynamicException("ChainId is too large");
     index++; // Index at rlp[0] payload
     this->chainId_ = Utils::fromBigEndian<uint64_t>(txData.subspan(index, chainIdLength));
@@ -98,8 +100,10 @@ void TxBlock::parseChainId(const BytesArrView& txData, uint64_t& index) {
 void TxBlock::parseNonce(const BytesArrView& txData, uint64_t& index) {
   // If nonce > 0, get nonce from string.
   // nonce can be a small string or the byte itself
-  const uint8_t nonceLength = (txData[index] >= 0x80) ? txData[index] - 0x80 : 0;
-  if (nonceLength != 0) {
+  if (
+    const uint8_t nonceLength = (txData[index] >= 0x80) ? txData[index] - 0x80 : 0;
+    nonceLength != 0
+  ) {
     if (nonceLength > 0x37) throw DynamicException("Nonce is too large");
     index++; // Index at rlp[1] payload
     this->nonce_ = Utils::fromBigEndian<uint64_t>(txData.subspan(index, nonceLength));
@@ -114,8 +118,10 @@ void TxBlock::parseNonce(const BytesArrView& txData, uint64_t& index) {
 void TxBlock::parseMaxPriorityFeePerGas(const BytesArrView& txData, uint64_t& index) {
   // If maxPriorityFeePerGas > 0, get maxPriorityFeePerGas from string.
   // maxPriorityFeePerGas can be a small string or the byte itself
-  const uint8_t maxPriorityFeePerGasLength = (txData[index] >= 0x80) ? txData[index] - 0x80 : 0;
-  if (maxPriorityFeePerGasLength != 0) {
+  if (
+    const uint8_t maxPriorityFeePerGasLength = (txData[index] >= 0x80) ? txData[index] - 0x80 : 0;
+    maxPriorityFeePerGasLength != 0
+  ) {
     if (maxPriorityFeePerGasLength > 0x37) throw DynamicException("MaxPriorityFeePerGas is too large");
     index++; // Index at rlp[2] payload
     this->maxPriorityFeePerGas_ = Utils::fromBigEndian<uint256_t>(
@@ -132,8 +138,10 @@ void TxBlock::parseMaxPriorityFeePerGas(const BytesArrView& txData, uint64_t& in
 void TxBlock::parseMaxFeePerGas(const BytesArrView& txData, uint64_t& index) {
   // If maxFeePerGas > 0, get nonce from string.
   // maxFeePerGas can be a small string or the byte itself
-  const uint8_t maxFeePerGasLength = (txData[index] >= 0x80) ? txData[index] - 0x80 : 0;
-  if (maxFeePerGasLength != 0) {
+  if (
+    const uint8_t maxFeePerGasLength = (txData[index] >= 0x80) ? txData[index] - 0x80 : 0;
+    maxFeePerGasLength != 0
+  ) {
     if (maxFeePerGasLength > 0x37) throw DynamicException("MaxFeePerGas is too large");
     index++; // Index at rlp[3] payload
     this->maxFeePerGas_ = Utils::fromBigEndian<uint256_t>(txData.subspan(index, maxFeePerGasLength));
@@ -148,8 +156,10 @@ void TxBlock::parseMaxFeePerGas(const BytesArrView& txData, uint64_t& index) {
 void TxBlock::parseGasLimit(const BytesArrView& txData, uint64_t& index) {
   // If gasLimit > 0, get gasLimit from string.
   // gasLimit can be a small string or the byte itself
-  const uint8_t gasLimitLength = (txData[index] >= 0x80) ? txData[index] - 0x80 : 0;
-  if (gasLimitLength != 0) {
+  if (
+    const uint8_t gasLimitLength = (txData[index] >= 0x80) ? txData[index] - 0x80 : 0;
+    gasLimitLength != 0
+  ) {
     if (gasLimitLength > 0x37) throw DynamicException("GasLimit is too large");
     index++; // Index at rlp[0] payload
     this->gasLimit_ = Utils::fromBigEndian<uint64_t>(txData.subspan(index, gasLimitLength));
@@ -179,8 +189,10 @@ void TxBlock::parseTo(const BytesArrView& txData, uint64_t& index) {
 
 void TxBlock::parseValue(const BytesArrView& txData, uint64_t& index) {
   // Get value - small string or byte itself.
-  uint8_t valueLength = (txData[index]) >= 0x80 ? txData[index] - 0x80 : 0;
-  if (valueLength != 0) {
+  if (
+    uint8_t valueLength = (txData[index]) >= 0x80 ? txData[index] - 0x80 : 0;
+    valueLength != 0
+  ) {
     if (valueLength > 0x37) throw DynamicException("Value is not a small string");
     index++; // Index at rlp[6] payload
     this->value_ = Utils::fromBigEndian<uint256_t>(txData.subspan(index, valueLength));
@@ -571,8 +583,10 @@ void TxValidator::parseData(const BytesArrView& bytes, uint64_t& index) {
 
 void TxValidator::parseNHeight(const BytesArrView& bytes, uint64_t& index) {
   // Get nHeight - can be a small string or the byte itself
-  const uint8_t nHeightLength = (bytes[index] >= 0x80) ? bytes[index] - 0x80 : 0;
-  if (nHeightLength != 0) {
+  if (
+    const uint8_t nHeightLength = (bytes[index] >= 0x80) ? bytes[index] - 0x80 : 0;
+    nHeightLength != 0
+  ) {
     index++; // Index at rlp[1] payload
     this->nHeight_ = Utils::fromBigEndian<uint64_t>(bytes.subspan(index, nHeightLength));
     index += nHeightLength; // Index at rlp[2] size
@@ -585,8 +599,10 @@ void TxValidator::parseNHeight(const BytesArrView& bytes, uint64_t& index) {
 
 void TxValidator::parseVRS(const BytesArrView& bytes, uint64_t& index) {
   // Get v - small string or the byte itself
-  uint8_t vLength = (bytes[index] >= 0x80) ? bytes[index] - 0x80 : 0;
-  if (vLength != 0) {
+  if (
+    uint8_t vLength = (bytes[index] >= 0x80) ? bytes[index] - 0x80 : 0;
+    vLength != 0
+  ) {
     if (vLength > 0x37) throw DynamicException("V is not a small string");
     index++; // Index at rlp[2] payload
     this->v_ = Utils::fromBigEndian<uint256_t>(bytes.subspan(index, vLength));

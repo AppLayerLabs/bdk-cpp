@@ -19,16 +19,14 @@ rdPoS::rdPoS(
   isValidator_((this->validatorKey_) ? true : false),
   randomGen_(Hash()), minValidators_(options.getMinValidators())
 {
-  // Initialize blockchain.
-  LOGINFO("Initializing rdPoS.");
   /**
-   * Load information from DB, stored as following:
+   * Initialize blockchain and load information from DB, stored as following:
    * DBPrefix::rdPoS -> rdPoS mapping (addresses)
    * DBPrefix::rdPoS -> misc: used for randomness currently.
    * Order doesn't matter, Validators are stored in a set (sorted by default).
    */
-  auto validatorsDb = db.getBatch(DBPrefix::rdPoS);
-  if (validatorsDb.empty()) {
+  LOGINFO("Initializing rdPoS.");
+  if (auto validatorsDb = db.getBatch(DBPrefix::rdPoS); validatorsDb.empty()) {
     // No rdPoS in DB, this should have been initialized by Storage.
     LOGINFO("No rdPoS in DB, initializing chain with Options.");
     for (const auto& address : this->options_.getGenesisValidators()) {

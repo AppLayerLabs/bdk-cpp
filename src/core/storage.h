@@ -18,7 +18,7 @@ See the LICENSE.txt file in the project root for more information.
 #include "../utils/options.h"
 
 /// Enum for the status of a block or transaction inside the storage.
-enum StorageStatus { NotFound, OnChain, OnCache, OnDB };
+enum class StorageStatus { NotFound, OnChain, OnCache, OnDB };
 
 /**
  * Abstraction of the blockchain history.
@@ -144,7 +144,7 @@ class Storage : public Log::LogicalLocationProvider {
     Storage(Storage&&) = delete; ///< No move constructor allowed.
     Storage& operator=(Storage&&) = delete; ///< No move assignment allowed.
     virtual ~Storage() noexcept; ///< Destructor. Automatically saves the chain to the database.
-    virtual std::string getLogicalLocation() const { return instanceIdStr_; } ///< Log instance (provided in ctor)
+    std::string getLogicalLocation() const override { return instanceIdStr_; } ///< Log instance (provided in ctor)
     void pushBack(FinalizedBlock block); ///< Wrapper for `pushBackInternal()`. Use this as it properly locks `chainLock_`.
     void pushFront(FinalizedBlock block);  ///< Wrapper for `pushFrontInternal()`. Use this as it properly locks `chainLock_`.
     void popBack(); ///< Remove a block from the end of the chain.

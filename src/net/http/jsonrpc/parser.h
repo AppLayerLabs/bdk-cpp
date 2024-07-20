@@ -69,7 +69,7 @@ struct Parser<std::variant<T, Ts...>> {
   std::variant<T, Ts...> operator()(const json& data) const {
     try {
       return Parser<T>{}(data);
-    } catch (const Error& ignored) {
+    } catch ([[maybe_unused]] const Error& ignored) {
       std::variant<T, Ts...> res;
 
       std::visit([&res] (auto&& a) {

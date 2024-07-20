@@ -25,8 +25,9 @@ void Blockchain::start() {
   this->http_.start();
 
   // Connect to all seed nodes from the config and start the discoveryThread.
-  auto discoveryNodeList = this->options_.getDiscoveryNodes();
-  for (const auto &[ipAddress, port]: discoveryNodeList) this->p2p_.connectToServer(ipAddress, port);
+  for (const auto& [ipAddress, port]: this->options_.getDiscoveryNodes()) {
+    this->p2p_.connectToServer(ipAddress, port);
+  }
   std::this_thread::sleep_for(std::chrono::milliseconds(100));
   this->p2p_.startDiscovery();
   std::this_thread::sleep_for(std::chrono::milliseconds(100));
@@ -76,7 +77,7 @@ bool Syncer::syncLoop(
   // P2P is running, so we are getting updated NodeInfos via NodeConns.
   // Get the node with the highest block height available for download.
   auto connected = this->p2p_.getNodeConns().getConnected();
-  if (connected.size() == 0) {
+  if (connected.empty()) {
     // No one to download blocks from.
     // While we don't exhaust the waiting-for-a-connection timeout, sleep and try again later.
     if (waitForPeersSecs-- > 0) {
@@ -118,7 +119,7 @@ bool Syncer::syncLoop(
   );
 
   // If the request failed, retry it (unless we set a finite number of tries and we've just run out of them)
-  if (result.size() == 0) {
+  if (result.empty()) {
     bool shouldRetry = (tries > 0);
     if (shouldRetry) {
       tries--; LOGWARNINGP("Blocks request failed (" + std::to_string(tries) + " tries left)");

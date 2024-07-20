@@ -55,7 +55,7 @@ class HTTPServer : public Log::LogicalLocationProvider {
     ) : state_(state), storage_(storage), p2p_(p2p), options_(options), port_(options.getHttpPort())
     {}
 
-    std::string getLogicalLocation() const; ///< Get log location from the P2P engine
+    std::string getLogicalLocation() const override; ///< Get log location from the P2P engine
 
     /**
      * Destructor.

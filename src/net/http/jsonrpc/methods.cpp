@@ -325,8 +325,7 @@ json eth_sendRawTransaction(const json& request, uint64_t chainId, State& state,
 
   json ret;
   const auto& txHash = tx.hash();
-  auto txStatus = state.addTx(TxBlock(tx));
-  if (isTxStatusValid(txStatus)) {
+  if (auto txStatus = state.addTx(TxBlock(tx)); isTxStatusValid(txStatus)) {
     ret = txHash.hex(true);
     // TODO: Make this use threadpool instead of blocking
     // TODO: Make tx broadcasting better, the current solution is **not good**.
@@ -350,8 +349,7 @@ json eth_getTransactionByHash(const json& request, const Storage& storage, const
   const auto [txHash] = parseAllParams<Hash>(request);
 
   json ret;
-  auto txOnMempool = state.getTxFromMempool(txHash);
-  if (txOnMempool != nullptr) {
+  if (auto txOnMempool = state.getTxFromMempool(txHash); txOnMempool != nullptr) {
     ret["blockHash"] = json::value_t::null;
     ret["blockIndex"] = json::value_t::null;
     ret["from"] = txOnMempool->getFrom().hex(true);

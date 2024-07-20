@@ -25,36 +25,30 @@ State::State(
   rdpos_(db, dumpManager_, storage, p2pManager, options)
 {
   std::unique_lock lock(this->stateMutex_);
-  auto accountsFromDB = db.getBatch(DBPrefix::nativeAccounts);
-  if (accountsFromDB.empty()) {
+  if (auto accountsFromDB = db.getBatch(DBPrefix::nativeAccounts); accountsFromDB.empty()) {
     if (snapshotHeight != 0) {
       throw DynamicException("Snapshot height is higher than 0, but no accounts found in DB");
     }
-
-    {
-      for (const auto& [addr, balance] : options_.getGenesisBalances()) {
-        this->accounts_[addr]->balance = balance;
-      }
-      // Also append the ContractManager account
-      auto& contractManagerAcc = *this->accounts_[ProtocolContractAddresses.at("ContractManager")];
-      contractManagerAcc.nonce = 1;
-      contractManagerAcc.contractType = ContractType::CPP;
+    for (const auto& [addr, balance] : options_.getGenesisBalances()) {
+      this->accounts_[addr]->balance = balance;
     }
+    // Also append the ContractManager account
+    auto& contractManagerAcc = *this->accounts_[ProtocolContractAddresses.at("ContractManager")];
+    contractManagerAcc.nonce = 1;
+    contractManagerAcc.contractType = ContractType::CPP;
   } else {
     for (const auto& dbEntry : accountsFromDB) {
       this->accounts_.emplace(Address(dbEntry.key), dbEntry.value);
     }
   }
 
-  /// Load all the EVM Storage Slot/keys from the DB
-  auto vmStorageFromDB = db.getBatch(DBPrefix::vmStorage);
-  for (const auto& dbEntry : vmStorageFromDB) {
+  // Load all the EVM Storage Slot/keys from the DB
+  for (const auto& dbEntry : db.getBatch(DBPrefix::vmStorage)) {
     this->vmStorage_.emplace(StorageKey(dbEntry.key), dbEntry.value);
   }
 
-  /// Load all the txToAddr_ map from the DB
-  auto txToAddrFromDB = db.getBatch(DBPrefix::txToAddr);
-  for (const auto& dbEntry : txToAddrFromDB) {
+  // Load all the txToAddr_ map from the DB
+  for (const auto& dbEntry : db.getBatch(DBPrefix::txToAddr)) {
     this->txToAddr_.emplace(Hash(dbEntry.key), Address(dbEntry.value));
   }
 
@@ -176,16 +170,22 @@ TxStatus State::validateTransactionInternal(const TxBlock& tx) const {
   }
   const auto& accBalance = accountIt->second->balance;
   const auto& accNonce = accountIt->second->nonce;
-  uint256_t txWithFees = tx.getValue() + (tx.getGasLimit() * tx.getMaxFeePerGas());
-  if (txWithFees > accBalance) {
-    LOGERROR("Transaction sender: " + tx.getFrom().hex().get() + " doesn't have balance to send transaction"
-                      + " expected: " + txWithFees.str() + " has: " + accBalance.str());
+  if (
+    uint256_t txWithFees = tx.getValue() + (tx.getGasLimit() * tx.getMaxFeePerGas());
+    txWithFees > accBalance
+  ) {
+    LOGERROR("Transaction sender: " + tx.getFrom().hex().get()
+      + " doesn't have balance to send transaction"
+      + " expected: " + txWithFees.str() + " has: " + accBalance.str()
+    );
     return TxStatus::InvalidBalance;
   }
   // TODO: The blockchain is able to store higher nonce transactions until they are valid. Handle this case.
   if (accNonce != tx.getNonce()) {
-    LOGERROR("Transaction: " + tx.hash().hex().get() + " nonce mismatch, expected: " + std::to_string(accNonce)
-                                            + " got: " + tx.getNonce().str());
+    LOGERROR("Transaction: " + tx.hash().hex().get()
+      + " nonce mismatch, expected: " + std::to_string(accNonce)
+      + " got: " + tx.getNonce().str()
+    );
     return TxStatus::InvalidNonce;
   }
   return TxStatus::ValidNew;
@@ -497,8 +497,7 @@ int64_t State::estimateGas(const evmc_message& callInfo) {
   // ContractHost simulate already do all necessary checks
   // We just need to execute and get the leftOverGas
   ContractType type = ContractType::NOT_A_CONTRACT;
-  auto accIt = this->accounts_.find(to);
-  if (accIt != this->accounts_.end()) {
+  if (auto accIt = this->accounts_.find(to); accIt != this->accounts_.end()) {
     type = accIt->second->contractType;
   }
 

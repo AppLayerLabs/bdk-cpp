@@ -34,8 +34,6 @@ using json = nlohmann::ordered_json;
 
 /// Abstraction of a Solidity event.
 class Event {
-  friend struct event_indices;
-
   private:
     std::string name_;          ///< Event name.
     uint64_t logIndex_;         ///< Position of the event inside the block it was emitted from.
@@ -47,6 +45,7 @@ class Event {
     Bytes data_;                ///< Non-indexed arguments of the event.
     std::vector<Hash> topics_;  ///< Indexed arguments of the event, limited to a max of 3 (4 for anonymous events). Topics are Hashes since they are always 32 bytes.
     bool anonymous_;            ///< Whether the event is anonymous or not (its signature is indexed and searchable).
+    friend struct event_indices;
 
   public:
     /**

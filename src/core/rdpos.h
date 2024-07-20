@@ -30,7 +30,7 @@ class State;
 // "0xcfffe746" -> Function for random hash tx
 
 /// Enum for labeling transaction status.
-enum TxStatus {
+enum class TxStatus {
   ValidNew,
   ValidExisting,
   InvalidNonce,       // Tx only
@@ -39,6 +39,7 @@ enum TxStatus {
   InvalidDuplicate,   // ValidatorTx only
   InvalidRedundant    // ValidatorTx only
 };
+
 inline bool isTxStatusValid(const TxStatus& txStatus) { return txStatus <= TxStatus::ValidExisting; }
 
 /**
@@ -86,10 +87,10 @@ class rdPoS : public BaseContract, public Log::LogicalLocationProvider {
     
   public:
     /// Enum for Validator transaction functions.
-    enum TxValidatorFunction { INVALID, RANDOMHASH, RANDOMSEED };
+    enum class TxValidatorFunction { INVALID, RANDOMHASH, RANDOMSEED };
 
     /// Enum for transaction types.
-    enum TxType { addValidator, removeValidator, randomHash, randomSeed };
+    enum class TxType { addValidator, removeValidator, randomHash, randomSeed };
 
     /**
      * Constructor.
@@ -107,10 +108,10 @@ class rdPoS : public BaseContract, public Log::LogicalLocationProvider {
 
     ///@{
     /** Getter. */
-    const std::set<Validator> getValidators() const { return this->validators_; }
-    const std::vector<Validator> getRandomList() const { return this->randomList_; }
+    std::set<Validator> getValidators() const { return this->validators_; }
+    std::vector<Validator> getRandomList() const { return this->randomList_; }
     const boost::unordered_flat_map<Hash, TxValidator, SafeHash> getMempool() const { return this->validatorMempool_; }
-    const size_t getMempoolSize() const { return this->validatorMempool_.size(); }
+    size_t getMempoolSize() const { return this->validatorMempool_.size(); }
     const Hash& getBestRandomSeed() const { return this->bestRandomSeed_; }
     bool getIsValidator() const { return this->isValidator_; }
     UPubKey getValidatorUPubKey() const { return Secp256k1::toUPub(this->validatorKey_); }

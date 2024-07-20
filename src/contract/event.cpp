@@ -67,7 +67,6 @@ EventManager::EventManager(const Options& options
 
 void EventManager::dump() {
   DBBatch batchedOperations;
-  {
     for (const auto& e : this->events_) {
       // Build the key (block height + tx index + log index + address)
       Bytes key;
@@ -79,7 +78,6 @@ void EventManager::dump() {
       // Serialize the value to a JSON string and insert into the batch
       batchedOperations.push_back(key, Utils::stringToBytes(e.serialize()), DBPrefix::events);
     }
-  }
   // Batch save to database and clear the list
   this->db_.putBatch(batchedOperations);
   this->events_.clear();
@@ -91,11 +89,15 @@ std::vector<Event> EventManager::getEvents(
 ) const {
   std::vector<Event> ret;
   // Check if block range is within limits
-  uint64_t heightDiff = std::max(fromBlock, toBlock) - std::min(fromBlock, toBlock);
-  if (heightDiff > this->options_.getEventBlockCap()) throw std::out_of_range(
-    "Block range too large for event querying! Max allowed is " +
-    std::to_string(this->options_.getEventBlockCap())
-  );
+  if (
+    uint64_t heightDiff = std::max(fromBlock, toBlock) - std::min(fromBlock, toBlock);
+    heightDiff > this->options_.getEventBlockCap()
+  ) {
+    throw std::out_of_range(
+      "Block range too large for event querying! Max allowed is " +
+      std::to_string(this->options_.getEventBlockCap())
+    );
+  }
   // Fetch from memory, then match topics from memory
   for (const Event& e : this->filterFromMemory(fromBlock, toBlock, address)) {
     if (this->matchTopics(e, topics) && ret.size() < this->options_.getEventLogCap()) {

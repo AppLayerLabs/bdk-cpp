@@ -8,10 +8,7 @@ See the LICENSE.txt file in the project root for more information.
 #include "storage.h"
 
 Storage::Storage(const std::string& instanceIdStr, const Options& options)
-  : instanceIdStr_(instanceIdStr),
-    db_(options.getRootPath() + "/blocksDb/"),
-    options_(options),
-    slThreads_(0)
+  : db_(options.getRootPath() + "/blocksDb/"), options_(options), instanceIdStr_(instanceIdStr), slThreads_(0)
 {
   LOGINFO("Loading blockchain from DB");
 
@@ -28,8 +25,7 @@ Storage::Storage(const std::string& instanceIdStr, const Options& options)
 
   // Parse block mappings (hash -> height / height -> hash) from DB
   LOGINFO("Parsing block mappings");
-  std::vector<DBEntry> maps = this->db_.getBatch(DBPrefix::blockHeightMaps);
-  for (DBEntry& map : maps) {
+  for (DBEntry& map : this->db_.getBatch(DBPrefix::blockHeightMaps)) {
     // TODO: Check if a block is missing.
     // Might be interesting to change DB::getBatch to return a map instead of a vector
     LOGDEBUG(std::string(": ")
@@ -138,8 +134,7 @@ StorageStatus Storage::blockExistsInternal(const Hash& hash) const {
 
 StorageStatus Storage::blockExistsInternal(const uint64_t& height) const {
   // Check chain first, then cache, then database
-  auto it = this->blockHashByHeight_.find(height);
-  if (it != this->blockHashByHeight_.end()) {
+  if (auto it = this->blockHashByHeight_.find(height); it != this->blockHashByHeight_.end()) {
     if (this->blockByHash_.contains(it->second)) return StorageStatus::OnChain;
     if (this->cachedBlocks_.contains(it->second)) return StorageStatus::OnCache;
     return StorageStatus::OnDB;
@@ -280,8 +275,7 @@ std::shared_ptr<const FinalizedBlock> Storage::getBlock(const Hash& hash) const 
   // Check chain first, then cache, then database
   std::shared_lock<std::shared_mutex> lockChain(this->chainLock_);
   std::shared_lock<std::shared_mutex> lockCache(this->cacheLock_);
-  StorageStatus blockStatus = this->blockExistsInternal(hash);
-  switch (blockStatus) {
+  switch (StorageStatus blockStatus = this->blockExistsInternal(hash); blockStatus) {
     case StorageStatus::NotFound: {
       return nullptr;
     }
@@ -339,8 +333,7 @@ std::tuple<
   // Check chain first, then cache, then database
   std::shared_lock<std::shared_mutex> lockChain(this->chainLock_);
   std::shared_lock<std::shared_mutex> lockCache(this->cacheLock_);
-  StorageStatus txStatus = this->txExistsInternal(tx);
-  switch (txStatus) {
+  switch (StorageStatus txStatus = this->txExistsInternal(tx); txStatus) {
     case StorageStatus::NotFound: {
       return {nullptr, Hash(), 0, 0};
     }
@@ -378,8 +371,7 @@ std::tuple<
   > Storage::getTxByBlockHashAndIndex(const Hash& blockHash, const uint64_t blockIndex) const {
   std::shared_lock<std::shared_mutex> lockChain(this->chainLock_);
   std::shared_lock<std::shared_mutex> lockCache(this->cacheLock_);
-  auto Status = this->blockExistsInternal(blockHash);
-  switch (Status) {
+  switch (auto Status = this->blockExistsInternal(blockHash); Status) {
     case StorageStatus::NotFound: {
       return { nullptr, Hash(), 0, 0 };
     }
@@ -416,8 +408,7 @@ std::tuple<
   > Storage::getTxByBlockNumberAndIndex(const uint64_t& blockHeight, const uint64_t blockIndex) const {
   std::shared_lock<std::shared_mutex> lockChain(this->chainLock_);
   std::shared_lock<std::shared_mutex> lockCache(this->cacheLock_);
-  auto Status = this->blockExistsInternal(blockHeight);
-  switch (Status) {
+  switch (auto Status = this->blockExistsInternal(blockHeight); Status) {
     case StorageStatus::NotFound: {
       return { nullptr, Hash(), 0, 0 };
     }

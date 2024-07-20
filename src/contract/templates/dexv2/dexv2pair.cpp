@@ -103,8 +103,10 @@ void DEXV2Pair::_safeTransfer(const Address& token, const Address& to, const uin
 void DEXV2Pair::_update(const uint256_t& balance0, const uint256_t& balance1, const uint256_t& reserve0, const uint256_t& reserve1) {
   // Timestamp is in microseconds, we want in seconds
   auto blockTimestamp = uint32_t(ContractGlobals::getBlockTimestamp() / 1000000);
-  uint32_t timeElapsed = blockTimestamp - this->blockTimestampLast_.get();
-  if (timeElapsed > 0 && reserve0 != 0 && reserve1 != 0) {
+  if (
+    uint32_t timeElapsed = blockTimestamp - this->blockTimestampLast_.get();
+    timeElapsed > 0 && reserve0 != 0 && reserve1 != 0
+  ) {
     this->price0CumulativeLast_ += uint256_t(UQ112x112::uqdiv(UQ112x112::encode(uint112_t(reserve1)), uint112_t(reserve0))) * timeElapsed;
     this->price1CumulativeLast_ += uint256_t(UQ112x112::uqdiv(UQ112x112::encode(uint112_t(reserve0)), uint112_t(reserve1))) * timeElapsed;
   }
@@ -167,8 +169,7 @@ uint256_t DEXV2Pair::mint(const Address& to) {
   uint256_t amount1 = balance1 - this->reserve1_.get();
 
   bool feeOn = this->_mintFee(this->reserve0_.get(), this->reserve1_.get());
-  uint256_t totalSupply = this->totalSupply_.get();
-  if (totalSupply == 0) {
+  if (uint256_t totalSupply = this->totalSupply_.get(); totalSupply == 0) {
     // Permanently lock the first MINIMUM_LIQUIDITY tokens
     liquidity = boost::multiprecision::sqrt(amount0 * amount1) - MINIMUM_LIQUIDITY;
     this->mintValue_(Address(Hex::toBytes("0x0000000000000000000000000000000000000000")), MINIMUM_LIQUIDITY);
@@ -222,7 +223,12 @@ void DEXV2Pair::swap(const uint256_t& amount0Out, const uint256_t& amount1Out, c
   if (amount0In == 0 && amount1In == 0) throw DynamicException("DEXV2Pair: INSUFFICIENT_INPUT_AMOUNT");
   uint256_t balance0Adjusted = balance0 * 1000 - amount0In * 3;
   uint256_t balance1Adjusted = balance1 * 1000 - amount1In * 3;
-  if (balance0Adjusted * balance1Adjusted < uint256_t(this->reserve0_.get()) * this->reserve1_.get() * 1000 * 1000) throw DynamicException("DEXV2Pair: K");
+  if (
+    uint256_t balTotal = balance0Adjusted * balance1Adjusted;
+    balTotal < uint256_t(this->reserve0_.get()) * this->reserve1_.get() * 1000 * 1000
+  ) {
+    throw DynamicException("DEXV2Pair: K");
+  }
   this->_update(balance0, balance1, this->reserve0_.get(), this->reserve1_.get());
 }
 

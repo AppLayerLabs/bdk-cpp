@@ -39,34 +39,34 @@ template <unsigned N> class FixedBytes {
 
   public:
     /// Empty constructor.
-    constexpr inline FixedBytes() { this->data_.fill(uint8_t{0x00}); };
+    constexpr FixedBytes() { this->data_.fill(uint8_t{0x00}); };
 
     /// Move constructor.
-    constexpr inline FixedBytes(BytesArr<N>&& data) noexcept { this->data_ = std::move(data); }
+    constexpr FixedBytes(BytesArr<N>&& data) noexcept { this->data_ = std::move(data); }
 
     /// Copy constructor.
-    constexpr inline FixedBytes(const Bytes& data) {
+    constexpr FixedBytes(const Bytes& data) {
       if (data.size() != N) throw std::invalid_argument("Invalid size.");
       std::copy(data.begin(), data.end(), this->data_.begin());
     }
 
     /// Copy constructor.
-    constexpr inline FixedBytes(const BytesArr<N>& data) { this->data_ = data; }
+    constexpr FixedBytes(const BytesArr<N>& data) { this->data_ = data; }
 
     /// Copy constructor.
-    constexpr inline FixedBytes(const BytesArrView& data) {
+    constexpr FixedBytes(const BytesArrView& data) {
       if (data.size() != N) throw std::invalid_argument("Invalid size.");
       std::copy(data.begin(), data.end(), this->data_.begin());
     }
 
     /// Copy constructor.
-    constexpr inline FixedBytes(const std::string_view data) {
+    constexpr FixedBytes(const std::string_view data) {
       if (data.size() != N) throw std::invalid_argument("Invalid size.");
       std::copy(data.begin(), data.end(), this->data_.begin());
     }
 
     /// Copy constructor.
-    constexpr inline FixedBytes(const FixedBytes& other) {
+    constexpr FixedBytes(const FixedBytes& other) {
       if (other.size() != N) throw std::invalid_argument("Invalid size.");
       this->data_ = other.data_;
     }

@@ -10,8 +10,7 @@ See the LICENSE.txt file in the project root for more information.
 ERC20Wrapper::ERC20Wrapper(const Address& contractAddress, const DB& db
 ) : DynamicContract(contractAddress, db), tokensAndBalances_(this)
 {
-  auto tokensAndBalances = db.getBatch(this->getNewPrefix("tokensAndBalances_"));
-  for (const auto& dbEntry : tokensAndBalances) {
+  for (const auto& dbEntry : db.getBatch(this->getNewPrefix("tokensAndBalances_"))) {
     BytesArrView valueView(dbEntry.value);
     this->tokensAndBalances_[Address(dbEntry.key)][Address(valueView.subspan(0, 20))] = Utils::fromBigEndian<uint256_t>(valueView.subspan(20));
   }

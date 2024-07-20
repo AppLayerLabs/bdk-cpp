@@ -8,24 +8,27 @@ See the LICENSE.txt file in the project root for more information.
 #ifndef STATE_H
 #define STATE_H
 
+#include <boost/unordered/unordered_flat_map.hpp>
+#include <evmc/evmc.hpp>
+
 #include "../utils/db.h"
+#include "../utils/logger.h"
 #include "../utils/utils.h"
 #include "../contract/contract.h"
 #include "../contract/contractmanager.h"
-#include <boost/unordered/unordered_flat_map.hpp>
+
 #include "storage.h"
 #include "rdpos.h"
 #include "dump.h"
-#include <evmc/evmc.hpp>
 
 // TODO: We could possibly change the bool functions into an enum function,
 // to be able to properly return each error case. We need this in order to slash invalid rdPoS blocks.
 
 /// Next-block validation status codes.
-enum BlockValidationStatus { valid, invalidWrongHeight, invalidErroneous };
+enum class BlockValidationStatus { valid, invalidWrongHeight, invalidErroneous };
 
 /// Abstraction of the blockchain's current state at the current block.
-class State : Dumpable, public Log::LogicalLocationProvider {
+class State : public Dumpable, public Log::LogicalLocationProvider {
   protected:
     mutable std::shared_mutex stateMutex_;  ///< Mutex for managing read/write access to the state object.
     evmc_vm* vm_;  ///< Pointer to the EVMC VM.
@@ -109,9 +112,9 @@ class State : Dumpable, public Log::LogicalLocationProvider {
 
     ///@{
     /** Wrapper for the respective rdPoS function. */
-    const std::set<Validator> rdposGetValidators() const { std::shared_lock lock(this->stateMutex_); return this->rdpos_.getValidators(); }
-    const std::vector<Validator> rdposGetRandomList() const { std::shared_lock lock(this->stateMutex_); return this->rdpos_.getRandomList(); }
-    const size_t rdposGetMempoolSize() const { std::shared_lock lock(this->stateMutex_); return this->rdpos_.getMempoolSize(); }
+    std::set<Validator> rdposGetValidators() const { std::shared_lock lock(this->stateMutex_); return this->rdpos_.getValidators(); }
+    std::vector<Validator> rdposGetRandomList() const { std::shared_lock lock(this->stateMutex_); return this->rdpos_.getRandomList(); }
+    size_t rdposGetMempoolSize() const { std::shared_lock lock(this->stateMutex_); return this->rdpos_.getMempoolSize(); }
     const boost::unordered_flat_map<Hash, TxValidator, SafeHash> rdposGetMempool() const { std::shared_lock lock(this->stateMutex_); return this->rdpos_.getMempool(); }
     const Hash& rdposGetBestRandomSeed() const { std::shared_lock lock(this->stateMutex_); return this->rdpos_.getBestRandomSeed(); }
     bool rdposGetIsValidator() const { std::shared_lock lock(this->stateMutex_); return this->rdpos_.getIsValidator(); }

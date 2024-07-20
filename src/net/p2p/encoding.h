@@ -22,7 +22,7 @@ namespace P2P {
   class Message;
 
   /// Enum for identifying which type of connection is being made.
-  enum ConnectionType { INBOUND, OUTBOUND };
+  enum class ConnectionType { INBOUND, OUTBOUND };
 
   /**
    * Messaging concepts:

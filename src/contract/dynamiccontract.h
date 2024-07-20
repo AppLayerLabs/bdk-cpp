@@ -124,16 +124,14 @@ class DynamicContract : public BaseContract {
           break;
         }
         case FunctionTypes::NonPayable: {
-          this->registerFunction(Utils::makeFunctor(functStr), [instance, memFunc](const evmc_message&) -> void {
+          this->registerFunction(Utils::makeFunctor(functStr), [instance, memFunc](const evmc_message&) {
             (instance->*memFunc)();
-            return;
           });
           break;
         }
         case FunctionTypes::Payable: {
-          this->registerPayableFunction(Utils::makeFunctor(functStr), [instance, memFunc](const evmc_message&) -> void {
+          this->registerPayableFunction(Utils::makeFunctor(functStr), [instance, memFunc](const evmc_message&) {
             (instance->*memFunc)();
-            return;
           });
           break;
         }
@@ -170,23 +168,15 @@ class DynamicContract : public BaseContract {
           throw DynamicException("View must be const because it does not modify the state.");
         }
         case FunctionTypes::NonPayable: {
-          this->registerFunction(
-            Utils::makeFunctor(functStr),
-            [instance, memFunc](const evmc_message&) -> void {
-              (instance->*memFunc)();
-              return;
-            }
-          );
+          this->registerFunction(Utils::makeFunctor(functStr), [instance, memFunc](const evmc_message&) {
+            (instance->*memFunc)();
+          });
           break;
         }
         case FunctionTypes::Payable: {
-          this->registerPayableFunction(
-            Utils::makeFunctor(functStr),
-            [instance, memFunc](const evmc_message&) -> void {
-              (instance->*memFunc)();
-              return;
-            }
-          );
+          this->registerPayableFunction(Utils::makeFunctor(functStr), [instance, memFunc](const evmc_message&) {
+            (instance->*memFunc)();
+          });
           break;
         }
         default: {

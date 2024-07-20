@@ -23,9 +23,9 @@ bool BlockTagOrNumber::isLatest(const Storage& storage) const {
 uint64_t BlockTagOrNumber::number(const Storage& storage) const {
   return std::visit(Overloaded{
     [](uint64_t number) { return number; },
-    [&storage](BlockTag tag) -> uint64_t {
+    [&storage](BlockTag tag) {
       if (tag == BlockTag::LATEST) return storage.latest()->getNHeight();
-      if (tag == BlockTag::EARLIEST) return 0u;
+      if (tag == BlockTag::EARLIEST) return uint64_t(0);
       throw Error(-32601, "Pending block not supported for operation");
     }
   }, tagOrNumber_);

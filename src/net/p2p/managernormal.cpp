@@ -32,7 +32,7 @@ namespace P2P{
     }
     std::shared_lock sessionsLock(this->sessionsMutex_);
     for (const auto& [nodeId, session] : this->sessions_) {
-      if (session->hostType() == NodeType::NORMAL_NODE && !peerMap.count(nodeId)) session->write(message);
+      if (session->hostType() == NodeType::NORMAL_NODE && !peerMap.contains(nodeId)) session->write(message);
     }
   }
 
@@ -129,17 +129,13 @@ namespace P2P{
   void ManagerNormal::handleNotification(
     const NodeID &nodeId, const std::shared_ptr<const Message>& message
   ) {
-    switch (message->command()) {
-      case NotifyInfo:
-        handleInfoNotification(nodeId, message);
-        break;
-      default:
-        LOGDEBUG("Invalid Notification Command Type: " + std::to_string(message->command()) +
-                           " from: " + toString(nodeId) +
-                           ", closing session.");
-        this->disconnectSession(nodeId);
-        break;
+    if (message->command() != NotifyInfo) {
+      LOGDEBUG("Invalid Notification Command Type: "
+        + std::to_string(message->command()) + " from: " + toString(nodeId) + ", closing session."
+      );
+      this->disconnectSession(nodeId);
     }
+    handleInfoNotification(nodeId, message);
   }
 
   void ManagerNormal::handlePingRequest(
@@ -213,7 +209,9 @@ namespace P2P{
   void ManagerNormal::handleRequestBlockRequest(
     const NodeID &nodeId, const std::shared_ptr<const Message>& message
   ) {
-    uint64_t height = 0, heightEnd = 0, bytesLimit = 0;
+    uint64_t height = 0;
+    uint64_t heightEnd = 0;
+    uint64_t bytesLimit = 0;
     RequestDecoder::requestBlock(*message, height, heightEnd, bytesLimit);
     std::vector<std::shared_ptr<const FinalizedBlock>> requestedBlocks;
     uint64_t bytesSpent = 0;
@@ -351,8 +349,7 @@ namespace P2P{
       return {};
     }
     auto answer = requestPtr->answerFuture();
-    auto status = answer.wait_for(std::chrono::seconds(2)); // 2000ms timeout.
-    if (status == std::future_status::timeout) {
+    if (auto status = answer.wait_for(std::chrono::seconds(2)); status == std::future_status::timeout) {
       LOGDEBUG("Request to " + toString(nodeId) + " timed out.");
       return {};
     }
@@ -374,8 +371,7 @@ namespace P2P{
       return {};
     }
     auto answer = requestPtr->answerFuture();
-    auto status = answer.wait_for(std::chrono::seconds(2)); // 2000ms timeout.
-    if (status == std::future_status::timeout) {
+    if (auto status = answer.wait_for(std::chrono::seconds(2)); status == std::future_status::timeout) {
       LOGDEBUG("Request to " + toString(nodeId) + " timed out.");
       return {};
     }
@@ -397,8 +393,7 @@ namespace P2P{
       return {};
     }
     auto answer = requestPtr->answerFuture();
-    auto status = answer.wait_for(std::chrono::seconds(2)); // 2000ms timeout.
-    if (status == std::future_status::timeout) {
+    if (auto status = answer.wait_for(std::chrono::seconds(2)); status == std::future_status::timeout) {
       LOGDEBUG("Request to " + toString(nodeId) + " timed out.");
       return {};
     }
@@ -421,8 +416,7 @@ namespace P2P{
       return {};
     }
     auto answer = requestPtr->answerFuture();
-    auto status = answer.wait_for(std::chrono::seconds(60)); // 60s timeout.
-    if (status == std::future_status::timeout) {
+    if (auto status = answer.wait_for(std::chrono::seconds(60)); status == std::future_status::timeout) {
       LOGDEBUG("RequestBlock to " + toString(nodeId) + " timed out.");
       return {};
     }

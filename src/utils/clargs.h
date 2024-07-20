@@ -15,14 +15,8 @@ See the LICENSE.txt file in the project root for more information.
 
 #include "src/utils/logger.h"
 
-/**
- * List of BDK programs that the argument parser is aware of.
- */
-enum BDKTool {
-  FULL_NODE,
-  DISCOVERY_NODE,
-  UNIT_TEST_SUITE
-};
+/// List of BDK programs that the argument parser is aware of.
+enum class BDKTool { FULL_NODE, DISCOVERY_NODE, UNIT_TEST_SUITE };
 
 /**
  * Result of parsing command-line options for the node.
