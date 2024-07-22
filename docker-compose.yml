@@ -5,13 +5,15 @@
 version: '3'
 
 services:
-  bdk-cpp-dev:
-    build: 
+  bdk:
+    build:
       context: .
+      dockerfile: docker/bdk_cpp.dockerfile
     ports:
       - "8080-8099:8080-8099"
       - "8110-8111:8110-8111"
     volumes:
-      - :/bdk-volume
+      - ./build:/bdk-cpp/build
+    entrypoint: ["./docker/entrypoint.sh"]
     tty: true
     stdin_open: true
