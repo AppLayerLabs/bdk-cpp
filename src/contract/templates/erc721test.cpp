@@ -2,7 +2,9 @@
 
 
 ERC721Test::ERC721Test(const Address &address, const DB& db)
-: ERC721(address, db), tokenIdCounter_(this), maxTokens_(this), totalSupply_(this)
+:  DynamicContract(address, db),
+  ERC721(address, db),
+  tokenIdCounter_(this), maxTokens_(this), totalSupply_(this)
 {
   this->tokenIdCounter_ = Utils::bytesToUint64(db.get(std::string("tokenIdCounter_"), this->getDBPrefix()));
   this->maxTokens_ = Utils::bytesToUint64(db.get(std::string("maxTokens_"), this->getDBPrefix()));
@@ -12,7 +14,7 @@ ERC721Test::ERC721Test(const Address &address, const DB& db)
   this->maxTokens_.commit();
   this->totalSupply_.commit();
 
-  this->registerContractFunctions();
+  ERC721Test::registerContractFunctions();
 
   this->tokenIdCounter_.enableRegister();
   this->maxTokens_.enableRegister();
@@ -29,17 +31,15 @@ ERC721Test::ERC721Test(
   this->maxTokens_.commit();
   this->totalSupply_.commit();
 
-  this->registerContractFunctions();
+  ERC721Test::registerContractFunctions();
 
   this->tokenIdCounter_.enableRegister();
   this->maxTokens_.enableRegister();
   this->totalSupply_.enableRegister();
 }
 
-ERC721Test::~ERC721Test() {}
-
 DBBatch ERC721Test::dump() const {
-  DBBatch batch = BaseContract::dump();
+  DBBatch batch = ERC721::dump();
   batch.push_back(Utils::stringToBytes("tokenIdCounter_"), Utils::uint64ToBytes(this->tokenIdCounter_.get()), this->getDBPrefix());
   batch.push_back(Utils::stringToBytes("maxTokens_"), Utils::uint64ToBytes(this->maxTokens_.get()), this->getDBPrefix());
   batch.push_back(Utils::stringToBytes("totalSupply_"), Utils::uint64ToBytes(this->totalSupply_.get()), this->getDBPrefix());
@@ -47,7 +47,7 @@ DBBatch ERC721Test::dump() const {
 }
 
 void ERC721Test::registerContractFunctions() {
-  this->registerContract();
+  ERC721Test::registerContract();
   this->registerMemberFunction("mint", &ERC721Test::mint, FunctionTypes::NonPayable, this);
   this->registerMemberFunction("burn", &ERC721Test::burn, FunctionTypes::NonPayable, this);
   this->registerMemberFunction("tokenIdCounter", &ERC721Test::tokenIdCounter, FunctionTypes::View, this);
@@ -56,7 +56,7 @@ void ERC721Test::registerContractFunctions() {
 }
 
 void ERC721Test::mint(const Address& to) {
-  if (this->tokenIdCounter_ >= this->maxTokens_) throw std::runtime_error("Max tokens reached");
+  if (this->tokenIdCounter_ >= this->maxTokens_) throw DynamicException("Max tokens reached");
   this->mint_(to, tokenIdCounter_.get());
   ++this->tokenIdCounter_;
   ++this->totalSupply_;

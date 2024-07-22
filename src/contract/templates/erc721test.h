@@ -56,7 +56,7 @@ class ERC721Test : public ERC721 {
     );
 
     /// Destructor.
-    ~ERC721Test() override;
+    ~ERC721Test() override = default;
 
     /**
      * Mint a single token to the to address.

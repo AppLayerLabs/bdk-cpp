@@ -119,7 +119,14 @@ class DynamicContract : public BaseContract {
       switch (methodMutability) {
         case FunctionTypes::View: {
           this->registerViewFunction(Utils::makeFunctor(functStr), [instance, memFunc](const evmc_message&) -> Bytes {
-            return ABI::Encoder::encodeData<R>((instance->*memFunc)());
+            if constexpr (std::is_same_v<R, void>) {
+              // If the function's return type is void, return an empty Bytes object
+              (instance->*memFunc)(); // Call the member function without capturing its return
+              return Bytes();         // Return an empty Bytes object
+            } else {
+              // If the function's return type is not void, encode and return its result
+              return ABI::Encoder::encodeData<R>((instance->*memFunc)());
+            }
           });
           break;
         }
@@ -213,7 +220,12 @@ class DynamicContract : public BaseContract {
           return Bytes();
         } else {
           return std::apply([instance, memFunc](auto&&... args) -> Bytes {
-            return ABI::Encoder::encodeData((instance->*memFunc)(std::forward<decltype(args)>(args)...));
+            if constexpr (std::is_same_v<R, void>) {
+              (instance->*memFunc)(std::forward<decltype(args)>(args)...);
+              return Bytes();
+            } else {
+              return ABI::Encoder::encodeData((instance->*memFunc)(std::forward<decltype(args)>(args)...));
+            }
           }, decodedData);
         }
       };
@@ -249,7 +261,14 @@ class DynamicContract : public BaseContract {
         // Use std::apply to call the member function and encode its return value
         return std::apply([instance, memFunc](Args... args) -> Bytes {
           // Call the member function and return its encoded result
-          return ABI::Encoder::encodeData((instance->*memFunc)(std::forward<decltype(args)>(args)...));
+          if constexpr (std::is_same_v<R, void>) {
+            // If the function's return type is void, call the member function and return an empty Bytes object
+            (instance->*memFunc)(std::forward<decltype(args)>(args)...);
+            return Bytes(); // Return an empty Bytes object
+          } else {
+            // If the function's return type is not void, call the member function and return its encoded result
+            return ABI::Encoder::encodeData((instance->*memFunc)(std::forward<decltype(args)>(args)...));
+          }
         }, decodedData);
       };
       auto registrationFuncEVM =  [this, instance, memFunc, funcSignature](const evmc_message &callInfo) -> Bytes {
@@ -264,7 +283,14 @@ class DynamicContract : public BaseContract {
         } else {
           // If the function's return type is not void, call the member function and return its encoded result
           return std::apply([instance, memFunc](Args... args) -> Bytes {
-            return ABI::Encoder::encodeData((instance->*memFunc)(std::forward<decltype(args)>(args)...));
+            if constexpr (std::is_same_v<R, void>) {
+              // If the function's return type is void, call the member function and return an empty Bytes object
+              (instance->*memFunc)(std::forward<decltype(args)>(args)...);
+              return Bytes(); // Return an empty Bytes object
+            } else {
+              // If the function's return type is not void, call the member function and return its encoded result
+              return ABI::Encoder::encodeData((instance->*memFunc)(std::forward<decltype(args)>(args)...));
+            }
           }, decodedData);
         }
       };

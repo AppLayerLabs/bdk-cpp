@@ -104,7 +104,7 @@ bool DumpWorker::workerLoop()
   uint64_t latestBlock = this->storage_.currentChainSize();
   while (!this->stopWorker_) {
     if (latestBlock + this->options_.getStateDumpTrigger() < this->storage_.currentChainSize()) {
-      LOGDEBUG("Current size >= 100");
+      LOGDEBUG("Current size >= " + std::to_string(this->options_.getStateDumpTrigger()));
       dumpManager_.dumpToDB();
       latestBlock = this->storage_.currentChainSize();
     }

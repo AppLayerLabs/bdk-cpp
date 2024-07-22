@@ -8,6 +8,7 @@ set(CONTRACT_HEADERS
   ${CMAKE_SOURCE_DIR}/src/contract/customcontracts.h
   ${CMAKE_SOURCE_DIR}/src/contract/dynamiccontract.h
   ${CMAKE_SOURCE_DIR}/src/contract/event.h
+  ${CMAKE_SOURCE_DIR}/src/contract/templates/ownable.h
   ${CMAKE_SOURCE_DIR}/src/contract/variables/reentrancyguard.h
   ${CMAKE_SOURCE_DIR}/src/contract/variables/safeaddress.h
   ${CMAKE_SOURCE_DIR}/src/contract/variables/safearray.h
@@ -22,6 +23,7 @@ set(CONTRACT_HEADERS
   ${CMAKE_SOURCE_DIR}/src/contract/templates/erc20.h
   ${CMAKE_SOURCE_DIR}/src/contract/templates/erc721.h
   ${CMAKE_SOURCE_DIR}/src/contract/templates/erc721test.h
+  ${CMAKE_SOURCE_DIR}/src/contract/templates/erc721uristorage.h
   ${CMAKE_SOURCE_DIR}/src/contract/templates/erc20wrapper.h
   ${CMAKE_SOURCE_DIR}/src/contract/templates/nativewrapper.h
   ${CMAKE_SOURCE_DIR}/src/contract/templates/simplecontract.h
@@ -32,6 +34,7 @@ set(CONTRACT_HEADERS
   ${CMAKE_SOURCE_DIR}/src/contract/templates/dexv2/dexv2pair.h
   ${CMAKE_SOURCE_DIR}/src/contract/templates/dexv2/dexv2router02.h
   ${CMAKE_SOURCE_DIR}/src/contract/templates/dexv2/uq112x112.h
+  ${CMAKE_SOURCE_DIR}/src/contract/templates/pebble.h
   ${CMAKE_SOURCE_DIR}/src/contract/templates/throwtestA.h
   ${CMAKE_SOURCE_DIR}/src/contract/templates/throwtestB.h
   ${CMAKE_SOURCE_DIR}/src/contract/templates/throwtestC.h
@@ -49,9 +52,11 @@ set(CONTRACT_SOURCES
   ${CMAKE_SOURCE_DIR}/src/contract/contractmanager.cpp
   ${CMAKE_SOURCE_DIR}/src/contract/dynamiccontract.cpp
   ${CMAKE_SOURCE_DIR}/src/contract/event.cpp
+  ${CMAKE_SOURCE_DIR}/src/contract/templates/ownable.cpp
   ${CMAKE_SOURCE_DIR}/src/contract/templates/erc20.cpp
   ${CMAKE_SOURCE_DIR}/src/contract/templates/erc721.cpp
   ${CMAKE_SOURCE_DIR}/src/contract/templates/erc721test.cpp
+  ${CMAKE_SOURCE_DIR}/src/contract/templates/erc721uristorage.cpp
   ${CMAKE_SOURCE_DIR}/src/contract/templates/erc20wrapper.cpp
   ${CMAKE_SOURCE_DIR}/src/contract/templates/nativewrapper.cpp
   ${CMAKE_SOURCE_DIR}/src/contract/templates/simplecontract.cpp
@@ -61,6 +66,7 @@ set(CONTRACT_SOURCES
   ${CMAKE_SOURCE_DIR}/src/contract/templates/dexv2/dexv2library.cpp
   ${CMAKE_SOURCE_DIR}/src/contract/templates/dexv2/dexv2pair.cpp
   ${CMAKE_SOURCE_DIR}/src/contract/templates/dexv2/dexv2router02.cpp
+  ${CMAKE_SOURCE_DIR}/src/contract/templates/pebble.cpp
   ${CMAKE_SOURCE_DIR}/src/contract/templates/throwtestA.cpp
   ${CMAKE_SOURCE_DIR}/src/contract/templates/throwtestB.cpp
   ${CMAKE_SOURCE_DIR}/src/contract/templates/throwtestC.cpp

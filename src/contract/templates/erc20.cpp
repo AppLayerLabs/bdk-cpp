@@ -100,8 +100,6 @@ ERC20::ERC20(
   this->allowed_.enableRegister();
 }
 
-ERC20::~ERC20() { }
-
 void ERC20::registerContractFunctions() {
   registerContract();
   this->registerMemberFunction("name", &ERC20::name, FunctionTypes::View, this);

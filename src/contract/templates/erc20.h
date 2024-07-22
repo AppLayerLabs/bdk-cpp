@@ -99,7 +99,7 @@ class ERC20 : public DynamicContract {
     );
 
     /// Destructor.
-    ~ERC20() override;
+    ~ERC20() override = default;
 
     /**
      * Get the name of the ERC20 token. Solidity counterpart:
