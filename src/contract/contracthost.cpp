@@ -165,7 +165,7 @@ bool ContractHost::isTracingCalls() const noexcept {
 }
 
 void ContractHost::traceCallIn(const evmc_message& msg) noexcept {
-  if (!isTracingCalls())
+  if (!this->isTracingCalls())
     return;
 
   try {
@@ -176,7 +176,7 @@ void ContractHost::traceCallIn(const evmc_message& msg) noexcept {
 }
 
 void ContractHost::traceCallOut(const evmc_result& res) noexcept {
-  if (!isTracingCalls())
+  if (!this->isTracingCalls())
     return;
 
   if (!callTracer_.hasCalls()) {
@@ -198,7 +198,7 @@ void ContractHost::traceCallOut(const evmc_result& res) noexcept {
 }
 
 void ContractHost::traceCallOut(bytes::View output, int64_t gasUsed) noexcept {
-  if (!isTracingCalls())
+  if (!this->isTracingCalls())
     return;
 
   try {
@@ -209,7 +209,7 @@ void ContractHost::traceCallOut(bytes::View output, int64_t gasUsed) noexcept {
 }
 
 void ContractHost::traceCallError(std::string error, int64_t gasUsed) noexcept {
-  if (!isTracingCalls())
+  if (!this->isTracingCalls())
     return;
 
   try {
@@ -220,7 +220,7 @@ void ContractHost::traceCallError(std::string error, int64_t gasUsed) noexcept {
 }
 
 void ContractHost::saveCallTrace() noexcept {
-  if (!isTracingCalls() || !callTracer_.hasCalls())
+  if (!this->isTracingCalls() || !callTracer_.hasCalls())
     return;
 
   if (!callTracer_.isFinished()) {
@@ -278,7 +278,7 @@ void ContractHost::execute(const evmc_message& msg, const ContractType& type) {
       }
       this->createEVMContract(msg, contractAddress, EVMC_CREATE);
     } else {
-      traceCallIn(msg);
+      this->traceCallIn(msg);
 
       switch (type)
       {
@@ -291,7 +291,7 @@ void ContractHost::execute(const evmc_message& msg, const ContractType& type) {
         contractIt->second->ethCall(msg, this);
 
         // TODO: no proper way for filling these values in the current design
-        traceCallOut(bytes::View(), 0);
+        this->traceCallOut(bytes::View(), 0);
 
         break;
       }
@@ -306,7 +306,7 @@ void ContractHost::execute(const evmc_message& msg, const ContractType& type) {
 
 
 
-        traceCallOut(result.raw());
+        this->traceCallOut(result.raw());
 
         this->leftoverGas_ = result.gas_left; // gas_left is not linked with leftoverGas_, we need to link it.
         if (result.status_code) {
@@ -617,9 +617,11 @@ ContractType ContractHost::decodeContractCallType(const evmc_message& msg) const
 // evmc::Result will have the gas left after the execution
 evmc::Result ContractHost::call(const evmc_message& msg) noexcept {
   evmc::Result result;
+  const bool isContractCall = isCall(msg);
 
-  if (isCall(msg))
-    traceCallIn(msg);
+  if (isContractCall) {
+    this->traceCallIn(msg);
+  }
 
   switch (this->decodeContractCallType(msg))
   {
@@ -644,8 +646,9 @@ evmc::Result ContractHost::call(const evmc_message& msg) noexcept {
     break;
   }
 
-  if (isCall(msg))
-    traceCallOut(result.raw());
+  if (isContractCall) {
+    this->traceCallOut(result.raw());
+  }
 
   return result;
 }
