@@ -51,10 +51,10 @@ void Consensus::doValidatorBlock() {
     }
     validatorMempoolSize = this->state_.rdposGetMempoolSize();
     // Try to get more transactions from other nodes within the network
-    for (auto const& nodeId : this->p2p_.getSessionsIDs(P2P::NodeType::NORMAL_NODE)) {
+    for (const auto& nodeId : this->p2p_.getSessionsIDs(P2P::NodeType::NORMAL_NODE)) {
       auto txList = this->p2p_.requestValidatorTxs(nodeId);
       if (this->stop_) return;
-      for (auto const& tx : txList) this->state_.addValidatorTx(tx);
+      for (const auto& tx : txList) this->state_.addValidatorTx(tx);
     }
     std::this_thread::sleep_for(std::chrono::microseconds(10));
   }
@@ -71,12 +71,12 @@ void Consensus::doValidatorBlock() {
     if (this->stop_) return;
 
     // Try to get transactions from the network.
-    for (auto const& nodeId : this->p2p_.getSessionsIDs(P2P::NodeType::NORMAL_NODE)) {
+    for (const auto& nodeId : this->p2p_.getSessionsIDs(P2P::NodeType::NORMAL_NODE)) {
       LOGDEBUG("Requesting txs...");
       if (this->stop_) break;
       auto txList = this->p2p_.requestTxs(nodeId);
       if (this->stop_) break;
-      for (auto const& tx : txList) {
+      for (const auto& tx : txList) {
         TxBlock txBlock(tx);
         this->state_.addTx(std::move(txBlock));
       }
@@ -218,10 +218,10 @@ void Consensus::doValidatorTx(const uint64_t& nHeight, const Validator& me) {
     }
     validatorMempoolSize = this->state_.rdposGetMempoolSize();
     // Try to get more transactions from other nodes within the network
-    for (auto const& nodeId : this->p2p_.getSessionsIDs(P2P::NodeType::NORMAL_NODE)) {
+    for (const auto& nodeId : this->p2p_.getSessionsIDs(P2P::NodeType::NORMAL_NODE)) {
       if (this->stop_) return;
       auto txList = this->p2p_.requestValidatorTxs(nodeId);
-      for (auto const& tx : txList) this->state_.addValidatorTx(tx);
+      for (const auto& tx : txList) this->state_.addValidatorTx(tx);
     }
     std::this_thread::sleep_for(std::chrono::microseconds(10));
   }

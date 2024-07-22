@@ -26,7 +26,7 @@ void Blockchain::start() {
 
   // Connect to all seed nodes from the config and start the discoveryThread.
   for (const auto& [ipAddress, port]: this->options_.getDiscoveryNodes()) {
-    this->p2p_.connectToServer(ipAddress, port);
+    this->p2p_.connectToServer(ipAddress, port); // TODO: optimize port (uint64_t implicit conversion to uint16_t)
   }
   std::this_thread::sleep_for(std::chrono::milliseconds(100));
   this->p2p_.startDiscovery();

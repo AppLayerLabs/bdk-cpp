@@ -29,7 +29,7 @@ TestThrowVars::TestThrowVars(const Address& address, const DB& db
   // Do nothing
 }
 
-TestThrowVars::~TestThrowVars() { /* Do nothing */ }
+TestThrowVars::~TestThrowVars() = default;
 
 DBBatch TestThrowVars::dump() const { return BaseContract::dump(); }
 
