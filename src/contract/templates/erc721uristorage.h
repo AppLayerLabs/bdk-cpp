@@ -87,15 +87,12 @@ class ERC721URIStorage : virtual public ERC721 {
         const std::unique_ptr<DB> &
       >(
         std::vector<std::string>{"erc721_name", "erc721_symbol"},
-        std::make_tuple("tokenOfOwnerByIndex", &ERC721URIStorage::tokenURI, View, std::vector<std::string>{"tokenId"})
+        std::make_tuple("tokenOfOwnerByIndex", &ERC721URIStorage::tokenURI, FunctionTypes::View, std::vector<std::string>{"tokenId"})
       );
     }
 
     /// Dump method
     DBBatch dump() const override;
 };
-
-
-
 
 #endif // ERC721URISTORAGE_H
