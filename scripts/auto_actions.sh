@@ -55,22 +55,22 @@ _volumes_action ()
 
 _images_action ()
 {
-    docker-compose images `(_services_action)`
+    docker compose images `(_services_action)`
 }
 
 _images-ids_action ()
 {
-    docker-compose images -q `(_services_action)`
+    docker compose images -q `(_services_action)`
 }
 
 _containers_action ()
 {
-    docker-compose ps -a `(_services_action)`
+    docker compose ps -a `(_services_action)`
 }
 
 _containers-ids_action ()
 {
-    docker-compose ps -q `(_services_action)`
+    docker compose ps -q `(_services_action)`
 }
 
 _logs_action ()

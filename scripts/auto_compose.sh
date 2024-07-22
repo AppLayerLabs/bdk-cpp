@@ -25,7 +25,7 @@ _compose_action ()
     local _params=$@
     local _compose_files_opt=$(_join ' -f ' ${_COMPOSE_FILE})
 
-    docker-compose ${_compose_files_opt} ${_action} ${_params} ${_COMPOSE_SERVICE}
+    docker compose ${_compose_files_opt} ${_action} ${_params} ${_COMPOSE_SERVICE}
 }
 
 _compose_exec ()
@@ -33,7 +33,7 @@ _compose_exec ()
     local _service=${1} ; shift;
     local _compose_files_opt=$(_join ' -f ' ${_COMPOSE_FILE})
 
-    docker-compose ${_compose_files_opt} \
+    docker compose ${_compose_files_opt} \
                     exec ${_service} $@
 }
 
@@ -42,7 +42,7 @@ _compose_root_exec ()
     local _service=${1} ; shift;
     local _compose_files_opt=$(_join ' -f ' ${_COMPOSE_FILE})
 
-    docker-compose ${_compose_files_opt} \
+    docker compose ${_compose_files_opt} \
                     exec -u root ${_service} $@
 }
 
