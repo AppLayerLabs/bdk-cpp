@@ -72,7 +72,7 @@ static json getBlockJson(const FinalizedBlock *block, bool includeTransactions) 
       txJson["from"] = tx.getFrom().hex(true);
       txJson["gas"] = Hex::fromBytes(Utils::uintToBytes(tx.getGasLimit()),true).forRPC();
       txJson["value"] = Hex::fromBytes(Utils::uintToBytes(tx.getValue()),true).forRPC();
-      txJson["input"] = Hex::fromBytes(tx.getData(),true).forRPC();
+      txJson["input"] = Hex::fromBytes(tx.getData(), true);
       txJson["gasPrice"] = Hex::fromBytes(Utils::uintToBytes(tx.getMaxFeePerGas()),true).forRPC();
       txJson["chainId"] = Hex::fromBytes(Utils::uintToBytes(tx.getChainId()),true).forRPC();
       txJson["v"] = Hex::fromBytes(Utils::uintToBytes(tx.getV()),true).forRPC();
@@ -371,7 +371,7 @@ json eth_getTransactionByHash(const json& request, const Storage& storage, const
     ret["gas"] = Hex::fromBytes(Utils::uintToBytes(txOnMempool->getGasLimit()), true).forRPC();
     ret["gasPrice"] = Hex::fromBytes(Utils::uintToBytes(txOnMempool->getMaxFeePerGas()), true).forRPC();
     ret["hash"] = txOnMempool->hash().hex(true);
-    ret["input"] = Hex::fromBytes(txOnMempool->getData(), true).forRPC();
+    ret["input"] = Hex::fromBytes(txOnMempool->getData(), true);
     ret["nonce"] = Hex::fromBytes(Utils::uintToBytes(txOnMempool->getNonce()), true).forRPC();
     ret["to"] = txOnMempool->getTo().hex(true);
     ret["transactionIndex"] = json::value_t::null;
@@ -391,7 +391,7 @@ json eth_getTransactionByHash(const json& request, const Storage& storage, const
     ret["gas"] = Hex::fromBytes(Utils::uintToBytes(tx->getGasLimit()), true).forRPC();
     ret["gasPrice"] = Hex::fromBytes(Utils::uintToBytes(tx->getMaxFeePerGas()), true).forRPC();
     ret["hash"] = tx->hash().hex(true);
-    ret["input"] = Hex::fromBytes(tx->getData(), true).forRPC();
+    ret["input"] = Hex::fromBytes(tx->getData(), true);
     ret["nonce"] = Hex::fromBytes(Utils::uintToBytes(tx->getNonce()), true).forRPC();
     ret["to"] = tx->getTo().hex(true);
     ret["transactionIndex"] = Hex::fromBytes(Utils::uintToBytes(blockIndex), true).forRPC();
@@ -418,7 +418,7 @@ json eth_getTransactionByBlockHashAndIndex(const json& request, const Storage& s
     ret["gas"] = Hex::fromBytes(Utils::uintToBytes(tx->getGasLimit()), true).forRPC();
     ret["gasPrice"] = Hex::fromBytes(Utils::uintToBytes(tx->getMaxFeePerGas()), true).forRPC();
     ret["hash"] = tx->hash().hex(true);
-    ret["input"] = Hex::fromBytes(tx->getData(), true).forRPC();
+    ret["input"] = Hex::fromBytes(tx->getData(), true);
     ret["nonce"] = Hex::fromBytes(Utils::uintToBytes(tx->getNonce()), true).forRPC();
     ret["to"] = tx->getTo().hex(true);
     ret["transactionIndex"] = Hex::fromBytes(Utils::uintToBytes(txBlockIndex), true).forRPC();
@@ -445,7 +445,7 @@ json eth_getTransactionByBlockNumberAndIndex(const json& request, const Storage&
     ret["gas"] = Hex::fromBytes(Utils::uintToBytes(tx->getGasLimit()), true).forRPC();
     ret["gasPrice"] = Hex::fromBytes(Utils::uintToBytes(tx->getMaxFeePerGas()), true).forRPC();
     ret["hash"] = tx->hash().hex(true);
-    ret["input"] = Hex::fromBytes(tx->getData(), true).forRPC();
+    ret["input"] = Hex::fromBytes(tx->getData(), true);
     ret["nonce"] = Hex::fromBytes(Utils::uintToBytes(tx->getNonce()), true).forRPC();
     ret["to"] = tx->getTo().hex(true);
     ret["transactionIndex"] = Hex::fromBytes(Utils::uintToBytes(txBlockIndex), true).forRPC();
