@@ -23,9 +23,6 @@ _help_action ()
     exec_root             execute a command as root in a service container
     logs                  tail the logs of a running services
 
-    setup-warmer          setup warmer images
-    test-warmer           setup warmer tests
-
     services              list services names
     volumes               list volumes names
     images                list images information
@@ -177,15 +174,5 @@ _stop_action ()
 
     # stop services
     _compose_action stop
-}
-
-_setup-warmer_action ()
-{
-    _COMPOSE_SERVICE="warmer"; _up_action
-}
-
-_test-warmer_action ()
-{
-    _setup-warmer_action && _compose_exec_test warmer /app
 }
 
