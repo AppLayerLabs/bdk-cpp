@@ -200,32 +200,6 @@ uint64_t Storage::currentChainSize() const {
   return latest ? (latest->getNHeight() + 1) : 0u;
 }
 
-void Storage::setContractAddress(const Hash& txHash, const Address& address) {
-  db_.put(txHash, address, DBPrefix::txToAddr);
-}
-
-std::optional<Address> Storage::getContractAddress(const Hash& txHash) const {
-  const Bytes address = db_.get(txHash);
-
-  if (address.empty())
-    return std::nullopt;
-
-  return Address(address);
-}
-
-void Storage::setGasUsed(const Hash& txHash, const uint256_t& gasUsed) {
-  db_.put(txHash, Utils::uint256ToBytes(gasUsed), DBPrefix::txToGasUsed);
-}
-
-std::optional<uint256_t> Storage::getGasUsed(const Hash& txHash) const {
-  const Bytes gasUsedInBytes = db_.get(txHash, DBPrefix::txToGasUsed);
-
-  if (gasUsedInBytes.empty())
-    return std::nullopt;
-
-  return Utils::bytesToUint256(gasUsedInBytes);
-}
-
 void Storage::putCallTrace(const Hash& txHash, const trace::Call& callTrace) {
   Bytes serial;
   zpp::bits::out out(serial);
@@ -244,4 +218,23 @@ std::optional<trace::Call> Storage::getCallTrace(const Hash& txHash) const {
   in(callTrace).or_throw();
 
   return callTrace;
+}
+
+void Storage::putTxAdditionalData(const TxAdditionalData& txData) {
+  Bytes serialized;
+  zpp::bits::out out(serialized);
+  out(txData).or_throw();
+  db_.put(txData.hash, serialized, DBPrefix::txToAdditionalData);
+}
+
+std::optional<TxAdditionalData> Storage::getTxAdditionalData(const Hash& txHash) const {
+  Bytes serialized = db_.get(txHash, DBPrefix::txToAdditionalData);
+
+  if (serialized.empty())
+    return std::nullopt;
+
+  TxAdditionalData txData;
+  zpp::bits::in in(serialized);
+  in(txData).or_throw();
+  return txData;
 }

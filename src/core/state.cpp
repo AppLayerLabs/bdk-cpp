@@ -238,7 +238,6 @@ void State::processTransaction(const TxBlock& tx,
   }
   ++fromNonce;
   auto usedGas = tx.getGasLimit() - leftOverGas;
-  this->storage_.setGasUsed(tx.hash(), usedGas);
   fromBalance -= (usedGas * tx.getMaxFeePerGas());
 }
 

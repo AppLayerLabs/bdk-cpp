@@ -33,23 +33,6 @@ static inline void forbidParams(const json& request) {
     throw DynamicException("\"params\" are not required for method");
 }
 
-static json getGasUsed(const Storage& storage, const Hash& txHash) {
-  if (auto gasUsed = storage.getGasUsed(txHash); gasUsed.has_value())
-    return Hex::fromBytes(Utils::uint256ToBytes(gasUsed.value()), true).forRPC();
-
-  throw DynamicException("Unable to fetch gas used by tx");
-}
-
-static json getContractAddress(const Storage& storage, const TxBlock& tx) {
-  if (tx.getTo() != Address())
-    return json::value_t::null;
-
-  if (auto address = storage.getContractAddress(tx.hash()); address.has_value())
-    return address.value().hex(true).forRPC();
-
-  throw DynamicException("Unable to locate contract address");
-}
-
 static json getBlockJson(const FinalizedBlock *block, bool includeTransactions) {
   json ret;
   if (block == nullptr) { ret = json::value_t::null; return ret; }
@@ -482,6 +465,11 @@ json eth_getTransactionReceipt(const json& request, const Storage& storage, cons
 
   if (tx != nullptr) {
     json ret;
+    std::optional<const TxAdditionalData> addTxData = storage.getTxAdditionalData(tx->hash());
+    const uint256_t gasUsed = addTxData.transform([] (const auto& txData) -> uint256_t { return txData.gasUsed; }).value_or(tx->getGasLimit());
+    const Address contractAddress = addTxData.transform([] (const auto& txData) { return txData.contractAddress; }).value_or(Address());
+    const bool status = addTxData.transform([] (const auto& txData) { return txData.succeeded; }).value_or(true);
+
     ret["transactionHash"] = tx->hash().hex(true);
     ret["transactionIndex"] = Hex::fromBytes(Utils::uintToBytes(txIndex), true).forRPC();
     ret["blockHash"] = blockHash.hex(true);
@@ -491,13 +479,13 @@ json eth_getTransactionReceipt(const json& request, const Storage& storage, cons
     ret["cumulativeGasUsed"] = Hex::fromBytes(Utils::uintToBytes(tx->getGasLimit()), true).forRPC();
     ret["effectiveGasUsed"] = Hex::fromBytes(Utils::uintToBytes(tx->getGasLimit()), true).forRPC();
     ret["effectiveGasPrice"] = Hex::fromBytes(Utils::uintToBytes(tx->getMaxFeePerGas()),true).forRPC();
-    ret["gasUsed"] = getGasUsed(storage, tx->hash());
-    ret["contractAddress"] = getContractAddress(storage, *tx);
+    ret["gasUsed"] =  Hex::fromBytes(Utils::uintToBytes(gasUsed), true).forRPC();
+    ret["contractAddress"] = bool(contractAddress) ? json(contractAddress.hex(true)) : json(json::value_t::null);
     ret["logs"] = json::array();
     ret["logsBloom"] = Hash().hex(true);
     ret["type"] = "0x00";
     ret["root"] = Hash().hex(true);
-    ret["status"] = "0x1"; // TODO: change this when contracts are ready
+    ret["status"] = status ? "0x1" : "0x0";
     for (const Event& e : state.getEvents(txHash, blockHeight, txIndex)) {
       ret["logs"].push_back(e.serializeForRPC());
     }
@@ -518,13 +506,15 @@ json txpool_content(const json& request, const Storage& storage, const State& st
 
   pending = json::array();
 
-  state.forEachPendingTx([&pending, &storage] (const TxBlock& tx) {
+  for (const auto& hashTxPair : state.getPendingTxs()) {
+    const auto& tx = hashTxPair.second;
     json& txJson = pending[tx.getFrom().hex(true)][tx.getNonce().str()];
+
     txJson["blockHash"] = json::value_t::null;
     txJson["blockNumber"] = json::value_t::null;
     txJson["from"] = tx.getFrom().hex(true);
     txJson["to"] = tx.getTo().hex(true);
-    txJson["gasUsed"] = getGasUsed(storage, tx.hash());
+    txJson["gasUsed"] = json::value_t::null;
     txJson["gasPrice"] = Hex::fromBytes(Utils::uintToBytes(tx.getMaxFeePerGas()),true).forRPC();
     txJson["getMaxFeePerGas"] = Hex::fromBytes(Utils::uintToBytes(tx.getMaxFeePerGas()),true).forRPC();
     txJson["chainId"] = Hex::fromBytes(Utils::uintToBytes(tx.getChainId()),true).forRPC(); 
@@ -535,7 +525,7 @@ json txpool_content(const json& request, const Storage& storage, const State& st
     txJson["v"] = Hex::fromBytes(Utils::uintToBytes(tx.getV()), true).forRPC();
     txJson["r"] = Hex::fromBytes(Utils::uintToBytes(tx.getR()), true).forRPC();
     txJson["s"] = Hex::fromBytes(Utils::uintToBytes(tx.getS()), true).forRPC();
-  });
+  }
 
   return result;
 }

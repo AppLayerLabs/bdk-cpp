@@ -167,6 +167,13 @@ class TxBlock {
     bool operator==(const TxBlock& tx) const { return this->hash() == tx.hash(); }
 };
 
+struct TxAdditionalData {
+  Hash hash;
+  uint64_t gasUsed;
+  bool succeeded;
+  Address contractAddress;
+};
+
 /**
  * Abstraction of a Validator transaction.
  * All transactions are final and defined as such during construction.

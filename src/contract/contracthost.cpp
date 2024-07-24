@@ -43,7 +43,7 @@ ContractHost::~ContractHost() {
         this->manager_.pushBack(dynamic_cast<Dumpable*>(contract));
       } else {
         // If the contract is nullptr, it means that it was a EVM contract, we need to link txHash and txIndex
-        this->storage_.setContractAddress(txHash_, address);
+        this->addTxData_.contractAddress = address;
       }
     }
   } else {
@@ -235,6 +235,18 @@ void ContractHost::saveCallTrace() noexcept {
   }
 }
 
+void ContractHost::saveTxAdditionalData() noexcept {
+  if (!this->addTxData_.hash || this->storage_.getIndexingMode() == IndexingMode::DISABLED) {
+    return;
+  }
+
+  try {
+    this->storage_.putTxAdditionalData(this->addTxData_);
+  } catch (const std::exception& err) {
+    LOGERROR(std::string("Fail to persist additional tx data: ") + err.what());
+  }
+}
+
 evmc::Result ContractHost::processBDKPrecompile(const evmc_message& msg) {
   /**
    *  interface BDKPrecompile {
@@ -328,6 +340,9 @@ void ContractHost::execute(const evmc_message& msg, const ContractType& type) {
       what += evmcError;
       what += " --- OTHER INFO: --- ";
     }
+
+    this->addTxData_.gasUsed = msg.gas - this->leftoverGas_;
+    this->addTxData_.succeeded = false;
     throw DynamicException(what);
   }
   // We only set that we don't revert, if EVMC didn't throw a exception
@@ -337,8 +352,14 @@ void ContractHost::execute(const evmc_message& msg, const ContractType& type) {
       what += evmcError;
       what += " --- OTHER INFO: --- ";
     }
+
+    this->addTxData_.gasUsed = msg.gas - this->leftoverGas_;
+    this->addTxData_.succeeded = false;
     throw DynamicException(what);
   }
+
+  this->addTxData_.gasUsed = msg.gas - this->leftoverGas_;
+  this->addTxData_.succeeded = true;
   this->mustRevert_ = false;
 }
 

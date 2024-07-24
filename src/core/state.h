@@ -273,17 +273,10 @@ class State : Dumpable, public Log::LogicalLocationProvider {
 
     DBBatch dump() const final; ///< State dumping function.
 
-    void forEachPendingTx(std::invocable<const TxBlock&> auto func) const {
-      std::shared_lock lock(stateMutex_);
-      std::ranges::for_each(std::views::values(mempool_), func);
+    auto getPendingTxs() const {
+      std::shared_lock lock(this->stateMutex_);
+      return this->mempool_;
     }
-
-    /**
-     * Get the address that made a given transaction.
-     * @param txHash The transaction hash.
-     * @return The address that made the transaction.
-     */
-    Address getAddressForTx(const Hash& txHash) const;
 
     /**
      * Get the code section of a given contract.

@@ -121,13 +121,9 @@ public:
   /// Get the number of blocks currently in the chain (nHeight of latest block + 1).
   uint64_t currentChainSize() const;
 
-  void setContractAddress(const Hash& txHash, const Address& address);
+  void putTxAdditionalData(const TxAdditionalData& txData);
 
-  std::optional<Address> getContractAddress(const Hash& txHash) const;
-
-  void setGasUsed(const Hash& txHash, const uint256_t& gasUsed);
-
-  std::optional<uint256_t> getGasUsed(const Hash& txHash) const;
+  std::optional<TxAdditionalData> getTxAdditionalData(const Hash& txHash) const;
 
   void putCallTrace(const Hash& txHash, const trace::Call& callTrace);
 

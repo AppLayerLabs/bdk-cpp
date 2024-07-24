@@ -86,6 +86,7 @@ class ContractHost : public evmc::Host {
     const Hash& blockHash_;
     int64_t& leftoverGas_; /// Reference to the leftover gas from the transaction.
                             /// The leftoverGas_ is a object given by the State
+    TxAdditionalData addTxData_;
     trace::CallTracer callTracer_;
 
     // Private as this is not available for contracts as it has safety checks
@@ -140,6 +141,8 @@ class ContractHost : public evmc::Host {
 
     void saveCallTrace() noexcept;
 
+    void saveTxAdditionalData() noexcept;
+
   public:
     ContractHost(evmc_vm* vm,
                  DumpManager& manager,
@@ -166,7 +169,8 @@ class ContractHost : public evmc::Host {
     txHash_(txHash),
     txIndex_(txIndex),
     blockHash_(blockHash),
-    leftoverGas_(txGasLimit) {}
+    leftoverGas_(txGasLimit),
+    addTxData_({.hash = txHash}) {}
 
     // Rule of five, no copy/move allowed.
     ContractHost(const ContractHost&) = delete;
