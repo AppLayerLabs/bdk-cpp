@@ -23,17 +23,17 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
       - name: Build the container
-      - run: ./scripts/auto.sh -s bdk build
+        run: ./scripts/auto.sh -s bdk build
       - name: Stop the container
-      - run: ./scripts/auto.sh -s bdk stop
+        run: ./scripts/auto.sh -s bdk stop
       - name: Restart the container
-      - run: ./scripts/auto.sh -s bdk up
+        run: ./scripts/auto.sh -s bdk up
       - name: Configure MOLD linker
-      - run: ./scripts/auto.sh -s bdk exec 'cmake -S /bdk-cpp
+        run: ./scripts/auto.sh -s bdk exec 'cmake -S /bdk-cpp
              -B /bdk-cpp/build -DCMAKE_EXE_LINKER_FLAGS=\"-fuse-ld=mold\"
              -DCMAKE_SHARED_LINKER_FLAGS=\"-fuse-ld=mold\"'
       - name: Build the project
-      - run: ./scripts/auto.sh -s bdk exec 'cmake --build /bdk-cpp/build'
+        run: ./scripts/auto.sh -s bdk exec 'cmake --build /bdk-cpp/build'
       - name: Run Catch2 Tests
         run: ./scripts/auto.sh -s bdk exec
              '/bdk-cpp/build/src/bins/bdkd-tests/bdkd-tests -d yes'
