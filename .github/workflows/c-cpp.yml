@@ -26,7 +26,7 @@ jobs:
         run: git -C ${{env.TARGET_DIR}} pull || git clone https://github.com/${{ github.repository }} ${{ env.TARGET_DIR}}
       - name: Checkout current branch
         shell: bash
-        run: git -C ${{env.TARGET_DIR}} checkout ${{ github.ref }}
+        run: git -C ${{env.TARGET_DIR}} checkout ${{ github.ref_name }}
       - name: Build the container
         run: ./scripts/auto.sh -s bdk build
       - name: Stop the container
