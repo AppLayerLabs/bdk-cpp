@@ -23,7 +23,7 @@ jobs:
     steps:
       - name: Clone or pull
         shell: bash
-        run: git -C ${{env.TARGET_DIR}} pull || git clone ${{ github.repository }} ${{ env.TARGET_DIR}}
+        run: git -C ${{env.TARGET_DIR}} pull || git clone https://github.com/${{ github.repository }} ${{ env.TARGET_DIR}}
       - name: Checkout current branch
         shell: bash
         run: git -C ${{env.TARGET_DIR}} checkout ${{ github.ref }}
