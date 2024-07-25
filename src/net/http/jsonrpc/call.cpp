@@ -83,7 +83,7 @@ json call(const json& request, State& state, const Storage& storage,
     else if (method == "debug_traceTransaction")
       result = jsonrpc::debug_traceTransaction(request, storage);
     else
-      throw DynamicException("Method not found");
+      throw Error::methodNotAvailable(method);
 
     ret["result"] = std::move(result);
 

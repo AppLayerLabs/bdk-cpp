@@ -33,6 +33,18 @@ static inline void forbidParams(const json& request) {
     throw DynamicException("\"params\" are not required for method");
 }
 
+static inline void requiresIndexing(const Storage& storage, std::string_view method) {
+  if (storage.getIndexingMode() == IndexingMode::DISABLED) {
+    throw Error::methodNotAvailable(method);
+  }
+}
+
+static inline void requiresDebugIndexing(const Storage& storage, std::string_view method) {
+  if (storage.getIndexingMode() != IndexingMode::RPC_TRACE) {
+    throw Error::methodNotAvailable(method);
+  }
+}
+
 static json getBlockJson(const FinalizedBlock *block, bool includeTransactions) {
   json ret;
   if (block == nullptr) { ret = json::value_t::null; return ret; }
@@ -360,6 +372,8 @@ json eth_sendRawTransaction(const json& request, uint64_t chainId, State& state,
 }
 
 json eth_getTransactionByHash(const json& request, const Storage& storage, const State& state) {
+  requiresIndexing(storage, "eth_getTransactionByHash");
+
   const auto [txHash] = parseAllParams<Hash>(request);
 
   json ret;
@@ -459,6 +473,8 @@ json eth_getTransactionByBlockNumberAndIndex(const json& request, const Storage&
 }
 
 json eth_getTransactionReceipt(const json& request, const Storage& storage, const State& state) {
+  requiresIndexing(storage, "eth_getTransactionReceipt");
+
   const auto [txHash] = parseAllParams<Hash>(request);
   auto txInfo = storage.getTx(txHash);
   const auto& [tx, blockHash, txIndex, blockHeight] = txInfo;
@@ -531,6 +547,8 @@ json txpool_content(const json& request, const Storage& storage, const State& st
 }
 
 json debug_traceBlockByNumber(const json& request, const Storage& storage) {
+  requiresDebugIndexing(storage, "debug_traceBlockByNumber");
+
   json res = json::array();
   auto [blockNumber, traceJson] = parseAllParams<uint64_t, json>(request);
 
@@ -563,6 +581,8 @@ json debug_traceBlockByNumber(const json& request, const Storage& storage) {
 }
 
 json debug_traceTransaction(const json& request, const Storage& storage) {
+  requiresDebugIndexing(storage, "debug_traceBlockByNumber");
+
   json res;
   auto [txHash, traceJson] = parseAllParams<Hash, json>(request);
 

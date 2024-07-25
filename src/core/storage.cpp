@@ -230,8 +230,9 @@ void Storage::putTxAdditionalData(const TxAdditionalData& txData) {
 std::optional<TxAdditionalData> Storage::getTxAdditionalData(const Hash& txHash) const {
   Bytes serialized = db_.get(txHash, DBPrefix::txToAdditionalData);
 
-  if (serialized.empty())
+  if (serialized.empty()) {
     return std::nullopt;
+  }
 
   TxAdditionalData txData;
   zpp::bits::in in(serialized);
