@@ -40,13 +40,12 @@ jobs:
       - name: Run SonarQube Scanner
         run: ./scripts/auto.sh -s bdk exec
              'env SONAR_TOKEN=${{ env.SONAR_TOKEN }}
-                  SONAR_HOST_URL=${{ env.SONAR_HOST_URL }}
-                  sonar-scanner
+                  /root/.sonar/sonar-scanner
                   --define sonar.cfamily.build-wrapper-output=${{ env.BUILD_WRAPPER_OUT_DIR }}
                   --define sonar.coverageReportPaths=coverage.xml'
       - name: Build with SonarQube BuildWrapper + CMake
         run: ./scripts/auto.sh -s bdk exec
-             'build-wrapper-linux-x86-64 --out-dir ${{ env.BUILD_WRAPPER_OUT_DIR }}
+             '/root/.sonar/build-wrapper-linux-x86-64 --out-dir ${{ env.BUILD_WRAPPER_OUT_DIR }}
               cmake --build build/ --config Release -- -j $(nproc)'
       # documentation:
       # - name: Generate Doxygen Documentation

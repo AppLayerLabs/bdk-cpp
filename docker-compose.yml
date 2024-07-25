@@ -8,7 +8,7 @@ services:
       context: .
       dockerfile: docker/bdk_cpp.dockerfile
     volumes:
-      - /home/actions/test/orbitersdk-cpp:/bdk-cpp
+      - .:/bdk-cpp
     entrypoint: ["/entrypoint.sh"]
     tty: true
     stdin_open: true
