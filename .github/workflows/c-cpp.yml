@@ -24,9 +24,14 @@ jobs:
       - name: Clone or pull
         shell: bash
         run: git -C ${{env.TARGET_DIR}} pull || git clone https://github.com/${{ github.repository }} ${{ env.TARGET_DIR}}
-      - name: Checkout current branch
+      - name: Fetch referencies
+        run: git -C ${{env.TARGET_DIR}} fetch origin +refs/pull/*:refs/remotes/origin/pr/*
+      - name: Checkout to referencie
         shell: bash
-        run: git -C ${{env.TARGET_DIR}} checkout ${{ github.ref_name }}
+        run: |
+             n=$(echo "${{ github.ref_name }}" | tr "/" " " | awk '{print $1}')
+             t=$(echo "${{ github.ref_name }}" | tr "/" " " | awk '{print $2}')
+             git -C ${{env.TARGET_DIR}} checkout "origin/pr/$n/$t"
       - name: Build the container
         run: ./scripts/auto.sh -s bdk build
       - name: Stop the container
