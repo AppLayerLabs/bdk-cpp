@@ -14,6 +14,7 @@ See the LICENSE.txt file in the project root for more information.
 #include <string>
 
 #include "../libs/json.hpp"
+#include "../libs/zpp_bits.h"
 
 #include "../utils/db.h"
 #include "../utils/options.h"
@@ -35,6 +36,8 @@ using json = nlohmann::ordered_json;
 /// Abstraction of a Solidity event.
 class Event {
   friend struct event_indices;
+  friend zpp::bits::access;
+  using serialize = zpp::bits::members<10>;
 
   private:
     std::string name_;          ///< Event name.
@@ -49,6 +52,8 @@ class Event {
     bool anonymous_;            ///< Whether the event is anonymous or not (its signature is indexed and searchable).
 
   public:
+    Event() = default;
+
     /**
      * Constructor for EVM events.
      * @param name The event's name.
@@ -149,7 +154,7 @@ class Event {
       if (!this->anonymous_) return this->topics_[0]; else return Hash();
     }
 
-    std::string serialize() const;  ///< Serialize event data from the object to a JSON string.
+    std::string serializeToJson() const;  ///< Serialize event data from the object to a JSON string.
 
     /**
      * Serialize event data to a JSON string, formatted to RPC response standards

@@ -19,7 +19,7 @@ Options::Options(
   const std::vector<std::pair<boost::asio::ip::address, uint64_t>>& discoveryNodes,
   const FinalizedBlock& genesisBlock, const uint64_t genesisTimestamp, const PrivKey& genesisSigner,
   const std::vector<std::pair<Address, uint256_t>>& genesisBalances,
-  const std::vector<Address>& genesisValidators
+  const std::vector<Address>& genesisValidators, IndexingMode indexingMode
 ) : rootPath_(rootPath), web3clientVersion_(web3clientVersion),
   version_(version), chainID_(chainID), chainOwner_(chainOwner), p2pPort_(p2pPort),
   p2pIp_(p2pIp), httpPort_(httpPort),
@@ -29,7 +29,8 @@ Options::Options(
   stateDumpTrigger_(stateDumpTrigger),
   minValidators_(minValidators),
   coinbase_(Address()), isValidator_(false), discoveryNodes_(discoveryNodes),
-  genesisBlock_(genesisBlock), genesisBalances_(genesisBalances), genesisValidators_(genesisValidators)
+  genesisBlock_(genesisBlock), genesisBalances_(genesisBalances), genesisValidators_(genesisValidators),
+  indexingMode_(indexingMode)
 {
   json options;
   if (std::filesystem::exists(rootPath + "/options.json")) return;
@@ -70,6 +71,9 @@ Options::Options(
   for (const auto& validator : this->genesisValidators_) {
     options["genesis"]["validators"].push_back(validator.hex(true));
   }
+
+  options["indexingMode"] = indexingMode_.toString();
+
   std::filesystem::create_directories(rootPath);
   std::ofstream o(rootPath + "/options.json");
   o << options.dump(2) << std::endl;
@@ -89,7 +93,7 @@ Options::Options(
   const FinalizedBlock& genesisBlock, const uint64_t genesisTimestamp, const PrivKey& genesisSigner,
   const std::vector<std::pair<Address, uint256_t>>& genesisBalances,
   const std::vector<Address>& genesisValidators,
-  const PrivKey& privKey
+  const PrivKey& privKey, IndexingMode indexingMode
 ) : rootPath_(rootPath), web3clientVersion_(web3clientVersion),
   version_(version), chainID_(chainID), chainOwner_(chainOwner),
   p2pIp_(p2pIp), p2pPort_(p2pPort), httpPort_(httpPort),
@@ -99,7 +103,8 @@ Options::Options(
   stateDumpTrigger_(stateDumpTrigger),
   minValidators_(minValidators),
   discoveryNodes_(discoveryNodes), coinbase_(Secp256k1::toAddress(Secp256k1::toUPub(privKey))),
-  isValidator_(true), genesisBlock_(genesisBlock), genesisBalances_(genesisBalances), genesisValidators_(genesisValidators)
+  isValidator_(true), genesisBlock_(genesisBlock), genesisBalances_(genesisBalances), genesisValidators_(genesisValidators),
+  indexingMode_(indexingMode)
 {
   if (std::filesystem::exists(rootPath + "/options.json")) return;
   json options;
@@ -141,6 +146,9 @@ Options::Options(
     options["genesis"]["validators"].push_back(validator.hex(true));
   }
   options["privKey"] = privKey.hex();
+
+  options["indexingMode"] = indexingMode_.toString();
+
   std::filesystem::create_directories(rootPath);
   std::ofstream o(rootPath + "/options.json");
   o << options.dump(2) << std::endl;
@@ -220,7 +228,8 @@ Options Options::fromFile(const std::string& rootPath) {
         genesisSigner,
         genesisBalances,
         genesisValidators,
-        PrivKey(Hex::toBytes(options["privKey"].get<std::string>()))
+        PrivKey(Hex::toBytes(options["privKey"].get<std::string>())),
+        IndexingMode(options["indexingMode"].get<std::string>())
       );
     }
 
@@ -246,7 +255,8 @@ Options Options::fromFile(const std::string& rootPath) {
       options["genesis"]["timestamp"].get<uint64_t>(),
       genesisSigner,
       genesisBalances,
-      genesisValidators
+      genesisValidators,
+      IndexingMode(options["indexingMode"].get<std::string>())
     );
   } catch (std::exception &e) {
     throw DynamicException("Could not create blockchain directory: " + std::string(e.what()));

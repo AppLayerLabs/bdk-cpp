@@ -40,8 +40,6 @@ class State : Dumpable, public Log::LogicalLocationProvider {
     boost::unordered_flat_map<StorageKey, Hash, SafeHash> vmStorage_; ///< Map with the storage of the EVM.
     boost::unordered_flat_map<Address, NonNullUniquePtr<Account>, SafeHash> accounts_; ///< Map with information about blockchain accounts (Address -> Account).
     boost::unordered_flat_map<Hash, TxBlock, SafeHash> mempool_; ///< TxBlock mempool.
-    /// TODO: Make a txDb instead of having to rely on this nasty map of tx hash -> created block.
-    boost::unordered_flat_map<Hash, Address, SafeHash> txToAddr_; ///< Map with information about EVM transactions that created contracts (Hash -> Address).
     /**
      * Verify if a transaction can be accepted within the current state.
      * @param tx The transaction to check.
@@ -275,12 +273,10 @@ class State : Dumpable, public Log::LogicalLocationProvider {
 
     DBBatch dump() const final; ///< State dumping function.
 
-    /**
-     * Get the address that made a given transaction.
-     * @param txHash The transaction hash.
-     * @return The address that made the transaction.
-     */
-    Address getAddressForTx(const Hash& txHash) const;
+    auto getPendingTxs() const {
+      std::shared_lock lock(this->stateMutex_);
+      return this->mempool_;
+    }
 
     /**
      * Get the code section of a given contract.

@@ -7,7 +7,7 @@ See the LICENSE.txt file in the project root for more information.
 
 #include "tx.h"
 
-TxBlock::TxBlock(const BytesArrView bytes, const uint64_t&) {
+TxBlock::TxBlock(const bytes::View bytes, const uint64_t&) {
   uint64_t index = 0;
   const auto txData = bytes.subspan(1);
 
@@ -375,7 +375,7 @@ Bytes TxBlock::rlpSerialize(bool includeSig) const {
     ret.insert(ret.end(), 0x80);
   } else {
     ret.insert(ret.end(), 0x94);
-    Utils::appendBytes(ret, this->to_.get());
+    Utils::appendBytes(ret, this->to_);
   }
 
   // Value
@@ -460,7 +460,7 @@ evmc_message TxBlock::txToMessage() const {
   return msg;
 }
 
-TxValidator::TxValidator(const BytesArrView bytes, const uint64_t&) {
+TxValidator::TxValidator(const bytes::View bytes, const uint64_t&) {
   uint64_t index = 0;
 
   // Check if first byte is equal or higher than 0xf7, meaning it is a list

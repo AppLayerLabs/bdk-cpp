@@ -42,7 +42,7 @@ class TxBlock {
      * @param requiredChainId The chain ID of the transaction.
      * @throw DynamicException on any parsing failure.
      */
-    TxBlock(const BytesArrView bytes, const uint64_t& requiredChainId);
+    TxBlock(const bytes::View bytes, const uint64_t& requiredChainId);
 
     /**
      * Manual constructor. Leave fields blank ("" or 0) if they're not required.
@@ -167,6 +167,13 @@ class TxBlock {
     bool operator==(const TxBlock& tx) const { return this->hash() == tx.hash(); }
 };
 
+struct TxAdditionalData {
+  Hash hash;
+  uint64_t gasUsed;
+  bool succeeded;
+  Address contractAddress;
+};
+
 /**
  * Abstraction of a Validator transaction.
  * All transactions are final and defined as such during construction.
@@ -189,7 +196,7 @@ class TxValidator {
      * @param requiredChainId The chain ID of the transaction.
      * @throw DynamicException on any parsing failure.
      */
-    TxValidator(const BytesArrView bytes, const uint64_t& requiredChainId);
+    TxValidator(const bytes::View bytes, const uint64_t& requiredChainId);
 
     /**
      * Manual constructor. Leave fields blank ("" or 0) if they're not required.

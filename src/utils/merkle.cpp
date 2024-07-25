@@ -30,7 +30,7 @@ Merkle::Merkle(const std::vector<Hash>& leaves) {
   // Mount the base leaves
   std::vector<Hash> tmp;
   for (const Hash& leaf : leaves) {
-    Hash leafHash = Utils::sha3(leaf.get());
+    Hash leafHash = Utils::sha3(leaf);
     tmp.emplace_back(std::move(leafHash));
   }
   this->tree_.emplace_back(tmp);

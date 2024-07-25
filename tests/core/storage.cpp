@@ -61,7 +61,7 @@ std::pair<std::vector<TxValidator>, Bytes> createRandomTxValidatorList(uint64_t 
     PrivKey txValidatorPrivKey = PrivKey::random();
     Address validatorAddress = Secp256k1::toAddress(Secp256k1::toUPub(txValidatorPrivKey));
     Bytes hashTxData = Hex::toBytes("0xcfffe746");
-    Utils::appendBytes(hashTxData, Utils::sha3(seed.get()));
+    Utils::appendBytes(hashTxData, Utils::sha3(seed));
     ret.first.emplace_back(
       validatorAddress,
       hashTxData,
@@ -70,7 +70,7 @@ std::pair<std::vector<TxValidator>, Bytes> createRandomTxValidatorList(uint64_t 
       txValidatorPrivKey
     );
     Bytes seedTxData = Hex::toBytes("0x6fc5a2d6");
-    Utils::appendBytes(seedTxData, seed.get());
+    Utils::appendBytes(seedTxData, seed);
     ret.first.emplace_back(
       validatorAddress,
       seedTxData,
@@ -141,7 +141,7 @@ namespace TStorage {
           auto latest = blockchainWrapper.storage.latest();
           FinalizedBlock newBlock = createRandomBlock(100, 16, latest->getNHeight() + 1, latest->getHash(), blockchainWrapper.options.getChainID());
           blocks.emplace_back(newBlock);
-          blockchainWrapper.storage.pushBack(FinalizedBlock(newBlock));
+          blockchainWrapper.storage.pushBlock(std::move(newBlock));
         }
 
         REQUIRE(blockchainWrapper.storage.currentChainSize() == 11);
@@ -203,7 +203,7 @@ namespace TStorage {
           FinalizedBlock newBlock = createRandomBlock(txCount, 16, latest->getNHeight() + 1, latest->getHash(), blockchainWrapper.options.getChainID());
           std::vector<TxBlock> txs = newBlock.getTxs();
           blocksWithTxs.emplace_back(std::make_pair(newBlock, txs));
-          blockchainWrapper.storage.pushBack(std::move(newBlock));
+          blockchainWrapper.storage.pushBlock(std::move(newBlock));
         }
 
         REQUIRE(blockchainWrapper.storage.currentChainSize() == 2001);

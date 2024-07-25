@@ -126,7 +126,7 @@ class FinalizedBlock {
      * @param requiredChainId The chain ID to which the block belongs.
      * @return A FinalizedBlock instance.
      */
-    static FinalizedBlock fromBytes(const BytesArrView bytes, const uint64_t& requiredChainId);
+    static FinalizedBlock fromBytes(const bytes::View bytes, const uint64_t& requiredChainId);
 
     /**
      * Serialize the entire block (including the header) to a raw bytes string.

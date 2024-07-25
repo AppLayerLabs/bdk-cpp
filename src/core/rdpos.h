@@ -50,14 +50,8 @@ class Validator : public Address {
     /// Constructor.
     Validator(const Address& add) : Address(add) {}
 
-    /// Copy constructor.
-    Validator(const Validator& other) : Address(other.data_) {}
-
     /// Getter for the address.
-    Address address() const { return Address(this->data_); }
-
-    /// Copy assignment operator.
-    Validator& operator=(const Validator& other) { this->data_ = other.data_; return *this; }
+    Address address() const { return Address(*this); }
 };
 
 /// Abstraction of the %rdPoS (Random Deterministic Proof of Stake) consensus algorithm.

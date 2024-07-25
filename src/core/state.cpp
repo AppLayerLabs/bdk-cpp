@@ -51,12 +51,6 @@ State::State(
     this->vmStorage_.emplace(StorageKey(dbEntry.key), dbEntry.value);
   }
 
-  /// Load all the txToAddr_ map from the DB
-  auto txToAddrFromDB = db.getBatch(DBPrefix::txToAddr);
-  for (const auto& dbEntry : txToAddrFromDB) {
-    this->txToAddr_.emplace(Hash(dbEntry.key), Address(dbEntry.value));
-  }
-
   auto latestBlock = this->storage_.latest();
 
   // Insert the contract manager into the contracts_ map.
@@ -137,16 +131,13 @@ DBBatch State::dump() const {
   // Each Value == Account.serialize()
   DBBatch stateBatch;
   for (const auto& [address, account] : this->accounts_) {
-    stateBatch.push_back(address.get(), account->serialize(), DBPrefix::nativeAccounts);
+    stateBatch.push_back(address, account->serialize(), DBPrefix::nativeAccounts);
   }
   // There is also the need to dump the vmStorage_ map
   for (const auto& [storageKey, storageValue] : this->vmStorage_) {
-    stateBatch.push_back(storageKey.get(), storageValue.get(), DBPrefix::vmStorage);
+    stateBatch.push_back(storageKey, storageValue, DBPrefix::vmStorage);
   }
 
-  for (const auto& [txHash, contractAddr] : this->txToAddr_) {
-    stateBatch.push_back(txHash.get(), contractAddr.get(), DBPrefix::txToAddr);
-  }
   return stateBatch;
 }
 
@@ -221,7 +212,7 @@ void State::processTransaction(const TxBlock& tx,
     txContext.blob_base_fee = {};
     txContext.blob_hashes = nullptr;
     txContext.blob_hashes_count = 0;
-    auto randomSeed = Utils::uint256ToBytes((randomnessHash.toUint256() + txIndex));
+    Hash randomSeed(Utils::uint256ToBytes((randomnessHash.toUint256() + txIndex)));
     ContractHost host(
       this->vm_,
       this->dumpManager_,
@@ -232,7 +223,6 @@ void State::processTransaction(const TxBlock& tx,
       this->contracts_,
       this->accounts_,
       this->vmStorage_,
-      this->txToAddr_,
       tx.hash(),
       txIndex,
       blockHash,
@@ -394,7 +384,7 @@ BlockValidationStatus State::tryProcessNextBlock(FinalizedBlock&& block) {
   }
 
   // Move block to storage
-  this->storage_.pushBack(std::move(block));
+  this->storage_.pushBlock(std::move(block));
   return vStatus; // BlockValidationStatus::valid
 }
 
@@ -462,7 +452,7 @@ Bytes State::ethCall(const evmc_message& callInfo) {
     txContext.blob_hashes_count = 0;
     // As we are simulating, the randomSeed can be anything
     Hash randomSeed = Hash::random();
-    ContractHost host(
+    return ContractHost(
       this->vm_,
       this->dumpManager_,
       this->eventManager_,
@@ -472,13 +462,11 @@ Bytes State::ethCall(const evmc_message& callInfo) {
       this->contracts_,
       this->accounts_,
       this->vmStorage_,
-      this->txToAddr_,
       Hash(),
       0,
       Hash(),
       leftOverGas
-    );
-    return host.ethCallView(callInfo, acc->contractType);
+    ).ethCallView(callInfo, acc->contractType);
   } else {
     return {};
   }
@@ -507,7 +495,6 @@ int64_t State::estimateGas(const evmc_message& callInfo) {
     this->contracts_,
     this->accounts_,
     this->vmStorage_,
-    this->txToAddr_,
     Hash(),
     0,
     Hash(),
@@ -553,17 +540,6 @@ std::vector<Event> State::getEvents(
 ) const {
   std::shared_lock lock(this->stateMutex_);
   return this->eventManager_.getEvents(txHash, blockIndex, txIndex);
-}
-
-
-Address State::getAddressForTx(const Hash& txHash) const {
-  std::shared_lock lock(this->stateMutex_);
-  auto it = this->txToAddr_.find(txHash);
-  Utils::safePrint("Trying to find txToAddr_ for tx: " + txHash.hex().get());
-  if (it == this->txToAddr_.end()) {
-    throw DynamicException("Transaction not found in txToAddr_ map");
-  }
-  return it->second;
 }
 
 Bytes State::getContractCode(const Address &addr) const {

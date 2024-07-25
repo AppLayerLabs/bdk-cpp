@@ -65,7 +65,8 @@ Options Options::binaryDefaultOptions(const std::string& rootPath) {
     genesis.getTimestamp(),
     genesisSigner,
     genesisBalanceList,
-    genesisValidators
+    genesisValidators,
+    IndexingMode::RPC
   };
 }
 
