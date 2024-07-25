@@ -2,12 +2,36 @@
 #include "methods.h"
 
 namespace jsonrpc {
+void checkJsonRPCSpec(const json& request) {
+  try {
+    // "jsonrpc": "2.0" is a MUST
+    if (!request.contains("jsonrpc")) {
+      throw DynamicException("jsonrpc field is missing");
+    }
+    if (request["jsonrpc"].get<std::string>() != "2.0") {
+      throw DynamicException("jsonrpc field is not 2.0");
+    }
+    // "method" is a MUST
+    if (!request.contains("method")) {
+      throw DynamicException("method field is missing");
+    }
+    // Params MUST be Object or Array.
+    if (
+      request.contains("params") && (!request["params"].is_object() && !request["params"].is_array())
+    ) throw DynamicException("params field is not an object or array");
+  } catch (const std::exception& e) {
+    SLOGERROR("Error while checking json RPC spec: " + std::string(e.what()));
+    throw DynamicException("Error while checking json RPC spec: " + std::string(e.what()));
+  }
+}
 
-json call(const json& request, State& state, const Storage& storage,
+json call(const std::string& requestStr, State& state, const Storage& storage,
           P2P::ManagerNormal& p2p, const Options& options) noexcept {
   json ret;
 
   try {
+    json request = json::parse(requestStr);
+    checkJsonRPCSpec(request);
     json result;
     ret["jsonrpc"] = 2.0;
   
