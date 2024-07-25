@@ -9,9 +9,9 @@ FROM debian:trixie
 RUN apt-get update && apt-get upgrade -y
 
 # Install dependencies
-RUN apt-get install -y build-essential \
+RUN apt-get install -y \
+    build-essential \
     cmake \
-    tmux \
     clang-tidy \
     autoconf \
     libtool \
@@ -30,22 +30,38 @@ RUN apt-get install -y build-essential \
     openssl \
     protobuf-compiler \
     protobuf-compiler-grpc \
-    nano \
-    vim \
+    curl \
     unison \
+    mold \
+    doxygen \
+    jq \
+    unzip \
     git
 
-# Set the working directory in the Docker container
-WORKDIR /bdk-cpp
+# Create a directory for sonarcloud
+RUN mkdir /root/.sonar
 
-# Copy the local folder to the container
-COPY . /bdk-cpp
-
-# Create the synchronized directory
-RUN mkdir /bdk-volume
+# Copy sonarcloud scripts to sonarcloud
+COPY scripts/sonarcloud.sh /sonarcloud
 
 # Copy Unison configuration file
 COPY sync.prf /root/.unison/sync.prf
 
 # Copy the entrypoint script
 COPY docker/entrypoint.sh /entrypoint.sh
+
+# Copy the entrypoint script
+COPY scripts/sonarcloud.sh /sonarcloud.sh
+
+# Execute sonarcloud install script
+RUN /sonarcloud.sh
+
+# Update running paths
+ENV PATH=/root/.sonar/bin:$PATH
+ENV PATH=/root/.sonar/build-wrapper-linux-x86:$PATH
+
+# Copy the entrypoint script
+COPY docker/entrypoint.sh /entrypoint.sh
+
+# Work from the temporary directory (tests will be here)
+WORKDIR /tmp

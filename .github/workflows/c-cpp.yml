@@ -10,83 +10,49 @@ on:
       - main
       - development
 
-jobs:
-  build_test_and_analyse:
-    runs-on: [self-hosted, linux, x64]
-
-    container: 
-      image: debian:bookworm
-    env:
-      # https://docs.sonarqube.org/latest/analysis/scan/sonarscanner/
-      BUILD_WRAPPER_OUT_DIR: build_wrapper_output_directory # Directory where build-wrapper output will be placed
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Update apt-get
-        run: apt-get update
-
-      - name: Install project dependencies
-        run: DEBIAN_FRONTEND=noninteractive apt-get install -y wget build-essential cmake tmux clang-tidy autoconf libtool pkg-config libabsl-dev libc-ares-dev libcrypto++-dev libgrpc-dev libgrpc++-dev librocksdb-dev libscrypt-dev libsnappy-dev libssl-dev zlib1g-dev openssl protobuf-compiler protobuf-compiler-grpc libprotobuf-dev git curl unzip gcovr
-
-      - name: Build and install boost
-        run: wget -qO- https://boostorg.jfrog.io/artifactory/main/release/1.85.0/source/boost_1_85_0.tar.gz | tar xz && cd boost_1_85_0 && ./bootstrap.sh && ./b2 -j$(nproc) install 
-
-      - name: Print GCC version
-        run: gcc --version
-
-      - name: Install CA certificates
-        run: apt-get install -y ca-certificates
-
-      - name: Install sonar-scanner and build-wrapper
-        uses: SonarSource/sonarcloud-github-c-cpp@v2
-
-      - name: Configure CMake
-        run: cmake -S . -B build -DSONARQUBE_ANALYSIS=ON -DDEBUG=OFF
-
-      - name: Build with SonarQube BuildWrapper + CMake
-        run: build-wrapper-linux-x86-64 --out-dir ${{ env.BUILD_WRAPPER_OUT_DIR }} cmake --build build/ --config Release -- -j $(nproc)
-
-      - name: Give execute permissions
-        run: chmod +x ./build/src/bins/bdkd-tests/bdkd-tests
-
-      - name: Run Catch2 Tests
-        run: ./build/src/bins/bdkd-tests/bdkd-tests -d yes
-
-      - name: Collect coverage into one XML report
-        run: |
-          gcovr --gcov-ignore-parse-errors --sonarqube > coverage.xml
-
-      - name: Run SonarQube Scanner
-        env:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
-        run: |
-          sonar-scanner --define sonar.cfamily.build-wrapper-output="${{ env.BUILD_WRAPPER_OUT_DIR }}" --define sonar.coverageReportPaths=coverage.xml
-  documentation:
-    needs: build_test_and_analyse
-    runs-on: [self-hosted, linux, x64]
-
-    container: 
-      image: debian:bookworm
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name : Update apt-get
-        run: apt-get update
-
-      - name : Install Doxygen
-        run: apt-get install -y doxygen
-
-      - name: Generate Doxygen Documentation
-        run: |
-          mkdir docs
-          doxygen Doxyfile
-
-      - name: Publish Documentation
-        uses: actions/upload-artifact@v4
-        with:
-          name: Documentation
-          path: docs
+  jobs:
+    build:
+      runs-on: [self-hosted, linux, x64]
+      env:
+        # https://docs.sonarqube.org/latest/analysis/scan/sonarscanner/
+        # Directory where build-wrapper output will be placed
+        BUILD_WRAPPER_OUT_DIR: build_wrapper_output_directory
+        SONAR_URL: ${{ secrets.SONAR_HOST_URL }}
+        SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+      steps:
+        - name: Checkout repository
+          uses: actions/checkout@v4
+        - name: Build the container
+        - run: ./scripts/auto.sh -s bdk build
+        - name: Stop the container
+        - run: ./scripts/auto.sh -s bdk stop
+        - name: Restart the container
+        - run: ./scripts/auto.sh -s bdk up
+        - name: Configure MOLD linker
+        - run: ./scripts/auto.sh -s bdk exec 'cmake -S /bdk-cpp
+               -B /bdk-cpp/build -DCMAKE_EXE_LINKER_FLAGS=\"-fuse-ld=mold\"
+               -DCMAKE_SHARED_LINKER_FLAGS=\"-fuse-ld=mold\"'
+        - name: Build the project
+        - run: ./scripts/auto.sh -s bdk exec 'cmake --build /bdk-cpp/build'
+        - name: Run Catch2 Tests
+          run: ./scripts/auto.sh -s bdk exec
+               '/bdk-cpp/build/src/bins/bdkd-tests/bdkd-tests -d yes'
+        - name: Run SonarQube Scanner
+          run: ./scripts/auto.sh -s bdk exec
+               'env SONAR_TOKEN=${{ env.SONAR_TOKEN }}
+                    SONAR_HOST_URL=${{ env.SONAR_HOST_URL }}
+                    sonar-scanner
+                   --define sonar.cfamily.build-wrapper-output=${{ env.BUILD_WRAPPER_OUT_DIR }}
+                   --define sonar.coverageReportPaths=coverage.xml'
+        - name: Build with SonarQube BuildWrapper + CMake
+          run: ./scripts/auto.sh -s bdk exec
+               'build-wrapper-linux-x86-64 --out-dir ${{ env.BUILD_WRAPPER_OUT_DIR }}
+                cmake --build build/ --config Release -- -j $(nproc)'
+        # documentation:
+        # - name: Generate Doxygen Documentation
+        #   run: ./scripts/auto.sh -s bdk exec 'doxygen /bdk-cpp/Doxyfile'
+        # - name: Publish Documentation
+        #   uses: actions/upload-artifact@v4
+        #   with:
+        #   name: Documentation
+        #   path: docs

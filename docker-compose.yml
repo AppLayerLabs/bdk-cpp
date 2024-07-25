@@ -2,18 +2,13 @@
 # This software is distributed under the MIT License.
 # See the LICENSE.txt file in the project root for more information.
 
-version: '3'
-
 services:
   bdk:
     build:
       context: .
       dockerfile: docker/bdk_cpp.dockerfile
-    ports:
-      - "8080-8099:8080-8099"
-      - "8110-8111:8110-8111"
     volumes:
-      - ./build:/bdk-cpp/build
-    entrypoint: ["./docker/entrypoint.sh"]
+      - /home/actions/test/orbitersdk-cpp:/bdk-cpp
+    entrypoint: ["/entrypoint.sh"]
     tty: true
     stdin_open: true
