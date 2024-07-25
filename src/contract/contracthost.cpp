@@ -90,6 +90,7 @@ ContractHost::~ContractHost() {
     }
   }
 
+  saveTxAdditionalData();
   saveCallTrace();
 }
 

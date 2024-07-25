@@ -481,10 +481,10 @@ json eth_getTransactionReceipt(const json& request, const Storage& storage, cons
 
   if (tx != nullptr) {
     json ret;
-    std::optional<const TxAdditionalData> addTxData = storage.getTxAdditionalData(tx->hash());
-    const uint256_t gasUsed = addTxData.transform([] (const auto& txData) -> uint256_t { return txData.gasUsed; }).value_or(tx->getGasLimit());
-    const Address contractAddress = addTxData.transform([] (const auto& txData) { return txData.contractAddress; }).value_or(Address());
-    const bool status = addTxData.transform([] (const auto& txData) { return txData.succeeded; }).value_or(true);
+
+    const TxAdditionalData txAddData = storage.getTxAdditionalData(tx->hash())
+      .or_else([] () -> std::optional<TxAdditionalData> { throw DynamicException("Unable to fetch existing transaction data"); })
+      .value();
 
     ret["transactionHash"] = tx->hash().hex(true);
     ret["transactionIndex"] = Hex::fromBytes(Utils::uintToBytes(txIndex), true).forRPC();
@@ -495,13 +495,13 @@ json eth_getTransactionReceipt(const json& request, const Storage& storage, cons
     ret["cumulativeGasUsed"] = Hex::fromBytes(Utils::uintToBytes(tx->getGasLimit()), true).forRPC();
     ret["effectiveGasUsed"] = Hex::fromBytes(Utils::uintToBytes(tx->getGasLimit()), true).forRPC();
     ret["effectiveGasPrice"] = Hex::fromBytes(Utils::uintToBytes(tx->getMaxFeePerGas()),true).forRPC();
-    ret["gasUsed"] =  Hex::fromBytes(Utils::uintToBytes(gasUsed), true).forRPC();
-    ret["contractAddress"] = bool(contractAddress) ? json(contractAddress.hex(true)) : json(json::value_t::null);
+    ret["gasUsed"] =  Hex::fromBytes(Utils::uintToBytes(txAddData.gasUsed), true).forRPC();
+    ret["contractAddress"] = bool(txAddData.contractAddress) ? json(txAddData.contractAddress.hex(true)) : json(json::value_t::null);
     ret["logs"] = json::array();
     ret["logsBloom"] = Hash().hex(true);
     ret["type"] = "0x00";
     ret["root"] = Hash().hex(true);
-    ret["status"] = status ? "0x1" : "0x0";
+    ret["status"] = txAddData.succeeded ? "0x1" : "0x0";
     for (const Event& e : state.getEvents(txHash, blockHeight, txIndex)) {
       ret["logs"].push_back(e.serializeForRPC());
     }
