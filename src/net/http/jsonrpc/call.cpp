@@ -101,7 +101,7 @@ json call(const std::string& requestStr, State& state, const Storage& storage,
     else if (method == "eth_getUncleByBlockHashAndIndex")
       result = jsonrpc::eth_getUncleByBlockHashAndIndex();
     else if (method == "txpool_content")
-      result = jsonrpc::txpool_content(request, storage, state);
+      result = jsonrpc::txpool_content(request, state);
     else if (method == "debug_traceBlockByNumber")
       result = jsonrpc::debug_traceBlockByNumber(request, storage);
     else if (method == "debug_traceTransaction")

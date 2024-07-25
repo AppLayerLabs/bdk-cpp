@@ -120,7 +120,7 @@ json eth_getTransactionReceipt(const json& request, const Storage& storage, cons
 
 json eth_getUncleByBlockHashAndIndex();
 
-json txpool_content(const json& request, const Storage& storage, const State& state);
+json txpool_content(const json& request, const State& state);
 
 json debug_traceBlockByNumber(const json& request, const Storage& storage);
 

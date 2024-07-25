@@ -514,7 +514,7 @@ json eth_getUncleByBlockHashAndIndex() {
   return json::value_t::null;
 }
 
-json txpool_content(const json& request, const Storage& storage, const State& state) {
+json txpool_content(const json& request, const State& state) {
   forbidParams(request);
   json result;
   result["queued"] = json::array();
@@ -522,8 +522,7 @@ json txpool_content(const json& request, const Storage& storage, const State& st
 
   pending = json::array();
 
-  for (const auto& hashTxPair : state.getPendingTxs()) {
-    const auto& tx = hashTxPair.second;
+  for (const auto& [hash, tx] : state.getPendingTxs()) {
     json& txJson = pending[tx.getFrom().hex(true)][tx.getNonce().str()];
 
     txJson["blockHash"] = json::value_t::null;
