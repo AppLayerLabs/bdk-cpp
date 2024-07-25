@@ -19,22 +19,32 @@ jobs:
       BUILD_WRAPPER_OUT_DIR: build_wrapper_output_directory
       SONAR_URL: ${{ secrets.SONAR_HOST_URL }}
       SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+      TARGET_DIR: "/home/actions/work/bdk-cpp"
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - name: Clone or pull
+        shell: bash
+        run: git -C ${{env.TARGET_DIR}} pull || git clone ${{ github.repository }} ${{ env.TARGET_DIR}}
+      - name: Checkout current branch
+        shell: bash
+        run: git -C ${{env.TARGET_DIR}} checkout ${{ github.ref }}
       - name: Build the container
         run: ./scripts/auto.sh -s bdk build
       - name: Stop the container
         run: ./scripts/auto.sh -s bdk stop
       - name: Restart the container
         run: ./scripts/auto.sh -s bdk up
+      - name: Clean previos build (if any)
+        run: ./scripts/auto.sh -s bdk exec 'make -C /bdk-cpp/build clean || true'
       - name: Configure MOLD linker
         run: ./scripts/auto.sh -s bdk exec 'cmake -S /bdk-cpp
-             -B /bdk-cpp/build -DCMAKE_EXE_LINKER_FLAGS=\"-fuse-ld=mold\"
+             -B /bdk-cpp/build -DSONARQUBE_ANALYSIS=ON -DDEBUG=OFF
+             -DCMAKE_EXE_LINKER_FLAGS=\"-fuse-ld=mold\"
              -DCMAKE_SHARED_LINKER_FLAGS=\"-fuse-ld=mold\"'
-      - name: Build the project
-        run: ./scripts/auto.sh -s bdk exec 'cmake --build /bdk-cpp/build'
-      - name: Run Catch2 Tests
+      - name: Build with SonarQube BuildWrapper + CMake
+        run: ./scripts/auto.sh -s bdk exec
+             '/root/.sonar/build-wrapper-linux-x86-64 --out-dir ${{ env.BUILD_WRAPPER_OUT_DIR }}
+              cmake --build build/ --config Release -- -j $(nproc)'
+      - name: Run Tests
         run: ./scripts/auto.sh -s bdk exec
              '/bdk-cpp/build/src/bins/bdkd-tests/bdkd-tests -d yes'
       - name: Run SonarQube Scanner
@@ -43,10 +53,8 @@ jobs:
                   /root/.sonar/sonar-scanner
                   --define sonar.cfamily.build-wrapper-output=${{ env.BUILD_WRAPPER_OUT_DIR }}
                   --define sonar.coverageReportPaths=coverage.xml'
-      - name: Build with SonarQube BuildWrapper + CMake
-        run: ./scripts/auto.sh -s bdk exec
-             '/root/.sonar/build-wrapper-linux-x86-64 --out-dir ${{ env.BUILD_WRAPPER_OUT_DIR }}
-              cmake --build build/ --config Release -- -j $(nproc)'
+      # - name: Build the project
+      #   run: ./scripts/auto.sh -s bdk exec 'cmake --build /bdk-cpp/build'
       # documentation:
       # - name: Generate Doxygen Documentation
       #   run: ./scripts/auto.sh -s bdk exec 'doxygen /bdk-cpp/Doxyfile'
