@@ -10,49 +10,49 @@ on:
       - main
       - development
 
-  jobs:
-    build:
-      runs-on: [self-hosted, linux, x64]
-      env:
-        # https://docs.sonarqube.org/latest/analysis/scan/sonarscanner/
-        # Directory where build-wrapper output will be placed
-        BUILD_WRAPPER_OUT_DIR: build_wrapper_output_directory
-        SONAR_URL: ${{ secrets.SONAR_HOST_URL }}
-        SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-      steps:
-        - name: Checkout repository
-          uses: actions/checkout@v4
-        - name: Build the container
-        - run: ./scripts/auto.sh -s bdk build
-        - name: Stop the container
-        - run: ./scripts/auto.sh -s bdk stop
-        - name: Restart the container
-        - run: ./scripts/auto.sh -s bdk up
-        - name: Configure MOLD linker
-        - run: ./scripts/auto.sh -s bdk exec 'cmake -S /bdk-cpp
-               -B /bdk-cpp/build -DCMAKE_EXE_LINKER_FLAGS=\"-fuse-ld=mold\"
-               -DCMAKE_SHARED_LINKER_FLAGS=\"-fuse-ld=mold\"'
-        - name: Build the project
-        - run: ./scripts/auto.sh -s bdk exec 'cmake --build /bdk-cpp/build'
-        - name: Run Catch2 Tests
-          run: ./scripts/auto.sh -s bdk exec
-               '/bdk-cpp/build/src/bins/bdkd-tests/bdkd-tests -d yes'
-        - name: Run SonarQube Scanner
-          run: ./scripts/auto.sh -s bdk exec
-               'env SONAR_TOKEN=${{ env.SONAR_TOKEN }}
-                    SONAR_HOST_URL=${{ env.SONAR_HOST_URL }}
-                    sonar-scanner
-                   --define sonar.cfamily.build-wrapper-output=${{ env.BUILD_WRAPPER_OUT_DIR }}
-                   --define sonar.coverageReportPaths=coverage.xml'
-        - name: Build with SonarQube BuildWrapper + CMake
-          run: ./scripts/auto.sh -s bdk exec
-               'build-wrapper-linux-x86-64 --out-dir ${{ env.BUILD_WRAPPER_OUT_DIR }}
-                cmake --build build/ --config Release -- -j $(nproc)'
-        # documentation:
-        # - name: Generate Doxygen Documentation
-        #   run: ./scripts/auto.sh -s bdk exec 'doxygen /bdk-cpp/Doxyfile'
-        # - name: Publish Documentation
-        #   uses: actions/upload-artifact@v4
-        #   with:
-        #   name: Documentation
-        #   path: docs
+jobs:
+  build_test_and_analyse:
+    runs-on: [self-hosted, linux, x64]
+    env:
+      # https://docs.sonarqube.org/latest/analysis/scan/sonarscanner/
+      # Directory where build-wrapper output will be placed
+      BUILD_WRAPPER_OUT_DIR: build_wrapper_output_directory
+      SONAR_URL: ${{ secrets.SONAR_HOST_URL }}
+      SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Build the container
+      - run: ./scripts/auto.sh -s bdk build
+      - name: Stop the container
+      - run: ./scripts/auto.sh -s bdk stop
+      - name: Restart the container
+      - run: ./scripts/auto.sh -s bdk up
+      - name: Configure MOLD linker
+      - run: ./scripts/auto.sh -s bdk exec 'cmake -S /bdk-cpp
+             -B /bdk-cpp/build -DCMAKE_EXE_LINKER_FLAGS=\"-fuse-ld=mold\"
+             -DCMAKE_SHARED_LINKER_FLAGS=\"-fuse-ld=mold\"'
+      - name: Build the project
+      - run: ./scripts/auto.sh -s bdk exec 'cmake --build /bdk-cpp/build'
+      - name: Run Catch2 Tests
+        run: ./scripts/auto.sh -s bdk exec
+             '/bdk-cpp/build/src/bins/bdkd-tests/bdkd-tests -d yes'
+      - name: Run SonarQube Scanner
+        run: ./scripts/auto.sh -s bdk exec
+             'env SONAR_TOKEN=${{ env.SONAR_TOKEN }}
+                  SONAR_HOST_URL=${{ env.SONAR_HOST_URL }}
+                  sonar-scanner
+                  --define sonar.cfamily.build-wrapper-output=${{ env.BUILD_WRAPPER_OUT_DIR }}
+                  --define sonar.coverageReportPaths=coverage.xml'
+      - name: Build with SonarQube BuildWrapper + CMake
+        run: ./scripts/auto.sh -s bdk exec
+             'build-wrapper-linux-x86-64 --out-dir ${{ env.BUILD_WRAPPER_OUT_DIR }}
+              cmake --build build/ --config Release -- -j $(nproc)'
+      # documentation:
+      # - name: Generate Doxygen Documentation
+      #   run: ./scripts/auto.sh -s bdk exec 'doxygen /bdk-cpp/Doxyfile'
+      # - name: Publish Documentation
+      #   uses: actions/upload-artifact@v4
+      #   with:
+      #   name: Documentation
+      #   path: docs
