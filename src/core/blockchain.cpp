@@ -7,6 +7,8 @@ See the LICENSE.txt file in the project root for more information.
 
 #include "blockchain.h"
 
+#include "../utils/logger.h"
+
 Blockchain::Blockchain(const std::string& blockchainPath) :
   options_(Options::fromFile(blockchainPath)),
   db_(std::get<0>(DumpManager::getBestStateDBPath(options_))),

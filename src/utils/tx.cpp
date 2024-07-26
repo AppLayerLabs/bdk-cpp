@@ -228,7 +228,7 @@ void TxBlock::parseData(bytes::View txData, uint64_t& index) {
   }
 }
 
-void TxBlock::parseAccessList(bytes::View txData, uint64_t& index) {
+void TxBlock::parseAccessList(bytes::View txData, uint64_t& index) const {
   // Get access list - ALWAYS 0xc0 (empty list)
   if (txData[index] != 0xc0) throw DynamicException("Access list is not empty");
   index++; // Index at rlp[9] size

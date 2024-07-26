@@ -126,10 +126,12 @@ std::vector<Event> EventManager::getEvents(
     if (e.getBlockIndex() == blockIndex && e.getTxIndex() == txIndex) ret.push_back(e);
   }
   // Fetch from DB
-  Bytes fetchBytes = Utils::makeBytes(bytes::join(
-    DBPrefix::events, Utils::uint64ToBytes(blockIndex), Utils::uint64ToBytes(txIndex)
-  ));
-  for (DBEntry entry : this->db_.getBatch(fetchBytes)) {
+  for (
+    Bytes fetchBytes = Utils::makeBytes(bytes::join(
+      DBPrefix::events, Utils::uint64ToBytes(blockIndex), Utils::uint64ToBytes(txIndex)
+    ));
+    DBEntry entry : this->db_.getBatch(fetchBytes)
+  ) {
     if (ret.size() >= this->options_.getEventLogCap()) break;
     Event e(Utils::bytesToString(entry.value));
     ret.push_back(e);

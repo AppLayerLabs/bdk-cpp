@@ -187,9 +187,9 @@ namespace P2P {
 
   Message RequestEncoder::ping() {
     const Bytes& id = Utils::randBytes(8); // TODO: const& prevents AddressSanitizer, this shouldn't be happening
-    return Message(std::move(Utils::makeBytes(bytes::join(
+    return Message(Utils::makeBytes(bytes::join(
       getRequestTypePrefix(Requesting), id, getCommandPrefix(Ping)
-    ))));
+    )));
   }
 
   Message RequestEncoder::info(
@@ -206,31 +206,31 @@ namespace P2P {
 
   Message RequestEncoder::requestNodes() {
     const Bytes& id = Utils::randBytes(8); // TODO: const& prevents AddressSanitizer, this shouldn't be happening
-    return Message(std::move(Utils::makeBytes(bytes::join(
+    return Message(Utils::makeBytes(bytes::join(
       getRequestTypePrefix(Requesting), id, getCommandPrefix(RequestNodes)
-    ))));
+    )));
   }
 
   Message RequestEncoder::requestValidatorTxs() {
     const Bytes& id = Utils::randBytes(8); // TODO: const& prevents AddressSanitizer, this shouldn't be happening
-    return Message(std::move(Utils::makeBytes(bytes::join(
+    return Message(Utils::makeBytes(bytes::join(
       getRequestTypePrefix(Requesting), id, getCommandPrefix(RequestValidatorTxs)
-    ))));
+    )));
   }
 
   Message RequestEncoder::requestTxs() {
     const Bytes& id = Utils::randBytes(8); // TODO: const& prevents AddressSanitizer, this shouldn't be happening
-    return Message(std::move(Utils::makeBytes(bytes::join(
+    return Message(Utils::makeBytes(bytes::join(
       getRequestTypePrefix(Requesting), id, getCommandPrefix(RequestTxs)
-    ))));
+    )));
   }
 
   Message RequestEncoder::requestBlock(uint64_t height, uint64_t heightEnd, uint64_t bytesLimit) {
     const Bytes& id = Utils::randBytes(8); // TODO: const& prevents AddressSanitizer, this shouldn't be happening
-    return Message(std::move(Utils::makeBytes(bytes::join(
+    return Message(Utils::makeBytes(bytes::join(
       getRequestTypePrefix(Requesting), id, getCommandPrefix(RequestBlock),
       Utils::uint64ToBytes(height), Utils::uint64ToBytes(heightEnd), Utils::uint64ToBytes(bytesLimit)
-    ))));
+    )));
   }
 
   bool RequestDecoder::ping(const Message& message) {
@@ -271,9 +271,9 @@ namespace P2P {
   }
 
   Message AnswerEncoder::ping(const Message& request) {
-    return Message(std::move(Utils::makeBytes(bytes::join(
+    return Message(Utils::makeBytes(bytes::join(
       getRequestTypePrefix(Answering), request.id(), getCommandPrefix(Ping)
-    ))));
+    )));
   }
 
   Message AnswerEncoder::info(const Message& request,
@@ -374,34 +374,34 @@ namespace P2P {
   Message BroadcastEncoder::broadcastValidatorTx(const TxValidator& tx) {
     // We need to use std::hash because hashing with SafeHash will always be different between nodes
     const Bytes& serializedTx = tx.rlpSerialize(); // TODO: const& prevents AddressSanitizer, this shouldn't be happening
-    return Message(std::move(Utils::makeBytes(bytes::join(
+    return Message(Utils::makeBytes(bytes::join(
       getRequestTypePrefix(Broadcasting),
       Utils::uint64ToBytes(FNVHash()(serializedTx)),
       getCommandPrefix(BroadcastValidatorTx),
       serializedTx
-    ))));
+    )));
   }
 
   Message BroadcastEncoder::broadcastTx(const TxBlock& tx) {
     // We need to use std::hash because hashing with SafeHash will always be different between nodes
     const Bytes& serializedTx = tx.rlpSerialize(); // TODO: const& prevents AddressSanitizer, this shouldn't be happening
-    return Message(std::move(Utils::makeBytes(bytes::join(
+    return Message(Utils::makeBytes(bytes::join(
       getRequestTypePrefix(Broadcasting),
       Utils::uint64ToBytes(FNVHash()(serializedTx)),
       getCommandPrefix(BroadcastTx),
       serializedTx
-    ))));
+    )));
   }
 
   Message BroadcastEncoder::broadcastBlock(const std::shared_ptr<const FinalizedBlock>& block) {
     // We need to use std::hash because hashing with SafeHash will always be different between nodes
     const Bytes& serializedBlock = block->serializeBlock(); // TODO: const& prevents AddressSanitizer, this shouldn't be happening
-    return Message(std::move(Utils::makeBytes(bytes::join(
+    return Message(Utils::makeBytes(bytes::join(
       getRequestTypePrefix(Broadcasting),
       Utils::uint64ToBytes(FNVHash()(serializedBlock)),
       getCommandPrefix(BroadcastBlock),
       serializedBlock
-    ))));
+    )));
   }
 
   TxValidator BroadcastDecoder::broadcastValidatorTx(const Message& message, const uint64_t& requiredChainId) {

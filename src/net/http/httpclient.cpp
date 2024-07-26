@@ -3,6 +3,7 @@
 HTTPSyncClient::HTTPSyncClient(const std::string& host, const std::string& port)
   : host(host), port(port), resolver(ioc), stream(ioc) { this->connect(); }
 
+// TODO: either close() shouldn't be throwing, or the dtor shouldn't be calling it
 HTTPSyncClient::~HTTPSyncClient() { this->close(); }
 
 void HTTPSyncClient::connect() {

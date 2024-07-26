@@ -352,7 +352,7 @@ std::vector<uint256_t> DEXV2Router02::swapNativeForExactTokens(
     "DEXV2Router02::swapNativeForExactTokens: INVALID_PATH"
   );
   auto amounts = DEXV2Library::getAmountsIn(this->host_, this->factory_.get(), amountOut, path);
-  if (auto amountIn = amounts.front(); amountIn > amountInMax) throw DynamicException(
+  if (const auto amountIn = amounts.front(); amountIn > amountInMax) throw DynamicException(
     "DEXV2Router02::swapNativeForExactTokens: EXCESSIVE_INPUT_AMOUNT"
   );
   this->callContractFunction(amounts[0], this->wrappedNative_.get(), &NativeWrapper::deposit);

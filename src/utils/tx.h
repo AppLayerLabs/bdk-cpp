@@ -52,7 +52,7 @@ class TxBlock {
     void parseTo(bytes::View txData, uint64_t& index);
     void parseValue(bytes::View txData, uint64_t& index);
     void parseData(bytes::View txData, uint64_t& index);
-    void parseAccessList(bytes::View txData, uint64_t& index);
+    void parseAccessList(bytes::View txData, uint64_t& index) const; // We don't support access lists, therefore we don't alter the object
     void parseVRS(bytes::View txData, uint64_t& index);
     ///@}
 
