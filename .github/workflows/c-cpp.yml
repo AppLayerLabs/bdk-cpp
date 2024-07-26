@@ -27,7 +27,7 @@ jobs:
         run: git clone https://github.com/${{ github.repository }} ${{ env.TARGET_DIR}} || true
       - name: Checkout to current branch
         shell: bash
-        run: git -C ${{env.TARGET_DIR}} checkout -b ${{env.BRANCH_NAME}}
+        run: git -C ${{env.TARGET_DIR}} checkout ${{env.BRANCH_NAME}}
       - name: Sync to remote repository
         run: git -C ${{env.TARGET_DIR}} fetch
       - name: Update local repository
