@@ -23,9 +23,10 @@ jobs:
       BRANCH_NAME: ${{ github.head_ref || github.ref_name }}
     steps:
       - name: Echo branch name
-        run:|
-        echo "branch=${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}" >> $GITHUB_OUTPUT
-        echo ${{env.BRANCH_NAME}}
+        shell: bash
+        run: |
+             echo "branch=${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}" >> $GITHUB_OUTPUT
+             echo "${{env.BRANCH_NAME}}"
       # - name: Clone the repository
       #   shell: bash
       #   run: git clone https://github.com/${{ github.repository }} ${{ env.TARGET_DIR}} || true
