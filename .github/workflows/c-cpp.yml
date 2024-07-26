@@ -54,12 +54,10 @@ jobs:
         run: ./scripts/auto.sh -s bdk exec \
              '/bdk-cpp/build/src/bins/bdkd-tests/bdkd-tests -d yes'
       - name: Run SonarQube Scanner
-        run: ./scripts/auto.sh -s bdk exec \
-             'env SONAR_TOKEN=${{ env.SONAR_TOKEN }} sonar-scanner
+        run: ./scripts/auto.sh -s bdk exec sh -c \
+             'cd /bdk-cpp; env SONAR_TOKEN=${{ env.SONAR_TOKEN }} sonar-scanner
              --define sonar.cfamily.build-wrapper-output=${{ env.BUILD_WRAPPER_OUT_DIR }}
              --define sonar.coverageReportPaths=coverage.xml'
-      # - name: Build the project
-      #   run: ./scripts/auto.sh -s bdk exec 'cmake --build /bdk-cpp/build'
       # documentation:
       # - name: Generate Doxygen Documentation
       #   run: ./scripts/auto.sh -s bdk exec 'doxygen /bdk-cpp/Doxyfile'
