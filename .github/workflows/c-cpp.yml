@@ -28,7 +28,8 @@ jobs:
         run: git -C ${{env.TARGET_DIR}} fetch origin +refs/pull/*:refs/remotes/origin/pr/*
       - name: Checkout to referencie
         shell: bash
-        run: b=$(shuf -er -n 8  {A..Z} {a..z} {0..9} | tr -d '\n')
+        run: |
+             b=$(shuf -er -n 8  {A..Z} {a..z} {0..9} | tr -d '\n')
              n=$(echo "${{ github.ref_name }}" | tr "/" " " | awk '{print $1}')
              t=$(echo "${{ github.ref_name }}" | tr "/" " " | awk '{print $2}')
              git -C ${{env.TARGET_DIR}} checkout -b "$b" "origin/pr/$n/$t"
