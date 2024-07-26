@@ -36,6 +36,7 @@ RUN apt-get install -y \
     doxygen \
     jq \
     unzip \
+    gcovr \
     git
 
 # Create a directory for sonarcloud
