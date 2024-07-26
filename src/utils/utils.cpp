@@ -100,6 +100,7 @@ Account::Account(const bytes::View& bytes) {
 }
 
 Bytes Account::serialize() const {
+  // TODO: this could be optimized with bytes::join()?
   Bytes ret;
   Utils::appendBytes(ret, Utils::uint256ToBytes(this->balance));
   Utils::appendBytes(ret, Utils::uint64ToBytes(this->nonce));

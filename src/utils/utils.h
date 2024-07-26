@@ -21,28 +21,29 @@ See the LICENSE.txt file in the project root for more information.
 #include <tuple>
 #include <variant>
 
-#include <evmc/evmc.hpp>
-#include "zpp_bits.h"
-
 #include <boost/lexical_cast.hpp>
 #include <boost/multiprecision/cpp_dec_float.hpp>
 #include <boost/multiprecision/cpp_int.hpp>
 #include <boost/beast/core/error.hpp>
 #include <boost/asio/ip/address.hpp>
 
+#include <evmc/evmc.hpp>
 #include <ethash/keccak.h>
 #include <openssl/rand.h>
 
 #include "strings.h"
 #include "logger.h"
 
-#include "bytes/range.h"
-#include "bytes/view.h"
-#include "bytes/initializer.h"
+#include "../libs/zpp_bits.h"
+#include "../libs/json.hpp"
 
-#include "src/libs/json.hpp"
-#include "src/contract/variables/safeuint.h"
-#include "src/contract/variables/safeint.h"
+#include "../bytes/join.h"
+#include "../bytes/range.h"
+#include "../bytes/view.h"
+#include "../bytes/initializer.h"
+
+#include "../contract/variables/safeuint.h"
+#include "../contract/variables/safeint.h"
 
 /// Localhost IPv4 address constant
 inline const boost::asio::ip::address LOCALHOST = boost::asio::ip::address::from_string("127.0.0.1");
@@ -345,6 +346,8 @@ template<typename T, bool Index> struct EventParam {
 /// Namespace for utility functions.
 namespace Utils {
   std::string getTestDumpPath(); ///< Get the path to the test dump folder.
+
+  // TODO: document those later
 
   constexpr Bytes makeBytes(const bytes::DataRange auto& data) {
     Bytes res(std::ranges::size(data));

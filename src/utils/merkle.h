@@ -13,9 +13,10 @@ See the LICENSE.txt file in the project root for more information.
 
 #include "safehash.h"
 #include "strings.h"
-
 #include "tx.h"
 #include "utils.h"
+
+#include "../bytes/join.h"
 
 /**
  * Custom implementation of a %Merkle tree.

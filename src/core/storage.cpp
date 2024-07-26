@@ -7,8 +7,6 @@ See the LICENSE.txt file in the project root for more information.
 
 #include <boost/asio/post.hpp>
 
-#include "bytes/join.h"
-
 #include "storage.h"
 
 static void storeBlock(DB& db, const FinalizedBlock& block, bool indexingEnabled) {

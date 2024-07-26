@@ -17,6 +17,8 @@ See the LICENSE.txt file in the project root for more information.
 #include "merkle.h"
 #include "ecdsa.h"
 
+#include "../bytes/join.h"
+
 /// Abstraction of a finalized block. Members are purposefully const due to the immutable nature of the structure.
 class FinalizedBlock {
   private:

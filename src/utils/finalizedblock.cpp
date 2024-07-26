@@ -163,18 +163,19 @@ FinalizedBlock FinalizedBlock::createNewValidBlock(
   // We need to sign the block header
   // The block header is composed of the following fields:
   // prevBlockHash + blockRandomness + validatorMerkleRoot + txMerkleRoot + timestamp + nHeight
-  Bytes header(prevBlockHash.cbegin(), prevBlockHash.cend());
   Hash blockRandomness = rdPoS::parseTxSeedList(txValidators);
   Hash validatorMerkleRoot = Merkle(txValidators).getRoot();
   Hash txMerkleRoot = Merkle(txs).getRoot();
-  Utils::appendBytes(header, blockRandomness);
-  Utils::appendBytes(header, validatorMerkleRoot);
-  Utils::appendBytes(header, txMerkleRoot);
-  Utils::appendBytes(header, Utils::uint64ToBytes(timestamp));
-  Utils::appendBytes(header, Utils::uint64ToBytes(nHeight));
+
+  Bytes header = Utils::makeBytes(bytes::join(
+    prevBlockHash, blockRandomness, validatorMerkleRoot, txMerkleRoot,
+    Utils::uint64ToBytes(timestamp), Utils::uint64ToBytes(nHeight)
+  ));
+
   Hash headerHash = Utils::sha3(header);
   Signature signature = Secp256k1::sign(headerHash, validatorPrivKey);
   UPubKey validatorPubKey = Secp256k1::recover(signature, headerHash);
+
   // The block size is AT LEAST the size of the header
   uint64_t blockSize = 217;
   for (const auto &tx : txs) blockSize += tx.rlpSize() + 4;
@@ -199,15 +200,10 @@ FinalizedBlock FinalizedBlock::createNewValidBlock(
 }
 
 Bytes FinalizedBlock::serializeHeader() const {
-  Bytes ret;
-  ret.reserve(144);
-  Utils::appendBytes(ret, this->prevBlockHash_);
-  Utils::appendBytes(ret, this->blockRandomness_);
-  Utils::appendBytes(ret, this->validatorMerkleRoot_);
-  Utils::appendBytes(ret, this->txMerkleRoot_);
-  Utils::appendBytes(ret, Utils::uint64ToBytes(this->timestamp_));
-  Utils::appendBytes(ret, Utils::uint64ToBytes(this->nHeight_));
-  return ret;
+  return Utils::makeBytes(bytes::join(
+    prevBlockHash_, blockRandomness_, validatorMerkleRoot_, txMerkleRoot_,
+    Utils::uint64ToBytes(timestamp_), Utils::uint64ToBytes(nHeight_)
+  ));
 }
 
 Bytes FinalizedBlock::serializeBlock() const {
@@ -239,3 +235,4 @@ Bytes FinalizedBlock::serializeBlock() const {
 
   return ret;
 }
+

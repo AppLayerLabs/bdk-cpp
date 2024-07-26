@@ -68,14 +68,14 @@ EventManager::EventManager(const Options& options
 void EventManager::dump() {
   DBBatch batchedOperations;
     for (const auto& e : this->events_) {
-      // Build the key (block height + tx index + log index + address)
-      Bytes key;
-      key.reserve(8 + 8 + 8 + key.size());
-      Utils::appendBytes(key, Utils::uint64ToBytes(e.getBlockIndex()));
-      Utils::appendBytes(key, Utils::uint64ToBytes(e.getTxIndex()));
-      Utils::appendBytes(key, Utils::uint64ToBytes(e.getLogIndex()));
-      Utils::appendBytes(key, e.getAddress().asBytes());
-      // Serialize the value to a JSON string and insert into the batch
+      // Build the key (block height + tx index + log index + address), then
+      // serialize the value to a JSON string and insert into the batch
+      Bytes key = Utils::makeBytes(bytes::join(
+        Utils::uint64ToBytes(e.getBlockIndex()),
+        Utils::uint64ToBytes(e.getTxIndex()),
+        Utils::uint64ToBytes(e.getLogIndex()),
+        e.getAddress()
+      ));
       batchedOperations.push_back(key, Utils::stringToBytes(e.serializeToJson()), DBPrefix::events);
     }
   // Batch save to database and clear the list
@@ -126,9 +126,9 @@ std::vector<Event> EventManager::getEvents(
     if (e.getBlockIndex() == blockIndex && e.getTxIndex() == txIndex) ret.push_back(e);
   }
   // Fetch from DB
-  Bytes fetchBytes = DBPrefix::events;
-  Utils::appendBytes(fetchBytes, Utils::uint64ToBytes(blockIndex));
-  Utils::appendBytes(fetchBytes, Utils::uint64ToBytes(txIndex));
+  Bytes fetchBytes = Utils::makeBytes(bytes::join(
+    DBPrefix::events, Utils::uint64ToBytes(blockIndex), Utils::uint64ToBytes(txIndex)
+  ));
   for (DBEntry entry : this->db_.getBatch(fetchBytes)) {
     if (ret.size() >= this->options_.getEventLogCap()) break;
     Event e(Utils::bytesToString(entry.value));
