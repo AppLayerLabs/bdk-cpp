@@ -19,7 +19,7 @@ jobs:
       BUILD_WRAPPER_OUT_DIR: build_wrapper_output_directory
       SONAR_URL: ${{ secrets.SONAR_HOST_URL }}
       SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-      TARGET_DIR: "/home/actions/work/bdk-cpp"
+      TARGET_DIR: "/home/actions/actions-runner/_work/bdk-cpp/bdk-cpp"
     steps:
       - name: Clone or pull
         shell: bash
@@ -29,9 +29,10 @@ jobs:
       - name: Checkout to referencie
         shell: bash
         run: |
+             b=$(tr -dc A-Za-z0-9 </dev/urandom | head -c 16)
              n=$(echo "${{ github.ref_name }}" | tr "/" " " | awk '{print $1}')
              t=$(echo "${{ github.ref_name }}" | tr "/" " " | awk '{print $2}')
-             git -C ${{env.TARGET_DIR}} checkout "origin/pr/$n/$t"
+             git -C ${{env.TARGET_DIR}} checkout -b "$b" "origin/pr/$n/$t"
       - name: Build the container
         run: ./scripts/auto.sh -s bdk build
       - name: Stop the container
