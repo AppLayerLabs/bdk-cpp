@@ -18,7 +18,7 @@ DEXV2Factory::DEXV2Factory(const Address &address, const DB& db
     this->allPairs_.push_back(Address(dbEntry.value));
   }
   for (const auto& dbEntry : db.getBatch(this->getNewPrefix("getPair_"))) {
-    BytesArrView valueView(dbEntry.value);
+    bytes::View valueView(dbEntry.value);
     this->getPair_[Address(dbEntry.key)][Address(valueView.subspan(0, 20))] = Address(valueView.subspan(20));
   }
 
@@ -124,7 +124,7 @@ DBBatch DEXV2Factory::dump() const
 
   for (auto tokenA = this->getPair_.cbegin(); tokenA != this->getPair_.cend(); tokenA++) {
     for (auto tokenB = tokenA->second.cbegin(); tokenB != tokenA->second.cend(); tokenB++) {
-      const auto& key = tokenA->first.get();
+      const auto& key = tokenA->first;
       Bytes value = tokenB->first.asBytes();
       Utils::appendBytes(value, tokenB->second.asBytes());
       dbBatch.push_back(key, value, this->getNewPrefix("getPair_"));

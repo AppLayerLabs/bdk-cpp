@@ -8,7 +8,7 @@ See the LICENSE.txt file in the project root for more information.
 #include "finalizedblock.h"
 #include "../core/rdpos.h"
 
-FinalizedBlock FinalizedBlock::fromBytes(const BytesArrView bytes, const uint64_t& requiredChainId) {
+FinalizedBlock FinalizedBlock::fromBytes(const bytes::View bytes, const uint64_t& requiredChainId) {
   try {
     // Verify minimum size for a valid block
     SLOGTRACE("Deserializing block...");
@@ -128,8 +128,8 @@ FinalizedBlock FinalizedBlock::fromBytes(const BytesArrView bytes, const uint64_
     if (expectedValidatorMerkleRoot != validatorMerkleRoot) throw std::invalid_argument("Invalid validator merkle root");
     if (expectedRandomness != blockRandomness) throw std::invalid_argument("Invalid block randomness");
 
-    // Block header to hash is the 144 after the signature
-    BytesArrView headerBytes = bytes.subspan(65, 144);
+    /// Block header to hash is the 144 after the signature
+    bytes::View headerBytes = bytes.subspan(65, 144);
     Hash hash = Utils::sha3(headerBytes);
     UPubKey validatorPubKey = Secp256k1::recover(validatorSig, hash);
     return {

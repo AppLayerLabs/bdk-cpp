@@ -45,6 +45,12 @@ public:
     return Error(-32601, "Parsing error: insufficient values in array");
   }
 
+  /// @brief constructs a "method not found/avaiable" errror
+  /// @return the error object with a user friendly message
+  static Error methodNotAvailable(std::string_view method) {
+    return Error(-32601, std::string("Method \"") + method.data() + "\" not found/available");
+  }
+
   /// @brief constructs a generic interal exection error
   /// @return the error object with a user friendly message
   static Error executionError(std::string_view cause) {

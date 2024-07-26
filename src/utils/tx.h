@@ -8,6 +8,8 @@ See the LICENSE.txt file in the project root for more information.
 #ifndef TX_H
 #define TX_H
 
+#include "../bytes/view.h"
+
 #include "ecdsa.h"
 #include "strings.h"
 #include "utils.h"
@@ -42,16 +44,16 @@ class TxBlock {
      * @param txData The raw data to parse.
      * @param index The index to start parsing.
      */
-    void parseChainId(const BytesArrView& txData, uint64_t& index);
-    void parseNonce(const BytesArrView& txData, uint64_t& index);
-    void parseMaxPriorityFeePerGas(const BytesArrView& txData, uint64_t& index);
-    void parseMaxFeePerGas(const BytesArrView& txData, uint64_t& index);
-    void parseGasLimit(const BytesArrView& txData, uint64_t& index);
-    void parseTo(const BytesArrView& txData, uint64_t& index);
-    void parseValue(const BytesArrView& txData, uint64_t& index);
-    void parseData(const BytesArrView& txData, uint64_t& index);
-    void parseAccessList(const BytesArrView& txData, uint64_t& index);
-    void parseVRS(const BytesArrView& txData, uint64_t& index);
+    void parseChainId(bytes::View txData, uint64_t& index);
+    void parseNonce(bytes::View txData, uint64_t& index);
+    void parseMaxPriorityFeePerGas(bytes::View txData, uint64_t& index);
+    void parseMaxFeePerGas(bytes::View txData, uint64_t& index);
+    void parseGasLimit(bytes::View txData, uint64_t& index);
+    void parseTo(bytes::View txData, uint64_t& index);
+    void parseValue(bytes::View txData, uint64_t& index);
+    void parseData(bytes::View txData, uint64_t& index);
+    void parseAccessList(bytes::View txData, uint64_t& index);
+    void parseVRS(bytes::View txData, uint64_t& index);
     ///@}
 
     ///@{
@@ -79,7 +81,7 @@ class TxBlock {
      * @param requiredChainId The chain ID of the transaction.
      * @throw DynamicException on any parsing failure.
      */
-    TxBlock(const BytesArrView bytes, const uint64_t& requiredChainId);
+    TxBlock(const bytes::View bytes, const uint64_t& requiredChainId);
 
     /**
      * Manual constructor. Leave fields blank ("" or 0) if they're not required.
@@ -203,6 +205,13 @@ class TxBlock {
     bool operator==(const TxBlock& tx) const { return this->hash() == tx.hash(); }
 };
 
+struct TxAdditionalData {
+  Hash hash;
+  uint64_t gasUsed;
+  bool succeeded;
+  Address contractAddress;
+};
+
 /**
  * Abstraction of a Validator transaction.
  * All transactions are final and defined as such during construction.
@@ -225,9 +234,9 @@ class TxValidator {
      * @param bytes The raw data to parse.
      * @param index The index to start parsing.
      */
-    void parseData(const BytesArrView& bytes, uint64_t& index);
-    void parseNHeight(const BytesArrView& bytes, uint64_t& index);
-    void parseVRS(const BytesArrView& bytes, uint64_t& index);
+    void parseData(bytes::View bytes, uint64_t& index);
+    void parseNHeight(bytes::View bytes, uint64_t& index);
+    void parseVRS(bytes::View bytes, uint64_t& index);
     ///@}
 
     ///@{
@@ -250,7 +259,7 @@ class TxValidator {
      * @param requiredChainId The chain ID of the transaction.
      * @throw DynamicException on any parsing failure.
      */
-    TxValidator(const BytesArrView bytes, const uint64_t& requiredChainId);
+    TxValidator(const bytes::View bytes, const uint64_t& requiredChainId);
 
     /**
      * Manual constructor. Leave fields blank ("" or 0) if they're not required.

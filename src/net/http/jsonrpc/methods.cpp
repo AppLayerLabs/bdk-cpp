@@ -29,6 +29,18 @@ static inline void forbidParams(const json& request) {
     throw DynamicException("\"params\" are not required for method");
 }
 
+static inline void requiresIndexing(const Storage& storage, std::string_view method) {
+  if (storage.getIndexingMode() == IndexingMode::DISABLED) {
+    throw Error::methodNotAvailable(method);
+  }
+}
+
+static inline void requiresDebugIndexing(const Storage& storage, std::string_view method) {
+  if (storage.getIndexingMode() != IndexingMode::RPC_TRACE) {
+    throw Error::methodNotAvailable(method);
+  }
+}
+
 static json getBlockJson(const FinalizedBlock *block, bool includeTransactions) {
   json ret;
   if (block == nullptr) { ret = json::value_t::null; return ret; }
@@ -68,7 +80,7 @@ static json getBlockJson(const FinalizedBlock *block, bool includeTransactions) 
       txJson["from"] = tx.getFrom().hex(true);
       txJson["gas"] = Hex::fromBytes(Utils::uintToBytes(tx.getGasLimit()),true).forRPC();
       txJson["value"] = Hex::fromBytes(Utils::uintToBytes(tx.getValue()),true).forRPC();
-      txJson["input"] = Hex::fromBytes(tx.getData(),true).forRPC();
+      txJson["input"] = Hex::fromBytes(tx.getData(), true);
       txJson["gasPrice"] = Hex::fromBytes(Utils::uintToBytes(tx.getMaxFeePerGas()),true).forRPC();
       txJson["chainId"] = Hex::fromBytes(Utils::uintToBytes(tx.getChainId()),true).forRPC();
       txJson["v"] = Hex::fromBytes(Utils::uintToBytes(tx.getV()),true).forRPC();
@@ -346,6 +358,8 @@ json eth_sendRawTransaction(const json& request, uint64_t chainId, State& state,
 }
 
 json eth_getTransactionByHash(const json& request, const Storage& storage, const State& state) {
+  requiresIndexing(storage, "eth_getTransactionByHash");
+
   const auto [txHash] = parseAllParams<Hash>(request);
 
   json ret;
@@ -356,7 +370,7 @@ json eth_getTransactionByHash(const json& request, const Storage& storage, const
     ret["gas"] = Hex::fromBytes(Utils::uintToBytes(txOnMempool->getGasLimit()), true).forRPC();
     ret["gasPrice"] = Hex::fromBytes(Utils::uintToBytes(txOnMempool->getMaxFeePerGas()), true).forRPC();
     ret["hash"] = txOnMempool->hash().hex(true);
-    ret["input"] = Hex::fromBytes(txOnMempool->getData(), true).forRPC();
+    ret["input"] = Hex::fromBytes(txOnMempool->getData(), true);
     ret["nonce"] = Hex::fromBytes(Utils::uintToBytes(txOnMempool->getNonce()), true).forRPC();
     ret["to"] = txOnMempool->getTo().hex(true);
     ret["transactionIndex"] = json::value_t::null;
@@ -376,7 +390,7 @@ json eth_getTransactionByHash(const json& request, const Storage& storage, const
     ret["gas"] = Hex::fromBytes(Utils::uintToBytes(tx->getGasLimit()), true).forRPC();
     ret["gasPrice"] = Hex::fromBytes(Utils::uintToBytes(tx->getMaxFeePerGas()), true).forRPC();
     ret["hash"] = tx->hash().hex(true);
-    ret["input"] = Hex::fromBytes(tx->getData(), true).forRPC();
+    ret["input"] = Hex::fromBytes(tx->getData(), true);
     ret["nonce"] = Hex::fromBytes(Utils::uintToBytes(tx->getNonce()), true).forRPC();
     ret["to"] = tx->getTo().hex(true);
     ret["transactionIndex"] = Hex::fromBytes(Utils::uintToBytes(blockIndex), true).forRPC();
@@ -403,7 +417,7 @@ json eth_getTransactionByBlockHashAndIndex(const json& request, const Storage& s
     ret["gas"] = Hex::fromBytes(Utils::uintToBytes(tx->getGasLimit()), true).forRPC();
     ret["gasPrice"] = Hex::fromBytes(Utils::uintToBytes(tx->getMaxFeePerGas()), true).forRPC();
     ret["hash"] = tx->hash().hex(true);
-    ret["input"] = Hex::fromBytes(tx->getData(), true).forRPC();
+    ret["input"] = Hex::fromBytes(tx->getData(), true);
     ret["nonce"] = Hex::fromBytes(Utils::uintToBytes(tx->getNonce()), true).forRPC();
     ret["to"] = tx->getTo().hex(true);
     ret["transactionIndex"] = Hex::fromBytes(Utils::uintToBytes(txBlockIndex), true).forRPC();
@@ -430,7 +444,7 @@ json eth_getTransactionByBlockNumberAndIndex(const json& request, const Storage&
     ret["gas"] = Hex::fromBytes(Utils::uintToBytes(tx->getGasLimit()), true).forRPC();
     ret["gasPrice"] = Hex::fromBytes(Utils::uintToBytes(tx->getMaxFeePerGas()), true).forRPC();
     ret["hash"] = tx->hash().hex(true);
-    ret["input"] = Hex::fromBytes(tx->getData(), true).forRPC();
+    ret["input"] = Hex::fromBytes(tx->getData(), true);
     ret["nonce"] = Hex::fromBytes(Utils::uintToBytes(tx->getNonce()), true).forRPC();
     ret["to"] = tx->getTo().hex(true);
     ret["transactionIndex"] = Hex::fromBytes(Utils::uintToBytes(txBlockIndex), true).forRPC();
@@ -444,12 +458,19 @@ json eth_getTransactionByBlockNumberAndIndex(const json& request, const Storage&
 }
 
 json eth_getTransactionReceipt(const json& request, const Storage& storage, const State& state) {
+  requiresIndexing(storage, "eth_getTransactionReceipt");
+
   const auto [txHash] = parseAllParams<Hash>(request);
   auto txInfo = storage.getTx(txHash);
   const auto& [tx, blockHash, txIndex, blockHeight] = txInfo;
 
   if (tx != nullptr) {
     json ret;
+
+    const TxAdditionalData txAddData = storage.getTxAdditionalData(tx->hash())
+      .or_else([] () -> std::optional<TxAdditionalData> { throw DynamicException("Unable to fetch existing transaction data"); })
+      .value();
+
     ret["transactionHash"] = tx->hash().hex(true);
     ret["transactionIndex"] = Hex::fromBytes(Utils::uintToBytes(txIndex), true).forRPC();
     ret["blockHash"] = blockHash.hex(true);
@@ -459,23 +480,110 @@ json eth_getTransactionReceipt(const json& request, const Storage& storage, cons
     ret["cumulativeGasUsed"] = Hex::fromBytes(Utils::uintToBytes(tx->getGasLimit()), true).forRPC();
     ret["effectiveGasUsed"] = Hex::fromBytes(Utils::uintToBytes(tx->getGasLimit()), true).forRPC();
     ret["effectiveGasPrice"] = Hex::fromBytes(Utils::uintToBytes(tx->getMaxFeePerGas()),true).forRPC();
-    ret["gasUsed"] = Hex::fromBytes(Utils::uintToBytes(tx->getGasLimit()), true).forRPC();
-    if (tx->getTo() == Address()) {
-      ret["contractAddress"] = state.getAddressForTx(txHash).hex(true);
-    } else {
-      ret["contractAddress"] = json::value_t::null;
-    }
+    ret["gasUsed"] =  Hex::fromBytes(Utils::uintToBytes(txAddData.gasUsed), true).forRPC();
+    ret["contractAddress"] = bool(txAddData.contractAddress) ? json(txAddData.contractAddress.hex(true)) : json(json::value_t::null);
     ret["logs"] = json::array();
     ret["logsBloom"] = Hash().hex(true);
     ret["type"] = "0x00";
     ret["root"] = Hash().hex(true);
-    ret["status"] = "0x1"; // TODO: change this when contracts are ready
+    ret["status"] = txAddData.succeeded ? "0x1" : "0x0";
     for (const Event& e : state.getEvents(txHash, blockHeight, txIndex)) {
       ret["logs"].push_back(e.serializeForRPC());
     }
     return ret;
   }
   return json::value_t::null;
+}
+
+json eth_getUncleByBlockHashAndIndex() {
+  return json::value_t::null;
+}
+
+json txpool_content(const json& request, const State& state) {
+  forbidParams(request);
+  json result;
+  result["queued"] = json::array();
+  json& pending = result["pending"];
+
+  pending = json::array();
+
+  for (const auto& [hash, tx] : state.getPendingTxs()) {
+    json& txJson = pending[tx.getFrom().hex(true)][tx.getNonce().str()];
+
+    txJson["blockHash"] = json::value_t::null;
+    txJson["blockNumber"] = json::value_t::null;
+    txJson["from"] = tx.getFrom().hex(true);
+    txJson["to"] = tx.getTo().hex(true);
+    txJson["gasUsed"] = json::value_t::null;
+    txJson["gasPrice"] = Hex::fromBytes(Utils::uintToBytes(tx.getMaxFeePerGas()),true).forRPC();
+    txJson["getMaxFeePerGas"] = Hex::fromBytes(Utils::uintToBytes(tx.getMaxFeePerGas()),true).forRPC();
+    txJson["chainId"] = Hex::fromBytes(Utils::uintToBytes(tx.getChainId()),true).forRPC(); 
+    txJson["input"] = Hex::fromBytes(tx.getData(), true).forRPC();
+    txJson["nonce"] = Hex::fromBytes(Utils::uintToBytes(tx.getNonce()), true).forRPC();
+    txJson["transactionIndex"] = json::value_t::null;
+    txJson["type"] = "0x0"; // Legacy Transactions ONLY. TODO: change this to 0x2 when we support EIP-1559
+    txJson["v"] = Hex::fromBytes(Utils::uintToBytes(tx.getV()), true).forRPC();
+    txJson["r"] = Hex::fromBytes(Utils::uintToBytes(tx.getR()), true).forRPC();
+    txJson["s"] = Hex::fromBytes(Utils::uintToBytes(tx.getS()), true).forRPC();
+  }
+
+  return result;
+}
+
+json debug_traceBlockByNumber(const json& request, const Storage& storage) {
+  requiresDebugIndexing(storage, "debug_traceBlockByNumber");
+
+  json res = json::array();
+  auto [blockNumber, traceJson] = parseAllParams<uint64_t, json>(request);
+
+  if (!traceJson.contains("tracer"))
+    throw Error(-32000, "trace type missing");
+
+  if (traceJson["tracer"] != "callTracer")
+    throw Error(-32000, std::string("trace mode \"") + traceJson["tracer"].get<std::string>() + "\" not supported");
+
+  const auto block = storage.getBlock(blockNumber);
+
+  if (!block)
+    throw Error(-32000, std::string("block ") + std::to_string(blockNumber) + " not found");
+
+  for (const auto& tx : block->getTxs()) {
+    json txTrace;
+
+    auto callTrace = storage.getCallTrace(tx.hash());
+
+    if (!callTrace)
+      continue;
+
+    txTrace["txHash"] = tx.hash().hex(true);
+    txTrace["result"] = callTrace->toJson();
+
+    res.push_back(std::move(txTrace));
+  }
+
+  return res;
+}
+
+json debug_traceTransaction(const json& request, const Storage& storage) {
+  requiresDebugIndexing(storage, "debug_traceBlockByNumber");
+
+  json res;
+  auto [txHash, traceJson] = parseAllParams<Hash, json>(request);
+
+  if (!traceJson.contains("tracer"))
+    throw Error(-32000, "trace mode missing");
+
+  if (traceJson["tracer"] != "callTracer")
+    throw Error(-32000, std::string("trace mode \"") + traceJson["tracer"].get<std::string>() + "\" not supported");
+
+  std::optional<trace::Call> callTrace = storage.getCallTrace(txHash);
+
+  if (!callTrace)
+    return json::value_t::null;
+
+  res = callTrace->toJson();
+
+  return res;
 }
 
 } // namespace jsonrpc

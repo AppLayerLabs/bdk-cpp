@@ -34,7 +34,7 @@ struct TestAccount {
   TestAccount(const PrivKey& privKey_) : privKey(privKey_), address(Secp256k1::toAddress(Secp256k1::toPub(privKey))) {}
 
   /// Create a new random account.
-  inline static TestAccount newRandomAccount() { return TestAccount(Utils::randBytes(32)); }
+  inline static TestAccount newRandomAccount() { return TestAccount(PrivKey(Utils::randBytes(32))); }
 
   /// Operator bool to check if the account is not default, use PrivKey::operator bool.
   explicit operator bool() const { return bool(this->privKey); }
@@ -62,7 +62,7 @@ class SDKTestSuite {
 
     /// Owner of the chain (0x00dead00...).
     static TestAccount chainOwnerAccount() {
-      return {Hex::toBytes("0xe89ef6409c467285bcae9f80ab1cfeb3487cfe61ab28fb7d36443e1daa0c2867")};
+      return TestAccount(PrivKey(Hex::toBytes("0xe89ef6409c467285bcae9f80ab1cfeb3487cfe61ab28fb7d36443e1daa0c2867")));
     };
 
     /// PrivateKeys of the validators for the rdPoS within SDKTestSuite.
@@ -184,7 +184,8 @@ class SDKTestSuite {
           genesisTimestamp,
           genesisSigner,
           genesisBalances,
-          genesisValidators
+          genesisValidators,
+          IndexingMode::RPC_TRACE
         );
       } else {
         options_ = std::make_unique<Options>(*options);
@@ -254,9 +255,9 @@ class SDKTestSuite {
       for (uint64_t i = 0; i < orderedPrivKeys.size(); ++i) {
         Address validatorAddress = Secp256k1::toAddress(Secp256k1::toUPub(orderedPrivKeys[i]));
         Bytes hashTxData = Hex::toBytes("0xcfffe746");
-        Utils::appendBytes(hashTxData, Utils::sha3(randomSeeds[i].get()));
+        Utils::appendBytes(hashTxData, Utils::sha3(randomSeeds[i]));
         Bytes randomTxData = Hex::toBytes("0x6fc5a2d6");
-        Utils::appendBytes(randomTxData, randomSeeds[i].get());
+        Utils::appendBytes(randomTxData, randomSeeds[i]);
         randomHashTxs.emplace_back(
           validatorAddress, hashTxData, 8080, newBlocknHeight, orderedPrivKeys[i]
         );
@@ -938,6 +939,7 @@ class SDKTestSuite {
       const std::tuple<EventParam<Args, Flags>...>& args,
       bool anonymous = false
     ) {
+      printf("begin\n");
       // Get all the events emitted by the transaction.
       auto eventSignature = ABI::EventEncoder::encodeSignature<Args...>(
         ContractReflectionInterface::getFunctionName(func)
@@ -952,9 +954,12 @@ class SDKTestSuite {
 
       // Filter the events by the topics, from the most recent 2000 blocks
       std::vector<Event> filteredEvents;
+      printf("before access latest()\n");
       uint64_t lastBlock = this->storage_.latest()->getNHeight();
+      printf("after access latest()\n");
       uint64_t firstBlock = (lastBlock > 2000) ? lastBlock - 2000 : 0;
       auto allEvents = this->getEvents(firstBlock, lastBlock, address, {});
+      printf("before for loop()\n");
       for (const auto& event : allEvents) {
         if (topicsToFilter.size() == 0) {
           filteredEvents.push_back(event);

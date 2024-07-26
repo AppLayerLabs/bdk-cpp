@@ -22,6 +22,7 @@ See the LICENSE.txt file in the project root for more information.
 #include <variant>
 
 #include <evmc/evmc.hpp>
+#include "zpp_bits.h"
 
 #include <boost/lexical_cast.hpp>
 #include <boost/multiprecision/cpp_dec_float.hpp>
@@ -34,6 +35,10 @@ See the LICENSE.txt file in the project root for more information.
 
 #include "strings.h"
 #include "logger.h"
+
+#include "bytes/range.h"
+#include "bytes/view.h"
+#include "bytes/initializer.h"
 
 #include "src/libs/json.hpp"
 #include "src/contract/variables/safeuint.h"
@@ -55,7 +60,6 @@ using bigint = boost::multiprecision::number<boost::multiprecision::cpp_int_back
 using Byte = uint8_t; ///< Typedef for Byte.
 using Bytes = std::vector<Byte>; ///< Typedef for Bytes.
 template <std::size_t N> using BytesArr = std::array<Byte, N>; ///< Typedef for BytesArr.
-using BytesArrView = std::span<const Byte, std::dynamic_extent>; ///< Typedef for BytesArrView.
 
 // Base case for the recursive helper - now using requires for an empty body function
 template<size_t I = 0, typename... Tp>
@@ -273,7 +277,7 @@ struct Account {
   Account(uint256_t&& balance, uint64_t&& nonce) : balance(std::move(balance)), nonce(std::move(nonce)) {}
 
   /// Deserialize constructor.
-  Account(const BytesArrView& bytes);
+  Account(const bytes::View& bytes);
 
   /**
    * Serialize the account.
@@ -341,6 +345,18 @@ template<typename T, bool Index> struct EventParam {
 /// Namespace for utility functions.
 namespace Utils {
   std::string getTestDumpPath(); ///< Get the path to the test dump folder.
+
+  constexpr Bytes makeBytes(const bytes::DataRange auto& data) {
+    Bytes res(std::ranges::size(data));
+    std::ranges::copy(data, res.begin());
+    return res;
+  }
+
+  constexpr Bytes makeBytes(bytes::SizedInitializer auto&& initializer) {
+    Bytes res(initializer.size());
+    initializer(res);
+    return res;
+  }
 
   /**
    * Helper function for removeQualifiers
@@ -443,11 +459,11 @@ namespace Utils {
   Functor makeFunctor(std::string_view functionSignature);
 
   /**
-   * Get the BytesArrView representing the function arguments of a given evmc_message.
+   * Get the bytes::View representing the function arguments of a given evmc_message.
    * @param msg The evmc_message to get the function arguments from.
-   * @return The BytesArrView representing the function arguments.
+   * @return The bytes::View representing the function arguments.
    */
-  BytesArrView getFunctionArgs(const evmc_message& msg);
+  bytes::View getFunctionArgs(const evmc_message& msg);
 
   /**
    * Print a string to stdout. Does not print if in a test.
@@ -466,7 +482,7 @@ namespace Utils {
    * @param input The string to hash.
    * @return The SHA3-hashed string.
    */
-  Hash sha3(const BytesArrView input);
+  Hash sha3(const bytes::View input);
 
   /**
    * Generate a random bytes string of a given size.
@@ -484,7 +500,7 @@ namespace Utils {
   uint256_t evmcUint256ToUint256(const evmc::uint256be& i);
   evmc::uint256be uint256ToEvmcUint256(const uint256_t& i);
   BytesArr<32> evmcUint256ToBytes(const evmc::uint256be& i);
-  evmc::uint256be bytesToEvmcUint256(const BytesArrView b);
+  evmc::uint256be bytesToEvmcUint256(const bytes::View b);
   ///@}
 
   /**
@@ -547,41 +563,41 @@ namespace Utils {
    * @return The converted integer.
    * @throw DynamicException if string size is invalid.
    */
-  uint256_t bytesToUint256(const BytesArrView b);
-  uint248_t bytesToUint248(const BytesArrView b);
-  uint240_t bytesToUint240(const BytesArrView b);
-  uint232_t bytesToUint232(const BytesArrView b);
-  uint224_t bytesToUint224(const BytesArrView b);
-  uint216_t bytesToUint216(const BytesArrView b);
-  uint208_t bytesToUint208(const BytesArrView b);
-  uint200_t bytesToUint200(const BytesArrView b);
-  uint192_t bytesToUint192(const BytesArrView b);
-  uint184_t bytesToUint184(const BytesArrView b);
-  uint176_t bytesToUint176(const BytesArrView b);
-  uint168_t bytesToUint168(const BytesArrView b);
-  uint160_t bytesToUint160(const BytesArrView b);
-  uint152_t bytesToUint152(const BytesArrView b);
-  uint144_t bytesToUint144(const BytesArrView b);
-  uint136_t bytesToUint136(const BytesArrView b);
-  uint128_t bytesToUint128(const BytesArrView b);
-  uint120_t bytesToUint120(const BytesArrView b);
-  uint112_t bytesToUint112(const BytesArrView b);
-  uint104_t bytesToUint104(const BytesArrView b);
-  uint96_t bytesToUint96(const BytesArrView b);
-  uint88_t bytesToUint88(const BytesArrView b);
-  uint80_t bytesToUint80(const BytesArrView b);
-  uint72_t bytesToUint72(const BytesArrView b);
-  uint64_t bytesToUint64(const BytesArrView b);
-  uint56_t bytesToUint56(const BytesArrView b);
-  uint48_t bytesToUint48(const BytesArrView b);
-  uint40_t bytesToUint40(const BytesArrView b);
-  uint32_t bytesToUint32(const BytesArrView b);
-  uint24_t bytesToUint24(const BytesArrView b);
-  uint16_t bytesToUint16(const BytesArrView b);
-  uint8_t bytesToUint8(const BytesArrView b);
-  int256_t bytesToInt256(const BytesArrView b);
-  int136_t bytesToInt136(const BytesArrView b);
-  int64_t bytesToInt64(const BytesArrView b);
+  uint256_t bytesToUint256(const bytes::View b);
+  uint248_t bytesToUint248(const bytes::View b);
+  uint240_t bytesToUint240(const bytes::View b);
+  uint232_t bytesToUint232(const bytes::View b);
+  uint224_t bytesToUint224(const bytes::View b);
+  uint216_t bytesToUint216(const bytes::View b);
+  uint208_t bytesToUint208(const bytes::View b);
+  uint200_t bytesToUint200(const bytes::View b);
+  uint192_t bytesToUint192(const bytes::View b);
+  uint184_t bytesToUint184(const bytes::View b);
+  uint176_t bytesToUint176(const bytes::View b);
+  uint168_t bytesToUint168(const bytes::View b);
+  uint160_t bytesToUint160(const bytes::View b);
+  uint152_t bytesToUint152(const bytes::View b);
+  uint144_t bytesToUint144(const bytes::View b);
+  uint136_t bytesToUint136(const bytes::View b);
+  uint128_t bytesToUint128(const bytes::View b);
+  uint120_t bytesToUint120(const bytes::View b);
+  uint112_t bytesToUint112(const bytes::View b);
+  uint104_t bytesToUint104(const bytes::View b);
+  uint96_t bytesToUint96(const bytes::View b);
+  uint88_t bytesToUint88(const bytes::View b);
+  uint80_t bytesToUint80(const bytes::View b);
+  uint72_t bytesToUint72(const bytes::View b);
+  uint64_t bytesToUint64(const bytes::View b);
+  uint56_t bytesToUint56(const bytes::View b);
+  uint48_t bytesToUint48(const bytes::View b);
+  uint40_t bytesToUint40(const bytes::View b);
+  uint32_t bytesToUint32(const bytes::View b);
+  uint24_t bytesToUint24(const bytes::View b);
+  uint16_t bytesToUint16(const bytes::View b);
+  uint8_t bytesToUint8(const bytes::View b);
+  int256_t bytesToInt256(const bytes::View b);
+  int136_t bytesToInt136(const bytes::View b);
+  int64_t bytesToInt64(const bytes::View b);
   ///@}
 
   /**
@@ -602,7 +618,7 @@ namespace Utils {
    * @param sign (optional) The character to use as padding. Defaults to '0'.
    * @return The padded vector.
    */
-  Bytes padLeftBytes(const BytesArrView bytes, unsigned int charAmount, uint8_t sign = 0x00);
+  Bytes padLeftBytes(const bytes::View bytes, unsigned int charAmount, uint8_t sign = 0x00);
 
   /**
    * Add padding to the right of a byte vector.
@@ -614,7 +630,7 @@ namespace Utils {
    * @param sign (optional) The character to use as padding. Defaults to '0'.
    * @return The padded vector.
    */
-  Bytes padRightBytes(const BytesArrView bytes, unsigned int charAmount, uint8_t sign = 0x00);
+  Bytes padRightBytes(const bytes::View bytes, unsigned int charAmount, uint8_t sign = 0x00);
 
   /// Overload of padLeftBytes() that works with UTF-8 strings.
   std::string padLeft(std::string str, unsigned int charAmount, char sign = '\x00');
@@ -715,8 +731,8 @@ namespace Utils {
    * @param vec The vector to convert.
    * @return The converted span.
    */
-  inline BytesArrView create_view_span(const Bytes& vec) {
-    return BytesArrView(vec.data(), vec.size());
+  inline bytes::View create_view_span(const Bytes& vec) {
+    return bytes::View(vec.data(), vec.size());
   }
 
   /**
@@ -726,9 +742,9 @@ namespace Utils {
    * @param size The size of the subvector.
    * @return The converted span.
    */
-   inline BytesArrView create_view_span(const Bytes& vec, size_t start, size_t size) {
+   inline bytes::View create_view_span(const Bytes& vec, size_t start, size_t size) {
      if (start + size > vec.size()) throw DynamicException("Invalid range for span");
-     return BytesArrView(vec.data() + start, size);
+     return bytes::View(vec.data() + start, size);
    }
 
   /**
@@ -736,8 +752,8 @@ namespace Utils {
    * @param arr The array to convert.
    * @return The converted span.
    */
-  template<std::size_t N> inline BytesArrView create_view_span(const BytesArr<N>& arr) {
-    return BytesArrView(arr.data(), arr.size());
+  template<std::size_t N> inline bytes::View create_view_span(const BytesArr<N>& arr) {
+    return bytes::View(arr.data(), arr.size());
   }
 
   /**
@@ -747,11 +763,11 @@ namespace Utils {
    * @param size The size of the subarray.
    * @return The converted span.
    */
-  template<std::size_t N> inline BytesArrView create_view_span(
+  template<std::size_t N> inline bytes::View create_view_span(
     const BytesArr<N>& arr, size_t start, size_t size
   ) {
     if (start + size > arr.size()) throw DynamicException("Invalid range for span");
-    return BytesArrView(arr.data() + start, size);
+    return bytes::View(arr.data() + start, size);
   }
 
   /**
@@ -759,8 +775,8 @@ namespace Utils {
    * @param str The string to convert.
    * @return The converted span.
    */
-  inline BytesArrView create_view_span(const std::string_view str) {
-    return BytesArrView(reinterpret_cast<const uint8_t*>(str.data()), str.size());
+  inline bytes::View create_view_span(const std::string_view str) {
+    return bytes::View(reinterpret_cast<const uint8_t*>(str.data()), str.size());
   }
 
   /**
@@ -770,11 +786,11 @@ namespace Utils {
    * @param size The size of the substring.
    * @return The converted span.
    */
-  inline BytesArrView create_view_span(const std::string_view str, size_t start, size_t size) {
+  inline bytes::View create_view_span(const std::string_view str, size_t start, size_t size) {
     if (start + size > str.size()) {
       throw DynamicException("Invalid range for span");
     }
-    return BytesArrView(reinterpret_cast<const uint8_t*>(str.data()) + start, size);
+    return bytes::View(reinterpret_cast<const uint8_t*>(str.data()) + start, size);
   }
 
   /**

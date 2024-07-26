@@ -98,7 +98,7 @@ namespace P2P {
    * @param message The message to parse.
    * @return The request type.
    */
-  RequestType getRequestType(const BytesArrView message);
+  RequestType getRequestType(const bytes::View message);
 
   /**
    * Get the 1-byte prefix of a given request inside typePrefixes.
@@ -112,7 +112,7 @@ namespace P2P {
    * @param message The message to parse.
    * @return The command type.
    */
-  CommandType getCommandType(const BytesArrView message);
+  CommandType getCommandType(const bytes::View message);
 
   /**
    * Get the 2-byte prefix of a given command inside commandPrefixes.
@@ -587,19 +587,19 @@ namespace P2P {
       }
 
       /// Get the request type of the message.
-      RequestType type() const { return getRequestType(BytesArrView(rawMessage_).subspan(0,1)); }
+      RequestType type() const { return getRequestType(bytes::View(rawMessage_).subspan(0,1)); }
 
       /// Get the request ID of the message.
-      RequestID id() const { return RequestID(BytesArrView(rawMessage_).subspan(1, 8)); }
+      RequestID id() const { return RequestID(bytes::View(rawMessage_).subspan(1, 8)); }
 
       /// Get the command type of the message.
-      CommandType command() const { return getCommandType(BytesArrView(rawMessage_).subspan(9,2)); }
+      CommandType command() const { return getCommandType(bytes::View(rawMessage_).subspan(9,2)); }
 
       /// Get the message data (without the flags and IDs).
-      BytesArrView message() const { return BytesArrView(rawMessage_).subspan(11); }
+      bytes::View message() const { return bytes::View(rawMessage_).subspan(11); }
 
       /// Get the whole message.
-      BytesArrView raw() const { return this->rawMessage_; }
+      bytes::View raw() const { return this->rawMessage_; }
 
       /// Get the message's size.
       size_t size() const { return this->rawMessage_.size(); }

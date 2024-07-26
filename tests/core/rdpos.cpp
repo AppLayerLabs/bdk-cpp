@@ -109,7 +109,7 @@ namespace TRdPoS {
           blockchainWrapper.state.rdposProcessBlock(block);
 
           // Add the block to the storage.
-          blockchainWrapper.storage.pushBack(std::move(block));
+          blockchainWrapper.storage.pushBlock(std::move(block));
         }
 
         // We expect to have moved 10 blocks forward.
@@ -192,7 +192,7 @@ namespace TRdPoS {
       for (uint64_t i = 0; i < orderedPrivKeys.size(); ++i) {
         Address validatorAddress = Secp256k1::toAddress(Secp256k1::toUPub(orderedPrivKeys[i]));
         Bytes hashTxData = Hex::toBytes("0xcfffe746");
-        Utils::appendBytes(hashTxData, Utils::sha3(randomSeeds[i].get()));
+        Utils::appendBytes(hashTxData, Utils::sha3(randomSeeds[i]));
         Bytes randomTxData = Hex::toBytes("0x6fc5a2d6");
         Utils::appendBytes(randomTxData, randomSeeds[i]);
         txValidators.emplace_back(
@@ -313,7 +313,8 @@ namespace TRdPoS {
           genesisTimestamp,
           genesisPrivKey,
           genesisBalances,
-          genesisValidators
+          genesisValidators,
+          IndexingMode::RPC
         );
       P2P::ManagerDiscovery p2pDiscovery(LOCALHOST, discoveryOptions);
 
@@ -442,7 +443,7 @@ namespace TRdPoS {
       for (uint64_t i = 0; i < orderedPrivKeys.size(); ++i) {
         Address validatorAddress = Secp256k1::toAddress(Secp256k1::toUPub(orderedPrivKeys[i]));
         Bytes hashTxData = Hex::toBytes("0xcfffe746");
-        Utils::appendBytes(hashTxData, Utils::sha3(randomSeeds[i].get()));
+        Utils::appendBytes(hashTxData, Utils::sha3(randomSeeds[i]));
         Bytes randomTxData = Hex::toBytes("0x6fc5a2d6");
         Utils::appendBytes(randomTxData, randomSeeds[i]);
         txValidators.emplace_back(
@@ -566,7 +567,8 @@ namespace TRdPoS {
       genesisTimestamp,
       genesisPrivKey,
       genesisBalances,
-      genesisValidators
+      genesisValidators,
+      IndexingMode::RPC
     );
     P2P::ManagerDiscovery p2pDiscovery(LOCALHOST, discoveryOptions);
 

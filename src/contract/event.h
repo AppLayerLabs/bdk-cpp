@@ -14,6 +14,7 @@ See the LICENSE.txt file in the project root for more information.
 #include <string>
 
 #include "../libs/json.hpp"
+#include "../libs/zpp_bits.h"
 
 #include "../utils/db.h"
 #include "../utils/options.h"
@@ -34,6 +35,10 @@ using json = nlohmann::ordered_json;
 
 /// Abstraction of a Solidity event.
 class Event {
+  friend struct event_indices;
+  friend zpp::bits::access;
+  using serialize = zpp::bits::members<10>;
+
   private:
     std::string name_;          ///< Event name.
     uint64_t logIndex_;         ///< Position of the event inside the block it was emitted from.
@@ -48,6 +53,8 @@ class Event {
     friend struct event_indices;
 
   public:
+    Event() = default;
+
     /**
      * Constructor for EVM events.
      * @param name The event's name.
@@ -146,7 +153,7 @@ class Event {
       if (!this->anonymous_) return this->topics_[0]; else return Hash();
     }
 
-    std::string serialize() const;  ///< Serialize event data from the object to a JSON string.
+    std::string serializeToJson() const;  ///< Serialize event data from the object to a JSON string.
 
     /**
      * Serialize event data to a JSON string, formatted to RPC response standards
@@ -174,12 +181,12 @@ using EventContainer = bmi::multi_index_container<Event, event_indices>;  ///< A
 class EventManager {
   private:
     // TODO: keep up to 1000 (maybe 10000? 100000? 1M seems too much) events in memory, dump older ones to DB (this includes checking save/load - maybe this should be a deque?)
-    EventContainer events_;           ///< List of all emitted events in memory. Older ones FIRST, newer ones LAST.
-    /// Uhhh mutable is needed because we used to dump stuff through the construction
-    /// now we do through the dump() method, so we need to mark it as mutable.
-    /// but dump() should be const, so we need to mark it as mutable.
-    mutable DB db_;                           ///< EventManager Database.
-    const Options& options_;          ///< Reference to the Options singleton.
+    EventContainer events_;   ///< List of all emitted events in memory. Older ones FIRST, newer ones LAST.
+    // Mutable is needed because we used to dump stuff through the construction
+    // now we do through the dump() method, so we need to mark it as mutable.
+    // but dump() should be const, so we need to mark it as mutable.
+    mutable DB db_;           ///< EventManager Database.
+    const Options& options_;  ///< Reference to the Options singleton.
 
   public:
     /**

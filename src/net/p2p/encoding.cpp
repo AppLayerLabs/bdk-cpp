@@ -14,7 +14,7 @@ namespace P2P {
   // These are shared between messages of various types that share the same encoding and decoding patterns.
   // ------------------------------------------------------------------------------------------------------------------
 
-  boost::unordered_flat_map<NodeID, NodeType, SafeHash> nodesFromMessage(const BytesArrView& data) {
+  boost::unordered_flat_map<NodeID, NodeType, SafeHash> nodesFromMessage(bytes::View data) {
     boost::unordered_flat_map<NodeID, NodeType, SafeHash> nodes;
     size_t index = 0;
     while (index < data.size()) {
@@ -60,7 +60,7 @@ namespace P2P {
     }
   }
 
-  NodeInfo nodeInfoFromMessage(const BytesArrView& data) {
+  NodeInfo nodeInfoFromMessage(const bytes::View& data) {
     uint64_t nodeVersion = Utils::bytesToUint64(data.subspan(0, 8));
     uint64_t nodeEpoch = Utils::bytesToUint64(data.subspan(8, 8));
     uint64_t nodeHeight = Utils::bytesToUint64(data.subspan(16, 8));
@@ -90,7 +90,7 @@ namespace P2P {
   }
 
   template<typename TxType>
-  std::vector<TxType> txsFromMessage(const BytesArrView& data, const uint64_t& requiredChainId) {
+  std::vector<TxType> txsFromMessage(const bytes::View& data, const uint64_t& requiredChainId) {
     std::vector<TxType> txs;
     size_t index = 0;
     while (index < data.size()) {
@@ -98,7 +98,7 @@ namespace P2P {
       uint32_t txSize = Utils::bytesToUint32(data.subspan(index, 4));
       index += 4;
       if (data.size() < txSize) { throw DynamicException("Invalid data size."); }
-      BytesArrView txData = data.subspan(index, txSize);
+      bytes::View txData = data.subspan(index, txSize);
       index += txSize;
       // Assuming requiredChainId is declared elsewhere
       txs.emplace_back(txData, requiredChainId);
@@ -124,7 +124,7 @@ namespace P2P {
     }
   }
 
-  std::vector<FinalizedBlock> blocksFromMessage(const BytesArrView& data, const uint64_t& requiredChainId) {
+  std::vector<FinalizedBlock> blocksFromMessage(const bytes::View& data, const uint64_t& requiredChainId) {
     std::vector<FinalizedBlock> blocks;
     size_t index = 0;
     while (index < data.size()) {
@@ -132,7 +132,7 @@ namespace P2P {
       uint64_t blockSize = Utils::bytesToUint64(data.subspan(index, 8));
       index += 8;
       if (data.size() < blockSize) { throw DynamicException("Invalid data size."); }
-      BytesArrView blockData = data.subspan(index, blockSize);
+      bytes::View blockData = data.subspan(index, blockSize);
       index += blockSize;
       blocks.emplace_back(FinalizedBlock::fromBytes(blockData, requiredChainId));
     }
@@ -151,13 +151,13 @@ namespace P2P {
   // Implementation of all network messages that are in encoding.h (common code is in the helpers above).
   // ------------------------------------------------------------------------------------------------------------------
 
-  RequestID::RequestID(const uint64_t& value) { this->data_ = Utils::uint64ToBytes(value); }
+  RequestID::RequestID(const uint64_t& value) { std::ranges::copy(Utils::uint64ToBytes(value), begin()); }
 
-  uint64_t RequestID::toUint64() const { return Utils::bytesToUint64(this->data_); }
+  uint64_t RequestID::toUint64() const { return Utils::bytesToUint64(*this); }
 
   RequestID RequestID::random() { return RequestID(Utils::randBytes(8)); }
 
-  CommandType getCommandType(const BytesArrView message) {
+  CommandType getCommandType(const bytes::View message) {
     if (message.size() != 2) { throw DynamicException("Invalid Command Type size." + std::to_string(message.size())); }
     uint16_t commandType = Utils::bytesToUint16(message);
     if (commandType > commandPrefixes.size()) { throw DynamicException("Invalid command type."); }
@@ -166,7 +166,7 @@ namespace P2P {
 
   const Bytes& getCommandPrefix(const CommandType& commType) { return commandPrefixes[commType]; }
 
-  RequestType getRequestType(const BytesArrView message) {
+  RequestType getRequestType(const bytes::View message) {
     if (message.size() != 1) { throw DynamicException("Invalid Request Type size. " + std::to_string(message.size())); }
     uint8_t requestType = Utils::bytesToUint8(message);
     if (requestType > typePrefixes.size()) { throw DynamicException("Invalid request type."); }

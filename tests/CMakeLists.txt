@@ -31,6 +31,7 @@ set (TESTS_SOURCES
   ${CMAKE_SOURCE_DIR}/tests/contract/simplecontract.cpp
   ${CMAKE_SOURCE_DIR}/tests/contract/evm.cpp
   ${CMAKE_SOURCE_DIR}/tests/contract/randomness.cpp
+  ${CMAKE_SOURCE_DIR}/tests/contract/calltracer.cpp
   ${CMAKE_SOURCE_DIR}/tests/contract/createcontract.cpp
   ${CMAKE_SOURCE_DIR}/tests/contract/pebble.cpp
   ${CMAKE_SOURCE_DIR}/tests/contract/variables/safeuint_t.cpp
