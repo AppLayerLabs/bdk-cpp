@@ -52,7 +52,7 @@ jobs:
              '/bdk-cpp/build/src/bins/bdkd-tests/bdkd-tests -d yes'
       - name: Run SonarQube Scanner
         run: ./scripts/auto.sh -s bdk exec \
-             'env SONAR_TOKEN=${{ env.SONAR_TOKEN }} sonar-scanner
+             'env SONAR_TOKEN=${{ env.SONAR_TOKEN }} sonar-scanner -X
              --define sonar.cfamily.build-wrapper-output=${{ env.BUILD_WRAPPER_OUT_DIR }}
              --define sonar.coverageReportPaths=coverage.xml'
       # documentation:
