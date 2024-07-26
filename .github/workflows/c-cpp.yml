@@ -25,7 +25,7 @@ jobs:
       - name: Echo branch name
         shell: bash
         run: |
-             echo "branch=${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}" >> $GITHUB_OUTPUT
+             echo "branch=${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}"
              echo "${{env.BRANCH_NAME}}"
       # - name: Clone the repository
       #   shell: bash
