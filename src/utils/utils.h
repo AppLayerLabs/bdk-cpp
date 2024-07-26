@@ -354,7 +354,7 @@ namespace Utils {
 
   constexpr Bytes makeBytes(bytes::SizedInitializer auto&& initializer) {
     Bytes res(initializer.size());
-    initializer(res);
+    initializer.to(res);
     return res;
   }
 
