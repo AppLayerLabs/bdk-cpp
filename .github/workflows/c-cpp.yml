@@ -23,13 +23,11 @@ jobs:
       BRANCH_NAME: ${{ github.head_ref || github.ref_name }}
     steps:
       - name: Clone the repository
-        shell: bash
         run: git clone https://github.com/${{ github.repository }} ${{ env.TARGET_DIR}} || true
-      - name: Checkout to current branch
-        shell: bash
-        run: git -C ${{env.TARGET_DIR}} checkout ${{env.BRANCH_NAME}}
-      - name: Sync to remote repository
+      - name: Sync with remote repository
         run: git -C ${{env.TARGET_DIR}} fetch
+      - name: Checkout to current branch
+        run: git -C ${{env.TARGET_DIR}} checkout ${{env.BRANCH_NAME}}
       - name: Update local repository
         run: git -C ${{env.TARGET_DIR}} pull
       - name: Build the container
@@ -53,8 +51,8 @@ jobs:
         run: ./scripts/auto.sh -s bdk exec \
              '/bdk-cpp/build/src/bins/bdkd-tests/bdkd-tests -d yes'
       - name: Run SonarQube Scanner
-        run: ./scripts/auto.sh -s bdk exec sh -c \
-             'cd /bdk-cpp; env SONAR_TOKEN=${{ env.SONAR_TOKEN }} sonar-scanner
+        run: ./scripts/auto.sh -s bdk exec \
+             'env SONAR_TOKEN=${{ env.SONAR_TOKEN }} sonar-scanner
              --define sonar.cfamily.build-wrapper-output=${{ env.BUILD_WRAPPER_OUT_DIR }}
              --define sonar.coverageReportPaths=coverage.xml'
       # documentation:

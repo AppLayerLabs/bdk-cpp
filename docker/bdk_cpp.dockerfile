@@ -63,5 +63,8 @@ ENV PATH=/root/.sonar/sonar-scanner-6.1.0.4477-linux-x64/bin:$PATH
 # Copy the entrypoint script
 COPY docker/entrypoint.sh /entrypoint.sh
 
+# Copy sonar definitions project to /tmp
+COPY sonar-project.properties /tmp
+
 # Work from the temporary directory (tests will be here)
 WORKDIR /tmp
