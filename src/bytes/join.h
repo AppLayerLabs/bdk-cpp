@@ -40,10 +40,13 @@ Byte *joinImpl(Byte *dest, const auto& arg, const auto&... args) {
 
 template<typename... Ts>
 SizedInitializer auto join(Ts&&... args) {
-  return makeInitializer(detail::joinedSize(args...), [args_ = std::tuple<Ts...>(std::forward<Ts>(args)...)]
-  (Byte *dest) {
-    std::apply(detail::joinImpl<Ts...>, std::tuple_cat(std::make_tuple(dest), args_));
-  });
+  const size_t size = detail::joinedSize(args...);
+
+  auto func = [args_ = std::tuple<Ts...>(std::forward<Ts>(args)...)] (Byte *dest) {
+    std::apply(detail::joinImpl<Ts...>, std::tuple_cat(std::make_tuple(dest), std::tuple<const Ts&...>(args_)));
+  };
+
+  return makeInitializer(size, std::move(func));
 }
 
 } // namespace bytes
