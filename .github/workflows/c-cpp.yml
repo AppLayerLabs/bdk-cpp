@@ -55,9 +55,7 @@ jobs:
       #         gcovr -r '/bdk-cpp' --gcov-ignore-parse-errors --sonarqube > coverage.xml
       - name: Run SonarQube Scanner
         run: ./scripts/auto.sh -s bdk exec bash -c \
-             'export SONAR_TOKEN=${{ env.SONAR_TOKEN }} &&
-              export SONAR_HOST_URL=${{ env.SONAR_HOST_URL }} &&
-              sonar-scanner -X
+             'sonar-scanner -X
              --define sonar.cfamily.build-wrapper-output=${{ env.BUILD_WRAPPER_OUT_DIR }}
              --define sonar.coverageReportPaths=coverage.xml'
 
