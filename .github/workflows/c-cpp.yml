@@ -37,22 +37,27 @@ jobs:
       - name: Restart the container
         run: ./scripts/auto.sh -s bdk up
       - name: Clean previos build (if any)
-        run: ./scripts/auto.sh -s bdk exec 'make -C /bdk-cpp/build clean' || true
+        run: ./scripts/auto.sh -s bdk exec 'make -C build clean' || true
       - name: Configure MOLD linker
-        run: ./scripts/auto.sh -s bdk exec 'cmake -S /bdk-cpp -B /bdk-cpp/build
+        run: ./scripts/auto.sh -s bdk exec 'cmake -S . -B build
              -DSONARQUBE_ANALYSIS=ON -DDEBUG=OFF
              -DCMAKE_EXE_LINKER_FLAGS=\"-fuse-ld=mold\"
              -DCMAKE_SHARED_LINKER_FLAGS=\"-fuse-ld=mold\"'
-      # - name: Build with SonarQube BuildWrapper + CMake
-      #   run: ./scripts/auto.sh -s bdk exec \
-      #        'build-wrapper-linux-x86-64 --out-dir ${{ env.BUILD_WRAPPER_OUT_DIR }}
-      #         cmake --build /bdk-cpp/build --config Release -- -j $(nproc)'
-      # - name: Run Tests
-      #   run: ./scripts/auto.sh -s bdk exec \
-      #        '/bdk-cpp/build/src/bins/bdkd-tests/bdkd-tests -d yes'
-      # - name: Collect coverage into one XML report
-      #   run: ./scripts/auto.sh -s bdk exec \
-      #         gcovr -r '/bdk-cpp' --gcov-ignore-parse-errors --sonarqube > coverage.xml
+      - name: Build with SonarQube BuildWrapper + CMake
+        run: ./scripts/auto.sh -s bdk exec \
+             'build-wrapper-linux-x86-64 --out-dir ${{ env.BUILD_WRAPPER_OUT_DIR }}
+              cmake --build build --config Release -- -j $(nproc)'
+      - name: Run Tests
+        run: ./scripts/auto.sh -s bdk exec \
+             './build/src/bins/bdkd-tests/bdkd-tests -d yes'
+      - name: Delete coverage XML report (if any)
+        run: ./scripts/auto.sh -s bdk exec 'rm coverage.xml || true'
+      - name: Collect coverage into one XML report
+        run: ./scripts/auto.sh -s bdk exec \
+             'gcovr -d \
+                    --gcov-ignore-errors=all \
+                    --gcov-ignore-parse-errors=all \
+                    --sonarqube -o coverage.xml'
       - name: Run SonarQube Scanner
         run: ./scripts/auto.sh -s bdk exec \
              'env SONAR_TOKEN=${{ env.SONAR_TOKEN }}

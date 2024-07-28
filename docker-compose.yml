@@ -10,5 +10,6 @@ services:
     volumes:
       - .:/bdk-cpp
     entrypoint: ["/entrypoint.sh"]
+    working_dir: /bdk-cpp
     tty: true
     stdin_open: true
