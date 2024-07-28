@@ -27,7 +27,4 @@ nohup unison -repeat 1 /bdk-volume /bdk-cpp -auto -batch \
     -ignore 'Name {kateproject}' \
     -ignore 'Name {*.o}' \
     -ignore 'Name {*.gch}' \
-> /dev/null 2>&1 &
-
-# Keep the container running
-exec tail -f /dev/null
+> /dev/null 2>&1 & /bin/bash
