@@ -54,11 +54,12 @@ jobs:
       #   run: ./scripts/auto.sh -s bdk exec \
       #         gcovr -r '/bdk-cpp' --gcov-ignore-parse-errors --sonarqube > coverage.xml
       - name: Run SonarQube Scanner
-        run: ./scripts/auto.sh -s bdk exec bash -c \
-             'sonar-scanner -X
-             --define sonar.cfamily.build-wrapper-output=${{ env.BUILD_WRAPPER_OUT_DIR }}
-             --define sonar.coverageReportPaths=coverage.xml'
-
+        run: ./scripts/auto.sh -s bdk exec \
+             'env SONAR_TOKEN=${{ env.SONAR_TOKEN }}
+                  SONAR_HOST_URL=${{ env.SONAR_HOST_URL }}
+                  sonar-scanner
+                  --define sonar.cfamily.build-wrapper-output=${{ env.BUILD_WRAPPER_OUT_DIR }}
+                  --define sonar.coverageReportPaths=coverage.xml'
       # documentation:
       # - name: Generate Doxygen Documentation
       #   run: ./scripts/auto.sh -s bdk exec 'doxygen /bdk-cpp/Doxyfile'
