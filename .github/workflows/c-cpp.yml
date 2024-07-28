@@ -46,7 +46,7 @@ jobs:
       - name: Build with SonarQube BuildWrapper + CMake
         run: ./scripts/auto.sh -s bdk exec \
              'build-wrapper-linux-x86-64 --out-dir ${{ env.BUILD_WRAPPER_OUT_DIR }}
-              cmake --build /bdk-cpp/build/ --config Release -- -j $(nproc)'
+              cmake --build /bdk-cpp/build --config Release -- -j $(nproc)'
       - name: Run Tests
         run: ./scripts/auto.sh -s bdk exec \
              '/bdk-cpp/build/src/bins/bdkd-tests/bdkd-tests -d yes'
@@ -57,7 +57,7 @@ jobs:
         run: ./scripts/auto.sh -s bdk exec bash -c \
              'export SONAR_TOKEN=${{ env.SONAR_TOKEN }} &&
               export SONAR_HOST_URL=${{ env.SONAR_HOST_URL }} &&
-              sonar-scanner -X
+              /root/.sonar/sonar-scanner-6.1.0.4477-linux-x64/bin/sonar-scanner -X
              --define sonar.cfamily.build-wrapper-output=${{ env.BUILD_WRAPPER_OUT_DIR }}
              --define sonar.coverageReportPaths=coverage.xml'
 
