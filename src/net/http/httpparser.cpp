@@ -15,9 +15,25 @@ std::string parseJsonRpcRequest(
   P2P::ManagerNormal& p2p,
   const Options& options
 ) {
-  json response = jsonrpc::call(body, state, storage, p2p, options);
-  Utils::safePrint("HTTP Response: " + response.dump());
+  Utils::safePrint("HTTP Request: " + body);
+  json ret;
+  try {
+    json request = json::parse(body);
+    if (request.is_array()) {
+      ret = json::array();
+      for (const auto& req : request) {
+        ret.emplace_back(jsonrpc::call(req, state, storage, p2p, options));
+      }
+    } else {
+      ret = jsonrpc::call(request, state, storage, p2p, options);
+    }
+  } catch (const std::exception& e) {
+    ret["error"]["code"] = -32603;
+    ret["error"]["message"] = std::string("Internal error: ") + std::string(e.what());
+  }
+
+  Utils::safePrint("HTTP Response: " + ret.dump());
   Utils::safePrint("Properly returning...");
-  return response.dump();
+  return ret.dump();
 }
 

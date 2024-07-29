@@ -25,12 +25,10 @@ void checkJsonRPCSpec(const json& request) {
   }
 }
 
-json call(const std::string& requestStr, State& state, const Storage& storage,
+json call(const json& request, State& state, const Storage& storage,
           P2P::ManagerNormal& p2p, const Options& options) noexcept {
   json ret;
-
   try {
-    json request = json::parse(requestStr);
     checkJsonRPCSpec(request);
     json result;
     ret["jsonrpc"] = 2.0;
