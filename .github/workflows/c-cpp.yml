@@ -67,6 +67,7 @@ jobs:
                   --define sonar.coverageReportPaths=coverage.xml'
   documentation:
     runs-on: [self-hosted, linux, x64]
+    needs: build_test_and_analyse
     steps:
       - name: Generate Doxygen Documentation
         run: ./scripts/auto.sh -s bdk exec 'doxygen Doxyfile'
