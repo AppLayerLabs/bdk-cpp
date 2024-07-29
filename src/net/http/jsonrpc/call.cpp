@@ -31,7 +31,7 @@ json call(const json& request, State& state, const Storage& storage,
   try {
     checkJsonRPCSpec(request);
     json result;
-    ret["jsonrpc"] = 2.0;
+    ret["jsonrpc"] = "2.0";
   
     json id = request["id"];
 
