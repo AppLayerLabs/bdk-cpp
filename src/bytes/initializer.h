@@ -65,13 +65,13 @@ private:
 };
 
 template<typename T>
-constexpr Initializer auto makeInitializer(T&& func) {
-  return BasicInitializer<std::decay_t<T>>(std::forward<T>(func));
+constexpr Initializer auto makeInitializer(T func) {
+  return BasicInitializer<T>(std::move(func));
 }
 
 template<typename T>
-constexpr SizedInitializer auto makeInitializer(std::size_t size, T&& func) {
-  return BasicSizedInitializer<std::decay_t<T>>(std::forward<T>(func), size);
+constexpr SizedInitializer auto makeInitializer(std::size_t size, T func) {
+  return BasicSizedInitializer<T>(std::move(func), size);
 }
 
 } // namespace bytes
