@@ -139,7 +139,12 @@ class Hex {
      * @param c The hex char to convert
      * @return The hex char as an integer.
      */
-    static int toInt(char c);
+    static inline int toInt(char c) {
+     if (c >= '0' && c <= '9') return c - '0';
+     if (c >= 'a' && c <= 'f') return c - 'a' + 10;
+     if (c >= 'A' && c <= 'F')	return c - 'A' + 10;
+     return -1;
+    }
 
     /**
      * Return an Ethereum-JSONRPC-friendly hex string. Examples:

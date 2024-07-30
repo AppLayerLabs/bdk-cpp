@@ -69,14 +69,6 @@ Hex Hex::fromUTF8(std::string_view str, bool strict) {
   return Hex(ss.str(), strict);
 }
 
-// TODO: This function is identical in CommonData.h, is for the better a re-write of commonly used functions at CommonData.h
-int Hex::toInt(char c) {
-  if (c >= '0' && c <= '9') return c - '0';
-  if (c >= 'a' && c <= 'f') return c - 'a' + 10;
-  if (c >= 'A' && c <= 'F')	return c - 'A' + 10;
-  return -1;
-}
-
 std::string Hex::forRPC() const {
   std::string retHex = this->hex_;
   if (retHex[0] != '0' && retHex[1] != 'x') retHex.insert(0, "0x");

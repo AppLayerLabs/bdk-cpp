@@ -3,7 +3,7 @@
 
 static inline const std::regex hashFormat{"^0x[0-9a-f]{64}$"};
 static inline const std::regex addressFormat{"^0x[0-9,a-f,A-F]{40}$"};
-static inline const std::regex numberFormat{"^0x([1-9a-f]+[0-9a-f]*|0)$"};
+static inline const std::regex numberFormat{"^0x([1-9A-Fa-f]+[0-9A-Fa-f]*|0)$"};
 
 namespace jsonrpc {
 
