@@ -498,8 +498,7 @@ json eth_getTransactionReceipt(const json& request, const Storage& storage, cons
     ret["contractAddress"] = bool(txAddData.contractAddress) ? json(txAddData.contractAddress.hex(true)) : json(json::value_t::null);
     ret["logs"] = json::array();
     ret["logsBloom"] = Hash().hex(true);
-    ret["type"] = "0x00";
-    ret["root"] = Hash().hex(true);
+    ret["type"] = "0x2";
     ret["status"] = txAddData.succeeded ? "0x1" : "0x0";
     for (const Event& e : state.getEvents(txHash, blockHeight, txIndex)) {
       ret["logs"].push_back(e.serializeForRPC());
@@ -535,7 +534,7 @@ json txpool_content(const json& request, const State& state) {
     txJson["input"] = Hex::fromBytes(tx.getData(), true).forRPC();
     txJson["nonce"] = Hex::fromBytes(Utils::uintToBytes(tx.getNonce()), true).forRPC();
     txJson["transactionIndex"] = json::value_t::null;
-    txJson["type"] = "0x0"; // Legacy Transactions ONLY. TODO: change this to 0x2 when we support EIP-1559
+    txJson["type"] = "0x2"; // Legacy Transactions ONLY. TODO: change this to 0x2 when we support EIP-1559
     txJson["v"] = Hex::fromBytes(Utils::uintToBytes(tx.getV()), true).forRPC();
     txJson["r"] = Hex::fromBytes(Utils::uintToBytes(tx.getR()), true).forRPC();
     txJson["s"] = Hex::fromBytes(Utils::uintToBytes(tx.getS()), true).forRPC();
