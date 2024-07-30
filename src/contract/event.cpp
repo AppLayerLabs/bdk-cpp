@@ -39,7 +39,7 @@ std::string Event::serializeToJson() const {
   return obj.dump();
 }
 
-std::string Event::serializeForRPC() const {
+json Event::serializeForRPC() const {
   std::vector<std::string> topicStr;
   for (const Hash& b : this->topics_) topicStr.push_back(b.hex(true).get());
   json obj = {
@@ -53,7 +53,7 @@ std::string Event::serializeForRPC() const {
     {"transactionHash", this->txHash_.hex(true).get()},
     {"transactionIndex", Hex::fromBytes(Utils::uint64ToBytes(this->txIndex_), true).get()}
   };
-  return obj.dump();
+  return obj;
 }
 
 EventManager::EventManager(const Options& options

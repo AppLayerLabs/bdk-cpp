@@ -160,7 +160,7 @@ class Event {
      * Serialize event data to a JSON string, formatted to RPC response standards
      * @see https://medium.com/alchemy-api/deep-dive-into-eth-getlogs-5faf6a66fd81
      */
-    std::string serializeForRPC() const;
+    json serializeForRPC() const;
 };
 
 /// Multi-index container used for storing events in memory.
