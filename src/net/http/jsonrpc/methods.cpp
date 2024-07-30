@@ -60,7 +60,7 @@ static json getBlockJson(const FinalizedBlock *block, bool includeTransactions) 
   ret["number"] = Hex::fromBytes(Utils::uintToBytes(block->getNHeight()),true).forRPC();
   ret["gasLimit"] = Hex::fromBytes(Utils::uintToBytes(std::numeric_limits<uint64_t>::max()),true).forRPC();
   ret["gasUsed"] = Hex::fromBytes(Utils::uintToBytes(uint64_t(1000000000)),true).forRPC(); // Arbitrary number
-  ret["timestamp"] = Hex::fromBytes(Utils::uintToBytes(block->getTimestamp()),true).forRPC();
+  ret["timestamp"] = Hex::fromBytes(Utils::uintToBytes((block->getTimestamp()/1000000)),true).forRPC(); // Block tim
   ret["extraData"] = "0x0000000000000000000000000000000000000000000000000000000000000000";
   ret["mixHash"] = Hash().hex(true); // No mixHash.
   ret["nonce"] = "0x0000000000000000";
@@ -70,6 +70,7 @@ static json getBlockJson(const FinalizedBlock *block, bool includeTransactions) 
   // TODO: to get a block you have to serialize it entirely, this can be expensive.
   ret["size"] = Hex::fromBytes(Utils::uintToBytes(block->serializeBlock().size()),true).forRPC();
   ret["transactions"] = json::array();
+  uint64_t txIndex = 0;
   for (const auto& tx : block->getTxs()) {
     if (!includeTransactions) { // Only include the transaction hashes.
       ret["transactions"].push_back(tx.hash().hex(true));
@@ -77,16 +78,15 @@ static json getBlockJson(const FinalizedBlock *block, bool includeTransactions) 
       json txJson = json::object();
       txJson["blockHash"] = block->getHash().hex(true);
       txJson["blockNumber"] = Hex::fromBytes(Utils::uintToBytes(block->getNHeight()),true).forRPC();
-      txJson["type"] = "0x2"; // Legacy Transactions ONLY.
-      txJson["nonce"] = Hex::fromBytes(Utils::uintToBytes(tx.getNonce()),true).forRPC();
-      txJson["hash"] = tx.hash().hex(true);
-      txJson["to"] = tx.getTo().hex(true);
       txJson["from"] = tx.getFrom().hex(true);
       txJson["gas"] = Hex::fromBytes(Utils::uintToBytes(tx.getGasLimit()),true).forRPC();
-      txJson["value"] = Hex::fromBytes(Utils::uintToBytes(tx.getValue()),true).forRPC();
-      txJson["input"] = Hex::fromBytes(tx.getData(), true);
       txJson["gasPrice"] = Hex::fromBytes(Utils::uintToBytes(tx.getMaxFeePerGas()),true).forRPC();
-      txJson["chainId"] = Hex::fromBytes(Utils::uintToBytes(tx.getChainId()),true).forRPC();
+      txJson["hash"] = tx.hash().hex(true);
+      txJson["input"] = Hex::fromBytes(tx.getData(), true);
+      txJson["nonce"] = Hex::fromBytes(Utils::uintToBytes(tx.getNonce()),true).forRPC();
+      txJson["to"] = tx.getTo().hex(true);
+      txJson["transactionIndex"] = Hex::fromBytes(Utils::uintToBytes(txIndex++),true).forRPC();
+      txJson["value"] = Hex::fromBytes(Utils::uintToBytes(tx.getValue()),true).forRPC();
       txJson["v"] = Hex::fromBytes(Utils::uintToBytes(tx.getV()),true).forRPC();
       txJson["r"] = Hex::fromBytes(Utils::uintToBytes(tx.getR()),true).forRPC();
       txJson["s"] = Hex::fromBytes(Utils::uintToBytes(tx.getS()),true).forRPC();
@@ -492,8 +492,7 @@ json eth_getTransactionReceipt(const json& request, const Storage& storage, cons
     ret["blockNumber"] = Hex::fromBytes(Utils::uintToBytes(blockHeight), true).forRPC();
     ret["from"] = tx->getFrom().hex(true);
     ret["to"] = tx->getTo().hex(true);
-    ret["cumulativeGasUsed"] = Hex::fromBytes(Utils::uintToBytes(tx->getGasLimit()), true).forRPC();
-    ret["effectiveGasUsed"] = Hex::fromBytes(Utils::uintToBytes(tx->getGasLimit()), true).forRPC();
+    ret["cumulativeGasUsed"] = Hex::fromBytes(Utils::uintToBytes(txAddData.gasUsed), true).forRPC(); // TODO: Fix this, cumulativeGasUsed is not the same as gasUsed
     ret["effectiveGasPrice"] = Hex::fromBytes(Utils::uintToBytes(tx->getMaxFeePerGas()),true).forRPC();
     ret["gasUsed"] =  Hex::fromBytes(Utils::uintToBytes(txAddData.gasUsed), true).forRPC();
     ret["contractAddress"] = bool(txAddData.contractAddress) ? json(txAddData.contractAddress.hex(true)) : json(json::value_t::null);
@@ -523,8 +522,8 @@ json txpool_content(const json& request, const State& state) {
   pending = json::array();
 
   for (const auto& [hash, tx] : state.getPendingTxs()) {
-    json& txJson = pending[tx.getFrom().hex(true)][tx.getNonce().str()];
-
+    json accountJson;
+    json& txJson = accountJson[tx.getFrom().hex(true)][tx.getNonce().str()];
     txJson["blockHash"] = json::value_t::null;
     txJson["blockNumber"] = json::value_t::null;
     txJson["from"] = tx.getFrom().hex(true);
@@ -540,6 +539,7 @@ json txpool_content(const json& request, const State& state) {
     txJson["v"] = Hex::fromBytes(Utils::uintToBytes(tx.getV()), true).forRPC();
     txJson["r"] = Hex::fromBytes(Utils::uintToBytes(tx.getR()), true).forRPC();
     txJson["s"] = Hex::fromBytes(Utils::uintToBytes(tx.getS()), true).forRPC();
+    pending.push_back(std::move(accountJson));
   }
 
   return result;
