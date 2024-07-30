@@ -201,7 +201,7 @@ namespace THTTPJsonRPC{
       REQUIRE(eth_getBlockByHashResponse["result"]["size"] == Hex::fromBytes(Utils::uintToBytes(newBestBlock.serializeBlock().size()),true).forRPC());
       REQUIRE(eth_getBlockByHashResponse["result"]["gasLimit"] == Hex::fromBytes(Utils::uintToBytes(std::numeric_limits<uint64_t>::max()),true).forRPC());
       REQUIRE(eth_getBlockByHashResponse["result"]["gasUsed"] == Hex::fromBytes(Utils::uintToBytes(uint64_t(1000000000)),true).forRPC());
-      REQUIRE(eth_getBlockByHashResponse["result"]["timestamp"] == Hex::fromBytes(Utils::uintToBytes(newBestBlock.getTimestamp()),true).forRPC());
+      REQUIRE(eth_getBlockByHashResponse["result"]["timestamp"] == Hex::fromBytes(Utils::uintToBytes((newBestBlock.getTimestamp()/1000000)),true).forRPC());
       REQUIRE(eth_getBlockByHashResponse["result"]["uncles"] == json::array());
       for (uint64_t i = 0; i < transactions.size(); ++i) {
         const auto &txJson = eth_getBlockByHashResponse["result"]["transactions"][i];
