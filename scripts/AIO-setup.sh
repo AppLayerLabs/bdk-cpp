@@ -206,7 +206,7 @@ if [ "$DEPLOY" = true ]; then
         "port" : 8080
       }
     ],
-    "indexingMode" : "RPC"
+    "indexingMode" : "RPC_TRACE"
   }' >> local_testnet_validator1/blockchain/options.json
 
   echo '{
@@ -247,7 +247,7 @@ if [ "$DEPLOY" = true ]; then
         "port" : 8080
       }
     ],
-    "indexingMode" : "RPC"
+    "indexingMode" : "RPC_TRACE"
   }' >> local_testnet_validator2/blockchain/options.json
 
   echo '{
