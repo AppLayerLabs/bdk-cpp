@@ -133,9 +133,15 @@ void Consensus::doValidatorBlock() {
 
   // Get a copy of the mempool and current timestamp
   auto chainTxs = this->state_.getMempool();
-  auto timestamp = std::chrono::duration_cast<std::chrono::microseconds>(
+  uint64_t timestamp = std::chrono::duration_cast<std::chrono::microseconds>(
     std::chrono::system_clock::now().time_since_epoch()
   ).count();
+
+  // To create a valid block according to block validation rules, the
+  //  timestamp provided to the new block must be equal or greater (>=)
+  //  than the timestamp of the previous block.
+  timestamp = std::max(timestamp, latestBlock->getTimestamp());
+
   LOGDEBUG("Create a new valid block.");
   auto block = FinalizedBlock::createNewValidBlock(std::move(chainTxs),
                                                    std::move(validatorTxs),
