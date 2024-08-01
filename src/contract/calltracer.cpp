@@ -48,8 +48,8 @@ json Call::toJson() const {
   res["value"] = this->value.hex(true);
   res["gas"] = Hex::fromBytes(Utils::uintToBytes(static_cast<unsigned int>(this->gas)), true).forRPC();
   res["gasUsed"] = Hex::fromBytes(Utils::uintToBytes(static_cast<unsigned int>(this->gasUsed)), true).forRPC();
-  res["input"] = Hex::fromBytes(this->input, true).forRPC();
-  res["output"] = Hex::fromBytes(this->output, true).forRPC();
+  res["input"] = Hex::fromBytes(this->input, true);
+  res["output"] = Hex::fromBytes(this->output, true);
 
   if (!this->error.empty())
     res["error"] = this->error;
@@ -95,7 +95,7 @@ void CallTracer::traceIn(Call call) {
   stack_.emplace_back(&newCall);
 }
 
-void CallTracer::traceOutInternal(bytes::View output, int64_t gasUsed, std::string error) {
+void CallTracer::traceOutInternal(bytes::View output, uint64_t gasUsed, std::string error) {
   if (stack_.empty()) [[unlikely]] {
     throw DynamicException("No function start was traced yet");
   }
@@ -107,11 +107,11 @@ void CallTracer::traceOutInternal(bytes::View output, int64_t gasUsed, std::stri
   stack_.pop_back();
 }
 
-void CallTracer::traceOut(bytes::View output, int64_t gasUsed) {
+void CallTracer::traceOut(bytes::View output, uint64_t gasUsed) {
   traceOutInternal(output, gasUsed, "");
 }
 
-void CallTracer::traceError(std::string error, int64_t gasUsed) {
+void CallTracer::traceError(std::string error, uint64_t gasUsed) {
   traceOutInternal(bytes::View(), gasUsed, std::move(error));
 }
 

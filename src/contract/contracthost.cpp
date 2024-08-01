@@ -198,7 +198,7 @@ void ContractHost::traceCallOut(const evmc_result& res) noexcept {
   }
 }
 
-void ContractHost::traceCallOut(bytes::View output, int64_t gasUsed) noexcept {
+void ContractHost::traceCallOut(bytes::View output, uint64_t gasUsed) noexcept {
   if (!this->isTracingCalls())
     return;
 
@@ -209,7 +209,7 @@ void ContractHost::traceCallOut(bytes::View output, int64_t gasUsed) noexcept {
   }
 }
 
-void ContractHost::traceCallError(std::string error, int64_t gasUsed) noexcept {
+void ContractHost::traceCallError(std::string error, uint64_t gasUsed) noexcept {
   if (!this->isTracingCalls())
     return;
 
@@ -278,6 +278,11 @@ void ContractHost::execute(const evmc_message& msg, const ContractType& type) {
   const Address from(msg.sender);
   const Address to(msg.recipient);
   const uint256_t value(Utils::evmcUint256ToUint256(msg.value));
+
+  this->traceCallIn(msg);
+  Bytes output;
+  std::string error;
+
   if (value) {
     this->transfer(from, to, value);
   }
@@ -291,7 +296,6 @@ void ContractHost::execute(const evmc_message& msg, const ContractType& type) {
       }
       this->createEVMContract(msg, contractAddress, EVMC_CREATE);
     } else {
-      this->traceCallIn(msg);
 
       switch (type)
       {
@@ -302,10 +306,6 @@ void ContractHost::execute(const evmc_message& msg, const ContractType& type) {
         }
         this->setContractVars(contractIt->second.get(), from, value);
         contractIt->second->ethCall(msg, this);
-
-        // TODO: no proper way for filling these values in the current design
-        this->traceCallOut(bytes::View(), 0);
-
         break;
       }
       case ContractType::EVM: {
@@ -317,12 +317,11 @@ void ContractHost::execute(const evmc_message& msg, const ContractType& type) {
                                                 this->accounts_[to]->code.data(),
                                                 this->accounts_[to]->code.size()));
 
-
-
-        this->traceCallOut(result.raw());
+        output = Utils::makeBytes(bytes::View(result.output_data, result.output_size));
 
         this->leftoverGas_ = result.gas_left; // gas_left is not linked with leftoverGas_, we need to link it.
         if (result.status_code) {
+          error = evmc_status_code_to_string(result.status_code);
           // Set the leftOverGas_ to the gas left after the execution
           throw DynamicException("Error when executing EVM contract, EVM status code: " +
                                  std::string(evmc_status_code_to_string(result.status_code)) + " bytes: " +
@@ -341,9 +340,10 @@ void ContractHost::execute(const evmc_message& msg, const ContractType& type) {
       what += evmcError;
       what += " --- OTHER INFO: --- ";
     }
-
+ 
     this->addTxData_.gasUsed = msg.gas - this->leftoverGas_;
     this->addTxData_.succeeded = false;
+    this->traceCallError(error, this->addTxData_.gasUsed);
     throw DynamicException(what);
   }
   // We only set that we don't revert, if EVMC didn't throw a exception
@@ -356,12 +356,14 @@ void ContractHost::execute(const evmc_message& msg, const ContractType& type) {
 
     this->addTxData_.gasUsed = msg.gas - this->leftoverGas_;
     this->addTxData_.succeeded = false;
+    this->traceCallError("EVMC threw an exception", this->addTxData_.gasUsed);
     throw DynamicException(what);
   }
 
   this->addTxData_.gasUsed = msg.gas - this->leftoverGas_;
   this->addTxData_.succeeded = true;
   this->mustRevert_ = false;
+  this->traceCallOut(output, this->addTxData_.gasUsed);
 }
 
 Bytes ContractHost::ethCallView(const evmc_message& msg, const ContractType& type) {

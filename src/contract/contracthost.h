@@ -16,6 +16,7 @@
 #include "contractmanager.h"
 #include "../core/dump.h"
 #include "calltracer.h"
+#include "../bytes/join.h"
 
 
 // TODO: EVMC Static Mode Handling
@@ -135,9 +136,9 @@ class ContractHost : public evmc::Host {
 
     void traceCallOut(const evmc_result& res) noexcept;
 
-    void traceCallOut(bytes::View output, int64_t gasUsed) noexcept;
+    void traceCallOut(bytes::View output, uint64_t gasUsed) noexcept;
 
-    void traceCallError(std::string error, int64_t gasUsed) noexcept;
+    void traceCallError(std::string error, uint64_t gasUsed) noexcept;
 
     void saveCallTrace() noexcept;
 
@@ -259,7 +260,9 @@ class ContractHost : public evmc::Host {
           auto functor = ABI::FunctorEncoder::encode<Args...>(functionName);
           Bytes fullData;
           Utils::appendBytes(fullData, Utils::uint32ToBytes(functor.value));
-          Utils::appendBytes(fullData, ABI::Encoder::encodeData<Args...>(args...));
+          if constexpr (sizeof...(Args) > 0) {
+            Utils::appendBytes(fullData, ABI::Encoder::encodeData<Args...>(args...));
+          }
           msg.input_data = fullData.data();
           msg.input_size = fullData.size();
           msg.value = {};
@@ -291,75 +294,53 @@ class ContractHost : public evmc::Host {
       }
     }
 
-    /**
-     * Call a contract view function based on the basic requirements of a contract call.
-     * @tparam R The return type of the view function.
-     * @tparam C The contract type.
-     * @tparam Args The argument types of the view function.
-     * @param address The address of the contract to call.
-     * @param func The view function to call.
-     * @param args The arguments to pass to the view function.
-     * @return The result of the view function.
-     */
-    template <typename R, typename C>
-    R callContractViewFunction(const BaseContract* caller, const Address& targetAddr, R(C::*func)() const) const {
-      const auto recipientAccIt = this->accounts_.find(targetAddr);
-      if (recipientAccIt == this->accounts_.end()) {
-        throw DynamicException(std::string(__func__) + ": Contract Account does not exist - Type: "
-          + Utils::getRealTypeName<C>() + " at address: " + targetAddr.hex().get()
-        );
-      }
-      const auto& recipientAcc = *recipientAccIt->second;
-      if (!recipientAcc.isContract()) {
-        throw DynamicException(std::string(__func__) + ": Contract does not exist - Type: "
-          + Utils::getRealTypeName<C>() + " at address: " + targetAddr.hex().get()
-        );
-      }
-      NestedCallSafeGuard guard(caller, caller->caller_, caller->value_);
-      switch (recipientAcc.contractType) {
-        case ContractType::EVM : {
-          this->deduceGas(5000);
-          evmc_message msg;
-          msg.kind = EVMC_CALL;
-          msg.flags = EVMC_STATIC;
-          msg.depth = 1;
-          msg.gas = this->leftoverGas_;
-          msg.recipient = targetAddr.toEvmcAddress();
-          msg.sender = caller->getContractAddress().toEvmcAddress();
-          auto functionName = ContractReflectionInterface::getFunctionName(func);
-          if (functionName.empty()) {
-            throw DynamicException("ContractHost::callContractViewFunction: EVM contract function name is empty (contract not registered?)");
-          }
-          auto functor = ABI::FunctorEncoder::encode<>(functionName);
-          Bytes fullData;
-          Utils::appendBytes(fullData, Utils::uint32ToBytes(functor.value));
-          msg.input_data = fullData.data();
-          msg.input_size = fullData.size();
-          msg.value = {};
-          msg.create2_salt = {};
-          msg.code_address = targetAddr.toEvmcAddress();
-          /// A **CONST_CAST** is needed because we can't explicity tell the evmc_execute to do a view call.
-          /// Regardless of that, we set flag = 1 to indicate that this is a view/STATIC call.
-          evmc::Result result (evmc_execute(this->vm_, &this->get_interface(), const_cast<ContractHost*>(this)->to_context(),
-          evmc_revision::EVMC_LATEST_STABLE_REVISION, &msg, recipientAcc.code.data(), recipientAcc.code.size()));
-          this->leftoverGas_ = result.gas_left;
-          if (result.status_code) {
-            auto hexResult = Hex::fromBytes(bytes::View(result.output_data, result.output_data + result.output_size));
-            throw DynamicException("ContractHost::callContractViewFunction: EVMC call failed - Type: "
-              + Utils::getRealTypeName<C>() + " at address: " + targetAddr.hex().get() + " - Result: " + hexResult.get()
-            );
-          }
-          return std::get<0>(ABI::Decoder::decodeData<R>(bytes::View(result.output_data, result.output_data + result.output_size)));
-        } break;
-        case ContractType::CPP : {
-          this->deduceGas(1000);
-          const C* contract = this->getContract<const C>(targetAddr);
-          this->setContractVars(contract, caller->getContractAddress(), 0);
-          return (contract->*func)();
+    template <typename R, typename C, typename... Args>
+    R callContractFunction(
+      BaseContract* caller, const Address& targetAddr,
+      const uint256_t& value,
+      R(C::*func)(const Args&...), const Args&... args) {
+      if (this->isTracingCalls()) [[unlikely]] {
+        trace::Call callData;
+
+        const uint64_t gas = leftoverGas_;
+
+        callData.type = trace::Call::Type::CALL;
+        callData.from = caller->getContractAddress();
+        callData.to = targetAddr;
+        callData.gas = gas;
+
+        const std::string functionName = ContractReflectionInterface::getFunctionName(func);
+
+        const BytesArr<4> encodedFunctor =
+          Utils::uint32ToBytes(ABI::FunctorEncoder::encode<Args...>(functionName).value);
+
+        if constexpr (sizeof...(args) > 0) {
+          const Bytes encodedArgs = ABI::Encoder::encodeData<Args...>(args...);
+          callData.input = Utils::makeBytes(bytes::join(encodedFunctor, encodedArgs));
+        } else {
+          callData.input = Utils::makeBytes(encodedFunctor);
         }
-        default: {
-          throw DynamicException("PANIC! ContractHost::callContractViewFunction: Unknown contract type");
+
+        callTracer_.traceIn(std::move(callData));
+
+        try {
+          if constexpr (std::same_as<R, void>) {
+            callContractFunctionImpl(caller, targetAddr, value, func, args...);
+            callTracer_.traceOut(bytes::View(), gas - leftoverGas_);
+            return;
+          } else {
+            R result = callContractFunctionImpl(caller, targetAddr, value, func, args...);
+            const Bytes output = ABI::Encoder::encodeData<R>(result);
+            const uint64_t gasUsed = gas - leftoverGas_;
+            callTracer_.traceOut(output, gasUsed);
+            return result;
+          }
+        } catch (const std::exception& err) {
+          callTracer_.traceError("An C++ exception has been thrown", gas - leftoverGas_);
+          throw err;
         }
+      } else [[likely]] {
+        return callContractFunctionImpl(caller, targetAddr, value, func, args...);
       }
     }
 
@@ -378,8 +359,7 @@ class ContractHost : public evmc::Host {
      * @return The return value of the function.
      */
     template <typename R, typename C, typename... Args>
-    requires (!std::is_same<R, void>::value)
-    R callContractFunction(
+    R callContractFunctionImpl(
       BaseContract* caller, const Address& targetAddr,
       const uint256_t& value,
       R(C::*func)(const Args&...), const Args&... args
@@ -412,7 +392,9 @@ class ContractHost : public evmc::Host {
           auto functor = ABI::FunctorEncoder::encode<Args...>(functionName);
           Bytes fullData;
           Utils::appendBytes(fullData, Utils::uint32ToBytes(functor.value));
-          Utils::appendBytes(fullData, ABI::Encoder::encodeData<Args...>(args...));
+          if constexpr (sizeof...(Args) > 0) {
+            Utils::appendBytes(fullData, ABI::Encoder::encodeData<Args...>(args...));
+          }
           msg.input_data = fullData.data();
           msg.input_size = fullData.size();
           msg.value = Utils::uint256ToEvmcUint256(value);
@@ -427,89 +409,10 @@ class ContractHost : public evmc::Host {
               + Utils::getRealTypeName<C>() + " at address: " + targetAddr.hex().get() + " - Result: " + hexResult.get()
             );
           }
-          return std::get<0>(ABI::Decoder::decodeData<R>(bytes::View(result.output_data, result.output_data + result.output_size)));
-        } break;
-        case ContractType::CPP : {
-          this->deduceGas(1000);
-          C* contract = this->getContract<C>(targetAddr);
-          this->setContractVars(contract, caller->getContractAddress(), value);
-          try {
-            return contract->callContractFunction(this, func, args...);
-          } catch (const std::exception& e) {
-            throw DynamicException(e.what() + std::string(" - Type: ")
-              + Utils::getRealTypeName<C>() + " at address: " + targetAddr.hex().get()
-            );
-          }
-        }
-        default : {
-          throw DynamicException("PANIC! ContractHost::callContractFunction: Unknown contract type");
-        }
-      }
-    }
-
-    /**
-     * Call a contract function. Used by DynamicContract to call other contracts.
-     * A given DynamicContract will only call another contract if triggered by a transaction.
-     * This will only be called if callContract() or validateCallContractWithTx() was called before.
-     * Implementation for @tparam ReturnType being void
-     * @tparam R The return type of the function.
-     * @tparam C The contract type.
-     * @tparam Args The arguments types.
-     * @param targetAddr The address of the contract to call.
-     * @param value Flag to indicate if the function is payable.,
-     * @param func The function to call.
-     * @param args The arguments to pass to the function.
-     * @return The return value of the function.
-     */
-    template <typename R, typename C, typename... Args>
-    requires (std::is_same<R, void>::value)
-    void callContractFunction(
-      BaseContract* caller, const Address& targetAddr,
-      const uint256_t& value,
-      R(C::*func)(const Args&...), const Args&... args
-    ) {
-      // 1000 Gas Limit for every C++ contract call!
-      auto& recipientAcc = *this->accounts_[targetAddr];
-      if (!recipientAcc.isContract()) {
-        throw DynamicException(std::string(__func__) + ": Contract does not exist - Type: "
-          + Utils::getRealTypeName<C>() + " at address: " + targetAddr.hex().get()
-        );
-      }
-      if (value) {
-        this->sendTokens(caller, targetAddr, value);
-      }
-      NestedCallSafeGuard guard(caller, caller->caller_, caller->value_);
-      switch (recipientAcc.contractType) {
-        case ContractType::EVM : {
-          this->deduceGas(10000);
-          evmc_message msg;
-          msg.kind = EVMC_CALL;
-          msg.flags = 0;
-          msg.depth = 1;
-          msg.gas = this->leftoverGas_;
-          msg.recipient = targetAddr.toEvmcAddress();
-          msg.sender = caller->getContractAddress().toEvmcAddress();
-          auto functionName = ContractReflectionInterface::getFunctionName(func);
-          if (functionName.empty()) {
-            throw DynamicException("ContractHost::callContractFunction: EVM contract function name is empty (contract not registered?)");
-          }
-          auto functor = ABI::FunctorEncoder::encode<Args...>(functionName);
-          Bytes fullData;
-          Utils::appendBytes(fullData, Utils::uint32ToBytes(functor.value));
-          Utils::appendBytes(fullData, ABI::Encoder::encodeData<Args...>(args...));
-          msg.input_data = fullData.data();
-          msg.input_size = fullData.size();
-          msg.value = Utils::uint256ToEvmcUint256(value);
-          msg.create2_salt = {};
-          msg.code_address = targetAddr.toEvmcAddress();
-          evmc::Result result (evmc_execute(this->vm_, &this->get_interface(), this->to_context(),
-          evmc_revision::EVMC_LATEST_STABLE_REVISION, &msg, recipientAcc.code.data(), recipientAcc.code.size()));
-          this->leftoverGas_ = result.gas_left;
-          if (result.status_code) {
-            auto hexResult = Hex::fromBytes(bytes::View(result.output_data, result.output_data + result.output_size));
-            throw DynamicException("ContractHost::callContractFunction: EVMC call failed - Type: "
-              + Utils::getRealTypeName<C>() + " at address: " + targetAddr.hex().get() + " - Result: " + hexResult.get()
-            );
+          if constexpr (std::same_as<R, void>) {
+            return;
+          } else {
+            return std::get<0>(ABI::Decoder::decodeData<R>(bytes::View(result.output_data, result.output_data + result.output_size)));
           }
         } break;
         case ContractType::CPP : {
@@ -529,167 +432,6 @@ class ContractHost : public evmc::Host {
         }
       }
     }
-
-    /**
-     * Call a contract function with no arguments. Used by DynamicContract to call other contracts.
-     * A given DynamicContract will only call another contract if triggered by a transaction.
-     * This will only be called if callContract() or validateCallContractWithTx() was called before.
-     * Implementation for @tparam ReturnType NOT being void
-     * @tparam R The return type of the function.
-     * @tparam C The contract type.
-     * @param targetAddr The address of the contract to call.
-     * @param value Flag to indicate if the function is payable.
-     * @param func The function to call.
-     * @return The return value of the function.
-     */
-    template <typename R, typename C>
-    requires (!std::is_same<R, void>::value)
-    R callContractFunction(
-      BaseContract* caller, const Address& targetAddr,
-      const uint256_t& value, R(C::*func)()
-    ) {
-      auto& recipientAcc = *this->accounts_[targetAddr];
-      if (!recipientAcc.isContract()) {
-        throw DynamicException(std::string(__func__) + ": Contract does not exist - Type: "
-          + Utils::getRealTypeName<C>() + " at address: " + targetAddr.hex().get()
-        );
-      }
-      if (value) {
-        this->sendTokens(caller, targetAddr, value);
-      }
-      NestedCallSafeGuard guard(caller, caller->caller_, caller->value_);
-      switch (recipientAcc.contractType) {
-        case ContractType::EVM : {
-          this->deduceGas(10000);
-          evmc_message msg;
-          msg.kind = EVMC_CALL;
-          msg.flags = 0;
-          msg.depth = 1;
-          msg.gas = this->leftoverGas_;
-          msg.recipient = targetAddr.toEvmcAddress();
-          msg.sender = caller->getContractAddress().toEvmcAddress();
-          // Get the contract function name...
-          auto functionName = ContractReflectionInterface::getFunctionName(func);
-          if (functionName.empty()) {
-            throw DynamicException("ContractHost::callContractFunction: EVM contract function name is empty (contract not registered?)");
-          }
-          auto functor = ABI::FunctorEncoder::encode<>(functionName);
-          Bytes fullData;
-          Utils::appendBytes(fullData, Utils::uint32ToBytes(functor.value));
-          msg.input_data = fullData.data();
-          msg.input_size = fullData.size();
-          msg.value = Utils::uint256ToEvmcUint256(value);
-          msg.create2_salt = {};
-          msg.code_address = targetAddr.toEvmcAddress();
-          evmc::Result result (evmc_execute(this->vm_, &this->get_interface(), this->to_context(),
-          evmc_revision::EVMC_LATEST_STABLE_REVISION, &msg, recipientAcc.code.data(), recipientAcc.code.size()));
-          this->leftoverGas_ = result.gas_left;
-          if (result.status_code) {
-            auto hexResult = Hex::fromBytes(bytes::View(result.output_data, result.output_data + result.output_size));
-            throw DynamicException("ContractHost::callContractFunction: EVMC call failed - Type: "
-              + Utils::getRealTypeName<C>() + " at address: " + targetAddr.hex().get() + " - Result: " + hexResult.get()
-            );
-          }
-          return std::get<0>(ABI::Decoder::decodeData<R>(result.output_data, result.output_size));
-        } break;
-        case ContractType::CPP : {
-          this->deduceGas(1000);
-          C* contract = this->getContract<C>(targetAddr);
-          this->setContractVars(contract, caller->getContractAddress(), value);
-          try {
-            return contract->callContractFunction(this, func);
-          } catch (const std::exception& e) {
-            throw DynamicException(e.what() + std::string(" - Type: ")
-              + Utils::getRealTypeName<C>() + " at address: " + targetAddr.hex().get()
-            );
-          }
-        }
-        default : {
-          throw DynamicException("PANIC! ContractHost::callContractFunction: Unknown contract type");
-        }
-      }
-    }
-
-    /**
-     * Call a contract function with no arguments. Used by DynamicContract to call other contracts.
-     * A given DynamicContract will only call another contract if triggered by a transaction.
-     * This will only be called if callContract() or validateCallContractWithTx() was called before.
-     * Implementation for @tparam ReturnType being void
-     * @tparam R The return type of the function.
-     * @tparam C The contract type.
-     * @param targetAddr The address of the contract to call.
-     * @param value Flag to indicate if the function is payable.
-     * @param func The function to call.
-     * @return The return value of the function.
-     */
-    template <typename R, typename C>
-    requires (std::is_same<R, void>::value)
-    void callContractFunction(
-      BaseContract* caller, const Address& targetAddr,
-      const uint256_t& value, R(C::*func)()
-    ) {
-      auto& recipientAcc = *this->accounts_[targetAddr];
-      if (!recipientAcc.isContract()) {
-        throw DynamicException(std::string(__func__) + ": Contract does not exist - Type: "
-          + Utils::getRealTypeName<C>() + " at address: " + targetAddr.hex().get()
-        );
-      }
-      if (value) {
-        this->sendTokens(caller, targetAddr, value);
-      }
-      NestedCallSafeGuard guard(caller, caller->caller_, caller->value_);
-      switch (recipientAcc.contractType) {
-        case ContractType::EVM : {
-          this->deduceGas(10000);
-          evmc_message msg;
-          msg.kind = EVMC_CALL;
-          msg.flags = 0;
-          msg.depth = 1;
-          msg.gas = this->leftoverGas_;
-          msg.recipient = targetAddr.toEvmcAddress();
-          msg.sender = caller->getContractAddress().toEvmcAddress();
-          // Get the contract function name...
-          auto functionName = ContractReflectionInterface::getFunctionName(func);
-          if (functionName.empty()) {
-            throw DynamicException("ContractHost::callContractFunction: EVM contract function name is empty (contract not registered?)");
-          }
-          auto functor = ABI::FunctorEncoder::encode<>(functionName);
-          Bytes fullData;
-          Utils::appendBytes(fullData, Utils::uint32ToBytes(functor.value));
-          msg.input_data = fullData.data();
-          msg.input_size = fullData.size();
-          msg.value = Utils::uint256ToEvmcUint256(value);
-          msg.create2_salt = {};
-          msg.code_address = targetAddr.toEvmcAddress();
-          evmc::Result result (evmc_execute(this->vm_, &this->get_interface(), this->to_context(),
-          evmc_revision::EVMC_LATEST_STABLE_REVISION, &msg, recipientAcc.code.data(), recipientAcc.code.size()));
-          this->leftoverGas_ = result.gas_left;
-          if (result.status_code) {
-            auto hexResult = Hex::fromBytes(bytes::View(result.output_data, result.output_data + result.output_size));
-            throw DynamicException("ContractHost::callContractFunction: EVMC call failed - Type: "
-              + Utils::getRealTypeName<C>() + " at address: " + targetAddr.hex().get() + " - Result: " + hexResult.get()
-            );
-          }
-          return;
-        } break;
-        case ContractType::CPP : {
-          this->deduceGas(1000);
-          C* contract = this->getContract<C>(targetAddr);
-          this->setContractVars(contract, caller->getContractAddress(), value);
-          try {
-            return contract->callContractFunction(this, func);
-          } catch (const std::exception& e) {
-            throw DynamicException(e.what() + std::string(" - Type: ")
-              + Utils::getRealTypeName<C>() + " at address: " + targetAddr.hex().get()
-            );
-          }
-        }
-        default : {
-          throw DynamicException("PANIC! ContractHost::callContractFunction: Unknown contract type");
-        }
-      }
-    }
-
 
     /**
      * Call the createNewContract function of a contract.

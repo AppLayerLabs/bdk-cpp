@@ -29,8 +29,8 @@ struct Call {
   Address from;
   Address to;
   FixedBytes<32> value;
-  int64_t gas;
-  int64_t gasUsed;
+  uint64_t gas;
+  uint64_t gasUsed;
   Bytes input;
   Bytes output;
   std::string error;
@@ -42,7 +42,7 @@ private:
   std::unique_ptr<Call> root_;
   std::deque<Call*> stack_;
 
-  void traceOutInternal(bytes::View output, int64_t gasUsed, std::string error);
+  void traceOutInternal(bytes::View output, uint64_t gasUsed, std::string error);
 
 public:
   CallTracer() = default;
@@ -59,9 +59,9 @@ public:
 
   void traceIn(Call call);
 
-  void traceOut(bytes::View output, int64_t gasUsed);
+  void traceOut(bytes::View output, uint64_t gasUsed);
 
-  void traceError(std::string error, int64_t gasUsed);
+  void traceError(std::string error, uint64_t gasUsed);
 };
 
 } // namespace trace
