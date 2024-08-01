@@ -20,7 +20,7 @@
             alt="chat on Telegram"></a>
 </p>
 
-AppLayer's BDK source code. [See the docs](https://github.com/AppLayer/sparq-docs) for a more thorough look at the project.
+AppLayer's BDK source code. [See the docs](https://docs.applayer.com) for a more thorough look at the project.
 
 If you are a developer, fill this form out for free support and additional incentives: https://forms.gle/m83ceG3XoJY3fpwU9
 
@@ -54,8 +54,9 @@ Install the following dependencies on your system:
 * **libscrypt**
 * **zlib**
 * **libsnappy** for database compression
+* **tmux** (for deploying)
 * (optional) **clang-tidy** for linting
-* (optional) **mold** for faster/better linking
+* (optional) **mold** for faster/more efficient linking
 
 The versions of those dependencies should suffice out-of-the-box for at least the following distros (or greater, including their derivatives):
 
@@ -65,14 +66,21 @@ The versions of those dependencies should suffice out-of-the-box for at least th
 * **Fedora 40**
 * Any rolling release distro from around **May 2024** onwards (check their repos to be sure)
 
-For older distros, you may need to compile some dependencies from source (specifically CMake and Boost). Make sure to uninstall them from the system first to prevent any version conflicts.
+For older distros, you may need to compile some dependencies from source (specifically CMake, Boost and/or GCC). Make sure to either uninstall them from the system first to prevent any version conflicts, or use a workaround like e.g. Debian's `update-alternatives` or similar.
+
+Specifically for GCC, make sure to also export the right paths for compilation in your environment in case you're using a self-compiled build. For example, in a Linux system, put something like this in your `~/.bashrc` file, changing the version accordingly to whichever one you have installed:
+
+```bash
+PATH=/usr/local/gcc-14.1.0/bin:$PATH
+LD_LIBRARY_PATH=/usr/local/gcc-14.1.0/lib64:$LD_LIBRARY_PATH
+```
 
 #### One-liners
 
 * For APT-based distros:
 
 ```bash
-sudo apt install git build-essential cmake mold tmux clang-tidy autoconf libtool pkg-config libboost-all-dev libcrypto++-dev libscrypt-dev libsnappy-dev libssl-dev zlib1g-dev openssl
+sudo apt install build-essential cmake tmux clang-tidy autoconf libtool pkg-config libabsl-dev libboost-all-dev libc-ares-dev libcrypto++-dev libgrpc-dev libgrpc++-dev librocksdb-dev libscrypt-dev libsnappy-dev libssl-dev zlib1g-dev openssl protobuf-compiler protobuf-compiler-grpc unison git
 ```
 
 ## Documentation
