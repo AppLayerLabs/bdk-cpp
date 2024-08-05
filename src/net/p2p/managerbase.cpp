@@ -650,8 +650,7 @@ namespace P2P {
       return {};
     }
     auto answer = requestPtr->answerFuture();
-    auto status = answer.wait_for(std::chrono::seconds(2));
-    if (status == std::future_status::timeout) {
+    if (auto status = answer.wait_for(std::chrono::seconds(2)); status == std::future_status::timeout) {
       LOGDEBUG("Request to " + toString(nodeId) + " timed out.");
       return {};
     }

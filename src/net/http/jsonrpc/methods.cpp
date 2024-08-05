@@ -12,16 +12,12 @@ static inline constexpr std::string_view FIXED_BASE_FEE_PER_GAS = "0x9502f900"; 
 namespace jsonrpc {
 
 static std::optional<uint64_t> getBlockNumber(const Storage& storage, const Hash& hash) {
-  const auto block = storage.getBlock(hash);
-
-  if (block)
-    return block->getNHeight();
-  
+  if (const auto block = storage.getBlock(hash); block != nullptr) return block->getNHeight();
   return std::nullopt;
 }
 
 template<typename T, std::ranges::input_range R>
-  requires std::convertible_to<std::ranges::range_value_t<R>, T>
+requires std::convertible_to<std::ranges::range_value_t<R>, T>
 static std::vector<T> makeVector(R&& range) {
   std::vector<T> res(std::ranges::size(range));
   std::ranges::copy(std::forward<R>(range), res.begin());
@@ -250,40 +246,31 @@ json eth_gasPrice(const json& request) {
 json eth_feeHistory(const json& request, const Storage& storage) {
   json ret;
   auto [blockCount, newestBlock, optionalRewardPercentiles] = parseAllParams<
-    uint64_t, BlockTagOrNumber, std::optional<std::vector<float>>>(request);
-
+    uint64_t, BlockTagOrNumber, std::optional<std::vector<float>>
+  >(request);
   uint64_t blockNumber = newestBlock.number(storage);
   const std::vector<float> percentiles = std::move(optionalRewardPercentiles).value_or(std::vector<float>{});
 
   // no more than 1024 block can be requested
   blockCount = std::min(blockCount, static_cast<uint64_t>(1024));
-
   ret["baseFeePerGas"] = json::array();
   ret["gasUsedRatio"] = json::array();
 
   // The feeHistory output includes the next block after the newest too
-  std::shared_ptr<const FinalizedBlock> oneAfterLastBlock = storage.getBlock(blockNumber + 1);
-  if (oneAfterLastBlock)
-    ret["baseFeePerGas"].push_back(FIXED_BASE_FEE_PER_GAS);
-  
+  if (
+    std::shared_ptr<const FinalizedBlock> oneAfterLastBlock = storage.getBlock(blockNumber + 1);
+    oneAfterLastBlock != nullptr
+  ) ret["baseFeePerGas"].push_back(FIXED_BASE_FEE_PER_GAS);
   uint64_t oldestBlock;
   while (blockCount--) {
-    std::shared_ptr<const FinalizedBlock> block = storage.getBlock(blockNumber);
-
-    if (!block)
-      break;
-
+    if (std::shared_ptr<const FinalizedBlock> block = storage.getBlock(blockNumber); block == nullptr) break;
     ret["baseFeePerGas"].push_back(FIXED_BASE_FEE_PER_GAS); // TODO: fill with proper value once available
     ret["gasUsedRatio"].push_back(1.0f); // TODO: calculate as gasUsed / gasLimit
-
     oldestBlock = blockNumber--;
   }
 
-  if (ret["baseFeePerGas"].empty())
-    throw Error::executionError("Requested block not found");
-
+  if (ret["baseFeePerGas"].empty()) throw Error::executionError("Requested block not found");
   ret["oldestBlock"] = Hex::fromBytes(Utils::uintToBytes(oldestBlock), true).forRPC();
-
   return ret;
 }
 
@@ -294,19 +281,19 @@ json eth_getLogs(const json& request, const Storage& storage, const State& state
   const std::optional<Hash> blockHash = parseIfExists<Hash>(logsObj, "blockHash");
 
   const uint64_t fromBlock = parseIfExists<BlockTagOrNumber>(logsObj, "fromBlock")
-    .transform([&] (const BlockTagOrNumber& b) -> uint64_t { return b.number(storage); })
-    .or_else([&] { return blockHash.and_then(getBlockByHash); })
+    .transform([&storage](const BlockTagOrNumber& b) { return b.number(storage); })
+    .or_else([&blockHash, &getBlockByHash]() { return blockHash.and_then(getBlockByHash); })
     .value_or(ContractGlobals::getBlockHeight());
 
   const uint64_t toBlock = parseIfExists<BlockTagOrNumber>(logsObj, "toBlock")
-    .transform([&] (const BlockTagOrNumber& b) -> uint64_t { return b.number(storage); })
-    .or_else([&] { return blockHash.and_then(getBlockByHash); })
+    .transform([&storage](const BlockTagOrNumber& b) { return b.number(storage); })
+    .or_else([&blockHash, &getBlockByHash]() { return blockHash.and_then(getBlockByHash); })
     .value_or(ContractGlobals::getBlockHeight());
 
   const std::optional<Address> address = parseIfExists<Address>(logsObj, "address");
 
   const std::vector<Hash> topics = parseArrayIfExists<Hash>(logsObj, "topics")
-    .transform([] (auto&& arr) { return makeVector<Hash>(std::forward<decltype(arr)>(arr)); })
+    .transform([](auto&& arr) { return makeVector<Hash>(std::forward<decltype(arr)>(arr)); })
     .value_or(std::vector<Hash>{});
 
   json result = json::array();
@@ -350,8 +337,7 @@ json eth_sendRawTransaction(const json& request, uint64_t chainId, State& state,
 
   json ret;
   const auto& txHash = tx.hash();
-  auto txStatus = state.addTx(TxBlock(tx));
-  if (isTxStatusValid(txStatus)) {
+  if (auto txStatus = state.addTx(TxBlock(tx)); isTxStatusValid(txStatus)) {
     ret = txHash.hex(true);
     // TODO: Make this use threadpool instead of blocking
     // TODO: Make tx broadcasting better, the current solution is **not good**.
@@ -377,8 +363,7 @@ json eth_getTransactionByHash(const json& request, const Storage& storage, const
   const auto [txHash] = parseAllParams<Hash>(request);
 
   json ret;
-  auto txOnMempool = state.getTxFromMempool(txHash);
-  if (txOnMempool != nullptr) {
+  if (auto txOnMempool = state.getTxFromMempool(txHash); txOnMempool != nullptr) {
     ret["blockHash"] = json::value_t::null;
     ret["blockIndex"] = json::value_t::null;
     ret["from"] = txOnMempool->getFrom().hex(true);

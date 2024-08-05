@@ -166,17 +166,23 @@ namespace ContractFactory {
      * Register all contracts in the variadic template.
      * @tparam Contracts The contracts to register.
      */
-    template <typename Tuple, std::size_t... Is> void addAllContractFuncsHelper(boost::unordered_flat_map<Functor,std::function<void(const evmc_message&,
-                                                                     const Address&,
-                                                                     boost::unordered_flat_map<Address, std::unique_ptr<BaseContract>, SafeHash>& contracts_,
-                                                                     const uint64_t&,
-                                                                     ContractHost*)>,SafeHash>& createContractFuncs,
-                                                                   std::index_sequence<Is...>) {
-      ((addContractFuncs<std::tuple_element_t<Is, Tuple>>( [&](const evmc_message &callInfo,
-                                                                const Address &derivedAddress,
-                                                                boost::unordered_flat_map<Address, std::unique_ptr<BaseContract>, SafeHash> &contracts,
-                                                                const uint64_t &chainId,
-                                                                ContractHost* host) {
+    template <typename Tuple, std::size_t... Is> void addAllContractFuncsHelper(
+      boost::unordered_flat_map<Functor, std::function<void(
+        const evmc_message&,
+        const Address&,
+        boost::unordered_flat_map<Address, std::unique_ptr<BaseContract>, SafeHash>& contracts_,
+        const uint64_t&,
+        ContractHost*
+      )>, SafeHash>& createContractFuncs,
+      std::index_sequence<Is...>
+    ) {
+      ((addContractFuncs<std::tuple_element_t<Is, Tuple>>([](
+        const evmc_message &callInfo,
+        const Address &derivedAddress,
+        boost::unordered_flat_map<Address, std::unique_ptr<BaseContract>, SafeHash> &contracts,
+        const uint64_t &chainId,
+        ContractHost* host
+      ) {
         createNewContract<std::tuple_element_t<Is, Tuple>>(callInfo, derivedAddress, contracts, chainId, host);
       }, createContractFuncs)), ...);
     }

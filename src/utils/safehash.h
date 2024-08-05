@@ -11,7 +11,9 @@ See the LICENSE.txt file in the project root for more information.
 #include <memory>
 #include <boost/asio/ip/address.hpp>
 
+#include "../bytes/join.h"
 #include "../libs/wyhash.h"
+
 #include "strings.h"
 #include "utils.h"
 #include "tx.h"
@@ -78,11 +80,14 @@ struct SafeHash {
     // Make it compatible with SafeHash<Bytes>.
     Bytes bytes;
     if (nodeId.first.is_v4()) {
-      Utils::appendBytes(bytes, nodeId.first.to_v4().to_bytes());
+      bytes = Utils::makeBytes(bytes::join(
+        nodeId.first.to_v4().to_bytes(), Utils::uint16ToBytes(nodeId.second)
+      ));
     } else {
-      Utils::appendBytes(bytes, nodeId.first.to_v6().to_bytes());
+      bytes = Utils::makeBytes(bytes::join(
+        nodeId.first.to_v6().to_bytes(), Utils::uint16ToBytes(nodeId.second)
+      ));
     }
-    Utils::appendBytes(bytes, Utils::uint16ToBytes(nodeId.second));
     return SafeHash()(bytes);
   }
   ///@}

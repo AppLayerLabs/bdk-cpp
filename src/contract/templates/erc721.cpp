@@ -156,7 +156,7 @@ void ERC721::mint_(const Address& to, const uint256_t& tokenId) {
   if (to == Address()) {
     throw DynamicException("ERC721::mint_: mint to the zero address");
   }
-  Address prevOwner = this->update_(to, tokenId, Address());
+  [[maybe_unused]] Address prevOwner = this->update_(to, tokenId, Address());
 }
 
 void ERC721::burn_(const uint256_t& tokenId) {

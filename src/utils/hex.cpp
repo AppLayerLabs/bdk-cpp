@@ -37,8 +37,10 @@ bool Hex::isValid(const std::string_view hex, bool strict) {
     if (!hex.starts_with("0x") && !hex.starts_with("0X")) return false;
     off = 2;
   }
-  const static std::string_view filter("0123456789abcdefABCDEF");
-  if (hex.find_first_not_of(filter, off) != std::string::npos) return false;
+  if (
+    const static std::string_view filter("0123456789abcdefABCDEF");
+    hex.find_first_not_of(filter, off) != std::string::npos
+  ) return false;
   return true;
 }
 
@@ -83,8 +85,7 @@ Bytes Hex::toBytes(const std::string_view hex) {
   Bytes ret;
   size_t i = (hex[0] == '0' && (hex[1] == 'x' || hex[1] == 'X')) ? 2 : 0;
   const static std::string_view filter("0123456789abcdefABCDEF");
-  auto pos = hex.find_first_not_of(filter, i);
-  if (pos != std::string::npos) {
+  if (auto pos = hex.find_first_not_of(filter, i); pos != std::string::npos) {
     throw DynamicException(std::string(__func__) + ": Invalid hex string: "
       + std::string(hex) + " filter: " + std::string(filter) + " at pos: " + std::to_string(pos));
   }

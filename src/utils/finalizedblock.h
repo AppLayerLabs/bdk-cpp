@@ -17,6 +17,8 @@ See the LICENSE.txt file in the project root for more information.
 #include "merkle.h"
 #include "ecdsa.h"
 
+#include "../bytes/join.h"
+
 /// Abstraction of a finalized block. Members are purposefully const due to the immutable nature of the structure.
 class FinalizedBlock {
   private:
@@ -82,9 +84,9 @@ class FinalizedBlock {
      * Move constructor.
      * @param block The FinalizedBlock to move.
      */
-    FinalizedBlock(FinalizedBlock&& block) noexcept :
+    FinalizedBlock(FinalizedBlock&& block) :
       validatorSig_(std::move(block.validatorSig_)),
-      validatorPubKey_(std::move(block.validatorPubKey_)),
+      validatorPubKey_(std::move(block.validatorPubKey_)), // not "noexcept" because this can throw (FixedBytes)
       prevBlockHash_(std::move(block.prevBlockHash_)),
       blockRandomness_(std::move(block.blockRandomness_)),
       validatorMerkleRoot_(std::move(block.validatorMerkleRoot_)),
@@ -121,10 +123,11 @@ class FinalizedBlock {
     }
 
     /**
-     * De-serialize a given raw bytes string and turn it into a FinalizedBlock.
+     * Deserialize a given raw bytes string and turn it into a FinalizedBlock.
      * @param bytes The raw bytes string to de-serialize.
      * @param requiredChainId The chain ID to which the block belongs.
      * @return A FinalizedBlock instance.
+     * @throw std::domain_error if deserialization fails for some reason.
      */
     static FinalizedBlock fromBytes(const bytes::View bytes, const uint64_t& requiredChainId);
 

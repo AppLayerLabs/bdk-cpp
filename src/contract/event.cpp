@@ -11,13 +11,13 @@ Event::Event(const std::string& jsonstr) {
   json obj = json::parse(jsonstr);
   this->name_ = obj["name"].get<std::string>();
   this->logIndex_ = obj["logIndex"].get<uint64_t>();
-  this->txHash_ = Hash(Hex::toBytes(obj["txHash"].get<std::string>().substr(2)));
+  this->txHash_ = Hash(Hex::toBytes(std::string_view(obj["txHash"].get<std::string>()).substr(2)));
   this->txIndex_ = obj["txIndex"].get<uint64_t>();
-  this->blockHash_ = Hash(Hex::toBytes(obj["blockHash"].get<std::string>().substr(2)));
+  this->blockHash_ = Hash(Hex::toBytes(std::string_view(obj["blockHash"].get<std::string>()).substr(2)));
   this->blockIndex_ = obj["blockIndex"].get<uint64_t>();
   this->address_ = Address(obj["address"].get<std::string>(), false);
   this->data_ = obj["data"].get<Bytes>();
-  for (std::string topic : obj["topics"]) this->topics_.push_back(Hash(Hex::toBytes(topic)));
+  for (std::string topic : obj["topics"]) this->topics_.emplace_back(Hex::toBytes(topic));
   this->anonymous_ = obj["anonymous"].get<bool>();
 }
 
@@ -67,19 +67,17 @@ EventManager::EventManager(const Options& options
 
 void EventManager::dump() {
   DBBatch batchedOperations;
-  {
     for (const auto& e : this->events_) {
-      // Build the key (block height + tx index + log index + address)
-      Bytes key;
-      key.reserve(8 + 8 + 8 + key.size());
-      Utils::appendBytes(key, Utils::uint64ToBytes(e.getBlockIndex()));
-      Utils::appendBytes(key, Utils::uint64ToBytes(e.getTxIndex()));
-      Utils::appendBytes(key, Utils::uint64ToBytes(e.getLogIndex()));
-      Utils::appendBytes(key, e.getAddress().asBytes());
-      // Serialize the value to a JSON string and insert into the batch
+      // Build the key (block height + tx index + log index + address), then
+      // serialize the value to a JSON string and insert into the batch
+      Bytes key = Utils::makeBytes(bytes::join(
+        Utils::uint64ToBytes(e.getBlockIndex()),
+        Utils::uint64ToBytes(e.getTxIndex()),
+        Utils::uint64ToBytes(e.getLogIndex()),
+        e.getAddress()
+      ));
       batchedOperations.push_back(key, Utils::stringToBytes(e.serializeToJson()), DBPrefix::events);
     }
-  }
   // Batch save to database and clear the list
   this->db_.putBatch(batchedOperations);
   this->events_.clear();
@@ -91,11 +89,15 @@ std::vector<Event> EventManager::getEvents(
 ) const {
   std::vector<Event> ret;
   // Check if block range is within limits
-  uint64_t heightDiff = std::max(fromBlock, toBlock) - std::min(fromBlock, toBlock);
-  if (heightDiff > this->options_.getEventBlockCap()) throw std::out_of_range(
-    "Block range too large for event querying! Max allowed is " +
-    std::to_string(this->options_.getEventBlockCap())
-  );
+  if (
+    uint64_t heightDiff = std::max(fromBlock, toBlock) - std::min(fromBlock, toBlock);
+    heightDiff > this->options_.getEventBlockCap()
+  ) {
+    throw std::out_of_range(
+      "Block range too large for event querying! Max allowed is " +
+      std::to_string(this->options_.getEventBlockCap())
+    );
+  }
   // Fetch from memory, then match topics from memory
   for (const Event& e : this->filterFromMemory(fromBlock, toBlock, address)) {
     if (this->matchTopics(e, topics) && ret.size() < this->options_.getEventLogCap()) {
@@ -104,7 +106,7 @@ std::vector<Event> EventManager::getEvents(
   }
   if (ret.size() >= this->options_.getEventLogCap()) return ret;
   // Fetch from database if we have space left
-  for (const Event& e : this->filterFromDB(fromBlock, toBlock, address, topics)) {
+  for (Event& e : this->filterFromDB(fromBlock, toBlock, address, topics)) {
     if (ret.size() >= this->options_.getEventLogCap()) break;
     ret.push_back(std::move(e));
   }
@@ -124,10 +126,12 @@ std::vector<Event> EventManager::getEvents(
     if (e.getBlockIndex() == blockIndex && e.getTxIndex() == txIndex) ret.push_back(e);
   }
   // Fetch from DB
-  Bytes fetchBytes = DBPrefix::events;
-  Utils::appendBytes(fetchBytes, Utils::uint64ToBytes(blockIndex));
-  Utils::appendBytes(fetchBytes, Utils::uint64ToBytes(txIndex));
-  for (DBEntry entry : this->db_.getBatch(fetchBytes)) {
+  for (
+    Bytes fetchBytes = Utils::makeBytes(bytes::join(
+      DBPrefix::events, Utils::uint64ToBytes(blockIndex), Utils::uint64ToBytes(txIndex)
+    ));
+    DBEntry entry : this->db_.getBatch(fetchBytes)
+  ) {
     if (ret.size() >= this->options_.getEventLogCap()) break;
     Event e(Utils::bytesToString(entry.value));
     ret.push_back(e);

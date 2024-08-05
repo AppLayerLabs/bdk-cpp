@@ -84,17 +84,16 @@ class DumpManager : public Log::LogicalLocationProvider {
      * @param options the options object
      * @return a pair of the best state DB patch and the nHeight of the last block.
      */
-    static std::pair<std::string,uint64_t> getBestStateDBPath(const Options& options) {
-      std::string stateDbRootFolder = options.getRootPath() + "/stateDb/";
-      // Each state DB patch is named with the block height
-      // Therefore, we need to list all the directories in the stateDbRootFolder
-      // And return the one with the highest block height
-      // Using std::filesystem::directory_iterator
+    static std::pair<std::string, uint64_t> getBestStateDBPath(const Options& options) {
+      std::filesystem::path stateDbRootFolder = options.getRootPath() + "/stateDb/";
+      // Each state DB patch is named with the block height.
+      // Therefore, we need to list all the directories in the stateDbRootFolder and return 
+      // the one with the highest block height using std::filesystem::directory_iterator.
       uint64_t bestHeight = 0;
       std::string bestPath;
       if (!std::filesystem::exists(stateDbRootFolder)) {
         // If the state DB folder does not exist, return stateDbRootFolder + "0"
-        return std::make_pair(stateDbRootFolder + "0", 0);
+        return std::make_pair(stateDbRootFolder.string() + "0", 0);
       }
 
       for (const auto& entry : std::filesystem::directory_iterator(stateDbRootFolder)) {
@@ -108,7 +107,7 @@ class DumpManager : public Log::LogicalLocationProvider {
       }
       if (bestPath.empty()) {
         // If there are no state DB patches, return stateDbRootFolder + "0"
-        return std::make_pair(stateDbRootFolder + "0", 0);
+        return std::make_pair(stateDbRootFolder.string() + "0", 0);
       }
       return std::make_pair(bestPath, bestHeight);
     }

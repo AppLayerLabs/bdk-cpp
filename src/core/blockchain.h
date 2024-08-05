@@ -50,7 +50,25 @@ class Syncer : public Log::LogicalLocationProvider {
      * @param tries If zero, try forever, otherwise try block downloads a set number of times.
      * @return `true` if successfully synced, `false` otherwise.
      */
-    bool sync(uint64_t blocksPerRequest, uint64_t bytesPerRequestLimit, int waitForPeersSecs = 15, int tries = 0);
+    bool sync(
+      uint64_t blocksPerRequest, uint64_t bytesPerRequestLimit,
+      int waitForPeersSecs = 15, int tries = 0
+    );
+
+    /**
+     * Helper function that does the sync loop. Used exclusively by sync().
+     * @param blocksPerRequest How many blocks (at most) you want to obtain on each requestto the remote node.
+     * @param bytesPerRequestLimit Maximum byte size of each block download response (will download 1 block minimum).
+     * @param waitForPeersSecs Seconds to wait for at least one connection to be established (cumulative).
+     * @param tries If zero, try forever, otherwise try block downloads a set number of times.
+     * @param highestNode The highest known node to use as the target height to end the sync process.
+     * @return `true` when loop is successful, `false` when loop is aborted.
+     */
+    bool syncLoop(
+      const uint64_t& blocksPerRequest, const uint64_t& bytesPerRequestLimit,
+      int& waitForPeersSecs, int& tries,
+      std::pair<P2P::NodeID, uint64_t>& highestNode
+    );
 
     ///@{
     /** Getter. */
@@ -66,10 +84,10 @@ class Syncer : public Log::LogicalLocationProvider {
 class Blockchain : public Log::LogicalLocationProvider {
   private:
     Options options_;           ///< Options singleton.
-    P2P::ManagerNormal p2p_;    ///< P2P connection manager. NOTE: must be initialized first due to getLogicalLocation()
     const DB db_;               ///< Database.
     Storage storage_;           ///< Blockchain storage.
     State state_;               ///< Blockchain state.
+    P2P::ManagerNormal p2p_;    ///< P2P connection manager. NOTE: must be initialized first due to getLogicalLocation()
     HTTPServer http_;           ///< HTTP server.
     Syncer syncer_;             ///< Blockchain syncer.
     Consensus consensus_;       ///< Block and transaction processing.
@@ -88,7 +106,7 @@ class Blockchain : public Log::LogicalLocationProvider {
     ///@{
     /** Getter. */
     Options& getOptions() { return this->options_; }
-    const DB& getDB() { return this->db_; }
+    const DB& getDB() const { return this->db_; }
     Storage& getStorage() { return this->storage_; }
     State& getState() { return this->state_; }
     P2P::ManagerNormal& getP2P() { return this->p2p_; }

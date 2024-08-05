@@ -29,7 +29,7 @@ See the LICENSE.txt file in the project root for more information.
 #include <boost/multi_index/ordered_index.hpp>
 #include <boost/multi_index/member.hpp>
 
-  namespace bmi = boost::multi_index;
+namespace bmi = boost::multi_index;
 
 using json = nlohmann::ordered_json;
 
@@ -50,6 +50,7 @@ class Event {
     Bytes data_;                ///< Non-indexed arguments of the event.
     std::vector<Hash> topics_;  ///< Indexed arguments of the event, limited to a max of 3 (4 for anonymous events). Topics are Hashes since they are always 32 bytes.
     bool anonymous_;            ///< Whether the event is anonymous or not (its signature is indexed and searchable).
+    friend struct event_indices;
 
   public:
     Event() = default;
@@ -104,7 +105,7 @@ class Event {
       // object that should be appended to the data vector.
       // We use std::apply for indexed parameters because we need to iterate over the tuple.
       Bytes encodedNonIndexed;
-      std::apply([&](const auto&... param) {
+      std::apply([&topics](const auto&... param) {
         (..., (param.isIndexed ? topics.push_back(ABI::EventEncoder::encodeTopicSignature(param.value)) : void()));
       }, params);
 
@@ -121,10 +122,8 @@ class Event {
       }
     }
 
-    // Copy constructor
-    Event(const Event&) = default;
-    // Move constructor
-    Event(Event&&) = default;
+    Event(const Event&) = default; ///< Copy constructor.
+    Event(Event&&) = default; ///< Move constructor.
 
     /**
      * Constructor from deserialization.
@@ -182,12 +181,12 @@ using EventContainer = bmi::multi_index_container<Event, event_indices>;  ///< A
 class EventManager {
   private:
     // TODO: keep up to 1000 (maybe 10000? 100000? 1M seems too much) events in memory, dump older ones to DB (this includes checking save/load - maybe this should be a deque?)
-    EventContainer events_;           ///< List of all emitted events in memory. Older ones FIRST, newer ones LAST.
-    /// Uhhh mutable is needed because we used to dump stuff through the construction
-    /// now we do through the dump() method, so we need to mark it as mutable.
-    /// but dump() should be const, so we need to mark it as mutable.
-    mutable DB db_;                           ///< EventManager Database.
-    const Options& options_;          ///< Reference to the Options singleton.
+    EventContainer events_;   ///< List of all emitted events in memory. Older ones FIRST, newer ones LAST.
+    // Mutable is needed because we used to dump stuff through the construction
+    // now we do through the dump() method, so we need to mark it as mutable.
+    // but dump() should be const, so we need to mark it as mutable.
+    mutable DB db_;           ///< EventManager Database.
+    const Options& options_;  ///< Reference to the Options singleton.
 
   public:
     /**

@@ -56,10 +56,10 @@ class Pebble : public virtual ERC721URIStorage, public virtual Ownable {
         Pebble
       >(
         std::vector<std::string>{"maxSupply"},
-        std::make_tuple("mintNFT", &Pebble::mintNFT, NonPayable, std::vector<std::string>{"to"}),
-        std::make_tuple("getTokenRarity", &Pebble::getTokenRarity, View, std::vector<std::string>{"tokenId"}),
-        std::make_tuple("totalSupply", &Pebble::totalSupply, View, std::vector<std::string>{}),
-        std::make_tuple("maxSupply", &Pebble::maxSupply, View, std::vector<std::string>{})
+        std::make_tuple("mintNFT", &Pebble::mintNFT, FunctionTypes::NonPayable, std::vector<std::string>{"to"}),
+        std::make_tuple("getTokenRarity", &Pebble::getTokenRarity, FunctionTypes::View, std::vector<std::string>{"tokenId"}),
+        std::make_tuple("totalSupply", &Pebble::totalSupply, FunctionTypes::View, std::vector<std::string>{}),
+        std::make_tuple("maxSupply", &Pebble::maxSupply, FunctionTypes::View, std::vector<std::string>{})
       );
       ContractReflectionInterface::registerContractEvents<Pebble>(
         std::make_tuple("MintedNFT", false, &Pebble::MintedNFT, std::vector<std::string>{"user","tokenId", "rarity"})

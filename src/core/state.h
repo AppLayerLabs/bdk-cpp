@@ -8,25 +8,28 @@ See the LICENSE.txt file in the project root for more information.
 #ifndef STATE_H
 #define STATE_H
 
+#include <boost/unordered/unordered_flat_map.hpp>
+#include <evmc/evmc.hpp>
+
 #include "../utils/db.h"
+#include "../utils/logger.h"
 #include "../utils/utils.h"
 #include "../contract/contract.h"
 #include "../contract/contractmanager.h"
-#include <boost/unordered/unordered_flat_map.hpp>
+
 #include "storage.h"
 #include "rdpos.h"
 #include "dump.h"
-#include <evmc/evmc.hpp>
 
 // TODO: We could possibly change the bool functions into an enum function,
 // to be able to properly return each error case. We need this in order to slash invalid rdPoS blocks.
 
 /// Next-block validation status codes.
-enum BlockValidationStatus { valid, invalidWrongHeight, invalidErroneous };
+enum class BlockValidationStatus { valid, invalidWrongHeight, invalidErroneous };
 
 /// Abstraction of the blockchain's current state at the current block.
-class State : Dumpable, public Log::LogicalLocationProvider {
-  protected:
+class State : public Dumpable, public Log::LogicalLocationProvider {
+  protected: // TODO: those shouldn't be protected, plz refactor someday
     mutable std::shared_mutex stateMutex_;  ///< Mutex for managing read/write access to the state object.
     evmc_vm* vm_;  ///< Pointer to the EVMC VM.
     const Options& options_;  ///< Reference to the options singleton.
@@ -40,6 +43,7 @@ class State : Dumpable, public Log::LogicalLocationProvider {
     boost::unordered_flat_map<StorageKey, Hash, SafeHash> vmStorage_; ///< Map with the storage of the EVM.
     boost::unordered_flat_map<Address, NonNullUniquePtr<Account>, SafeHash> accounts_; ///< Map with information about blockchain accounts (Address -> Account).
     boost::unordered_flat_map<Hash, TxBlock, SafeHash> mempool_; ///< TxBlock mempool.
+
     /**
      * Verify if a transaction can be accepted within the current state.
      * @param tx The transaction to check.
@@ -75,6 +79,16 @@ class State : Dumpable, public Log::LogicalLocationProvider {
      */
     void refreshMempool(const FinalizedBlock& block);
 
+    /**
+     * Helper function that does a sanity check on all contracts in the accounts_ map.
+     * Used exclusively by the constructor.
+     * @param addr The address of the contract.
+     * @param acc The account tied to the contract.
+     * @throw DynamicException if any contract does not have code, or if an
+     *        address that isn't a contract has any code.
+     */
+    void contractSanityCheck(const Address& addr, const Account& acc);
+
   public:
     /**
      * Constructor.
@@ -90,15 +104,15 @@ class State : Dumpable, public Log::LogicalLocationProvider {
 
     std::string getLogicalLocation() const override { return p2pManager_.getLogicalLocation(); } ///< Log instance from P2P
 
-    // ======================================================================
+    // ----------------------------------------------------------------------
     // RDPOS WRAPPER FUNCTIONS
-    // ======================================================================
+    // ----------------------------------------------------------------------
 
     ///@{
     /** Wrapper for the respective rdPoS function. */
-    const std::set<Validator> rdposGetValidators() const { std::shared_lock lock(this->stateMutex_); return this->rdpos_.getValidators(); }
-    const std::vector<Validator> rdposGetRandomList() const { std::shared_lock lock(this->stateMutex_); return this->rdpos_.getRandomList(); }
-    const size_t rdposGetMempoolSize() const { std::shared_lock lock(this->stateMutex_); return this->rdpos_.getMempoolSize(); }
+    std::set<Validator> rdposGetValidators() const { std::shared_lock lock(this->stateMutex_); return this->rdpos_.getValidators(); }
+    std::vector<Validator> rdposGetRandomList() const { std::shared_lock lock(this->stateMutex_); return this->rdpos_.getRandomList(); }
+    size_t rdposGetMempoolSize() const { std::shared_lock lock(this->stateMutex_); return this->rdpos_.getMempoolSize(); }
     const boost::unordered_flat_map<Hash, TxValidator, SafeHash> rdposGetMempool() const { std::shared_lock lock(this->stateMutex_); return this->rdpos_.getMempool(); }
     const Hash& rdposGetBestRandomSeed() const { std::shared_lock lock(this->stateMutex_); return this->rdpos_.getBestRandomSeed(); }
     bool rdposGetIsValidator() const { std::shared_lock lock(this->stateMutex_); return this->rdpos_.getIsValidator(); }
@@ -110,12 +124,12 @@ class State : Dumpable, public Log::LogicalLocationProvider {
     void dumpStartWorker() { this->dumpWorker_.startWorker(); }
     void dumpStopWorker() { this->dumpWorker_.stopWorker(); }
     size_t getDumpManagerSize() const { std::shared_lock lock(this->stateMutex_); return this->dumpManager_.size(); }
-    void saveToDB() { this->dumpManager_.dumpToDB(); }
+    void saveToDB() const { this->dumpManager_.dumpToDB(); }
     ///@}
 
-    // ======================================================================
+    // ----------------------------------------------------------------------
     // STATE FUNCTIONS
-    // ======================================================================
+    // ----------------------------------------------------------------------
 
     /**
      * Get the native balance of an account in the state.

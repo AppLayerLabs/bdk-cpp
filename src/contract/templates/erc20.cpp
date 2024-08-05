@@ -15,12 +15,10 @@ ERC20::ERC20(const Address& address, const DB& db)
   this->symbol_ = Utils::bytesToString(db.get(std::string("symbol_"), this->getDBPrefix()));
   this->decimals_ = Utils::bytesToUint8(db.get(std::string("decimals_"), this->getDBPrefix()));
   this->totalSupply_ = Utils::bytesToUint256(db.get(std::string("totalSupply_"), this->getDBPrefix()));
-  auto balances = db.getBatch(this->getNewPrefix("balances_"));
-  for (const auto& dbEntry : balances) {
+  for (const auto& dbEntry : db.getBatch(this->getNewPrefix("balances_"))) {
     this->balances_[Address(dbEntry.key)] = Utils::fromBigEndian<uint256_t>(dbEntry.value);
   }
-  auto allowances = db.getBatch(this->getNewPrefix("allowed_"));
-  for (const auto& dbEntry : allowances) {
+  for (const auto& dbEntry : db.getBatch(this->getNewPrefix("allowed_"))) {
     bytes::View key(dbEntry.key);
     Address owner(key.subspan(0,20));
     Address spender(key.subspan(20));
@@ -151,10 +149,8 @@ bool ERC20::approve(const Address &spender, const uint256_t &value) {
 
 uint256_t ERC20::allowance(const Address& owner, const Address& spender) const {
   uint256_t ret = 0;
-  const auto& it = std::as_const(this->allowed_).find(owner);
-  if (it != this->allowed_.cend()) {
-    const auto& it2 = it->second.find(spender);
-    if (it2 != it->second.cend()) ret = it2->second;
+  if (const auto& it = std::as_const(this->allowed_).find(owner); it != this->allowed_.cend()) {
+    if (const auto& it2 = it->second.find(spender); it2 != it->second.cend()) ret = it2->second;
   }
   return ret;
 }

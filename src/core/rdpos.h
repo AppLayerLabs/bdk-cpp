@@ -30,7 +30,7 @@ class State;
 // "0xcfffe746" -> Function for random hash tx
 
 /// Enum for labeling transaction status.
-enum TxStatus {
+enum class TxStatus {
   ValidNew,
   ValidExisting,
   InvalidNonce,       // Tx only
@@ -39,6 +39,7 @@ enum TxStatus {
   InvalidDuplicate,   // ValidatorTx only
   InvalidRedundant    // ValidatorTx only
 };
+
 inline bool isTxStatusValid(const TxStatus& txStatus) { return txStatus <= TxStatus::ValidExisting; }
 
 /**
@@ -60,7 +61,6 @@ class rdPoS : public BaseContract, public Log::LogicalLocationProvider {
     const Options& options_;  ///< Reference to the options singleton.
     const Storage& storage_;  ///< Reference to the blockchain's storage.
     P2P::ManagerNormal& p2p_; ///< Reference to the P2P Manager (for sending/requesting TxValidators from other nodes).
-    State& state_;  ///< Reference to the blockchain state.
     std::set<Validator> validators_;  ///< Ordered list of rdPoS validators.
     std::vector<Validator> randomList_; ///< Shuffled version of the validator list, used at block creation/signing.
     boost::unordered_flat_map<Hash, TxValidator, SafeHash> validatorMempool_;  ///< Mempool for validator transactions.
@@ -70,12 +70,21 @@ class rdPoS : public BaseContract, public Log::LogicalLocationProvider {
     Hash bestRandomSeed_; ///< Best randomness seed (taken from the last block).
     const uint32_t minValidators_; ///< Minimum required number of Validators for creating and signing blocks.
 
+    /**
+     * Helper function that does a sanity check on a given pair of Validator txs.
+     * Used exclusively by validateBlock().
+     * @param hashTx A Validator's hash tx.
+     * @param seedTx A Validator's seed tx.
+     * @return `true` if tx data is valid, `false` otherwise.
+     */
+    bool validateBlockTxSanityCheck(const TxValidator& hashTx, const TxValidator& seedTx) const;
+    
   public:
     /// Enum for Validator transaction functions.
-    enum TxValidatorFunction { INVALID, RANDOMHASH, RANDOMSEED };
+    enum class TxValidatorFunction { INVALID, RANDOMHASH, RANDOMSEED };
 
     /// Enum for transaction types.
-    enum TxType { addValidator, removeValidator, randomHash, randomSeed };
+    enum class TxType { addValidator, removeValidator, randomHash, randomSeed };
 
     /**
      * Constructor.
@@ -83,10 +92,9 @@ class rdPoS : public BaseContract, public Log::LogicalLocationProvider {
      * @param storage Reference to the blockchain's storage.
      * @param p2p Reference to the P2P connection manager.
      * @param options Reference to the options singleton.
-     * @param state Reference to the blockchain's state.
      * @throw DynamicException if there are no Validators registered in the database.
      */
-    rdPoS(const DB& db, DumpManager& manager, const Storage& storage, P2P::ManagerNormal& p2p, const Options& options, State& state);
+    rdPoS(const DB& db, DumpManager& manager, const Storage& storage, P2P::ManagerNormal& p2p, const Options& options);
 
     ~rdPoS() override;  ///< Destructor.
 
@@ -94,10 +102,10 @@ class rdPoS : public BaseContract, public Log::LogicalLocationProvider {
 
     ///@{
     /** Getter. */
-    const std::set<Validator> getValidators() const { return this->validators_; }
-    const std::vector<Validator> getRandomList() const { return this->randomList_; }
+    std::set<Validator> getValidators() const { return this->validators_; }
+    std::vector<Validator> getRandomList() const { return this->randomList_; }
     const boost::unordered_flat_map<Hash, TxValidator, SafeHash> getMempool() const { return this->validatorMempool_; }
-    const size_t getMempoolSize() const { return this->validatorMempool_.size(); }
+    size_t getMempoolSize() const { return this->validatorMempool_.size(); }
     const Hash& getBestRandomSeed() const { return this->bestRandomSeed_; }
     bool getIsValidator() const { return this->isValidator_; }
     UPubKey getValidatorUPubKey() const { return Secp256k1::toUPub(this->validatorKey_); }

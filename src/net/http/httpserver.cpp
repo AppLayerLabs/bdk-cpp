@@ -23,7 +23,7 @@ bool HTTPServer::run() {
   // Run the I/O service on the requested number of threads (4)
   std::vector<std::thread> v;
   v.reserve(4 - 1);
-  for (int i = 4 - 1; i > 0; i--) v.emplace_back([&]{ this->ioc_.run(); });
+  for (int i = 4 - 1; i > 0; i--) v.emplace_back([this]() { this->ioc_.run(); });
   LOGINFO(std::string("HTTP Server Started at port: ") + std::to_string(port_));
   this->ioc_.run();
 

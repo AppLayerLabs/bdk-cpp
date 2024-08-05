@@ -168,7 +168,7 @@ class SafeBytes : public SafeBase {
       uint8_t& ret = this->value_.at(pos);
       if (this->copy_ == nullptr) {
         if (this->undo_ == nullptr) this->undo_ = std::make_unique<std::stack<UndoOp, std::vector<UndoOp>>>();
-        this->undo_->emplace(std::make_tuple(BytesOp::AT, pos, 1, std::vector<uint8_t>{this->value_.at(pos)}));
+        this->undo_->emplace(BytesOp::AT, pos, 1, std::vector<uint8_t>{this->value_.at(pos)});
       }
       markAsUsed(); return ret;
     }
@@ -184,7 +184,7 @@ class SafeBytes : public SafeBase {
     inline uint8_t& operator[](std::size_t pos) {
       if (this->copy_ == nullptr) {
         if (this->undo_ == nullptr) this->undo_ = std::make_unique<std::stack<UndoOp, std::vector<UndoOp>>>();
-        this->undo_->emplace(std::make_tuple(BytesOp::OPERATOR_BRACKETS, pos, 1, std::vector<uint8_t>{this->value_[pos]}));
+        this->undo_->emplace(BytesOp::OPERATOR_BRACKETS, pos, 1, std::vector<uint8_t>{this->value_[pos]});
       }
       markAsUsed(); return this->value_[pos];
     }
@@ -196,7 +196,7 @@ class SafeBytes : public SafeBase {
     inline uint8_t& front() {
       if (this->copy_ == nullptr) {
         if (this->undo_ == nullptr) this->undo_ = std::make_unique<std::stack<UndoOp, std::vector<UndoOp>>>();
-        this->undo_->emplace(std::make_tuple(BytesOp::FRONT, 0, 1, std::vector<uint8_t>{this->value_.at(0)}));
+        this->undo_->emplace(BytesOp::FRONT, 0, 1, std::vector<uint8_t>{this->value_.at(0)});
       }
       markAsUsed(); return this->value_.front();
     }
@@ -208,7 +208,7 @@ class SafeBytes : public SafeBase {
     inline uint8_t& back() {
       if (this->copy_ == nullptr) {
         if (this->undo_ == nullptr) this->undo_ = std::make_unique<std::stack<UndoOp, std::vector<UndoOp>>>();
-        this->undo_->emplace(std::make_tuple(BytesOp::BACK, this->value_.size() - 1, 1, std::vector<uint8_t>{this->value_.at(this->value_.size() - 1)}));
+        this->undo_->emplace(BytesOp::BACK, this->value_.size() - 1, 1, std::vector<uint8_t>{this->value_.at(this->value_.size() - 1)});
       }
       markAsUsed(); return this->value_.back();
     }
@@ -274,7 +274,7 @@ class SafeBytes : public SafeBase {
       if (this->copy_ == nullptr) {
         if (this->undo_ == nullptr) this->undo_ = std::make_unique<std::stack<UndoOp, std::vector<UndoOp>>>();
         std::size_t index = std::distance(this->value_.cbegin(), pos);
-        this->undo_->emplace(std::make_tuple(BytesOp::INSERT, index, 1, std::vector<uint8_t>()));
+        this->undo_->emplace(BytesOp::INSERT, index, 1, std::vector<uint8_t>());
       }
       markAsUsed(); return this->value_.insert(pos, value);
     }
@@ -289,9 +289,9 @@ class SafeBytes : public SafeBase {
       if (this->copy_ == nullptr) {
         if (this->undo_ == nullptr) this->undo_ = std::make_unique<std::stack<UndoOp, std::vector<UndoOp>>>();
         std::size_t index = std::distance(this->value_.cbegin(), pos);
-        this->undo_->emplace(std::make_tuple(BytesOp::INSERT, index, 1, std::vector<uint8_t>()));
+        this->undo_->emplace(BytesOp::INSERT, index, 1, std::vector<uint8_t>());
       }
-      markAsUsed(); return this->value_.insert(pos, std::move(value));
+      markAsUsed(); return this->value_.insert(pos, value);
     }
 
     /**
@@ -305,7 +305,7 @@ class SafeBytes : public SafeBase {
       if (this->copy_ == nullptr) {
         if (this->undo_ == nullptr) this->undo_ = std::make_unique<std::stack<UndoOp, std::vector<UndoOp>>>();
         std::size_t index = std::distance(this->value_.cbegin(), pos);
-        this->undo_->emplace(std::make_tuple(BytesOp::INSERT_BULK, index, count, std::vector<uint8_t>()));
+        this->undo_->emplace(BytesOp::INSERT_BULK, index, count, std::vector<uint8_t>());
       }
       markAsUsed(); return this->value_.insert(pos, count, value);
     }
@@ -324,7 +324,7 @@ class SafeBytes : public SafeBase {
         if (this->undo_ == nullptr) this->undo_ = std::make_unique<std::stack<UndoOp, std::vector<UndoOp>>>();
         std::size_t index = std::distance(this->value_.cbegin(), pos);
         std::size_t diff = std::distance(first, last);
-        this->undo_->emplace(std::make_tuple(BytesOp::INSERT_BULK, index, diff, std::vector<uint8_t>()));
+        this->undo_->emplace(BytesOp::INSERT_BULK, index, diff, std::vector<uint8_t>());
       }
       markAsUsed(); return this->value_.insert(pos, first, last);
     }
@@ -339,7 +339,7 @@ class SafeBytes : public SafeBase {
       if (this->copy_ == nullptr) {
         if (this->undo_ == nullptr) this->undo_ = std::make_unique<std::stack<UndoOp, std::vector<UndoOp>>>();
         std::size_t index = std::distance(this->value_.cbegin(), pos);
-        this->undo_->emplace(std::make_tuple(BytesOp::INSERT_BULK, index, ilist.size(), std::vector<uint8_t>()));
+        this->undo_->emplace(BytesOp::INSERT_BULK, index, ilist.size(), std::vector<uint8_t>());
       }
       markAsUsed(); return this->value_.insert(pos, ilist);
     }
@@ -353,7 +353,7 @@ class SafeBytes : public SafeBase {
     template <class... Args> typename std::vector<uint8_t>::const_iterator emplace(typename std::vector<uint8_t>::const_iterator pos, Args&&... args) {
       if (this->copy_ == nullptr) {
         if (this->undo_ == nullptr) this->undo_ = std::make_unique<std::stack<UndoOp, std::vector<UndoOp>>>();
-        this->undo_->emplace(std::make_tuple(BytesOp::EMPLACE, std::distance(this->value_.cbegin(), pos), 1, std::vector<uint8_t>()));
+        this->undo_->emplace(BytesOp::EMPLACE, std::distance(this->value_.cbegin(), pos), 1, std::vector<uint8_t>());
       }
       markAsUsed(); return this->value_.emplace(pos, args...);
     }
@@ -367,7 +367,7 @@ class SafeBytes : public SafeBase {
       if (this->copy_ == nullptr) {
         if (this->undo_ == nullptr) this->undo_ = std::make_unique<std::stack<UndoOp, std::vector<UndoOp>>>();
         std::size_t index = std::distance(this->value_.cbegin(), pos);
-        this->undo_->emplace(std::make_tuple(BytesOp::ERASE, index, 1, std::vector<uint8_t>{this->value_.at(index)}));
+        this->undo_->emplace(BytesOp::ERASE, index, 1, std::vector<uint8_t>{this->value_.at(index)});
       }
       markAsUsed(); return this->value_.erase(pos);
     }
@@ -385,8 +385,8 @@ class SafeBytes : public SafeBase {
         if (this->undo_ == nullptr) this->undo_ = std::make_unique<std::stack<UndoOp, std::vector<UndoOp>>>();
         std::size_t index = std::distance(this->value_.cbegin(), first);
         std::size_t diff = std::distance(first, last);
-        std::vector<uint8_t> oldVals = std::vector<uint8_t>(first, last);
-        this->undo_->emplace(std::make_tuple(BytesOp::ERASE_BULK, index, diff, oldVals));
+        auto oldVals = std::vector<uint8_t>(first, last);
+        this->undo_->emplace(BytesOp::ERASE_BULK, index, diff, oldVals);
       }
       markAsUsed(); return this->value_.erase(first, last);
     }
@@ -398,7 +398,7 @@ class SafeBytes : public SafeBase {
     void push_back(const uint8_t& value) {
       if (this->copy_ == nullptr) {
         if (this->undo_ == nullptr) this->undo_ = std::make_unique<std::stack<UndoOp, std::vector<UndoOp>>>();
-        this->undo_->emplace(std::make_tuple(BytesOp::PUSH_BACK, 0, 0, std::vector<uint8_t>()));
+        this->undo_->emplace(BytesOp::PUSH_BACK, 0, 0, std::vector<uint8_t>());
       }
       markAsUsed(); this->value_.push_back(value);
     }
@@ -410,9 +410,9 @@ class SafeBytes : public SafeBase {
     void push_back(uint8_t&& value) {
       if (this->copy_ == nullptr) {
         if (this->undo_ == nullptr) this->undo_ = std::make_unique<std::stack<UndoOp, std::vector<UndoOp>>>();
-        this->undo_->emplace(std::make_tuple(BytesOp::PUSH_BACK, 0, 0, std::vector<uint8_t>()));
+        this->undo_->emplace(BytesOp::PUSH_BACK, 0, 0, std::vector<uint8_t>());
       }
-      markAsUsed(); this->value_.push_back(std::move(value));
+      markAsUsed(); this->value_.push_back(value);
     }
 
     /**
@@ -422,7 +422,7 @@ class SafeBytes : public SafeBase {
     uint8_t& emplace_back(uint8_t&& value) {
       if (this->copy_ == nullptr) {
         if (this->undo_ == nullptr) this->undo_ = std::make_unique<std::stack<UndoOp, std::vector<UndoOp>>>();
-        this->undo_->emplace(std::make_tuple(BytesOp::EMPLACE_BACK, 0, 0, std::vector<uint8_t>()));
+        this->undo_->emplace(BytesOp::EMPLACE_BACK, 0, 0, std::vector<uint8_t>());
       }
       markAsUsed(); return this->value_.emplace_back(value);
     }
@@ -431,7 +431,7 @@ class SafeBytes : public SafeBase {
     void pop_back() {
       if (this->copy_ == nullptr) {
         if (this->undo_ == nullptr) this->undo_ = std::make_unique<std::stack<UndoOp, std::vector<UndoOp>>>();
-        this->undo_->emplace(std::make_tuple(BytesOp::POP_BACK, 0, 0, std::vector<uint8_t>{this->value_.back()}));
+        this->undo_->emplace(BytesOp::POP_BACK, 0, 0, std::vector<uint8_t>{this->value_.back()});
       }
       markAsUsed(); this->value_.pop_back();
     }
@@ -458,7 +458,7 @@ class SafeBytes : public SafeBase {
             diff = this->value_.size() - count;
             vals = std::vector<uint8_t>(this->value_.end() - diff, this->value_.end());
           }
-          this->undo_->emplace(std::make_tuple(bytesOp, diff, 0, vals));
+          this->undo_->emplace(bytesOp, diff, 0, vals);
         }
       }
       markAsUsed(); this->value_.resize(count);
@@ -487,7 +487,7 @@ class SafeBytes : public SafeBase {
             diff = this->value_.size() - count;
             vals = std::vector<uint8_t>(this->value_.end() - diff, this->value_.end());
           }
-          this->undo_->emplace(std::make_tuple(bytesOp, diff, 0, vals));
+          this->undo_->emplace(bytesOp, diff, 0, vals);
         }
       }
       markAsUsed(); this->value_.resize(count, value);

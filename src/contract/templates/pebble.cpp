@@ -79,16 +79,14 @@ Pebble::Rarity Pebble::determineRarity_(const uint256_t& randomNumber) {
 }
 
 std::string Pebble::rarityToString_(const Rarity& rarity) {
+  std::string ret = "";
   switch (rarity) {
-    case Rarity::Normal:
-      return "Normal";
-    case Rarity::Silver:
-      return "Silver";
-    case Rarity::Gold:
-      return "Gold";
-    case Rarity::Diamond:
-      return "Diamond";
+    case Rarity::Normal: ret = "Normal"; break;
+    case Rarity::Silver: ret = "Silver"; break;
+    case Rarity::Gold: ret = "Gold"; break;
+    case Rarity::Diamond: ret = "Diamond"; break;
   }
+  return ret;
 }
 
 Address Pebble::update_(const Address& to, const uint256_t& tokenId, const Address& auth) {
@@ -126,8 +124,8 @@ uint256_t Pebble::maxSupply() const {
 
 void Pebble::registerContractFunctions() {
   Pebble::registerContract();
-  this->registerMemberFunction("mintNFT", &Pebble::mintNFT, NonPayable, this);
-  this->registerMemberFunction("getTokenRarity", &Pebble::getTokenRarity, View, this);
-  this->registerMemberFunction("totalSupply", &Pebble::totalSupply, View, this);
-  this->registerMemberFunction("maxSupply", &Pebble::maxSupply, View, this);
+  this->registerMemberFunction("mintNFT", &Pebble::mintNFT, FunctionTypes::NonPayable, this);
+  this->registerMemberFunction("getTokenRarity", &Pebble::getTokenRarity, FunctionTypes::View, this);
+  this->registerMemberFunction("totalSupply", &Pebble::totalSupply, FunctionTypes::View, this);
+  this->registerMemberFunction("maxSupply", &Pebble::maxSupply, FunctionTypes::View, this);
 }

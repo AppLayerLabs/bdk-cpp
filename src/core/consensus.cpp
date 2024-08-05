@@ -51,11 +51,10 @@ void Consensus::doValidatorBlock() {
     }
     validatorMempoolSize = this->state_.rdposGetMempoolSize();
     // Try to get more transactions from other nodes within the network
-    auto connectedNodesList = this->p2p_.getSessionsIDs(P2P::NodeType::NORMAL_NODE);
-    for (auto const& nodeId : connectedNodesList) {
+    for (const auto& nodeId : this->p2p_.getSessionsIDs(P2P::NodeType::NORMAL_NODE)) {
       auto txList = this->p2p_.requestValidatorTxs(nodeId);
       if (this->stop_) return;
-      for (auto const& tx : txList) this->state_.addValidatorTx(tx);
+      for (const auto& tx : txList) this->state_.addValidatorTx(tx);
     }
     std::this_thread::sleep_for(std::chrono::microseconds(10));
   }
@@ -72,13 +71,12 @@ void Consensus::doValidatorBlock() {
     if (this->stop_) return;
 
     // Try to get transactions from the network.
-    auto connectedNodesList = this->p2p_.getSessionsIDs(P2P::NodeType::NORMAL_NODE);
-    for (auto const& nodeId : connectedNodesList) {
+    for (const auto& nodeId : this->p2p_.getSessionsIDs(P2P::NodeType::NORMAL_NODE)) {
       LOGDEBUG("Requesting txs...");
       if (this->stop_) break;
       auto txList = this->p2p_.requestTxs(nodeId);
       if (this->stop_) break;
-      for (auto const& tx : txList) {
+      for (const auto& tx : txList) {
         TxBlock txBlock(tx);
         this->state_.addTx(std::move(txBlock));
       }
@@ -92,7 +90,7 @@ void Consensus::doValidatorBlock() {
   LOGDEBUG("Ordering transactions and creating block");
   if (this->stop_) return;
   auto mempool = this->state_.rdposGetMempool();
-  auto randomList = this->state_.rdposGetRandomList();
+  const auto randomList = this->state_.rdposGetRandomList();
 
   // Order the transactions in the proper manner.
   std::vector<TxValidator> randomHashTxs;
@@ -143,16 +141,16 @@ void Consensus::doValidatorBlock() {
   timestamp = std::max(timestamp, latestBlock->getTimestamp());
 
   LOGDEBUG("Create a new valid block.");
-  auto block = FinalizedBlock::createNewValidBlock(std::move(chainTxs),
-                                                   std::move(validatorTxs),
-                                                   latestBlock->getHash(),
-                                                   timestamp,
-                                                   latestBlock->getNHeight() + 1,
-                                                   this->options_.getValidatorPrivKey());
+  auto block = FinalizedBlock::createNewValidBlock(
+    std::move(chainTxs), std::move(validatorTxs), latestBlock->getHash(),
+    timestamp, latestBlock->getNHeight() + 1, this->options_.getValidatorPrivKey()
+  );
   LOGDEBUG("Block created, validating.");
   Hash latestBlockHash = block.getHash();
-  BlockValidationStatus bvs = state_.tryProcessNextBlock(std::move(block));
-  if (bvs != BlockValidationStatus::valid) {
+  if (
+    BlockValidationStatus bvs = state_.tryProcessNextBlock(std::move(block));
+    bvs != BlockValidationStatus::valid
+  ) {
     LOGERROR("Block is not valid!");
     throw DynamicException("Block is not valid!");
   }
@@ -226,11 +224,10 @@ void Consensus::doValidatorTx(const uint64_t& nHeight, const Validator& me) {
     }
     validatorMempoolSize = this->state_.rdposGetMempoolSize();
     // Try to get more transactions from other nodes within the network
-    auto connectedNodesList = this->p2p_.getSessionsIDs(P2P::NodeType::NORMAL_NODE);
-    for (auto const& nodeId : connectedNodesList) {
+    for (const auto& nodeId : this->p2p_.getSessionsIDs(P2P::NodeType::NORMAL_NODE)) {
       if (this->stop_) return;
       auto txList = this->p2p_.requestValidatorTxs(nodeId);
-      for (auto const& tx : txList) this->state_.addValidatorTx(tx);
+      for (const auto& tx : txList) this->state_.addValidatorTx(tx);
     }
     std::this_thread::sleep_for(std::chrono::microseconds(10));
   }

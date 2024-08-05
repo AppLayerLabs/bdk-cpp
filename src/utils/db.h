@@ -214,8 +214,7 @@ class DB {
       keyTmp.insert(keyTmp.end(), key.begin(), key.end());
       rocksdb::Slice keySlice(reinterpret_cast<const char*>(keyTmp.data()), keyTmp.size());
       rocksdb::Slice valueSlice(reinterpret_cast<const char*>(value.data()), value.size());
-      auto status = this->db_->Put(rocksdb::WriteOptions(), keySlice, valueSlice);
-      if (!status.ok()) {
+      if (auto status = this->db_->Put(rocksdb::WriteOptions(), keySlice, valueSlice); !status.ok()) {
         LOGERROR("Failed to put key: " + Hex::fromBytes(keyTmp).get());
         return false;
       }
@@ -234,8 +233,7 @@ class DB {
       keyTmp.reserve(pfx.size() + key.size());
       keyTmp.insert(keyTmp.end(), key.begin(), key.end());
       rocksdb::Slice keySlice(reinterpret_cast<const char*>(keyTmp.data()), keyTmp.size());
-      auto status = this->db_->Delete(rocksdb::WriteOptions(), keySlice);
-      if (!status.ok()) {
+      if (auto status = this->db_->Delete(rocksdb::WriteOptions(), keySlice); !status.ok()) {
         LOGERROR("Failed to delete key: " + Hex::fromBytes(keyTmp).get());
         return false;
       }
@@ -244,7 +242,7 @@ class DB {
 
     Bytes getLastByPrefix(const Bytes& pfx) const;
 
-    static Bytes makeNewPrefix(Bytes prefix, const std::string& newPrefix) {
+    static Bytes makeNewPrefix(Bytes prefix, std::string_view newPrefix) {
       prefix.reserve(prefix.size() + newPrefix.size());
       prefix.insert(prefix.end(), newPrefix.cbegin(), newPrefix.cend());
       return prefix;
@@ -293,7 +291,7 @@ class DB {
      * @param str The string to convert.
      * @return The Bytes container.
      */
-    inline static Bytes keyFromStr(const std::string& str) { return Bytes(str.begin(), str.end()); }
+    inline static Bytes keyFromStr(std::string_view str) { return Bytes(str.begin(), str.end()); }
 };
 
 #endif // DB_H
