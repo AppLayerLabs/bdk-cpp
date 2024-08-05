@@ -27,12 +27,14 @@ set(CMAKE_FIND_LIBRARY_SUFFIXES ".a") # Always look for static libraries - "ZLIB
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON) # For clang-tidy
 
 # Set compiler flags
+# TODO: -Wno-c++26-extensions is included because zpp_libs uses name-independent declarations (vars named "_").
+# This should be resolved at a later date, but was turned off for now because it doesn't affect us
 if(DEBUG)
-  set(CMAKE_CXX_FLAGS "-O0 -g -fsanitize=address -fno-inline -fno-eliminate-unused-debug-types -fstack-protector") # Provides faster compile time.
+  set(CMAKE_CXX_FLAGS "-O0 -g -Wno-c++26-extensions -fsanitize=address -fno-inline -fno-eliminate-unused-debug-types -fstack-protector") # Provides faster compile time.
 elseif(SONARQUBE_ANALYSIS)
-  set(CMAKE_CXX_FLAGS "-O0 -g --coverage")
+  set(CMAKE_CXX_FLAGS "-O0 -g -Wno-c++26-extensions --coverage")
 else()
-  set(CMAKE_CXX_FLAGS "-O2 -Werror=unused-variable")
+  set(CMAKE_CXX_FLAGS "-O2 -Wno-c++26-extensions -Werror=unused-variable")
 endif()
 find_program(MOLD "mold") # Use mold by default if it is installed
 if(MOLD)
