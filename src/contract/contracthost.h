@@ -132,13 +132,17 @@ class ContractHost : public evmc::Host {
 
     bool isTracingCalls() const noexcept;
 
-    void traceCallIn(const evmc_message& msg) noexcept;
+    void traceCallStarted(const evmc_message& msg) noexcept;
 
-    void traceCallOut(const evmc_result& res) noexcept;
+    void traceCallFinished(const evmc_result& res) noexcept;
 
-    void traceCallOut(bytes::View output, uint64_t gasUsed) noexcept;
+    void traceCallSucceeded(Bytes output, uint64_t gasUsed) noexcept;
 
-    void traceCallError(std::string error, uint64_t gasUsed) noexcept;
+    void traceCallReverted(Bytes output, uint64_t gasUsed) noexcept;
+
+    void traceCallReverted(uint64_t gasUsed) noexcept;
+
+    void traceCallOutOfGas() noexcept;
 
     void saveCallTrace() noexcept;
 
@@ -321,22 +325,28 @@ class ContractHost : public evmc::Host {
           callData.input = Utils::makeBytes(encodedFunctor);
         }
 
-        callTracer_.traceIn(std::move(callData));
+        callTracer_.callStarted(std::move(callData));
 
         try {
           if constexpr (std::same_as<R, void>) {
             callContractFunctionImpl(caller, targetAddr, value, func, args...);
-            callTracer_.traceOut(bytes::View(), gas - leftoverGas_);
+            callTracer_.callSucceeded(Bytes(), gas - leftoverGas_);
             return;
           } else {
             R result = callContractFunctionImpl(caller, targetAddr, value, func, args...);
-            const Bytes output = ABI::Encoder::encodeData<R>(result);
             const uint64_t gasUsed = gas - leftoverGas_;
-            callTracer_.traceOut(output, gasUsed);
+            Bytes output = ABI::Encoder::encodeData<R>(result);
+            callTracer_.callSucceeded(std::move(output), gasUsed);
             return result;
           }
         } catch (const std::exception& err) {
-          callTracer_.traceError("An C++ exception has been thrown", gas - leftoverGas_);
+          Bytes output;
+
+          if (err.what()) {
+            output = trace::encodeRevertReason(err.what());
+          }
+
+          callTracer_.callReverted(std::move(output), gas - leftoverGas_);
           throw err;
         }
       } else [[likely]] {

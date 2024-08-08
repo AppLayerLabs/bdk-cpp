@@ -822,7 +822,7 @@ namespace Utils {
    * @param str The string to convert.
    * @return The converted string as a bytes vector.
    */
-  inline Bytes stringToBytes(const std::string& str) { return Bytes(str.cbegin(), str.cend()); }
+  inline Bytes stringToBytes(std::string_view str) { return Bytes(str.cbegin(), str.cend()); }
 
   /**
    * Shorthand for obtaining a milliseconds-since-epoch uint64_t timestamp from std::chrono

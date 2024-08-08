@@ -939,7 +939,6 @@ class SDKTestSuite {
       const std::tuple<EventParam<Args, Flags>...>& args,
       bool anonymous = false
     ) {
-      printf("begin\n");
       // Get all the events emitted by the transaction.
       auto eventSignature = ABI::EventEncoder::encodeSignature<Args...>(
         ContractReflectionInterface::getFunctionName(func)
@@ -954,12 +953,9 @@ class SDKTestSuite {
 
       // Filter the events by the topics, from the most recent 2000 blocks
       std::vector<Event> filteredEvents;
-      printf("before access latest()\n");
       uint64_t lastBlock = this->storage_.latest()->getNHeight();
-      printf("after access latest()\n");
       uint64_t firstBlock = (lastBlock > 2000) ? lastBlock - 2000 : 0;
       auto allEvents = this->getEvents(firstBlock, lastBlock, address, {});
-      printf("before for loop()\n");
       for (const auto& event : allEvents) {
         if (topicsToFilter.size() == 0) {
           filteredEvents.push_back(event);

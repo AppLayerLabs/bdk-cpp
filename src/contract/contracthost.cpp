@@ -165,58 +165,47 @@ bool ContractHost::isTracingCalls() const noexcept {
   return bool(txHash_) && storage_.getIndexingMode() == IndexingMode::RPC_TRACE;
 }
 
-void ContractHost::traceCallIn(const evmc_message& msg) noexcept {
-  if (!this->isTracingCalls())
-    return;
 
-  try {
-    callTracer_.traceIn(trace::Call(msg));
-  } catch (const std::exception& err) {
-    LOGERROR(std::string("Fail to trace call start: ") + err.what());
+void ContractHost::traceCallStarted(const evmc_message& msg) noexcept {
+  if (this->isTracingCalls()) {
+    callTracer_.callStarted(trace::Call(msg));
   }
 }
 
-void ContractHost::traceCallOut(const evmc_result& res) noexcept {
-  if (!this->isTracingCalls())
-    return;
-
-  if (!callTracer_.hasCalls()) {
-    LOGERROR("Attempt to trace the end of a function that didn't start");
-    return;
-  }
-
-  const int64_t gasUsed = callTracer_.current().gas - res.gas_left;
-
-  try {
-    if (res.status_code == EVMC_SUCCESS) {
-      callTracer_.traceOut(bytes::View(res.output_data, res.output_size), gasUsed);
-    } else {
-      callTracer_.traceError(evmc_status_code_to_string(res.status_code), gasUsed);
-    }
-  } catch (const std::exception& err) {
-    LOGERROR(std::string("Fail to trace call start: ") + err.what());
+void ContractHost::traceCallSucceeded(Bytes output, uint64_t gasUsed) noexcept {
+  if (this->isTracingCalls() && callTracer_.hasCalls()) {
+    callTracer_.callSucceeded(std::move(output), gasUsed);
   }
 }
 
-void ContractHost::traceCallOut(bytes::View output, uint64_t gasUsed) noexcept {
-  if (!this->isTracingCalls())
+void ContractHost::traceCallFinished(const evmc_result& res) noexcept {
+  if (!this->isTracingCalls() || !callTracer_.hasCalls()) {
     return;
+  }
 
-  try {
-    callTracer_.traceOut(output, gasUsed);
-  } catch (const std::exception& err) {
-    LOGERROR(std::string("Fail to trace call end: ") + err.what());
+  const uint64_t gasUsed = callTracer_.current().gas - res.gas_left;
+  Bytes output = Utils::makeBytes(bytes::View(res.output_data, res.output_size));
+
+  if (res.status_code == EVMC_SUCCESS) {
+    callTracer_.callSucceeded(std::move(output), gasUsed);
+  } else {
+    callTracer_.callReverted(std::move(output), gasUsed);
   }
 }
 
-void ContractHost::traceCallError(std::string error, uint64_t gasUsed) noexcept {
-  if (!this->isTracingCalls())
-    return;
+void ContractHost::traceCallReverted(Bytes output, uint64_t gasUsed) noexcept {
+  if (this->isTracingCalls() && callTracer_.hasCalls()) {
+    callTracer_.callReverted(std::move(output), gasUsed);
+  }
+}
 
-  try {
-    callTracer_.traceError(std::move(error), gasUsed);
-  } catch (const std::exception& err) {
-    LOGERROR(std::string("Fail to trace call error: ") + err.what());
+void ContractHost::traceCallReverted(uint64_t gasUsed) noexcept {
+  this->traceCallReverted(Bytes(), gasUsed);
+}
+
+void ContractHost::traceCallOutOfGas() noexcept {
+  if (this->isTracingCalls() && callTracer_.hasCalls()) {
+    callTracer_.callOutOfGas();
   }
 }
 
@@ -225,7 +214,7 @@ void ContractHost::saveCallTrace() noexcept {
     return;
 
   if (!callTracer_.isFinished()) {
-    LOGERROR("Attempt to persist unfinished call trace");
+    LOGERROR(std::string("Attempt to persist unfinished call trace, hash: ") + txHash_.hex(true).get());
     return;
   }
 
@@ -278,10 +267,15 @@ void ContractHost::execute(const evmc_message& msg, const ContractType& type) {
   const Address from(msg.sender);
   const Address to(msg.recipient);
   const uint256_t value(Utils::evmcUint256ToUint256(msg.value));
+  const bool isContractCall = isCall(msg);
 
-  this->traceCallIn(msg);
+  if (isContractCall) {
+    this->traceCallStarted(msg);
+  }
+
   Bytes output;
   std::string error;
+  bool outOfGas = false;
 
   if (value) {
     this->transfer(from, to, value);
@@ -321,6 +315,8 @@ void ContractHost::execute(const evmc_message& msg, const ContractType& type) {
 
         this->leftoverGas_ = result.gas_left; // gas_left is not linked with leftoverGas_, we need to link it.
         if (result.status_code) {
+          outOfGas = result.status_code == EVMC_OUT_OF_GAS;
+
           error = evmc_status_code_to_string(result.status_code);
           // Set the leftOverGas_ to the gas left after the execution
           throw DynamicException("Error when executing EVM contract, EVM status code: " +
@@ -343,7 +339,15 @@ void ContractHost::execute(const evmc_message& msg, const ContractType& type) {
  
     this->addTxData_.gasUsed = msg.gas - this->leftoverGas_;
     this->addTxData_.succeeded = false;
-    this->traceCallError(error, this->addTxData_.gasUsed);
+
+    if (isContractCall) {
+      if (outOfGas) {
+        this->traceCallOutOfGas();
+      } else {
+        this->traceCallReverted(std::move(output), this->addTxData_.gasUsed);
+      }
+    }
+
     throw DynamicException(what);
   }
   // We only set that we don't revert, if EVMC didn't throw a exception
@@ -356,14 +360,19 @@ void ContractHost::execute(const evmc_message& msg, const ContractType& type) {
 
     this->addTxData_.gasUsed = msg.gas - this->leftoverGas_;
     this->addTxData_.succeeded = false;
-    this->traceCallError("EVMC threw an exception", this->addTxData_.gasUsed);
+    
+    if (isContractCall) {
+      this->traceCallReverted(std::move(output), this->addTxData_.gasUsed);
+    }
     throw DynamicException(what);
   }
 
   this->addTxData_.gasUsed = msg.gas - this->leftoverGas_;
   this->addTxData_.succeeded = true;
   this->mustRevert_ = false;
-  this->traceCallOut(output, this->addTxData_.gasUsed);
+  if (isContractCall) {
+    this->traceCallSucceeded(std::move(output), this->addTxData_.gasUsed);
+  }
 }
 
 Bytes ContractHost::ethCallView(const evmc_message& msg, const ContractType& type) {
@@ -604,7 +613,7 @@ evmc::Result ContractHost::callEVMContract(const evmc_message& msg) {
                                    evmc_revision::EVMC_LATEST_STABLE_REVISION,
                                    &msg,
                                    recipientAccount.code.data(),
-                                   recipientAccount.code.size()));
+                                   recipientAccount.code.size()));  
   // gas_left is not linked with leftoverGas_, we need to link it.
   this->leftoverGas_ = result.gas_left;
   // EVM contract call is 5000 gas
@@ -644,7 +653,7 @@ evmc::Result ContractHost::call(const evmc_message& msg) noexcept {
   const bool isContractCall = isCall(msg);
 
   if (isContractCall) {
-    this->traceCallIn(msg);
+    this->traceCallStarted(msg);
   }
 
   switch (this->decodeContractCallType(msg))
@@ -671,7 +680,7 @@ evmc::Result ContractHost::call(const evmc_message& msg) noexcept {
   }
 
   if (isContractCall) {
-    this->traceCallOut(result.raw());
+    this->traceCallFinished(result.raw());
   }
 
   return result;
