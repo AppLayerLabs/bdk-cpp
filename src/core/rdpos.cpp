@@ -10,31 +10,23 @@ See the LICENSE.txt file in the project root for more information.
 #include "state.h"
 #include "../contract/contractmanager.h"
 
-rdPoS::rdPoS(const DB& db,
-             DumpManager& dumpManager,
-             const Storage& storage,
-             P2P::ManagerNormal& p2p,
-             const Options& options,
-             State& state)
-  : BaseContract("rdPoS", ProtocolContractAddresses.at("rdPoS"), Address(), options.getChainID()),
-    options_(options),
-    storage_(storage),
-    p2p_(p2p),
-    state_(state),
-    validatorKey_(options.getValidatorPrivKey()),
-    isValidator_((this->validatorKey_) ? true : false),
-    randomGen_(Hash()), minValidators_(options.getMinValidators())
+rdPoS::rdPoS(
+  const DB& db, DumpManager& dumpManager, const Storage& storage,
+  P2P::ManagerNormal& p2p, const Options& options
+) : BaseContract("rdPoS", ProtocolContractAddresses.at("rdPoS"), Address(), options.getChainID()),
+  options_(options), storage_(storage), p2p_(p2p),
+  validatorKey_(options.getValidatorPrivKey()),
+  isValidator_((this->validatorKey_) ? true : false),
+  randomGen_(Hash()), minValidators_(options.getMinValidators())
 {
-  // Initialize blockchain.
-  LOGINFO("Initializing rdPoS.");
   /**
-   * Load information from DB, stored as following:
+   * Initialize blockchain and load information from DB, stored as following:
    * DBPrefix::rdPoS -> rdPoS mapping (addresses)
    * DBPrefix::rdPoS -> misc: used for randomness currently.
    * Order doesn't matter, Validators are stored in a set (sorted by default).
    */
-  auto validatorsDb = db.getBatch(DBPrefix::rdPoS);
-  if (validatorsDb.empty()) {
+  LOGINFO("Initializing rdPoS.");
+  if (auto validatorsDb = db.getBatch(DBPrefix::rdPoS); validatorsDb.empty()) {
     // No rdPoS in DB, this should have been initialized by Storage.
     LOGINFO("No rdPoS in DB, initializing chain with Options.");
     for (const auto& address : this->options_.getGenesisValidators()) {
@@ -122,58 +114,66 @@ bool rdPoS::validateBlock(const FinalizedBlock& block) const {
   }
 
   // Check the transactions within the block, we should have every transaction within the txHashToSeed map.
-  for (auto const& [hashTx, seedTx] : txHashToSeedMap) {
-    TxValidatorFunction hashTxFunction = rdPoS::getTxValidatorFunction(hashTx);
-    TxValidatorFunction seedTxFunction = rdPoS::getTxValidatorFunction(seedTx);
-    // Check if hash tx is invalid by itself.
-    if (hashTxFunction == TxValidatorFunction::INVALID) {
-      LOGERROR(std::string("TxValidator ") + hashTx.hash().hex().get()  + " is invalid.");
-      return false;
-    }
-    if (seedTxFunction == TxValidatorFunction::INVALID) {
-      LOGERROR(std::string("TxValidator ") + seedTx.hash().hex().get()  + " is invalid.");
-      return false;
-    }
-    // Check if senders match.
-    if (hashTx.getFrom() != seedTx.getFrom()) {
-      LOGERROR(std::string("TxValidator sender ") + seedTx.hash().hex().get()
-        + " does not match TxValidator sender " + hashTx.hash().hex().get()
-      );
-      return false;
-    }
-    // Check if the left sided transaction is a randomHash transaction.
-    if (hashTxFunction != TxValidatorFunction::RANDOMHASH) {
-      LOGERROR(std::string("TxValidator ") + hashTx.hash().hex().get() + " is not a randomHash transaction.");
-      return false;
-    }
-    // Check if the right sided transaction is a random transaction.
-    if (seedTxFunction != TxValidatorFunction::RANDOMSEED) {
-      LOGERROR(std::string("TxValidator ") + seedTx.hash().hex().get() + " is not a random transaction.");
-      return false;
-    }
-    // Check if the randomHash transaction matches the random transaction.
-    bytes::View hashTxData = hashTx.getData();
-    bytes::View seedTxData = seedTx.getData();
-    bytes::View hash = hashTxData.subspan(4);
-    bytes::View random = seedTxData.subspan(4);
+  for (const auto& [hashTx, seedTx] : txHashToSeedMap) {
+    if (!this->validateBlockTxSanityCheck(hashTx, seedTx)) return false;
+  }
+  return true;
+}
 
-    // Size sanity check, should be 32 bytes.
-    if (hash.size() != 32) {
-      LOGERROR(std::string("TxValidator ") + hashTx.hash().hex().get() + " (hash) is not 32 bytes.");
-      return false;
-    }
+bool rdPoS::validateBlockTxSanityCheck(const TxValidator& hashTx, const TxValidator& seedTx) const {
+  TxValidatorFunction hashTxFunction = rdPoS::getTxValidatorFunction(hashTx);
+  TxValidatorFunction seedTxFunction = rdPoS::getTxValidatorFunction(seedTx);
 
-    if (random.size() != 32) {
-      LOGERROR(std::string("TxValidator ") + seedTx.hash().hex().get() + " (random) is not 32 bytes.");
-      return false;
-    }
+  // Check if hash tx is invalid by itself.
+  if (hashTxFunction == TxValidatorFunction::INVALID) {
+    LOGERROR(std::string("TxValidator ") + hashTx.hash().hex().get()  + " is invalid.");
+    return false;
+  }
+  if (seedTxFunction == TxValidatorFunction::INVALID) {
+    LOGERROR(std::string("TxValidator ") + seedTx.hash().hex().get()  + " is invalid.");
+    return false;
+  }
 
-    if (Utils::sha3(random) != Hash(hash)) {
-      LOGERROR(std::string("TxValidator ") + seedTx.hash().hex().get()
-        + " does not match TxValidator " + hashTx.hash().hex().get() + " randomness"
-      );
-      return false;
-    }
+  // Check if senders match.
+  if (hashTx.getFrom() != seedTx.getFrom()) {
+    LOGERROR(std::string("TxValidator sender ") + seedTx.hash().hex().get()
+      + " does not match TxValidator sender " + hashTx.hash().hex().get()
+    );
+    return false;
+  }
+
+  // Check if the left sided transaction is a randomHash transaction.
+  if (hashTxFunction != TxValidatorFunction::RANDOMHASH) {
+    LOGERROR(std::string("TxValidator ") + hashTx.hash().hex().get() + " is not a randomHash transaction.");
+    return false;
+  }
+
+  // Check if the right sided transaction is a random transaction.
+  if (seedTxFunction != TxValidatorFunction::RANDOMSEED) {
+    LOGERROR(std::string("TxValidator ") + seedTx.hash().hex().get() + " is not a random transaction.");
+    return false;
+  }
+
+  // Check if the randomHash transaction matches the random transaction.
+  bytes::View hashTxData = hashTx.getData();
+  bytes::View seedTxData = seedTx.getData();
+  bytes::View hash = hashTxData.subspan(4);
+  bytes::View random = seedTxData.subspan(4);
+
+  // Size sanity check, should be 32 bytes.
+  if (hash.size() != 32) {
+    LOGERROR(std::string("TxValidator ") + hashTx.hash().hex().get() + " (hash) is not 32 bytes.");
+    return false;
+  }
+  if (random.size() != 32) {
+    LOGERROR(std::string("TxValidator ") + seedTx.hash().hex().get() + " (random) is not 32 bytes.");
+    return false;
+  }
+  if (Utils::sha3(random) != Hash(hash)) {
+    LOGERROR(std::string("TxValidator ") + seedTx.hash().hex().get()
+      + " does not match TxValidator " + hashTx.hash().hex().get() + " randomness"
+    );
+    return false;
   }
   return true;
 }
@@ -252,8 +252,8 @@ Hash rdPoS::parseTxSeedList(const std::vector<TxValidator>& txs) {
 }
 
 rdPoS::TxValidatorFunction rdPoS::getTxValidatorFunction(const TxValidator &tx) {
-  constexpr Functor randomHashHash(3489654598);
-  constexpr Functor randomSeedHash(1875223254);
+  constexpr Functor randomHashHash{3489654598};
+  constexpr Functor randomSeedHash{1875223254};
   if (tx.getData().size() != 36) {
     SLOGERROR("TxValidator data size is not 36 bytes.");
     // Both RandomHash and RandomSeed are 32 bytes, so if the data size is not 36 bytes, it is invalid.

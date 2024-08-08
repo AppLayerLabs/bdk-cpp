@@ -13,12 +13,11 @@ std::vector<Hash> Merkle::newLayer(const std::vector<Hash>& layer) const {
     (i + 1 < layer.size())
       ? Utils::sha3(
         // Lambda to concatenate
-        Bytes([&]() -> Bytes {
-          Bytes bytes;
-          bytes.reserve(64);
-          Utils::appendBytes(bytes, std::min(layer[i], layer[i + 1]));
-          Utils::appendBytes(bytes, std::max(layer[i], layer[i + 1]));
-          return bytes;
+        Bytes([&]() {
+          return Utils::makeBytes(bytes::join(
+            std::min(layer[i], layer[i + 1]),
+            std::max(layer[i], layer[i + 1])
+          ));
         }()
       ))
       : layer[i]
@@ -57,12 +56,11 @@ bool Merkle::verify(const std::vector<Hash>& proof, const Hash& leaf, const Hash
   Hash computedHash = leaf;
   for (const Hash& hash : proof) computedHash = Utils::sha3(
     // Lambda to concatenate
-    Bytes([&]() -> Bytes {
-      Bytes bytes;
-      bytes.reserve(64);
-      Utils::appendBytes(bytes, std::min(computedHash, hash));
-      Utils::appendBytes(bytes, std::max(computedHash, hash));
-      return bytes;
+    Bytes([&]() {
+      return Utils::makeBytes(bytes::join(
+        std::min(computedHash, hash),
+        std::max(computedHash, hash)
+      ));
     }())
   );
   return computedHash == root;

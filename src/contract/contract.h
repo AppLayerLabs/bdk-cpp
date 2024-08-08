@@ -75,10 +75,9 @@ class BaseContract : public ContractLocals, public Dumpable {
 
   protected:
     mutable ContractHost* host_ = nullptr; ///< Reference to the ContractHost instance.
-
-  public:
     bool reentrancyLock_ = false; ///< Lock (for reentrancy).
 
+  public:
     /**
      * Constructor from scratch.
      * @param contractName The name of the contract.
@@ -113,22 +112,22 @@ class BaseContract : public ContractLocals, public Dumpable {
      * @param db Pointer to the DB instance.
      */
     BaseContract(const Address &address, const DB& db) :
-                 contractAddress_(address),
-                 dbPrefix_([&]() -> Bytes {
-                   Bytes prefix = DBPrefix::contracts;
-                   prefix.reserve(prefix.size() + address.size());
-                   prefix.insert(prefix.end(), address.cbegin(), address.cend());
-                   return prefix;
-                 }()),
-                 contractName_([&]() -> std::string {
-                   return Utils::bytesToString(db.get(std::string("contractName_"), dbPrefix_));
-                 }()),
-                 contractCreator_([&]() -> Address {
-                   return Address(db.get(std::string("contractCreator_"), dbPrefix_));
-                 }()),
-                 contractChainId_([&]() -> uint64_t {
-                   return Utils::bytesToUint64(db.get(std::string("contractChainId_"), dbPrefix_));
-                 }())
+      contractAddress_(address),
+      dbPrefix_([&]() {
+       Bytes prefix = DBPrefix::contracts;
+       prefix.reserve(prefix.size() + address.size());
+       prefix.insert(prefix.end(), address.cbegin(), address.cend());
+       return prefix;
+      }()),
+      contractName_([&]() {
+       return Utils::bytesToString(db.get(std::string("contractName_"), dbPrefix_));
+      }()),
+      contractCreator_([&]() {
+       return Address(db.get(std::string("contractCreator_"), dbPrefix_));
+      }()),
+      contractChainId_([&]() {
+       return Utils::bytesToUint64(db.get(std::string("contractChainId_"), dbPrefix_));
+      }())
     {}
 
     virtual ~BaseContract() = default;  ///< Destructor. All derived classes should override it in order to call DB functions.
@@ -179,7 +178,7 @@ class BaseContract : public ContractLocals, public Dumpable {
      * @param newPrefix The new prefix to append.
      * @return The new prefix.
      */
-    const Bytes getNewPrefix(const std::string& newPrefix) const {
+    Bytes getNewPrefix(std::string_view newPrefix) const {
       Bytes prefix = this->dbPrefix_;
       prefix.reserve(prefix.size() + newPrefix.size());
       prefix.insert(prefix.end(), newPrefix.cbegin(), newPrefix.cend());

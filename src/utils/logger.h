@@ -198,7 +198,7 @@ class LogInfo {
 
   public:
     /// Empty constructor.
-    LogInfo() : type_(LogType::DEBUG), func_(""), logSrc_(""), message_("") {};
+    LogInfo() : type_(LogType::DEBUG), logSrc_(""), func_(""), message_("") {};
 
     /**
      * Constructor.
@@ -215,8 +215,8 @@ class LogInfo {
 
     /// Move constructor
     LogInfo(LogInfo&& other) noexcept :
-      type_(other.type_), func_(std::move(other.func_)),
-      logSrc_(std::move(other.logSrc_)), message_(std::move(other.message_))
+      type_(other.type_), logSrc_(std::move(other.logSrc_)),
+      func_(std::move(other.func_)), message_(std::move(other.message_))
     {}
 
     /// Move assign operator
@@ -246,7 +246,7 @@ class Logger {
     Logger& operator=(const Logger&) = delete;  ///< Make it non-assignable.
 
     /// Get the instance.
-    static Logger& getInstance() { static Logger instance; return instance; }
+    inline static Logger& getInstance() { static Logger instance; return instance; }
 
     const std::string activeLogFileName_= "bdk.log"; ///< Base name for log files
     std::atomic<LogType> logLevel_ = LogType::NONE; ///< Current log level (doesn't log anything less than this).

@@ -153,7 +153,7 @@ SnailTracer::Vector SnailTracer::trace(const int256_t& x, const int256_t& y, con
       mul(deltaX_.raw(), (1000000 * x + rand() % 500000) / width_.get() - 500000),
       mul(deltaY_.raw(), (1000000 * y + rand() % 500000) / height_.get() - 500000)
     ), 1000000), get<1>(camera_)); // camera.direction
-    Ray ray = Ray(add(get<0>(camera_), mul(pixel, 140)), norm(pixel), 0, false); // camera.origin
+    auto ray = Ray(add(get<0>(camera_), mul(pixel, 140)), norm(pixel), 0, false); // camera.origin
     color = add(color, div(radiance(ray), spp));
   }
   return div(mul(clamp(color), 255), 1000000);
@@ -427,16 +427,16 @@ SnailTracer::Vector SnailTracer::refractive(
   const bool& rRef = std::get<3>(ray);
 
   // Calculate the refraction rays for fresnel effects
-  int256_t sign = (rRef) ? 1 : -1;
+  int256_t sign = rRef ? 1 : -1;
   Vector refraction = norm(div(sub(mul(rDir, nnt), mul(normal, sign * (ddn * nnt / 1000000 + sqrt(cos2t)))), 1000000));
   // Calculate the fresnel probabilities
   int256_t c = (!rRef) ? 1000000 - dot(refraction, normal) / 1000000 : 1000000 + ddn;
   int256_t re = 40000 + (1000000 - 40000) * c * c * c * c * c / int256_t("1000000000000000000000000000000");
   // Split a direct hit, otherwise trace only one ray
   if (rDep <= 2) {
-    Ray ray(intersect, refraction, rDep, !rRef);
-    refraction = mul(radiance(ray), 1000000 - re); // Reuse refraction variable (lame)
-    refraction = add(refraction, mul(specular(ray, intersect, normal), re));
+    Ray ray2(intersect, refraction, rDep, !rRef);
+    refraction = mul(radiance(ray2), 1000000 - re); // Reuse refraction variable (lame)
+    refraction = add(refraction, mul(specular(ray2, intersect, normal), re));
     return div(refraction, 1000000);
   }
   if (rand() % 1000000 < 250000 + re / 2) {

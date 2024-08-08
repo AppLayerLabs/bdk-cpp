@@ -34,7 +34,7 @@ Functor Utils::getFunctor(const evmc_message& msg) {
   return ret;
 }
 
-Functor Utils::makeFunctor(const std::string& functionSignature) {
+Functor Utils::makeFunctor(std::string_view functionSignature) {
   Functor ret;
   // Create the hash
   Hash hash = Utils::sha3(bytes::View(reinterpret_cast<const uint8_t*>(functionSignature.data()), functionSignature.size()));
@@ -67,6 +67,7 @@ uint256_t Utils::evmcUint256ToUint256(const evmc::uint256be& i) {
   // We can use the uint256ToBytes directly as it is std::span and we can create a span from an array
   return Utils::bytesToUint256(bytes::View(i.bytes, 32));
 }
+
 evmc::uint256be Utils::uint256ToEvmcUint256(const uint256_t& i) {
   // Convert the uint256_t to BytesArr<32> then copy it to evmc::uint256be
   // evmc::uint256be is a struct with a single member, bytes, which holds a uint256 value in *big-endian* order
@@ -75,11 +76,13 @@ evmc::uint256be Utils::uint256ToEvmcUint256(const uint256_t& i) {
   std::copy(bytes.begin(), bytes.end(), ret.bytes);
   return ret;
 }
+
 BytesArr<32> Utils::evmcUint256ToBytes(const evmc::uint256be& i) {
   BytesArr<32> ret;
   std::copy(i.bytes, i.bytes + 32, ret.begin());
   return ret;
 }
+
 evmc::uint256be Utils::bytesToEvmcUint256(const bytes::View b) {
   evmc::uint256be ret;
   std::copy(b.begin(), b.end(), ret.bytes);
@@ -97,6 +100,7 @@ Account::Account(const bytes::View& bytes) {
 }
 
 Bytes Account::serialize() const {
+  // TODO: this could be optimized with bytes::join()?
   Bytes ret;
   Utils::appendBytes(ret, Utils::uint256ToBytes(this->balance));
   Utils::appendBytes(ret, Utils::uint64ToBytes(this->nonce));

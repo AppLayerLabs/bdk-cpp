@@ -47,7 +47,7 @@ int main(int argc, char* argv[]) {
   // Local binary path + /blockchain
   std::string blockchainPath = std::filesystem::current_path().string() + std::string("/discoveryNode");
   const auto options = Options::fromFile(blockchainPath);
-  std::unique_ptr<P2P::ManagerDiscovery> p2p = std::make_unique<P2P::ManagerDiscovery>(options.getP2PIp(), options);
+  auto p2p = std::make_unique<P2P::ManagerDiscovery>(options.getP2PIp(), options);
   p2p->start();
   std::this_thread::sleep_for(std::chrono::milliseconds(100));
   p2p->startDiscovery();

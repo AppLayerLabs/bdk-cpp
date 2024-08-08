@@ -10,15 +10,16 @@ See the LICENSE.txt file in the project root for more information.
 
 FinalizedBlock FinalizedBlock::fromBytes(const bytes::View bytes, const uint64_t& requiredChainId) {
   try {
-    SLOGTRACE("Deserializing block...");
     // Verify minimum size for a valid block
-    if (bytes.size() < 217) throw std::runtime_error("Invalid block size - too short");
+    SLOGTRACE("Deserializing block...");
+    if (bytes.size() < 217) throw std::length_error("Invalid block size - too short");
+
     // Parsing fixed-size fields
-    Signature validatorSig = Signature(bytes.subspan(0, 65));
-    Hash prevBlockHash = Hash(bytes.subspan(65, 32));
-    Hash blockRandomness = Hash(bytes.subspan(97, 32));
-    Hash validatorMerkleRoot = Hash(bytes.subspan(129, 32));
-    Hash txMerkleRoot = Hash(bytes.subspan(161, 32));
+    auto validatorSig = Signature(bytes.subspan(0, 65));
+    auto prevBlockHash = Hash(bytes.subspan(65, 32));
+    auto blockRandomness = Hash(bytes.subspan(97, 32));
+    auto validatorMerkleRoot = Hash(bytes.subspan(129, 32));
+    auto txMerkleRoot = Hash(bytes.subspan(161, 32));
     uint64_t timestamp = Utils::bytesToUint64(bytes.subspan(193, 8));
     uint64_t nHeight = Utils::bytesToUint64(bytes.subspan(201, 8));
     uint64_t txValidatorStart = Utils::bytesToUint64(bytes.subspan(209, 8));
@@ -50,9 +51,11 @@ FinalizedBlock FinalizedBlock::fromBytes(const bytes::View bytes, const uint64_t
     // If we have up to X block txs or only one physical thread
     // for some reason, deserialize normally.
     // Otherwise, parallelize into threads/asyncs.
-    unsigned int thrNum = std::thread::hardware_concurrency();
-    if (thrNum <= 1 || txCount <= 2000) {
-      for (uint64_t i = 0; i < txCount; ++i) {
+    if (
+      unsigned int thrNum = std::thread::hardware_concurrency();
+      thrNum <= 1 || txCount <= 2000
+    ) {
+      for (uint64_t i = 0; i < txCount; i++) {
         uint64_t txSize = Utils::bytesToUint32(bytes.subspan(index, 4));
         index += 4;
         txs.emplace_back(bytes.subspan(index, txSize), requiredChainId);
@@ -75,7 +78,7 @@ FinalizedBlock FinalizedBlock::fromBytes(const bytes::View bytes, const uint64_t
         uint64_t nTxs = txsPerThr[i];
 
         std::future<std::vector<TxBlock>> txF = std::async(
-          [&, startIdx, nTxs](){
+          [&bytes, requiredChainId, startIdx, nTxs](){
             std::vector<TxBlock> txVec;
             uint64_t idx = startIdx;
             for (uint64_t ii = 0; ii < nTxs; ii++) {
@@ -90,11 +93,10 @@ FinalizedBlock FinalizedBlock::fromBytes(const bytes::View bytes, const uint64_t
         f.emplace_back(std::move(txF));
 
         // Update offset, skip if this is the last thread
-        if (i < txsPerThr.size() - 1) {
-          for (uint64_t ii = 0; ii < nTxs; ii++) {
-            uint64_t len = Utils::bytesToUint32(bytes.subspan(thrOff, 4));
-            thrOff += len + 4;
-          }
+        if (i >= txsPerThr.size() - 1) continue;
+        for (uint64_t ii = 0; ii < nTxs; ii++) {
+          uint64_t len = Utils::bytesToUint32(bytes.subspan(thrOff, 4));
+          thrOff += len + 4;
         }
       }
 
@@ -122,77 +124,16 @@ FinalizedBlock FinalizedBlock::fromBytes(const bytes::View bytes, const uint64_t
     auto expectedTxMerkleRoot = Merkle(txs).getRoot();
     auto expectedValidatorMerkleRoot = Merkle(txValidators).getRoot();
     auto expectedRandomness = rdPoS::parseTxSeedList(txValidators);
-    if (expectedTxMerkleRoot != txMerkleRoot) {
-      throw std::runtime_error("Invalid tx merkle root");
-    }
-    if (expectedValidatorMerkleRoot != validatorMerkleRoot) {
-      throw std::runtime_error("Invalid validator merkle root");
-    }
-    if (expectedRandomness != blockRandomness) {
-      throw std::runtime_error("Invalid block randomness");
-    }
+    if (expectedTxMerkleRoot != txMerkleRoot) throw std::invalid_argument("Invalid tx merkle root");
+    if (expectedValidatorMerkleRoot != validatorMerkleRoot) throw std::invalid_argument("Invalid validator merkle root");
+    if (expectedRandomness != blockRandomness) throw std::invalid_argument("Invalid block randomness");
 
     /// Block header to hash is the 144 after the signature
     bytes::View headerBytes = bytes.subspan(65, 144);
     Hash hash = Utils::sha3(headerBytes);
     UPubKey validatorPubKey = Secp256k1::recover(validatorSig, hash);
     return {
-        std::move(validatorSig),
-        std::move(validatorPubKey),
-        std::move(prevBlockHash),
-        std::move(blockRandomness),
-        std::move(validatorMerkleRoot),
-        std::move(txMerkleRoot),
-        timestamp,
-        nHeight,
-        std::move(txValidators),
-        std::move(txs),
-        std::move(hash),
-        bytes.size()
-    };
-  } catch (const std::exception &e) {
-    SLOGERROR("Error when deserializing a FinalizedBlock: " + std::string(e.what()));
-    throw std::runtime_error(std::string("Error when deserializing a FinalizedBlock: ") + e.what());
-  }
-}
-
-FinalizedBlock FinalizedBlock::createNewValidBlock(
-    std::vector<TxBlock>&& txs,
-    std::vector<TxValidator>&& txValidators,
-    Hash prevBlockHash,
-    const uint64_t& timestamp,
-    const uint64_t& nHeight,
-    const PrivKey& validatorPrivKey
-) {
-  // We need to sign the block header
-  // The block header is composed of the following fields:
-  // prevBlockHash + blockRandomness + validatorMerkleRoot + txMerkleRoot + timestamp + nHeight
-  Bytes header(prevBlockHash.cbegin(), prevBlockHash.cend());
-  Hash blockRandomness = rdPoS::parseTxSeedList(txValidators);
-  Hash validatorMerkleRoot = Merkle(txValidators).getRoot();
-  Hash txMerkleRoot = Merkle(txs).getRoot();
-  Utils::appendBytes(header, blockRandomness);
-  Utils::appendBytes(header, validatorMerkleRoot);
-  Utils::appendBytes(header, txMerkleRoot);
-  Utils::appendBytes(header, Utils::uint64ToBytes(timestamp));
-  Utils::appendBytes(header, Utils::uint64ToBytes(nHeight));
-  Hash headerHash = Utils::sha3(header);
-  Signature signature = Secp256k1::sign(headerHash, validatorPrivKey);
-  UPubKey validatorPubKey = Secp256k1::recover(signature, headerHash);
-  // The block size is AT LEAST the size of the header
-  uint64_t blockSize = 217;
-  for (const auto &tx : txs) {
-    blockSize += tx.rlpSize() + 4;
-  }
-  for (const auto &tx : txValidators) {
-    blockSize += tx.rlpSize() + 4;
-  }
-
-  // For each transaction, we need to sum on the blockSize the size of the transaction + 4 bytes for the serialized size
-  // In order to get the size of a transaction without actually serializing it, we can use the rlpSize() method
-
-  return {
-      std::move(signature),
+      std::move(validatorSig),
       std::move(validatorPubKey),
       std::move(prevBlockHash),
       std::move(blockRandomness),
@@ -202,21 +143,67 @@ FinalizedBlock FinalizedBlock::createNewValidBlock(
       nHeight,
       std::move(txValidators),
       std::move(txs),
-      std::move(headerHash),
+      std::move(hash),
+      bytes.size()
+    };
+  } catch (const std::exception &e) {
+    SLOGERROR("Error when deserializing a FinalizedBlock: " + std::string(e.what()));
+    throw std::domain_error(std::string("Error when deserializing a FinalizedBlock: ") + e.what());
+  }
+}
+
+FinalizedBlock FinalizedBlock::createNewValidBlock(
+  std::vector<TxBlock>&& txs,
+  std::vector<TxValidator>&& txValidators,
+  Hash prevBlockHash,
+  const uint64_t& timestamp,
+  const uint64_t& nHeight,
+  const PrivKey& validatorPrivKey
+) {
+  // We need to sign the block header
+  // The block header is composed of the following fields:
+  // prevBlockHash + blockRandomness + validatorMerkleRoot + txMerkleRoot + timestamp + nHeight
+  Hash blockRandomness = rdPoS::parseTxSeedList(txValidators);
+  Hash validatorMerkleRoot = Merkle(txValidators).getRoot();
+  Hash txMerkleRoot = Merkle(txs).getRoot();
+
+  Bytes header = Utils::makeBytes(bytes::join(
+    prevBlockHash, blockRandomness, validatorMerkleRoot, txMerkleRoot,
+    Utils::uint64ToBytes(timestamp), Utils::uint64ToBytes(nHeight)
+  ));
+
+  Hash headerHash = Utils::sha3(header);
+  Signature signature = Secp256k1::sign(headerHash, validatorPrivKey);
+  UPubKey validatorPubKey = Secp256k1::recover(signature, headerHash);
+
+  // The block size is AT LEAST the size of the header
+  uint64_t blockSize = 217;
+  for (const auto &tx : txs) blockSize += tx.rlpSize() + 4;
+  for (const auto &tx : txValidators) blockSize += tx.rlpSize() + 4;
+
+  // For each transaction, we need to sum on the blockSize the size of the transaction + 4 bytes for the serialized size
+  // In order to get the size of a transaction without actually serializing it, we can use the rlpSize() method
+  return {
+    std::move(signature),
+    std::move(validatorPubKey),
+    std::move(prevBlockHash),
+    std::move(blockRandomness),
+    std::move(validatorMerkleRoot),
+    std::move(txMerkleRoot),
+    timestamp,
+    nHeight,
+    std::move(txValidators),
+    std::move(txs),
+    std::move(headerHash),
     blockSize
   };
 }
 
 Bytes FinalizedBlock::serializeHeader() const {
-  Bytes ret;
-  ret.reserve(144);
-  Utils::appendBytes(ret, this->prevBlockHash_);
-  Utils::appendBytes(ret, this->blockRandomness_);
-  Utils::appendBytes(ret, this->validatorMerkleRoot_);
-  Utils::appendBytes(ret, this->txMerkleRoot_);
-  Utils::appendBytes(ret, Utils::uint64ToBytes(this->timestamp_));
-  Utils::appendBytes(ret, Utils::uint64ToBytes(this->nHeight_));
-  return ret;
+  return Utils::makeBytes(bytes::join(
+    prevBlockHash_, blockRandomness_, validatorMerkleRoot_, txMerkleRoot_,
+    Utils::uint64ToBytes(timestamp_), Utils::uint64ToBytes(nHeight_)
+  ));
 }
 
 Bytes FinalizedBlock::serializeBlock() const {
@@ -248,3 +235,4 @@ Bytes FinalizedBlock::serializeBlock() const {
 
   return ret;
 }
+

@@ -50,29 +50,30 @@ namespace P2P {
   ) {
     try {
       auto block = BroadcastDecoder::broadcastBlock(*message, getOptions().getChainID());
-      // If we already have the block, then this message is guaranteed irrelevant
-      if (!this->storage_.blockExists(block.getHash())) {
-        // We don't have it, so check if there's a chance it will connect to our blockchain (current height + 1)
-        if (block.getNHeight() == this->storage_.latest()->getNHeight() + 1) {
-          // Block seems to have the expected height for the next block, so try to connect it
-          BlockValidationStatus vStatus = this->state_.tryProcessNextBlock(std::move(block));
-          switch (vStatus) {
-            case BlockValidationStatus::valid:
-              // Connected block successfully; rebroadcast it
-              this->broadcastMessage(message, nodeId);
-              break;
-            case BlockValidationStatus::invalidWrongHeight:
-              // processNextBlock() might fail to validate the block if there is a race in incoming
-              //   block broadcasts, resulting in an attempt to connect the block at a wrong height.
-              // In that case, the block won't be rebroadcast by this thread. There will be one winning
-              //   thread that will pass tryProcessNextBlock() with 'valid' and broadcast the block.
-              // We don't want to throw an exception in this case because that would close the session.
-              break;
-            default:
-              // Block contains bad data
-              throw DynamicException("Erroneous block data");
-              break;
-          }
+      // If we already have the block, then this message is guaranteed irrelevant.
+      // We don't have it, so we check if there's a chance it will connect to our blockchain (current height + 1).
+      if (
+        !this->storage_.blockExists(block.getHash()) &&
+        block.getNHeight() == this->storage_.latest()->getNHeight() + 1
+      ) {
+        // Block seems to have the expected height for the next block, so try to connect it
+        BlockValidationStatus vStatus = this->state_.tryProcessNextBlock(std::move(block));
+        switch (vStatus) {
+          case BlockValidationStatus::valid:
+            // Connected block successfully; rebroadcast it
+            this->broadcastMessage(message, nodeId);
+            break;
+          case BlockValidationStatus::invalidWrongHeight:
+            // processNextBlock() might fail to validate the block if there is a race in incoming
+            //   block broadcasts, resulting in an attempt to connect the block at a wrong height.
+            // In that case, the block won't be rebroadcast by this thread. There will be one winning
+            //   thread that will pass tryProcessNextBlock() with 'valid' and broadcast the block.
+            // We don't want to throw an exception in this case because that would close the session.
+            break;
+          default:
+            // Block contains bad data
+            throw DynamicException("Erroneous block data");
+            break;
         }
       }
     } catch (std::exception const& ex) {

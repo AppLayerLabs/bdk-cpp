@@ -9,18 +9,17 @@ See the LICENSE.txt file in the project root for more information.
 #define UTILS_H
 
 #include <algorithm>
+#include <array>
+#include <atomic>
+#include <cxxabi.h>
 #include <filesystem>
 #include <fstream>
 #include <regex>
+#include <span>
 #include <string_view>
 #include <thread>
-#include <atomic>
-#include <array>
-#include <span>
-#include <cxxabi.h>
+#include <tuple>
 #include <variant>
-#include <evmc/evmc.hpp>
-#include "zpp_bits.h"
 
 #include <boost/lexical_cast.hpp>
 #include <boost/multiprecision/cpp_dec_float.hpp>
@@ -28,19 +27,23 @@ See the LICENSE.txt file in the project root for more information.
 #include <boost/beast/core/error.hpp>
 #include <boost/asio/ip/address.hpp>
 
+#include <evmc/evmc.hpp>
 #include <ethash/keccak.h>
 #include <openssl/rand.h>
 
 #include "strings.h"
 #include "logger.h"
 
-#include "bytes/range.h"
-#include "bytes/view.h"
-#include "bytes/initializer.h"
+#include "../libs/zpp_bits.h"
+#include "../libs/json.hpp"
 
-#include "src/libs/json.hpp"
-#include "src/contract/variables/safeuint.h"
-#include "src/contract/variables/safeint.h"
+#include "../bytes/join.h"
+#include "../bytes/range.h"
+#include "../bytes/view.h"
+#include "../bytes/initializer.h"
+
+#include "../contract/variables/safeuint.h"
+#include "../contract/variables/safeint.h"
 
 /// Localhost IPv4 address constant
 inline const boost::asio::ip::address LOCALHOST = boost::asio::ip::address::from_string("127.0.0.1");
@@ -62,37 +65,36 @@ template <std::size_t N> using BytesArr = std::array<Byte, N>; ///< Typedef for 
 // Base case for the recursive helper - now using requires for an empty body function
 template<size_t I = 0, typename... Tp>
 requires (I == sizeof...(Tp))
-void printDurationsHelper(const std::string& id, std::tuple<Tp...>&, const std::array<std::string, sizeof...(Tp)>&) {
-    // Empty body, stopping condition for the recursion
+void printDurationsHelper(std::string_view, std::tuple<Tp...>&, const std::array<std::string, sizeof...(Tp)>&) {
+  // Empty body, stopping condition for the recursion
 }
 
 // Recursive helper function to print each duration - with requires
 template<size_t I = 0, typename... Tp>
 requires (I < sizeof...(Tp))
-void printDurationsHelper(const std::string& id, std::tuple<Tp...>& t, const std::array<std::string, sizeof...(Tp)>& names) {
-    auto now = std::chrono::high_resolution_clock::now();
-    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(now - std::get<I>(t));
-    std::string funcName = names[I]; // Creating a copy to use with std::move
-    Logger::logToDebug(LogType::DEBUG, Log::P2PManager, std::move(funcName),
-      "Timepoint at: " + id + " for " + names[I] + ": " + std::to_string(std::get<I>(t).time_since_epoch().count()) + "ms "
-      + " Duration for " + names[I] + ": " + std::to_string(duration.count()) + "ms, exitted at: " + std::to_string(now.time_since_epoch().count()) + "ms"
-    );
-    // Recursive call for the next element in the tuple
-    printDurationsHelper<I + 1, Tp...>(id, t, names);
+void printDurationsHelper(std::string_view id, std::tuple<Tp...>& t, const std::array<std::string, sizeof...(Tp)>& names) {
+  auto now = std::chrono::high_resolution_clock::now();
+  auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(now - std::get<I>(t));
+  std::string funcName = names[I]; // Creating a copy to use with std::move
+  Logger::logToDebug(LogType::DEBUG, Log::P2PManager, std::move(funcName),
+    "Timepoint at: " + std::string(id) + " for " + names[I] + ": "
+      + std::to_string(std::get<I>(t).time_since_epoch().count()) + "ms "
+      + " Duration for " + names[I] + ": " + std::to_string(duration.count())
+      + "ms, exitted at: " + std::to_string(now.time_since_epoch().count()) + "ms"
+  );
+  // Recursive call for the next element in the tuple
+  printDurationsHelper<I + 1, Tp...>(id, t, names);
 }
 
-template<typename... Tp>
-struct printAtExit {
-    std::tuple<Tp...> timePoints;
-    std::array<std::string, sizeof...(Tp)> names;
-    const std::string id;
+template<typename... Tp> struct printAtExit {
+  std::tuple<Tp...> timePoints;
+  std::array<std::string, sizeof...(Tp)> names;
+  std::string_view id;
 
-    printAtExit(const std::string& id_, const std::array<std::string, sizeof...(Tp)>& names_, Tp&... timePoints_) :
-    timePoints(std::tie(timePoints_...)), names(names_), id(id_) {}
+  printAtExit(const std::string& id_, const std::array<std::string, sizeof...(Tp)>& names_, Tp&... timePoints_)
+    : timePoints(std::tie(timePoints_...)), names(names_), id(id_) {}
 
-    ~printAtExit() {
-        printDurationsHelper(id, timePoints, names);
-    }
+  ~printAtExit() { printDurationsHelper(id, timePoints, names); }
 };
 
 ///@{
@@ -244,13 +246,13 @@ const boost::unordered_flat_map<std::string, Address> ProtocolContractAddresses 
 void fail(const std::string& cl, std::string&& func, boost::beast::error_code ec, const char* what);
 
 /// Enum for network type.
-enum Networks { Mainnet, Testnet, LocalTestnet };
+enum class Networks { Mainnet, Testnet, LocalTestnet };
 
 /// Enum for FunctionType
-enum FunctionTypes { View, NonPayable, Payable };
+enum class FunctionTypes { View, NonPayable, Payable };
 
 /// Enum for the type of the contract.
-enum ContractType { NOT_A_CONTRACT, EVM, CPP, CREATE, CREATE2, PRECOMPILED};
+enum class ContractType { NOT_A_CONTRACT, EVM, CPP, CREATE, CREATE2, PRECOMPILED };
 
 /**
  * Abstraction of balance and nonce for a single account.
@@ -344,6 +346,8 @@ template<typename T, bool Index> struct EventParam {
 /// Namespace for utility functions.
 namespace Utils {
   std::string getTestDumpPath(); ///< Get the path to the test dump folder.
+
+  // TODO: document those later
 
   constexpr Bytes makeBytes(const bytes::DataRange auto& data) {
     Bytes res(std::ranges::size(data));
@@ -455,7 +459,7 @@ namespace Utils {
    * @param funtionSignature The function signature.
    * @return The created Functor.
    */
-  Functor makeFunctor(const std::string& functionSignature);
+  Functor makeFunctor(std::string_view functionSignature);
 
   /**
    * Get the bytes::View representing the function arguments of a given evmc_message.
@@ -647,7 +651,7 @@ namespace Utils {
   template <class T, class In> T fromBigEndian(const In& bytes) {
     auto ret = (T)0;
     for (auto i : bytes) {
-      ret = (T)((ret << 8) | (uint8_t)(typename std::make_unsigned<decltype(i)>::type) i);
+      ret = (T)((ret << 8) | (uint8_t)(typename std::make_unsigned_t<decltype(i)>) i);
     }
     return ret;
   }
@@ -682,7 +686,7 @@ namespace Utils {
    */
   template <class T> inline unsigned bytesRequired(T i) {
     // bigint does not carry sign bit on shift
-    static_assert(std::is_same<bigint, T>::value || !std::numeric_limits<T>::is_signed, "only unsigned types or bigint supported");
+    static_assert(std::is_same_v<bigint, T> || !std::numeric_limits<T>::is_signed, "only unsigned types or bigint supported");
     unsigned ic = 0;
     for (; i != 0; ++ic, i >>= 8);
     return ic;
@@ -696,7 +700,7 @@ namespace Utils {
    */
   template <class T> Bytes uintToBytes(T i) {
     Bytes ret(bytesRequired(i));
-    Bytes::iterator b = ret.end();
+    auto b = ret.end(); // Bytes::iterator
     for (; i; i >>= 8) {
       if (b == ret.begin()) break;
       *(--b) = (uint8_t)(i & 0xff);

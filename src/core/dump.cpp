@@ -8,37 +8,25 @@ See the LICENSE.txt file in the project root for more information.
 #include "dump.h"
 #include "../contract/event.h"
 
-DumpManager::DumpManager(const Storage& storage, const Options& options, EventManager& eventManager, std::shared_mutex& stateMutex)
-  : storage_(storage),
-    options_(options),
-    stateMutex_(stateMutex),
-    eventManager_(eventManager)
-{
-}
+DumpManager::DumpManager(
+  const Storage& storage, const Options& options, EventManager& eventManager, std::shared_mutex& stateMutex
+) : options_(options), storage_(storage), stateMutex_(stateMutex), eventManager_(eventManager) {}
 
-void DumpManager::pushBack(Dumpable* dumpable)
-{
+void DumpManager::pushBack(Dumpable* dumpable) {
   // Check if latest Dumpable* is the same as the one we trying to append
-  if (this->dumpables_.size() > 0 &&
-      this->dumpables_.back() == dumpable) {
-    return;
-  }
+  if (!this->dumpables_.empty() && this->dumpables_.back() == dumpable) return;
   dumpables_.push_back(dumpable);
 }
 
-std::vector<DBBatch> DumpManager::dumpToBatch(unsigned int threadOffset,
-                                              unsigned int threadItems) const
-{
+std::vector<DBBatch> DumpManager::dumpToBatch(unsigned int threadOffset, unsigned int threadItems) const {
   std::vector<DBBatch> ret;
-
-  for (auto i = threadOffset; i < (threadOffset + threadItems); ++i)
+  for (auto i = threadOffset; i < (threadOffset + threadItems); i++) {
     ret.emplace_back(this->dumpables_[i]->dump());
-
+  }
   return ret;
 }
 
-std::pair<std::vector<DBBatch>, uint64_t> DumpManager::dumpState() const
-{
+std::pair<std::vector<DBBatch>, uint64_t> DumpManager::dumpState() const {
   std::pair<std::vector<DBBatch>, uint64_t> ret;
   auto& [batches, blockHeight] = ret;
   {

@@ -81,6 +81,9 @@ template <typename T> class SafeVector : public SafeBase {
           case RESIZE_LESS:
             for (std::size_t i = 0; i < index; i++) this->value_.push_back(oldVals[i]); break;
             break;
+          default:
+            // Do nothing, for completeness
+            break;
         }
         this->undo_->pop();
       }
@@ -178,7 +181,7 @@ template <typename T> class SafeVector : public SafeBase {
       T& ret = this->value_.at(pos);
       if (this->copy_ == nullptr) {
         if (this->undo_ == nullptr) this->undo_ = std::make_unique<std::stack<UndoOp, std::vector<UndoOp>>>();
-        this->undo_->emplace(std::make_tuple(VectorOp::AT, pos, 1, std::vector<T>{this->value_.at(pos)}));
+        this->undo_->emplace(VectorOp::AT, pos, 1, std::vector<T>{this->value_.at(pos)});
       }
       markAsUsed(); return ret;
     }
@@ -194,7 +197,7 @@ template <typename T> class SafeVector : public SafeBase {
     inline T& operator[](std::size_t pos) {
       if (this->copy_ == nullptr) {
         if (this->undo_ == nullptr) this->undo_ = std::make_unique<std::stack<UndoOp, std::vector<UndoOp>>>();
-        this->undo_->emplace(std::make_tuple(VectorOp::OPERATOR_BRACKETS, pos, 1, std::vector<T>{this->value_[pos]}));
+        this->undo_->emplace(VectorOp::OPERATOR_BRACKETS, pos, 1, std::vector<T>{this->value_[pos]});
       }
       markAsUsed(); return this->value_[pos];
     }
@@ -206,7 +209,7 @@ template <typename T> class SafeVector : public SafeBase {
     inline T& front() {
       if (this->copy_ == nullptr) {
         if (this->undo_ == nullptr) this->undo_ = std::make_unique<std::stack<UndoOp, std::vector<UndoOp>>>();
-        this->undo_->emplace(std::make_tuple(VectorOp::FRONT, 0, 1, std::vector<T>{this->value_.at(0)}));
+        this->undo_->emplace(VectorOp::FRONT, 0, 1, std::vector<T>{this->value_.at(0)});
       }
       markAsUsed(); return this->value_.front();
     }
@@ -218,7 +221,7 @@ template <typename T> class SafeVector : public SafeBase {
     inline T& back() {
       if (this->copy_ == nullptr) {
         if (this->undo_ == nullptr) this->undo_ = std::make_unique<std::stack<UndoOp, std::vector<UndoOp>>>();
-        this->undo_->emplace(std::make_tuple(VectorOp::BACK, this->value_.size() - 1, 1, std::vector<T>{this->value_.at(this->value_.size() - 1)}));
+        this->undo_->emplace(VectorOp::BACK, this->value_.size() - 1, 1, std::vector<T>{this->value_.at(this->value_.size() - 1)});
       }
       markAsUsed(); return this->value_.back();
     }
@@ -284,7 +287,7 @@ template <typename T> class SafeVector : public SafeBase {
       if (this->copy_ == nullptr) {
         if (this->undo_ == nullptr) this->undo_ = std::make_unique<std::stack<UndoOp, std::vector<UndoOp>>>();
         std::size_t index = std::distance(this->value_.cbegin(), pos);
-        this->undo_->emplace(std::make_tuple(VectorOp::INSERT, index, 1, std::vector<T>()));
+        this->undo_->emplace(VectorOp::INSERT, index, 1, std::vector<T>());
       }
       markAsUsed(); return this->value_.insert(pos, value);
     }
@@ -299,7 +302,7 @@ template <typename T> class SafeVector : public SafeBase {
       if (this->copy_ == nullptr) {
         if (this->undo_ == nullptr) this->undo_ = std::make_unique<std::stack<UndoOp, std::vector<UndoOp>>>();
         std::size_t index = std::distance(this->value_.cbegin(), pos);
-        this->undo_->emplace(std::make_tuple(VectorOp::INSERT, index, 1, std::vector<T>()));
+        this->undo_->emplace(VectorOp::INSERT, index, 1, std::vector<T>());
       }
       markAsUsed(); return this->value_.insert(pos, std::move(value));
     }
@@ -315,7 +318,7 @@ template <typename T> class SafeVector : public SafeBase {
       if (this->copy_ == nullptr) {
         if (this->undo_ == nullptr) this->undo_ = std::make_unique<std::stack<UndoOp, std::vector<UndoOp>>>();
         std::size_t index = std::distance(this->value_.cbegin(), pos);
-        this->undo_->emplace(std::make_tuple(VectorOp::INSERT_BULK, index, count, std::vector<T>()));
+        this->undo_->emplace(VectorOp::INSERT_BULK, index, count, std::vector<T>());
       }
       markAsUsed(); return this->value_.insert(pos, count, value);
     }
@@ -334,7 +337,7 @@ template <typename T> class SafeVector : public SafeBase {
         if (this->undo_ == nullptr) this->undo_ = std::make_unique<std::stack<UndoOp, std::vector<UndoOp>>>();
         std::size_t index = std::distance(this->value_.cbegin(), pos);
         std::size_t diff = std::distance(first, last);
-        this->undo_->emplace(std::make_tuple(VectorOp::INSERT_BULK, index, diff, std::vector<T>()));
+        this->undo_->emplace(VectorOp::INSERT_BULK, index, diff, std::vector<T>());
       }
       markAsUsed(); return this->value_.insert(pos, first, last);
     }
@@ -349,7 +352,7 @@ template <typename T> class SafeVector : public SafeBase {
       if (this->copy_ == nullptr) {
         if (this->undo_ == nullptr) this->undo_ = std::make_unique<std::stack<UndoOp, std::vector<UndoOp>>>();
         std::size_t index = std::distance(this->value_.cbegin(), pos);
-        this->undo_->emplace(std::make_tuple(VectorOp::INSERT_BULK, index, ilist.size(), std::vector<T>()));
+        this->undo_->emplace(VectorOp::INSERT_BULK, index, ilist.size(), std::vector<T>());
       }
       markAsUsed(); return this->value_.insert(pos, ilist);
     }
@@ -363,7 +366,7 @@ template <typename T> class SafeVector : public SafeBase {
     template <class... Args> typename std::vector<T>::const_iterator emplace(typename std::vector<T>::const_iterator pos, Args&&... args) {
       if (this->copy_ == nullptr) {
         if (this->undo_ == nullptr) this->undo_ = std::make_unique<std::stack<UndoOp, std::vector<UndoOp>>>();
-        this->undo_->emplace(std::make_tuple(VectorOp::EMPLACE, std::distance(this->value_.cbegin(), pos), 1, std::vector<T>()));
+        this->undo_->emplace(VectorOp::EMPLACE, std::distance(this->value_.cbegin(), pos), 1, std::vector<T>());
       }
       markAsUsed(); return this->value_.emplace(pos, args...);
     }
@@ -377,7 +380,7 @@ template <typename T> class SafeVector : public SafeBase {
       if (this->copy_ == nullptr) {
         if (this->undo_ == nullptr) this->undo_ = std::make_unique<std::stack<UndoOp, std::vector<UndoOp>>>();
         std::size_t index = std::distance(this->value_.cbegin(), pos);
-        this->undo_->emplace(std::make_tuple(VectorOp::ERASE, index, 1, std::vector<T>{this->value_.at(index)}));
+        this->undo_->emplace(VectorOp::ERASE, index, 1, std::vector<T>{this->value_.at(index)});
       }
       markAsUsed(); return this->value_.erase(pos);
     }
@@ -396,7 +399,7 @@ template <typename T> class SafeVector : public SafeBase {
         std::size_t index = std::distance(this->value_.cbegin(), first);
         std::size_t diff = std::distance(first, last);
         std::vector<T> oldVals = std::vector<T>(first, last);
-        this->undo_->emplace(std::make_tuple(VectorOp::ERASE_BULK, index, diff, oldVals));
+        this->undo_->emplace(VectorOp::ERASE_BULK, index, diff, oldVals);
       }
       markAsUsed(); return this->value_.erase(first, last);
     }
@@ -408,7 +411,7 @@ template <typename T> class SafeVector : public SafeBase {
     void push_back(const T& value) {
       if (this->copy_ == nullptr) {
         if (this->undo_ == nullptr) this->undo_ = std::make_unique<std::stack<UndoOp, std::vector<UndoOp>>>();
-        this->undo_->emplace(std::make_tuple(VectorOp::PUSH_BACK, 0, 0, std::vector<T>()));
+        this->undo_->emplace(VectorOp::PUSH_BACK, 0, 0, std::vector<T>());
       }
       markAsUsed(); this->value_.push_back(value);
     }
@@ -420,7 +423,7 @@ template <typename T> class SafeVector : public SafeBase {
     void push_back(T&& value) {
       if (this->copy_ == nullptr) {
         if (this->undo_ == nullptr) this->undo_ = std::make_unique<std::stack<UndoOp, std::vector<UndoOp>>>();
-        this->undo_->emplace(std::make_tuple(VectorOp::PUSH_BACK, 0, 0, std::vector<T>()));
+        this->undo_->emplace(VectorOp::PUSH_BACK, 0, 0, std::vector<T>());
       }
       markAsUsed(); this->value_.push_back(std::move(value));
     }
@@ -432,7 +435,7 @@ template <typename T> class SafeVector : public SafeBase {
     T& emplace_back(T&& value) {
       if (this->copy_ == nullptr) {
         if (this->undo_ == nullptr) this->undo_ = std::make_unique<std::stack<UndoOp, std::vector<UndoOp>>>();
-        this->undo_->emplace(std::make_tuple(VectorOp::EMPLACE_BACK, 0, 0, std::vector<T>()));
+        this->undo_->emplace(VectorOp::EMPLACE_BACK, 0, 0, std::vector<T>());
       }
       markAsUsed(); return this->value_.emplace_back(value);
     }
@@ -441,7 +444,7 @@ template <typename T> class SafeVector : public SafeBase {
     void pop_back() {
       if (this->copy_ == nullptr) {
         if (this->undo_ == nullptr) this->undo_ = std::make_unique<std::stack<UndoOp, std::vector<UndoOp>>>();
-        this->undo_->emplace(std::make_tuple(VectorOp::POP_BACK, 0, 0, std::vector<T>{this->value_.back()}));
+        this->undo_->emplace(VectorOp::POP_BACK, 0, 0, std::vector<T>{this->value_.back()});
       }
       markAsUsed(); this->value_.pop_back();
     }
@@ -468,7 +471,7 @@ template <typename T> class SafeVector : public SafeBase {
             diff = this->value_.size() - count;
             vals = std::vector<T>(this->value_.end() - diff, this->value_.end());
           }
-          this->undo_->emplace(std::make_tuple(vecOp, diff, 0, vals));
+          this->undo_->emplace(vecOp, diff, 0, vals);
         }
       }
       markAsUsed(); this->value_.resize(count);
@@ -497,7 +500,7 @@ template <typename T> class SafeVector : public SafeBase {
             diff = this->value_.size() - count;
             vals = std::vector<T>(this->value_.end() - diff, this->value_.end());
           }
-          this->undo_->emplace(std::make_tuple(vecOp, diff, 0, vals));
+          this->undo_->emplace(vecOp, diff, 0, vals);
         }
       }
       markAsUsed(); this->value_.resize(count, value);

@@ -5,27 +5,26 @@ This software is distributed under the MIT License.
 See the LICENSE.txt file in the project root for more information.
 */
 
-#include "contractmanager.h"
 #include "abi.h"
 #include "contractfactory.h"
+#include "contracthost.h"
+#include "contractmanager.h"
 #include "customcontracts.h"
+
 #include "../core/rdpos.h"
 #include "../core/state.h"
 #include "../utils/dynamicexception.h"
-#include "contracthost.h"
 
-ContractManager::ContractManager(const DB& db,
-                                 boost::unordered_flat_map<Address, std::unique_ptr<BaseContract>, SafeHash>& contracts,
-                                 DumpManager& manager,
-                                 const Options& options)
-: BaseContract("ContractManager", ProtocolContractAddresses.at("ContractManager"), options.getChainOwner(), options.getChainID()),
-  contracts_(contracts)
+ContractManager::ContractManager(
+  const DB& db, boost::unordered_flat_map<Address, std::unique_ptr<BaseContract>, SafeHash>& contracts,
+  DumpManager& manager, const Options& options
+) : BaseContract("ContractManager", ProtocolContractAddresses.at("ContractManager"),
+  options.getChainOwner(), options.getChainID()), contracts_(contracts)
 {
   ContractFactory::registerContracts<ContractTypes>();
   ContractFactory::addAllContractFuncs<ContractTypes>(this->createContractFuncs_);
   // Load Contracts from DB
-  std::vector<DBEntry> contractsFromDB = db.getBatch(DBPrefix::contractManager);
-  for (const DBEntry& contract : contractsFromDB) {
+  for (const DBEntry& contract : db.getBatch(DBPrefix::contractManager)) {
     Address address(contract.key);
     if (!this->loadFromDB<ContractTypes>(contract, address, db)) {
       throw DynamicException("Unknown contract: " + Utils::bytesToString(contract.value));
@@ -97,8 +96,9 @@ Bytes ContractManager::ethCallView(const evmc_message& callInfo, ContractHost* h
   // 0x73474f5a == uint32_t(1934053210)
   if (functor.value == 1934053210) {
     auto args = Utils::getFunctionArgs(callInfo);
-    auto addr = ABI::Decoder::decodeData<Address>(args);
-    return ABI::Encoder::encodeData(this->getDeployedContractsForCreator(std::get<0>(addr)));
+    auto [addr] = ABI::Decoder::decodeData<Address>(args);
+    return ABI::Encoder::encodeData(this->getDeployedContractsForCreator(addr));
   }
   throw DynamicException("Invalid function call");
 }
+

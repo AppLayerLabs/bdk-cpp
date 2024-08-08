@@ -14,10 +14,10 @@ DEXV2Factory::DEXV2Factory(const Address &address, const DB& db
 {
   this->feeTo_ = Address(db.get(std::string("feeTo_"), this->getDBPrefix()));
   this->feeToSetter_ = Address(db.get(std::string("feeToSetter_"), this->getDBPrefix()));
-  std::vector<DBEntry> allPairs = db.getBatch(this->getNewPrefix("allPairs_"));
-  for (const auto& dbEntry : allPairs) this->allPairs_.push_back(Address(dbEntry.value));
-  std::vector<DBEntry> getPairs = db.getBatch(this->getNewPrefix("getPair_"));
-  for (const auto& dbEntry : getPairs) {
+  for (const auto& dbEntry : db.getBatch(this->getNewPrefix("allPairs_"))) {
+    this->allPairs_.push_back(Address(dbEntry.value));
+  }
+  for (const auto& dbEntry : db.getBatch(this->getNewPrefix("getPair_"))) {
     bytes::View valueView(dbEntry.value);
     this->getPair_[Address(dbEntry.key)][Address(valueView.subspan(0, 20))] = Address(valueView.subspan(20));
   }
@@ -80,10 +80,8 @@ std::vector<Address> DEXV2Factory::allPairs() const { return this->allPairs_.get
 uint64_t DEXV2Factory::allPairsLength() const { return this->allPairs_.size(); }
 
 Address DEXV2Factory::getPair(const Address& tokenA, const Address& tokenB) const {
-  auto it = this->getPair_.find(tokenA);
-  if (it != this->getPair_.cend()) {
-    auto itt = it->second.find(tokenB);
-    if (itt != it->second.cend()) return itt->second;
+  if (auto it = this->getPair_.find(tokenA); it != this->getPair_.cend()) {
+    if (auto itt = it->second.find(tokenB); itt != it->second.cend()) return itt->second;
   }
   return Address();
 }
@@ -120,10 +118,10 @@ DBBatch DEXV2Factory::dump() const
   dbBatch.push_back(Utils::stringToBytes("feeToSetter_"), this->feeToSetter_.get().view(), this->getDBPrefix());
 
   for (const auto& address : this->allPairs_.get()) {
-    dbBatch.push_back(Utils::uint32ToBytes(i++),
-                      address.view(),
-                      this->getNewPrefix("allPairs_"));
+    dbBatch.push_back(Utils::uint32ToBytes(i), address.view(), this->getNewPrefix("allPairs_"));
+    i++;
   }
+
   for (auto tokenA = this->getPair_.cbegin(); tokenA != this->getPair_.cend(); tokenA++) {
     for (auto tokenB = tokenA->second.cbegin(); tokenB != tokenA->second.cend(); tokenB++) {
       const auto& key = tokenA->first;

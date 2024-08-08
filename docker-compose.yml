@@ -2,16 +2,14 @@
 # This software is distributed under the MIT License.
 # See the LICENSE.txt file in the project root for more information.
 
-version: '3'
-
 services:
-  bdk-cpp-dev:
-    build: 
+  bdk:
+    build:
       context: .
-    ports:
-      - "8080-8099:8080-8099"
-      - "8110-8111:8110-8111"
+      dockerfile: docker/bdk_cpp.dockerfile
     volumes:
-      - :/bdk-volume
+      - .:/bdk-cpp
+    entrypoint: ["/entrypoint.sh"]
+    working_dir: /bdk-cpp
     tty: true
     stdin_open: true

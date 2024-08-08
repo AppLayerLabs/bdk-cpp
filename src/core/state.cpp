@@ -16,38 +16,34 @@ State::State(
   const uint64_t& snapshotHeight,
   const Options& options
 ) : vm_(evmc_create_evmone()),
-    options_(options),
-    storage_(storage),
-    eventManager_(options_),
-    dumpManager_(storage_, options_, this->eventManager_, this->stateMutex_),
-    dumpWorker_(options_, storage_, dumpManager_),
-    p2pManager_(p2pManager),
-    rdpos_ (db, dumpManager_, storage, p2pManager, options, *this) {
+  options_(options),
+  storage_(storage),
+  eventManager_(options_),
+  dumpManager_(storage_, options_, this->eventManager_, this->stateMutex_),
+  dumpWorker_(options_, storage_, dumpManager_),
+  p2pManager_(p2pManager),
+  rdpos_(db, dumpManager_, storage, p2pManager, options)
+{
   std::unique_lock lock(this->stateMutex_);
-  auto accountsFromDB = db.getBatch(DBPrefix::nativeAccounts);
-  if (accountsFromDB.empty()) {
+  if (auto accountsFromDB = db.getBatch(DBPrefix::nativeAccounts); accountsFromDB.empty()) {
     if (snapshotHeight != 0) {
       throw DynamicException("Snapshot height is higher than 0, but no accounts found in DB");
     }
-
-    {
-      for (const auto& [addr, balance] : options_.getGenesisBalances()) {
-        this->accounts_[addr]->balance = balance;
-      }
-      // Also append the ContractManager account
-      auto& contractManagerAcc = *this->accounts_[ProtocolContractAddresses.at("ContractManager")];
-      contractManagerAcc.nonce = 1;
-      contractManagerAcc.contractType = ContractType::CPP;
+    for (const auto& [addr, balance] : options_.getGenesisBalances()) {
+      this->accounts_[addr]->balance = balance;
     }
+    // Also append the ContractManager account
+    auto& contractManagerAcc = *this->accounts_[ProtocolContractAddresses.at("ContractManager")];
+    contractManagerAcc.nonce = 1;
+    contractManagerAcc.contractType = ContractType::CPP;
   } else {
     for (const auto& dbEntry : accountsFromDB) {
       this->accounts_.emplace(Address(dbEntry.key), dbEntry.value);
     }
   }
 
-  /// Load all the EVM Storage Slot/keys from the DB
-  auto vmStorageFromDB = db.getBatch(DBPrefix::vmStorage);
-  for (const auto& dbEntry : vmStorageFromDB) {
+  // Load all the EVM Storage Slot/keys from the DB
+  for (const auto& dbEntry : db.getBatch(DBPrefix::vmStorage)) {
     this->vmStorage_.emplace(StorageKey(dbEntry.key), dbEntry.value);
   }
 
@@ -61,32 +57,9 @@ State::State(
   ContractGlobals::blockHash_ = latestBlock->getHash();
   ContractGlobals::blockHeight_ = latestBlock->getNHeight();
   ContractGlobals::blockTimestamp_ = latestBlock->getTimestamp();
+
   // State sanity check, lets check if all found contracts in the accounts_ map really have code or are C++ contracts
-  for (const auto& [addr, acc] : this->accounts_) {
-    switch (acc->contractType) {
-      case ContractType::CPP: {
-        if (this->contracts_.find(addr) == this->contracts_.end()) {
-          LOGERROR("Contract " + addr.hex().get() + " is marked as C++ contract but doesn't have code");
-          throw DynamicException("Contract " + addr.hex().get() + " is marked as C++ contract but doesn't have code");
-        }
-        break;
-      }
-      case ContractType::EVM: {
-        if (acc->code.empty()) {
-          LOGERROR("Contract " + addr.hex().get() + " is marked as EVM contract but doesn't have code");
-          throw DynamicException("Contract " + addr.hex().get() + " is marked as EVM contract but doesn't have code");
-        }
-        break;
-      }
-      case ContractType::NOT_A_CONTRACT: {
-        if (!acc->code.empty()) {
-          LOGERROR("Contract " + addr.hex().get() + " is marked as not a contract but has code");
-          throw DynamicException("Contract " + addr.hex().get() + " is marked as not a contract but has code");
-        }
-        break;
-      }
-    }
-  }
+  for (const auto& [addr, acc] : this->accounts_) contractSanityCheck(addr, *acc);
 
   if (snapshotHeight > this->storage_.latest()->getNHeight()) {
     LOGERROR("Snapshot height is higher than latest block, we can't load State! Crashing the program");
@@ -110,7 +83,7 @@ State::State(
 
     // Process transactions of the block within the current state
     uint64_t txIndex = 0;
-    for (auto const& tx : block->getTxs()) {
+    for (const auto& tx : block->getTxs()) {
       this->processTransaction(tx, blockHash, txIndex, block->getBlockRandomness());
       txIndex++;
     }
@@ -120,8 +93,37 @@ State::State(
   this->dumpManager_.pushBack(this);
 }
 
-State::~State() {
-  evmc_destroy(this->vm_);
+State::~State() { evmc_destroy(this->vm_); }
+
+void State::contractSanityCheck(const Address& addr, const Account& acc) {
+  switch (acc.contractType) {
+    case ContractType::CPP: {
+      if (this->contracts_.find(addr) == this->contracts_.end()) {
+        LOGERROR("Contract " + addr.hex().get() + " is marked as C++ contract but doesn't have code");
+        throw DynamicException("Contract " + addr.hex().get() + " is marked as C++ contract but doesn't have code");
+      }
+      break;
+    }
+    case ContractType::EVM: {
+      if (acc.code.empty()) {
+        LOGERROR("Contract " + addr.hex().get() + " is marked as EVM contract but doesn't have code");
+        throw DynamicException("Contract " + addr.hex().get() + " is marked as EVM contract but doesn't have code");
+      }
+      break;
+    }
+    case ContractType::NOT_A_CONTRACT: {
+      if (!acc.code.empty()) {
+        LOGERROR("Contract " + addr.hex().get() + " is marked as not a contract but has code");
+        throw DynamicException("Contract " + addr.hex().get() + " is marked as not a contract but has code");
+      }
+      break;
+    }
+    default:
+      // TODO: this is a placeholder, contract types should be revised.
+      // Also we can NOT remove NOT_A_CONTRACT for now because tests will complain about it.
+      throw DynamicException("Invalid contract type");
+      break;
+  }
 }
 
 DBBatch State::dump() const {
@@ -160,31 +162,36 @@ TxStatus State::validateTransactionInternal(const TxBlock& tx) const {
   }
   const auto& accBalance = accountIt->second->balance;
   const auto& accNonce = accountIt->second->nonce;
-  uint256_t txWithFees = tx.getValue() + (tx.getGasLimit() * tx.getMaxFeePerGas());
-  if (txWithFees > accBalance) {
-    LOGERROR("Transaction sender: " + tx.getFrom().hex().get() + " doesn't have balance to send transaction"
-                      + " expected: " + txWithFees.str() + " has: " + accBalance.str());
+  if (
+    uint256_t txWithFees = tx.getValue() + (tx.getGasLimit() * tx.getMaxFeePerGas());
+    txWithFees > accBalance
+  ) {
+    LOGERROR("Transaction sender: " + tx.getFrom().hex().get()
+      + " doesn't have balance to send transaction"
+      + " expected: " + txWithFees.str() + " has: " + accBalance.str()
+    );
     return TxStatus::InvalidBalance;
   }
   // TODO: The blockchain is able to store higher nonce transactions until they are valid. Handle this case.
   if (accNonce != tx.getNonce()) {
-    LOGERROR("Transaction: " + tx.hash().hex().get() + " nonce mismatch, expected: " + std::to_string(accNonce)
-                                            + " got: " + tx.getNonce().str());
+    LOGERROR("Transaction: " + tx.hash().hex().get()
+      + " nonce mismatch, expected: " + std::to_string(accNonce)
+      + " got: " + tx.getNonce().str()
+    );
     return TxStatus::InvalidNonce;
   }
   return TxStatus::ValidNew;
 }
 
-void State::processTransaction(const TxBlock& tx,
-                               const Hash& blockHash,
-                               const uint64_t& txIndex,
-                               const Hash& randomnessHash) {
+void State::processTransaction(
+  const TxBlock& tx, const Hash& blockHash, const uint64_t& txIndex, const Hash& randomnessHash
+) {
   // Lock is already called by processNextBlock.
   // processNextBlock already calls validateTransaction in every tx,
   // as it calls validateNextBlock as a sanity check.
   Account& accountFrom = *this->accounts_[tx.getFrom()];
   Account& accountTo = *this->accounts_[tx.getTo()];
-  int64_t leftOverGas = int64_t(tx.getGasLimit());
+  auto leftOverGas = int64_t(tx.getGasLimit());
   auto& fromNonce = accountFrom.nonce;
   auto& fromBalance = accountFrom.balance;
   if (fromBalance < (tx.getValue() + tx.getGasLimit() * tx.getMaxFeePerGas())) {
@@ -193,8 +200,9 @@ void State::processTransaction(const TxBlock& tx,
     return;
   }
   if (fromNonce != tx.getNonce()) {
-    LOGERROR("Transaction: " + tx.hash().hex().get() + " nonce mismatch, expected: " + std::to_string(fromNonce)
-                                            + " got: " + tx.getNonce().str());
+    LOGERROR("Transaction: " + tx.hash().hex().get() + " nonce mismatch, expected: "
+      + std::to_string(fromNonce) + " got: " + tx.getNonce().str()
+    );
     throw DynamicException("Transaction nonce mismatch");
     return;
   }
@@ -478,8 +486,7 @@ int64_t State::estimateGas(const evmc_message& callInfo) {
   // ContractHost simulate already do all necessary checks
   // We just need to execute and get the leftOverGas
   ContractType type = ContractType::NOT_A_CONTRACT;
-  auto accIt = this->accounts_.find(to);
-  if (accIt != this->accounts_.end()) {
+  if (auto accIt = this->accounts_.find(to); accIt != this->accounts_.end()) {
     type = accIt->second->contractType;
   }
 
@@ -519,10 +526,8 @@ std::vector<std::pair<std::string, Address>> State::getCppContracts() const {
 std::vector<Address> State::getEvmContracts() const {
   std::shared_lock lock(this->stateMutex_);
   std::vector<Address> contracts;
-  for (const auto& acc : this->accounts_) {
-    if (acc.second->contractType == ContractType::EVM) {
-      contracts.emplace_back(acc.first);
-    }
+  for (const auto& [addr, acc] : this->accounts_) {
+    if (acc->contractType == ContractType::EVM) contracts.emplace_back(addr);
   }
   return contracts;
 }

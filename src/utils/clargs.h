@@ -15,14 +15,8 @@ See the LICENSE.txt file in the project root for more information.
 
 #include "src/utils/logger.h"
 
-/**
- * List of BDK programs that the argument parser is aware of.
- */
-enum BDKTool {
-  FULL_NODE,
-  DISCOVERY_NODE,
-  UNIT_TEST_SUITE
-};
+/// List of BDK programs that the argument parser is aware of.
+enum class BDKTool { FULL_NODE, DISCOVERY_NODE, UNIT_TEST_SUITE };
 
 /**
  * Result of parsing command-line options for the node.
@@ -46,31 +40,30 @@ struct ProcessOptions {
  * @param tool Which tool is taking args; can be used to determine which args are available.
  * @return A ProcessOptions struct with the result of argument parsing.
  */
-ProcessOptions parseCommandLineArgs(int argc, char* argv[], BDKTool tool) {
+ProcessOptions parseCommandLineArgs(int argc, char* argv[], [[maybe_unused]] BDKTool tool) {
   ProcessOptions opt;
   try {
-
     boost::program_options::options_description desc("Allowed options");
     desc.add_options()
-        ("help,h",
-          "Print help message and exit")
-        ("loglevel,l", boost::program_options::value<std::string>(),
-          "Set the log level ([T]RACE, [D]EBUG, [I]NFO, [W]ARNING, [E]RROR, [N]ONE)")
-        ("loglinelimit", boost::program_options::value<int>(),
-          "Set the log line limit (# of lines per file); 0 = no limit")
-        ("logfilelimit", boost::program_options::value<int>(),
-          "Set the log file limit (# of files); 0 = no limit")
-        ("netthreads", boost::program_options::value<int>(),
-          "Set ManagerBase::netThreads_ (main IO thread count)")
-        ;
+      ("help,h",
+        "Print help message and exit")
+      ("loglevel,l", boost::program_options::value<std::string>(),
+        "Set the log level ([T]RACE, [D]EBUG, [I]NFO, [W]ARNING, [E]RROR, [N]ONE)")
+      ("loglinelimit", boost::program_options::value<int>(),
+        "Set the log line limit (# of lines per file); 0 = no limit")
+      ("logfilelimit", boost::program_options::value<int>(),
+        "Set the log file limit (# of files); 0 = no limit")
+      ("netthreads", boost::program_options::value<int>(),
+        "Set ManagerBase::netThreads_ (main IO thread count)")
+      ;
 
     boost::program_options::variables_map vm;
     boost::program_options::store(boost::program_options::parse_command_line(argc, argv, desc), vm);
     boost::program_options::notify(vm);
 
     if (vm.count("help")) {
-        std::cout << desc << "\n";
-        exit(0);
+      std::cout << desc << "\n";
+      exit(0);
     }
 
     if (vm.count("loglevel")) {
@@ -102,11 +95,11 @@ ProcessOptions parseCommandLineArgs(int argc, char* argv[], BDKTool tool) {
     }
 
   } catch (std::exception& e) {
-      std::cout << "ERROR: parseCommandLineArgs(): " << e.what() << "\n";
-      return {};
+    std::cout << "ERROR: parseCommandLineArgs(): " << e.what() << "\n";
+    return {};
   } catch (...) {
-      std::cout << "ERROR: parseCommandLineArgs(): Unknown exception\n";
-      return {};
+    std::cout << "ERROR: parseCommandLineArgs(): Unknown exception\n";
+    return {};
   }
 
   opt.valid = true;
@@ -119,7 +112,6 @@ ProcessOptions parseCommandLineArgs(int argc, char* argv[], BDKTool tool) {
  * @return `true` if no error, `false` otherwise.
  */
 bool applyProcessOptions(ProcessOptions& opt) {
-
   if (!opt.valid) {
     std::cout << "ERROR: Invalid command-line arguments" << std::endl;
     return false;
@@ -136,7 +128,7 @@ bool applyProcessOptions(ProcessOptions& opt) {
   else if (opt.logLevel == "F") { opt.logLevel = "FATAL"; }
   else if (opt.logLevel == "N") { opt.logLevel = "NONE"; }
 
-  if (opt.logLevel == "") { }
+  if (opt.logLevel == "") { /* Do nothing */ }
   else if (opt.logLevel == "XTRACE")  { Logger::setLogLevel(LogType::XTRACE); }
   else if (opt.logLevel == "TRACE")   { Logger::setLogLevel(LogType::TRACE); }
   else if (opt.logLevel == "DEBUG")   { Logger::setLogLevel(LogType::DEBUG); }

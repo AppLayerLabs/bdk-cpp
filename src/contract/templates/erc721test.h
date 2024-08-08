@@ -46,15 +46,14 @@ class ERC721Test : public ERC721 {
      * @param erc721name The name of the ERC721 token.
      * @param erc721symbol The symbol of the ERC721 token.
      * @param maxTokens The maximum amount of tokens that can be minted
-     * @param interface Reference to the contract manager interface.
      * @param address The address where the contract will be deployed.
      * @param creator The address of the creator of the contract.
      * @param chainId The chain where the contract wil be deployed.
-     * @param db Reference to the database object.
      */
-    ERC721Test(const std::string &erc721name, const std::string &erc721symbol, const uint64_t& maxTokens,
-           const Address &address,
-           const Address &creator, const uint64_t &chainId);
+    ERC721Test(
+      const std::string &erc721name, const std::string &erc721symbol, const uint64_t& maxTokens,
+      const Address &address, const Address &creator, const uint64_t &chainId
+    );
 
     /// Destructor.
     ~ERC721Test() override = default;

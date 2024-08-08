@@ -639,7 +639,7 @@ ContractType ContractHost::decodeContractCallType(const evmc_message& msg) const
     // we need to take a reference to the account, not a reference
     // to the pointer
     const auto& recipientAccount = *accounts_[recipient];
-    if (recipientAccount.contractType == CPP)
+    if (recipientAccount.contractType == ContractType::CPP)
       return ContractType::CPP;
     // else EVM call
     return ContractType::EVM;
