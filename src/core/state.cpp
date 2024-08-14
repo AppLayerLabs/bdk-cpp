@@ -18,8 +18,7 @@ State::State(
 ) : vm_(evmc_create_evmone()),
   options_(options),
   storage_(storage),
-  eventManager_(options_),
-  dumpManager_(storage_, options_, this->eventManager_, this->stateMutex_),
+  dumpManager_(storage_, options_, this->stateMutex_),
   dumpWorker_(options_, storage_, dumpManager_),
   p2pManager_(p2pManager),
   rdpos_(db, dumpManager_, storage, p2pManager, options)
@@ -224,7 +223,6 @@ void State::processTransaction(
     ContractHost host(
       this->vm_,
       this->dumpManager_,
-      this->eventManager_,
       this->storage_,
       randomSeed,
       txContext,
@@ -463,7 +461,6 @@ Bytes State::ethCall(const evmc_message& callInfo) {
     return ContractHost(
       this->vm_,
       this->dumpManager_,
-      this->eventManager_,
       this->storage_,
       randomSeed,
       txContext,
@@ -495,7 +492,6 @@ int64_t State::estimateGas(const evmc_message& callInfo) {
   ContractHost(
     this->vm_,
     this->dumpManager_,
-    this->eventManager_,
     this->storage_,
     randomSeed,
     evmc_tx_context(),
@@ -530,21 +526,6 @@ std::vector<Address> State::getEvmContracts() const {
     if (acc->contractType == ContractType::EVM) contracts.emplace_back(addr);
   }
   return contracts;
-}
-
-std::vector<Event> State::getEvents(
-  const uint64_t& fromBlock, const uint64_t& toBlock,
-  const Address& address, const std::vector<Hash>& topics
-) const {
-  std::shared_lock lock(this->stateMutex_);
-  return this->eventManager_.getEvents(fromBlock, toBlock, address, topics);
-}
-
-std::vector<Event> State::getEvents(
-  const Hash& txHash, const uint64_t& blockIndex, const uint64_t& txIndex
-) const {
-  std::shared_lock lock(this->stateMutex_);
-  return this->eventManager_.getEvents(txHash, blockIndex, txIndex);
 }
 
 Bytes State::getContractCode(const Address &addr) const {

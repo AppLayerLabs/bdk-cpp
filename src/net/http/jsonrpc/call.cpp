@@ -79,7 +79,7 @@ json call(const json& request, State& state, const Storage& storage,
     else if (method == "eth_feeHistory")
       result = jsonrpc::eth_feeHistory(request, storage);
     else if (method == "eth_getLogs")
-      result = jsonrpc::eth_getLogs(request, storage, state);
+      result = jsonrpc::eth_getLogs(request, storage);
     else if (method == "eth_getBalance")
       result = jsonrpc::eth_getBalance(request, storage, state);
     else if (method == "eth_getTransactionCount")
@@ -95,7 +95,7 @@ json call(const json& request, State& state, const Storage& storage,
     else if (method == "eth_getTransactionByBlockNumberAndIndex")
       result = jsonrpc::eth_getTransactionByBlockNumberAndIndex(request, storage);
     else if (method == "eth_getTransactionReceipt")
-      result = jsonrpc::eth_getTransactionReceipt(request, storage, state);
+      result = jsonrpc::eth_getTransactionReceipt(request, storage);
     else if (method == "eth_getUncleByBlockHashAndIndex")
       result = jsonrpc::eth_getUncleByBlockHashAndIndex();
     else if (method == "txpool_content")

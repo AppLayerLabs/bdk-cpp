@@ -374,7 +374,7 @@ class SDKTestSuite {
      */
     const std::vector<Event> getEvents(const Hash& tx) const {
       auto txBlock = this->storage_.getTx(tx);
-      return this->state_.getEvents(
+      return this->storage_.getEvents(
         std::get<0>(txBlock)->hash(), std::get<3>(txBlock), std::get<2>(txBlock)
       );
     }
@@ -852,7 +852,7 @@ class SDKTestSuite {
     std::vector<Event> getEvents(
       const uint64_t& fromBlock, const uint64_t& toBlock,
       const Address& address, const std::vector<Hash>& topics
-    ) { return this->state_.getEvents(fromBlock, toBlock, address, topics); }
+    ) { return this->storage_.getEvents(fromBlock, toBlock, address, topics); }
 
     /**
      * Overload of getEvents() used by "eth_getTransactionReceipts", where
@@ -864,7 +864,7 @@ class SDKTestSuite {
      */
     std::vector<Event> getEvents(
       const Hash& txHash, const uint64_t& blockIndex, const uint64_t& txIndex
-    ) { return this->state_.getEvents(txHash, blockIndex, txIndex); }
+    ) { return this->storage_.getEvents(txHash, blockIndex, txIndex); }
 
     /**
      * Get all events emitted by a given confirmed transaction.
@@ -872,7 +872,7 @@ class SDKTestSuite {
      */
     std::vector<Event> getEvents(const Hash& txHash) {
       auto tx = this->storage_.getTx(txHash);
-      return this->state_.getEvents(std::get<0>(tx)->hash(), std::get<3>(tx), std::get<2>(tx));
+      return this->storage_.getEvents(std::get<0>(tx)->hash(), std::get<3>(tx), std::get<2>(tx));
     }
 
     /**

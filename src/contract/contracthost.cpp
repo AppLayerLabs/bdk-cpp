@@ -26,7 +26,7 @@ ContractHost::~ContractHost() {
   if (!this->mustRevert_) {
     // When the execution is complete and we need to commit the changes to the storage we must do the following steps:
     // - Commit all the SafeBase variables
-    // - Commit all the emitted events to the EventManager
+    // - Commit all the emitted events to the storage
     // We only need to commit the C++ stack, EVM operates directly on the storage (only requiring reverts)
     // There is no permanent temporary storage for the EVM stack like on the SaveBase variables
     // Instead, we use a journaling system with ContractStack to store the original values of the this->storage_
@@ -34,8 +34,8 @@ ContractHost::~ContractHost() {
     for (auto& var : this->stack_.getUsedVars()) {
       var.get().commit();
     }
-    for (auto&& event : this->stack_.getEvents()) {
-      this->eventManager_.registerEvent(std::move(event));
+    for (const auto& event : this->stack_.getEvents()) {
+      this->storage_.putEvent(event);
     }
     for (const auto& contractPair : this->stack_.getContracts()) {
       const auto& [address, contract] = contractPair;

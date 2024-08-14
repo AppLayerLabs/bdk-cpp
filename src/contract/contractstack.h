@@ -4,6 +4,7 @@
 #include <../utils/strings.h>
 #include <../utils/safehash.h>
 #include <../contract/event.h>
+#include "contract.h"
 
 /**
  * ContractStack is a class/object required to initialize a sequence of contract executions (1 tx == 1 contract stack).

@@ -34,7 +34,6 @@ class State : public Dumpable, public Log::LogicalLocationProvider {
     evmc_vm* vm_;  ///< Pointer to the EVMC VM.
     const Options& options_;  ///< Reference to the options singleton.
     Storage& storage_;  ///< Reference to the blockchain's storage.
-    EventManager eventManager_; ///< Event manager object. Responsible for storing events emitted in contract calls.
     DumpManager dumpManager_; ///< The Dump Worker object
     DumpWorker dumpWorker_; ///< Dump Manager object
     P2P::ManagerNormal& p2pManager_;  ///< Reference to the P2P connection manager.
@@ -256,34 +255,6 @@ class State : public Dumpable, public Log::LogicalLocationProvider {
 
     /// Get a list of Addresss which are EVM contracts.
     std::vector<Address> getEvmContracts() const;
-
-    /**
-     * Get all the events emitted under the given inputs.
-     * Parameters are defined when calling "eth_getLogs" on an HTTP request
-     * (directly from the http/jsonrpc submodules, through handle_request() on httpparser).
-     * They're supposed to be all "optional" at that point, but here they're
-     * all required, even if all of them turn out to be empty.
-     * @param fromBlock The initial block height to look for.
-     * @param toBlock The final block height to look for.
-     * @param address The address to look for. Defaults to empty (look for all available addresses).
-     * @param topics The topics to filter by. Defaults to empty (look for all available topics).
-     * @return A list of matching events.
-     */
-    std::vector<Event> getEvents(
-      const uint64_t& fromBlock, const uint64_t& toBlock,
-      const Address& address = Address(), const std::vector<Hash>& topics = {}
-    ) const;
-
-    /**
-     * Overload of getEvents() for transaction receipts.
-     * @param txHash The hash of the transaction to look for events.
-     * @param blockIndex The height of the block to look for events.
-     * @param txIndex The index of the transaction to look for events.
-     * @return A list of matching events.
-     */
-    std::vector<Event> getEvents(
-      const Hash& txHash, const uint64_t& blockIndex, const uint64_t& txIndex
-    ) const;
 
     DBBatch dump() const final; ///< State dumping function.
 

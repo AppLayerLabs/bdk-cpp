@@ -9,8 +9,8 @@ See the LICENSE.txt file in the project root for more information.
 #include "../contract/event.h"
 
 DumpManager::DumpManager(
-  const Storage& storage, const Options& options, EventManager& eventManager, std::shared_mutex& stateMutex
-) : options_(options), storage_(storage), stateMutex_(stateMutex), eventManager_(eventManager) {}
+  const Storage& storage, const Options& options, std::shared_mutex& stateMutex
+) : options_(options), storage_(storage), stateMutex_(stateMutex) {}
 
 void DumpManager::pushBack(Dumpable* dumpable) {
   // Check if latest Dumpable* is the same as the one we trying to append
@@ -63,12 +63,6 @@ std::pair<std::vector<DBBatch>, uint64_t> DumpManager::dumpState() const {
     for (auto i = 0; i < nThreads; ++i)
       for (auto j = 0; j < outputs[i].size(); ++j)
         batches.emplace_back(outputs[i][j]);
-
-    // Also dump the events
-    // EventManager has its own database.
-    // We just need to make sure that its data is dumped
-    // At the same block height as the state data
-    this->eventManager_.dump();
   }
   return ret;
 }

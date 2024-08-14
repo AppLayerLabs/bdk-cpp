@@ -9,6 +9,14 @@ See the LICENSE.txt file in the project root for more information.
 
 #include "storage.h"
 
+static bool topicsMatch(const Event& event, const std::vector<Hash>& topics) {
+  if (topics.empty()) return true; // No topic filter applied
+  const std::vector<Hash>& eventTopics = event.getTopics();
+  if (eventTopics.size() < topics.size()) return false;
+  for (size_t i = 0; i < topics.size(); i++) if (topics.at(i) != eventTopics[i]) return false;
+  return true;
+}
+
 static void storeBlock(DB& db, const FinalizedBlock& block, bool indexingEnabled) {
   DBBatch batch;
   batch.push_back(block.getHash(), block.serializeBlock(), DBPrefix::blocks);
@@ -29,7 +37,9 @@ static void storeBlock(DB& db, const FinalizedBlock& block, bool indexingEnabled
 }
 
 Storage::Storage(std::string instanceIdStr, const Options& options)
-  : db_(options.getRootPath() + "/blocksDb/"), options_(options), instanceIdStr_(std::move(instanceIdStr))
+  : blocksDb_(options.getRootPath() + "/blocksDb/"),
+    eventsDb_(options.getRootPath() + "/eventsDb/"),
+    options_(options), instanceIdStr_(std::move(instanceIdStr))
 {
   // Initialize the blockchain if latest block doesn't exist.
   LOGINFO("Loading blockchain from DB");
@@ -37,10 +47,10 @@ Storage::Storage(std::string instanceIdStr, const Options& options)
 
   // Get the latest block from the database
   LOGINFO("Loading latest block");
-  const Bytes latestBlockHash = db_.getLastByPrefix(DBPrefix::heightToBlock);
+  const Bytes latestBlockHash = blocksDb_.getLastByPrefix(DBPrefix::heightToBlock);
   if (latestBlockHash.empty()) throw DynamicException("Latest block hash not found in DB");
 
-  const Bytes latestBlockBytes = db_.get(latestBlockHash, DBPrefix::blocks);
+  const Bytes latestBlockBytes = blocksDb_.get(latestBlockHash, DBPrefix::blocks);
   if (latestBlockBytes.empty()) throw DynamicException("Latest block bytes not found in DB");
 
   latest_ = std::make_shared<const FinalizedBlock>(FinalizedBlock::fromBytes(latestBlockBytes, this->options_.getChainID()));
@@ -52,19 +62,19 @@ void Storage::initializeBlockchain() {
   const auto& genesis = options_.getGenesisBlock();
 
   if (
-    const Bytes latestBlockHash = db_.getLastByPrefix(DBPrefix::heightToBlock);
+    const Bytes latestBlockHash = blocksDb_.getLastByPrefix(DBPrefix::heightToBlock);
     latestBlockHash.empty()
   ) {
     if (genesis.getNHeight() != 0) throw DynamicException("Genesis block height is not 0");
-    storeBlock(db_, genesis, options_.getIndexingMode() != IndexingMode::DISABLED);
+    storeBlock(blocksDb_, genesis, options_.getIndexingMode() != IndexingMode::DISABLED);
     LOGINFO(std::string("Created genesis block: ") + Hex::fromBytes(genesis.getHash()).get());
   }
 
   // Sanity check for genesis block. (check if genesis in DB matches genesis in Options)
-  const Hash genesisInDBHash(db_.get(Utils::uint64ToBytes(0), DBPrefix::heightToBlock));
+  const Hash genesisInDBHash(blocksDb_.get(Utils::uint64ToBytes(0), DBPrefix::heightToBlock));
 
   FinalizedBlock genesisInDB = FinalizedBlock::fromBytes(
-    db_.get(genesisInDBHash, DBPrefix::blocks), options_.getChainID()
+    blocksDb_.get(genesisInDBHash, DBPrefix::blocks), options_.getChainID()
   );
 
   if (genesis != genesisInDB) {
@@ -93,39 +103,39 @@ void Storage::pushBlock(FinalizedBlock block) {
   }
   auto newBlock = std::make_shared<FinalizedBlock>(std::move(block));
   latest_.store(newBlock);
-  storeBlock(db_, *newBlock, options_.getIndexingMode() != IndexingMode::DISABLED);
+  storeBlock(blocksDb_, *newBlock, options_.getIndexingMode() != IndexingMode::DISABLED);
 }
 
-bool Storage::blockExists(const Hash& hash) const { return db_.has(hash, DBPrefix::blocks); }
+bool Storage::blockExists(const Hash& hash) const { return blocksDb_.has(hash, DBPrefix::blocks); }
 
-bool Storage::blockExists(uint64_t height) const { return db_.has(Utils::uint64ToBytes(height), DBPrefix::heightToBlock); }
+bool Storage::blockExists(uint64_t height) const { return blocksDb_.has(Utils::uint64ToBytes(height), DBPrefix::heightToBlock); }
 
-bool Storage::txExists(const Hash& tx) const { return db_.has(tx, DBPrefix::txToBlock); }
+bool Storage::txExists(const Hash& tx) const { return blocksDb_.has(tx, DBPrefix::txToBlock); }
 
 std::shared_ptr<const FinalizedBlock> Storage::getBlock(const Hash& hash) const {
-  Bytes blockBytes = db_.get(hash, DBPrefix::blocks);
+  Bytes blockBytes = blocksDb_.get(hash, DBPrefix::blocks);
   if (blockBytes.empty()) return nullptr;
   return std::make_shared<FinalizedBlock>(FinalizedBlock::fromBytes(blockBytes, this->options_.getChainID()));
 }
 
 std::shared_ptr<const FinalizedBlock> Storage::getBlock(uint64_t height) const {
-  Bytes blockHash = db_.get(Utils::uint64ToBytes(height), DBPrefix::heightToBlock);
+  Bytes blockHash = blocksDb_.get(Utils::uint64ToBytes(height), DBPrefix::heightToBlock);
   if (blockHash.empty()) return nullptr;
-  Bytes blockBytes = db_.get(blockHash, DBPrefix::blocks);
+  Bytes blockBytes = blocksDb_.get(blockHash, DBPrefix::blocks);
   return std::make_shared<FinalizedBlock>(FinalizedBlock::fromBytes(blockBytes, this->options_.getChainID()));
 }
 
 std::tuple<
   const std::shared_ptr<const TxBlock>, const Hash, const uint64_t, const uint64_t
 > Storage::getTx(const Hash& tx) const {
-  const Bytes txData = db_.get(tx, DBPrefix::txToBlock);
+  const Bytes txData = blocksDb_.get(tx, DBPrefix::txToBlock);
   if (txData.empty()) return std::make_tuple(nullptr, Hash(), 0u, 0u);
 
   const bytes::View txDataView = txData;
   const Hash blockHash(txDataView.subspan(0, 32));
   const uint64_t blockIndex = Utils::bytesToUint32(txDataView.subspan(32, 4));
   const uint64_t blockHeight = Utils::bytesToUint64(txDataView.subspan(36, 8));
-  const Bytes blockData = db_.get(blockHash, DBPrefix::blocks);
+  const Bytes blockData = blocksDb_.get(blockHash, DBPrefix::blocks);
 
   return std::make_tuple(
     std::make_shared<const TxBlock>(getTxFromBlockWithIndex(blockData, blockIndex)),
@@ -136,7 +146,7 @@ std::tuple<
 std::tuple<
   const std::shared_ptr<const TxBlock>, const Hash, const uint64_t, const uint64_t
 > Storage::getTxByBlockHashAndIndex(const Hash& blockHash, const uint64_t blockIndex) const {
-  const Bytes blockData = db_.get(blockHash, DBPrefix::blocks);
+  const Bytes blockData = blocksDb_.get(blockHash, DBPrefix::blocks);
   if (blockData.empty()) std::make_tuple(nullptr, Hash(), 0u, 0u);
 
   const uint64_t blockHeight = Utils::bytesToUint64(bytes::View(blockData).subspan(201, 8));
@@ -149,10 +159,10 @@ std::tuple<
 std::tuple<
   const std::shared_ptr<const TxBlock>, const Hash, const uint64_t, const uint64_t
 > Storage::getTxByBlockNumberAndIndex(uint64_t blockHeight, uint64_t blockIndex) const {
-  const Bytes blockHash = db_.get(Utils::uint64ToBytes(blockHeight), DBPrefix::heightToBlock);
+  const Bytes blockHash = blocksDb_.get(Utils::uint64ToBytes(blockHeight), DBPrefix::heightToBlock);
   if (blockHash.empty()) return std::make_tuple(nullptr, Hash(), 0u, 0u);
 
-  const Bytes blockData = db_.get(blockHash, DBPrefix::blocks);
+  const Bytes blockData = blocksDb_.get(blockHash, DBPrefix::blocks);
   if (blockData.empty()) return std::make_tuple(nullptr, Hash(), 0u, 0u);
 
   return std::make_tuple(
@@ -172,11 +182,11 @@ void Storage::putCallTrace(const Hash& txHash, const trace::Call& callTrace) {
   Bytes serial;
   zpp::bits::out out(serial);
   out(callTrace).or_throw();
-  db_.put(txHash, serial, DBPrefix::txToCallTrace);
+  blocksDb_.put(txHash, serial, DBPrefix::txToCallTrace);
 }
 
 std::optional<trace::Call> Storage::getCallTrace(const Hash& txHash) const {
-  Bytes serial = db_.get(txHash, DBPrefix::txToCallTrace);
+  Bytes serial = blocksDb_.get(txHash, DBPrefix::txToCallTrace);
   if (serial.empty()) return std::nullopt;
 
   trace::Call callTrace;
@@ -190,11 +200,11 @@ void Storage::putTxAdditionalData(const TxAdditionalData& txData) {
   Bytes serialized;
   zpp::bits::out out(serialized);
   out(txData).or_throw();
-  db_.put(txData.hash, serialized, DBPrefix::txToAdditionalData);
+  blocksDb_.put(txData.hash, serialized, DBPrefix::txToAdditionalData);
 }
 
 std::optional<TxAdditionalData> Storage::getTxAdditionalData(const Hash& txHash) const {
-  Bytes serialized = db_.get(txHash, DBPrefix::txToAdditionalData);
+  Bytes serialized = blocksDb_.get(txHash, DBPrefix::txToAdditionalData);
   if (serialized.empty()) return std::nullopt;
 
   TxAdditionalData txData;
@@ -203,3 +213,79 @@ std::optional<TxAdditionalData> Storage::getTxAdditionalData(const Hash& txHash)
   return txData;
 }
 
+
+void Storage::putEvent(const Event& event) {
+  const Bytes key = Utils::makeBytes(bytes::join(
+    Utils::uint64ToBytes(event.getBlockIndex()),
+    Utils::uint64ToBytes(event.getTxIndex()),
+    Utils::uint64ToBytes(event.getLogIndex()),
+    event.getAddress()
+  ));
+
+  eventsDb_.put(key, Utils::stringToBytes(event.serializeToJson()), DBPrefix::events);
+}
+
+std::vector<Event> Storage::getEvents(uint64_t fromBlock, uint64_t toBlock, const Address& address, const std::vector<Hash>& topics) const {
+  if (toBlock < fromBlock) {
+    std::swap(fromBlock, toBlock);
+  }
+
+  if (uint64_t count = toBlock - fromBlock; count > options_.getEventBlockCap()) {
+    throw std::out_of_range(
+      "Block range too large for event querying! Max allowed is " +
+      std::to_string(this->options_.getEventBlockCap())
+    );
+  }
+
+  std::vector<Event> events;
+  std::vector<Bytes> keys;
+
+  const Bytes startBytes = Utils::makeBytes(Utils::uint64ToBytes(fromBlock));
+  const Bytes endBytes = Utils::makeBytes(Utils::uint64ToBytes(toBlock));
+
+  for (Bytes key : eventsDb_.getKeys(DBPrefix::events, startBytes, endBytes)) {
+    uint64_t nHeight = Utils::bytesToUint64(Utils::create_view_span(key, 0, 8));
+    Address currentAddress(Utils::create_view_span(key, 24, 20));
+
+    if (fromBlock > nHeight || toBlock < nHeight) {
+      continue;
+    }
+
+    if (address == currentAddress || address == Address()) {
+      keys.push_back(std::move(key));
+    }
+  }
+
+  for (DBEntry item : eventsDb_.getBatch(DBPrefix::events, keys)) {
+    if (events.size() >= options_.getEventLogCap()) {
+      break;
+    }
+
+    Event event(Utils::bytesToString(item.value));
+
+    if (topicsMatch(event, topics)) {
+      events.push_back(std::move(event));
+    }
+  }
+
+  return events;
+}
+
+std::vector<Event> Storage::getEvents(const Hash& txHash, uint64_t blockIndex, uint64_t txIndex) const {
+  std::vector<Event> events;  
+
+  for (
+    Bytes fetchBytes = Utils::makeBytes(bytes::join(
+      DBPrefix::events, Utils::uint64ToBytes(blockIndex), Utils::uint64ToBytes(txIndex)
+    ));
+    DBEntry entry : eventsDb_.getBatch(fetchBytes)
+  ) {
+    if (events.size() >= options_.getEventLogCap()) {
+      break;
+    }
+
+    events.emplace_back(Utils::bytesToString(entry.value));
+  }
+
+  return events;
+}

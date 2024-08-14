@@ -16,11 +16,9 @@ See the LICENSE.txt file in the project root for more information.
 #include "../utils/safehash.h"
 #include "../utils/utils.h"
 #include "../utils/options.h"
-
 #include "../contract/calltracer.h"
-
+#include "../contract/event.h"
 #include "../libs/zpp_bits.h"
-
 #include "../bytes/join.h"
 
 /**
@@ -33,7 +31,8 @@ class Storage : public Log::LogicalLocationProvider {
   // TODO: possibly replace `std::shared_ptr<const Block>` with a better solution.
   private:
     std::atomic<std::shared_ptr<const FinalizedBlock>> latest_;
-    DB db_;  ///< Database object that contains all the blockchain blocks
+    DB blocksDb_;  ///< Database object that contains all the blockchain blocks
+    DB eventsDb_; ///< DB exclusive to events (should be removed in future)
     const Options& options_;  ///< Reference to the options singleton.
     const std::string instanceIdStr_; ///< Identifier for logging
 
@@ -138,6 +137,12 @@ class Storage : public Log::LogicalLocationProvider {
     void putCallTrace(const Hash& txHash, const trace::Call& callTrace);
 
     std::optional<trace::Call> getCallTrace(const Hash& txHash) const;
+
+    void putEvent(const Event& event);
+
+    std::vector<Event> getEvents(uint64_t fromBlock, uint64_t toBlock, const Address& address, const std::vector<Hash>& topics) const;
+
+    std::vector<Event> getEvents(const Hash& txHash, uint64_t blockIndex, uint64_t txIndex) const;
 
     inline IndexingMode getIndexingMode() const { return options_.getIndexingMode(); }
 };
