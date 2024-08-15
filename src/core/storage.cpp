@@ -230,7 +230,7 @@ std::vector<Event> Storage::getEvents(uint64_t fromBlock, uint64_t toBlock, cons
     std::swap(fromBlock, toBlock);
   }
 
-  if (uint64_t count = toBlock - fromBlock; count > options_.getEventBlockCap()) {
+  if (uint64_t count = toBlock - fromBlock + 1; count > options_.getEventBlockCap()) {
     throw std::out_of_range(
       "Block range too large for event querying! Max allowed is " +
       std::to_string(this->options_.getEventBlockCap())
@@ -271,7 +271,7 @@ std::vector<Event> Storage::getEvents(uint64_t fromBlock, uint64_t toBlock, cons
   return events;
 }
 
-std::vector<Event> Storage::getEvents(const Hash& txHash, uint64_t blockIndex, uint64_t txIndex) const {
+std::vector<Event> Storage::getEvents(uint64_t blockIndex, uint64_t txIndex) const {
   std::vector<Event> events;  
 
   for (

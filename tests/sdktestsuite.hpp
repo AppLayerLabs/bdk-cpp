@@ -375,7 +375,7 @@ class SDKTestSuite {
     const std::vector<Event> getEvents(const Hash& tx) const {
       auto txBlock = this->storage_.getTx(tx);
       return this->storage_.getEvents(
-        std::get<0>(txBlock)->hash(), std::get<3>(txBlock), std::get<2>(txBlock)
+        std::get<3>(txBlock), std::get<2>(txBlock)
       );
     }
 
@@ -862,9 +862,8 @@ class SDKTestSuite {
      * @param txIndex The index of the transaction to look for events.
      * @return A list of matching events, limited by the block and/or log caps set above.
      */
-    std::vector<Event> getEvents(
-      const Hash& txHash, const uint64_t& blockIndex, const uint64_t& txIndex
-    ) { return this->storage_.getEvents(txHash, blockIndex, txIndex); }
+    std::vector<Event> getEvents(const uint64_t& blockIndex, const uint64_t& txIndex
+    ) { return this->storage_.getEvents(blockIndex, txIndex); }
 
     /**
      * Get all events emitted by a given confirmed transaction.
@@ -872,7 +871,7 @@ class SDKTestSuite {
      */
     std::vector<Event> getEvents(const Hash& txHash) {
       auto tx = this->storage_.getTx(txHash);
-      return this->storage_.getEvents(std::get<0>(tx)->hash(), std::get<3>(tx), std::get<2>(tx));
+      return this->storage_.getEvents(std::get<3>(tx), std::get<2>(tx));
     }
 
     /**

@@ -485,7 +485,7 @@ json eth_getTransactionReceipt(const json& request, const Storage& storage) {
     ret["logsBloom"] = Hash().hex(true);
     ret["type"] = "0x2";
     ret["status"] = txAddData.succeeded ? "0x1" : "0x0";
-    for (const Event& e : storage.getEvents(txHash, blockHeight, txIndex)) {
+    for (const Event& e : storage.getEvents(blockHeight, txIndex)) {
       ret["logs"].push_back(e.serializeForRPC());
     }
     return ret;
