@@ -22,7 +22,6 @@ See the LICENSE.txt file in the project root for more information.
 #include "../utils/utils.h"
 
 #include "abi.h"
-#include "contract.h"
 
 #include <boost/multi_index_container.hpp>
 #include <boost/multi_index/hashed_index.hpp>
@@ -171,110 +170,5 @@ struct event_indices : bmi::indexed_by<
   // Ordered index by txHash for direct access
   bmi::ordered_non_unique<bmi::member<Event, Hash, &Event::txHash_>>
 > {};
-
-using EventContainer = bmi::multi_index_container<Event, event_indices>;  ///< Alias for the event multi-index container.
-
-/**
- * Class that holds all events emitted by contracts in the blockchain.
- * Responsible for registering, managing and saving/loading events to/from the database.
- */
-class EventManager {
-  private:
-    // TODO: keep up to 1000 (maybe 10000? 100000? 1M seems too much) events in memory, dump older ones to DB (this includes checking save/load - maybe this should be a deque?)
-    EventContainer events_;   ///< List of all emitted events in memory. Older ones FIRST, newer ones LAST.
-    // Mutable is needed because we used to dump stuff through the construction
-    // now we do through the dump() method, so we need to mark it as mutable.
-    // but dump() should be const, so we need to mark it as mutable.
-    mutable DB db_;           ///< EventManager Database.
-    const Options& options_;  ///< Reference to the Options singleton.
-
-  public:
-    /**
-     * Constructor; Automatically loads events from the database.
-     * @param db The database to use.
-     * @param options The Options singleton to use (for event caps).
-     */
-    EventManager(const Options& options);
-
-    ~EventManager() = default;  ///< Destructor.
-
-    // TODO: maybe a periodicSaveToDB() just like on Storage?
-
-    /**
-     * Get all the events emitted under the given inputs.
-     * Used by "eth_getLogs", from where parameters are defined on an HTTP request
-     * (directly from the http/jsonrpc submodules, through handle_request() on httpparser).
-     * @param fromBlock The initial block height to look for.
-     * @param toBlock The final block height to look for.
-     * @param address The address to look for. Defaults to empty (look for all available addresses).
-     * @param topics The topics to filter by. Defaults to empty (look for all available topics).
-     * @return A list of matching events, limited by the block and/or log caps set above.
-     * @throw std::out_of_range if specified block range exceeds the limit set in Options.
-     */
-    std::vector<Event> getEvents(
-      const uint64_t& fromBlock, const uint64_t& toBlock,
-      const Address& address = Address(), const std::vector<Hash>& topics = {}
-    ) const;
-
-    /**
-     * Overload of getEvents() used by "eth_getTransactionReceipts", where
-     * parameters are filtered differently (by exact tx, not a range).
-     * @param txHash The hash of the transaction to look for events.
-     * @param blockIndex The height of the block to look for events.
-     * @param txIndex The index of the transaction to look for events.
-     * @return A list of matching events, limited by the block and/or log caps set above.
-     */
-    std::vector<Event> getEvents(
-      const Hash& txHash, const uint64_t& blockIndex, const uint64_t& txIndex
-    ) const;
-
-    /**
-     * Filter events in memory. Used by getEvents().
-     * @param fromBlock The starting block range to query.
-     * @param toBlock Tne ending block range to query.
-     * @param address The address to look for. Defaults to empty (look for all available addresses).
-     * @return A list of found events.
-     */
-    std::vector<Event> filterFromMemory(
-      const uint64_t& fromBlock, const uint64_t& toBlock, const Address& address = Address()
-    ) const;
-
-    /**
-     * Filter events in the database. Used by getEvents().
-     * @param fromBlock The starting block range to query.
-     * @param toBlock Tne ending block range to query.
-     * @param address The address to look for. Defaults to empty (look for all available addresses).
-     * @param topics The topics to filter by. Defaults to empty (look for all available topics).
-     * @return A list of found events.
-     */
-    std::vector<Event> filterFromDB(
-      const uint64_t& fromBlock, const uint64_t& toBlock,
-      const Address& address = Address(), const std::vector<Hash>& topics = {}
-    ) const;
-
-    /**
-     * Check if all topics of an event match the desired topics from a query.
-     * TOPIC ORDER AND QUANTITY MATTERS. e.g.:
-     * - event is {"a", "b", "c", "d"}, filter is {"a", "b", "c"} = MATCH
-     * - event is {"a", "b", "c"}, filter is {"a", "c", "b"} = NO MATCH
-     * - event is {"a", "b"}, filter is {"a", "b", "c"} = NO MATCH
-     * @param event The event to match.
-     * @param topics The queried topics to match for. Defaults to empty (no filter).
-     * @return `true` if all topics match, `false` otherwise.
-     */
-    bool matchTopics(const Event& event, const std::vector<Hash>& topics = {}) const;
-
-    /**
-     * Register the event.
-     */
-    void registerEvent(Event&& event) noexcept { this->events_.insert(std::move(event)); }
-
-    /**
-     * Dump function.
-     * Actually triggers the saving of events to the database.
-     * It is NOT const because it clear the events_ list after dumping.
-     */
-    void dump();
-};
 
 #endif  // EVENT_H

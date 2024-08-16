@@ -68,7 +68,6 @@ class ContractHost : public evmc::Host {
     };
     evmc_vm* vm_;
     DumpManager& manager_;
-    EventManager& eventManager_;
     Storage& storage_;
     mutable ContractStack stack_;
     mutable RandomGen randomGen_; // Random generator for the contract.
@@ -151,7 +150,6 @@ class ContractHost : public evmc::Host {
   public:
     ContractHost(evmc_vm* vm,
                  DumpManager& manager,
-                 EventManager& eventManager,
                  Storage& storage,
                  const Hash& randomnessSeed,
                  const evmc_tx_context& currentTxContext,
@@ -164,7 +162,6 @@ class ContractHost : public evmc::Host {
                  int64_t& txGasLimit) :
     vm_(vm),
     manager_(manager),
-    eventManager_(eventManager),
     storage_(storage),
     randomGen_(randomnessSeed),
     currentTxContext_(currentTxContext),

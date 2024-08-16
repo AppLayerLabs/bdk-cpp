@@ -100,7 +100,7 @@ json eth_gasPrice(const json& request);
 
 json eth_feeHistory(const json& request, const Storage& storage);
 
-json eth_getLogs(const json& request, const Storage& storage, const State& state);
+json eth_getLogs(const json& request, const Storage& storage);
 
 json eth_getBalance(const json& request, const Storage& storage, const State& state);
 
@@ -116,7 +116,7 @@ json eth_getTransactionByBlockHashAndIndex(const json& request, const Storage& s
 
 json eth_getTransactionByBlockNumberAndIndex(const json& request, const Storage& storage);
 
-json eth_getTransactionReceipt(const json& request, const Storage& storage, const State& state);
+json eth_getTransactionReceipt(const json& request, const Storage& storage);
 
 json eth_getUncleByBlockHashAndIndex();
 

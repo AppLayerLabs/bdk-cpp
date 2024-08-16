@@ -18,9 +18,6 @@ See the LICENSE.txt file in the project root for more information.
 #include "storage.h"
 #include "../utils/db.h"
 
-// Forward declaration
-class EventManager;
-
 /// Abstraction of a dumpable object (an object that can be dumped to the database).
 class Dumpable {
   public:
@@ -38,7 +35,6 @@ class DumpManager : public Log::LogicalLocationProvider {
     const Storage& storage_; ///< Reference to the storage object
     std::shared_mutex& stateMutex_; ///< Mutex for managing read/write access to the state object.
     std::vector<Dumpable*> dumpables_; /// List of Dumpable objects.
-    EventManager& eventManager_; /// Reference to the EventManager object.
 
     /**
      * Auxiliary function used by async calls that processes a little slice of dumps in a separate thread.
@@ -53,10 +49,9 @@ class DumpManager : public Log::LogicalLocationProvider {
      * Constructor.
      * @param storage Reference to the Storage object.
      * @param options Reference to the Options singleton.
-     * @param eventManager Reference to the EventManager object.
      * @param stateMutex Reference to the state mutex.
      */
-    DumpManager(const Storage& storage, const Options& options, EventManager& eventManager, std::shared_mutex& stateMutex);
+    DumpManager(const Storage& storage, const Options& options, std::shared_mutex& stateMutex);
 
     /// Log instance from Storage.
     std::string getLogicalLocation() const override { return storage_.getLogicalLocation(); }

@@ -16,24 +16,22 @@ See the LICENSE.txt file in the project root for more information.
 #include "../utils/safehash.h"
 #include "../utils/utils.h"
 #include "../utils/options.h"
-
 #include "../contract/calltracer.h"
-
+#include "../contract/event.h"
 #include "../libs/zpp_bits.h"
-
 #include "../bytes/join.h"
 
 /**
  * Abstraction of the blockchain history.
  * Used to store blocks in memory and on disk, and helps the State process
  * new blocks, transactions and RPC queries.
- * TODO: Replace std::unordered_map with boost::unordered_flat_map AFTER we finish Storage refactor (Currently being done by Leonardo)
  */
 class Storage : public Log::LogicalLocationProvider {
   // TODO: possibly replace `std::shared_ptr<const Block>` with a better solution.
   private:
     std::atomic<std::shared_ptr<const FinalizedBlock>> latest_;
-    DB db_;  ///< Database object that contains all the blockchain blocks
+    DB blocksDb_;  ///< Database object that contains all the blockchain blocks
+    DB eventsDb_; ///< DB exclusive to events (should be removed in future)
     const Options& options_;  ///< Reference to the options singleton.
     const std::string instanceIdStr_; ///< Identifier for logging
 
@@ -129,16 +127,59 @@ class Storage : public Log::LogicalLocationProvider {
     /// Get the number of blocks currently in the chain (nHeight of latest block + 1).
     uint64_t currentChainSize() const;
 
-    // TODO: document these later
-
+    /**
+     * Stores additional transaction data
+     * @param txData The additional transaction data
+     */
     void putTxAdditionalData(const TxAdditionalData& txData);
 
+    /**
+     * Retrieves the stored additional transaction data
+     * @param txHash The target transaction hash
+     * @return The transaction data if existent, or an empty optional otherwise
+     */
     std::optional<TxAdditionalData> getTxAdditionalData(const Hash& txHash) const;
 
+    /**
+     * Stores a transaction call trace
+     * @param txHash The transaction hash
+     * @param callTrace The call trace of the transaction
+     */
     void putCallTrace(const Hash& txHash, const trace::Call& callTrace);
 
+    /**
+     * Retrieves the stored call trace of the target transaction
+     * @param txHash The target transaction hash
+     * @return The transation call trace if existent, or an empty optional otherwise
+     */
     std::optional<trace::Call> getCallTrace(const Hash& txHash) const;
 
+    /**
+     * Stores an event
+     * @param event The event to be stored
+     */
+    void putEvent(const Event& event);
+
+    /**
+     * Retrieves all events from a given range of block numbers
+     * @param fromBlock The initial block number (included)
+     * @param toBlock The last block number (included)
+     * @return The requested events if existent, or an empty vector otherwise
+     */
+    std::vector<Event> getEvents(uint64_t fromBlock, uint64_t toBlock, const Address& address, const std::vector<Hash>& topics) const;
+
+    /**
+     * Retrieves all events from given block index and transaction index
+     * @param blockIndex The number of the block that contains the transaction
+     * @param txIndex The transaction index within the block
+     * @return The requested events if existent, or an empty vector otherwise
+     */
+    std::vector<Event> getEvents(uint64_t blockIndex, uint64_t txIndex) const;
+
+    /**
+     * Returns the indexing mode of the storage
+     * @returns The indexing mode of the storage
+     */
     inline IndexingMode getIndexingMode() const { return options_.getIndexingMode(); }
 };
 

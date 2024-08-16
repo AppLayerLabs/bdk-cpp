@@ -28,7 +28,6 @@ class StateTest : public State {
       ContractHost host(
         this->vm_,
         this->dumpManager_,
-        this->eventManager_,
         this->storage_,
         randomness,
         txContext,

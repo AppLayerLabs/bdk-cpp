@@ -274,7 +274,7 @@ json eth_feeHistory(const json& request, const Storage& storage) {
   return ret;
 }
 
-json eth_getLogs(const json& request, const Storage& storage, const State& state) {
+json eth_getLogs(const json& request, const Storage& storage) {
   const auto [logsObj] = parseAllParams<json>(request);
   const auto getBlockByHash = [&storage] (const Hash& hash) { return getBlockNumber(storage, hash); };
 
@@ -298,7 +298,7 @@ json eth_getLogs(const json& request, const Storage& storage, const State& state
 
   json result = json::array();
 
-  for (const auto& event : state.getEvents(fromBlock, toBlock, address.value_or(Address{}), topics))
+  for (const auto& event : storage.getEvents(fromBlock, toBlock, address.value_or(Address{}), topics))
     result.push_back(event.serializeForRPC());
 
   return result;
@@ -457,7 +457,7 @@ json eth_getTransactionByBlockNumberAndIndex(const json& request, const Storage&
   return json::value_t::null;
 }
 
-json eth_getTransactionReceipt(const json& request, const Storage& storage, const State& state) {
+json eth_getTransactionReceipt(const json& request, const Storage& storage) {
   requiresIndexing(storage, "eth_getTransactionReceipt");
 
   const auto [txHash] = parseAllParams<Hash>(request);
@@ -485,7 +485,7 @@ json eth_getTransactionReceipt(const json& request, const Storage& storage, cons
     ret["logsBloom"] = Hash().hex(true);
     ret["type"] = "0x2";
     ret["status"] = txAddData.succeeded ? "0x1" : "0x0";
-    for (const Event& e : state.getEvents(txHash, blockHeight, txIndex)) {
+    for (const Event& e : storage.getEvents(blockHeight, txIndex)) {
       ret["logs"].push_back(e.serializeForRPC());
     }
     return ret;
@@ -564,7 +564,7 @@ json debug_traceBlockByNumber(const json& request, const Storage& storage) {
 }
 
 json debug_traceTransaction(const json& request, const Storage& storage) {
-  requiresDebugIndexing(storage, "debug_traceBlockByNumber");
+  requiresDebugIndexing(storage, "debug_traceTransaction");
 
   json res;
   auto [txHash, traceJson] = parseAllParams<Hash, json>(request);
