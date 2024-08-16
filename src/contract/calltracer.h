@@ -10,6 +10,16 @@
 
 namespace trace {
 
+Bytes encodeRevertReason(std::string_view reason);
+
+std::string decodeRevertReason(bytes::View data);
+
+enum class Status {
+  SUCCEEDED,
+  EXECUTION_REVERTED,
+  OUT_OF_GAS
+};
+
 struct Call {
   enum class Type {
     CALL,
@@ -26,14 +36,14 @@ struct Call {
   using serialize = zpp::bits::members<10>;
 
   Type type;
+  Status status;
   Address from;
   Address to;
   FixedBytes<32> value;
-  int64_t gas;
-  int64_t gasUsed;
+  uint64_t gas;
+  uint64_t gasUsed;
   Bytes input;
   Bytes output;
-  std::string error;
   boost::container::stable_vector<Call> calls;
 };
 
@@ -42,7 +52,9 @@ private:
   std::unique_ptr<Call> root_;
   std::deque<Call*> stack_;
 
-  void traceOutInternal(bytes::View output, int64_t gasUsed, std::string error);
+  void push(Call call);
+
+  void pop(Bytes output, Status status, uint64_t gasUsed);
 
 public:
   CallTracer() = default;
@@ -57,11 +69,15 @@ public:
 
   const Call& current() const;
 
-  void traceIn(Call call);
+  void callStarted(Call call);
 
-  void traceOut(bytes::View output, int64_t gasUsed);
+  void callOutOfGas();
 
-  void traceError(std::string error, int64_t gasUsed);
+  void callReverted(uint64_t gasUsed);
+
+  void callReverted(Bytes output, uint64_t gasUsed);
+
+  void callSucceeded(Bytes output, uint64_t gasUsed);
 };
 
 } // namespace trace
