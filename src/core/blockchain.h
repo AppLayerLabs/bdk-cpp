@@ -84,10 +84,10 @@ class Syncer : public Log::LogicalLocationProvider {
 class Blockchain : public Log::LogicalLocationProvider {
   private:
     Options options_;           ///< Options singleton.
+    P2P::ManagerNormal p2p_;    ///< P2P connection manager. NOTE: must be initialized first due to getLogicalLocation()
     const DB db_;               ///< Database.
     Storage storage_;           ///< Blockchain storage.
     State state_;               ///< Blockchain state.
-    P2P::ManagerNormal p2p_;    ///< P2P connection manager. NOTE: must be initialized first due to getLogicalLocation()
     HTTPServer http_;           ///< HTTP server.
     Syncer syncer_;             ///< Blockchain syncer.
     Consensus consensus_;       ///< Block and transaction processing.
