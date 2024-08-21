@@ -89,7 +89,6 @@ ContractHost::~ContractHost() {
       }
     }
   }
-
   saveTxAdditionalData();
   saveCallTrace();
 }
@@ -164,7 +163,6 @@ evmc::Result ContractHost::createEVMContract(const evmc_message& msg,
 bool ContractHost::isTracingCalls() const noexcept {
   return bool(txHash_) && storage_.getIndexingMode() == IndexingMode::RPC_TRACE;
 }
-
 
 void ContractHost::traceCallStarted(const evmc_message& msg) noexcept {
   if (this->isTracingCalls()) {
@@ -336,7 +334,7 @@ void ContractHost::execute(const evmc_message& msg, const ContractType& type) {
       what += evmcError;
       what += " --- OTHER INFO: --- ";
     }
- 
+
     this->addTxData_.gasUsed = msg.gas - this->leftoverGas_;
     this->addTxData_.succeeded = false;
 
@@ -347,7 +345,6 @@ void ContractHost::execute(const evmc_message& msg, const ContractType& type) {
         this->traceCallReverted(std::move(output), this->addTxData_.gasUsed);
       }
     }
-
     throw DynamicException(what);
   }
   // We only set that we don't revert, if EVMC didn't throw a exception
@@ -360,7 +357,7 @@ void ContractHost::execute(const evmc_message& msg, const ContractType& type) {
 
     this->addTxData_.gasUsed = msg.gas - this->leftoverGas_;
     this->addTxData_.succeeded = false;
-    
+
     if (isContractCall) {
       this->traceCallReverted(std::move(output), this->addTxData_.gasUsed);
     }
@@ -613,7 +610,7 @@ evmc::Result ContractHost::callEVMContract(const evmc_message& msg) {
                                    evmc_revision::EVMC_LATEST_STABLE_REVISION,
                                    &msg,
                                    recipientAccount.code.data(),
-                                   recipientAccount.code.size()));  
+                                   recipientAccount.code.size()));
   // gas_left is not linked with leftoverGas_, we need to link it.
   this->leftoverGas_ = result.gas_left;
   // EVM contract call is 5000 gas
@@ -623,27 +620,31 @@ evmc::Result ContractHost::callEVMContract(const evmc_message& msg) {
   return result;
 }
 
-ContractType ContractHost::decodeContractCallType(const evmc_message& msg) const {
+ContractKind ContractHost::decodeContractKind(const evmc_message& msg) const {
   switch (msg.kind)
   {
   case evmc_call_kind::EVMC_CREATE: {
-    return ContractType::CREATE;
+    return ContractKind::CREATE;
   }
   case evmc_call_kind::EVMC_CREATE2: {
-    return ContractType::CREATE2;
+    return ContractKind::CREATE2;
   }
   default:
-    if (msg.recipient == BDK_PRECOMPILE)
-      return ContractType::PRECOMPILED;
-    Address recipient(msg.recipient);
-    // we need to take a reference to the account, not a reference
-    // to the pointer
-    const auto& recipientAccount = *accounts_[recipient];
-    if (recipientAccount.contractType == ContractType::CPP)
-      return ContractType::CPP;
-    // else EVM call
-    return ContractType::EVM;
+    return ContractKind::NOT_A_KIND;
   }
+}
+
+ContractType ContractHost::decodeContractType(const evmc_message& msg) const {
+  if (msg.recipient == BDK_PRECOMPILE)
+    return ContractType::PRECOMPILED;
+  Address recipient(msg.recipient);
+  // we need to take a reference to the account, not a reference
+  // to the pointer
+  const auto& recipientAccount = *accounts_[recipient];
+  if (recipientAccount.contractType == ContractType::CPP)
+    return ContractType::CPP;
+  // else EVM call
+  return ContractType::EVM;
 }
 
 // EVM -> EVM calls don't need to use this->leftOverGas_ as the final
@@ -656,33 +657,42 @@ evmc::Result ContractHost::call(const evmc_message& msg) noexcept {
     this->traceCallStarted(msg);
   }
 
-  switch (this->decodeContractCallType(msg))
+  switch (this->decodeContractKind(msg))
   {
-  case ContractType::CREATE: {
+  case ContractKind::CREATE: {
     result = this->callEVMCreate(msg);
     break;
   }
-  case ContractType::CREATE2: {
+  case ContractKind::CREATE2: {
     result = this->callEVMCreate2(msg);
     break;
   }
-  case ContractType::PRECOMPILED: {
-    result = this->processBDKPrecompile(msg);
-    break;
-  }
-  case ContractType::CPP: {
-    result = this->callCPPContract(msg);
+  case ContractKind::NOT_A_KIND: {
+    switch (this->decodeContractType(msg)) {
+    case ContractType::PRECOMPILED: {
+      result = this->processBDKPrecompile(msg);
+      break;
+    }
+    case ContractType::CPP: {
+      result = this->callCPPContract(msg);
+      break;
+    }
+    case ContractType::EVM: {
+      result = this->callEVMContract(msg);
+      break;
+    }
+    default:
+      break;
+    }
     break;
   }
   default:
-    result = this->callEVMContract(msg);
     break;
   }
 
   if (isContractCall) {
     this->traceCallFinished(result.raw());
   }
-
   return result;
 }
 

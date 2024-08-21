@@ -79,7 +79,6 @@ class ContractHost : public evmc::Host {
     bool mustRevert_ = true; // We always assume that we must revert until proven otherwise.
     mutable bool evmcThrow_ = false; // Did the EVMC throw an exception?
     mutable std::vector<std::string> evmcThrows_;
-    std::vector<Bytes> evmcResults_; /// evmc_result has a uint8_t* and a size, but we need to allocate memory for it.
     uint64_t eventIndex_ = 0;
     const Hash& txHash_;
     const uint64_t txIndex_;
@@ -117,7 +116,9 @@ class ContractHost : public evmc::Host {
                                    const Address& contractAddress,
                                    const evmc_call_kind& kind);
 
-    ContractType decodeContractCallType(const evmc_message& msg) const;
+    ContractType decodeContractType(const evmc_message& msg) const;
+    ContractKind decodeContractKind(const evmc_message& msg) const;
+
     evmc::Result processBDKPrecompile(const evmc_message& msg);
     evmc::Result callEVMCreate(const evmc_message& msg);
     evmc::Result callEVMCreate2(const evmc_message& msg);
