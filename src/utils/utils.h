@@ -252,7 +252,10 @@ enum class Networks { Mainnet, Testnet, LocalTestnet };
 enum class FunctionTypes { View, NonPayable, Payable };
 
 /// Enum for the type of the contract.
-enum class ContractType { NOT_A_CONTRACT, EVM, CPP, CREATE, CREATE2, PRECOMPILED };
+enum class ContractType { NOT_A_CONTRACT, EVM, CPP, PRECOMPILED };
+
+/// Enum for the contract's kind
+enum class ContractKind { NOT_A_KIND, CREATE, CREATE2};
 
 /**
  * Abstraction of balance and nonce for a single account.
