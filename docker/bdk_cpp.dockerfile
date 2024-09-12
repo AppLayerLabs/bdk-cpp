@@ -8,36 +8,11 @@ FROM debian:trixie
 # Update the system
 RUN apt-get update && apt-get upgrade -y
 
+# Install Docker-specific dependencies
+RUN apt-get -y install nano vim unison curl jq unzip gcovr
+
 # Install dependencies
-RUN apt-get install -y \
-    build-essential \
-    cmake \
-    clang-tidy \
-    autoconf \
-    libtool \
-    pkg-config \
-    libabsl-dev \
-    libboost-all-dev \
-    libc-ares-dev \
-    libcrypto++-dev \
-    libgrpc-dev \
-    libgrpc++-dev \
-    librocksdb-dev \
-    libscrypt-dev \
-    libsnappy-dev \
-    libssl-dev \
-    zlib1g-dev \
-    openssl \
-    protobuf-compiler \
-    protobuf-compiler-grpc \
-    curl \
-    unison \
-    mold \
-    doxygen \
-    jq \
-    unzip \
-    gcovr \
-    git
+RUN bash ./scripts/deps.sh --install
 
 # Create a directory for sonarcloud
 RUN mkdir /root/.sonar
