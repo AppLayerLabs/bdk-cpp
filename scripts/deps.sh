@@ -1,5 +1,9 @@
 #!/bin/bash -e
 
+# ===========================================================================
+# PRE-SCRIPT
+# ===========================================================================
+
 # Parse CLI args
 if [ "${1:-}" == "" ]; then
   echo "Usage: $0 [--check|--install]"
@@ -8,8 +12,26 @@ if [ "${1:-}" == "" ]; then
   exit
 fi
 
+# Helper function to check for an executable in the system.
+# ONLY CHECKS /usr/local AND /usr BY DEFAULT. If both match, gives preference to the former.
+# Pass an extra path to it ($2) so it can look there.
+# Returns the first found match, or an empty string if there is no match.
+# Usage: HAS_EXEC=$(check_exec "execname")
+# $1 = exec name (e.g. "gcc")
+# $2 = optional extra path to look for outside of the defaults (e.g. "/usr/local/gcc*")
+check_exec() {
+  if [ -n "$2" ]; then
+    FOUND0=$(find $2 -name "$1" 2> /dev/null | head -n 1)
+    if [ -n "$FOUND0" ]; then echo "$FOUND0"; return; fi
+  fi
+  FOUND1=$(find /usr/local/bin -name "$1" 2> /dev/null | head -n 1)
+  FOUND2=$(find /usr/bin -name "$1" 2> /dev/null | head -n 1)
+  if [ -n "$FOUND1" ]; then echo "$FOUND1"; elif [ -n "$FOUND2" ]; then echo "$FOUND2"; else echo ""; fi
+}
+
 # Helper function to check for a library in the system.
 # ONLY CHECKS /usr/local AND /usr. If both match, gives preference to the former.
+# Returns the first found match, or an empty string if there is no match.
 # Usage: HAS_LIB=$(check_lib "libname")
 # $1 = library name, including suffix (e.g. "libz.a")
 check_lib() {
@@ -18,8 +40,17 @@ check_lib() {
   if [ -n "$FOUND1" ]; then echo "$FOUND1"; elif [ -n "$FOUND2" ]; then echo "$FOUND2"; else echo ""; fi
 }
 
-# Install-specific vars
-APT_PKGS=""
+# Another version of check_lib() for use with libs with multiple components (e.g. Boost).
+# Returns the first found match, or an empty string if there is no match.
+# Usage: HAS_LIBS=$(check_libs "libname")
+# $1 = library name, including suffix (e.g. "libboost_*.a")
+check_libs() {
+  FOUND1=$(find /usr/local/lib -name "$1" 2> /dev/null | head -n 1)
+  FOUND2=$(find /usr/lib -name "$1" 2> /dev/null | head -n 1)
+  if [ -n "$FOUND1" ]; then echo "/usr/local/lib/$1"; elif [ -n "$FOUND2" ]; then echo "/usr/lib/$1"; else echo ""; fi
+}
+
+# Versions for external dependencies - update numbers here if required
 ETHASH_VERSION="1.0.1"
 EVMONE_VERSION="0.11.0"
 SPEEDB_VERSION="2.8.0"
@@ -30,31 +61,28 @@ SPEEDB_VERSION="2.8.0"
 
 echo "-- Scanning for dependencies..."
 
-# TODO: check dependency versions (if possible)
-
 # Check toolchain binaries
 # Necessary: git, gcc/g++, ld, make, cmake, tmux, protobuf-compiler (protoc), protobuf-compiler-grpc (grpc_cpp_plugin)
 # Optional: ninja, mold, doxygen, clang-tidy
-# TODO: which is not checking /usr/local first, this could be a problem
-HAS_GIT=$(which git)
-HAS_GCC=$(which gcc)
-HAS_GPP=$(which g++)
-HAS_LD=$(which ld)
-HAS_MAKE=$(which make)
-HAS_CMAKE=$(which cmake)
-HAS_TMUX=$(which tmux)
-HAS_PROTOC=$(which protoc)
-HAS_GRPC=$(which grpc_cpp_plugin)
+HAS_GIT=$(check_exec git)
+HAS_GCC=$(check_exec gcc "/usr/local/gcc*")
+HAS_GPP=$(check_exec g++ "/usr/local/gcc*")
+HAS_LD=$(check_exec ld)
+HAS_MAKE=$(check_exec make)
+HAS_CMAKE=$(check_exec cmake)
+HAS_TMUX=$(check_exec tmux)
+HAS_PROTOC=$(check_exec protoc)
+HAS_GRPC=$(check_exec grpc_cpp_plugin)
 
-HAS_NINJA=$(which ninja)
-HAS_MOLD=$(which mold)
-HAS_DOXYGEN=$(which doxygen)
-HAS_CLANGTIDY=$(which clang-tidy)
+HAS_NINJA=$(check_exec ninja)
+HAS_MOLD=$(check_exec mold)
+HAS_DOXYGEN=$(check_exec doxygen)
+HAS_CLANGTIDY=$(check_exec clang-tidy)
 
 # Check internal libraries
 # Necessary: libboost-all-dev, openssl/libssl-dev, libzstd-dev, libcrypto++-dev,
 #            libscrypt-dev, libgrpc-dev, libgrpc++-dev, libc-ares-dev, libsecp256k1-dev
-HAS_BOOST=$(check_lib "libboost_*.a") # TODO: multiple libs, handle this better
+HAS_BOOST=$(check_libs "libboost_*.a")
 HAS_LIBSSL=$(check_lib "libssl.a")
 HAS_ZSTD=$(check_lib "libzstd.a")
 HAS_LIBCRYPTOPP=$(check_lib "libcryptopp.a")
@@ -73,8 +101,6 @@ HAS_EVMC_INSTRUCTIONS=$(check_lib "libevmc-instructions.a")
 HAS_EVMC_LOADER=$(check_lib "libevmc-loader.a")
 HAS_EVMONE=$(check_lib "libevmone.a")
 HAS_SPEEDB=$(check_lib "libspeedb.a")
-
-# TODO: check library includes too(?)
 
 if [ "${1:-}" == "--check" ]; then
   echo "-- Required toolchain binaries:"
@@ -122,32 +148,32 @@ elif [ "${1:-}" == "--install" ]; then
   # Install binaries and internal libs
   # TODO: this works on APT distros only for now
   echo "-- Checking internal dependencies..."
-  if [ -z "$HAS_GIT" ]; then APT_PKGS+="git "; fi
-  if [ -z "$HAS_GCC" ] || [ -z "$HAS_GPP" ] || [ -z "$HAS_MAKE" ] || [ -z "$HAS_LD" ]; then APT_PGKS+="build-essential "; fi
-  if [ -z "$HAS_CMAKE" ]; then APT_PKGS+="cmake "; fi
-  if [ -z "$HAS_TMUX" ]; then APT_PKGS+="tmux "; fi
-  if [ -z "$HAS_PROTOC" ]; then APT_PKGS+="protobuf-compiler "; fi
-  if [ -z "$HAS_GRPC" ]; then APT_PKGS+="protobuf-compiler-grpc "; fi
-  if [ -z "$HAS_NINJA" ]; then APT_PKGS+="ninja-build "; fi
-  if [ -z "$HAS_MOLD" ]; then APT_PKGS+="mold "; fi
-  if [ -z "$HAS_DOXYGEN" ]; then APT_PKGS+="doxygen "; fi
-  if [ -z "$HAS_CLANGTIDY" ]; then APT_PKGS+="clang-tidy "; fi
-  if [ -z "$HAS_BOOST" ]; then APT_PKGS+="libboost-all-dev "; fi
-  if [ -z "$HAS_LIBSSL" ]; then APT_PKGS+="libssl-dev "; fi
-  if [ -z "$HAS_ZSTD" ]; then APT_PKGS+="libzstd-dev "; fi
-  if [ -z "$HAS_LIBCRYPTOPP" ]; then APT_PKGS+="libcrypto++-dev "; fi
-  if [ -z "$HAS_LIBSCRYPT" ]; then APT_PKGS+="libscrypt-dev "; fi
-  if [ -z "$HAS_LIBCARES" ]; then APT_PKGS+="libc-ares-dev "; fi
-  if [ -z "$HAS_LIBGRPC" ]; then APT_PKGS+="libgrpc-dev "; fi
-  if [ -z "$HAS_LIBGRPCPP" ]; then APT_PKGS+="libgrpc++-dev "; fi
-  if [ -z "$HAS_SECP256K1" ]; then APT_PKGS+="libsecp256k1-dev "; fi
-  if [ -n "$APT_PKGS" ]; then
+  PKGS=""
+  if [ -z "$HAS_GIT" ]; then PKGS+="git "; fi
+  if [ -z "$HAS_GCC" ] || [ -z "$HAS_GPP" ] || [ -z "$HAS_MAKE" ] || [ -z "$HAS_LD" ]; then PGKS+="build-essential "; fi
+  if [ -z "$HAS_CMAKE" ]; then PKGS+="cmake "; fi
+  if [ -z "$HAS_TMUX" ]; then PKGS+="tmux "; fi
+  if [ -z "$HAS_PROTOC" ]; then PKGS+="protobuf-compiler "; fi
+  if [ -z "$HAS_GRPC" ]; then PKGS+="protobuf-compiler-grpc "; fi
+  if [ -z "$HAS_NINJA" ]; then PKGS+="ninja-build "; fi
+  if [ -z "$HAS_MOLD" ]; then PKGS+="mold "; fi
+  if [ -z "$HAS_DOXYGEN" ]; then PKGS+="doxygen "; fi
+  if [ -z "$HAS_CLANGTIDY" ]; then PKGS+="clang-tidy "; fi
+  if [ -z "$HAS_BOOST" ]; then PKGS+="libboost-all-dev "; fi
+  if [ -z "$HAS_LIBSSL" ]; then PKGS+="libssl-dev "; fi
+  if [ -z "$HAS_ZSTD" ]; then PKGS+="libzstd-dev "; fi
+  if [ -z "$HAS_LIBCRYPTOPP" ]; then PKGS+="libcrypto++-dev "; fi
+  if [ -z "$HAS_LIBSCRYPT" ]; then PKGS+="libscrypt-dev "; fi
+  if [ -z "$HAS_LIBCARES" ]; then PKGS+="libc-ares-dev "; fi
+  if [ -z "$HAS_LIBGRPC" ]; then PKGS+="libgrpc-dev "; fi
+  if [ -z "$HAS_LIBGRPCPP" ]; then PKGS+="libgrpc++-dev "; fi
+  if [ -z "$HAS_SECP256K1" ]; then PKGS+="libsecp256k1-dev "; fi
+  if [ -n "$PKGS" ]; then
     echo "-- Installing internal dependencies..."
-    apt-get install -y $APT_PKGS
+    apt-get install -y $PKGS
   fi
 
   # Install external libs
-  # TODO: maybe parametrize -j$(nproc)?
   echo "-- Checking external dependencies..."
   if [ -z "$HAS_ETHASH" ] || [ -z "$HAS_KECCAK" ]; then
     echo "-- Installing ethash..."
