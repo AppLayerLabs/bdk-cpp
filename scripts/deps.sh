@@ -14,16 +14,10 @@ fi
 
 # Helper function to check for an executable in the system.
 # ONLY CHECKS /usr/local AND /usr BY DEFAULT. If both match, gives preference to the former.
-# Pass an extra path to it ($2) so it can look there.
 # Returns the first found match, or an empty string if there is no match.
 # Usage: HAS_EXEC=$(check_exec "execname")
 # $1 = exec name (e.g. "gcc")
-# $2 = optional extra path to look for outside of the defaults (e.g. "/usr/local/gcc*")
 check_exec() {
-  if [ -n "$2" ]; then
-    FOUND0=$(find $2 -name "$1" 2> /dev/null | head -n 1)
-    if [ -n "$FOUND0" ]; then echo "$FOUND0"; return; fi
-  fi
   FOUND1=$(find /usr/local/bin -name "$1" 2> /dev/null | head -n 1)
   FOUND2=$(find /usr/bin -name "$1" 2> /dev/null | head -n 1)
   if [ -n "$FOUND1" ]; then echo "$FOUND1"; elif [ -n "$FOUND2" ]; then echo "$FOUND2"; else echo ""; fi
@@ -65,8 +59,8 @@ echo "-- Scanning for dependencies..."
 # Necessary: git, gcc/g++, ld, make, cmake, tmux, protobuf-compiler (protoc), protobuf-compiler-grpc (grpc_cpp_plugin)
 # Optional: ninja, mold, doxygen, clang-tidy
 HAS_GIT=$(check_exec git)
-HAS_GCC=$(check_exec gcc "/usr/local/gcc*")
-HAS_GPP=$(check_exec g++ "/usr/local/gcc*")
+HAS_GCC=$(check_exec gcc)
+HAS_GPP=$(check_exec g++)
 HAS_LD=$(check_exec ld)
 HAS_MAKE=$(check_exec make)
 HAS_CMAKE=$(check_exec cmake)

@@ -82,11 +82,19 @@ There is a script called `scripts/deps.sh` which you can use to check if you hav
 
 **Please note that installing dependencies through the script only works on APT-based distros** (Debian, Ubuntu and derivatives) - you can still check the dependencies on any distro, but installing them requires APT. For distros with other package managers and/or distros older than the minimum ones listed above, you're on your own.
 
-If you're using a self-compiled GCC build, don't forget to export its installation paths in your `PATH` and `LD_LIBRARY_PATH` env vars. Put something like this in your `~/.bashrc` file for example, changing the version accordingly to whichever one you have installed:
+### GCC-specific tips
+
+For Debian specifically, you can (and should) use `update-alternatives` to register and set your GCC version to a more up-to-date build if required.
+
+If you're using a self-compiled GCC build out of the system path (e.g. `--prefix=/usr/local/gcc-X.Y.Z` instead of `--prefix=/usr/local`), don't forget to export its installation paths in your `PATH` and `LD_LIBRARY_PATH` env vars (to prevent e.g. "version `GLIBCXX_...'/`CXXABI_...` not found" errors). Put something like this in your `~/.bashrc` file for example, changing the version accordingly to whichever one you have installed:
 
 ```bash
-PATH=/usr/local/gcc-14.2.0/bin:$PATH
-LD_LIBRARY_PATH=/usr/local/gcc-14.2.0/lib64:$LD_LIBRARY_PATH
+# For GCC in /usr/local
+export LD_LIBRARY_PATH=/usr/local/lib64:$LD_LIBRARY_PATH
+
+# For self-contained GCC outside /usr/local
+export PATH=/usr/local/gcc-14.2.0/bin:$PATH
+export LD_LIBRARY_PATH=/usr/local/gcc-14.2.0/lib64:$LD_LIBRARY_PATH
 ```
 
 ## Documentation
