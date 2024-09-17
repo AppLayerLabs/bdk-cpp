@@ -145,6 +145,66 @@ class SDKTestSuite {
       // Create a default options if none is provided.
       std::unique_ptr<Options> options_;
       if (options == nullptr) {
+        // Use a default cometbft genesis and validator private key for testing
+        json defaultCometBFTOptions = json::parse(R"(
+          {
+            "genesis":
+            {
+              "genesis_time": "2024-09-17T18:26:34.583377166Z",
+              "chain_id": "test-chain-Q1JYzM",
+              "initial_height": "0",
+              "consensus_params": {
+                "block": {
+                  "max_bytes": "22020096",
+                  "max_gas": "-1"
+                },
+                "evidence": {
+                  "max_age_num_blocks": "100000",
+                  "max_age_duration": "172800000000000",
+                  "max_bytes": "1048576"
+                },
+                "validator": {
+                  "pub_key_types": [
+                    "ed25519"
+                  ]
+                },
+                "version": {
+                  "app": "0"
+                },
+                "abci": {
+                  "vote_extensions_enable_height": "0"
+                }
+              },
+              "validators": [
+                {
+                  "address": "4C1C6CF20843997082D7F7EF302A05DD6A757B99",
+                  "pub_key": {
+                    "type": "tendermint/PubKeyEd25519",
+                    "value": "c9lrxwblmJz23RhnNZtoab0UlL6wtEjbsm+a7olOShI="
+                  },
+                  "power": "10",
+                  "name": ""
+                }
+              ],
+              "app_hash": ""
+            },
+
+            "privValidatorKey":
+            {
+              "address": "4C1C6CF20843997082D7F7EF302A05DD6A757B99",
+              "pub_key": {
+                "type": "tendermint/PubKeyEd25519",
+                "value": "c9lrxwblmJz23RhnNZtoab0UlL6wtEjbsm+a7olOShI="
+              },
+              "priv_key": {
+                "type": "tendermint/PrivKeyEd25519",
+                "value": "u754POzgx4Tc4JBZvVbt4MVk+EhN0GePq1RcMmXj7BJz2WvHBuWYnPbdGGc1m2hpvRSUvrC0SNuyb5ruiU5KEg=="
+              }
+            }
+
+          }
+        )");
+
         // Create a genesis block with a timestamp of 1678887538000000 (2023-02-12 00:45:38 UTC)
         uint64_t genesisTimestamp = 1678887538000000;
         PrivKey genesisSigner(Hex::toBytes("0x0a0415d68a5ec2df57aab65efc2a7231b59b029bae7ff1bd2e40df9af96418c8"));
@@ -185,7 +245,8 @@ class SDKTestSuite {
           genesisSigner,
           genesisBalances,
           genesisValidators,
-          IndexingMode::RPC_TRACE
+          IndexingMode::RPC_TRACE,
+          defaultCometBFTOptions
         );
       } else {
         options_ = std::make_unique<Options>(*options);

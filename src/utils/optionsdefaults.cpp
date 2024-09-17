@@ -66,7 +66,8 @@ Options Options::binaryDefaultOptions(const std::string& rootPath) {
     genesisSigner,
     genesisBalanceList,
     genesisValidators,
-    IndexingMode::RPC
+    IndexingMode::RPC,
+    json()
   };
 }
 

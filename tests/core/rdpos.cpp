@@ -314,7 +314,8 @@ namespace TRdPoS {
           genesisPrivKey,
           genesisBalances,
           genesisValidators,
-          IndexingMode::RPC
+          IndexingMode::RPC,
+          json()
         );
       P2P::ManagerDiscovery p2pDiscovery(LOCALHOST, discoveryOptions);
 
@@ -568,7 +569,8 @@ namespace TRdPoS {
       genesisPrivKey,
       genesisBalances,
       genesisValidators,
-      IndexingMode::RPC
+      IndexingMode::RPC,
+      json()
     );
     P2P::ManagerDiscovery p2pDiscovery(LOCALHOST, discoveryOptions);
 

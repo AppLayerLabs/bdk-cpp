@@ -38,15 +38,23 @@ int main(int argc, char* argv[]) {
   // Parse command-line options
   ProcessOptions opt = parseCommandLineArgs(argc, argv, BDKTool::FULL_NODE);
 
-  // Select a default log level for this program if none is specified
+  // Set defaults for this program in case the option is not specified
   if (opt.logLevel == "") opt.logLevel = "INFO";
+  if (opt.rootPath == "") opt.rootPath = "blockchain";
 
   // Apply selected process options
   if (!applyProcessOptions(opt)) return 1;
 
+  // Check cometbft engine
+  std::string cometErr = Utils::checkCometBFT();
+  if (cometErr != "") {
+    GLOGFATALP_THROW("Error checking CometBFT executable (ensure it is in your PATH): " + cometErr);
+  }
+
   // Start the blockchain syncing engine.
   Utils::safePrint("Main thread starting node...");
-  std::string blockchainPath = std::filesystem::current_path().string() + std::string("/blockchain");
+  std::string blockchainPath = std::filesystem::current_path().string() + "/" + opt.rootPath;
+  GLOGINFO("Full rootPath: " + blockchainPath);
   blockchain = std::make_unique<Blockchain>(blockchainPath);
   blockchain->start();
 

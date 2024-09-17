@@ -19,7 +19,8 @@ Options::Options(
   const std::vector<std::pair<boost::asio::ip::address, uint64_t>>& discoveryNodes,
   const FinalizedBlock& genesisBlock, const uint64_t genesisTimestamp, const PrivKey& genesisSigner,
   const std::vector<std::pair<Address, uint256_t>>& genesisBalances,
-  const std::vector<Address>& genesisValidators, IndexingMode indexingMode
+  const std::vector<Address>& genesisValidators, IndexingMode indexingMode,
+  const json& cometBFT
 ) : rootPath_(rootPath), web3clientVersion_(web3clientVersion),
   version_(version), chainID_(chainID), chainOwner_(chainOwner), p2pPort_(p2pPort),
   p2pIp_(p2pIp), httpPort_(httpPort),
@@ -30,7 +31,7 @@ Options::Options(
   minValidators_(minValidators),
   coinbase_(Address()), isValidator_(false), discoveryNodes_(discoveryNodes),
   genesisBlock_(genesisBlock), genesisBalances_(genesisBalances), genesisValidators_(genesisValidators),
-  indexingMode_(indexingMode)
+  indexingMode_(indexingMode), cometBFT_(cometBFT)
 {
   json options;
   if (std::filesystem::exists(rootPath + "/options.json")) return;
@@ -73,6 +74,7 @@ Options::Options(
   }
 
   options["indexingMode"] = indexingMode_.toString();
+  options["cometBFT"] = cometBFT;
 
   std::filesystem::create_directories(rootPath);
   std::ofstream o(rootPath + "/options.json");
@@ -93,7 +95,8 @@ Options::Options(
   const FinalizedBlock& genesisBlock, const uint64_t genesisTimestamp, const PrivKey& genesisSigner,
   const std::vector<std::pair<Address, uint256_t>>& genesisBalances,
   const std::vector<Address>& genesisValidators,
-  const PrivKey& privKey, IndexingMode indexingMode
+  const PrivKey& privKey, IndexingMode indexingMode,
+  const json& cometBFT
 ) : rootPath_(rootPath), web3clientVersion_(web3clientVersion),
   version_(version), chainID_(chainID), chainOwner_(chainOwner),
   p2pIp_(p2pIp), p2pPort_(p2pPort), httpPort_(httpPort),
@@ -104,7 +107,7 @@ Options::Options(
   minValidators_(minValidators),
   discoveryNodes_(discoveryNodes), coinbase_(Secp256k1::toAddress(Secp256k1::toUPub(privKey))),
   isValidator_(true), genesisBlock_(genesisBlock), genesisBalances_(genesisBalances), genesisValidators_(genesisValidators),
-  indexingMode_(indexingMode)
+  indexingMode_(indexingMode), cometBFT_(cometBFT)
 {
   if (std::filesystem::exists(rootPath + "/options.json")) return;
   json options;
@@ -148,6 +151,8 @@ Options::Options(
   options["privKey"] = privKey.hex();
 
   options["indexingMode"] = indexingMode_.toString();
+
+  options["cometBFT"] = cometBFT;
 
   std::filesystem::create_directories(rootPath);
   std::ofstream o(rootPath + "/options.json");
@@ -229,7 +234,8 @@ Options Options::fromFile(const std::string& rootPath) {
         genesisBalances,
         genesisValidators,
         PrivKey(Hex::toBytes(options["privKey"].get<std::string>())),
-        IndexingMode(options["indexingMode"].get<std::string>())
+        IndexingMode(options["indexingMode"].get<std::string>()),
+        options["cometBFT"]
       );
     }
 
@@ -256,7 +262,8 @@ Options Options::fromFile(const std::string& rootPath) {
       genesisSigner,
       genesisBalances,
       genesisValidators,
-      IndexingMode(options["indexingMode"].get<std::string>())
+      IndexingMode(options["indexingMode"].get<std::string>()),
+      options["cometBFT"]
     );
   } catch (std::exception &e) {
     throw DynamicException("Could not create blockchain directory: " + std::string(e.what()));

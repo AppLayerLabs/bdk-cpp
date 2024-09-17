@@ -102,6 +102,12 @@ int main(int argc, char* argv[]) {
   }
   if (!applyProcessOptions(opt)) return 1;
 
+  // Check cometbft engine
+  std::string cometErr = Utils::checkCometBFT();
+  if (cometErr != "") {
+    GLOGFATALP_THROW("Error checking CometBFT executable (ensure it is in your PATH): " + cometErr);
+  }
+
   // Avoid ManagerBase::instanceIdGen_ == 0, which produces log logical location string ""
   //   (for production nodes that only instantiate one ManagerBase, ever, and don't need
   //    the logical location consuming space in the log file)

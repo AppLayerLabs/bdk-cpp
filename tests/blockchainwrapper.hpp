@@ -10,6 +10,7 @@ See the LICENSE.txt file in the project root for more information.
 
 #include "../src/core/storage.h"
 #include "../src/core/state.h"
+#include "../src/core/comet.h"
 #include "../src/net/p2p/managernormal.h"
 #include "../src/net/http/httpserver.h"
 #include "../src/utils/options.h"
@@ -31,6 +32,7 @@ struct TestBlockchainWrapper {
   HTTPServer http;        ///< HTTP server.
   Syncer syncer;          ///< Blockchain syncer.
   Consensus consensus;    ///< Block and transaction processing.
+  Comet comet;           ///< External consensus engine manager.
 
   /**
    * Constructor.
@@ -45,12 +47,14 @@ struct TestBlockchainWrapper {
     state(db, storage, p2p, std::get<1>(DumpManager::getBestStateDBPath(options)), options),
     http(state, storage, p2p, options),
     syncer(p2p, storage, state),
-    consensus(state, p2p, storage, options)
+    consensus(state, p2p, storage, options),
+    comet(state, p2p, storage, options)
     {};
 
   /// Destructor.
   ~TestBlockchainWrapper() {
     state.dumpStopWorker();
+    comet.stop();
     consensus.stop();
     p2p.stopDiscovery();
     p2p.stop();
@@ -80,6 +84,65 @@ inline TestBlockchainWrapper initialize(const std::vector<Hash>& validatorPrivKe
   for (const auto& privKey : validatorPrivKeys) {
     genesisValidators.push_back(Secp256k1::toAddress(Secp256k1::toUPub(privKey)));
   }
+  // Use a default cometbft genesis and validator private key for testing
+  json defaultCometBFTOptions = json::parse(R"(
+    {
+      "genesis":
+      {
+        "genesis_time": "2024-09-17T18:26:34.583377166Z",
+        "chain_id": "test-chain-Q1JYzM",
+        "initial_height": "0",
+        "consensus_params": {
+          "block": {
+            "max_bytes": "22020096",
+            "max_gas": "-1"
+          },
+          "evidence": {
+            "max_age_num_blocks": "100000",
+            "max_age_duration": "172800000000000",
+            "max_bytes": "1048576"
+          },
+          "validator": {
+            "pub_key_types": [
+              "ed25519"
+            ]
+          },
+          "version": {
+            "app": "0"
+          },
+          "abci": {
+            "vote_extensions_enable_height": "0"
+          }
+        },
+        "validators": [
+          {
+            "address": "4C1C6CF20843997082D7F7EF302A05DD6A757B99",
+            "pub_key": {
+              "type": "tendermint/PubKeyEd25519",
+              "value": "c9lrxwblmJz23RhnNZtoab0UlL6wtEjbsm+a7olOShI="
+            },
+            "power": "10",
+            "name": ""
+          }
+        ],
+        "app_hash": ""
+      },
+
+      "privValidatorKey":
+      {
+        "address": "4C1C6CF20843997082D7F7EF302A05DD6A757B99",
+        "pub_key": {
+          "type": "tendermint/PubKeyEd25519",
+          "value": "c9lrxwblmJz23RhnNZtoab0UlL6wtEjbsm+a7olOShI="
+        },
+        "priv_key": {
+          "type": "tendermint/PrivKeyEd25519",
+          "value": "u754POzgx4Tc4JBZvVbt4MVk+EhN0GePq1RcMmXj7BJz2WvHBuWYnPbdGGc1m2hpvRSUvrC0SNuyb5ruiU5KEg=="
+        }
+      }
+
+    }
+  )");
   if (!validatorKey) {
     return TestBlockchainWrapper(Options(
         folderName,
@@ -104,7 +167,8 @@ inline TestBlockchainWrapper initialize(const std::vector<Hash>& validatorPrivKe
         genesisPrivKey,
         genesisBalances,
         genesisValidators,
-        IndexingMode::RPC_TRACE
+        IndexingMode::RPC_TRACE,
+        defaultCometBFTOptions
       ));
   } else {
     return TestBlockchainWrapper(Options(
@@ -131,7 +195,8 @@ inline TestBlockchainWrapper initialize(const std::vector<Hash>& validatorPrivKe
       genesisBalances,
       genesisValidators,
       validatorKey,
-      IndexingMode::RPC
+      IndexingMode::RPC,
+      defaultCometBFTOptions
     ));
   }
 }

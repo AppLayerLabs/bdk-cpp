@@ -29,6 +29,7 @@ struct ProcessOptions {
   int logLineLimit = -1;   ///< Desired log line count limit for the rotating logger log file
   int logFileLimit = -1;   ///< Desired log file hard limit (erases older log files past this count)
   int netThreads = -1;     ///< Desired IO thread count for P2P message processing
+  std::string rootPath;    ///< Desired value for the rootPath BDK option
 };
 
 /**
@@ -44,18 +45,22 @@ ProcessOptions parseCommandLineArgs(int argc, char* argv[], [[maybe_unused]] BDK
   ProcessOptions opt;
   try {
     boost::program_options::options_description desc("Allowed options");
-    desc.add_options()
-      ("help,h",
-        "Print help message and exit")
-      ("loglevel,l", boost::program_options::value<std::string>(),
-        "Set the log level ([T]RACE, [D]EBUG, [I]NFO, [W]ARNING, [E]RROR, [N]ONE)")
-      ("loglinelimit", boost::program_options::value<int>(),
-        "Set the log line limit (# of lines per file); 0 = no limit")
-      ("logfilelimit", boost::program_options::value<int>(),
-        "Set the log file limit (# of files); 0 = no limit")
-      ("netthreads", boost::program_options::value<int>(),
-        "Set ManagerBase::netThreads_ (main IO thread count)")
-      ;
+
+    desc.add_options()("help,h",
+      "Print help message and exit");
+    desc.add_options()("loglevel,l", boost::program_options::value<std::string>(),
+      "Set the log level ([T]RACE, [D]EBUG, [I]NFO, [W]ARNING, [E]RROR, [N]ONE)");
+    desc.add_options()("loglinelimit", boost::program_options::value<int>(),
+      "Set the log line limit (# of lines per file); 0 = no limit");
+    desc.add_options()("logfilelimit", boost::program_options::value<int>(),
+      "Set the log file limit (# of files); 0 = no limit");
+    desc.add_options()("netthreads", boost::program_options::value<int>(),
+      "Set ManagerBase::netThreads_ (main IO thread count)");
+
+    if (tool != BDKTool::UNIT_TEST_SUITE) {
+      desc.add_options()("rootpath,r", boost::program_options::value<std::string>(),
+        "Set the rootPath BDK option (root data folder)");
+    }
 
     boost::program_options::variables_map vm;
     boost::program_options::store(boost::program_options::parse_command_line(argc, argv, desc), vm);
@@ -92,6 +97,10 @@ ProcessOptions parseCommandLineArgs(int argc, char* argv[], [[maybe_unused]] BDK
         std::cerr << "ERROR: --netthreads must be >= 1\n";
         return {};
       }
+    }
+
+    if (vm.count("rootpath")) {
+      opt.rootPath = vm["rootpath"].as<std::string>();
     }
 
   } catch (std::exception& e) {
@@ -159,6 +168,10 @@ bool applyProcessOptions(ProcessOptions& opt) {
   if (opt.netThreads >= 0) { // negative number signals unset; 0 is invalid, but somehow it was set to that value
     P2P::ManagerBase::setNetThreads(opt.netThreads);
     std::cout << "ManagerBase::netThreads_ set to " << opt.netThreads << std::endl;
+  }
+
+  if (opt.rootPath != "") {
+    std::cout << "rootPath set to " << opt.rootPath << std::endl;
   }
 
   return true;

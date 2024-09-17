@@ -36,16 +36,24 @@ int main(int argc, char* argv[]) {
   // Parse command-line options
   ProcessOptions opt = parseCommandLineArgs(argc, argv, BDKTool::DISCOVERY_NODE);
 
-  // Select a default log level for this program if none is specified
+  // Set defaults for this program in case the option is not specified
   if (opt.logLevel == "") opt.logLevel = "INFO";
+  if (opt.rootPath == "") opt.rootPath = "discoveryNode";
 
   // Apply selected process options
   if (!applyProcessOptions(opt)) return 1;
 
+  // Check cometbft engine
+  std::string cometErr = Utils::checkCometBFT();
+  if (cometErr != "") {
+    GLOGFATALP_THROW("Error checking CometBFT executable (ensure it is in your PATH): " + cometErr);
+  }
+
   // Start the discovery node
   Utils::safePrint("Main thread starting node...");
   // Local binary path + /blockchain
-  std::string blockchainPath = std::filesystem::current_path().string() + std::string("/discoveryNode");
+  std::string blockchainPath = std::filesystem::current_path().string() + "/" + opt.rootPath;
+  GLOGINFO("Full rootPath: " + blockchainPath);
   const auto options = Options::fromFile(blockchainPath);
   auto p2p = std::make_unique<P2P::ManagerDiscovery>(options.getP2PIp(), options);
   p2p->start();

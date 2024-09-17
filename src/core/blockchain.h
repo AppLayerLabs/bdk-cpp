@@ -13,6 +13,7 @@ See the LICENSE.txt file in the project root for more information.
 #include "state.h"
 #include "rdpos.h"
 #include "state.h"
+#include "comet.h"
 
 #include "../net/p2p/managerbase.h"
 #include "../net/p2p/nodeconns.h"
@@ -91,6 +92,7 @@ class Blockchain : public Log::LogicalLocationProvider {
     HTTPServer http_;           ///< HTTP server.
     Syncer syncer_;             ///< Blockchain syncer.
     Consensus consensus_;       ///< Block and transaction processing.
+    Comet comet_;               ///< External consensus engine manager.
 
   public:
     /**

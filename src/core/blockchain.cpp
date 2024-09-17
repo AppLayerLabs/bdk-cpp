@@ -17,7 +17,8 @@ Blockchain::Blockchain(const std::string& blockchainPath) :
   state_(db_, storage_, p2p_, std::get<1>(DumpManager::getBestStateDBPath(options_)), options_),
   http_(state_, storage_, p2p_, options_),
   syncer_(p2p_, storage_, state_),
-  consensus_(state_, p2p_, storage_, options_)
+  consensus_(state_, p2p_, storage_, options_),
+  comet_(state_, p2p_, storage_, options_)
 {}
 
 void Blockchain::start() {
@@ -34,17 +35,22 @@ void Blockchain::start() {
   this->p2p_.startDiscovery();
   std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
+  // TODO: Remove. This is not needed in halley branch; also, existing unit tests do their own syncing.
   // Do initial sync
-  this->syncer_.sync(100, 20000000); // up to 100 blocks per request, 20MB limit, default connection timeout & retry count
+  //this->syncer_.sync(100, 20000000); // up to 100 blocks per request, 20MB limit, default connection timeout & retry count
 
   // After Syncing, start the DumpWorker.
   this->state_.dumpStartWorker();
 
   // if node is a Validator, start the consensus loop
   this->consensus_.start();
+
+  // start the cometbft manager thread
+  this->comet_.start();
 }
 
 void Blockchain::stop() {
+  this->comet_.stop();
   this->consensus_.stop();
   this->http_.stop();
   this->p2p_.stop();

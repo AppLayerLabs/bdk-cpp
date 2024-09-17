@@ -17,6 +17,8 @@ See the LICENSE.txt file in the project root for more information.
 #include "../utils/strings.h"
 #include "../utils/tx.h"
 
+// TODO: This component will eventually be removed in favor of comet.h/.cpp in this branch
+
 class Blockchain; // Forward declaration.
 
 // TODO: tests for Consensus (if necessary)

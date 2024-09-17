@@ -20,12 +20,14 @@ See the LICENSE.txt file in the project root for more information.
 #include <thread>
 #include <tuple>
 #include <variant>
+#include <iostream>
 
 #include <boost/lexical_cast.hpp>
 #include <boost/multiprecision/cpp_dec_float.hpp>
 #include <boost/multiprecision/cpp_int.hpp>
 #include <boost/beast/core/error.hpp>
 #include <boost/asio/ip/address.hpp>
+#include <boost/process.hpp>
 
 #include <evmc/evmc.hpp>
 #include <ethash/keccak.h>
@@ -842,6 +844,19 @@ namespace Utils {
    * @return A string containing the signal name (or "Unknown signal") and number.
    */
   std::string getSignalName(int signum);
+
+  /**
+   * Synchronously run external process with debug logging.
+   * @param command Command-line to run.
+   * @return Return code.
+   */
+  int execute(const std::string& command, std::string* output = nullptr);
+
+  /**
+   * Check if cometbft executable can be found and is of a suitable version.
+   * @return Empty string if a suitable cometbft executable is found, or a string error message otherwise.
+   */
+  std::string checkCometBFT();
 };
 
 #endif  // UTILS_H
