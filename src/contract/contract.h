@@ -184,9 +184,6 @@ class BaseContract : public ContractLocals, public Dumpable {
       prefix.insert(prefix.end(), newPrefix.cbegin(), newPrefix.cend());
       return prefix;
     }
-
-    Address getOrigin() const; ///< Get the origin of the transaction.
-    uint64_t getNonce(const Address& address) const; ///< Get the nonce of an address.
 };
 
 #endif // CONTRACT_H
