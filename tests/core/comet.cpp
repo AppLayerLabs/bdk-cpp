@@ -9,6 +9,16 @@ See the LICENSE.txt file in the project root for more information.
 
 #include "../../src/core/comet.h"
 
+std::string createTestDumpPath(const std::string& testDir) {
+  std::string testDumpPath = Utils::getTestDumpPath() + "/" + testDir;
+  if (std::filesystem::exists(testDumpPath)) {
+    std::filesystem::remove_all(testDumpPath);
+  }
+  std::filesystem::create_directories(testDumpPath);
+  GLOGDEBUG("Test dump path: " + testDumpPath);
+  return testDumpPath;
+}
+
 /**
  * Get an Options object to test a single Comet instance.
  * @param keyNumber Index of validator key from the predefined test validator key set.
@@ -120,9 +130,11 @@ namespace TComet {
   TEST_CASE("Comet ", "[core][comet]") {
     SECTION("CometBootTest") {
 
+      std::string testDumpPath = createTestDumpPath("CometBootTest");
+
       GLOGDEBUG("TEST: Constructing Comet");
 
-      const Options options = getOptionsForCometTest(Utils::getTestDumpPath() + "/" + "CometBootTest"); 
+      const Options options = getOptionsForCometTest(testDumpPath);
 
       // Set up comet with single validator
       Comet comet("", options);
