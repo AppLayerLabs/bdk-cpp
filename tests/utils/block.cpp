@@ -336,5 +336,19 @@ namespace TBlock {
       for (uint64_t i = 0; i < 40000; ++i) REQUIRE(finalizedNewBlock.getTxs()[i] == txsCopy[i]);
       for (uint64_t i = 0; i < 256; ++i) REQUIRE(finalizedNewBlock.getTxValidators()[i] == txValidatorsCopy[i]);
     }
+
+    SECTION("Equality operator. Checks the block hash AND signature of both blocks.") {
+      PrivKey validatorPrivKey(Hex::toBytes("0x4d5db4107d237df6a3d58ee5f70ae63d73d765d8a1214214d8a13340d0f2750d"));
+      Hash nPrevBlockHash(Hex::toBytes("22143e16db549af9ccfd3b746ea4a74421847fa0fe7e0e278626a4e7307ac0f6"));
+      uint64_t timestamp = 1678400201859;
+      uint64_t nHeight = 92137812;
+      FinalizedBlock finalizedNewBlock_1 = FinalizedBlock::createNewValidBlock({},{}, nPrevBlockHash, timestamp, nHeight, validatorPrivKey);
+      FinalizedBlock finalizedNewBlock_2 = FinalizedBlock::createNewValidBlock({},{}, nPrevBlockHash, timestamp, nHeight, validatorPrivKey);
+
+      REQUIRE(finalizedNewBlock_1 == finalizedNewBlock_2);
+    }
+
+
+
   }
 }
