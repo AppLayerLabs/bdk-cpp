@@ -48,7 +48,7 @@ struct TestBlockchainWrapper {
     http(state, storage, p2p, options),
     syncer(p2p, storage, state),
     consensus(state, p2p, storage, options),
-    comet(state, p2p, storage, options)
+    comet(p2p.getLogicalLocation(), options)
     {};
 
   /// Destructor.

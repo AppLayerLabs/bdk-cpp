@@ -18,7 +18,7 @@ Blockchain::Blockchain(const std::string& blockchainPath) :
   http_(state_, storage_, p2p_, options_),
   syncer_(p2p_, storage_, state_),
   consensus_(state_, p2p_, storage_, options_),
-  comet_(state_, p2p_, storage_, options_)
+  comet_(p2p_.getLogicalLocation(), options_)
 {}
 
 void Blockchain::start() {
@@ -46,6 +46,7 @@ void Blockchain::start() {
   this->consensus_.start();
 
   // start the cometbft manager thread
+  this->comet_.setPauseState();
   this->comet_.start();
 }
 

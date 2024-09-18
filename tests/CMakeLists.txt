@@ -48,6 +48,7 @@ set (TESTS_SOURCES
   ${CMAKE_SOURCE_DIR}/tests/core/storage.cpp
   ${CMAKE_SOURCE_DIR}/tests/core/state.cpp
   ${CMAKE_SOURCE_DIR}/tests/core/dumpmanager.cpp
+  ${CMAKE_SOURCE_DIR}/tests/core/comet.cpp
   # ${CMAKE_SOURCE_DIR}/tests/core/blockchain.cpp # TODO: Blockchain is failing due to rdPoSWorker.
   ${CMAKE_SOURCE_DIR}/tests/net/p2p/p2p.cpp
   ${CMAKE_SOURCE_DIR}/tests/net/http/httpjsonrpc.cpp
