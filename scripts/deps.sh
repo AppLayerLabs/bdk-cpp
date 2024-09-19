@@ -139,32 +139,36 @@ elif [ "${1:-}" == "--install" ]; then
     exit
   fi
 
-  # Install binaries and internal libs
-  # TODO: this works on APT distros only for now
-  echo "-- Checking internal dependencies..."
-  PKGS=""
-  if [ -z "$HAS_GIT" ]; then PKGS+="git "; fi
-  if [ -z "$HAS_GCC" ] || [ -z "$HAS_GPP" ] || [ -z "$HAS_MAKE" ] || [ -z "$HAS_LD" ]; then PGKS+="build-essential "; fi
-  if [ -z "$HAS_CMAKE" ]; then PKGS+="cmake "; fi
-  if [ -z "$HAS_TMUX" ]; then PKGS+="tmux "; fi
-  if [ -z "$HAS_PROTOC" ]; then PKGS+="protobuf-compiler "; fi
-  if [ -z "$HAS_GRPC" ]; then PKGS+="protobuf-compiler-grpc "; fi
-  if [ -z "$HAS_NINJA" ]; then PKGS+="ninja-build "; fi
-  if [ -z "$HAS_MOLD" ]; then PKGS+="mold "; fi
-  if [ -z "$HAS_DOXYGEN" ]; then PKGS+="doxygen "; fi
-  if [ -z "$HAS_CLANGTIDY" ]; then PKGS+="clang-tidy "; fi
-  if [ -z "$HAS_BOOST" ]; then PKGS+="libboost-all-dev "; fi
-  if [ -z "$HAS_LIBSSL" ]; then PKGS+="libssl-dev "; fi
-  if [ -z "$HAS_ZSTD" ]; then PKGS+="libzstd-dev "; fi
-  if [ -z "$HAS_LIBCRYPTOPP" ]; then PKGS+="libcrypto++-dev "; fi
-  if [ -z "$HAS_LIBSCRYPT" ]; then PKGS+="libscrypt-dev "; fi
-  if [ -z "$HAS_LIBCARES" ]; then PKGS+="libc-ares-dev "; fi
-  if [ -z "$HAS_LIBGRPC" ]; then PKGS+="libgrpc-dev "; fi
-  if [ -z "$HAS_LIBGRPCPP" ]; then PKGS+="libgrpc++-dev "; fi
-  if [ -z "$HAS_SECP256K1" ]; then PKGS+="libsecp256k1-dev "; fi
-  if [ -n "$PKGS" ]; then
-    echo "-- Installing internal dependencies..."
-    apt-get install -y $PKGS
+  # Install binaries and internal libs (skip if not on an APT-based distro)
+  HAS_APT=$(check_exec apt)
+  if [ -n "$HAS_APT" ]; then
+    echo "-- Checking internal dependencies..."
+    PKGS=""
+    if [ -z "$HAS_GIT" ]; then PKGS+="git "; fi
+    if [ -z "$HAS_GCC" ] || [ -z "$HAS_GPP" ] || [ -z "$HAS_MAKE" ] || [ -z "$HAS_LD" ]; then PGKS+="build-essential "; fi
+    if [ -z "$HAS_CMAKE" ]; then PKGS+="cmake "; fi
+    if [ -z "$HAS_TMUX" ]; then PKGS+="tmux "; fi
+    if [ -z "$HAS_PROTOC" ]; then PKGS+="protobuf-compiler "; fi
+    if [ -z "$HAS_GRPC" ]; then PKGS+="protobuf-compiler-grpc "; fi
+    if [ -z "$HAS_NINJA" ]; then PKGS+="ninja-build "; fi
+    if [ -z "$HAS_MOLD" ]; then PKGS+="mold "; fi
+    if [ -z "$HAS_DOXYGEN" ]; then PKGS+="doxygen "; fi
+    if [ -z "$HAS_CLANGTIDY" ]; then PKGS+="clang-tidy "; fi
+    if [ -z "$HAS_BOOST" ]; then PKGS+="libboost-all-dev "; fi
+    if [ -z "$HAS_LIBSSL" ]; then PKGS+="libssl-dev "; fi
+    if [ -z "$HAS_ZSTD" ]; then PKGS+="libzstd-dev "; fi
+    if [ -z "$HAS_LIBCRYPTOPP" ]; then PKGS+="libcrypto++-dev "; fi
+    if [ -z "$HAS_LIBSCRYPT" ]; then PKGS+="libscrypt-dev "; fi
+    if [ -z "$HAS_LIBCARES" ]; then PKGS+="libc-ares-dev "; fi
+    if [ -z "$HAS_LIBGRPC" ]; then PKGS+="libgrpc-dev "; fi
+    if [ -z "$HAS_LIBGRPCPP" ]; then PKGS+="libgrpc++-dev "; fi
+    if [ -z "$HAS_SECP256K1" ]; then PKGS+="libsecp256k1-dev "; fi
+    if [ -n "$PKGS" ]; then
+      echo "-- Installing internal dependencies..."
+      apt-get install -y $PKGS
+    fi
+  else
+    echo "-- Skipping internal dependencies (non-APT-based distro, please install those manually)"
   fi
 
   # Install external libs
