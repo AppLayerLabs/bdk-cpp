@@ -22,10 +22,8 @@ jobs:
       TARGET_DIR: "/home/actions/actions-runner/_work/bdk-cpp/bdk-cpp"
       BRANCH_NAME: ${{ github.head_ref || github.ref_name }}
     steps:
-      - name: Force clean stale repo (if it exists)
-        run: rm -rf ${{env.TARGET_DIR}}
       - name: Clone the repository
-        run: git clone https://github.com/${{github.repository}} ${{env.TARGET_DIR}}
+        run: git clone https://github.com/${{github.repository}} ${{env.TARGET_DIR}} || true
       - name: Sync with remote repository
         run: git -C ${{env.TARGET_DIR}} fetch
       - name: Checkout to current branch
@@ -34,8 +32,6 @@ jobs:
         run: git -C ${{env.TARGET_DIR}} config --global user.email "github-actions[bot]@users.noreply.github.com"
       - name: Set user.name
         run: git -C ${{env.TARGET_DIR}} config --global user.name "github-actions"
-      - name: Set git pull.rebase to always merge
-        run: git -C ${{env.TARGET_DIR}} config --global pull.rebase false
       - name: Update local repository
         run: git -C ${{env.TARGET_DIR}} pull
       - name: Build the container
