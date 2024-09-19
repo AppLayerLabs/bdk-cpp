@@ -22,8 +22,10 @@ jobs:
       TARGET_DIR: "/home/actions/actions-runner/_work/bdk-cpp/bdk-cpp"
       BRANCH_NAME: ${{ github.head_ref || github.ref_name }}
     steps:
+      - name: Force clean stale repo (if it exists)
+        run: rm -rf ${{env.TARGET_DIR}}
       - name: Clone the repository
-        run: git clone https://github.com/${{ github.repository }} ${{ env.TARGET_DIR}} || true
+        run: git clone https://github.com/${{github.repository}} ${{env.TARGET_DIR}}
       - name: Sync with remote repository
         run: git -C ${{env.TARGET_DIR}} fetch
       - name: Checkout to current branch
@@ -42,7 +44,7 @@ jobs:
         run: ./scripts/auto.sh -s bdk stop
       - name: Restart the container
         run: ./scripts/auto.sh -s bdk up
-      - name: Clean previos build (if any)
+      - name: Clean previous build (if there is one)
         run: ./scripts/auto.sh -s bdk exec 'make -C build clean' || true
       - name: Configure MOLD linker
         run: ./scripts/auto.sh -s bdk exec 'cmake -S . -B build
