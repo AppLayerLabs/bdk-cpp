@@ -15,7 +15,7 @@ RUN apt-get -y install nano vim unison curl jq unzip gcovr
 COPY scripts/deps.sh /
 
 # Install dependencies
-RUN bash deps.sh --install
+RUN bash ./deps.sh --install
 
 # Create a directory for sonarcloud
 RUN mkdir /root/.sonar
@@ -41,3 +41,4 @@ ENV PATH=/root/.sonar/sonar-scanner-6.1.0.4477-linux-x64/bin:$PATH
 
 # Copy the entrypoint script
 COPY docker/entrypoint.sh /entrypoint.sh
+
