@@ -11,8 +11,11 @@ RUN apt-get update && apt-get upgrade -y
 # Install Docker-specific dependencies
 RUN apt-get -y install nano vim unison curl jq unzip gcovr
 
+# Copy the deps script to the container
+COPY scripts/deps.sh /
+
 # Install dependencies
-RUN bash ./scripts/deps.sh --install
+RUN bash deps.sh --install
 
 # Create a directory for sonarcloud
 RUN mkdir /root/.sonar
