@@ -28,8 +28,12 @@ jobs:
         run: git -C ${{env.TARGET_DIR}} fetch
       - name: Checkout to current branch
         run: git -C ${{env.TARGET_DIR}} checkout ${{env.BRANCH_NAME}}
-      - name: Set git pull.rebase to always merge (including forced pushes)
-        run: git -C ${{env.TARGET_DIR}} config pull.rebase false
+      - name: Set user.email
+        run: git -C ${{env.TARGET_DIR}} config --global user.email "github-actions[bot]@users.noreply.github.com"
+      - name: Set user.name
+        run: git -C ${{env.TARGET_DIR}} config --global user.name "github-actions"
+      - name: Set git pull.rebase to always merge
+        run: git -C ${{env.TARGET_DIR}} config --global pull.rebase false
       - name: Update local repository
         run: git -C ${{env.TARGET_DIR}} pull
       - name: Build the container
