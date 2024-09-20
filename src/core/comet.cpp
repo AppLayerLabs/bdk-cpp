@@ -22,8 +22,8 @@ void Comet::setState(const CometState& state) {
 }
 
 void Comet::setError(const std::string& errorStr) {
-  this->status_ = false;
   this->errorStr_ = errorStr;
+  this->status_ = false;
 }
 
 void Comet::resetError() {

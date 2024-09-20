@@ -87,7 +87,7 @@ class Comet : public Log::LogicalLocationProvider {
     bool getStatus() { return status_; }
 
     /**
-     * Get the last error message from the Comet worker.
+     * Get the last error message from the Comet worker (not synchronized; call only after getStatus() returns false).
      * @return Error message or empty string if no error.
      */
     const std::string& getErrorStr() { return errorStr_; }
