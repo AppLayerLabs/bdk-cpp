@@ -80,7 +80,7 @@ namespace TERC721BENCHMARK {
 
       auto start = std::chrono::high_resolution_clock::now();
       for (uint64_t i = 0; i < iterations; i++) {
-        state.call(callInfo, txContext, CPP, randomnessHash, randomnessHash, randomnessHash, leftOverGas);
+        state.call(callInfo, txContext, ContractType::CPP, randomnessHash, randomnessHash, randomnessHash, leftOverGas);
       }
       auto end = std::chrono::high_resolution_clock::now();
 
@@ -131,7 +131,7 @@ namespace TERC721BENCHMARK {
 
       auto start = std::chrono::high_resolution_clock::now();
       for (uint64_t i = 0; i < iterations; i++) {
-        state.call(callInfo, txContext, EVM, randomnessHash, randomnessHash, randomnessHash, leftOverGas);
+        state.call(callInfo, txContext, ContractType::EVM, randomnessHash, randomnessHash, randomnessHash, leftOverGas);
       }
       auto end = std::chrono::high_resolution_clock::now();
 

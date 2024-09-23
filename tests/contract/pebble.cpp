@@ -26,7 +26,7 @@ namespace TPEBBLE {
       SDKTestSuite sdk = SDKTestSuite::createNewEnvironment("testPebbleMinting");
       Address pebbleAddr = sdk.deployContract<Pebble>(uint256_t(100000));
 
-      auto mintTx = sdk.callFunction(pebbleAddr, &Pebble::mintNFT, sdk.getChainOwnerAccount().address);
+      auto mintTx = sdk.callFunction(pebbleAddr, &Pebble::mintNFT, sdk.getChainOwnerAccount().address, uint64_t(1));
 
       auto events = sdk.getEventsEmittedByTxTup(mintTx, &Pebble::MintedNFT);
       REQUIRE(events.size() == 1);

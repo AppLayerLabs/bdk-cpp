@@ -57,7 +57,7 @@ namespace TSNAILTRACERBENCHMARK {
       int64_t leftOverGas = std::numeric_limits<int64_t>::max();
 
       auto start = std::chrono::high_resolution_clock::now();
-      state.call(callInfo, txContext, CPP, randomnessHash, randomnessHash, randomnessHash, leftOverGas);
+      state.call(callInfo, txContext, ContractType::CPP, randomnessHash, randomnessHash, randomnessHash, leftOverGas);
       auto end = std::chrono::high_resolution_clock::now();
 
       long double durationInMicroseconds = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
@@ -102,7 +102,7 @@ namespace TSNAILTRACERBENCHMARK {
       int64_t leftOverGas = std::numeric_limits<int64_t>::max();
 
       auto start = std::chrono::high_resolution_clock::now();
-      state.call(callInfo, txContext, EVM, randomnessHash, randomnessHash, randomnessHash, leftOverGas);
+      state.call(callInfo, txContext, ContractType::EVM, randomnessHash, randomnessHash, randomnessHash, leftOverGas);
       auto end = std::chrono::high_resolution_clock::now();
 
       long double durationInMicroseconds = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();

@@ -90,7 +90,7 @@ namespace TDEXV2 {
       auto start = std::chrono::high_resolution_clock::now();
       auto& state = sdk.getState();
       for (uint64_t i = 0; i < iterations; i++) {
-        state.call(callInfo, txContext, CPP, randomnessHash, randomnessHash, randomnessHash, leftOverGas);
+        state.call(callInfo, txContext, ContractType::CPP, randomnessHash, randomnessHash, randomnessHash, leftOverGas);
       }
       auto end = std::chrono::high_resolution_clock::now();
 
