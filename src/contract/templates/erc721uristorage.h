@@ -77,7 +77,7 @@ class ERC721URIStorage : virtual public ERC721 {
     );
 
     /// Solidity: function tokenURI(uint256 tokenId) public view virtual override returns (string memory)
-    std::string tokenURI(const uint256_t &tokenId) const override;
+    virtual std::string tokenURI(const uint256_t &tokenId) const override;
 
     /// Register contract class via ContractReflectionInterface.
     static void registerContract() {

@@ -103,8 +103,6 @@ void Pebble::mintNFT(const Address& to, const uint64_t& num) {
     this->mint_(to, this->tokenIds_.get());
     Rarity rarity = this->determineRarity_(this->getRandom());
     this->tokenRarity_[static_cast<uint64_t>(this->tokenIds_.get())] = rarity;
-    std::string tokenURI = std::string("https://s3.amazonaws.com/com.applayer.pebble/") + this->rarityToString_(rarity) + ".json";
-    this->setTokenURI_(this->tokenIds_.get(), tokenURI);
     this->MintedNFT(to, this->tokenIds_.get(), rarity);
     ++this->tokenIds_;
   }
@@ -122,6 +120,14 @@ uint256_t Pebble::totalSupply() const {
   return this->tokenIds_.get();
 }
 
+std::string Pebble::tokenURI(const uint256_t &tokenId) const {
+  auto it = this->tokenRarity_.find(static_cast<uint64_t>(tokenId));
+  if (it == this->tokenRarity_.cend()) {
+    return "";
+  }
+  return std::string("https://s3.amazonaws.com/com.applayer.pebble/") + this->rarityToString_(it->second) + ".json";
+}
+
 uint256_t Pebble::maxSupply() const {
   return this->maxSupply_.get();
 }
@@ -132,4 +138,5 @@ void Pebble::registerContractFunctions() {
   this->registerMemberFunction("getTokenRarity", &Pebble::getTokenRarity, FunctionTypes::View, this);
   this->registerMemberFunction("totalSupply", &Pebble::totalSupply, FunctionTypes::View, this);
   this->registerMemberFunction("maxSupply", &Pebble::maxSupply, FunctionTypes::View, this);
+  this->registerMemberFunction("tokenURI", &Pebble::tokenURI, FunctionTypes::View, this);
 }
