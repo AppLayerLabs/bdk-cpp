@@ -34,9 +34,11 @@ Pebble::Pebble(const uint256_t& maxSupply, const Address& address, const Address
     maxSupply_(this, maxSupply),
     tokenIds_(this, 0),
     tokenRarity_(this) {
-  if (creator != Address(Hex::toBytes("0xc2f2ba5051975004171e6d4781eeda927e884024"))) {
-    throw DynamicException("Only the Chain Owner can create this contract");
-  }
+  #ifdef BUILD_TESTNET
+    if (creator != Address(Hex::toBytes("0xc2f2ba5051975004171e6d4781eeda927e884024"))) {
+      throw DynamicException("Only the Chain Owner can create this contract");
+    }
+  #endif
   this->maxSupply_.commit();
   this->tokenIds_.commit();
   this->tokenRarity_.commit();
