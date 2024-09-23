@@ -12,14 +12,13 @@ class Pebble : public virtual ERC721URIStorage, public virtual Ownable {
     // enum declaration MUST be public
     enum class Rarity {
       Normal,
-      Silver,
       Gold,
       Diamond
     };
   protected:
     SafeUint256_t maxSupply_;
     SafeUint256_t tokenIds_;
-    SafeUnorderedMap<uint256_t, Rarity> tokenRarity_;
+    SafeUnorderedMap<uint64_t, Rarity> tokenRarity_;
 
     void registerContractFunctions() override;
 
@@ -38,7 +37,7 @@ class Pebble : public virtual ERC721URIStorage, public virtual Ownable {
     // Create a new contract.
     Pebble(const uint256_t& maxSupply, const Address& address, const Address& creator, const uint64_t& chainId);
 
-    void mintNFT(const Address& to);
+    void mintNFT(const Address& to, const uint64_t& num);
 
     std::string getTokenRarity(const uint256_t& tokenId) const;
 

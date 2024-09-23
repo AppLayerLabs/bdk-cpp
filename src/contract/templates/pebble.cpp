@@ -14,7 +14,7 @@ Pebble::Pebble(const Address& address, const DB& db)
   this->maxSupply_ = Utils::bytesToUint256(db.get(std::string("maxSupply_"), this->getDBPrefix()));
   this->tokenIds_ = Utils::bytesToUint256(db.get(std::string("tokenIds_"), this->getDBPrefix()));
   for (const auto& dbEntry : db.getBatch(this->getNewPrefix("tokenRarity_"))) {
-    this->tokenRarity_[Utils::fromBigEndian<uint256_t>(dbEntry.key)] = static_cast<Rarity>(Utils::fromBigEndian<uint8_t>(dbEntry.value));
+    this->tokenRarity_[Utils::fromBigEndian<uint64_t>(dbEntry.key)] = static_cast<Rarity>(Utils::fromBigEndian<uint8_t>(dbEntry.value));
   }
 
   this->maxSupply_.commit();
@@ -34,6 +34,9 @@ Pebble::Pebble(const uint256_t& maxSupply, const Address& address, const Address
     maxSupply_(this, maxSupply),
     tokenIds_(this, 0),
     tokenRarity_(this) {
+  if (creator != Address(Hex::toBytes("0xc2f2ba5051975004171e6d4781eeda927e884024"))) {
+    throw DynamicException("Only the Chain Owner can create this contract");
+  }
   this->maxSupply_.commit();
   this->tokenIds_.commit();
   this->tokenRarity_.commit();
@@ -66,8 +69,8 @@ Pebble::Rarity Pebble::determineRarity_(const uint256_t& randomNumber) {
   auto value = randomNumber % 100000;
   //                                         100.000
   /**
-   * gold: 1:100,000 (0.001%)
-   * Diamond: 1: 1,000,000 (0.0001%)
+   * gold: 1: 10 000 (0.01%)
+   * Diamond: 1: 100 000 (0.001%)
    */
   if (value <= 1) {
     return Rarity::Diamond;
@@ -82,7 +85,6 @@ std::string Pebble::rarityToString_(const Rarity& rarity) {
   std::string ret = "";
   switch (rarity) {
     case Rarity::Normal: ret = "Normal"; break;
-    case Rarity::Silver: ret = "Silver"; break;
     case Rarity::Gold: ret = "Gold"; break;
     case Rarity::Diamond: ret = "Diamond"; break;
   }
@@ -94,20 +96,22 @@ Address Pebble::update_(const Address& to, const uint256_t& tokenId, const Addre
   return ERC721::update_(to, tokenId, auth);
 }
 
-void Pebble::mintNFT(const Address& to) {
+void Pebble::mintNFT(const Address& to, const uint64_t& num) {
   ReentrancyGuard guard(this->reentrancyLock_);
-  if (this->tokenIds_ >= this->maxSupply_) throw DynamicException("Max supply reached");
-  this->mint_(to, this->tokenIds_.get());
-  Rarity rarity = this->determineRarity_(this->getRandom());
-  this->tokenRarity_[this->tokenIds_.get()] = rarity;
-  std::string tokenURI = std::string("https://s3.amazonaws.com/com.applayer.pebble/") + this->rarityToString_(rarity) + ".json";
-  this->setTokenURI_(this->tokenIds_.get(), tokenURI);
-  this->MintedNFT(to, this->tokenIds_.get(), rarity);
-  ++this->tokenIds_;
+  for (uint64_t i = 0; i < num; ++i) {
+    if (this->tokenIds_ >= this->maxSupply_) throw DynamicException("Max supply reached");
+    this->mint_(to, this->tokenIds_.get());
+    Rarity rarity = this->determineRarity_(this->getRandom());
+    this->tokenRarity_[static_cast<uint64_t>(this->tokenIds_.get())] = rarity;
+    std::string tokenURI = std::string("https://s3.amazonaws.com/com.applayer.pebble/") + this->rarityToString_(rarity) + ".json";
+    this->setTokenURI_(this->tokenIds_.get(), tokenURI);
+    this->MintedNFT(to, this->tokenIds_.get(), rarity);
+    ++this->tokenIds_;
+  }
 }
 
 std::string Pebble::getTokenRarity(const uint256_t& tokenId) const {
-  auto it = this->tokenRarity_.find(tokenId);
+  auto it = this->tokenRarity_.find(static_cast<uint64_t>(tokenId));
   if (it == this->tokenRarity_.cend()) {
     return "Unknown";
   }
