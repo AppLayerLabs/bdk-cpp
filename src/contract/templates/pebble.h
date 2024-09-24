@@ -19,6 +19,12 @@ class Pebble : public virtual ERC721URIStorage, public virtual Ownable {
     SafeUint256_t maxSupply_;
     SafeUint256_t tokenIds_;
     SafeUnorderedMap<uint64_t, Rarity> tokenRarity_;
+    SafeUint64_t totalNormal_;
+    SafeUint64_t totalGold_;
+    SafeUint64_t totalDiamond_;
+    SafeUint256_t raritySeed_;
+    SafeUint256_t diamondRarity_;
+    SafeUint256_t goldRarity_;
 
     void registerContractFunctions() override;
 
@@ -45,11 +51,29 @@ class Pebble : public virtual ERC721URIStorage, public virtual Ownable {
 
     uint256_t maxSupply() const;
 
+    uint64_t totalNormal() const;
+
+    uint64_t totalGold() const;
+
+    uint64_t totalDiamond() const;
+
+    uint256_t raritySeed() const;
+
+    uint256_t diamondRarity() const;
+
+    uint256_t goldRarity() const;
+
+    void setRaritySeed(const uint256_t& seed);
+
+    void setDiamondRarity(const uint256_t& rarity);
+
+    void setGoldRarity(const uint256_t& rarity);
+
     std::string tokenURI(const uint256_t &tokenId) const final;
 
-    static Rarity determineRarity_(const uint256_t& randomNumber);
+    Rarity determineRarity(const uint256_t& randomNumber) const;
 
-    static std::string rarityToString_(const Rarity& rarity);
+    std::string rarityToString(const Rarity& rarity) const;
 
     /// Register contract class via ContractReflectionInterface.
     static void registerContract() {
@@ -61,7 +85,18 @@ class Pebble : public virtual ERC721URIStorage, public virtual Ownable {
         std::make_tuple("getTokenRarity", &Pebble::getTokenRarity, FunctionTypes::View, std::vector<std::string>{"tokenId"}),
         std::make_tuple("totalSupply", &Pebble::totalSupply, FunctionTypes::View, std::vector<std::string>{}),
         std::make_tuple("maxSupply", &Pebble::maxSupply, FunctionTypes::View, std::vector<std::string>{}),
-        std::make_tuple("tokenURI", &Pebble::tokenURI, FunctionTypes::View, std::vector<std::string>{"tokenId"})
+        std::make_tuple("tokenURI", &Pebble::tokenURI, FunctionTypes::View, std::vector<std::string>{"tokenId"}),
+        std::make_tuple("totalNormal", &Pebble::totalNormal, FunctionTypes::View, std::vector<std::string>{}),
+        std::make_tuple("totalGold", &Pebble::totalGold, FunctionTypes::View, std::vector<std::string>{}),
+        std::make_tuple("totalDiamond", &Pebble::totalDiamond, FunctionTypes::View, std::vector<std::string>{}),
+        std::make_tuple("determineRarity", &Pebble::determineRarity, FunctionTypes::View, std::vector<std::string>{"randomNumber"}),
+        std::make_tuple("rarityToString", &Pebble::rarityToString, FunctionTypes::View, std::vector<std::string>{"rarity"}),
+        std::make_tuple("raritySeed", &Pebble::raritySeed, FunctionTypes::View, std::vector<std::string>{}),
+        std::make_tuple("diamondRarity", &Pebble::diamondRarity, FunctionTypes::View, std::vector<std::string>{}),
+        std::make_tuple("goldRarity", &Pebble::goldRarity, FunctionTypes::View, std::vector<std::string>{}),
+        std::make_tuple("setRaritySeed", &Pebble::setRaritySeed, FunctionTypes::NonPayable, std::vector<std::string>{"seed"}),
+        std::make_tuple("setDiamondRarity", &Pebble::setDiamondRarity, FunctionTypes::NonPayable, std::vector<std::string>{"rarity"}),
+        std::make_tuple("setGoldRarity", &Pebble::setGoldRarity, FunctionTypes::NonPayable, std::vector<std::string>{"rarity"})
       );
       ContractReflectionInterface::registerContractEvents<Pebble>(
         std::make_tuple("MintedNFT", false, &Pebble::MintedNFT, std::vector<std::string>{"user","tokenId", "rarity"})
