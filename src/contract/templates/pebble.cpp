@@ -147,6 +147,7 @@ Address Pebble::update_(const Address& to, const uint256_t& tokenId, const Addre
 
 void Pebble::mintNFT(const Address& to, const uint64_t& num) {
   ReentrancyGuard guard(this->reentrancyLock_);
+  if (num > 25) throw DynamicException("You can only mint 25 tokens in a single transaction");
   for (uint64_t i = 0; i < num; ++i) {
     if (this->tokenIds_ >= this->maxSupply_) throw DynamicException("Max supply reached");
     this->mint_(to, this->tokenIds_.get());
