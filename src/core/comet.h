@@ -9,6 +9,7 @@ See the LICENSE.txt file in the project root for more information.
 #define COMET_H
 
 #include <thread>
+#include <grpcpp/server.h>
 
 #include "../utils/options.h"
 #include "../utils/logger.h"
@@ -32,6 +33,9 @@ enum class CometState {
   FINISHED         = 14, ///< Comet worker loop quit (stop_ set to true?)
   NONE             = 15  ///< Dummy state to disable state stepping
 };
+
+// Needed in this header for cometbft::abci::v1::ABCIService::Service below; Generated from .proto files.
+#include <cometbft/abci/v1/service.grpc.pb.h>
 
 /// Sets up and maintains a running cometbft instance.
 class Comet : public Log::LogicalLocationProvider {
@@ -66,15 +70,30 @@ class Comet : public Log::LogicalLocationProvider {
     void workerLoop(); ///< Worker loop responsible for establishing and managing a connection to cometbft.
     void workerLoopInner(); ///< Called by workerLoop().
 
+    // The stuff below was added to run the GRPC server
+    // TODO: reorganize these fields/methods later
+
+    std::unique_ptr<cometbft::abci::v1::ABCIService::Service> abciService_; ///< Pointer to the ABCI interface impl
+
+    std::atomic<bool> grpcServerStarted_ = false; ///< Controls whether the gRPC server has been started (needed because of grpcServerThread_)
+    std::atomic<bool> grpcServerRunning_ = false; ///< Controls whether we know the gRPC server is actually up and running (needed because of grpcServerThread_)
+    std::unique_ptr<grpc::Server> grpcServer_; ///< Pointer to the gRPC server implementation
+    std::optional<std::thread> grpcServerThread_; ///< Dedicated thread that blocks running the gRPC server
+
+    void grpcServerRun(); ///< Thread that blocks running the gRPC server
+
+    // The stuff below is for the running cometbft process in 'cometbft start'
+    // TODO: reorganize
+
+    std::optional<boost::process::child> process_; ///< boost::process that points to the running "cometbft start" process
+
   public:
     /**
      * Constructor.
      * @param instanceIdStr Instance ID string to use for logging.
      * @param options Reference to the Options singleton.
      */
-    explicit Comet(std::string instanceIdStr, const Options& options)
-      : instanceIdStr_(std::move(instanceIdStr)), options_(options)
-    {}
+    explicit Comet(std::string instanceIdStr, const Options& options);
 
     virtual ~Comet() { this->stop(); } ///< Destructor, make sure the thread is stopped
 

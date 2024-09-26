@@ -9,6 +9,145 @@ See the LICENSE.txt file in the project root for more information.
 #include "../utils/logger.h"
 #include "../libs/toml.hpp"
 
+#include <grpcpp/server_builder.h>
+#include <grpcpp/server.h>
+#include <grpcpp/security/server_credentials.h>
+
+// FIXME: figure out why it crashes at cometbft --> Echo --> our gRPC server here (ubuntu 22 setup)
+
+// ---------------------------------------------------------------------------------------
+// ABCIServiceImpl class
+// This is an internal detail of the Comet class
+// ---------------------------------------------------------------------------------------
+
+// Generated from .proto files
+#include <cometbft/abci/v1/service.grpc.pb.h>
+#include <cometbft/abci/v1/types.grpc.pb.h>
+
+using namespace cometbft::abci::v1;
+using namespace cometbft::crypto::v1;
+using namespace cometbft::types::v1;
+
+// Comet implements the GRPC interface via this ABCIServiceImpl class, so that this can all be in the 
+//  cpp and so when the rest of the code includes <comet.h> they won't get the cometbft:: symbols.
+//
+// TODO: The Comet class should expose a setListener() interface that allows it to take in client code 
+//         that will actually implement the semantics of the ABCI application.
+//       The listener should be a pointer to a CometListener base class with callback virtual methods
+//         that are implemented by the client that is instantiating and using the Comet class (analogous
+//         to the cometbft::abci::v1::ABCIService::Service virtual base class itself).
+//       By implementing the ABCI callbacks, we can e.g. hide the ABCI types and expose our own types
+//         to the caller/user of the Comet class if we want to, and handle stuff we want to hide and deal
+//         with internally before passing it on.
+//       We can expose the same ABCI types, but in that case we should probably not remove the scoping
+//         with using namespace cometbft::xxx like we do above for client code to avoid collisions.
+//
+//       The listener is set via Comet, and then forwarded to this class eventually OR we access it using
+//         our comet_ reference here indirectly (but then this has to be a friend class, and the methods
+//         we call for that via comet_ are private to others, just accessible to this class)
+//
+class ABCIServiceImpl final : public cometbft::abci::v1::ABCIService::Service {
+public:
+    Comet& comet_;
+
+    ABCIServiceImpl(Comet& comet) : comet_(comet) {
+    }
+
+    ~ABCIServiceImpl() override = default;
+
+    grpc::Status Echo(grpc::ServerContext* context, const EchoRequest* request, EchoResponse* response) override {
+      LOGXTRACE("Got Echo");
+      response->set_message(request->message());
+      return grpc::Status::OK;
+    }
+
+    grpc::Status Flush(grpc::ServerContext* context, const FlushRequest* request, FlushResponse* response) override {
+      LOGXTRACE("Got Flush");
+      return grpc::Status::OK;
+    }
+
+    grpc::Status Info(grpc::ServerContext* context, const InfoRequest* request, InfoResponse* response) override {
+      LOGXTRACE("Got Info");
+      return grpc::Status::OK;
+    }
+
+    grpc::Status CheckTx(grpc::ServerContext* context, const CheckTxRequest* request, CheckTxResponse* response) override {
+      LOGXTRACE("Got CheckTx");
+      return grpc::Status::OK;
+    }
+
+    grpc::Status Query(grpc::ServerContext* context, const QueryRequest* request, QueryResponse* response) override {
+      LOGXTRACE("Got Query");
+      return grpc::Status::OK;
+    }
+
+    grpc::Status Commit(grpc::ServerContext* context, const CommitRequest* request, CommitResponse* response) override {
+      LOGXTRACE("Got Commit");
+      return grpc::Status::OK;
+    }
+
+    grpc::Status InitChain(grpc::ServerContext* context, const InitChainRequest* request, InitChainResponse* response) override {
+      LOGXTRACE("Got InitChain");
+      return grpc::Status::OK;
+    }
+
+    grpc::Status ListSnapshots(grpc::ServerContext* context, const ListSnapshotsRequest* request, ListSnapshotsResponse* response) override {
+      LOGXTRACE("Got ListSnapshots");
+      return grpc::Status::OK;
+    }
+
+    grpc::Status OfferSnapshot(grpc::ServerContext* context, const OfferSnapshotRequest* request, OfferSnapshotResponse* response) override {
+      LOGXTRACE("Got OfferSnapshot");
+      return grpc::Status::OK;
+    }
+
+    grpc::Status LoadSnapshotChunk(grpc::ServerContext* context, const LoadSnapshotChunkRequest* request, LoadSnapshotChunkResponse* response) override {
+      LOGXTRACE("Got LoadSnapshotChunk");
+      return grpc::Status::OK;
+    }
+
+    grpc::Status ApplySnapshotChunk(grpc::ServerContext* context, const ApplySnapshotChunkRequest* request, ApplySnapshotChunkResponse* response) override {
+      LOGXTRACE("Got ApplySnapshotChunk");
+      return grpc::Status::OK;
+    }
+
+    grpc::Status PrepareProposal(grpc::ServerContext* context, const PrepareProposalRequest* request, PrepareProposalResponse* response) override {
+      LOGXTRACE("Got PrepareProposal");
+      return grpc::Status::OK;
+    }
+
+    grpc::Status ProcessProposal(grpc::ServerContext* context, const ProcessProposalRequest* request, ProcessProposalResponse* response) override {
+      LOGXTRACE("Got ProcessProposal");
+      return grpc::Status::OK;
+    }
+
+    grpc::Status ExtendVote(grpc::ServerContext* context, const ExtendVoteRequest* request, ExtendVoteResponse* response) override {
+      LOGXTRACE("Got ExtendVote");
+      return grpc::Status::OK;
+    }
+
+    grpc::Status VerifyVoteExtension(grpc::ServerContext* context, const VerifyVoteExtensionRequest* request, VerifyVoteExtensionResponse* response) override {
+      LOGXTRACE("Got VerifyVoteExtension");
+      return grpc::Status::OK;
+    }
+
+    grpc::Status FinalizeBlock(grpc::ServerContext* context, const FinalizeBlockRequest* request, FinalizeBlockResponse* response) override {
+      LOGXTRACE("Got FinalizeBlock");
+      return grpc::Status::OK;
+    }
+};
+
+// ---------------------------------------------------------------------------------------
+// Comet class
+// ---------------------------------------------------------------------------------------
+
+Comet::Comet(std::string instanceIdStr, const Options& options)
+  : instanceIdStr_(std::move(instanceIdStr)), 
+    options_(options),
+    abciService_(std::make_unique<ABCIServiceImpl>(*this))
+{
+}
+
 void Comet::setState(const CometState& state) {
   LOGTRACE("Set comet state: " + std::to_string((int)state));
   this->state_ = state;
@@ -53,6 +192,11 @@ void Comet::workerLoopInner() {
   while (!stop_) {
 
     LOGDEBUG("Comet worker: start loop");
+
+    // Not sure this is the best place to put these
+    // Ensure these are reset
+    grpcServerStarted_ = false;
+    grpcServerRunning_ = false;
 
     // The global option rootPath from options.json tells us the root data directory for BDK.
     // The Comet worker thread works by expecting a rootPath + /comet/ directory to be the
@@ -236,12 +380,17 @@ void Comet::workerLoopInner() {
 
     setState(CometState::INSPECTING_COMET);
 
-    // ...
+    // If there's a need to run cometbft inspect first, do it here.
+    //
+    // As we map out all the usual error conditions, we'll add more code here to catch them
+    //  and recover from them. By default, recovery can be done by just wiping off the comet/
+    //  directory and starting the node from scratch. Eventually, this fallback case can be
+    //  augmented with e.g. using a local snapshots directory to speed up syncing.
 
     // --------------------------------------------------------------------------------------
     // Stop cometbft inspect server.
 
-    // ...
+    // (Not needed so far; see above)
 
     setState(CometState::INSPECTED_COMET);
 
@@ -254,7 +403,48 @@ void Comet::workerLoopInner() {
 
     setState(CometState::STARTING_ABCI);
 
-    // ...
+    // start the GRPC server
+    // assert (!server_thread)
+    grpcServerThread_.emplace(&Comet::grpcServerRun, this);
+
+    // wait until we are past opening the grpc server
+    while (!grpcServerStarted_) {
+      std::this_thread::sleep_for(std::chrono::milliseconds(20));
+    }
+
+    // the right thing would be to connect to ourselves here and test the connection before firing up 
+    //   the external engine, but a massive enough sleep here (like 1 second) should do the job.
+    //   If 1s is not enough, make it e.g. 3s then. or use the GRPC async API which is significantly 
+    //   more complex.
+    // All we are waiting here is for the other thread to be in scheduling to be able to get into Wait()
+    //   and do a blocking read on a TCP listen socket that is already opened (or instantly fail on some
+    //   read or create error), which is almost zero work.
+    // Unless the machine's CPU is completely overloaded, a massive sleep should be able to get that
+    //   scheduled in and executed.
+    std::this_thread::sleep_for(std::chrono::seconds(1));
+
+    // if it is not running by now then it is probably because starting the GRPC server failed.
+    if (!grpcServerRunning_) {
+      LOGERROR("Comet failed: gRPC server failed to start");
+
+      // cleanup failed grpc server/thread startup
+      grpcServerThread_->join();
+      grpcServerThread_.reset();
+      grpcServer_.reset();
+
+      // Ensure these are reset
+      grpcServerStarted_ = false;
+      grpcServerRunning_ = false;
+
+      // Retry
+      //
+      // TODO: So, the main idea of this loop we are in is that we will continously try and retry
+      //       to set up comet. But every time we do a continue; we need to make sure that makes
+      //       sense, i.e. there is a chance it will work next time; log it, maybe introduce a
+      //       delay, etc. OR fail permanently with an error message.
+      //
+      continue;
+    }
 
     setState(CometState::STARTED_ABCI);
 
@@ -265,10 +455,74 @@ void Comet::workerLoopInner() {
     // --------------------------------------------------------------------------------------
     // Run cometbft start, passing the socket address of our gRPC server as a parameter.
     // TODO: ensure cometbft is terminated if we are killed (prctl()?)
+    //
+    // NOTE: cannot simply continue; if we know the process_ exists; we need to handle any
+    //       alive process_ in this loop iteration before a continue;
+    //       the only other place where we stop process_ is in stop().
 
     setState(CometState::STARTING_COMET);
 
-    // ...
+    // TODO: redirect output
+    //       capture and log comet output (should go to bdk.log as debug, etc (?))
+    boost::process::ipstream bpout;
+    boost::process::ipstream bperr;
+
+    // run cometbft which will connect to our GRPC server
+    try {
+
+      // Search for the executable in the system's PATH
+      boost::filesystem::path exec_path = boost::process::search_path("cometbft");
+      if (exec_path.empty()) {
+        // This is a non-recoverable error
+        // The gRPC server will be stopped/collected during stop(), which
+        //   is also called by the destructor.
+        setError("cometbft executable not found in system PATH");
+        return;
+      }
+
+      // FIXME: proxy_app port has to be an Options configuration
+
+      // CometBFT arguments
+      std::vector<std::string> cometArgs = {
+        "start", 
+        "--abci=grpc", 
+        "--proxy_app=tcp://127.0.0.1:26658", 
+        "--home=" + cometPath
+      };
+
+      LOGDEBUG("Launching cometbft");// with arguments: " + cometArgs);
+
+      // Launch the process
+      process_ = boost::process::child(
+        exec_path,
+        //cometArgs
+        boost::process::args(cometArgs)
+        // TODO: redirect (currently going to terminal during basic testing)
+        //boost::process::std_out > out_stream,
+        //boost::process::std_err > err_stream
+        );
+
+      LOGDEBUG("cometbft start launched with PID: " + std::to_string(process_->id()));
+
+    } catch (const std::exception& ex) {
+      // TODO: maybe we should attempt a restart in this case, with a retry counter?
+      setError("Exception caught when trying to run cometbft start: " + std::string(ex.what()));
+      return;
+    }
+
+    // TODO: do we need to wait or otherwise sync with something so that we can be sure
+    //       the grpc connection is estabished? (e.g. read logs)? or do we even need to?
+    //       in any case, comet "started" state means the process is running AND it is
+    //       connected successfully to our gRPC server (as reported by it)
+    //       in the next state transition/phase, we will be testing a connection that
+    //       should already be there, which is why we need to make sure that testing code
+    //       can run without having to itself synchronize explicitly with the grpc connection
+    //       being established.
+    std::this_thread::sleep_for(std::chrono::seconds(1));
+
+    // If error (set by gRPC exception for example), quit here
+    // TODO: must check this elsewhere as well?
+    if (!this->status_) return;
 
     setState(CometState::STARTED_COMET);
 
@@ -279,7 +533,9 @@ void Comet::workerLoopInner() {
 
     setState(CometState::TESTING_COMET);
 
-    // ...
+    // TODO: So, we actually do get an Echo from cometbft first thing after the connection
+    //       is established, so we can loop here waiting for an echo received flag to be 
+    //       set, and also loop seeing if cometbft has been killed or crashed.
 
     setState(CometState::TESTED_COMET);
 
@@ -292,7 +548,21 @@ void Comet::workerLoopInner() {
 
     setState(CometState::RUNNING);
 
-    // ...
+    // NOTE:
+    // If this loop breaks for whatever reason without !stop being true, we will be
+    //   in the TERMINATED state, unless we decide to continue; to retry, which is
+    //   also possibly what we will end up doing here.
+    //
+    while (!stop_) {
+
+        // TODO: here we are doing work such as:
+        //   - polling/blocking at the outgoing transactions queue and pumping them into the running
+        //     'cometbft start' process_
+
+        std::this_thread::sleep_for(std::chrono::milliseconds(20));
+    }
+    // Check if quitting
+    if (stop_) break;
 
     // --------------------------------------------------------------------------------------
     // If the main loop exits and this is reached then, it is because we are shutting down.
@@ -326,6 +596,11 @@ void Comet::workerLoop() {
 void Comet::start() {
   if (!this->loopFuture_.valid()) {
     this->stop_ = false;
+
+    // TODO: is this a place to deal with the grpcXXX_ state? probably not
+
+    // TODO: is this a place to deal with process_? probably not
+
     resetError(); // ensure error status is off
     setState(CometState::STARTED);
     this->loopFuture_ = std::async(std::launch::async, &Comet::workerLoop, this);
@@ -335,6 +610,58 @@ void Comet::start() {
 void Comet::stop() {
   if (this->loopFuture_.valid()) {
     this->stop_ = true;
+
+    // -- Begin stop gRPC server if any
+    if (grpcServer_) {
+        // this makes the grpc server thread actually terminate so we can join it 
+        grpcServer_->Shutdown();
+    }
+    // Wait for the server thread to finish
+    if (grpcServerThread_) {
+      grpcServerThread_->join();
+      grpcServerThread_.reset();
+    }
+    // get rid of the grpcServer since it is shut down
+    grpcServer_.reset();
+    // Force-reset these for good measure
+    grpcServerStarted_ = false;
+    grpcServerRunning_ = false;
+    // -- End stop gRPC server if any
+
+    // -- Begin stop process_ if any
+    // process shutdown -- TODO: assuming this is needed i.e. it doesn't shut down when the connected application goes away?
+    if (process_.has_value()) {
+      // terminate the process
+      pid_t pid = process_->id();
+      try {
+        process_->terminate(); // SIGTERM (graceful termination, equivalent to terminal CTRL+C)
+        LOGDEBUG("Process with PID " + std::to_string(pid) + " terminated");
+        process_->wait();  // Ensure the process is fully terminated
+        LOGDEBUG("Process with PID " + std::to_string(pid) + " joined");
+      } catch (const std::exception& ex) {
+        // This is bad, and if it actually happens, we need to be able to do something else here to ensure the process disappears
+        //   because we don't want a process using the data directory and using the socket ports.
+        // TODO: is this the best we can do? (what about `cometbft debug kill`?)
+        LOGWARNING("Failed to terminate process: " + std::string(ex.what()));
+        // Fallback: Forcefully kill the process using kill -9
+        try {
+          std::string killCommand = "kill -9 " + std::to_string(pid);
+          LOGINFO("Attempting to force kill process with PID " + std::to_string(pid) + " using kill -9");
+          int result = std::system(killCommand.c_str());
+          if (result == 0) {
+            LOGINFO("Successfully killed process with PID " + std::to_string(pid) + " using kill -9");
+          } else {
+            LOGWARNING("Failed to kill process with PID " + std::to_string(pid) + " using kill -9. Error code: " + std::to_string(result));
+          }
+        } catch (const std::exception& ex2) {
+          LOGERROR("Failed to execute kill -9: " + std::string(ex2.what()));
+        }
+      }
+    }
+    // we need to ensure we got rid of any process_ instance in any case so we can start another
+    process_.reset();
+    // -- End stop process_ if any
+
     this->setPauseState(); // must reset any pause state otherwise it won't ever finish
     this->loopFuture_.wait();
     this->loopFuture_.get();
@@ -343,3 +670,46 @@ void Comet::stop() {
   }
 }
 
+void Comet::grpcServerRun() {
+
+  // Create the GRPC listen socket/endpoint that the external engine will connect to 
+  // InsecureServerCredentials is probably correct, we're not adding a security bureaucracy to a local RPC. use firewalls.
+  //
+  // FIXME: need another node configuration parameter which is the listening port for GRPC
+  //        for now, the port is hardcoded for initial testing
+  //
+  grpc::ServerBuilder builder;
+  builder.AddListeningPort("127.0.0.1:26658", grpc::InsecureServerCredentials());
+  builder.RegisterService(abciService_.get());
+  grpcServer_ = builder.BuildAndStart();
+
+  if (!grpcServer_) {
+    // failed to start
+    // set this to unlock the while (!grpcServerStarted_) barrier, but never set the grpcServerRunning_ flag since we 
+    //   always were in a failed state if this is the case.
+    grpcServerStarted_ = true;
+    LOGERROR("grpcServerRun(): Failed to start the gRPC server!");
+    return;
+  }
+
+  // need to set this before grpcServerStarted_ since that flag is used as the sync barrier in ExternalEngine::start() and
+  //  after that point, detecting grpcServerRunning_ == false indicates that we are no longer running, i.e. it exited or failed.
+  grpcServerRunning_ = true; // true when we know Wait() is going to be called
+
+  // After this is set, other threads can wait a bit and then check grpcServerRunning_
+  //   to guess whether everything is working as expected.
+  grpcServerStarted_ = true;
+
+  LOGDEBUG("grpcServerRun(): gRPC Server started");
+
+  // This blocks until we call grpcServer_->Shutdown() from another thread
+  try { 
+    grpcServer_->Wait();
+  } catch (std::exception ex) {
+    setError("gRPC server error: " + std::string(ex.what()));
+  }
+
+  grpcServerRunning_ = false; // when past Wait(), we are no longer running
+
+  LOGDEBUG("grpcServerRun(): gRPC Server stopped");
+}

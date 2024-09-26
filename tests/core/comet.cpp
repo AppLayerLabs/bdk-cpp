@@ -130,6 +130,9 @@ namespace TComet {
   TEST_CASE("Comet ", "[core][comet]") {
     SECTION("CometBootTest") {
 
+      // Very simple test flow that runs a single cometbft node that runs a single-validator blockchain
+      //   that can thus advance with a single validator producing blocks.
+
       std::string testDumpPath = createTestDumpPath("CometBootTest");
 
       GLOGDEBUG("TEST: Constructing Comet");
@@ -147,26 +150,67 @@ namespace TComet {
       // Start comet.
       comet.start();
 
+      // --- config check ---
+
       GLOGDEBUG("TEST: Waiting configuration");
 
       // Waits for the pause state or error status
       REQUIRE(comet.waitPauseState(10000) == "");
 
-      GLOGDEBUG("TEST: Stopping");
+      // --- start gRPC ---
 
-      // TODO: Change pause point to next stages in the test until it is running OK
+      comet.setPauseState(CometState::STARTED_ABCI);
+
+      GLOGDEBUG("TEST: Waiting for gRPC server to be successfully started");
+
+      // Waits for the pause state or error status
+      REQUIRE(comet.waitPauseState(10000) == "");
+
+      // --- start cometbft ---
+
+      comet.setPauseState(CometState::STARTED_COMET);
+
+      GLOGDEBUG("TEST: Waiting for 'cometbft start' to be successfully started");
+
+      // Waits for the pause state or error status
+      REQUIRE(comet.waitPauseState(10000) == "");
+
+      // --- gRPC check ---
+
+      // Set pause at tested the comet gRPC connection
+      comet.setPauseState(CometState::TESTED_COMET);
+
+      GLOGDEBUG("TEST: Waiting for gRPC server starting & testing");
+
+      // Waits for the pause state or error status
+      REQUIRE(comet.waitPauseState(10000) == "");
+
+      // --- process working ---
 
       // TODO: Check consensus is advancing with some empty blocks (since it is a network with a single validator)
 
+      // --- stop ---
+
+      GLOGDEBUG("TEST: Stopping");
+
+      std::this_thread::sleep_for(std::chrono::seconds(5));
+
+      GLOGDEBUG("TEST: Stopping...");
+
+      REQUIRE(comet.getStatus()); // no error reported (must check before stop())
+      
       // Stop comet.
       comet.stop();
 
       GLOGDEBUG("TEST: Stopped");
 
-      REQUIRE(comet.getStatus());
       REQUIRE(comet.getState() == CometState::STOPPED);
 
       GLOGDEBUG("TEST: Finished");
     }
+
+    // TODO: a test that runs a blockchain/genesis with two validators, that is:
+    //       getOptionsForCometTest( path , 0 , 2 );   // instance 1 of 2
+    //       getOptionsForCometTest( path , 1 , 2 );   // instance 2 of 2
   }
 }
