@@ -1,0 +1,22 @@
+# Find the EVMC libraries and define the following variables:
+# EVMC_FOUND
+# EVMC_INCLUDE_DIR
+# EVMC_INSTRUCTIONS_LIBRARY
+# EVMC_LOADER_LIBRARY
+
+include(SelectLibraryConfigurations)
+include(FindPackageHandleStandardArgs)
+
+find_path(EVMC_INCLUDE_DIR NAMES evmc.h PATH_SUFFIXES evmc)
+find_library(EVMC_INSTRUCTIONS_LIBRARY NAMES libevmc-instructions.a)
+find_library(EVMC_LOADER_LIBRARY NAMES libevmc-loader.a)
+
+SELECT_LIBRARY_CONFIGURATIONS(Evmc)
+
+FIND_PACKAGE_HANDLE_STANDARD_ARGS(
+  Evmc DEFAULT_MSG
+  EVMC_INSTRUCTIONS_LIBRARY EVMC_LOADER_LIBRARY EVMC_INCLUDE_DIR
+)
+
+mark_as_advanced(EVMC_INCLUDE_DIR EVMC_INSTRUCTIONS_LIBRARY EVMC_LOADER_LIBRARY)
+

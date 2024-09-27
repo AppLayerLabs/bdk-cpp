@@ -7,7 +7,7 @@ include(SelectLibraryConfigurations)
 include(FindPackageHandleStandardArgs)
 
 find_path(CARES_INCLUDE_DIR NAMES ares.h)
-find_library(CARES_LIBRARY NAMES libcares.a)
+find_library(CARES_LIBRARY NAMES libcares_static.a libcares.a)
 
 SELECT_LIBRARY_CONFIGURATIONS(Cares)
 

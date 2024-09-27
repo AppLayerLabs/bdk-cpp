@@ -35,8 +35,8 @@ The project has a Dockerfile at the root of the repository that will build the p
 * Build the image locally with `docker build -t bdk-cpp-dev:latest .` (if using Linux or Mac, run as `sudo`)
   * This will build the image and tag it as `bdk-cpp-dev:latest` - you can change the tag to whatever you want, but remember to change it on the next step
 * Run the container (you will be logged in as root):
-  * **For Linux/Mac**: `sudo docker run -it -v $(pwd):/bdk-volume -p 8080-8099:8080-8099 -p 8110-8111:8110-8111 bdk-cpp-dev:latest`
-  * **For Windows**: `docker run -it -v %cd%:/bdk-volume -p 8080-8099:8080-8099 -p 8110-8111:8110-8111 bdk-cpp-dev:latest`
+  * **For Linux/Mac**: `sudo docker run -it --name bdk-cpp -v $(pwd):/bdk-volume -p 8080-8099:8080-8099 -p 8110-8111:8110-8111 bdk-cpp-dev:latest`
+  * **For Windows**: `docker run -it --name bdk-cpp -v %cd%:/bdk-volume -p 8080-8099:8080-8099 -p 8110-8111:8110-8111 bdk-cpp-dev:latest`
 
 Remember that we are using our local repo as a volume, so every change in the local folder will be reflected to the container in real time, and vice-versa.
 
@@ -44,19 +44,31 @@ Also, you can integrate the container with your favorite IDE or editor, e.g. [VS
 
 ## Developing manually
 
-Install the following dependencies on your system:
+You will need the following dependencies installed locally on your system:
 
-* **GCC** with support for **C++23** or higher
-* **CMake 3.19.0** or higher
-* **Boost 1.83** or higher (components: *chrono, filesystem, program-options, system, thread, nowide*)
-* **OpenSSL 1.1.1**
-* **CryptoPP 8.2.0** or higher
-* **libscrypt**
-* **zlib**
-* **libsnappy** for database compression
-* **tmux** (for deploying)
-* (optional) **clang-tidy** for linting
-* (optional) **mold** for faster/more efficient linking
+* *Toolchain binaries*:
+  * **git**
+  * **GCC** with support for **C++23** or higher
+  * **Make**
+  * **CMake 3.19.0** or higher
+  * **Protobuf** (protoc + grpc_cpp_plugin)
+  * **tmux** (for deploying)
+  * (optional) **ninja** if you prefer it over make
+  * (optional) **mold** if you prefer it over ld
+  * (optional) **doxygen** for generating docs
+  * (optional) **clang-tidy** for linting
+* *Libraries*:
+  * **Boost 1.83** or higher (components: *chrono, filesystem, program-options, system, thread, nowide*)
+  * **OpenSSL 1.1.1** / **libssl 1.1.1** or higher
+  * **libzstd**
+  * **CryptoPP 8.2.0** or higher
+  * **libscrypt**
+  * **libc-ares**
+  * **gRPC** (libgrpc and libgrpc++)
+  * **secp256k1**
+  * **ethash** + **keccak**
+  * **EVMOne** + **EVMC**
+  * **Speedb**
 
 The versions of those dependencies should suffice out-of-the-box for at least the following distros (or greater, including their derivatives):
 
@@ -66,21 +78,23 @@ The versions of those dependencies should suffice out-of-the-box for at least th
 * **Fedora 40**
 * Any rolling release distro from around **May 2024** onwards (check their repos to be sure)
 
-For older distros, you may need to compile some dependencies from source (specifically CMake, Boost and/or GCC). Make sure to either uninstall them from the system first to prevent any version conflicts, or use a workaround like e.g. Debian's `update-alternatives` or similar.
+There is a script called `scripts/deps.sh` which you can use to check if you have those dependencies installed (`deps.sh --check`), and install them in case you don't (`deps.sh --install`). The script expects dependencies to be installed either on `/usr` or `/usr/local`, giving preference to the latter if it finds anything there (so you can use a higher version of a dependency while still keeping your distro's default one).
 
-Specifically for GCC, make sure to also export the right paths for compilation in your environment in case you're using a self-compiled build. For example, in a Linux system, put something like this in your `~/.bashrc` file, changing the version accordingly to whichever one you have installed:
+**Please note that installing most dependencies through the script only works on APT-based distros** (Debian, Ubuntu and derivatives) - you can still check the dependencies on any distro and install the few ones labeled as "external" (those are fetched through `git`), but if you're on a distro with another package manager and/or a distro older than one of the minimum ones listed above, you're on your own.
 
-```bash
-PATH=/usr/local/gcc-14.1.0/bin:$PATH
-LD_LIBRARY_PATH=/usr/local/gcc-14.1.0/lib64:$LD_LIBRARY_PATH
-```
+### GCC-specific tips
 
-#### One-liners
+For Debian specifically, you can (and should) use `update-alternatives` to register and set your GCC version to a more up-to-date build if required.
 
-* For APT-based distros:
+If you're using a self-compiled GCC build out of the system path (e.g. `--prefix=/usr/local/gcc-X.Y.Z` instead of `--prefix=/usr/local`), don't forget to export its installation paths in your `PATH` and `LD_LIBRARY_PATH` env vars (to prevent e.g. "version `GLIBCXX_...'/`CXXABI_...` not found" errors). Put something like this in your `~/.bashrc` file for example, changing the version accordingly to whichever one you have installed:
 
 ```bash
-sudo apt install build-essential cmake tmux clang-tidy autoconf libtool pkg-config libabsl-dev libboost-all-dev libc-ares-dev libcrypto++-dev libgrpc-dev libgrpc++-dev librocksdb-dev libscrypt-dev libsnappy-dev libssl-dev zlib1g-dev openssl protobuf-compiler protobuf-compiler-grpc unison git
+# For GCC in /usr/local
+export LD_LIBRARY_PATH=/usr/local/lib64:$LD_LIBRARY_PATH
+
+# For self-contained GCC outside /usr/local
+export PATH=/usr/local/gcc-14.2.0/bin:$PATH
+export LD_LIBRARY_PATH=/usr/local/gcc-14.2.0/lib64:$LD_LIBRARY_PATH
 ```
 
 ## Documentation
