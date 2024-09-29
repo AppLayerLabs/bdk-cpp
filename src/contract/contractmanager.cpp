@@ -86,6 +86,11 @@ void ContractManager::ethCall(const evmc_message& callInfo, ContractHost* host) 
              this->host_);
 }
 
+Bytes ContractManager::evmEthCall(const evmc_message& callInfo, ContractHost* host) {
+  this->ethCall(callInfo, host);
+  return Bytes();
+}
+
 Bytes ContractManager::ethCallView(const evmc_message& callInfo, ContractHost* host) const {
   PointerNullifier nullifier(this->host_);
   // This hash is equivalent to "function getDeployedContracts() public view returns (Contract[] memory) {}"
