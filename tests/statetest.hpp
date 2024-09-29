@@ -2,7 +2,6 @@
 #include "../src/contract/contracthost.h"
 
 
-
 // TestState class
 // The only purpose of this class is to be able to allow
 // Direct call to internal methods of State class
@@ -24,7 +23,7 @@ class StateTest : public State {
                 const Hash& randomness,
                 const Hash& txHash,
                 const Hash& blockHash,
-                int64_t& leftOverGas) {
+                Gas& gasLeft) {
       ContractHost host(
         this->vm_,
         this->dumpManager_,
@@ -37,7 +36,7 @@ class StateTest : public State {
         txHash,
         0,
         blockHash,
-        leftOverGas
+        gasLeft
       );
       host.execute(callInfo, type);
     }

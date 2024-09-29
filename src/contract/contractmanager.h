@@ -135,6 +135,16 @@ class ContractManager : public BaseContract {
     void ethCall(const evmc_message& callInfo, ContractHost* host) override;
 
     /**
+     * Override the default contract function call.
+     * ContractManager processes things in a non-standard way
+     * (you cannot use SafeVariables as contract creation actively writes to DB).
+     * @param callInfo The call info to process.
+     * @return The bytes from the call
+     * @throw DynamicException if the call is not valid.
+     */
+    Bytes evmEthCall(const evmc_message& callInfo, ContractHost* host) override;
+
+    /**
      * Override the default contract view function call.
      * ContractManager process things in a non-standard way
      * (you cannot use SafeVariables as contract creation actively writes to DB).

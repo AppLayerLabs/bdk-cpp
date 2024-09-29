@@ -197,7 +197,8 @@ void State::processTransaction(
   // as it calls validateNextBlock as a sanity check.
   Account& accountFrom = *this->accounts_[tx.getFrom()];
   Account& accountTo = *this->accounts_[tx.getTo()];
-  auto leftOverGas = int64_t(tx.getGasLimit());
+  // auto leftOverGas = int64_t(tx.getGasLimit());
+  Gas gasLeft(tx.getGasLimit().convert_to<uint64_t>());
   auto& fromNonce = accountFrom.nonce;
   auto& fromBalance = accountFrom.balance;
   if (fromBalance < (tx.getValue() + tx.getGasLimit() * tx.getMaxFeePerGas())) {
@@ -239,18 +240,26 @@ void State::processTransaction(
       tx.hash(),
       txIndex,
       blockHash,
-      leftOverGas
+      gasLeft
     );
 
     host.execute(tx.txToMessage(), accountTo.contractType);
+
+    // if (tx.getTo() == Address()) {
+    //   CreateMessage msg{ tx.getTo(), tx.getFrom(), tx.getValue(), 0, tx.getData() };
+    //   host.execute(msg);
+    // } else {
+    //   host.execute(tx.txToMessage(), accountTo.contractType);
+    // }
+
   } catch (std::exception& e) {
     LOGERRORP("Transaction: " + tx.hash().hex().get() + " failed to process, reason: " + e.what());
   }
-  if (leftOverGas < 0) {
-    leftOverGas = 0; // We don't want to """refund""" gas due to negative gas
-  }
+  // if (leftOverGas < 0) {
+  //   leftOverGas = 0; // We don't want to """refund""" gas due to negative gas
+  // }
   ++fromNonce;
-  auto usedGas = tx.getGasLimit() - leftOverGas;
+  auto usedGas = tx.getGasLimit() - gasLeft.value();
   fromBalance -= (usedGas * tx.getMaxFeePerGas());
 }
 
@@ -449,7 +458,7 @@ Bytes State::ethCall(const evmc_message& callInfo) {
   }
   const auto& acc = accIt->second;
   if (acc->isContract()) {
-    int64_t leftOverGas = callInfo.gas;
+    Gas gasLeft(callInfo.gas);
     evmc_tx_context txContext;
     txContext.tx_gas_price = {};
     txContext.tx_origin = callInfo.sender;
@@ -477,7 +486,7 @@ Bytes State::ethCall(const evmc_message& callInfo) {
       Hash(),
       0,
       Hash(),
-      leftOverGas
+      gasLeft
     ).ethCallView(callInfo, acc->contractType);
   } else {
     return {};
@@ -508,13 +517,14 @@ int64_t State::estimateGas(const evmc_message& callInfo) {
     Hash(),
     0,
     Hash(),
-    leftOverGas
+    gasLeft
   ).simulate(callInfo, type);
-  auto left = callInfo.gas - leftOverGas;
-  if (left < 0) {
-    left = 0;
+  // return gasLeft.value();
+  auto used = callInfo.gas - gasLeft.value();
+  if (used < 0) {
+    used = 0;
   }
-  return left;
+  return used;
 }
 
 std::vector<std::pair<std::string, Address>> State::getCppContracts() const {

@@ -344,6 +344,10 @@ template<typename T, bool Index> struct EventParam {
 
 /// Namespace for utility functions.
 namespace Utils {
+
+  template<class... Ts>
+  struct Overloaded : Ts... { using Ts::operator()...; };
+
   std::string getTestDumpPath(); ///< Get the path to the test dump folder.
 
   // TODO: document those later

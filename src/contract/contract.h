@@ -48,7 +48,7 @@ class ContractGlobals {
 
 /// Class that maintains local variables for contracts.
 class ContractLocals : public ContractGlobals {
-  private:
+  public: // TODO: revert this to private
     // TODO: DONT RELY ON ContractLocals, INSTEAD, USE CONTRACTHOST TO STORE LOCALS
     mutable Address caller_;  ///< Who sent the transaction.
     mutable uint256_t value_; ///< Value sent within the transaction.

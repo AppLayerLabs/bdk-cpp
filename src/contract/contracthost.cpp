@@ -269,6 +269,23 @@ void ContractHost::execute(const evmc_message& msg, const ContractType& type) {
   const uint256_t value(Utils::evmcUint256ToUint256(msg.value));
   const bool isContractCall = isCall(msg);
 
+  bool enabled = true;
+
+  if (enabled && to != Address()) {
+    evm::Message emsg{
+      .from{msg.sender},
+      .to{msg.recipient},
+      .value = Utils::evmcUint256ToUint256(msg.value),
+      .depth = msg.depth,
+      .input = bytes::View(msg.input_data, msg.input_size)
+    };
+
+    // TODO: return the result
+    execute(std::move(emsg));
+    this->mustRevert_ = false;
+    return;
+  }
+
   if (isContractCall) {
     this->traceCallStarted(msg);
   }
