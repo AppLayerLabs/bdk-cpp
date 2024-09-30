@@ -13,6 +13,8 @@ public:
   CallExecutor(AnyCallHandler callHandler, evmc_vm* vm, VmStorage& vmStorage, Accounts& accounts, ContractStack& stack, const Hash& txHash, const Hash& blockHash, const evmc_tx_context& currentTxContext)
       : callHandler_(std::move(callHandler)), vm_(vm), vmStorage_(vmStorage), accounts_(accounts), stack_(stack), txHash_(txHash), blockHash_(blockHash), currentTxContext_(currentTxContext) {}
 
+  Bytes executeCall(kind::Any callKind, Gas& gas, const Message& msg);
+
   // Bytes executeCall(auto& callHandler, auto kind, Gas& gas, const auto& msg) {    
   // }
 
