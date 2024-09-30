@@ -45,9 +45,7 @@ public:
 
     auto *contract = getContract<typename M::ClassType>(msg.to);
 
-    // TODO: check nullptr
-
-    auto binded = [&] (auto&&... args) {
+    const auto binded = [&] (auto&&... args) {
       if constexpr (std::same_as<CallKind, kind::Static>) {
         return std::invoke(msg.method.func, *contract, std::forward<decltype(args)>(args)...);
       } else {
@@ -69,6 +67,8 @@ public:
   }
 
 private:
+
+  // TODO: return as reference
   template<typename C>
   C* getContract(const Address& address) {
     const auto it = contracts_.find(address);
