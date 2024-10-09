@@ -1,5 +1,4 @@
-
-# FIXME: This file is obsolete now, just remove it.
+# TODO: Clean this all up.
 
 
 
@@ -31,6 +30,12 @@
 
 
 
+# REMOVED, THIS NOW JUST RUNS PROTOC
+#
+# "protoc" is being mentioned literally because the PATH should be pointing
+#  to the correct one anyways first (the one in the local installation directory
+#  instead from a system/distro package)
+#
 # ----------------------------------------
 # SECTION 1 OF 2
 #
@@ -50,7 +55,7 @@
 # Also works on Ubuntu 22
 # bkd-cpp/cmake/FindAbsl.cmake (i.e. find_package(Absl with capital A) is broken for Ubuntu 22/24
 #find_package(Absl REQUIRED) # Built-in is hardcoded to SHARED, this one to STATIC
-find_package(absl REQUIRED)
+#find_package(absl REQUIRED)
 
 # c-ares is needed for GRPC
 # For Ubuntu 24 / apt, the package is "c-ares" (lowercase)
@@ -61,17 +66,17 @@ find_package(absl REQUIRED)
 # ubuntu 22 requires this one:
 # This is still working, so we will use our bdk-cpp/cmake/FindCares.cmake
 # FindCares.cmake was fixed to also work with the c-ares lib (dev) that comes with Ubuntu 24
-find_package(Cares REQUIRED)
+#find_package(Cares REQUIRED)
 
 # This one just works
-find_package(Protobuf REQUIRED)
+#find_package(Protobuf REQUIRED)
 
 # For Ubuntu 24 / apt, the package is "gRPC"
 #find_package(gRPC REQUIRED)
 #
 # ubuntu 22 requires this one, and works on ubuntu 24 
 # This is still working, so we will use our bdk-cpp/cmake/FindGRPC.cmake
-find_package(GRPC REQUIRED)
+#find_package(GRPC REQUIRED)
 
 
 
@@ -128,8 +133,18 @@ find_package(GRPC REQUIRED)
 #${ProtoFiles}
 #)
 
+
+
+
 # Define the root proto directory
 set(PROTO_ROOT_DIR "${CMAKE_SOURCE_DIR}/proto")
+set(GRPC_CPP_PLUGIN ${_GRPC_CPP_PLUGIN_EXECUTABLE})
+
+# Log the values of all relevant variables
+message(STATUS "PROTO_ROOT_DIR: ${PROTO_ROOT_DIR}")
+message(STATUS "CMAKE_SOURCE_DIR: ${CMAKE_SOURCE_DIR}")
+message(STATUS "GRPC_CPP_PLUGIN: ${GRPC_CPP_PLUGIN}")
+
 
 # Find all .proto files in the proto/ directory recursively
 file(GLOB_RECURSE PROTO_FILES "${PROTO_ROOT_DIR}/*.proto")
@@ -172,6 +187,14 @@ endif()
 message(STATUS \"Removed generated .cc and .h files.\")"
 )
 
+# Add a custom target to run the hardcoded CleanProtoFiles.cmake script
+add_custom_target(clean_proto_files
+    COMMAND ${CMAKE_COMMAND} -P "${CMAKE_BINARY_DIR}/CleanProtoFiles.cmake"
+    COMMENT "Cleaning generated .pb and .grpc.pb files"
+)
+
+
+
 ##
 ## won't clean it, only generate once because they don't change
 ## if need to regenerate, clean them manually
@@ -198,7 +221,7 @@ endforeach()
 # wal.proto cc/h fails because it includes types.proto h file
 #
 # Create a list to store the files to be removed
-set(REMOVE_LIST)
+#set(REMOVE_LIST)
 # Loop through each file in PROTO_FILES
 #foreach(PROTO_FILE ${PROTO_FILES})
 #    # Check if the file matches the pattern "/consensus/"
@@ -211,10 +234,10 @@ set(REMOVE_LIST)
 
 
 # Echo the files that matched the pattern
-message(STATUS "Removed proto files:")
-foreach(REMOVE_FILE ${REMOVE_LIST})
-    message(STATUS "  ${REMOVE_FILE}")
-endforeach()
+#message(STATUS "Removed proto files:")
+#foreach(REMOVE_FILE ${REMOVE_LIST})
+#    message(STATUS "  ${REMOVE_FILE}")
+#endforeach()
 
 
 # Initialize lists to hold generated files
@@ -461,6 +484,7 @@ add_custom_command(
        --proto_path="${CMAKE_SOURCE_DIR}/proto"
        --experimental_allow_proto3_optional
        "${PROTO_ROOT_DIR}/cometbft/libs/bits/v1/types.proto"
+  DEPENDS clean_proto_files
 )
 add_custom_command(
   OUTPUT "${PROTO_ROOT_DIR}/cometbft/state/v1/types.grpc.pb.cc"
@@ -471,6 +495,7 @@ add_custom_command(
        --proto_path="${CMAKE_SOURCE_DIR}/proto"
        --experimental_allow_proto3_optional
        "${PROTO_ROOT_DIR}/cometbft/state/v1/types.proto"
+  DEPENDS clean_proto_files
 )
 add_custom_command(
   OUTPUT "${PROTO_ROOT_DIR}/cometbft/services/block/v1/block_service.grpc.pb.cc"
@@ -481,6 +506,7 @@ add_custom_command(
        --proto_path="${CMAKE_SOURCE_DIR}/proto"
        --experimental_allow_proto3_optional
        "${PROTO_ROOT_DIR}/cometbft/services/block/v1/block_service.proto"
+  DEPENDS clean_proto_files
 )
 add_custom_command(
   OUTPUT "${PROTO_ROOT_DIR}/cometbft/services/block/v1/block.grpc.pb.cc"
@@ -491,6 +517,7 @@ add_custom_command(
        --proto_path="${CMAKE_SOURCE_DIR}/proto"
        --experimental_allow_proto3_optional
        "${PROTO_ROOT_DIR}/cometbft/services/block/v1/block.proto"
+  DEPENDS clean_proto_files
 )
 add_custom_command(
   OUTPUT "${PROTO_ROOT_DIR}/cometbft/services/version/v1/version_service.grpc.pb.cc"
@@ -501,6 +528,7 @@ add_custom_command(
        --proto_path="${CMAKE_SOURCE_DIR}/proto"
        --experimental_allow_proto3_optional
        "${PROTO_ROOT_DIR}/cometbft/services/version/v1/version_service.proto"
+  DEPENDS clean_proto_files
 )
 add_custom_command(
   OUTPUT "${PROTO_ROOT_DIR}/cometbft/services/version/v1/version.grpc.pb.cc"
@@ -511,6 +539,7 @@ add_custom_command(
        --proto_path="${CMAKE_SOURCE_DIR}/proto"
        --experimental_allow_proto3_optional
        "${PROTO_ROOT_DIR}/cometbft/services/version/v1/version.proto"
+  DEPENDS clean_proto_files
 )
 add_custom_command(
   OUTPUT "${PROTO_ROOT_DIR}/cometbft/services/block_results/v1/block_results.grpc.pb.cc"
@@ -521,6 +550,7 @@ add_custom_command(
        --proto_path="${CMAKE_SOURCE_DIR}/proto"
        --experimental_allow_proto3_optional
        "${PROTO_ROOT_DIR}/cometbft/services/block_results/v1/block_results.proto"
+  DEPENDS clean_proto_files
 )
 add_custom_command(
   OUTPUT "${PROTO_ROOT_DIR}/cometbft/services/block_results/v1/block_results_service.grpc.pb.cc"
@@ -531,6 +561,7 @@ add_custom_command(
        --proto_path="${CMAKE_SOURCE_DIR}/proto"
        --experimental_allow_proto3_optional
        "${PROTO_ROOT_DIR}/cometbft/services/block_results/v1/block_results_service.proto"
+  DEPENDS clean_proto_files
 )
 add_custom_command(
   OUTPUT "${PROTO_ROOT_DIR}/cometbft/services/pruning/v1/service.grpc.pb.cc"
@@ -541,6 +572,7 @@ add_custom_command(
        --proto_path="${CMAKE_SOURCE_DIR}/proto"
        --experimental_allow_proto3_optional
        "${PROTO_ROOT_DIR}/cometbft/services/pruning/v1/service.proto"
+  DEPENDS clean_proto_files
 )
 add_custom_command(
   OUTPUT "${PROTO_ROOT_DIR}/cometbft/services/pruning/v1/pruning.grpc.pb.cc"
@@ -551,6 +583,7 @@ add_custom_command(
        --proto_path="${CMAKE_SOURCE_DIR}/proto"
        --experimental_allow_proto3_optional
        "${PROTO_ROOT_DIR}/cometbft/services/pruning/v1/pruning.proto"
+  DEPENDS clean_proto_files
 )
 add_custom_command(
   OUTPUT "${PROTO_ROOT_DIR}/cometbft/consensus/v1/types.grpc.pb.cc"
@@ -561,6 +594,7 @@ add_custom_command(
        --proto_path="${CMAKE_SOURCE_DIR}/proto"
        --experimental_allow_proto3_optional
        "${PROTO_ROOT_DIR}/cometbft/consensus/v1/types.proto"
+  DEPENDS clean_proto_files
 )
 add_custom_command(
   OUTPUT "${PROTO_ROOT_DIR}/cometbft/consensus/v1/wal.grpc.pb.cc"
@@ -571,6 +605,7 @@ add_custom_command(
        --proto_path="${CMAKE_SOURCE_DIR}/proto"
        --experimental_allow_proto3_optional
        "${PROTO_ROOT_DIR}/cometbft/consensus/v1/wal.proto"
+  DEPENDS clean_proto_files
 )
 add_custom_command(
   OUTPUT "${PROTO_ROOT_DIR}/cometbft/crypto/v1/keys.grpc.pb.cc"
@@ -581,6 +616,7 @@ add_custom_command(
        --proto_path="${CMAKE_SOURCE_DIR}/proto"
        --experimental_allow_proto3_optional
        "${PROTO_ROOT_DIR}/cometbft/crypto/v1/keys.proto"
+  DEPENDS clean_proto_files
 )
 add_custom_command(
   OUTPUT "${PROTO_ROOT_DIR}/cometbft/crypto/v1/proof.grpc.pb.cc"
@@ -591,6 +627,7 @@ add_custom_command(
        --proto_path="${CMAKE_SOURCE_DIR}/proto"
        --experimental_allow_proto3_optional
        "${PROTO_ROOT_DIR}/cometbft/crypto/v1/proof.proto"
+  DEPENDS clean_proto_files
 )
 add_custom_command(
   OUTPUT "${PROTO_ROOT_DIR}/cometbft/privval/v1/types.grpc.pb.cc"
@@ -601,6 +638,7 @@ add_custom_command(
        --proto_path="${CMAKE_SOURCE_DIR}/proto"
        --experimental_allow_proto3_optional
        "${PROTO_ROOT_DIR}/cometbft/privval/v1/types.proto"
+  DEPENDS clean_proto_files
 )
 add_custom_command(
   OUTPUT "${PROTO_ROOT_DIR}/cometbft/abci/v1/service.grpc.pb.cc"
@@ -611,6 +649,7 @@ add_custom_command(
        --proto_path="${CMAKE_SOURCE_DIR}/proto"
        --experimental_allow_proto3_optional
        "${PROTO_ROOT_DIR}/cometbft/abci/v1/service.proto"
+  DEPENDS clean_proto_files
 )
 add_custom_command(
   OUTPUT "${PROTO_ROOT_DIR}/cometbft/abci/v1/types.grpc.pb.cc"
@@ -621,6 +660,7 @@ add_custom_command(
        --proto_path="${CMAKE_SOURCE_DIR}/proto"
        --experimental_allow_proto3_optional
        "${PROTO_ROOT_DIR}/cometbft/abci/v1/types.proto"
+  DEPENDS clean_proto_files
 )
 add_custom_command(
   OUTPUT "${PROTO_ROOT_DIR}/cometbft/types/v1/block.grpc.pb.cc"
@@ -631,6 +671,7 @@ add_custom_command(
        --proto_path="${CMAKE_SOURCE_DIR}/proto"
        --experimental_allow_proto3_optional
        "${PROTO_ROOT_DIR}/cometbft/types/v1/block.proto"
+  DEPENDS clean_proto_files
 )
 add_custom_command(
   OUTPUT "${PROTO_ROOT_DIR}/cometbft/types/v1/types.grpc.pb.cc"
@@ -641,6 +682,7 @@ add_custom_command(
        --proto_path="${CMAKE_SOURCE_DIR}/proto"
        --experimental_allow_proto3_optional
        "${PROTO_ROOT_DIR}/cometbft/types/v1/types.proto"
+  DEPENDS clean_proto_files
 )
 add_custom_command(
   OUTPUT "${PROTO_ROOT_DIR}/cometbft/types/v1/events.grpc.pb.cc"
@@ -651,6 +693,7 @@ add_custom_command(
        --proto_path="${CMAKE_SOURCE_DIR}/proto"
        --experimental_allow_proto3_optional
        "${PROTO_ROOT_DIR}/cometbft/types/v1/events.proto"
+  DEPENDS clean_proto_files
 )
 add_custom_command(
   OUTPUT "${PROTO_ROOT_DIR}/cometbft/types/v1/params.grpc.pb.cc"
@@ -661,6 +704,7 @@ add_custom_command(
        --proto_path="${CMAKE_SOURCE_DIR}/proto"
        --experimental_allow_proto3_optional
        "${PROTO_ROOT_DIR}/cometbft/types/v1/params.proto"
+  DEPENDS clean_proto_files
 )
 add_custom_command(
   OUTPUT "${PROTO_ROOT_DIR}/cometbft/types/v1/validator.grpc.pb.cc"
@@ -671,6 +715,7 @@ add_custom_command(
        --proto_path="${CMAKE_SOURCE_DIR}/proto"
        --experimental_allow_proto3_optional
        "${PROTO_ROOT_DIR}/cometbft/types/v1/validator.proto"
+  DEPENDS clean_proto_files
 )
 add_custom_command(
   OUTPUT "${PROTO_ROOT_DIR}/cometbft/types/v1/canonical.grpc.pb.cc"
@@ -681,6 +726,7 @@ add_custom_command(
        --proto_path="${CMAKE_SOURCE_DIR}/proto"
        --experimental_allow_proto3_optional
        "${PROTO_ROOT_DIR}/cometbft/types/v1/canonical.proto"
+  DEPENDS clean_proto_files
 )
 add_custom_command(
   OUTPUT "${PROTO_ROOT_DIR}/cometbft/types/v1/evidence.grpc.pb.cc"
@@ -691,6 +737,7 @@ add_custom_command(
        --proto_path="${CMAKE_SOURCE_DIR}/proto"
        --experimental_allow_proto3_optional
        "${PROTO_ROOT_DIR}/cometbft/types/v1/evidence.proto"
+  DEPENDS clean_proto_files
 )
 add_custom_command(
   OUTPUT "${PROTO_ROOT_DIR}/cometbft/p2p/v1/types.grpc.pb.cc"
@@ -701,6 +748,7 @@ add_custom_command(
        --proto_path="${CMAKE_SOURCE_DIR}/proto"
        --experimental_allow_proto3_optional
        "${PROTO_ROOT_DIR}/cometbft/p2p/v1/types.proto"
+  DEPENDS clean_proto_files
 )
 add_custom_command(
   OUTPUT "${PROTO_ROOT_DIR}/cometbft/p2p/v1/pex.grpc.pb.cc"
@@ -711,6 +759,7 @@ add_custom_command(
        --proto_path="${CMAKE_SOURCE_DIR}/proto"
        --experimental_allow_proto3_optional
        "${PROTO_ROOT_DIR}/cometbft/p2p/v1/pex.proto"
+  DEPENDS clean_proto_files
 )
 add_custom_command(
   OUTPUT "${PROTO_ROOT_DIR}/cometbft/p2p/v1/conn.grpc.pb.cc"
@@ -721,6 +770,7 @@ add_custom_command(
        --proto_path="${CMAKE_SOURCE_DIR}/proto"
        --experimental_allow_proto3_optional
        "${PROTO_ROOT_DIR}/cometbft/p2p/v1/conn.proto"
+  DEPENDS clean_proto_files
 )
 add_custom_command(
   OUTPUT "${PROTO_ROOT_DIR}/cometbft/statesync/v1/types.grpc.pb.cc"
@@ -731,6 +781,7 @@ add_custom_command(
        --proto_path="${CMAKE_SOURCE_DIR}/proto"
        --experimental_allow_proto3_optional
        "${PROTO_ROOT_DIR}/cometbft/statesync/v1/types.proto"
+  DEPENDS clean_proto_files
 )
 add_custom_command(
   OUTPUT "${PROTO_ROOT_DIR}/cometbft/blocksync/v1/types.grpc.pb.cc"
@@ -741,6 +792,7 @@ add_custom_command(
        --proto_path="${CMAKE_SOURCE_DIR}/proto"
        --experimental_allow_proto3_optional
        "${PROTO_ROOT_DIR}/cometbft/blocksync/v1/types.proto"
+  DEPENDS clean_proto_files
 )
 add_custom_command(
   OUTPUT "${PROTO_ROOT_DIR}/cometbft/mempool/v1/types.grpc.pb.cc"
@@ -751,6 +803,7 @@ add_custom_command(
        --proto_path="${CMAKE_SOURCE_DIR}/proto"
        --experimental_allow_proto3_optional
        "${PROTO_ROOT_DIR}/cometbft/mempool/v1/types.proto"
+  DEPENDS clean_proto_files
 )
 add_custom_command(
   OUTPUT "${PROTO_ROOT_DIR}/cometbft/store/v1/types.grpc.pb.cc"
@@ -761,6 +814,7 @@ add_custom_command(
        --proto_path="${CMAKE_SOURCE_DIR}/proto"
        --experimental_allow_proto3_optional
        "${PROTO_ROOT_DIR}/cometbft/store/v1/types.proto"
+  DEPENDS clean_proto_files
 )
 add_custom_command(
   OUTPUT "${PROTO_ROOT_DIR}/cometbft/version/v1/types.grpc.pb.cc"
@@ -771,6 +825,7 @@ add_custom_command(
        --proto_path="${CMAKE_SOURCE_DIR}/proto"
        --experimental_allow_proto3_optional
        "${PROTO_ROOT_DIR}/cometbft/version/v1/types.proto"
+  DEPENDS clean_proto_files
 )
 add_custom_command(
   OUTPUT "${PROTO_ROOT_DIR}/gogoproto/gogo.grpc.pb.cc"
@@ -781,6 +836,7 @@ add_custom_command(
        --proto_path="${CMAKE_SOURCE_DIR}/proto"
        --experimental_allow_proto3_optional
        "${PROTO_ROOT_DIR}/gogoproto/gogo.proto"
+  DEPENDS clean_proto_files
 )
 
 # Expanded add_custom_command for ProtoFiles lib 
@@ -815,6 +871,7 @@ add_custom_command(
        --proto_path=${PROTO_ROOT_DIR}
        --experimental_allow_proto3_optional
        "${PROTO_ROOT_DIR}/cometbft/libs/bits/v1/types.proto"
+  DEPENDS clean_proto_files
 )
 add_custom_command(
   OUTPUT "${PROTO_ROOT_DIR}/cometbft/state/v1/types.pb.cc"
@@ -824,6 +881,7 @@ add_custom_command(
        --proto_path=${PROTO_ROOT_DIR}
        --experimental_allow_proto3_optional
        "${PROTO_ROOT_DIR}/cometbft/state/v1/types.proto"
+  DEPENDS clean_proto_files
 )
 add_custom_command(
   OUTPUT "${PROTO_ROOT_DIR}/cometbft/services/block/v1/block_service.pb.cc"
@@ -833,6 +891,7 @@ add_custom_command(
        --proto_path=${PROTO_ROOT_DIR}
        --experimental_allow_proto3_optional
        "${PROTO_ROOT_DIR}/cometbft/services/block/v1/block_service.proto"
+  DEPENDS clean_proto_files
 )
 add_custom_command(
   OUTPUT "${PROTO_ROOT_DIR}/cometbft/services/block/v1/block.pb.cc"
@@ -842,6 +901,7 @@ add_custom_command(
        --proto_path=${PROTO_ROOT_DIR}
        --experimental_allow_proto3_optional
        "${PROTO_ROOT_DIR}/cometbft/services/block/v1/block.proto"
+  DEPENDS clean_proto_files
 )
 add_custom_command(
   OUTPUT "${PROTO_ROOT_DIR}/cometbft/services/version/v1/version_service.pb.cc"
@@ -851,6 +911,7 @@ add_custom_command(
        --proto_path=${PROTO_ROOT_DIR}
        --experimental_allow_proto3_optional
        "${PROTO_ROOT_DIR}/cometbft/services/version/v1/version_service.proto"
+  DEPENDS clean_proto_files
 )
 add_custom_command(
   OUTPUT "${PROTO_ROOT_DIR}/cometbft/services/version/v1/version.pb.cc"
@@ -860,6 +921,7 @@ add_custom_command(
        --proto_path=${PROTO_ROOT_DIR}
        --experimental_allow_proto3_optional
        "${PROTO_ROOT_DIR}/cometbft/services/version/v1/version.proto"
+  DEPENDS clean_proto_files
 )
 add_custom_command(
   OUTPUT "${PROTO_ROOT_DIR}/cometbft/services/block_results/v1/block_results.pb.cc"
@@ -869,6 +931,7 @@ add_custom_command(
        --proto_path=${PROTO_ROOT_DIR}
        --experimental_allow_proto3_optional
        "${PROTO_ROOT_DIR}/cometbft/services/block_results/v1/block_results.proto"
+  DEPENDS clean_proto_files
 )
 add_custom_command(
   OUTPUT "${PROTO_ROOT_DIR}/cometbft/services/block_results/v1/block_results_service.pb.cc"
@@ -878,6 +941,7 @@ add_custom_command(
        --proto_path=${PROTO_ROOT_DIR}
        --experimental_allow_proto3_optional
        "${PROTO_ROOT_DIR}/cometbft/services/block_results/v1/block_results_service.proto"
+  DEPENDS clean_proto_files
 )
 add_custom_command(
   OUTPUT "${PROTO_ROOT_DIR}/cometbft/services/pruning/v1/service.pb.cc"
@@ -887,6 +951,7 @@ add_custom_command(
        --proto_path=${PROTO_ROOT_DIR}
        --experimental_allow_proto3_optional
        "${PROTO_ROOT_DIR}/cometbft/services/pruning/v1/service.proto"
+  DEPENDS clean_proto_files
 )
 add_custom_command(
   OUTPUT "${PROTO_ROOT_DIR}/cometbft/services/pruning/v1/pruning.pb.cc"
@@ -896,6 +961,7 @@ add_custom_command(
        --proto_path=${PROTO_ROOT_DIR}
        --experimental_allow_proto3_optional
        "${PROTO_ROOT_DIR}/cometbft/services/pruning/v1/pruning.proto"
+  DEPENDS clean_proto_files
 )
 add_custom_command(
   OUTPUT "${PROTO_ROOT_DIR}/cometbft/consensus/v1/types.pb.cc"
@@ -912,6 +978,7 @@ add_custom_command(
        COMMAND bash "${PROTO_ROOT_DIR}/cometbft/consensus/v1/fix.sh"
        DEPENDS "${PROTO_ROOT_DIR}/cometbft/consensus/v1/types.proto"
        COMMENT "Generating C++ source files and applying fixes with fix.sh"
+  DEPENDS clean_proto_files
 )
 add_custom_command(
   OUTPUT "${PROTO_ROOT_DIR}/cometbft/consensus/v1/wal.pb.cc"
@@ -921,6 +988,7 @@ add_custom_command(
        --proto_path=${PROTO_ROOT_DIR}
        --experimental_allow_proto3_optional
        "${PROTO_ROOT_DIR}/cometbft/consensus/v1/wal.proto"
+  DEPENDS clean_proto_files
 )
 add_custom_command(
   OUTPUT "${PROTO_ROOT_DIR}/cometbft/crypto/v1/keys.pb.cc"
@@ -930,6 +998,7 @@ add_custom_command(
        --proto_path=${PROTO_ROOT_DIR}
        --experimental_allow_proto3_optional
        "${PROTO_ROOT_DIR}/cometbft/crypto/v1/keys.proto"
+  DEPENDS clean_proto_files
 )
 add_custom_command(
   OUTPUT "${PROTO_ROOT_DIR}/cometbft/crypto/v1/proof.pb.cc"
@@ -939,6 +1008,7 @@ add_custom_command(
        --proto_path=${PROTO_ROOT_DIR}
        --experimental_allow_proto3_optional
        "${PROTO_ROOT_DIR}/cometbft/crypto/v1/proof.proto"
+  DEPENDS clean_proto_files
 )
 add_custom_command(
   OUTPUT "${PROTO_ROOT_DIR}/cometbft/privval/v1/types.pb.cc"
@@ -948,6 +1018,7 @@ add_custom_command(
        --proto_path=${PROTO_ROOT_DIR}
        --experimental_allow_proto3_optional
        "${PROTO_ROOT_DIR}/cometbft/privval/v1/types.proto"
+  DEPENDS clean_proto_files
 )
 add_custom_command(
   OUTPUT "${PROTO_ROOT_DIR}/cometbft/abci/v1/service.pb.cc"
@@ -957,6 +1028,7 @@ add_custom_command(
        --proto_path=${PROTO_ROOT_DIR}
        --experimental_allow_proto3_optional
        "${PROTO_ROOT_DIR}/cometbft/abci/v1/service.proto"
+  DEPENDS clean_proto_files
 )
 add_custom_command(
   OUTPUT "${PROTO_ROOT_DIR}/cometbft/abci/v1/types.pb.cc"
@@ -966,6 +1038,7 @@ add_custom_command(
        --proto_path=${PROTO_ROOT_DIR}
        --experimental_allow_proto3_optional
        "${PROTO_ROOT_DIR}/cometbft/abci/v1/types.proto"
+  DEPENDS clean_proto_files
 )
 add_custom_command(
   OUTPUT "${PROTO_ROOT_DIR}/cometbft/types/v1/block.pb.cc"
@@ -975,6 +1048,7 @@ add_custom_command(
        --proto_path=${PROTO_ROOT_DIR}
        --experimental_allow_proto3_optional
        "${PROTO_ROOT_DIR}/cometbft/types/v1/block.proto"
+  DEPENDS clean_proto_files
 )
 add_custom_command(
   OUTPUT "${PROTO_ROOT_DIR}/cometbft/types/v1/types.pb.cc"
@@ -984,6 +1058,7 @@ add_custom_command(
        --proto_path=${PROTO_ROOT_DIR}
        --experimental_allow_proto3_optional
        "${PROTO_ROOT_DIR}/cometbft/types/v1/types.proto"
+  DEPENDS clean_proto_files
 )
 add_custom_command(
   OUTPUT "${PROTO_ROOT_DIR}/cometbft/types/v1/events.pb.cc"
@@ -993,6 +1068,7 @@ add_custom_command(
        --proto_path=${PROTO_ROOT_DIR}
        --experimental_allow_proto3_optional
        "${PROTO_ROOT_DIR}/cometbft/types/v1/events.proto"
+  DEPENDS clean_proto_files
 )
 add_custom_command(
   OUTPUT "${PROTO_ROOT_DIR}/cometbft/types/v1/params.pb.cc"
@@ -1002,6 +1078,7 @@ add_custom_command(
        --proto_path=${PROTO_ROOT_DIR}
        --experimental_allow_proto3_optional
        "${PROTO_ROOT_DIR}/cometbft/types/v1/params.proto"
+  DEPENDS clean_proto_files
 )
 add_custom_command(
   OUTPUT "${PROTO_ROOT_DIR}/cometbft/types/v1/validator.pb.cc"
@@ -1011,6 +1088,7 @@ add_custom_command(
        --proto_path=${PROTO_ROOT_DIR}
        --experimental_allow_proto3_optional
        "${PROTO_ROOT_DIR}/cometbft/types/v1/validator.proto"
+  DEPENDS clean_proto_files
 )
 add_custom_command(
   OUTPUT "${PROTO_ROOT_DIR}/cometbft/types/v1/canonical.pb.cc"
@@ -1020,6 +1098,7 @@ add_custom_command(
        --proto_path=${PROTO_ROOT_DIR}
        --experimental_allow_proto3_optional
        "${PROTO_ROOT_DIR}/cometbft/types/v1/canonical.proto"
+  DEPENDS clean_proto_files
 )
 add_custom_command(
   OUTPUT "${PROTO_ROOT_DIR}/cometbft/types/v1/evidence.pb.cc"
@@ -1029,6 +1108,7 @@ add_custom_command(
        --proto_path=${PROTO_ROOT_DIR}
        --experimental_allow_proto3_optional
        "${PROTO_ROOT_DIR}/cometbft/types/v1/evidence.proto"
+  DEPENDS clean_proto_files
 )
 add_custom_command(
   OUTPUT "${PROTO_ROOT_DIR}/cometbft/p2p/v1/types.pb.cc"
@@ -1038,6 +1118,7 @@ add_custom_command(
        --proto_path=${PROTO_ROOT_DIR}
        --experimental_allow_proto3_optional
        "${PROTO_ROOT_DIR}/cometbft/p2p/v1/types.proto"
+  DEPENDS clean_proto_files
 )
 add_custom_command(
   OUTPUT "${PROTO_ROOT_DIR}/cometbft/p2p/v1/pex.pb.cc"
@@ -1047,6 +1128,7 @@ add_custom_command(
        --proto_path=${PROTO_ROOT_DIR}
        --experimental_allow_proto3_optional
        "${PROTO_ROOT_DIR}/cometbft/p2p/v1/pex.proto"
+  DEPENDS clean_proto_files
 )
 add_custom_command(
   OUTPUT "${PROTO_ROOT_DIR}/cometbft/p2p/v1/conn.pb.cc"
@@ -1056,6 +1138,7 @@ add_custom_command(
        --proto_path=${PROTO_ROOT_DIR}
        --experimental_allow_proto3_optional
        "${PROTO_ROOT_DIR}/cometbft/p2p/v1/conn.proto"
+  DEPENDS clean_proto_files
 )
 add_custom_command(
   OUTPUT "${PROTO_ROOT_DIR}/cometbft/statesync/v1/types.pb.cc"
@@ -1065,6 +1148,7 @@ add_custom_command(
        --proto_path=${PROTO_ROOT_DIR}
        --experimental_allow_proto3_optional
        "${PROTO_ROOT_DIR}/cometbft/statesync/v1/types.proto"
+  DEPENDS clean_proto_files
 )
 add_custom_command(
   OUTPUT "${PROTO_ROOT_DIR}/cometbft/blocksync/v1/types.pb.cc"
@@ -1074,6 +1158,7 @@ add_custom_command(
        --proto_path=${PROTO_ROOT_DIR}
        --experimental_allow_proto3_optional
        "${PROTO_ROOT_DIR}/cometbft/blocksync/v1/types.proto"
+  DEPENDS clean_proto_files
 )
 add_custom_command(
   OUTPUT "${PROTO_ROOT_DIR}/cometbft/mempool/v1/types.pb.cc"
@@ -1083,6 +1168,7 @@ add_custom_command(
        --proto_path=${PROTO_ROOT_DIR}
        --experimental_allow_proto3_optional
        "${PROTO_ROOT_DIR}/cometbft/mempool/v1/types.proto"
+  DEPENDS clean_proto_files
 )
 add_custom_command(
   OUTPUT "${PROTO_ROOT_DIR}/cometbft/store/v1/types.pb.cc"
@@ -1092,6 +1178,7 @@ add_custom_command(
        --proto_path=${PROTO_ROOT_DIR}
        --experimental_allow_proto3_optional
        "${PROTO_ROOT_DIR}/cometbft/store/v1/types.proto"
+  DEPENDS clean_proto_files
 )
 add_custom_command(
   OUTPUT "${PROTO_ROOT_DIR}/cometbft/version/v1/types.pb.cc"
@@ -1101,6 +1188,7 @@ add_custom_command(
        --proto_path=${PROTO_ROOT_DIR}
        --experimental_allow_proto3_optional
        "${PROTO_ROOT_DIR}/cometbft/version/v1/types.proto"
+  DEPENDS clean_proto_files
 )
 add_custom_command(
   OUTPUT "${PROTO_ROOT_DIR}/gogoproto/gogo.pb.cc"
@@ -1110,6 +1198,7 @@ add_custom_command(
        --proto_path=${PROTO_ROOT_DIR}
        --experimental_allow_proto3_optional
        "${PROTO_ROOT_DIR}/gogoproto/gogo.proto"
+  DEPENDS clean_proto_files
 )
 
 
@@ -1122,7 +1211,7 @@ add_custom_command(
 
 
 # Create the ProtoFiles static library from the generated Protobuf files
-add_library(ProtoFiles STATIC ${PROTO_SOURCES})
+#add_library(ProtoFiles STATIC ${PROTO_SOURCES})
 
 # Create the gen-grpc static library from the generated gRPC files
 #
@@ -1131,15 +1220,40 @@ add_library(ProtoFiles STATIC ${PROTO_SOURCES})
 #
 #add_library(gen-grpc STATIC ${GRPC_SOURCES} ${ProtoFiles})
 #add_library(gen-grpc STATIC ${GRPC_SOURCES} ${PROTO_SOURCES})
-add_library(gen-grpc STATIC ${GRPC_SOURCES})
+#add_library(gen-grpc STATIC ${GRPC_SOURCES})
 
 # So that the #include "cometbft/..." etc. statements in the generate cc/h files work
-target_include_directories(ProtoFiles PUBLIC "${PROTO_ROOT_DIR}")
-target_include_directories(gen-grpc PUBLIC "${PROTO_ROOT_DIR}")
+#target_include_directories(ProtoFiles PUBLIC "${PROTO_ROOT_DIR}")
+#target_include_directories(gen-grpc PUBLIC "${PROTO_ROOT_DIR}")
 
 
 # The gen-grpc library (GRPC C++ code generated from the .proto files) needs to link against these
-target_link_libraries(gen-grpc PUBLIC ${Protobuf_LIBRARIES} ${GRPC_LIBRARIES} ${CARES_LIBRARY} ${OPENSSL_LIBRARIES} ${ZLIB_LIBRARIES} absl::flags)
+#target_link_libraries(gen-grpc PUBLIC ${Protobuf_LIBRARIES} ${GRPC_LIBRARIES} ${CARES_LIBRARY} ${OPENSSL_LIBRARIES} ${ZLIB_LIBRARIES} absl::flags)
+#
+# Trying to guess what is needed based on the C++ gRPC examples, since we are taking
+#  the common.cmake that builds it so we are going to use the same variables for
+#  library names.
+
+
+# NEW:
+
+# so in the grpc examples it generates a single library which I guess makes sense
+add_library(gen-proto-grpc STATIC ${GRPC_SOURCES} ${GRPC_HEADERS} ${PROTO_SOURCES} ${PROTO_HEADERS})
+
+# I guess this is still good
+target_include_directories(gen-proto-grpc PUBLIC "${PROTO_ROOT_DIR}")
+
+# linkage from example(s) (REVIEW: not sure why they are different; also different for the final target)
+target_link_libraries(gen-proto-grpc PUBLIC
+  absl::check      # helloworld generatd lib
+  absl::absl_log   # route-guide generated lib
+  ${_REFLECTION} # these three are the same
+  ${_GRPC_GRPCPP}
+  ${_PROTOBUF_LIBPROTOBUF})
+
+
+
+
 
 
 

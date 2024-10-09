@@ -49,7 +49,7 @@ ProcessOptions parseCommandLineArgs(int argc, char* argv[], [[maybe_unused]] BDK
     desc.add_options()("help,h",
       "Print help message and exit");
     desc.add_options()("loglevel,l", boost::program_options::value<std::string>(),
-      "Set the log level ([T]RACE, [D]EBUG, [I]NFO, [W]ARNING, [E]RROR, [N]ONE)");
+      "Set the log level ([X]TRACE, [T]RACE, [D]EBUG, [I]NFO, [W]ARNING, [E]RROR, [F]FATAL, [N]ONE)");
     desc.add_options()("loglinelimit", boost::program_options::value<int>(),
       "Set the log line limit (# of lines per file); 0 = no limit");
     desc.add_options()("logfilelimit", boost::program_options::value<int>(),
