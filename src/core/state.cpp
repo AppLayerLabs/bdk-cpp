@@ -197,8 +197,7 @@ void State::processTransaction(
   // as it calls validateNextBlock as a sanity check.
   Account& accountFrom = *this->accounts_[tx.getFrom()];
   Account& accountTo = *this->accounts_[tx.getTo()];
-  // auto leftOverGas = int64_t(tx.getGasLimit());
-  Gas gasLeft(tx.getGasLimit().convert_to<uint64_t>());
+  auto leftOverGas = int64_t(tx.getGasLimit());
   auto& fromNonce = accountFrom.nonce;
   auto& fromBalance = accountFrom.balance;
   if (fromBalance < (tx.getValue() + tx.getGasLimit() * tx.getMaxFeePerGas())) {
@@ -240,7 +239,7 @@ void State::processTransaction(
       tx.hash(),
       txIndex,
       blockHash,
-      gasLeft
+      leftOverGas
     );
 
     host.execute(tx.txToMessage(), accountTo.contractType);
@@ -259,7 +258,7 @@ void State::processTransaction(
   //   leftOverGas = 0; // We don't want to """refund""" gas due to negative gas
   // }
   ++fromNonce;
-  auto usedGas = tx.getGasLimit() - gasLeft.value();
+  auto usedGas = tx.getGasLimit() - leftOverGas;
   fromBalance -= (usedGas * tx.getMaxFeePerGas());
 }
 
@@ -458,7 +457,7 @@ Bytes State::ethCall(const evmc_message& callInfo) {
   }
   const auto& acc = accIt->second;
   if (acc->isContract()) {
-    Gas gasLeft(callInfo.gas);
+    int64_t leftoverGas = callInfo.gas;
     evmc_tx_context txContext;
     txContext.tx_gas_price = {};
     txContext.tx_origin = callInfo.sender;
@@ -486,7 +485,7 @@ Bytes State::ethCall(const evmc_message& callInfo) {
       Hash(),
       0,
       Hash(),
-      gasLeft
+      leftoverGas
     ).ethCallView(callInfo, acc->contractType);
   } else {
     return {};
@@ -517,10 +516,10 @@ int64_t State::estimateGas(const evmc_message& callInfo) {
     Hash(),
     0,
     Hash(),
-    gasLeft
+    leftoverGas
   ).simulate(callInfo, type);
   // return gasLeft.value();
-  auto used = callInfo.gas - gasLeft.value();
+  auto used = callInfo.gas - leftoverGas;
   if (used < 0) {
     used = 0;
   }

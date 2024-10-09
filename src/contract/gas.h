@@ -47,6 +47,10 @@ public:
     value_ += amount; // TODO: check overflow?
   }
 
+  constexpr void set(uint64_t amount) {
+    value_ = amount;
+  }
+
 // private:
   uint64_t value_;
 };

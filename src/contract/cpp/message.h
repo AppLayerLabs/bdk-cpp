@@ -23,13 +23,21 @@ struct PackagedMethod {
 template<typename M, typename... Ts>
 explicit PackagedMethod(M, Ts&&...) -> PackagedMethod<M, Ts...>;
 
-template<typename Method>
+template<typename MethodType>
 struct Message {
   Address from;
   Address to;
   uint256_t value;
+  uint32_t depth;
   const BaseContract *caller;
-  Method method;
+  MethodType method;
+};
+
+template<typename ContractType, typename... Args>
+struct CreateMessage {
+  const BaseContract *caller;
+  Address from;
+  std::tuple<Args...> args;
 };
 
 } // namespace cpp

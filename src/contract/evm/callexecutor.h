@@ -2,6 +2,11 @@
 
 #include "message.h"
 #include "anycallhandler.h"
+#include "../gas.h"
+#include "../traits/method.h"
+#include "../contractstack.h"
+#include "../cpp/message.h"
+#include "../../utils/contractreflectioninterface.h"
 
 namespace evm {
 
@@ -10,43 +15,43 @@ public:
   using VmStorage = boost::unordered_flat_map<StorageKey, Hash, SafeHash>;
   using Accounts = boost::unordered_flat_map<Address, NonNullUniquePtr<Account>, SafeHash>;
 
-  CallExecutor(AnyCallHandler callHandler, evmc_vm* vm, VmStorage& vmStorage, Accounts& accounts, ContractStack& stack, const Hash& txHash, const Hash& blockHash, const evmc_tx_context& currentTxContext)
-      : callHandler_(std::move(callHandler)), vm_(vm), vmStorage_(vmStorage), accounts_(accounts), stack_(stack), txHash_(txHash), blockHash_(blockHash), currentTxContext_(currentTxContext) {}
+  CallExecutor(AnyCallHandler callHandler, evmc_vm* vm, VmStorage& vmStorage, Accounts& accounts, ContractStack& stack, const Hash& txHash, uint64_t txIndex, const Hash& blockHash, const evmc_tx_context& currentTxContext)
+      : callHandler_(std::move(callHandler)), vm_(vm), vmStorage_(vmStorage), accounts_(accounts), stack_(stack), txHash_(txHash), txIndex_(txIndex), blockHash_(blockHash), currentTxContext_(currentTxContext) {}
 
-  Bytes executeCall(kind::Any callKind, Gas& gas, const Message& msg);
+  Bytes executeCall(kind::Any callKind, Gas& gas, const Message& msg, bytes::View code);
 
-  // Bytes executeCall(auto& callHandler, auto kind, Gas& gas, const auto& msg) {    
-  // }
+  template<typename M>
+  M::ReturnType executeCall(auto callKind, Gas& gas, cpp::Message<M> msg, bytes::View code) {
+    const Bytes input = std::apply([&] <typename... Args> (const Args&... args) {
+      const std::string functionName = ContractReflectionInterface::getFunctionName(msg.method.func);
 
-  // Bytes executeCall(auto&& callHandler, auto kind, Gas& gas, const CallMessage& msg, bytes::View code) {
-  //   static constexpr auto getKind = Utils::Overloaded{
-  //     [] (kind::Normal) { return EVMC_CALL; },
-  //     [] (kind::Static) { return EVMC_CALL; },
-  //     [] (kind::Delegate) { return EVMC_DELEGATECALL; }
-  //   };
+      if (functionName.empty()) {
+        throw DynamicException("EVM contract function name is empty (contract not registered?)");
+      }
 
-  //   static constexpr auto getFlags = Utils::Overloaded{
-  //     [] (kind::Normal) -> std::uint32_t { return 0; },
-  //     [] (kind::Static) -> std::uint32_t { return EVMC_STATIC; },
-  //     [] (kind::Delegate) -> std::uint32_t { return 0; }
-  //   };
+      Bytes res = Utils::makeBytes(Utils::uint32ToBytes(ABI::FunctorEncoder::encode<Args...>(functionName).value));
 
-  //   const evmc_message evmcMessage{
-  //     .kind = getKind(kind),
-  //     .flags = getFlags(kind),
-  //     .depth = 0,
-  //     .gas = gas.value(),
-  //     .recipient = msg.to.toEvmcAddress(),
-  //     .sender = msg.from.toEvmcAddress(),
-  //     .input_data = msg.input.data(),
-  //     .input_size = msg.input.size(),
-  //     .value = Utils::uint256ToEvmcUint256(msg.value),
-  //     .create2_salt = {},
-  //     .code_address = {}
-  //   };
+      if constexpr (sizeof...(Args) > 0) {
+        Utils::appendBytes(res, ABI::Encoder::encodeData<Args...>(args...));
+      }
 
-  //   return executeCallImpl(evmcMessage, gas, code, );
-  // }
+      return res;
+    }, msg.method.args);
+
+    const Message newMsg {
+      .from = msg.from,
+      .to = msg.to,
+      .value = msg.value,
+      .depth = msg.depth,
+      .input = input
+    };
+
+    const Bytes output = executeCall(callKind, gas, newMsg, code);
+
+    if constexpr (not std::same_as<typename M::ReturnType, void>) {
+      return std::get<0>(ABI::Decoder::decodeData<typename M::ReturnType>(output));
+    }
+  }
 
   bool account_exists(const evmc::address& addr) const noexcept override final;
   evmc::bytes32 get_storage(const evmc::address& addr, const evmc::bytes32& key) const noexcept override final;
@@ -74,9 +79,9 @@ private:
   ContractStack& stack_;
   uint64_t eventIndex_ = 0;
   const Hash& txHash_;
+  const uint64_t txIndex_;
   const Hash& blockHash_;
   const evmc_tx_context& currentTxContext_;
 };
 
 } // namespace evm
-

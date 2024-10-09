@@ -280,8 +280,17 @@ void ContractHost::execute(const evmc_message& msg, const ContractType& type) {
       .input = bytes::View(msg.input_data, msg.input_size)
     };
 
+    Gas gas(leftoverGas_);
+
     // TODO: return the result
-    execute(std::move(emsg));
+    try {
+      execute(gas, std::move(emsg));
+      leftoverGas_ = gas.value();
+    } catch (const std::exception& e) {
+      leftoverGas_ = gas.value();
+      throw e;
+    }
+
     this->mustRevert_ = false;
     return;
   }
@@ -393,6 +402,18 @@ void ContractHost::execute(const evmc_message& msg, const ContractType& type) {
 }
 
 Bytes ContractHost::ethCallView(const evmc_message& msg, const ContractType& type) {
+  Gas gas(leftoverGas_); // TODO: or we can just set a very high value, why not?
+
+  evm::Message evmcMsg{
+    .from = Address(msg.sender),
+    .to = Address(msg.recipient),
+    .value = Utils::evmcUint256ToUint256(msg.value),
+    .depth = 0,
+    .input = bytes::View(msg.input_data, msg.input_size)
+  };
+
+  return callHandler_.onCall(kind::STATIC, gas, std::move(evmcMsg));
+
   Bytes ret;
   //const Address from(tx.sender);
   const Address to(msg.recipient);

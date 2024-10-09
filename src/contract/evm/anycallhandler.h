@@ -10,18 +10,17 @@ public:
   template<typename T>
   AnyCallHandler(T& callHandler)
     : object_(&callHandler),
-      func_([] (void *object, kind::Any callKind, Gas& gas, const CallMessage& msg) {
+      func_([] (void *object, kind::Any callKind, Gas& gas, const Message& msg) {
         return std::visit([&] (auto callKind) { return static_cast<T*>(object)->onCall(callKind, gas, msg); }, callKind);
       }) {}
 
-  Bytes onCall(kind::Any callKind, Gas& gas, const CallMessage& msg) {
+  Bytes onCall(kind::Any callKind, Gas& gas, const Message& msg) {
     return std::invoke(func_, object_, callKind, gas, msg);
-  }  
-  
+  }
 
 private:
   void *object_;
-  Bytes (*func_)(void*, kind::Any, Gas&, const CallMessage&);
+  Bytes (*func_)(void*, kind::Any, Gas&, const Message&);
 };
 
 } // namespace evm

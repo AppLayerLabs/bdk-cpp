@@ -1,39 +1,97 @@
 #include "callexecutor.h"
 
-constexpr decltype(auto) findAnd(auto&& map, const auto& key, auto andThen, auto orElse) noexcept {
+template<typename M>
+using map_value_t = decltype(std::declval<std::ranges::range_reference_t<M>>().second);
+
+template<typename M>
+using map_value_reference_t = std::add_lvalue_reference_t<
+  std::conditional_t<
+    std::is_const_v<std::remove_reference_t<M>>,
+    std::add_const_t<map_value_t<M>>,
+    map_value_t<M>>>;
+
+template<std::ranges::borrowed_range M>
+constexpr std::optional<std::reference_wrapper<std::remove_reference_t<map_value_reference_t<M>>>> get(M&& map, const auto& key) noexcept {
   const auto it = map.find(key);
 
   if (it == map.end()) {
-    return std::invoke(orElse);
+    return std::nullopt;
   }
 
-  return std::invoke(andThen, it->second);
+  return it->second;
 }
 
-static evmc::bytes32 thenToBytes32(const Hash& hash) noexcept {
-  return hash.toEvmcBytes32();
+constexpr evmc_call_kind getCallKind(kind::Any callKind) noexcept {
+  return std::visit(Utils::Overloaded{
+    [] (kind::Delegate) { return EVMC_DELEGATECALL; },
+    [] (kind::Normal) { return EVMC_CALL; },
+    [] (kind::Static) { return EVMC_CALL; }
+  }, callKind);
 }
 
-template<typename T>
-static T orDefault() noexcept {
-  return T{};
+constexpr uint32_t getCallFlags(kind::Any callKind) noexcept {
+  return std::visit(Utils::Overloaded{
+    [] (kind::Delegate) -> uint32_t { return 0; },
+    [] (kind::Normal) -> uint32_t { return 0; },
+    [] (kind::Static) -> uint32_t { return EVMC_STATIC; }
+  }, callKind);
 }
 
 namespace evm {
 
-Bytes CallExecutor::executeCall(kind::Any callKind, Gas& gas, const Message& msg) {
+Bytes CallExecutor::executeCall(kind::Any callKind, Gas& gas, const Message& msg, bytes::View code) {
+  const evmc_message evmcMsg{
+    .kind = getCallKind(callKind),
+    .flags = getCallFlags(callKind),
+    .depth = msg.depth,
+    .gas = gas.value(),
+    .recipient = msg.to.toEvmcAddress(),
+    .sender = msg.from.toEvmcAddress(),
+    .input_data = msg.input.data(),
+    .input_size = msg.input.size(),
+    .value = Utils::uint256ToEvmcUint256(msg.value),
+    .create2_salt = {},
+    .code_address = {}
+  };
 
+  evmc::Result result(::evmc_execute(this->vm_,
+                                     &this->get_interface(),
+                                     this->to_context(),
+                                     evmc_revision::EVMC_LATEST_STABLE_REVISION,
+                                     &evmcMsg,
+                                     code.data(),
+                                     code.size()));
+
+  gas.use(evmcMsg.gas - result.gas_left);
+
+  bytes::View output(result.output_data, result.output_size);
+
+  switch (result.status_code) {
+    case EVMC_SUCCESS:
+      return Utils::makeBytes(output);
+
+    case EVMC_REVERT:
+      throw ExecutionReverted("TODO");
+    
+    case EVMC_OUT_OF_GAS:
+      throw OutOfGas();
+
+    default:
+      throw ExecutionFailure("TODO");
+  }
 }
 
-bool CallExecutor::account_exists(const evmc::address& addr) const noexcept override final {
+bool CallExecutor::account_exists(const evmc::address& addr) const noexcept {
   return accounts_.find(addr) != accounts_.end();
 }
 
-evmc::bytes32 CallExecutor::get_storage(const evmc::address& addr, const evmc::bytes32& key) const noexcept override final {
-  return findAnd(vmStorage_, StorageKey(addr, key), thenToBytes32, orDefault<evmc::bytes32>);
+evmc::bytes32 CallExecutor::get_storage(const evmc::address& addr, const evmc::bytes32& key) const noexcept {
+  return get(vmStorage_, StorageKey(addr, key))
+    .transform([] (const Hash& hash) { return hash.toEvmcBytes32(); })
+    .value_or(evmc::bytes32{});
 }
 
-evmc_storage_status CallExecutor::set_storage(const evmc::address& addr, const evmc::bytes32& key, const evmc::bytes32& value) noexcept override final {
+evmc_storage_status CallExecutor::set_storage(const evmc::address& addr, const evmc::bytes32& key, const evmc::bytes32& value) noexcept {
   const StorageKey storageKey(addr, key);
   auto& storageValue = vmStorage_[storageKey];
   stack_.registerStorageChange(storageKey, storageValue);
@@ -41,63 +99,150 @@ evmc_storage_status CallExecutor::set_storage(const evmc::address& addr, const e
   return EVMC_STORAGE_MODIFIED;
 }
 
-evmc::uint256be CallExecutor::get_balance(const evmc::address& addr) const noexcept override final {
-  return findAnd(accounts_, addr,
-    [] (const auto& account) { return Utils::uint256ToEvmcUint256(account->balance); },
-    orDefault<evmc::uint256be>);
+evmc::uint256be CallExecutor::get_balance(const evmc::address& addr) const noexcept {
+  return get(accounts_, addr)
+    .transform([] (const auto& account) { return Utils::uint256ToEvmcUint256(account.get()->balance); })
+    .value_or(evmc::uint256be{});
 }
 
-size_t CallExecutor::get_code_size(const evmc::address& addr) const noexcept override final {
-  return findAnd(accounts_, addr,
-    [] (const auto& account) { return account->code.size(); },
-    orDefault<size_t>);
+size_t CallExecutor::get_code_size(const evmc::address& addr) const noexcept {
+  return get(accounts_, addr)
+    .transform([] (const auto& account) { return account.get()->code.size(); })
+    .value_or(0);
 }
 
-evmc::bytes32 CallExecutor::get_code_hash(const evmc::address& addr) const noexcept override final {
-  return findAnd(accounts_, addr,
-    [] (const auto& account) { return account->codeHash.toEvmcBytes32(); },
-    orDefault<evmc::bytes32>);
+evmc::bytes32 CallExecutor::get_code_hash(const evmc::address& addr) const noexcept {
+  return get(accounts_, addr)
+    .transform([] (const auto& account) { return account.get()->codeHash.toEvmcBytes32(); })
+    .value_or(evmc::bytes32{});
 }
 
-size_t CallExecutor::copy_code(const evmc::address& addr, size_t code_offset, uint8_t* buffer_data, size_t buffer_size) const noexcept override final {
-  return findAnd();
+size_t CallExecutor::copy_code(const evmc::address& addr, size_t code_offset, uint8_t* buffer_data, size_t buffer_size) const noexcept {
+  const auto thenCopyCode = [&] (const auto& account) -> size_t {
+    bytes::View code = account.get()->code;
+
+    if (code_offset < code.size()) {
+      const size_t n = std::min(buffer_size, code.size() - code_offset);
+      if (n > 0)
+        std::copy_n(&code[code_offset], n, buffer_data);
+      return n;
+    }
+
+    return 0;
+  };
+
+  return get(accounts_, addr)
+    .transform(thenCopyCode)
+    .value_or(0);
 }
 
-bool CallExecutor::selfdestruct(const evmc::address& addr, const evmc::address& beneficiary) noexcept override final {
-
+bool CallExecutor::selfdestruct(const evmc::address& addr, const evmc::address& beneficiary) noexcept {
+  return false;
 }
 
-evmc_tx_context CallExecutor::get_tx_context() const noexcept override final {
-
+evmc_tx_context CallExecutor::get_tx_context() const noexcept {
+  return currentTxContext_;
 }
 
-evmc::bytes32 CallExecutor::get_block_hash(int64_t number) const noexcept override final {
-
+evmc::bytes32 CallExecutor::get_block_hash(int64_t number) const noexcept {
+  return Utils::uint256ToEvmcUint256(number);
 }
 
-void CallExecutor::emit_log(const evmc::address& addr, const uint8_t* data, size_t data_size, const evmc::bytes32 topics[], size_t topics_count) noexcept override final {
-
+void CallExecutor::emit_log(const evmc::address& addr, const uint8_t* data, size_t data_size, const evmc::bytes32 topics[], size_t topics_count) noexcept {
+  try {
+    std::vector<Hash> topics_;
+    for (uint64_t i = 0; i < topics_count; i++) {
+      topics_.emplace_back(topics[i]);
+    }
+    Event event("", // EVM events do not have names
+                this->eventIndex_,
+                this->txHash_,
+                this->txIndex_,
+                this->blockHash_,
+                this->currentTxContext_.block_number,
+                addr,
+                Bytes(data, data + data_size),
+                topics_,
+                (topics_count == 0)
+      );
+    ++this->eventIndex_;
+    this->stack_.registerEvent(std::move(event));
+  } catch (const std::exception& ignored) {}
 }
 
-evmc_access_status CallExecutor::access_account(const evmc::address& addr) noexcept override final {
-
+evmc_access_status CallExecutor::access_account(const evmc::address& addr) noexcept {
+  return EVMC_ACCESS_WARM;
 }
 
-evmc_access_status CallExecutor::access_storage(const evmc::address& addr, const evmc::bytes32& key) noexcept override final {
-
+evmc_access_status CallExecutor::access_storage(const evmc::address& addr, const evmc::bytes32& key) noexcept {
+  return EVMC_ACCESS_WARM;
 }
 
-evmc::bytes32 CallExecutor::get_transient_storage(const evmc::address &addr, const evmc::bytes32 &key) const noexcept override final {
-
+evmc::bytes32 CallExecutor::get_transient_storage(const evmc::address &addr, const evmc::bytes32 &key) const noexcept {
+  return get(transientStorage_, StorageKey(addr, key))
+    .transform([] (const Hash& hash) { return hash.toEvmcBytes32(); })
+    .value_or(evmc::bytes32{});
 }
 
-void CallExecutor::set_transient_storage(const evmc::address &addr, const evmc::bytes32 &key, const evmc::bytes32 &value) noexcept override final {
-
+void CallExecutor::set_transient_storage(const evmc::address &addr, const evmc::bytes32 &key, const evmc::bytes32 &value) noexcept {
+  transientStorage_.emplace(StorageKey(addr, key), value);
 }
 
-evmc::Result CallExecutor::call(const evmc_message& msg) noexcept override final {
+evmc::Result CallExecutor::call(const evmc_message& msg) noexcept {
+  Message callMsg;
+  CreateMessage createMsg;
+  evmc_status_code status;
+  std::variant<Bytes, Address> result = Bytes();
+  kind::Any callKind;
 
+  Gas gas(msg.gas);
+
+  if (msg.kind == EVMC_DELEGATECALL) {
+    callKind = kind::DELEGATE;
+  } else if (msg.flags == EVMC_STATIC) {
+    callKind = kind::STATIC;
+  } else {
+    callKind = kind::NORMAL;
+  }
+
+  try {
+    switch (msg.kind) {
+      case EVMC_CALL:
+      case EVMC_DELEGATECALL:
+        callMsg.from = Address(msg.sender);
+        callMsg.to = Address(msg.recipient);
+        callMsg.value = Utils::evmcUint256ToUint256(msg.value);
+        callMsg.depth = msg.depth;
+        callMsg.input = bytes::View(msg.input_data, msg.input_size);
+        result = callHandler_.onCall(callKind, gas, callMsg);
+        break;
+
+      case EVMC_CREATE2:
+        [[fallthrough]];
+
+      case EVMC_CREATE:
+        [[fallthrough]];
+
+      case EVMC_CALLCODE:
+        assert(false); // TODO
+    }
+
+    status = EVMC_SUCCESS;
+
+  } catch (const OutOfGas&) {
+    status = EVMC_OUT_OF_GAS;
+  } catch (const ExecutionReverted&) {
+    // TODO: encode error if exists
+    status = EVMC_REVERT;
+  } catch (const std::exception&) {
+    // TODO: encode error if exists
+    status = EVMC_FAILURE;
+  }
+
+  return std::visit(Utils::Overloaded{
+    [&] (Bytes output) { return evmc::Result(status, gas.value(), 0, output.data(), output.size()); },
+    [&] (const Address& createAddress) { return evmc::Result(status, gas.value(), 0, createAddress.toEvmcAddress()); },
+  }, std::move(result));
 }
-
 
 } // namespace evm

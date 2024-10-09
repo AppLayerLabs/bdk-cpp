@@ -23,7 +23,7 @@ class StateTest : public State {
                 const Hash& randomness,
                 const Hash& txHash,
                 const Hash& blockHash,
-                Gas& gasLeft) {
+                int64_t& leftoverGas) {
       ContractHost host(
         this->vm_,
         this->dumpManager_,
@@ -36,7 +36,7 @@ class StateTest : public State {
         txHash,
         0,
         blockHash,
-        gasLeft
+        leftoverGas
       );
       host.execute(callInfo, type);
     }

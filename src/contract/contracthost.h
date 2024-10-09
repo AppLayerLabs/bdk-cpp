@@ -87,12 +87,11 @@ class ContractHost : public evmc::Host {
     const Hash& txHash_;
     const uint64_t txIndex_;
     const Hash& blockHash_;
-    uint64_t
-    & leftoverGas_; /// Reference to the leftover gas from the transaction.
+    int64_t& leftoverGas_; /// Reference to the leftover gas from the transaction.
                             /// The leftoverGas_ is a object given by the State
     TxAdditionalData addTxData_;
     trace::CallTracer callTracer_;
-    Gas& gas_;
+    Gas *gas_ = nullptr;
     CallDispatcher callHandler_;
 
     // Private as this is not available for contracts as it has safety checks
@@ -165,7 +164,7 @@ class ContractHost : public evmc::Host {
                  const Hash& txHash,
                  const uint64_t txIndex,
                  const Hash& blockHash,
-                 Gas& gas) :
+                 int64_t& txGasLimit) :
     vm_(vm),
     manager_(manager),
     storage_(storage),
@@ -177,10 +176,10 @@ class ContractHost : public evmc::Host {
     txHash_(txHash),
     txIndex_(txIndex),
     blockHash_(blockHash),
-    leftoverGas_(gas.value_),
+    leftoverGas_(txGasLimit),
     addTxData_({.hash = txHash}),
-    gas_(gas),
-    callHandler_(cpp::CallExecutor(*this, contracts_), DummyHandler(), [this] (const Address& from, const Address& to, const uint256_t& value) { transfer(from, to, value); }, accounts) {}
+    stack_(),
+    callHandler_(cpp::CallExecutor(*this, contracts_), evm::CallExecutor(callHandler_, vm_, vmStorage, accounts, stack_, txHash, txIndex, blockHash, currentTxContext), [this] (const Address& from, const Address& to, const uint256_t& value) { transfer(from, to, value); }, accounts) {} // TODO: remove this lambda?
     // callHandler_(cpp::CallExecutor(*this, contracts_), DummyHandler(), std::function<void(const Address&, const Address&, const uint256_t&)>(), accounts_){}
     // callHandler_(vm_, accounts_, contracts_, nullptr) {
     //   callHandler_.setContractHost(this);
@@ -203,26 +202,16 @@ class ContractHost : public evmc::Host {
     /// Executes a call
     void execute(const evmc_message& msg, const ContractType& type);
 
-    decltype(auto) execute(auto&& msg) {
-      gas_.use(21000);
+    decltype(auto) execute(Gas& gas, auto&& msg) {
+      gas.use(21000);
 
       try {
-        return callHandler_.onCall(kind::NORMAL, gas_, std::forward<decltype(msg)>(msg));
+        return callHandler_.onCall(kind::NORMAL, gas, std::forward<decltype(msg)>(msg));
       } catch (const std::exception& err) {
         mustRevert_ = true;
         throw err;
       }
     }
-
-    // decltype(auto) execute(auto&& msg) {
-    //   gas_.use(21000);
-    //   return callHandler_.onCall(kind::Normal, gas_, std::forward<decltype(msg)>(msg));
-    // }
-
-    // Address execute(Gas& gas, const CreateMessage& msg) {
-    //   gas.use(666); // TODO: how much for a contract creation?
-    //   return callHandler_.onCreate(gas, msg);
-    // }
 
     /// Executes a eth_call RPC method (view)
     /// returns the result of the call
@@ -273,7 +262,7 @@ class ContractHost : public evmc::Host {
         .method = cpp::PackagedMethod(func, args...)
       };
 
-      return callHandler_.onCall(kind::STATIC, gas_, std::move(msg));
+      return callHandler_.onCall(kind::STATIC, *gas_, std::move(msg));
 
       const auto recipientAccIt = this->accounts_.find(targetAddr);
       if (recipientAccIt == this->accounts_.end()) {
@@ -424,7 +413,7 @@ class ContractHost : public evmc::Host {
         .method = cpp::PackagedMethod(func, args...)
       };
 
-      return callHandler_.onCall(kind::NORMAL, gas_, std::move(msg));
+      return callHandler_.onCall(kind::NORMAL, *gas_, std::move(msg));
 
       // 1000 Gas Limit for every C++ contract call!
       auto& recipientAcc = *this->accounts_[targetAddr];
@@ -654,6 +643,30 @@ class ContractHost : public evmc::Host {
     }
     /// END OF CONTRACT INTERFACING FUNCTIONS
 
+    // auto setGasContext(Gas& gas) {
+    //   struct GasContextGuard {
+    //     ~GasContextGuard() {
+    //       *target = prevGas;
+    //     }
+
+    //     Gas** target;
+    //     Gas* prevGas;
+    //   };
+
+    //   const GasContextGuard guard{ .target = &gas_, .prevGas = gas_ };
+
+    //   gas_ = &gas;
+
+    //   return guard;
+    // }
+
+    void setGas(Gas& gas) {
+      gas_ = &gas;
+    }
+
+    Gas& getGas() {
+      return *gas_; // TODO: check null
+    }
 };
 
 #endif // CONTRACT_HOST_H
