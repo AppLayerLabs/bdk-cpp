@@ -129,7 +129,7 @@ include(cmake/FindGRPCLocal.cmake)
 #
 # Using the old protoc logic which did work, will generate target gen-proto-grpc
 #
-include(cmake/JustGenerateCometBFTProtoV1.cmake)
+include(cmake/GenerateCometBFTProtoV1_NoExp.cmake)
 
 #  ************ CUSTOM GRPC / PROTO *********************************************************
 

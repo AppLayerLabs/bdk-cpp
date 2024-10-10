@@ -46,6 +46,8 @@ using namespace cometbft::types::v1;
 //         our comet_ reference here indirectly (but then this has to be a friend class, and the methods
 //         we call for that via comet_ are private to others, just accessible to this class)
 //
+//  https://github.com/cometbft/cometbft/blob/main/spec/abci/abci++_methods.md
+//
 class ABCIServiceImpl final : public cometbft::abci::v1::ABCIService::Service {
 public:
     Comet& comet_;
@@ -68,21 +70,27 @@ public:
 
     grpc::Status Info(grpc::ServerContext* context, const InfoRequest* request, InfoResponse* response) override {
       LOGXTRACE("Got Info");
+      response->set_version("1.0.0");  // Provide a simple version string
+      response->set_last_block_height(0);  // No blocks committed in a no-op setup
+      response->set_last_block_app_hash("");  // No app hash for the first block
       return grpc::Status::OK;
     }
 
     grpc::Status CheckTx(grpc::ServerContext* context, const CheckTxRequest* request, CheckTxResponse* response) override {
       LOGXTRACE("Got CheckTx");
+      response->set_code(0);  // Return a success code (0) for all transactions
       return grpc::Status::OK;
     }
 
     grpc::Status Query(grpc::ServerContext* context, const QueryRequest* request, QueryResponse* response) override {
       LOGXTRACE("Got Query");
+      response->set_code(0);  // Return a success code for queries
       return grpc::Status::OK;
     }
 
     grpc::Status Commit(grpc::ServerContext* context, const CommitRequest* request, CommitResponse* response) override {
       LOGXTRACE("Got Commit");
+      response->set_retain_height(0); // Set the retain_height to zero to retain all blocks. (This is the default anyway)
       return grpc::Status::OK;
     }
 
@@ -113,16 +121,19 @@ public:
 
     grpc::Status PrepareProposal(grpc::ServerContext* context, const PrepareProposalRequest* request, PrepareProposalResponse* response) override {
       LOGXTRACE("Got PrepareProposal");
+      response->clear_txs();  // Ensure no transactions are included in the block proposal
       return grpc::Status::OK;
     }
 
     grpc::Status ProcessProposal(grpc::ServerContext* context, const ProcessProposalRequest* request, ProcessProposalResponse* response) override {
       LOGXTRACE("Got ProcessProposal");
+      response->set_status(cometbft::abci::v1::PROCESS_PROPOSAL_STATUS_ACCEPT); // Accept all proposals
       return grpc::Status::OK;
     }
 
     grpc::Status ExtendVote(grpc::ServerContext* context, const ExtendVoteRequest* request, ExtendVoteResponse* response) override {
       LOGXTRACE("Got ExtendVote");
+      response->set_vote_extension("");
       return grpc::Status::OK;
     }
 
@@ -133,6 +144,7 @@ public:
 
     grpc::Status FinalizeBlock(grpc::ServerContext* context, const FinalizeBlockRequest* request, FinalizeBlockResponse* response) override {
       LOGXTRACE("Got FinalizeBlock");
+      response->set_app_hash("");  // No state changes, so app hash is empty
       return grpc::Status::OK;
     }
 };
@@ -608,36 +620,44 @@ void Comet::start() {
 }
 
 void Comet::stop() {
+  LOGXTRACE("1");
+
   if (this->loopFuture_.valid()) {
     this->stop_ = true;
 
-    // -- Begin stop gRPC server if any
-    if (grpcServer_) {
-        // this makes the grpc server thread actually terminate so we can join it 
-        grpcServer_->Shutdown();
-    }
-    // Wait for the server thread to finish
-    if (grpcServerThread_) {
-      grpcServerThread_->join();
-      grpcServerThread_.reset();
-    }
-    // get rid of the grpcServer since it is shut down
-    grpcServer_.reset();
-    // Force-reset these for good measure
-    grpcServerStarted_ = false;
-    grpcServerRunning_ = false;
-    // -- End stop gRPC server if any
+    // (1)
+    // We should stop the cometbft process first; we are a server to the consensus engine,
+    //   and the side making requests should be the one to be shut down.
+    // We can use the stop_ flag on our side to know that we are stopping as we service 
+    //   ABCI callbacks from the consensus engine, but it probably isn't needed.
+    //
+    // It actually does not make sense to shut down the gRPC server from our end, since
+    //   the cometbft process will, in this case, simply attempt to re-establish the
+    //   connection with the ABCI application (the gRPC server); it assumes it is running
+    //   under some sort of process control that restarts it in case it fails.
+    //
+    // CometBFT should receive SIGTERM and then just terminate cleanly, including sending a
+    //   socket disconnection or shutdown message to us, which should ultimately allow us
+    //   to wind down our end of the gRPC connection gracefully.
+
 
     // -- Begin stop process_ if any
     // process shutdown -- TODO: assuming this is needed i.e. it doesn't shut down when the connected application goes away?
     if (process_.has_value()) {
+      LOGDEBUG("Terminating CometBFT process");
+      LOGXTRACE("Term 1");
       // terminate the process
       pid_t pid = process_->id();
       try {
+        LOGXTRACE("Term 2");
         process_->terminate(); // SIGTERM (graceful termination, equivalent to terminal CTRL+C)
+        LOGXTRACE("Term 3");
         LOGDEBUG("Process with PID " + std::to_string(pid) + " terminated");
+        LOGXTRACE("Term 4");
         process_->wait();  // Ensure the process is fully terminated
+        LOGXTRACE("Term 5");
         LOGDEBUG("Process with PID " + std::to_string(pid) + " joined");
+        LOGXTRACE("Term 6");
       } catch (const std::exception& ex) {
         // This is bad, and if it actually happens, we need to be able to do something else here to ensure the process disappears
         //   because we don't want a process using the data directory and using the socket ports.
@@ -657,16 +677,73 @@ void Comet::stop() {
           LOGERROR("Failed to execute kill -9: " + std::string(ex2.what()));
         }
       }
+      LOGXTRACE("Term end");
     }
+    LOGXTRACE("10");
     // we need to ensure we got rid of any process_ instance in any case so we can start another
     process_.reset();
+    LOGDEBUG("CometBFT process terminated");
     // -- End stop process_ if any
 
+
+    // (2)
+    // We should know cometbft has disconnected from us when:
+    //
+    //     grpcServerRunning_ == false
+    //
+    // Which means the grpcServer_->Wait() call has exited, which it should, if the gRPC server
+    //   on the other end has disconnected from us or died.
+    //
+    // TODO: We shouldn't rely on this, though. If a timeout elapses, we should consider
+    //       doing something else such as forcing kill -9 on cometbft, instead of looping
+    //       forever here without a timeout check.
+    //
+    LOGDEBUG("Waiting for grpcServer to finish");
+    while (grpcServerRunning_) {
+      std::this_thread::sleep_for(std::chrono::milliseconds(20));
+    }
+    LOGDEBUG("Finished grpcServer");
+
+
+    // (3)
+    // Now that cometbft should have disconnected from the gRPC server instance and it is
+    //  thus inactive, then we should be able to shut it down without any problems.
+
+    // -- Begin stop gRPC server if any
+    if (grpcServer_) {
+      LOGDEBUG("Shutting down grpcServer");
+      // this makes the grpc server thread actually terminate so we can join it 
+      grpcServer_->Shutdown();
+      LOGDEBUG("Shutted down grpcServer");
+    }
+    LOGXTRACE("4");
+    // Wait for the server thread to finish
+    if (grpcServerThread_) {
+      LOGXTRACE("5");
+      grpcServerThread_->join();
+      LOGXTRACE("6");
+      grpcServerThread_.reset();
+      LOGXTRACE("7");
+    }
+    LOGXTRACE("8");
+    // get rid of the grpcServer since it is shut down
+    grpcServer_.reset();
+    LOGXTRACE("9");
+    // Force-reset these for good measure
+    grpcServerStarted_ = false;
+    grpcServerRunning_ = false;
+    // -- End stop gRPC server if any
+
+
+
+    
+    LOGXTRACE("11");
     this->setPauseState(); // must reset any pause state otherwise it won't ever finish
     this->loopFuture_.wait();
     this->loopFuture_.get();
     resetError(); // stop() clears any error status
     setState(CometState::STOPPED);
+    LOGXTRACE("12");
   }
 }
 

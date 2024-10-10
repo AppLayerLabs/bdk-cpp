@@ -191,14 +191,14 @@ namespace TComet {
 
       // --- stop ---
 
-      GLOGDEBUG("TEST: Stopping");
+      GLOGDEBUG("TEST: Stopping (waiting several seconds)");
 
       std::this_thread::sleep_for(std::chrono::seconds(5));
 
-      GLOGDEBUG("TEST: Stopping...");
+      GLOGDEBUG("TEST: Stopping... (after waiting)");
 
       REQUIRE(comet.getStatus()); // no error reported (must check before stop())
-      
+
       // Stop comet.
       comet.stop();
 
