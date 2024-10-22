@@ -23,11 +23,15 @@ jobs:
       BRANCH_NAME: ${{ github.head_ref || github.ref_name }}
     steps:
       - name: Clone the repository
-        run: git clone https://github.com/${{ github.repository }} ${{ env.TARGET_DIR}} || true
+        run: git clone https://github.com/${{github.repository}} ${{env.TARGET_DIR}} || true
       - name: Sync with remote repository
         run: git -C ${{env.TARGET_DIR}} fetch
       - name: Checkout to current branch
         run: git -C ${{env.TARGET_DIR}} checkout ${{env.BRANCH_NAME}}
+      - name: Set user.email
+        run: git -C ${{env.TARGET_DIR}} config --global user.email "github-actions[bot]@users.noreply.github.com"
+      - name: Set user.name
+        run: git -C ${{env.TARGET_DIR}} config --global user.name "github-actions"
       - name: Update local repository
         run: git -C ${{env.TARGET_DIR}} pull
       - name: Build the container
@@ -36,7 +40,7 @@ jobs:
         run: ./scripts/auto.sh -s bdk stop
       - name: Restart the container
         run: ./scripts/auto.sh -s bdk up
-      - name: Clean previos build (if any)
+      - name: Clean previous build (if there is one)
         run: ./scripts/auto.sh -s bdk exec 'make -C build clean' || true
       - name: Configure MOLD linker
         run: ./scripts/auto.sh -s bdk exec 'cmake -S . -B build
