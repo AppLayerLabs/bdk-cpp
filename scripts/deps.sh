@@ -145,7 +145,7 @@ elif [ "${1:-}" == "--install" ]; then
     echo "-- Checking internal dependencies..."
     PKGS=""
     if [ -z "$HAS_GIT" ]; then PKGS+="git "; fi
-    if [ -z "$HAS_GCC" ] || [ -z "$HAS_GPP" ] || [ -z "$HAS_MAKE" ] || [ -z "$HAS_LD" ]; then PGKS+="build-essential "; fi
+    if [ -z "$HAS_GCC" ] || [ -z "$HAS_GPP" ] || [ -z "$HAS_MAKE" ] || [ -z "$HAS_LD" ]; then PKGS+="build-essential "; fi
     if [ -z "$HAS_CMAKE" ]; then PKGS+="cmake "; fi
     if [ -z "$HAS_TMUX" ]; then PKGS+="tmux "; fi
     if [ -z "$HAS_PROTOC" ]; then PKGS+="protobuf-compiler "; fi
