@@ -9,16 +9,19 @@ See the LICENSE.txt file in the project root for more information.
 #include "../utils/logger.h"
 #include "../libs/toml.hpp"
 
-#include <grpcpp/server_builder.h>
-#include <grpcpp/server.h>
-#include <grpcpp/security/server_credentials.h>
-
-// FIXME: figure out why it crashes at cometbft --> Echo --> our gRPC server here (ubuntu 22 setup)
+//remove
+//#include <grpcpp/server_builder.h>
+//#include <grpcpp/server.h>
+//#include <grpcpp/security/server_credentials.h>
 
 // ---------------------------------------------------------------------------------------
 // ABCIServiceImpl class
 // This is an internal detail of the Comet class
 // ---------------------------------------------------------------------------------------
+
+/*
+remove
+
 
 // Generated from .proto files
 #include <cometbft/abci/v1/service.grpc.pb.h>
@@ -148,6 +151,400 @@ public:
       return grpc::Status::OK;
     }
 };
+*/
+
+
+#include <iostream>
+#include <string>
+#include <set>
+#include <memory>
+#include <boost/asio.hpp>
+#include <google/protobuf/message.h>
+
+// Include the generated protobuf headers
+#include "cometbft/abci/v1/types.pb.h"
+
+namespace asio = boost::asio;
+using boost::asio::local::stream_protocol;
+
+const uint64_t MAX_MESSAGE_SIZE = 64 * 1024 * 1024; // 64 MB limit
+
+class AbciSession; // Forward declaration
+
+class AbciServer : public std::enable_shared_from_this<AbciServer> {
+public:
+    AbciServer(asio::io_context& io_context, const std::string& socket_path);
+
+    void start(); // New method to start accepting connections
+
+    void notify_failure(const std::string& reason);
+
+    bool failed() const;
+
+    const std::string& reason() const;
+
+    // FIXME: This is a hack just to get the first test detecting that a few callbacks have been made
+    bool gotInitChain_;
+    int lastBlockHeight_;
+
+private:
+    void do_accept();
+
+
+
+    asio::io_context& io_context_;
+    stream_protocol::acceptor acceptor_;
+    std::set<std::weak_ptr<AbciSession>, std::owner_less<std::weak_ptr<AbciSession>>> sessions_;
+    bool failed_;
+    std::string reason_;
+};
+
+// Now fully define AbciSession
+class AbciSession : public std::enable_shared_from_this<AbciSession> {
+public:
+    AbciSession(stream_protocol::socket socket, std::shared_ptr<AbciServer> server);
+
+    void start();
+
+    void close();
+
+private:
+    void do_read_message();
+    void process_request();
+    void do_write_message();
+    void read_varint(std::function<void(bool, uint64_t)> handler);
+    void do_read_varint_byte(std::function<void(bool, uint64_t)> handler);
+    void write_varint(uint64_t value, std::vector<uint8_t>& buffer);
+
+    stream_protocol::socket socket_;
+    std::shared_ptr<AbciServer> server_;
+    std::vector<uint8_t> message_data_;
+    std::vector<uint8_t> response_data_;
+    uint8_t varint_byte_;
+    uint64_t varint_value_;
+    int varint_shift_;
+};
+
+// Definition of AbciServer methods
+
+AbciServer::AbciServer(asio::io_context& io_context, const std::string& socket_path)
+    : io_context_(io_context), acceptor_(io_context, stream_protocol::endpoint(socket_path)), failed_(false), 
+      gotInitChain_(false), lastBlockHeight_(0)
+{
+    // Do not call do_accept() here
+}
+
+void AbciServer::start() {
+    do_accept();
+}
+
+void AbciServer::do_accept() {
+    auto self(shared_from_this());
+    acceptor_.async_accept([this, self](boost::system::error_code ec, stream_protocol::socket socket) {
+        if (!ec) {
+            auto session = std::make_shared<AbciSession>(std::move(socket), self);
+            sessions_.insert(session);
+            session->start();
+        } else {
+            // Notify failure
+            notify_failure("Error accepting connection: " + ec.message());
+        }
+        if (!failed_) {
+            do_accept();
+        }
+    });
+}
+
+void AbciServer::notify_failure(const std::string& reason) {
+    if (!failed_) {
+        failed_ = true;
+        reason_ = reason;
+        // Close all active sessions
+        for (auto& weak_session : sessions_) {
+            if (auto session = weak_session.lock()) {
+                std::cout << "Closing one session" << std::endl;
+                session->close();
+            }
+        }
+        // Stop accepting new connections
+        std::cout << "Closing acceptor" << std::endl;
+        acceptor_.close();
+        std::cout << "Acceptor closed" << std::endl;
+        // Stop the io_context
+        //no need to do this: once the acceptor is closed, the io context run calls all exit
+        //  since there is no more work -- no connections/sessions and no way to get more sessions.
+        //std::cout << "Stopping io_context" << std::endl;
+        //io_context_.stop();
+    }
+}
+
+bool AbciServer::failed() const {
+    return failed_;
+}
+
+const std::string& AbciServer::reason() const {
+    return reason_;
+}
+
+// Definition of AbciSession methods
+
+AbciSession::AbciSession(stream_protocol::socket socket, std::shared_ptr<AbciServer> server)
+    : socket_(std::move(socket)), server_(server) {}
+
+void AbciSession::start() {
+    do_read_message();
+}
+
+void AbciSession::close() {
+    std::cout << "AbciSession::close() start" << std::endl;
+    socket_.close();
+    std::cout << "AbciSession::close() done" << std::endl;
+}
+
+void AbciSession::do_read_message() {
+    auto self(shared_from_this());
+    // Read the varint message length asynchronously
+    read_varint([this, self](bool success, uint64_t msg_len) {
+        if (!success || msg_len == 0 || msg_len > MAX_MESSAGE_SIZE) {
+            //socket_.close();
+            server_->notify_failure("Error reading message length (failed)");
+            return;
+        }
+                if (msg_len == 0) {
+            //socket_.close();
+            server_->notify_failure("Error reading message length (len==0)");
+            return;
+                if (msg_len > MAX_MESSAGE_SIZE) {
+            //socket_.close();
+            server_->notify_failure("Error reading message length (maxlen)");
+            return;
+        }}
+
+        message_data_.resize(msg_len);
+        // Read the message data
+        asio::async_read(socket_, asio::buffer(message_data_), [this, self](boost::system::error_code ec, std::size_t /*length*/) {
+            if (ec) {
+                //socket_.close();
+                server_->notify_failure("Error reading message data: " + ec.message());
+                return;
+            }
+            // Process the message
+            process_request();
+        });
+    });
+}
+
+void AbciSession::process_request() {
+    // Parse the message into a Request
+    cometbft::abci::v1::Request request;
+    if (!request.ParseFromArray(message_data_.data(), message_data_.size())) {
+        //socket_.close();
+        server_->notify_failure("Failed to parse request");
+        return;
+    }
+
+    // Create a Response message
+    cometbft::abci::v1::Response response;
+
+    // Handle the request
+    switch (request.value_case()) {
+        case cometbft::abci::v1::Request::kEcho: {
+            std::cout << "Got Echo" << std::endl;
+            const auto& echo_req = request.echo();
+            auto* echo_resp = response.mutable_echo();
+            echo_resp->set_message(echo_req.message());
+            break;
+        }
+        case cometbft::abci::v1::Request::kFlush: {
+            std::cout << "Got Flush" << std::endl;
+            response.mutable_flush();
+            break;
+        }
+        case cometbft::abci::v1::Request::kInfo: {
+            std::cout << "Got Info" << std::endl;
+            const auto& info_req = request.info();
+            auto* info_resp = response.mutable_info();
+            info_resp->set_version("1.0.0");
+            info_resp->set_last_block_height(0);
+            info_resp->set_last_block_app_hash("");
+            break;
+        }
+        case cometbft::abci::v1::Request::kInitChain: {
+            // hack, fixme
+            server_->gotInitChain_ = true;
+
+            std::cout << "Got InitChain" << std::endl;
+            auto* init_chain_resp = response.mutable_init_chain();
+            // Populate InitChainResponse as needed
+            break;
+        }
+        case cometbft::abci::v1::Request::kPrepareProposal: {
+            std::cout << "Got PrepareProposal" << std::endl;
+            auto* prepare_resp = response.mutable_prepare_proposal();
+            // Implement PrepareProposal logic here
+            prepare_resp->clear_txs();
+            break;
+        }
+        case cometbft::abci::v1::Request::kProcessProposal: {
+            std::cout << "Got ProcessProposal" << std::endl;
+            auto* process_resp = response.mutable_process_proposal();
+            process_resp->set_status(cometbft::abci::v1::PROCESS_PROPOSAL_STATUS_ACCEPT);
+            break;
+        }
+        case cometbft::abci::v1::Request::kCheckTx: {
+            std::cout << "Got CheckTx" << std::endl;
+            const auto& check_tx_req = request.check_tx();
+            auto* check_tx_resp = response.mutable_check_tx();
+            check_tx_resp->set_code(0); // Success
+            break;
+        }
+        case cometbft::abci::v1::Request::kQuery: {
+            std::cout << "Got Query" << std::endl;
+            const auto& query_req = request.query();
+            auto* query_resp = response.mutable_query();
+            query_resp->set_code(0); // Success
+            break;
+        }
+        case cometbft::abci::v1::Request::kCommit: {
+            std::cout << "Got Commit" << std::endl;
+            auto* commit_resp = response.mutable_commit();
+            commit_resp->set_retain_height(0);
+            break;
+        }
+        case cometbft::abci::v1::Request::kExtendVote: {
+            std::cout << "Got ExtendVote" << std::endl;
+            auto* extend_vote_resp = response.mutable_extend_vote();
+            extend_vote_resp->set_vote_extension("");
+            break;
+        }
+        case cometbft::abci::v1::Request::kVerifyVoteExtension: {
+            std::cout << "Got VerifyVoteExtension" << std::endl;
+            auto* verify_vote_resp = response.mutable_verify_vote_extension();
+            verify_vote_resp->set_status(cometbft::abci::v1::VERIFY_VOTE_EXTENSION_STATUS_ACCEPT);
+            break;
+        }
+        case cometbft::abci::v1::Request::kFinalizeBlock: {
+            std::cout << "Got FinalizeBlock" << std::endl;
+
+            const auto& finalize_req = request.finalize_block();  
+
+            std::cout << "THE BLOCK HEIGHT IS NOW = " << finalize_req.height() << std::endl;
+            server_->lastBlockHeight_ = finalize_req.height();
+
+            auto* finalize_resp = response.mutable_finalize_block();
+            finalize_resp->set_app_hash("");
+            break;
+        }
+        case cometbft::abci::v1::Request::kListSnapshots: {
+            std::cout << "Got ListSnapshots" << std::endl;
+            auto* list_snapshots_resp = response.mutable_list_snapshots();
+            // Populate ListSnapshotsResponse as needed
+            break;
+        }
+        case cometbft::abci::v1::Request::kOfferSnapshot: {
+            std::cout << "Got OfferSnapshot" << std::endl;
+            auto* offer_snapshot_resp = response.mutable_offer_snapshot();
+            // Populate OfferSnapshotResponse as needed
+            break;
+        }
+        case cometbft::abci::v1::Request::kLoadSnapshotChunk: {
+            std::cout << "Got LoadSnapshotChunk" << std::endl;
+            auto* load_snapshot_chunk_resp = response.mutable_load_snapshot_chunk();
+            // Populate LoadSnapshotChunkResponse as needed
+            break;
+        }
+        case cometbft::abci::v1::Request::kApplySnapshotChunk: {
+            std::cout << "Got ApplySnapshotChunk" << std::endl;
+            auto* apply_snapshot_chunk_resp = response.mutable_apply_snapshot_chunk();
+            // Populate ApplySnapshotChunkResponse as needed
+            break;
+        }
+        default: {
+            std::cerr << "Unknown request type" << std::endl;
+            auto* exception_resp = response.mutable_exception();
+            exception_resp->set_error("Unknown request type");
+            break;
+        }
+    }
+
+
+    // Serialize the response
+    size_t response_size = response.ByteSizeLong();
+    response_data_.resize(response_size);
+    if (!response.SerializeToArray(response_data_.data(), response_size)) {
+        //socket_.close();
+        server_->notify_failure("Failed to serialize response");
+        return;
+    }
+
+    // Write the response
+    do_write_message();
+}
+
+void AbciSession::do_write_message() {
+    auto self(shared_from_this());
+    // Write the varint length prefix and response data
+    std::vector<uint8_t> write_buffer;
+    write_varint(response_data_.size(), write_buffer);
+    write_buffer.insert(write_buffer.end(), response_data_.begin(), response_data_.end());
+
+    asio::async_write(socket_, asio::buffer(write_buffer), [this, self](boost::system::error_code ec, std::size_t /*length*/) {
+        if (ec) {
+            //socket_.close();
+            server_->notify_failure("Error writing response: " + ec.message());
+            return;
+        }
+        // Continue reading the next message
+        do_read_message();
+    });
+}
+
+void AbciSession::read_varint(std::function<void(bool, uint64_t)> handler) {
+    auto self(shared_from_this());
+    varint_value_ = 0;
+    varint_shift_ = 0;
+    do_read_varint_byte(handler);
+}
+
+void AbciSession::do_read_varint_byte(std::function<void(bool, uint64_t)> handler) {
+    auto self(shared_from_this());
+    asio::async_read(socket_, asio::buffer(&varint_byte_, 1), [this, self, handler](boost::system::error_code ec, std::size_t /*length*/) {
+        if (ec) {
+            handler(false, 0);
+            server_->notify_failure("Error reading varint byte: " + ec.message());
+            return;
+        }
+        varint_value_ |= ((uint64_t)(varint_byte_ & 0x7F)) << varint_shift_;
+        if (!(varint_byte_ & 0x80)) {
+            handler(true, varint_value_);
+        } else {
+            varint_shift_ += 7;
+            if (varint_shift_ >= 64) {
+                handler(false, 0); // Varint too long
+                server_->notify_failure("Varint too long");
+                return;
+            }
+            do_read_varint_byte(handler);
+        }
+    });
+}
+
+void AbciSession::write_varint(uint64_t value, std::vector<uint8_t>& buffer) {
+    while (true) {
+        uint8_t byte = value & 0x7F;
+        value >>= 7;
+        if (value) {
+            byte |= 0x80;
+        }
+        buffer.push_back(byte);
+        if (!value) {
+            break;
+        }
+    }
+}
+
+
+
 
 // ---------------------------------------------------------------------------------------
 // Comet class
@@ -155,8 +552,8 @@ public:
 
 Comet::Comet(std::string instanceIdStr, const Options& options)
   : instanceIdStr_(std::move(instanceIdStr)), 
-    options_(options),
-    abciService_(std::make_unique<ABCIServiceImpl>(*this))
+    options_(options)//,
+    //abciService_(std::make_unique<ABCIServiceImpl>(*this))
 {
 }
 
@@ -239,6 +636,8 @@ void Comet::workerLoopInner() {
     const std::string cometConfigGenesisPath = cometConfigPath + "genesis.json";
     const std::string cometConfigPrivValidatorKeyPath = cometConfigPath + "priv_validator_key.json";
     const std::string cometConfigTomlPath = cometConfigPath + "config.toml";
+
+    this->cometUNIXSocketPath_ = cometPath + "abci.sock";
 
     LOGDEBUG("Options RootPath: " + options_.getRootPath());
 
@@ -442,7 +841,9 @@ void Comet::workerLoopInner() {
       // cleanup failed grpc server/thread startup
       grpcServerThread_->join();
       grpcServerThread_.reset();
-      grpcServer_.reset();
+      //grpcServer_.reset();
+      ioContext_.reset();
+      threadPool_.reset();
 
       // Ensure these are reset
       grpcServerStarted_ = false;
@@ -497,8 +898,9 @@ void Comet::workerLoopInner() {
       // CometBFT arguments
       std::vector<std::string> cometArgs = {
         "start", 
-        "--abci=grpc", 
-        "--proxy_app=tcp://127.0.0.1:26658", 
+        "--abci=socket",   // ABCI via socket connections instead of ABCI via a gRPC connection
+        //"--proxy_app=tcp://127.0.0.1:26658",
+        "--proxy_app=unix://" + this->cometUNIXSocketPath_,   // use a UNIX socket (the address is a file handle) which is more secure and potentially faster
         "--home=" + cometPath
       };
 
@@ -548,6 +950,23 @@ void Comet::workerLoopInner() {
     // TODO: So, we actually do get an Echo from cometbft first thing after the connection
     //       is established, so we can loop here waiting for an echo received flag to be 
     //       set, and also loop seeing if cometbft has been killed or crashed.
+
+    // HACK/FIXME: use cometstate to check we got initchain and are at height 5
+    //       remove this / make the test better by having the test itself control this
+    //       the app using the Comet class actually don't need this enum state and should control progression
+    //         of the chain by itself.
+    while (!stop_) {
+
+        if (gotInitChain() && lastBlockHeight() >= 5) {
+          break;
+        }
+
+        // TODO: here we are doing work such as:
+        //   - polling/blocking at the outgoing transactions queue and pumping them into the running
+        //     'cometbft start' process_
+
+        std::this_thread::sleep_for(std::chrono::milliseconds(20));
+    }
 
     setState(CometState::TESTED_COMET);
 
@@ -710,12 +1129,17 @@ void Comet::stop() {
     //  thus inactive, then we should be able to shut it down without any problems.
 
     // -- Begin stop gRPC server if any
+    
+    /*
+        // FIXME;/TODO: this is about cancelling the ABCIsocket net engine
+
     if (grpcServer_) {
       LOGDEBUG("Shutting down grpcServer");
       // this makes the grpc server thread actually terminate so we can join it 
       grpcServer_->Shutdown();
       LOGDEBUG("Shutted down grpcServer");
     }
+    */
     LOGXTRACE("4");
     // Wait for the server thread to finish
     if (grpcServerThread_) {
@@ -727,7 +1151,9 @@ void Comet::stop() {
     }
     LOGXTRACE("8");
     // get rid of the grpcServer since it is shut down
-    grpcServer_.reset();
+    //grpcServer_.reset();
+    ioContext_.reset();
+    threadPool_.reset();
     LOGXTRACE("9");
     // Force-reset these for good measure
     grpcServerStarted_ = false;
@@ -747,8 +1173,107 @@ void Comet::stop() {
   }
 }
 
+// hacks, fixme
+bool Comet::gotInitChain() {
+
+  if (abciServer_) {
+    return abciServer_->gotInitChain_;
+  }
+  return false;
+}
+int Comet::lastBlockHeight() {
+
+  if (abciServer_) {
+    return abciServer_->lastBlockHeight_;
+  }
+  return -1;
+}
+
+
 void Comet::grpcServerRun() {
 
+
+  // Remove the socket file if it already exists
+  ::unlink(cometUNIXSocketPath_.c_str());
+
+  ioContext_ = std::make_unique<boost::asio::io_context>();
+  threadPool_ = std::make_unique<boost::asio::thread_pool>(std::thread::hardware_concurrency());
+
+  // Create the server
+  abciServer_ = std::make_shared<AbciServer>(*ioContext_, cometUNIXSocketPath_);
+
+    // Start the server
+    abciServer_->start();
+
+
+        // need to set this before grpcServerStarted_ since that flag is used as the sync barrier in ExternalEngine::start() and
+    //  after that point, detecting grpcServerRunning_ == false indicates that we are no longer running, i.e. it exited or failed.
+    grpcServerRunning_ = true; // true when we know Wait() is going to be called
+
+    // After this is set, other threads can wait a bit and then check grpcServerRunning_
+    //   to guess whether everything is working as expected.
+    grpcServerStarted_ = true;
+
+    LOGDEBUG("grpcServerRun(): gRPC Server started");
+
+
+    // Run the io_context using the thread pool
+    //for (std::size_t i = 0; i < std::thread::hardware_concurrency(); ++i) {
+      asio::post(threadPool_->get_executor(), [this]() { this->ioContext_->run(); });
+    //}
+
+    // Wait for all threads to finish
+    // this call unblocks when you do CTRL+C on the cometbft process or when
+    //  there is any error whatsoever.
+    threadPool_->join();
+
+    if (abciServer_->failed()) {
+        std::cerr << "Server failed: " << abciServer_->reason() << std::endl;
+    } else {
+        // never happens, all shutdowns here in this demo are from socket errors
+        std::cout << "Server shut down normally." << std::endl;
+    }
+
+    grpcServerRunning_ = false;
+
+    LOGDEBUG("grpcServerRun(): gRPC Server stopped");
+
+    abciServer_.reset();
+
+
+/*
+    // not actually gRPC, just protobuf
+
+    std::string socket_path = "/tmp/abci.sock";
+
+    // Remove the socket file if it already exists
+    ::unlink(socket_path.c_str());
+
+    ioContext_ = std::make_unique<boost::asio::io_context>();
+    threadPool_ = std::make_unique<boost::asio::thread_pool>(std::thread::hardware_concurrency());
+
+    AbciServer server(*ioContext_, socket_path);
+
+    // need to set this before grpcServerStarted_ since that flag is used as the sync barrier in ExternalEngine::start() and
+    //  after that point, detecting grpcServerRunning_ == false indicates that we are no longer running, i.e. it exited or failed.
+    grpcServerRunning_ = true; // true when we know Wait() is going to be called
+
+    // After this is set, other threads can wait a bit and then check grpcServerRunning_
+    //   to guess whether everything is working as expected.
+    grpcServerStarted_ = true;
+
+    LOGDEBUG("grpcServerRun(): gRPC Server started");
+
+    asio::post(threadPool_->get_executor(), [this]() { this->ioContext_->run(); });
+
+    threadPool_->join();
+
+    grpcServerRunning_ = false;
+
+    LOGDEBUG("grpcServerRun(): gRPC Server stopped");
+    */
+
+/*
   // Create the GRPC listen socket/endpoint that the external engine will connect to 
   // InsecureServerCredentials is probably correct, we're not adding a security bureaucracy to a local RPC. use firewalls.
   //
@@ -789,4 +1314,7 @@ void Comet::grpcServerRun() {
   grpcServerRunning_ = false; // when past Wait(), we are no longer running
 
   LOGDEBUG("grpcServerRun(): gRPC Server stopped");
+
+
+  */
 }

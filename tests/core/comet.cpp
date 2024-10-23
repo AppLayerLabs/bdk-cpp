@@ -178,6 +178,12 @@ namespace TComet {
       // --- gRPC check ---
 
       // Set pause at tested the comet gRPC connection
+      // FIXME: the Comet class is waiting for getting initchain and getting block 5
+      //        to progress past the TESTED_COMET state. this state should be set
+      //        after e.g. getting an echo 4 times across the 4 connections for example,
+      //        which is enough of a test. 
+      //        the initchain and 5-blocks test logic should be here in the test body instead,
+      //        implying the Comet class exposes these metrics through its interface in a clean way.
       comet.setPauseState(CometState::TESTED_COMET);
 
       GLOGDEBUG("TEST: Waiting for gRPC server starting & testing");
@@ -185,17 +191,13 @@ namespace TComet {
       // Waits for the pause state or error status
       REQUIRE(comet.waitPauseState(10000) == "");
 
-      // --- process working ---
-
-      // TODO: Check consensus is advancing with some empty blocks (since it is a network with a single validator)
-
       // --- stop ---
 
-      GLOGDEBUG("TEST: Stopping (waiting several seconds)");
+      //GLOGDEBUG("TEST: Stopping (waiting several seconds)");
 
-      std::this_thread::sleep_for(std::chrono::seconds(5));
+      //std::this_thread::sleep_for(std::chrono::seconds(5));
 
-      GLOGDEBUG("TEST: Stopping... (after waiting)");
+      GLOGDEBUG("TEST: Stopping...");
 
       REQUIRE(comet.getStatus()); // no error reported (must check before stop())
 
