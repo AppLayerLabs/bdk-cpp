@@ -8,15 +8,11 @@ See the LICENSE.txt file in the project root for more information.
 #ifndef HASH_H
 #define HASH_H
 
-#include <memory>
-#include <boost/asio/ip/address.hpp>
+//#include <memory> // TODO: probably not used(?)
 
-#include "../bytes/join.h"
 #include "../libs/wyhash.h"
 
-#include "strings.h"
-#include "utils.h"
-#include "tx.h"
+#include "tx.h" // ecdsa.h -> utils.h -> strings.h, bytes/join.h, boost/asio/ip/address.hpp
 
 /**
  * Custom hashing implementation for use in `boost::unordered_flat_map`

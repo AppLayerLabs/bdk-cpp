@@ -6,7 +6,7 @@ See the LICENSE.txt file in the project root for more information.
 */
 
 #include "strings.h"
-#include "utils.h"
+#include "utils.h" // also includes "strings.h"
 
 Hash::Hash(const uint256_t& data) : FixedBytes<32>(Utils::uint256ToBytes(data)) {};
 

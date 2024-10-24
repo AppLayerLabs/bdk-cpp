@@ -11,8 +11,9 @@ See the LICENSE.txt file in the project root for more information.
 #include <string>
 #include <any>
 
-#include "../utils/hex.h"
 #include "../libs/json.hpp"
+
+#include "../utils/hex.h"
 #include "../utils/utils.h"
 
 /// Namespace for Solidity ABI-related operations.

@@ -5,9 +5,11 @@ This software is distributed under the MIT License.
 See the LICENSE.txt file in the project root for more information.
 */
 
+//#include <csignal> // TODO: probably not used
+
 #include "utils.h"
 
-#include <csignal>
+#include "dynamicexception.h"
 
 std::mutex log_lock;
 std::mutex debug_mutex;
@@ -859,5 +861,15 @@ std::string Utils::getSignalName(int signum) {
   else n = "Unknown signal";
   n += " (" + std::to_string(signum) + ")";
   return n;
+}
+
+bytes::View Utils::create_view_span(const Bytes& vec, size_t start, size_t size) {
+  if (start + size > vec.size()) throw DynamicException("Invalid range for span");
+  return bytes::View(vec.data() + start, size);
+}
+
+bytes::View Utils::create_view_span(const std::string_view str, size_t start, size_t size) {
+  if (start + size > str.size()) throw DynamicException("Invalid range for span");
+  return bytes::View(reinterpret_cast<const uint8_t*>(str.data()) + start, size);
 }
 

@@ -8,17 +8,17 @@ See the LICENSE.txt file in the project root for more information.
 #ifndef LOGGER_H
 #define LOGGER_H
 
-#include <string>
-#include <iostream>
+// TODO: find out where those are coming from
+//#include <iostream>
+//#include <source_location>
+//#include <sstream>
+//#include <type_traits>
+//#include <typeinfo>
+
+#include <future> // condition_variable, mutex
 #include <queue>
-#include <condition_variable>
-#include <future>
-#include <mutex>
-#include <typeinfo>
-#include <type_traits>
-#include <sstream>
-#include <source_location>
-#include <boost/core/demangle.hpp>
+
+#include <boost/core/demangle.hpp> // includes string
 
 /// Enum for the log message types.
 enum class LogType { XTRACE, TRACE, DEBUG, INFO, WARNING, ERROR, FATAL, NONE };

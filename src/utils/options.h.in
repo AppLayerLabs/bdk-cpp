@@ -8,12 +8,7 @@ See the LICENSE.txt file in the project root for more information.
 #ifndef OPTIONS_H
 #define OPTIONS_H
 
-#include "utils.h"
-#include "ecdsa.h"
-#include "finalizedblock.h"
-
-#include <filesystem>
-#include <boost/asio/ip/address.hpp>
+#include "finalizedblock.h" // merkle.h -> tx.h -> ecdsa.h -> utils.h -> filesystem, boost/asio/ip/address.hpp
 
 /**
  * Example options.json file:
@@ -57,45 +52,22 @@ See the LICENSE.txt file in the project root for more information.
  * }
  */
 
+// TODO: docs
+/// Helper class for setting the node's indexing mode.
 class IndexingMode {
-private:
-  int value_;
+  private:
+    int value_;
+    constexpr explicit IndexingMode(int value) : value_(value) {}
 
-  constexpr explicit IndexingMode(int value) : value_(value) {}
+  public:
+    static const IndexingMode DISABLED;
+    static const IndexingMode RPC;
+    static const IndexingMode RPC_TRACE;
 
-public:
-  static const IndexingMode DISABLED;
-  static const IndexingMode RPC;
-  static const IndexingMode RPC_TRACE;
+    explicit IndexingMode(std::string_view mode); // throws DynamicException
+    constexpr std::string_view toString() const;  // throws DynamicException
 
-  explicit IndexingMode(std::string_view mode) {
-    if (mode == "DISABLED") {
-      value_ = DISABLED.value_;
-    } else if (mode == "RPC") {
-      value_ = RPC.value_;
-    } else if (mode == "RPC_TRACE") {
-      value_ = RPC_TRACE.value_;
-    } else {
-      std::stringstream errorMessage;
-      errorMessage << "Invalid indexing mode value: \"" << mode << "\"";
-      throw DynamicException(errorMessage.str());
-    }
-  }
-
-  constexpr std::string_view toString() const {
-    if (*this == DISABLED)
-      return "DISABLED";
-    
-    if (*this == RPC)
-      return "RPC";
-
-    if (*this == RPC_TRACE)
-      return "RPC_TRACE";
-
-    throw DynamicException("Unknown indexing mode");
-  }
-
-  constexpr bool operator==(const IndexingMode&) const = default;
+    constexpr bool operator==(const IndexingMode&) const = default;
 };
 
 constexpr const IndexingMode IndexingMode::DISABLED{0};

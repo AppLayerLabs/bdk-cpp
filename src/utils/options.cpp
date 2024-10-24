@@ -7,6 +7,29 @@ See the LICENSE.txt file in the project root for more information.
 
 #include "options.h"
 
+#include "dynamicexception.h"
+
+IndexingMode::IndexingMode(std::string_view mode) {
+  if (mode == "DISABLED") {
+    value_ = DISABLED.value_;
+  } else if (mode == "RPC") {
+    value_ = RPC.value_;
+  } else if (mode == "RPC_TRACE") {
+    value_ = RPC_TRACE.value_;
+  } else {
+    std::stringstream errorMessage;
+    errorMessage << "Invalid indexing mode value: \"" << mode << "\"";
+    throw DynamicException(errorMessage.str());
+  }
+}
+
+constexpr std::string_view IndexingMode::toString() const {
+  if (*this == DISABLED) return "DISABLED";
+  if (*this == RPC) return "RPC";
+  if (*this == RPC_TRACE) return "RPC_TRACE";
+  throw DynamicException("Unknown indexing mode");
+}
+
 Options::Options(
   const std::string& rootPath, const std::string& web3clientVersion,
   const uint64_t& version, const uint64_t& chainID, const Address& chainOwner,

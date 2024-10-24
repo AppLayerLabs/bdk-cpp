@@ -8,42 +8,35 @@ See the LICENSE.txt file in the project root for more information.
 #ifndef UTILS_H
 #define UTILS_H
 
-#include <algorithm>
-#include <array>
-#include <atomic>
-#include <cxxabi.h>
+// TODO: find out where those are coming from
+//#include <atomic>
+//#include <cxxabi.h>
+//#include <string_view>
+//#include <thread>
+
 #include <filesystem>
 #include <fstream>
-#include <regex>
-#include <span>
-#include <string_view>
-#include <thread>
-#include <tuple>
-#include <variant>
+#include <regex> // used by jsonrpc/parser.cpp
 
-#include <boost/lexical_cast.hpp>
-#include <boost/multiprecision/cpp_dec_float.hpp>
-#include <boost/multiprecision/cpp_int.hpp>
+// TODO: find out where those are coming from
+//#include <boost/lexical_cast.hpp>
+//#include <boost/multiprecision/cpp_dec_float.hpp>
+//#include <boost/multiprecision/cpp_int.hpp>
 #include <boost/beast/core/error.hpp>
 #include <boost/asio/ip/address.hpp>
 
-#include <evmc/evmc.hpp>
 #include <ethash/keccak.h>
-#include <openssl/rand.h>
 
-#include "strings.h"
-#include "logger.h"
+#include "../libs/json.hpp" // algorithm, array, tuple
 
-#include "../libs/zpp_bits.h"
-#include "../libs/json.hpp"
+#include "../bytes/join.h" // range.h, view.h, initializer.h
 
-#include "../bytes/join.h"
-#include "../bytes/range.h"
-#include "../bytes/view.h"
-#include "../bytes/initializer.h"
-
-#include "../contract/variables/safeuint.h"
 #include "../contract/variables/safeint.h"
+#include "../contract/variables/safeuint.h"
+
+#include "dynamicexception.h" // included by strings.h, leave it for now to avoid AddressSanitizer runtime errors - TODO: see create_view_span()
+#include "logger.h"
+#include "strings.h" // hex.h, evmc/evmc.hpp, openssl/rand.h, libs/zpp_bits.h -> algorithm, array, span, variant
 
 /// Localhost IPv4 address constant
 inline const boost::asio::ip::address LOCALHOST = boost::asio::ip::address::from_string("127.0.0.1");
@@ -744,11 +737,9 @@ namespace Utils {
    * @param start The start index of the subvector.
    * @param size The size of the subvector.
    * @return The converted span.
+   * @throw DynamicException if range is invalid.
    */
-   inline bytes::View create_view_span(const Bytes& vec, size_t start, size_t size) {
-     if (start + size > vec.size()) throw DynamicException("Invalid range for span");
-     return bytes::View(vec.data() + start, size);
-   }
+   bytes::View create_view_span(const Bytes& vec, size_t start, size_t size);
 
   /**
    * Convert an array to const span.
@@ -765,10 +756,12 @@ namespace Utils {
    * @param start The start index of the subarray.
    * @param size The size of the subarray.
    * @return The converted span.
+   * @throw DynamicException if range is invalid.
    */
   template<std::size_t N> inline bytes::View create_view_span(
     const BytesArr<N>& arr, size_t start, size_t size
   ) {
+    // TODO: somehow migrate this to the cpp file so we can include dynamicexception.h only there, OR get rid of the exception altogether
     if (start + size > arr.size()) throw DynamicException("Invalid range for span");
     return bytes::View(arr.data() + start, size);
   }
@@ -788,13 +781,9 @@ namespace Utils {
    * @param start The start index of the substring.
    * @param size The size of the substring.
    * @return The converted span.
+   * @throw DynamicException if range is invalid.
    */
-  inline bytes::View create_view_span(const std::string_view str, size_t start, size_t size) {
-    if (start + size > str.size()) {
-      throw DynamicException("Invalid range for span");
-    }
-    return bytes::View(reinterpret_cast<const uint8_t*>(str.data()) + start, size);
-  }
+  bytes::View create_view_span(const std::string_view str, size_t start, size_t size);
 
   /**
    * Append a vector to another.

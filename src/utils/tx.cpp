@@ -7,6 +7,8 @@ See the LICENSE.txt file in the project root for more information.
 
 #include "tx.h"
 
+#include "dynamicexception.h"
+
 TxBlock::TxBlock(const bytes::View bytes, const uint64_t&) {
   uint64_t index = 0;
   bytes::View txData = bytes.subspan(1);

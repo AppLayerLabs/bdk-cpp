@@ -8,12 +8,13 @@ See the LICENSE.txt file in the project root for more information.
 #ifndef RANDOMGEN_H
 #define RANDOMGEN_H
 
-#include <boost/lexical_cast.hpp>
-#include <boost/multiprecision/cpp_dec_float.hpp>
-#include <boost/multiprecision/cpp_int.hpp>
-#include <boost/random.hpp>
-#include <boost/random/mersenne_twister.hpp>
-#include <boost/random/uniform_int_distribution.hpp>
+// TODO: fond out where those are coming from (probably utils.h)
+//#include <boost/lexical_cast.hpp>
+//#include <boost/multiprecision/cpp_dec_float.hpp>
+//#include <boost/multiprecision/cpp_int.hpp>
+//#include <boost/random.hpp>
+//#include <boost/random/mersenne_twister.hpp>
+//#include <boost/random/uniform_int_distribution.hpp>
 
 #include "utils.h"
 

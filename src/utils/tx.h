@@ -8,11 +8,7 @@ See the LICENSE.txt file in the project root for more information.
 #ifndef TX_H
 #define TX_H
 
-#include "../bytes/view.h"
-
-#include "ecdsa.h"
-#include "strings.h"
-#include "utils.h"
+#include "ecdsa.h" // utils.h -> strings.h, (bytes/join.h -> bytes/view.h)
 
 /**
  * Abstraction of a block transaction.

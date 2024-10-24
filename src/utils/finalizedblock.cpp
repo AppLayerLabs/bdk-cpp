@@ -6,7 +6,8 @@ See the LICENSE.txt file in the project root for more information.
 */
 
 #include "finalizedblock.h"
-#include "../core/rdpos.h"
+
+#include "../core/rdpos.h" // net/p2p/managernormal.h -> net/p2p/nodeconns.h (and broadcaster.h) -> thread
 
 FinalizedBlock FinalizedBlock::fromBytes(const bytes::View bytes, const uint64_t& requiredChainId) {
   try {
