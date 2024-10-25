@@ -1,23 +1,17 @@
+/*
+Copyright (c) [2023-2024] [AppLayer Developers]
+
+This software is distributed under the MIT License.
+See the LICENSE.txt file in the project root for more information.
+*/
+
 #ifndef CONTRACT_HOST_H
 #define CONTRACT_HOST_H
 
-
-#include <evmc/evmc.hpp>
-#include "../utils/utils.h"
-#include "../utils/strings.h"
-#include "../utils/hex.h"
-#include "../utils/safehash.h"
-#include "../utils/db.h"
-#include "../core/storage.h"
-#include <evmone/evmone.h>
-#include "contractstack.h"
-#include "../core/rdpos.h"
-#include "../utils/contractreflectioninterface.h"
+// utils/{contractreflectioninterface.h, db.h, safehash.h, (strings.h -> hex.h, evmc/evmc.hpp), utils.h},
+// contract.h -> core/{dump.h, storage.h -> calltracer.h}
 #include "contractmanager.h"
-#include "../core/dump.h"
-#include "calltracer.h"
-#include "../bytes/join.h"
-
+#include "contractstack.h" // utils/{strings.h,safehash.h, bytes/join.h}
 
 // TODO: EVMC Static Mode Handling
 // TODO: Contract creating other contracts (EVM Factories)

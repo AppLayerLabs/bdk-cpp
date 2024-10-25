@@ -8,13 +8,7 @@ See the LICENSE.txt file in the project root for more information.
 #ifndef ABI_H
 #define ABI_H
 
-#include <string>
-#include <any>
-
-#include "../libs/json.hpp"
-
-#include "../utils/hex.h"
-#include "../utils/utils.h"
+#include "../utils/utils.h" // libs/json.hpp -> string
 
 /// Namespace for Solidity ABI-related operations.
 namespace ABI {

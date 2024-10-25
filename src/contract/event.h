@@ -8,25 +8,10 @@ See the LICENSE.txt file in the project root for more information.
 #ifndef EVENT_H
 #define EVENT_H
 
-#include <algorithm>
-#include <shared_mutex>
-#include <source_location>
-#include <string>
-
-#include "../libs/json.hpp"
-#include "../libs/zpp_bits.h"
-
-#include "../utils/db.h"
-#include "../utils/options.h"
-#include "../utils/strings.h"
-#include "../utils/utils.h"
-
-#include "abi.h"
-
 #include <boost/multi_index_container.hpp>
-#include <boost/multi_index/hashed_index.hpp>
-#include <boost/multi_index/ordered_index.hpp>
 #include <boost/multi_index/member.hpp>
+
+#include "abi.h" // utils.h -> (strings.h -> libs/zpp_bits.h), (libs/json.hpp -> algorithm, string)
 
 namespace bmi = boost::multi_index;
 

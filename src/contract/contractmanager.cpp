@@ -5,15 +5,11 @@ This software is distributed under the MIT License.
 See the LICENSE.txt file in the project root for more information.
 */
 
-#include "abi.h"
-#include "contractfactory.h"
-#include "contracthost.h"
 #include "contractmanager.h"
+#include "contractfactory.h"
 #include "customcontracts.h"
 
 #include "../core/rdpos.h"
-#include "../core/state.h"
-#include "../utils/dynamicexception.h"
 
 ContractManager::ContractManager(
   const DB& db, boost::unordered_flat_map<Address, std::unique_ptr<BaseContract>, SafeHash>& contracts,

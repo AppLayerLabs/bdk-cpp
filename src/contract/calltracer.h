@@ -1,12 +1,16 @@
+/*
+Copyright (c) [2023-2024] [AppLayer Developers]
+
+This software is distributed under the MIT License.
+See the LICENSE.txt file in the project root for more information.
+*/
+
 #ifndef CONTRACT_CALLTRACER_H
 #define CONTRACT_CALLTRACER_H
 
-#include <memory>
-#include <list>
 #include <boost/container/stable_vector.hpp>
-#include "../utils/utils.h"
-#include "../utils/strings.h"
-#include "../libs/zpp_bits.h"
+
+#include "../utils/utils.h" // strings.h, bytes/join.h (used in .cpp) libs/zpp_bits.h -> memory
 
 namespace trace {
 

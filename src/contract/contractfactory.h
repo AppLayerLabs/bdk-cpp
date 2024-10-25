@@ -8,15 +8,8 @@ See the LICENSE.txt file in the project root for more information.
 #ifndef CONTRACTFACTORY_H
 #define CONTRACTFACTORY_H
 
-#include "../utils/safehash.h"
-#include "../utils/strings.h"
-#include "../utils/utils.h"
-#include "../utils/contractreflectioninterface.h"
-
-#include "abi.h"
-#include "contract.h"
-#include "contracthost.h"
-#include "contractmanager.h"
+// Leave it in to avoid "invalid use of incomplete type" warnings
+#include "contracthost.h" // utils/{contractreflectioninterface.h,safehash.h,string.h,utils.h}, contractmanager.h -> abi.h, contract.h
 
 /// Factory **namespace** that does the setup, creation and registration of contracts to the blockchain.
 /// As it is a namespace, it must take the required arguments (such as current contract list, etc.) as parameters.
@@ -36,7 +29,6 @@ See the LICENSE.txt file in the project root for more information.
  *     > createContractFuncs_;
  */
 namespace ContractFactory {
-
     /**
      * Helper function to create a new contract from a given call info.
      * @tparam TContract The contract type to create.

@@ -8,12 +8,8 @@ See the LICENSE.txt file in the project root for more information.
 #ifndef DYNAMICCONTRACT_H
 #define DYNAMICCONTRACT_H
 
-#include "abi.h"
-#include "contract.h"
-#include "contracthost.h"
-#include "event.h"
-#include "../utils/safehash.h"
-#include "../utils/utils.h"
+#include "contracthost.h" // contractmanager.h -> contract.h, ...utils/utils.h,safehash.h
+#include "event.h" // abi.h
 
 /// Template for a smart contract. All contracts must inherit this class.
 class DynamicContract : public BaseContract {
