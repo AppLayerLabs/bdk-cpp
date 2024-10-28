@@ -6,7 +6,6 @@ See the LICENSE.txt file in the project root for more information.
 */
 
 #include "consensus.h"
-#include "blockchain.h"
 
 void Consensus::validatorLoop() {
   LOGINFO("Starting validator loop.");

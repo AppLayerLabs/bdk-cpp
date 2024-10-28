@@ -8,15 +8,13 @@ See the LICENSE.txt file in the project root for more information.
 #ifndef DUMP_H
 #define DUMP_H
 
-#include <vector>
-#include <thread>
-#include <future>
-#include <chrono>
-#include <functional>
+//TODO: find out where those are coming from
+//#include <chrono>
+//#include <future>
+//#include <thread>
 #include <shared_mutex>
 
-#include "storage.h"
-#include "../utils/db.h"
+#include "storage.h" // utils/db.h, ... -> utils.h -> libs/json.hpp -> functional, vector
 
 /// Abstraction of a dumpable object (an object that can be dumped to the database).
 class Dumpable {

@@ -9,13 +9,15 @@ See the LICENSE.txt file in the project root for more information.
 #define LOGGER_H
 
 // TODO: find out where those are coming from
-//#include <iostream>
 //#include <source_location>
-//#include <sstream>
 //#include <type_traits>
 //#include <typeinfo>
 
+#include <filesystem> // used by core/consensus.h
 #include <future> // condition_variable, mutex
+#include <iomanip> // used by core/consensus.h
+#include <iostream> // used by core/consensus.h
+#include <sstream> // used by core/consensus.h
 #include <queue>
 
 #include <boost/core/demangle.hpp> // includes string

@@ -6,9 +6,6 @@ See the LICENSE.txt file in the project root for more information.
 */
 
 #include "rdpos.h"
-#include "storage.h"
-#include "state.h"
-#include "../contract/contractmanager.h"
 
 rdPoS::rdPoS(
   const DB& db, DumpManager& dumpManager, const Storage& storage,

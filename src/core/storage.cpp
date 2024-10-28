@@ -5,8 +5,6 @@ This software is distributed under the MIT License.
 See the LICENSE.txt file in the project root for more information.
 */
 
-#include <boost/asio/post.hpp>
-
 #include "storage.h"
 
 static bool topicsMatch(const Event& event, const std::vector<Hash>& topics) {
@@ -221,14 +219,11 @@ void Storage::putEvent(const Event& event) {
     Utils::uint64ToBytes(event.getLogIndex()),
     event.getAddress()
   ));
-
   eventsDb_.put(key, Utils::stringToBytes(event.serializeToJson()), DBPrefix::events);
 }
 
 std::vector<Event> Storage::getEvents(uint64_t fromBlock, uint64_t toBlock, const Address& address, const std::vector<Hash>& topics) const {
-  if (toBlock < fromBlock) {
-    std::swap(fromBlock, toBlock);
-  }
+  if (toBlock < fromBlock) std::swap(fromBlock, toBlock);
 
   if (uint64_t count = toBlock - fromBlock + 1; count > options_.getEventBlockCap()) {
     throw std::out_of_range(
@@ -246,46 +241,29 @@ std::vector<Event> Storage::getEvents(uint64_t fromBlock, uint64_t toBlock, cons
   for (Bytes key : eventsDb_.getKeys(DBPrefix::events, startBytes, endBytes)) {
     uint64_t nHeight = Utils::bytesToUint64(Utils::create_view_span(key, 0, 8));
     Address currentAddress(Utils::create_view_span(key, 24, 20));
-
-    if (fromBlock > nHeight || toBlock < nHeight) {
-      continue;
-    }
-
-    if (address == currentAddress || address == Address()) {
-      keys.push_back(std::move(key));
-    }
+    if (fromBlock > nHeight || toBlock < nHeight) continue;
+    if (address == currentAddress || address == Address()) keys.push_back(std::move(key));
   }
 
   for (DBEntry item : eventsDb_.getBatch(DBPrefix::events, keys)) {
-    if (events.size() >= options_.getEventLogCap()) {
-      break;
-    }
-
+    if (events.size() >= options_.getEventLogCap()) break;
     Event event(Utils::bytesToString(item.value));
-
-    if (topicsMatch(event, topics)) {
-      events.push_back(std::move(event));
-    }
+    if (topicsMatch(event, topics)) events.push_back(std::move(event));
   }
-
   return events;
 }
 
 std::vector<Event> Storage::getEvents(uint64_t blockIndex, uint64_t txIndex) const {
-  std::vector<Event> events;  
-
+  std::vector<Event> events;
   for (
     Bytes fetchBytes = Utils::makeBytes(bytes::join(
       DBPrefix::events, Utils::uint64ToBytes(blockIndex), Utils::uint64ToBytes(txIndex)
     ));
     DBEntry entry : eventsDb_.getBatch(fetchBytes)
   ) {
-    if (events.size() >= options_.getEventLogCap()) {
-      break;
-    }
-
+    if (events.size() >= options_.getEventLogCap()) break;
     events.emplace_back(Utils::bytesToString(entry.value));
   }
-
   return events;
 }
+

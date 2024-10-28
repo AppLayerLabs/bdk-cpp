@@ -8,18 +8,10 @@ See the LICENSE.txt file in the project root for more information.
 #ifndef STATE_H
 #define STATE_H
 
-#include <boost/unordered/unordered_flat_map.hpp>
-#include <evmc/evmc.hpp>
-
-#include "../utils/db.h"
-#include "../utils/logger.h"
-#include "../utils/utils.h"
 #include "../contract/contract.h"
-#include "../contract/contractmanager.h"
 
-#include "storage.h"
-#include "rdpos.h"
-#include "dump.h"
+#include "rdpos.h" // set, boost/unordered/unordered_flat_map.hpp
+#include "dump.h" // utils/db.h, storage.h -> utils/randomgen.h -> utils.h -> logger.h, (strings.h -> evmc/evmc.hpp), (libs/json.hpp -> boost/unordered/unordered_flat_map.hpp)
 
 // TODO: We could possibly change the bool functions into an enum function,
 // to be able to properly return each error case. We need this in order to slash invalid rdPoS blocks.

@@ -8,23 +8,17 @@ See the LICENSE.txt file in the project root for more information.
 #ifndef RDPOS_H
 #define RDPOS_H
 
-#include "../contract/contract.h"
-#include "../utils/strings.h"
-#include "../utils/tx.h"
-#include "../utils/safehash.h"
-#include "../utils/randomgen.h"
-#include "../utils/options.h"
-#include "../net/p2p/managernormal.h"
-
-#include <optional>
-#include <shared_mutex>
 #include <set>
-#include <boost/unordered/unordered_flat_map.hpp>
+
+#include "../utils/tx.h" // ecdsa.h -> utils.h -> strings.h, (libs/json.hpp -> boost/unordered/unordered_flat_map.hpp)
+
+#include "../contract/contract.h" // dump.h -> storage.h -> safehash.h, randomgen.h, options.h
+
+#include "../net/p2p/managernormal.h"
 
 // Forward declarations.
 class rdPoS;
 class Storage;
-class State;
 
 // "0x6fc5a2d6" -> Function for random tx
 // "0xcfffe746" -> Function for random hash tx
@@ -78,7 +72,7 @@ class rdPoS : public BaseContract, public Log::LogicalLocationProvider {
      * @return `true` if tx data is valid, `false` otherwise.
      */
     bool validateBlockTxSanityCheck(const TxValidator& hashTx, const TxValidator& seedTx) const;
-    
+
   public:
     /// Enum for Validator transaction functions.
     enum class TxValidatorFunction { INVALID, RANDOMHASH, RANDOMSEED };

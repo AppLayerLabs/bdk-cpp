@@ -6,8 +6,10 @@ See the LICENSE.txt file in the project root for more information.
 */
 
 #include "state.h"
+
+#include "../contract/contracthost.h" // contractmanager.h
+
 #include <evmone/evmone.h>
-#include "../contract/contracthost.h"
 
 State::State(
   const DB& db,

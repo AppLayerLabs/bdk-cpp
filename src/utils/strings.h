@@ -13,7 +13,7 @@ See the LICENSE.txt file in the project root for more information.
 
 #include "../libs/zpp_bits.h" // algorithm
 
-#include "bytes/initializer.h" // bytes/view.h -> bytes/range.h -> ranges -> span
+#include "../bytes/initializer.h" // bytes/view.h -> bytes/range.h -> ranges -> span
 
 #include "dynamicexception.h" // TODO: see the size todo below
 #include "hex.h"

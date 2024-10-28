@@ -8,16 +8,11 @@ See the LICENSE.txt file in the project root for more information.
 #ifndef CONSENSUS_H
 #define CONSENSUS_H
 
-#include <thread>
+// TODO: find out where those are coming from
+//#include <thread>
+//#include "../utils/tx.h"
 
-#include "rdpos.h"
-
-#include "../utils/ecdsa.h"
-#include "../utils/logger.h"
-#include "../utils/strings.h"
-#include "../utils/tx.h"
-
-class Blockchain; // Forward declaration.
+#include "state.h" // rdpos.h -> utils/tx.h -> ecdsa.h -> utils.h -> strings.h, logger.h, (libs/json.hpp -> boost/unordered/unordered_flat_map.hpp)
 
 // TODO: tests for Consensus (if necessary)
 

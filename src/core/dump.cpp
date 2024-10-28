@@ -6,7 +6,6 @@ See the LICENSE.txt file in the project root for more information.
 */
 
 #include "dump.h"
-#include "../contract/event.h"
 
 DumpManager::DumpManager(
   const Storage& storage, const Options& options, std::shared_mutex& stateMutex
