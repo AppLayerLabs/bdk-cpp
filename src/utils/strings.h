@@ -19,6 +19,8 @@ See the LICENSE.txt file in the project root for more information.
 #include "bytes/initializer.h"
 #include "zpp_bits.h"
 
+#include "address.h"
+
 // TODO: It is possible to implement **fast** operators for some types,
 // such as Address, Functor and Hash. Taking advantage that memory located within
 // the array are contiguous, we can cast the data to a pointer of native types
@@ -179,62 +181,6 @@ class Signature : public FixedBytes<65> {
     uint256_t r() const;  ///< Get the first half (32 bytes) of the signature.
     uint256_t s() const;  ///< Get the second half (32 bytes) of the signature.
     uint8_t v() const;  ///< Get the recovery ID (1 byte) of the signature.
-};
-
-/// Abstraction for a single 20-byte address (e.g. "1234567890abcdef..."). Inherits `FixedBytes<20>`.
-class Address : public FixedBytes<20> {
-  public:
-    using FixedBytes<20>::FixedBytes;
-    using FixedBytes<20>::operator<;
-    using FixedBytes<20>::operator<=;
-    using FixedBytes<20>::operator>;
-    using FixedBytes<20>::operator>=;
-    using FixedBytes<20>::operator=;
-
-    /**
-     * Constructor using a reference to evmc::address
-     * @param data The evmc::address pointer to convert into an address.
-     */
-    Address(const evmc::address& data);
-
-    /**
-     * Constructor using a reference to evmc_address
-     * @param data The evmc_address pointer to convert into an address.
-     */
-    Address(const evmc_address& data);
-
-    /**
-     * Copy constructor.
-     * @param add The address itself.
-     * @param inBytes If `true`, treats the input as a raw bytes string.
-     * @throw DynamicException if address has wrong size or is invalid.
-     */
-    Address(const std::string_view add, bool inBytes);
-
-    evmc::address toEvmcAddress() const;  ///< Convert the address string back to an evmc::address.
-
-    /**
-     * Convert the address to checksum format, as per [EIP-55](https://eips.ethereum.org/EIPS/eip-55).
-     * @return A copy of the checksummed address as a Hex object.
-     */
-    Hex toChksum() const;
-
-    /**
-     * Check if a given address string is valid.
-     * If the address has both upper *and* lowercase letters, will also check the checksum.
-     * @param add The address to be checked.
-     * @param inBytes If `true`, treats the input as a raw bytes string.
-     * @return `true` if the address is valid, `false` otherwise.
-     */
-    static bool isValid(const std::string_view add, bool inBytes);
-
-    /**
-     * Check if an address string is checksummed, as per [EIP-55](https://eips.ethereum.org/EIPS/eip-55).
-     * Uses `toChksum()` internally. Does not alter the original string.
-     * @param add The string to check.
-     * @return `true` if the address is checksummed, `false` otherwise.
-     */
-    static bool isChksum(const std::string_view add);
 };
 
 /// Abstraction of a EVM Storage key (20-bytes address + 32 bytes slot key). Inherits `FixedBytes<52>`.

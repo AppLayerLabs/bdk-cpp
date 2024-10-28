@@ -4,6 +4,7 @@
 #include "variadicparser.h"
 #include "../../../core/storage.h"
 #include "../../../core/state.h"
+#include "bytes/cast.h"
 
 #include <ranges>
 
@@ -106,14 +107,14 @@ static std::pair<Bytes, evmc_message> parseEvmcMessage(const json& request, cons
     throw Error(-32601, "Only latest block is supported");
 
   msg.sender = parseIfExists<Address>(txJson, "from")
-    .transform([] (const Address& addr) { return addr.toEvmcAddress(); })
+    .transform([] (const Address& addr) { return bytes::cast<evmc::address>(addr); })
     .value_or(evmc::address{});
 
   if (recipientRequired)
-    msg.recipient = parse<Address>(txJson.at("to")).toEvmcAddress();
+    msg.recipient = bytes::cast<evmc_address>(parse<Address>(txJson.at("to")));
   else
     msg.recipient = parseIfExists<Address>(txJson, "to")
-      .transform([] (const Address& addr) { return addr.toEvmcAddress(); })
+      .transform([] (const Address& addr) { return bytes::cast<evmc_address>(addr); })
       .value_or(evmc::address{});
 
   msg.gas = parseIfExists<uint64_t>(txJson, "gas").value_or(10000000);

@@ -53,13 +53,13 @@ std::pair<evmc_message, Bytes> buildCallInfo(const Address& addressToCall, const
   callFlags = 0;
   callDepth = 1;
   callGas = 100000000;
-  callRecipient = addressToCall.toEvmcAddress();
+  callRecipient = bytes::cast<evmc_address>(addressToCall);
   callSender = {};
   callInputData = messageBytes.data();
   callInputSize = messageBytes.size();
   callValue = {};
   callCreate2Salt = {};
-  callCodeAddress = addressToCall.toEvmcAddress();
+  callCodeAddress = bytes::cast<evmc_address>(addressToCall);
   return callInfo;
 }
 

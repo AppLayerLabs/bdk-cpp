@@ -16,7 +16,8 @@
 #include "contractmanager.h"
 #include "../core/dump.h"
 #include "calltracer.h"
-#include "../bytes/join.h"
+#include "bytes/join.h"
+#include "bytes/cast.h"
 
 
 // TODO: EVMC Static Mode Handling
@@ -252,8 +253,8 @@ class ContractHost : public evmc::Host {
           msg.flags = EVMC_STATIC;
           msg.depth = 1;
           msg.gas = this->leftoverGas_;
-          msg.recipient = targetAddr.toEvmcAddress();
-          msg.sender = caller->getContractAddress().toEvmcAddress();
+          msg.recipient = bytes::cast<evmc_address>(targetAddr);
+          msg.sender = bytes::cast<evmc_address>(caller->getContractAddress());
           auto functionName = ContractReflectionInterface::getFunctionName(func);
           if (functionName.empty()) {
             throw DynamicException("ContractHost::callContractViewFunction: EVM contract function name is empty (contract not registered?)");
@@ -268,7 +269,7 @@ class ContractHost : public evmc::Host {
           msg.input_size = fullData.size();
           msg.value = {};
           msg.create2_salt = {};
-          msg.code_address = targetAddr.toEvmcAddress();
+          msg.code_address = bytes::cast<evmc_address>(targetAddr);
           /// TODO: OMG this is so ugly, we need to fix this.
           /// A **CONST_CAST** is needed because we can't explicity tell the evmc_execute to do a view call.
           /// Regardless of that, we set flag = 1 to indicate that this is a view/STATIC call.
@@ -390,8 +391,8 @@ class ContractHost : public evmc::Host {
           msg.flags = 0;
           msg.depth = 1;
           msg.gas = this->leftoverGas_;
-          msg.recipient = targetAddr.toEvmcAddress();
-          msg.sender = caller->getContractAddress().toEvmcAddress();
+          msg.recipient = bytes::cast<evmc_address>(targetAddr);
+          msg.sender = bytes::cast<evmc_address>(caller->getContractAddress());
           auto functionName = ContractReflectionInterface::getFunctionName(func);
           if (functionName.empty()) {
             throw DynamicException("ContractHost::callContractFunction: EVM contract function name is empty (contract not registered?)");
@@ -406,7 +407,7 @@ class ContractHost : public evmc::Host {
           msg.input_size = fullData.size();
           msg.value = Utils::uint256ToEvmcUint256(value);
           msg.create2_salt = {};
-          msg.code_address = targetAddr.toEvmcAddress();
+          msg.code_address = bytes::cast<evmc_address>(targetAddr);
           evmc::Result result (evmc_execute(this->vm_, &this->get_interface(), this->to_context(),
           evmc_revision::EVMC_LATEST_STABLE_REVISION, &msg, recipientAcc.code.data(), recipientAcc.code.size()));
           this->leftoverGas_ = result.gas_left;
@@ -475,13 +476,13 @@ class ContractHost : public evmc::Host {
       callInfo.flags = 0;
       callInfo.depth = 1;
       callInfo.gas = this->leftoverGas_;
-      callInfo.recipient = to.toEvmcAddress();
-      callInfo.sender = from.toEvmcAddress();
+      callInfo.recipient = bytes::cast<evmc_address>(to);
+      callInfo.sender = bytes::cast<evmc_address>(from);
       callInfo.input_data = fullData.data();
       callInfo.input_size = fullData.size();
       callInfo.value = {};
       callInfo.create2_salt = {};
-      callInfo.code_address = to.toEvmcAddress();
+      callInfo.code_address = bytes::cast<evmc_address>(to);
       // Get the ContractManager from the this->accounts_ map
       ContractManager* contractManager = dynamic_cast<ContractManager*>(this->contracts_.at(to).get());
       this->setContractVars(contractManager, from, 0);

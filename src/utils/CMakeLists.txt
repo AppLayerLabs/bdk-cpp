@@ -18,6 +18,7 @@ set(UTILS_HEADERS
 
 set(UTILS_SOURCES
   ${CMAKE_SOURCE_DIR}/src/utils/db.cpp
+  ${CMAKE_SOURCE_DIR}/src/utils/address.cpp
   ${CMAKE_SOURCE_DIR}/src/utils/utils.cpp
   ${CMAKE_SOURCE_DIR}/src/utils/strings.cpp
   ${CMAKE_SOURCE_DIR}/src/utils/hex.cpp

@@ -334,8 +334,8 @@ class SDKTestSuite {
       callFlags = 0;
       callDepth = 1;
       callGas = 1000000000;
-      callRecipient = to.toEvmcAddress();
-      callSender = from.address.toEvmcAddress();
+      callRecipient = bytes::cast<evmc_address>(to);
+      callSender = bytes::cast<evmc_address>(from.address);
       callInputData = data.data();
       callInputSize = data.size();
       callValue = Utils::uint256ToEvmcUint256(value);
@@ -781,13 +781,13 @@ class SDKTestSuite {
       callFlags = 0;
       callDepth = 1;
       callGas = 10000000;
-      callRecipient = contractAddress.toEvmcAddress();
-      callSender = this->getChainOwnerAccount().address.toEvmcAddress();
+      callRecipient = bytes::cast<evmc_address>(contractAddress);
+      callSender = bytes::cast<evmc_address>(this->getChainOwnerAccount().address);
       callInputData = fullData.data();
       callInputSize = fullData.size();
       callValue = Utils::uint256ToEvmcUint256(0);
       callCreate2Salt = {};
-      callCodeAddress = contractAddress.toEvmcAddress();
+      callCodeAddress = bytes::cast<evmc_address>(contractAddress);
       return std::get<0>(ABI::Decoder::decodeData<ReturnType>(this->state_.ethCall(callData)));
     }
 
@@ -829,8 +829,8 @@ class SDKTestSuite {
       callFlags = 0;
       callDepth = 1;
       callGas = 10000000;
-      callRecipient = contractAddress.toEvmcAddress();
-      callSender = this->getChainOwnerAccount().address.toEvmcAddress();
+      callRecipient = bytes::cast<evmc_address>(contractAddress);
+      callSender = bytes::cast<evmc_address>(this->getChainOwnerAccount().address);
       callInputData = fullData.data();
       callInputSize = fullData.size();
       callValue = Utils::uint256ToEvmcUint256(0);

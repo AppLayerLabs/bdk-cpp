@@ -6,6 +6,7 @@ See the LICENSE.txt file in the project root for more information.
 */
 
 #include "tx.h"
+#include "bytes/cast.h"
 
 TxBlock::TxBlock(const bytes::View bytes, const uint64_t&) {
   uint64_t index = 0;
@@ -478,13 +479,13 @@ evmc_message TxBlock::txToMessage() const {
   msg.flags = 0;
   msg.depth = 1;
   msg.gas = static_cast<int64_t>(this->gasLimit_);
-  msg.recipient = this->to_.toEvmcAddress();
-  msg.sender = this->from_.toEvmcAddress();
+  msg.recipient = bytes::cast<evmc_address>(this->to_);
+  msg.sender = bytes::cast<evmc_address>(this->from_);
   msg.input_data = (this->data_.empty()) ? nullptr : this->data_.data();
   msg.input_size = this->data_.size();
   msg.value = Utils::uint256ToEvmcUint256(this->value_);
   msg.create2_salt = {};
-  msg.code_address = this->to_.toEvmcAddress();
+  msg.code_address = bytes::cast<evmc_address>(this->to_);
   return msg;
 }
 

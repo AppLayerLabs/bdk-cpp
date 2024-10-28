@@ -3,8 +3,7 @@
 
 #include <cstdint>
 #include <ranges>
-
-using Byte = std::uint8_t;
+#include "utils/bytes.h"
 
 namespace bytes {
   /**

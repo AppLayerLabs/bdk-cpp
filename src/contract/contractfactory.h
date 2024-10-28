@@ -128,7 +128,7 @@ namespace ContractFactory {
       // The constructor can set SafeVariable values from the constructor.
       // We need to take account of that and set the variables accordingly.
       auto contract = createContractWithTuple<TContract, ConstructorArguments>(
-        callInfo.sender, derivedAddress, chainId, decodedData
+        Address(callInfo.sender), derivedAddress, chainId, decodedData
       );
       host->registerNewCPPContract(derivedAddress, contract.get());
       contracts.insert(std::make_pair(derivedAddress, std::move(contract)));

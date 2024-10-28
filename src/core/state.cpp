@@ -208,8 +208,8 @@ void State::processTransaction(
   try {
     evmc_tx_context txContext;
     txContext.tx_gas_price = Utils::uint256ToEvmcUint256(tx.getMaxFeePerGas());
-    txContext.tx_origin = tx.getFrom().toEvmcAddress();
-    txContext.block_coinbase = ContractGlobals::getCoinbase().toEvmcAddress();
+    txContext.tx_origin = bytes::cast<evmc_address>(tx.getFrom());
+    txContext.block_coinbase = bytes::cast<evmc_address>(ContractGlobals::getCoinbase());
     txContext.block_number = ContractGlobals::getBlockHeight();
     txContext.block_timestamp = ContractGlobals::getBlockTimestamp();
     txContext.block_gas_limit = 10000000;
@@ -436,7 +436,7 @@ Bytes State::ethCall(const evmc_message& callInfo) {
   // As the contract host will modify (reverting in the end) the state.
   std::unique_lock lock(this->stateMutex_);
   const auto recipient(callInfo.recipient);
-  const auto& accIt = this->accounts_.find(recipient);
+  const auto& accIt = this->accounts_.find(Address(recipient));
   if (accIt == this->accounts_.end()) {
     return {};
   }
@@ -446,7 +446,7 @@ Bytes State::ethCall(const evmc_message& callInfo) {
     evmc_tx_context txContext;
     txContext.tx_gas_price = {};
     txContext.tx_origin = callInfo.sender;
-    txContext.block_coinbase = ContractGlobals::getCoinbase().toEvmcAddress();
+    txContext.block_coinbase = bytes::cast<evmc_address>(ContractGlobals::getCoinbase());
     txContext.block_number = static_cast<int64_t>(ContractGlobals::getBlockHeight());
     txContext.block_timestamp = static_cast<int64_t>(ContractGlobals::getBlockTimestamp());
     txContext.block_gas_limit = 10000000;
@@ -479,7 +479,7 @@ Bytes State::ethCall(const evmc_message& callInfo) {
 
 int64_t State::estimateGas(const evmc_message& callInfo) {
   std::unique_lock lock(this->stateMutex_);
-  const Address to = callInfo.recipient;
+  const Address to(callInfo.recipient);
   // ContractHost simulate already do all necessary checks
   // We just need to execute and get the leftOverGas
   ContractType type = ContractType::NOT_A_CONTRACT;

@@ -131,7 +131,7 @@ evmc::Result ContractHost::createEVMContract(const evmc_message& msg,
   assert (kind == evmc_call_kind::EVMC_CREATE || kind == evmc_call_kind::EVMC_CREATE2);
   // Create a new contract
   auto createMsg = msg;
-  createMsg.recipient = contractAddress.toEvmcAddress();
+  createMsg.recipient = bytes::cast<evmc_address>(contractAddress);
   createMsg.kind = kind;
   createMsg.input_data = nullptr;
   createMsg.input_size = 0;
@@ -434,7 +434,7 @@ void ContractHost::simulate(const evmc_message& msg, const ContractType& type) {
 }
 
 bool ContractHost::account_exists(const evmc::address& addr) const noexcept {
-  return accounts_.find(addr) != accounts_.end();
+  return accounts_.find(Address(addr)) != accounts_.end();
 }
 
 evmc::bytes32 ContractHost::get_storage(const evmc::address& addr,
@@ -473,7 +473,7 @@ evmc_storage_status ContractHost::set_storage(const evmc::address& addr,
 
 evmc::uint256be ContractHost::get_balance(const evmc::address& addr) const noexcept {
   try {
-    auto it = accounts_.find(addr);
+    auto it = accounts_.find(Address(addr));
     if (it != accounts_.end()) {
       return Utils::uint256ToEvmcUint256(it->second->balance);
     }
@@ -486,7 +486,7 @@ evmc::uint256be ContractHost::get_balance(const evmc::address& addr) const noexc
 
 size_t ContractHost::get_code_size(const evmc::address& addr) const noexcept {
   try {
-    auto it = accounts_.find(addr);
+    auto it = accounts_.find(Address(addr));
     if (it != accounts_.end()) {
       return it->second->code.size();
     }
@@ -499,7 +499,7 @@ size_t ContractHost::get_code_size(const evmc::address& addr) const noexcept {
 
 evmc::bytes32 ContractHost::get_code_hash(const evmc::address& addr) const noexcept {
   try {
-    auto it = accounts_.find(addr);
+    auto it = accounts_.find(Address(addr));
     if (it != accounts_.end()) {
       return it->second->codeHash.toEvmcBytes32();
     }
@@ -515,7 +515,7 @@ size_t ContractHost::copy_code(const evmc::address& addr,
                                uint8_t* buffer_data,
                                size_t buffer_size) const noexcept {
   try {
-    const auto it = this->accounts_.find(addr);
+    const auto it = this->accounts_.find(Address(addr));
     if (it != this->accounts_.end()) {
       const auto& code = it->second->code;
       if (code_offset < code.size()) {
@@ -727,7 +727,7 @@ void ContractHost::emit_log(const evmc::address& addr,
                 this->txIndex_,
                 this->blockHash_,
                 this->currentTxContext_.block_number,
-                addr,
+                Address(addr),
                 Bytes(data, data + data_size),
                 topics_,
                 (topics_count == 0)

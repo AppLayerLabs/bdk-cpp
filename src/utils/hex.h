@@ -20,9 +20,8 @@ See the LICENSE.txt file in the project root for more information.
 #include "dynamicexception.h"
 
 #include "bytes/view.h"
+#include "bytes.h"
 
-using Byte = uint8_t;
-using Bytes = std::vector<Byte>;
 template <std::size_t N>
 using BytesArr = std::array<Byte, N>;
 

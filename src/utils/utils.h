@@ -33,6 +33,7 @@ See the LICENSE.txt file in the project root for more information.
 
 #include "strings.h"
 #include "logger.h"
+#include "bytes.h"
 
 #include "../libs/zpp_bits.h"
 #include "../libs/json.hpp"
@@ -58,8 +59,6 @@ using json = nlohmann::ordered_json;
 /// Typedef for bigint.
 using bigint = boost::multiprecision::number<boost::multiprecision::cpp_int_backend<>>;
 
-using Byte = uint8_t; ///< Typedef for Byte.
-using Bytes = std::vector<Byte>; ///< Typedef for Bytes.
 template <std::size_t N> using BytesArr = std::array<Byte, N>; ///< Typedef for BytesArr.
 
 // Base case for the recursive helper - now using requires for an empty body function

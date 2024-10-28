@@ -195,7 +195,7 @@ namespace TAddress {
 
     SECTION("Address toChksum") {
       Address inputAddress(std::string("0xfb6916095ca1df60bb79ce92ce3ea74c37c5d359"), false);
-      std::string inputChecksum = inputAddress.toChksum();
+      std::string inputChecksum = Address::checksum(inputAddress);
       Address outputAddress(inputChecksum, false);
       Address expectedOutputAddress(std::string("0xfB6916095ca1df60bB79Ce92cE3Ea74c37c5d359"), false);
       REQUIRE(outputAddress == expectedOutputAddress);
