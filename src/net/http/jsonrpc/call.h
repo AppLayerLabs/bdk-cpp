@@ -1,8 +1,16 @@
+/*
+Copyright (c) [2023-2024] [AppLayer Developers]
+
+This software is distributed under the MIT License.
+See the LICENSE.txt file in the project root for more information.
+*/
+
 #ifndef JSONRPC_CALL_H
 #define JSONRPC_CALL_H
 
-#include "variadicparser.h"
 #include "../../p2p/managernormal.h"
+
+#include "variadicparser.h" // parser.h -> utils/utils.h -> libs/json.hpp
 
 namespace jsonrpc {
 

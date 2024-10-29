@@ -1,11 +1,15 @@
-#include "methods.h"
+/*
+Copyright (c) [2023-2024] [AppLayer Developers]
+
+This software is distributed under the MIT License.
+See the LICENSE.txt file in the project root for more information.
+*/
+
+#include "../../../core/state.h" // dump.h -> utils/db.h, storage.h
 
 #include "blocktag.h"
-#include "variadicparser.h"
-#include "../../../core/storage.h"
-#include "../../../core/state.h"
-
-#include <ranges>
+#include "methods.h"
+#include "variadicparser.h" // parser.h -> ranges, utils/utils.h -> libs/json.hpp
 
 static inline constexpr std::string_view FIXED_BASE_FEE_PER_GAS = "0x9502f900"; // Fixed to 2.5 GWei
 

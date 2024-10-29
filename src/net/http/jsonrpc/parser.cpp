@@ -1,5 +1,11 @@
+/*
+Copyright (c) [2023-2024] [AppLayer Developers]
+
+This software is distributed under the MIT License.
+See the LICENSE.txt file in the project root for more information.
+*/
+
 #include "parser.h"
-#include "error.h"
 
 static inline const std::regex hashFormat{"^0x[0-9a-f]{64}$"};
 static inline const std::regex addressFormat{"^0x[0-9,a-f,A-F]{40}$"};

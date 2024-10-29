@@ -1,8 +1,15 @@
+/*
+Copyright (c) [2023-2024] [AppLayer Developers]
+
+This software is distributed under the MIT License.
+See the LICENSE.txt file in the project root for more information.
+*/
+
 #ifndef JSONRPC_ERROR_H
 #define JSONRPC_ERROR_H
 
-#include <string_view>
 #include <stdexcept>
+#include <string_view>
 
 namespace jsonrpc {
 
