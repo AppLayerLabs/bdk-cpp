@@ -1,14 +1,17 @@
+/*
+Copyright (c) [2023-2024] [AppLayer Developers]
+
+This software is distributed under the MIT License.
+See the LICENSE.txt file in the project root for more information.
+*/
+
 #ifndef HTTPCLIENT_H
 #define HTTPCLIENT_H
 
-#include <string>
-#include <boost/asio/ip/tcp.hpp>
-#include <boost/beast/core.hpp>
+#include <boost/beast/core.hpp> // tcp_stream.hpp -> asio/ip/tcp.hpp
 #include <boost/beast/http.hpp>
 #include <boost/beast/websocket.hpp>
 #include <boost/asio/buffers_iterator.hpp>
-
-#include "../utils/dynamicexception.h"
 
 namespace beast = boost::beast;         // from <boost/beast.hpp>
 namespace http = beast::http;           // from <boost/beast/http.hpp>
