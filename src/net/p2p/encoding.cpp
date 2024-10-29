@@ -21,8 +21,9 @@ namespace P2P {
       boost::asio::ip::address address;
       if (data.size() - index < 2) { throw DynamicException("Invalid data size."); }
       auto nodeType = NodeType(Utils::bytesToUint8(data.subspan(index, 1)));
+      index += 1;
       uint8_t ipVersion = Utils::bytesToUint8(data.subspan(index, 1));
-      index += 2; // Move index to IP address
+      index += 1;
       if (ipVersion == 0) { // V4
         if (data.size() - index < 4) { throw DynamicException("Invalid data size."); }
         BytesArr<4> ipBytes;
