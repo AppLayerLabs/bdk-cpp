@@ -443,7 +443,7 @@ evmc::bytes32 ContractHost::get_storage(const evmc::address& addr,
   try {
     auto it = vmStorage_.find(storageKey);
     if (it != vmStorage_.end())
-      return it->second.toEvmcBytes32();
+      return bytes::cast<evmc::bytes32>(it->second);
   } catch (const std::exception& e) {
     this->evmcThrows_.emplace_back(e.what());
     this->evmcThrow_ = true;
@@ -501,7 +501,7 @@ evmc::bytes32 ContractHost::get_code_hash(const evmc::address& addr) const noexc
   try {
     auto it = accounts_.find(Address(addr));
     if (it != accounts_.end()) {
-      return it->second->codeHash.toEvmcBytes32();
+      return bytes::cast<evmc::bytes32>(it->second->codeHash);
     }
   } catch (const std::exception& e) {
     this->evmcThrows_.emplace_back(e.what());
@@ -757,7 +757,7 @@ evmc::bytes32 ContractHost::get_transient_storage(const evmc::address &addr,
   try {
     auto it = transientStorage_.find(storageKey);
     if (it != transientStorage_.end()) {
-      return it->second.toEvmcBytes32();
+      return bytes::cast<evmc::bytes32>(it->second);
     }
   } catch (const std::exception& e) {
     this->evmcThrows_.emplace_back(e.what());

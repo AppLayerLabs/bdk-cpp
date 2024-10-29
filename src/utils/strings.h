@@ -20,6 +20,7 @@ See the LICENSE.txt file in the project root for more information.
 #include "zpp_bits.h"
 
 #include "address.h"
+#include "hash.h"
 
 // TODO: It is possible to implement **fast** operators for some types,
 // such as Address, Functor and Hash. Taking advantage that memory located within
@@ -131,41 +132,6 @@ template <unsigned N> class FixedBytes {
     explicit operator bool() const {
       return std::ranges::any_of(*this, [] (Byte b) { return b != 0; });
     }
-};
-
-/// Abstraction of a 32-byte hash. Inherits `FixedBytes<32>`.
-class Hash : public FixedBytes<32> {
-  public:
-    using FixedBytes<32>::FixedBytes;
-    using FixedBytes<32>::operator=;
-    using FixedBytes<32>::operator>=;
-    using FixedBytes<32>::operator<=;
-    using FixedBytes<32>::operator>;
-    using FixedBytes<32>::operator<;
-
-    /**
-     * Constructor using uint256_t.
-     * @param data The unsigned 256-bit number to convert into a hash string.
-     */
-    Hash(const uint256_t& data);
-
-    /**
-     * Constructor using a reference to evmc::bytes32.
-     * @param data The evmc::bytes32 pointer to convert into a hash string.
-     */
-    Hash(const evmc::bytes32& data);
-
-    /**
-     * Constructor using string_view.
-     * @param sv The string view to convert into a hash string.
-     */
-    Hash(const std::string_view sv);
-
-    uint256_t toUint256() const;  ///< Convert the hash string back to an unsigned 256-bit number.
-    evmc::bytes32 toEvmcBytes32() const;  ///< Convert the hash string back to an evmc::bytes32 pointer.
-
-    /// Generate a CRYPTOGRAPHICALLY SECURE random 32-byte/256-bit hash.
-    inline static Hash random() { Hash h; RAND_bytes(h.data(), 32); return h; }
 };
 
 /// Abstraction of a functor (the first 4 bytes of a function's keccak hash).

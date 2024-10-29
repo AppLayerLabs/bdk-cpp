@@ -8,6 +8,7 @@ See the LICENSE.txt file in the project root for more information.
 #include "state.h"
 #include <evmone/evmone.h>
 #include "../contract/contracthost.h"
+#include "bytes/random.h"
 
 State::State(
   const DB& db,
@@ -219,7 +220,7 @@ void State::processTransaction(
     txContext.blob_base_fee = {};
     txContext.blob_hashes = nullptr;
     txContext.blob_hashes_count = 0;
-    Hash randomSeed(Utils::uint256ToBytes((randomnessHash.toUint256() + txIndex)));
+    Hash randomSeed(Utils::uint256ToBytes((static_cast<uint256_t>(randomnessHash) + txIndex)));
     ContractHost host(
       this->vm_,
       this->dumpManager_,
@@ -457,7 +458,7 @@ Bytes State::ethCall(const evmc_message& callInfo) {
     txContext.blob_hashes = nullptr;
     txContext.blob_hashes_count = 0;
     // As we are simulating, the randomSeed can be anything
-    Hash randomSeed = Hash::random();
+    Hash randomSeed = bytes::random();
     return ContractHost(
       this->vm_,
       this->dumpManager_,
@@ -488,7 +489,7 @@ int64_t State::estimateGas(const evmc_message& callInfo) {
   }
 
   int64_t leftOverGas = callInfo.gas;
-  Hash randomSeed = Hash::random();
+  Hash randomSeed = bytes::random();
   ContractHost(
     this->vm_,
     this->dumpManager_,

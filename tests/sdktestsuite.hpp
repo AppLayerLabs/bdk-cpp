@@ -19,6 +19,7 @@ See the LICENSE.txt file in the project root for more information.
 #include "../src/utils/utils.h"
 #include "contract/contracthost.h"
 #include "statetest.hpp"
+#include "bytes/random.h"
 
 
 /// Wrapper struct for accounts used within the SDKTestSuite.
@@ -251,7 +252,7 @@ class SDKTestSuite {
       std::vector<TxValidator> randomHashTxs;
       std::vector<TxValidator> randomTxs;
 
-      std::vector<Hash> randomSeeds(orderedPrivKeys.size(), Hash::random());
+      std::vector<Hash> randomSeeds(orderedPrivKeys.size(), bytes::random());
       for (uint64_t i = 0; i < orderedPrivKeys.size(); ++i) {
         Address validatorAddress = Secp256k1::toAddress(Secp256k1::toUPub(orderedPrivKeys[i]));
         Bytes hashTxData = Hex::toBytes("0xcfffe746");

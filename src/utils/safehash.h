@@ -29,6 +29,10 @@ struct SafeHash {
     return wyhash(std::bit_cast<const void*>(&i), sizeof(i), 0, _wyp);
   }
 
+  size_t operator()(const uint256_t& i) const {
+    return (*this)(Hash(i));
+  }
+
   size_t operator()(const std::string& str) const {
     return wyhash(str.c_str(), str.size(), 0, _wyp);
   }

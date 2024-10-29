@@ -83,7 +83,7 @@ namespace TDEXV2 {
       txContext.blob_hashes_count = 0;
 
       auto callInfo = tx.txToMessage();
-      Hash randomnessHash = Hash::random();
+      Hash randomnessHash = bytes::random();
       int64_t leftOverGas = std::numeric_limits<int64_t>::max();
       uint64_t iterations = 250000;
 

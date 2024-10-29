@@ -8,6 +8,7 @@ See the LICENSE.txt file in the project root for more information.
 #include "../../src/libs/catch2/catch_amalgamated.hpp"
 #include "../../src/utils/strings.h"
 #include "bytes/view.h"
+#include "bytes/random.h"
 
 using Catch::Matchers::Equals;
 
@@ -153,12 +154,12 @@ namespace THash {
     SECTION("Hash toUint256") {
       uint256_t i = uint256_t("70518832285973061936518038480459635341011381946952877582230426678885538674712");
       Hash hash(i);
-      REQUIRE(hash.toUint256() == i);
+      REQUIRE(static_cast<uint256_t>(hash) == i);
     }
 
     SECTION("Hash random()") {
-      Hash hash1 = Hash::random();
-      Hash hash2 = Hash::random();
+      Hash hash1 = bytes::random();
+      Hash hash2 = bytes::random();
       REQUIRE(hash1 != hash2);
     }
   }

@@ -16,6 +16,7 @@ See the LICENSE.txt file in the project root for more information.
 #include "../src/utils/db.h"
 #include "../src/core/blockchain.h"
 #include "../src/utils/utils.h"
+#include "bytes/random.h"
 
 /**
  * Simple wrapper struct for management of all blockchain related objects.
@@ -174,7 +175,7 @@ inline FinalizedBlock createValidBlock(const std::vector<Hash>& validatorPrivKey
   std::vector<TxValidator> randomHashTxs;
   std::vector<TxValidator> randomTxs;
 
-  std::vector<Hash> randomSeeds(orderedPrivKeys.size(), Hash::random());
+  std::vector<Hash> randomSeeds(orderedPrivKeys.size(), bytes::random());
   for (uint64_t i = 0; i < orderedPrivKeys.size(); ++i) {
     Address validatorAddress = Secp256k1::toAddress(Secp256k1::toUPub(orderedPrivKeys[i]));
     Bytes hashTxData = Hex::toBytes("0xcfffe746");

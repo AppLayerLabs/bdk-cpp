@@ -10,6 +10,7 @@ See the LICENSE.txt file in the project root for more information.
 #include "../../src/utils/merkle.h"
 #include "../../src/utils/tx.h"
 #include "../../src/libs/catch2/catch_amalgamated.hpp"
+#include "bytes/random.h"
 
 using Catch::Matchers::Equals;
 
@@ -38,10 +39,10 @@ namespace TMerkle {
 
     SECTION("Random Merkle Tree") {
       std::vector<Hash> hashedLeafs {
-        Hash::random(), Hash::random(), Hash::random(), Hash::random(),
-        Hash::random(), Hash::random(), Hash::random(), Hash::random(),
-        Hash::random(), Hash::random(), Hash::random(), Hash::random(),
-        Hash::random(), Hash::random(), Hash::random()
+        bytes::random(), bytes::random(), bytes::random(), bytes::random(),
+        bytes::random(), bytes::random(), bytes::random(), bytes::random(),
+        bytes::random(), bytes::random(), bytes::random(), bytes::random(),
+        bytes::random(), bytes::random(), bytes::random()
       };
 
       Merkle tree(hashedLeafs);
