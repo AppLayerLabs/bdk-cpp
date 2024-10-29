@@ -7,7 +7,9 @@ See the LICENSE.txt file in the project root for more information.
 
 #include "nodeconns.h"
 #include "managernormal.h"
-#include "../../core/blockchain.h"
+
+// TODO: find out where this is coming from
+//#include <thread> // std::this_thread::sleep_for
 
 namespace P2P {
   void NodeConns::forceRefresh() {

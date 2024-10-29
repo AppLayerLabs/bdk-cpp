@@ -1,5 +1,5 @@
 /*
-Copyright (c) [2023-2024] [Sparq Network]
+Copyright (c) [2023-2024] [AppLayer Developers]
 
 This software is distributed under the MIT License.
 See the LICENSE.txt file in the project root for more information.
@@ -8,14 +8,7 @@ See the LICENSE.txt file in the project root for more information.
 #ifndef BROADCASTER_H
 #define BROADCASTER_H
 
-#include "encoding.h" // NodeID, NodeInfo
-
-#include "../../utils/logger.h"
-#include "../../utils/safehash.h"
-
-#include <algorithm>
-#include <thread>
-#include <shared_mutex>
+#include "encoding.h" // NodeID, NodeInfo, utils/safehash.h
 
 // Forward declaration.
 class Storage;
@@ -82,7 +75,7 @@ namespace P2P {
        * @param storage Pointer to the blockchain's storage.
        * @param state Pointer to the blockchain's state.
        */
-      explicit Broadcaster(ManagerNormal& manager, const Storage &storage, State &state)
+      explicit Broadcaster(ManagerNormal& manager, const Storage& storage, State& state)
         : manager_(manager), storage_(storage), state_(state)
       {}
 

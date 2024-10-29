@@ -8,18 +8,12 @@ See the LICENSE.txt file in the project root for more information.
 #ifndef P2P_SESSION_H
 #define P2P_SESSION_H
 
-#include <cstdlib>
-#include <iostream>
-#include <memory>
-#include <utility>
 #include <shared_mutex>
-#include <functional>
-#include <boost/asio.hpp>
-#include <boost/beast.hpp>
-#include <boost/asio/buffer.hpp>
 
-#include "../../utils/utils.h"
-#include "encoding.h"
+#include <boost/asio.hpp> // asio/buffer.hpp
+#include <boost/beast.hpp>
+
+#include "encoding.h" // NodeID, NodeType, utils.h -> libs/json.hpp -> cstdlib, functional, memory, utility
 
 using boost::asio::ip::tcp;
 namespace net = boost::asio;  // from <boost/asio.hpp>

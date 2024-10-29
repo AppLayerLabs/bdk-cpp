@@ -7,10 +7,8 @@ See the LICENSE.txt file in the project root for more information.
 
 #include "session.h"
 #include "managerbase.h"
-#include <functional>
 
 namespace P2P {
-
   std::string Session::getLogicalLocation() const { return this->logSrc_; }
 
   Session::Session(tcp::socket &&socket,
