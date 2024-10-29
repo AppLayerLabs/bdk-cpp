@@ -139,8 +139,23 @@ namespace TComet {
 
       const Options options = getOptionsForCometTest(testDumpPath);
 
+      // Create a simple listener that just records that we got InitChain and what the current height is.
+      class TestCometListener : public CometListener {
+      public:
+        std::atomic<bool> gotInitChain = false;
+        std::atomic<uint64_t> finalizedHeight = 0;
+        virtual void initChain() {
+          gotInitChain = true;
+        }
+        virtual void incomingBlock(const uint64_t height, const uint64_t syncingToHeight, const std::vector<Bytes>& txs, Bytes& appHash) {
+          finalizedHeight = height;
+          appHash.clear();
+        }
+      };
+      TestCometListener cometListener;
+
       // Set up comet with single validator
-      Comet comet("", options);
+      Comet comet(&cometListener, "", options);
 
       // Set pause at configured
       comet.setPauseState(CometState::CONFIGURED);
@@ -157,7 +172,7 @@ namespace TComet {
       // Waits for the pause state or error status
       REQUIRE(comet.waitPauseState(10000) == "");
 
-      // --- start gRPC ---
+      // --- start ABCI server ---
 
       comet.setPauseState(CometState::STARTED_ABCI);
 
@@ -175,27 +190,41 @@ namespace TComet {
       // Waits for the pause state or error status
       REQUIRE(comet.waitPauseState(10000) == "");
 
-      // --- gRPC check ---
+      // --- test ABCI connection ---
 
       // Set pause at tested the comet gRPC connection
-      // FIXME: the Comet class is waiting for getting initchain and getting block 5
-      //        to progress past the TESTED_COMET state. this state should be set
-      //        after e.g. getting an echo 4 times across the 4 connections for example,
-      //        which is enough of a test. 
-      //        the initchain and 5-blocks test logic should be here in the test body instead,
-      //        implying the Comet class exposes these metrics through its interface in a clean way.
       comet.setPauseState(CometState::TESTED_COMET);
 
-      GLOGDEBUG("TEST: Waiting for gRPC server starting & testing");
+      GLOGDEBUG("TEST: Waiting for ABCI connection test");
 
       // Waits for the pause state or error status
       REQUIRE(comet.waitPauseState(10000) == "");
 
+      // --- Wait for an InitChain ABCI callback ---
+
+      GLOGDEBUG("TEST: Waiting for CometBFT InitChain");
+
+      auto futureInitChain = std::async(std::launch::async, [&]() {
+        while (!cometListener.gotInitChain) {
+          std::this_thread::sleep_for(std::chrono::milliseconds(10));
+        }
+      });
+      REQUIRE(futureInitChain.wait_for(std::chrono::seconds(5)) != std::future_status::timeout);
+      REQUIRE(cometListener.gotInitChain);
+
+      // --- Wait for a FinalizeBlock ABCI callback for the first produced block ---
+
+      GLOGDEBUG("TEST: Waiting for CometBFT FinalizeBlock");
+
+      auto futureFinalizeBlock = std::async(std::launch::async, [&]() {
+        while (cometListener.finalizedHeight < 1) {
+          std::this_thread::sleep_for(std::chrono::milliseconds(10));
+        }
+      });
+      REQUIRE(futureFinalizeBlock.wait_for(std::chrono::seconds(5)) != std::future_status::timeout);
+      REQUIRE(cometListener.finalizedHeight >= 1);
+
       // --- stop ---
-
-      //GLOGDEBUG("TEST: Stopping (waiting several seconds)");
-
-      //std::this_thread::sleep_for(std::chrono::seconds(5));
 
       GLOGDEBUG("TEST: Stopping...");
 
@@ -210,6 +239,18 @@ namespace TComet {
 
       GLOGDEBUG("TEST: Finished");
     }
+
+    // TODO: stop at block M and restart test with no block replay, 1 validator
+    // (snapshotted state at M before shutdown reported by Info on restart)
+    // Non-empty transactions and verify that it reaches the same end state
+
+    // TODO: stop at block M and restart test with some block replay, 1 validator
+    // (Info on restart reports block N where N<M and thus replays N+1 to M)
+    // Non-empty transactions and verify that it reaches the same end state
+
+    // TODO: stop and restart test with full block replay, 1 validator
+    // (Info on restart reports block 0, causing InitChain to be called again and replay to M)
+    // Non-empty transactions and verify that it reaches the same end state
 
     // TODO: a test that runs a blockchain/genesis with two validators, that is:
     //       getOptionsForCometTest( path , 0 , 2 );   // instance 1 of 2

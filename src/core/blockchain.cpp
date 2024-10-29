@@ -17,8 +17,11 @@ Blockchain::Blockchain(const std::string& blockchainPath) :
   state_(db_, storage_, p2p_, std::get<1>(DumpManager::getBestStateDBPath(options_)), options_),
   http_(state_, storage_, p2p_, options_),
   syncer_(p2p_, storage_, state_),
-  consensus_(state_, p2p_, storage_, options_),
-  comet_(p2p_.getLogicalLocation(), options_)
+  consensus_(state_, p2p_, storage_, options_)
+
+  // TODO: This integration will happen later.
+  //       For now, Comet will be only referenced in tests.
+  //comet_(p2p_.getLogicalLocation(), options_)
 {}
 
 void Blockchain::start() {
@@ -45,13 +48,17 @@ void Blockchain::start() {
   // if node is a Validator, start the consensus loop
   this->consensus_.start();
 
-  // start the cometbft manager thread
-  this->comet_.setPauseState();
-  this->comet_.start();
+  // TODO: This integration will happen later.
+  //       For now, Comet will be only referenced in tests.
+  //// start the cometbft manager thread
+  //this->comet_.setPauseState();
+  //this->comet_.start();
 }
 
 void Blockchain::stop() {
-  this->comet_.stop();
+  // TODO: This integration will happen later.
+  //       For now, Comet will be only referenced in tests.
+  //this->comet_.stop();
   this->consensus_.stop();
   this->http_.stop();
   this->p2p_.stop();

@@ -12,9 +12,7 @@ void ABCINetSession::start() {
 }
 
 void ABCINetSession::close() {
-    std::cout << "ABCINetSession::close() start" << std::endl;
     socket_.close();
-    std::cout << "ABCINetSession::close() done" << std::endl;
 }
 
 void ABCINetSession::do_read_message() {
@@ -65,131 +63,111 @@ void ABCINetSession::process_request() {
     // Handle the request
     switch (request.value_case()) {
         case cometbft::abci::v1::Request::kEcho: {
-
-            std::cout << "Got Echo" << std::endl;
             const auto& echo_req = request.echo();
             auto* echo_resp = response.mutable_echo();
-
-            // FIXME: move the echo implementation into the handler
+            // Actually set the correct/expected echo answer here.
             echo_resp->set_message(echo_req.message());
-
-            // call handler
-            // FIXME: just checking if the types are correct & this compiles for now
+            // The caller doesn't actually have to do anything.
             handler_->echo(echo_req, echo_resp);
-
             break;
         }
         case cometbft::abci::v1::Request::kFlush: {
-            std::cout << "Got Flush" << std::endl;
-            response.mutable_flush();
+            const auto& flush_req = request.flush();
+            auto* flush_resp = response.mutable_flush();
+            handler_->flush(flush_req, flush_resp);
             break;
         }
         case cometbft::abci::v1::Request::kInfo: {
-            std::cout << "Got Info" << std::endl;
             const auto& info_req = request.info();
             auto* info_resp = response.mutable_info();
-            info_resp->set_version("1.0.0");
-            info_resp->set_last_block_height(0);
-            info_resp->set_last_block_app_hash("");
+            handler_->info(info_req, info_resp);
             break;
         }
         case cometbft::abci::v1::Request::kInitChain: {
-
-
-            std::cout << "Got InitChain" << std::endl;
+            const auto& init_chain_req = request.init_chain();
             auto* init_chain_resp = response.mutable_init_chain();
-            // Populate InitChainResponse as needed
+            handler_->init_chain(init_chain_req, init_chain_resp);
             break;
         }
         case cometbft::abci::v1::Request::kPrepareProposal: {
-            std::cout << "Got PrepareProposal" << std::endl;
-            auto* prepare_resp = response.mutable_prepare_proposal();
-            // Implement PrepareProposal logic here
-            prepare_resp->clear_txs();
+            const auto& prepare_proposal_req = request.prepare_proposal();
+            auto* prepare_proposal_resp = response.mutable_prepare_proposal();
+            handler_->prepare_proposal(prepare_proposal_req, prepare_proposal_resp);
             break;
         }
         case cometbft::abci::v1::Request::kProcessProposal: {
-            std::cout << "Got ProcessProposal" << std::endl;
-            auto* process_resp = response.mutable_process_proposal();
-            process_resp->set_status(cometbft::abci::v1::PROCESS_PROPOSAL_STATUS_ACCEPT);
+            const auto& process_proposal_req = request.process_proposal();
+            auto* process_proposal_resp = response.mutable_process_proposal();
+            handler_->process_proposal(process_proposal_req, process_proposal_resp);
             break;
         }
         case cometbft::abci::v1::Request::kCheckTx: {
-            std::cout << "Got CheckTx" << std::endl;
             const auto& check_tx_req = request.check_tx();
             auto* check_tx_resp = response.mutable_check_tx();
-            check_tx_resp->set_code(0); // Success
+            handler_->check_tx(check_tx_req, check_tx_resp);
             break;
         }
         case cometbft::abci::v1::Request::kQuery: {
-            std::cout << "Got Query" << std::endl;
             const auto& query_req = request.query();
             auto* query_resp = response.mutable_query();
-            query_resp->set_code(0); // Success
+            handler_->query(query_req, query_resp);
             break;
         }
         case cometbft::abci::v1::Request::kCommit: {
-            std::cout << "Got Commit" << std::endl;
+            const auto& commit_req = request.commit();
             auto* commit_resp = response.mutable_commit();
-            commit_resp->set_retain_height(0);
+            handler_->commit(commit_req, commit_resp);
             break;
         }
         case cometbft::abci::v1::Request::kExtendVote: {
-            std::cout << "Got ExtendVote" << std::endl;
+            const auto& extend_vote_req = request.extend_vote();
             auto* extend_vote_resp = response.mutable_extend_vote();
-            extend_vote_resp->set_vote_extension("");
+            handler_->extend_vote(extend_vote_req, extend_vote_resp);
             break;
         }
         case cometbft::abci::v1::Request::kVerifyVoteExtension: {
-            std::cout << "Got VerifyVoteExtension" << std::endl;
-            auto* verify_vote_resp = response.mutable_verify_vote_extension();
-            verify_vote_resp->set_status(cometbft::abci::v1::VERIFY_VOTE_EXTENSION_STATUS_ACCEPT);
+            const auto& verify_vote_extension_req = request.verify_vote_extension();
+            auto* verify_vote_extension_resp = response.mutable_verify_vote_extension();
+            handler_->verify_vote_extension(verify_vote_extension_req, verify_vote_extension_resp);
             break;
         }
         case cometbft::abci::v1::Request::kFinalizeBlock: {
-            //std::cout << "Got FinalizeBlock" << std::endl;
-
-            const auto& finalize_req = request.finalize_block();  
-
-            //std::cout << "THE BLOCK HEIGHT IS NOW = " << finalize_req.height() << std::endl;
-            //server_->lastBlockHeight_ = finalize_req.height();
-
-            auto* finalize_resp = response.mutable_finalize_block();
-            finalize_resp->set_app_hash("");
+            const auto& finalize_block_req = request.finalize_block();  
+            auto* finalize_block_resp = response.mutable_finalize_block();
+            handler_->finalize_block(finalize_block_req, finalize_block_resp);
             break;
         }
         case cometbft::abci::v1::Request::kListSnapshots: {
-            std::cout << "Got ListSnapshots" << std::endl;
+            const auto& list_snapshots_req = request.list_snapshots();
             auto* list_snapshots_resp = response.mutable_list_snapshots();
-            // Populate ListSnapshotsResponse as needed
+            handler_->list_snapshots(list_snapshots_req, list_snapshots_resp);
             break;
         }
         case cometbft::abci::v1::Request::kOfferSnapshot: {
-            std::cout << "Got OfferSnapshot" << std::endl;
+            const auto& offer_snapshot_req = request.offer_snapshot();
             auto* offer_snapshot_resp = response.mutable_offer_snapshot();
-            // Populate OfferSnapshotResponse as needed
+            handler_->offer_snapshot(offer_snapshot_req, offer_snapshot_resp);
             break;
         }
         case cometbft::abci::v1::Request::kLoadSnapshotChunk: {
-            std::cout << "Got LoadSnapshotChunk" << std::endl;
+            const auto& load_snapshot_chunk_req = request.load_snapshot_chunk();
             auto* load_snapshot_chunk_resp = response.mutable_load_snapshot_chunk();
-            // Populate LoadSnapshotChunkResponse as needed
+            handler_->load_snapshot_chunk(load_snapshot_chunk_req, load_snapshot_chunk_resp);
             break;
         }
         case cometbft::abci::v1::Request::kApplySnapshotChunk: {
-            std::cout << "Got ApplySnapshotChunk" << std::endl;
+            const auto& apply_snapshot_chunk_req = request.apply_snapshot_chunk();
             auto* apply_snapshot_chunk_resp = response.mutable_apply_snapshot_chunk();
-            // Populate ApplySnapshotChunkResponse as needed
+            handler_->apply_snapshot_chunk(apply_snapshot_chunk_req, apply_snapshot_chunk_resp);
             break;
         }
         default: {
-            std::cerr << "Unknown request type" << std::endl;
+            server_->notify_failure("Received an unknown request type");
             auto* exception_resp = response.mutable_exception();
             exception_resp->set_error("Unknown request type");
             break;
         }
     }
-
 
     // Serialize the response
     size_t response_size = response.ByteSizeLong();

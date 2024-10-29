@@ -40,14 +40,14 @@ void ABCINetServer::notify_failure(const std::string& reason) {
         // Close all active sessions
         for (auto& weak_session : sessions_) {
             if (auto session = weak_session.lock()) {
-                std::cout << "Closing one session" << std::endl;
+                //std::cout << "Closing one session" << std::endl;
                 session->close();
             }
         }
         // Stop accepting new connections
-        std::cout << "Closing acceptor" << std::endl;
+        //std::cout << "Closing acceptor" << std::endl;
         acceptor_.close();
-        std::cout << "Acceptor closed" << std::endl;
+        //std::cout << "Acceptor closed" << std::endl;
         // Stop the io_context
         //no need to do this: once the acceptor is closed, the io context run calls all exit
         //  since there is no more work -- no connections/sessions and no way to get more sessions.

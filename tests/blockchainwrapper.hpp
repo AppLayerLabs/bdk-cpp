@@ -32,7 +32,10 @@ struct TestBlockchainWrapper {
   HTTPServer http;        ///< HTTP server.
   Syncer syncer;          ///< Blockchain syncer.
   Consensus consensus;    ///< Block and transaction processing.
-  Comet comet;           ///< External consensus engine manager.
+
+  // TODO: Integrating comet with the existing execution engine to be tested will
+  //       be done after all tests with the mock execution environment are working.
+  //Comet comet;           ///< External consensus engine manager.
 
   /**
    * Constructor.
@@ -47,14 +50,19 @@ struct TestBlockchainWrapper {
     state(db, storage, p2p, std::get<1>(DumpManager::getBestStateDBPath(options)), options),
     http(state, storage, p2p, options),
     syncer(p2p, storage, state),
-    consensus(state, p2p, storage, options),
-    comet(p2p.getLogicalLocation(), options)
+    consensus(state, p2p, storage, options)
+
+    // TODO: Integrating comet with the existing execution engine to be tested will
+    //       be done after all tests with the mock execution environment are working.
+    //comet(p2p.getLogicalLocation(), options)
     {};
 
   /// Destructor.
   ~TestBlockchainWrapper() {
     state.dumpStopWorker();
-    comet.stop();
+    // TODO: Integrating comet with the existing execution engine to be tested will
+    //       be done after all tests with the mock execution environment are working.
+    //comet.stop();
     consensus.stop();
     p2p.stopDiscovery();
     p2p.stop();

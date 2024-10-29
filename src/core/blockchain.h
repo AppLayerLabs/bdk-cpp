@@ -92,7 +92,10 @@ class Blockchain : public Log::LogicalLocationProvider {
     HTTPServer http_;           ///< HTTP server.
     Syncer syncer_;             ///< Blockchain syncer.
     Consensus consensus_;       ///< Block and transaction processing.
-    Comet comet_;               ///< External consensus engine manager.
+
+    // TODO: This integration will happen later.
+    //       For now, Comet will be only referenced in tests.
+    //Comet comet_;               ///< External consensus engine manager.
 
   public:
     /**

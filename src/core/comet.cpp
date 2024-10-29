@@ -27,6 +27,7 @@ See the LICENSE.txt file in the project root for more information.
  */
 class CometImpl : public Log::LogicalLocationProvider, public ABCIHandler {
   private:
+    CometListener* listener_; ///< Comet class application event listener/handler
     const std::string instanceIdStr_; ///< Identifier for logging
     const Options options_; ///< Copy of the supplied Options.
 
@@ -41,9 +42,13 @@ class CometImpl : public Log::LogicalLocationProvider, public ABCIHandler {
     std::atomic<CometState> state_ = CometState::STOPPED;   ///< Current step the Comet instance is in.
     std::atomic<CometState> pauseState_ = CometState::NONE; ///< Step to pause/hold the comet instance at, if any.
 
+    std::atomic<int> infoCount_ = 0; ///< Simple counter for how many cometbft Info requests we got.
+
     void setState(const CometState& state); ///< Apply a state transition, possibly pausing at the new state.
     void setError(const std::string& errorStr); ///< Signal a fatal error condition.
     void resetError(); ///< Reset internal error condition.
+    void startCometBFT(const std::string& cometPath); ///< Launch the CometBFT process_.
+    void stopCometBFT(); ///< Terminate the CometBFT process_.
     void workerLoop(); ///< Worker loop responsible for establishing and managing a connection to cometbft.
     void workerLoopInner(); ///< Called by workerLoop().
 
@@ -51,7 +56,7 @@ class CometImpl : public Log::LogicalLocationProvider, public ABCIHandler {
 
     std::string getLogicalLocation() const override { return instanceIdStr_; } ///< Log instance
 
-    explicit CometImpl(std::string instanceIdStr, const Options& options);
+    explicit CometImpl(CometListener* listener, std::string instanceIdStr, const Options& options);
 
     virtual ~CometImpl();
 
@@ -76,10 +81,25 @@ class CometImpl : public Log::LogicalLocationProvider, public ABCIHandler {
     // ---------------------------------------------------------------------------------------
 
     virtual void echo(const cometbft::abci::v1::EchoRequest& req, cometbft::abci::v1::EchoResponse* res);
+    virtual void flush(const cometbft::abci::v1::FlushRequest& req, cometbft::abci::v1::FlushResponse* res);
+    virtual void info(const cometbft::abci::v1::InfoRequest& req, cometbft::abci::v1::InfoResponse* res);
+    virtual void init_chain(const cometbft::abci::v1::InitChainRequest& req, cometbft::abci::v1::InitChainResponse* res);
+    virtual void prepare_proposal(const cometbft::abci::v1::PrepareProposalRequest& req, cometbft::abci::v1::PrepareProposalResponse* res);
+    virtual void process_proposal(const cometbft::abci::v1::ProcessProposalRequest& req, cometbft::abci::v1::ProcessProposalResponse* res);
+    virtual void check_tx(const cometbft::abci::v1::CheckTxRequest& req, cometbft::abci::v1::CheckTxResponse* res);
+    virtual void commit(const cometbft::abci::v1::CommitRequest& req, cometbft::abci::v1::CommitResponse* res);
+    virtual void finalize_block(const cometbft::abci::v1::FinalizeBlockRequest& req, cometbft::abci::v1::FinalizeBlockResponse* res);
+    virtual void query(const cometbft::abci::v1::QueryRequest& req, cometbft::abci::v1::QueryResponse* res);
+    virtual void list_snapshots(const cometbft::abci::v1::ListSnapshotsRequest& req, cometbft::abci::v1::ListSnapshotsResponse* res);
+    virtual void offer_snapshot(const cometbft::abci::v1::OfferSnapshotRequest& req, cometbft::abci::v1::OfferSnapshotResponse* res);
+    virtual void load_snapshot_chunk(const cometbft::abci::v1::LoadSnapshotChunkRequest& req, cometbft::abci::v1::LoadSnapshotChunkResponse* res);
+    virtual void apply_snapshot_chunk(const cometbft::abci::v1::ApplySnapshotChunkRequest& req, cometbft::abci::v1::ApplySnapshotChunkResponse* res);
+    virtual void extend_vote(const cometbft::abci::v1::ExtendVoteRequest& req, cometbft::abci::v1::ExtendVoteResponse* res);
+    virtual void verify_vote_extension(const cometbft::abci::v1::VerifyVoteExtensionRequest& req, cometbft::abci::v1::VerifyVoteExtensionResponse* res);
 };
 
-CometImpl::CometImpl(std::string instanceIdStr, const Options& options) 
-  : instanceIdStr_(instanceIdStr), options_(options)
+CometImpl::CometImpl(CometListener* listener, std::string instanceIdStr, const Options& options) 
+  : listener_(listener), instanceIdStr_(instanceIdStr), options_(options)
 {
 }
 
@@ -151,50 +171,7 @@ void CometImpl::stop() {
     //   socket disconnection or shutdown message to us, which should ultimately allow us
     //   to wind down our end of the gRPC connection gracefully.
 
-
-    // -- Begin stop process_ if any
-    // process shutdown -- TODO: assuming this is needed i.e. it doesn't shut down when the connected application goes away?
-    if (process_.has_value()) {
-      LOGDEBUG("Terminating CometBFT process");
-      LOGXTRACE("Term 1");
-      // terminate the process
-      pid_t pid = process_->id();
-      try {
-        LOGXTRACE("Term 2");
-        process_->terminate(); // SIGTERM (graceful termination, equivalent to terminal CTRL+C)
-        LOGXTRACE("Term 3");
-        LOGDEBUG("Process with PID " + std::to_string(pid) + " terminated");
-        LOGXTRACE("Term 4");
-        process_->wait();  // Ensure the process is fully terminated
-        LOGXTRACE("Term 5");
-        LOGDEBUG("Process with PID " + std::to_string(pid) + " joined");
-        LOGXTRACE("Term 6");
-      } catch (const std::exception& ex) {
-        // This is bad, and if it actually happens, we need to be able to do something else here to ensure the process disappears
-        //   because we don't want a process using the data directory and using the socket ports.
-        // TODO: is this the best we can do? (what about `cometbft debug kill`?)
-        LOGWARNING("Failed to terminate process: " + std::string(ex.what()));
-        // Fallback: Forcefully kill the process using kill -9
-        try {
-          std::string killCommand = "kill -9 " + std::to_string(pid);
-          LOGINFO("Attempting to force kill process with PID " + std::to_string(pid) + " using kill -9");
-          int result = std::system(killCommand.c_str());
-          if (result == 0) {
-            LOGINFO("Successfully killed process with PID " + std::to_string(pid) + " using kill -9");
-          } else {
-            LOGWARNING("Failed to kill process with PID " + std::to_string(pid) + " using kill -9. Error code: " + std::to_string(result));
-          }
-        } catch (const std::exception& ex2) {
-          LOGERROR("Failed to execute kill -9: " + std::string(ex2.what()));
-        }
-      }
-      LOGXTRACE("Term end");
-    }
-    LOGXTRACE("10");
-    // we need to ensure we got rid of any process_ instance in any case so we can start another
-    process_.reset();
-    LOGDEBUG("CometBFT process terminated");
-    // -- End stop process_ if any
+    stopCometBFT();
 
 
     // (2)
@@ -294,6 +271,126 @@ void CometImpl::resetError() {
   this->errorStr_ = "";
 }
 
+void CometImpl::startCometBFT(const std::string& cometPath) {
+
+
+    //boost::process::ipstream bpout;
+    //boost::process::ipstream bperr;
+    auto bpout = std::make_shared<boost::process::ipstream>();
+    auto bperr = std::make_shared<boost::process::ipstream>();
+
+      // Search for the executable in the system's PATH
+      boost::filesystem::path exec_path = boost::process::search_path("cometbft");
+      if (exec_path.empty()) {
+        // This is a non-recoverable error
+        // The gRPC server will be stopped/collected during stop(), which
+        //   is also called by the destructor.
+        setError("cometbft executable not found in system PATH");
+        return;
+      }
+
+      // CometBFT arguments
+      //
+      // We are making it so that an abci.sock file within the root of the
+      //   CometBFT home directory ("cometPath" below) is the proxy_app
+      //   URL. That is, each home directory can only be used for one
+      //   running and communicating pair of BDK <-> CometBFT.
+      //
+      std::vector<std::string> cometArgs = {
+        "start", 
+        "--abci=socket",
+        "--proxy_app=unix://" + abciServer_->getSocketPath(),
+        "--home=" + cometPath
+      };
+
+      LOGDEBUG("Launching cometbft");// with arguments: " + cometArgs);
+
+      // Launch the process
+      process_ = boost::process::child(
+        exec_path,
+        //cometArgs
+        boost::process::args(cometArgs),
+        // TODO: redirect (currently going to terminal during basic testing)
+        boost::process::std_out > *bpout,
+        boost::process::std_err > *bperr
+        );
+
+    std::string pidStr = std::to_string(process_->id());
+    LOGDEBUG("cometbft start launched with PID: " + pidStr);
+
+    // Spawn two detached threads to pump stdout and stderr to bdk.log.
+    // They should go away naturally when process_ is terminated.
+
+    std::thread stdout_thread([bpout, pidStr]() {
+        std::string line;
+        while (*bpout && std::getline(*bpout, line) && !line.empty()) {
+          // REVIEW: may want to upgrade this to DEBUG
+          GLOGTRACE("[cometbft stdout]: " + line);
+        }
+        GLOGDEBUG("cometbft stdout stream pump thread finished, cometbft pid = " + pidStr);
+    });
+
+    std::thread stderr_thread([bperr, pidStr]() {
+        std::string line;
+        while (*bperr && std::getline(*bperr, line) && !line.empty()) {
+          GLOGDEBUG("[cometbft stderr]: " + line);
+        }
+        GLOGDEBUG("cometbft stderr stream pump thread finished, cometbft pid = " + pidStr);
+    });
+
+    // Detach the threads to run independently, or join if preferred
+    stdout_thread.detach();
+    stderr_thread.detach();
+
+}
+
+void CometImpl::stopCometBFT() {
+    // -- Begin stop process_ if any
+    // process shutdown -- TODO: assuming this is needed i.e. it doesn't shut down when the connected application goes away?
+    if (process_.has_value()) {
+      LOGDEBUG("Terminating CometBFT process");
+      LOGXTRACE("Term 1");
+      // terminate the process
+      pid_t pid = process_->id();
+      try {
+        LOGXTRACE("Term 2");
+        process_->terminate(); // SIGTERM (graceful termination, equivalent to terminal CTRL+C)
+        LOGXTRACE("Term 3");
+        LOGDEBUG("Process with PID " + std::to_string(pid) + " terminated");
+        LOGXTRACE("Term 4");
+        process_->wait();  // Ensure the process is fully terminated
+        LOGXTRACE("Term 5");
+        LOGDEBUG("Process with PID " + std::to_string(pid) + " joined");
+        LOGXTRACE("Term 6");
+      } catch (const std::exception& ex) {
+        // This is bad, and if it actually happens, we need to be able to do something else here to ensure the process disappears
+        //   because we don't want a process using the data directory and using the socket ports.
+        // TODO: is this the best we can do? (what about `cometbft debug kill`?)
+        LOGWARNING("Failed to terminate process: " + std::string(ex.what()));
+        // Fallback: Forcefully kill the process using kill -9
+        try {
+          std::string killCommand = "kill -9 " + std::to_string(pid);
+          LOGINFO("Attempting to force kill process with PID " + std::to_string(pid) + " using kill -9");
+          int result = std::system(killCommand.c_str());
+          if (result == 0) {
+            LOGINFO("Successfully killed process with PID " + std::to_string(pid) + " using kill -9");
+          } else {
+            LOGWARNING("Failed to kill process with PID " + std::to_string(pid) + " using kill -9. Error code: " + std::to_string(result));
+          }
+        } catch (const std::exception& ex2) {
+          LOGERROR("Failed to execute kill -9: " + std::string(ex2.what()));
+        }
+      }
+      LOGXTRACE("Term end");
+    }
+    LOGXTRACE("10");
+    // we need to ensure we got rid of any process_ instance in any case so we can start another
+    process_.reset();
+    LOGDEBUG("CometBFT process terminated");
+    // -- End stop process_ if any
+
+}
+
 void CometImpl::workerLoop() {
   LOGDEBUG("Comet worker thread: started");
   try {
@@ -313,8 +410,17 @@ void CometImpl::workerLoopInner() {
 
     LOGDEBUG("Comet worker: start loop");
 
+    // Ensure that the CometBFT process is in a terminated state.
+    // This should be a no-op; it should be stopped before the continue; statement.
+    stopCometBFT();
+
     // Ensure the ABCI Server is in a stopped/destroyed state
     abciServer_.reset();
+
+    // Reset any state we might have as an ABCIHandler
+    infoCount_ = 0; // needed for the TESTING_COMET -> TESTED_COMET state transition.
+
+    LOGDEBUG("Comet worker: running configuration step");
 
     // The global option rootPath from options.json tells us the root data directory for BDK.
     // The Comet worker thread works by expecting a rootPath + /comet/ directory to be the
@@ -591,48 +697,10 @@ void CometImpl::workerLoopInner() {
 
     setState(CometState::STARTING_COMET);
 
-    // TODO: redirect output
-    //       capture and log comet output (should go to bdk.log as debug, etc (?))
-    boost::process::ipstream bpout;
-    boost::process::ipstream bperr;
-
-    // run cometbft which will connect to our GRPC server
+    // run cometbft which will connect to our ABCI server
     try {
 
-      // Search for the executable in the system's PATH
-      boost::filesystem::path exec_path = boost::process::search_path("cometbft");
-      if (exec_path.empty()) {
-        // This is a non-recoverable error
-        // The gRPC server will be stopped/collected during stop(), which
-        //   is also called by the destructor.
-        setError("cometbft executable not found in system PATH");
-        return;
-      }
-
-      // FIXME: proxy_app port has to be an Options configuration
-
-      // CometBFT arguments
-      std::vector<std::string> cometArgs = {
-        "start", 
-        "--abci=socket",   // ABCI via socket connections instead of ABCI via a gRPC connection
-        //"--proxy_app=tcp://127.0.0.1:26658",
-        "--proxy_app=unix://" + abciServer_->getSocketPath(),   // use a UNIX socket (the address is a file handle) which is more secure and potentially faster
-        "--home=" + cometPath
-      };
-
-      LOGDEBUG("Launching cometbft");// with arguments: " + cometArgs);
-
-      // Launch the process
-      process_ = boost::process::child(
-        exec_path,
-        //cometArgs
-        boost::process::args(cometArgs)
-        // TODO: redirect (currently going to terminal during basic testing)
-        //boost::process::std_out > out_stream,
-        //boost::process::std_err > err_stream
-        );
-
-      LOGDEBUG("cometbft start launched with PID: " + std::to_string(process_->id()));
+      startCometBFT(cometPath);
 
     } catch (const std::exception& ex) {
       // TODO: maybe we should attempt a restart in this case, with a retry counter?
@@ -640,44 +708,40 @@ void CometImpl::workerLoopInner() {
       return;
     }
 
-    // TODO: do we need to wait or otherwise sync with something so that we can be sure
-    //       the grpc connection is estabished? (e.g. read logs)? or do we even need to?
-    //       in any case, comet "started" state means the process is running AND it is
-    //       connected successfully to our gRPC server (as reported by it)
-    //       in the next state transition/phase, we will be testing a connection that
-    //       should already be there, which is why we need to make sure that testing code
-    //       can run without having to itself synchronize explicitly with the grpc connection
-    //       being established.
-    std::this_thread::sleep_for(std::chrono::seconds(1));
+    // TODO: check if this wait is actually useful/needed
+    //std::this_thread::sleep_for(std::chrono::seconds(1));
 
-    // If error (set by gRPC exception for example), quit here
+    // If any immediate error trying to start cometbft, quit here
     // TODO: must check this elsewhere as well?
     if (!this->status_) return;
 
     setState(CometState::STARTED_COMET);
 
     // --------------------------------------------------------------------------------------
-    // Test the gRPC connection (e.g. run echo). If this does not work, then there's
-    //   a fatal problem somewhere, so just halt the entire node / exit the process.
+    // Test the ABCI connection.
     // TODO: ensure cometbft is terminated if we are killed (prctl()?)
 
     setState(CometState::TESTING_COMET);
 
-    // TODO: So, we actually do get an Echo from cometbft first thing after the connection
-    //       is established, so we can loop here waiting for an echo received flag to be 
-    //       set, and also loop seeing if cometbft has been killed or crashed.
-
-    // HACK/FIXME: use cometstate to check we got initchain and are at height 5
-    //       remove this / make the test better by having the test itself control this
-    //       the app using the Comet class actually don't need this enum state and should control progression
-    //         of the chain by itself.
+    uint64_t testingStartTime = Utils::getCurrentTimeMillisSinceEpoch();
     while (!stop_) {
-        std::this_thread::sleep_for(std::chrono::milliseconds(20));
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
 
-        // FIXME remove this, we are going to be capturing echo from the 4 connections here in test comet;
-        //       we will not expose the echo callbacks to the ABCIHandler, no need to do htat
-        std::this_thread::sleep_for(std::chrono::milliseconds(5000));
-        break;
+        // Info is a reliable call; cometbft always calls it to figure out what
+        //  is the last block height that we have so it will e.g. replay from there.
+        if (this->infoCount_ > 0) {
+          break;
+        }
+
+        // Time out in 10 seconds, should never happen
+        uint64_t currentTime = Utils::getCurrentTimeMillisSinceEpoch();
+        if (currentTime - testingStartTime >= 10000) {
+          // Timeout
+          // TODO: should warn and continue; instead?
+          //       also, shouldn't setError + return always ensure cometbft and the abci server are killed (not running)?
+          setError("Timed out while waiting for an Info call from cometbft");
+          return;
+        }
     }
 
     setState(CometState::TESTED_COMET);
@@ -726,18 +790,132 @@ void CometImpl::workerLoopInner() {
   LOGDEBUG("Comet worker: exiting (quit loop)");
 }
 
+// CometImpl's ABCIHandler implementation
+//
+// NOTE: the "bytes" field in a Protobuf .proto file is implemented as a std::string, which
+//       is terrible. there is some support for absl::Cord for non-repeat bytes fields in
+//       version 23 of Protobuf, and repeat bytes with absl::Cord is already supported internally
+//       but is unreleased. not exactly sure how that would improve interfacing with our Bytes
+//       (vector<uint8_t>) convention (maybe we'd change the Bytes typedef to absl::Cord), but
+//       in the meantime we have to convert everything which involves one extra memory copy step
+//       for every instance of a bytes field.
+
+// Helper to convert the C++ implementation of a Protobuf "repeat bytes" field to std::vector<std::vector<uint8_t>>
+std::vector<Bytes> toBytesVector(const google::protobuf::RepeatedPtrField<std::string>& repeatedField) {
+  std::vector<Bytes> result;
+  for (const auto& str : repeatedField) {
+      result.emplace_back(str.begin(), str.end());
+  }
+  return result;
+}
+
+// Helper to convert the C++ implementation of a Protobuf "bytes" field to std::vector<uint8_t>
+Bytes toBytes(const std::string& str) {
+  return Bytes(str.begin(), str.end());
+}
+
 void CometImpl::echo(const cometbft::abci::v1::EchoRequest& req, cometbft::abci::v1::EchoResponse* res) {
-  // FIXME: move the echo logic implementation here
+  //res->set_message(req.message()); // This is done at the net/abci caller, we don't need to do it here.
+  // This callback doesn't seem to be called for ABCI Sockets vs. ABCI gRPC? Not sure what's going on.
+}
+
+void CometImpl::flush(const cometbft::abci::v1::FlushRequest& req, cometbft::abci::v1::FlushResponse* res) {
+  // Nothing to do for now as all handlers should be synchronous.
+}
+
+void CometImpl::info(const cometbft::abci::v1::InfoRequest& req, cometbft::abci::v1::InfoResponse* res) {
+  uint64_t height;
+  Bytes hashBytes;
+  listener_->getCurrentState(height, hashBytes);
+  std::string hashString(hashBytes.begin(), hashBytes.end());
+  res->set_version("1.0.0"); // TODO: let caller decide/configure this
+  res->set_last_block_height(height);
+  res->set_last_block_app_hash(hashString);
+  ++infoCount_;
+}
+
+void CometImpl::init_chain(const cometbft::abci::v1::InitChainRequest& req, cometbft::abci::v1::InitChainResponse* res) {
+  listener_->initChain();
+  // Populate InitChainResponse based on initial blockchain state
+  // res->add_validators(...) if needed
+}
+
+void CometImpl::prepare_proposal(const cometbft::abci::v1::PrepareProposalRequest& req, cometbft::abci::v1::PrepareProposalResponse* res) {
+  // Just copy the recommended txs from the mempool into the proposal.
+  // This requires all block size and limit related params to be set in such a way that the
+  //  total byte size of txs in the request don't exceed the total byte size allowed for a block.
+  for (const auto& tx : req.txs()) {
+    res->add_txs(tx);
+  }
+}
+
+void CometImpl::process_proposal(const cometbft::abci::v1::ProcessProposalRequest& req, cometbft::abci::v1::ProcessProposalResponse* res) {
+  bool accept = false;
+  listener_->validateBlockProposal(req.height(), toBytesVector(req.txs()), accept);
+  if (accept) {
+    res->set_status(cometbft::abci::v1::PROCESS_PROPOSAL_STATUS_ACCEPT);
+  } else {
+    res->set_status(cometbft::abci::v1::PROCESS_PROPOSAL_STATUS_REJECT);
+  }
+}
+
+void CometImpl::check_tx(const cometbft::abci::v1::CheckTxRequest& req, cometbft::abci::v1::CheckTxResponse* res) {
+  bool accept = false;
+  listener_->checkTx(toBytes(req.tx()), accept);
+  int ret_code = 0;
+  if (!accept) { ret_code = 1; }
+  res->set_code(ret_code);
+}
+
+void CometImpl::commit(const cometbft::abci::v1::CommitRequest& req, cometbft::abci::v1::CommitResponse* res) {
+  uint64_t height;
+  listener_->getBlockRetainHeight(height);
+  res->set_retain_height(height);
+}
+
+void CometImpl::finalize_block(const cometbft::abci::v1::FinalizeBlockRequest& req, cometbft::abci::v1::FinalizeBlockResponse* res) {
+  Bytes hashBytes;
+  listener_->incomingBlock(req.height(), req.syncing_to_height(), toBytesVector(req.txs()), hashBytes);
+  std::string hashString(hashBytes.begin(), hashBytes.end());
+  res->set_app_hash(hashString);
+}
+
+void CometImpl::query(const cometbft::abci::v1::QueryRequest& req, cometbft::abci::v1::QueryResponse* res) {
+  // TODO
+}
+
+void CometImpl::list_snapshots(const cometbft::abci::v1::ListSnapshotsRequest& req, cometbft::abci::v1::ListSnapshotsResponse* res) {
+  // TODO
+}
+
+void CometImpl::offer_snapshot(const cometbft::abci::v1::OfferSnapshotRequest& req, cometbft::abci::v1::OfferSnapshotResponse* res) {
+  // TODO
+}
+
+void CometImpl::load_snapshot_chunk(const cometbft::abci::v1::LoadSnapshotChunkRequest& req, cometbft::abci::v1::LoadSnapshotChunkResponse* res) {
+  // TODO
+}
+
+void CometImpl::apply_snapshot_chunk(const cometbft::abci::v1::ApplySnapshotChunkRequest& req, cometbft::abci::v1::ApplySnapshotChunkResponse* res) {
+  // TODO
+}
+
+void CometImpl::extend_vote(const cometbft::abci::v1::ExtendVoteRequest& req, cometbft::abci::v1::ExtendVoteResponse* res) {
+  // TODO -- not sure if this will be needed
+}
+
+void CometImpl::verify_vote_extension(const cometbft::abci::v1::VerifyVoteExtensionRequest& req, cometbft::abci::v1::VerifyVoteExtensionResponse* res) {
+  // TODO -- not sure if this will be needed
 }
 
 // ---------------------------------------------------------------------------------------
 // Comet class
 // ---------------------------------------------------------------------------------------
 
-Comet::Comet(std::string instanceIdStr, const Options& options) 
+Comet::Comet(CometListener* listener, std::string instanceIdStr, const Options& options) 
   : instanceIdStr_(instanceIdStr)
 {
-  impl_ = std::make_unique<CometImpl>(instanceIdStr, options);
+  impl_ = std::make_unique<CometImpl>(listener, instanceIdStr, options);
 } 
 
 Comet::~Comet() {
