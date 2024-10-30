@@ -8,12 +8,6 @@ See the LICENSE.txt file in the project root for more information.
 #include "strings.h"
 #include "utils.h"
 
-uint256_t Signature::r() const { return Utils::bytesToUint256(this->view(0, 32)); }
-
-uint256_t Signature::s() const { return Utils::bytesToUint256(this->view(32, 32)); }
-
-uint8_t Signature::v() const { return Utils::bytesToUint8(this->view(64, 1)); }
-
 Address::Address(const std::string_view add, bool inBytes) {
   if (inBytes) {
     if (add.size() != 20) throw std::invalid_argument("Address must be 20 bytes long.");

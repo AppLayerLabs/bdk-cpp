@@ -21,6 +21,7 @@ See the LICENSE.txt file in the project root for more information.
 
 #include "address.h"
 #include "hash.h"
+#include "signature.h"
 
 // TODO: It is possible to implement **fast** operators for some types,
 // such as Address, Functor and Hash. Taking advantage that memory located within
@@ -138,15 +139,6 @@ template <unsigned N> class FixedBytes {
 struct Functor {
   uint32_t value = 0;
   inline bool operator==(const Functor& other) const { return this->value == other.value; }
-};
-
-/// Abstraction of a 65-byte ECDSA signature. Inherits `FixedBytes<65>`.
-class Signature : public FixedBytes<65> {
-  public:
-    using FixedBytes<65>::FixedBytes;
-    uint256_t r() const;  ///< Get the first half (32 bytes) of the signature.
-    uint256_t s() const;  ///< Get the second half (32 bytes) of the signature.
-    uint8_t v() const;  ///< Get the recovery ID (1 byte) of the signature.
 };
 
 /// Abstraction of a EVM Storage key (20-bytes address + 32 bytes slot key). Inherits `FixedBytes<52>`.
