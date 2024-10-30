@@ -5,12 +5,11 @@ This software is distributed under the MIT License.
 See the LICENSE.txt file in the project root for more information.
 */
 
-#include <expected>
-
 #include "../../src/libs/catch2/catch_amalgamated.hpp"
-#include "../../src/utils/jsonabi.h"
+
+#include "../../src/utils/jsonabi.h" // customcontracts.h -> dynamiccontract.h -> contracthost.h -> contractreflectioninterface.h -> contract/abi.h -> libs/json.hpp -> filesystem
+
 #include "expectedABI.cpp" /// yeah lmao include a .cpp wtf
-#include <filesystem>
 
 TEST_CASE("ContractABIGenerator helper", "[contract][contractabigenerator]") {
   SECTION("ContractABIGenerator writeContractsToJson") {

@@ -6,20 +6,12 @@ See the LICENSE.txt file in the project root for more information.
 */
 
 #include "../../src/libs/catch2/catch_amalgamated.hpp"
-#include "../../src/contract/contractmanager.h"
-#include "../../src/contract/templates/dexv2/dexv2pair.h"
+
 #include "../../src/contract/templates/dexv2/dexv2factory.h"
 #include "../../src/contract/templates/dexv2/dexv2router02.h"
 #include "../../src/contract/templates/nativewrapper.h"
-#include "../../src/contract/abi.h"
-#include "../../src/utils/db.h"
-#include "../../src/utils/options.h"
-#include "../../src/core/rdpos.h"
-#include "../../src/core/state.h"
 
 #include "../sdktestsuite.hpp"
-
-#include <utility>
 
 // TODO: test events if/when implemented
 
@@ -90,7 +82,7 @@ namespace TDEXV2 {
       auto start = std::chrono::high_resolution_clock::now();
       auto& state = sdk.getState();
       for (uint64_t i = 0; i < iterations; i++) {
-        state.call(callInfo, txContext, CPP, randomnessHash, randomnessHash, randomnessHash, leftOverGas);
+        state.call(callInfo, txContext, ContractType::CPP, randomnessHash, randomnessHash, randomnessHash, leftOverGas);
       }
       auto end = std::chrono::high_resolution_clock::now();
 

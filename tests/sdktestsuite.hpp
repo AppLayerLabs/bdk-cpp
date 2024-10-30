@@ -8,18 +8,9 @@ See the LICENSE.txt file in the project root for more information.
 #ifndef SDKTESTSUITE_H
 #define SDKTESTSUITE_H
 
-#include "../src/core/storage.h"
-#include "../src/core/rdpos.h"
-#include "../src/core/state.h"
-#include "../src/net/p2p/managernormal.h"
-#include "../src/net/http/httpserver.h"
-#include "../src/utils/options.h"
-#include "../src/utils/db.h"
-#include "../src/core/blockchain.h"
-#include "../src/utils/utils.h"
-#include "contract/contracthost.h"
-#include "statetest.hpp"
+#include "../src/core/blockchain.h" // net/http/httpserver.h, consensus.h -> state.h -> rdpos.h -> net/p2p/managernormal.h, (utils/tx.h -> ecdsa.h -> utils.h -> libs/json.hpp -> tuple), (dump.h -> utils/db.h, storage.h -> options.h)
 
+#include "statetest.hpp"
 
 /// Wrapper struct for accounts used within the SDKTestSuite.
 struct TestAccount {

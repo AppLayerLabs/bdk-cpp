@@ -5,11 +5,10 @@
 */
 
 #include "../src/libs/catch2/catch_amalgamated.hpp"
-#include "../src/contract/abi.h"
-#include "../src/utils/options.h"
-#include "../src/core/rdpos.h"
+
+#include "../src/contract/templates/erc721test.h"
+
 #include "../sdktestsuite.hpp"
-#include "contract/templates/erc721test.h"
 
 namespace TERC721BENCHMARK {
   /*
@@ -80,7 +79,7 @@ namespace TERC721BENCHMARK {
 
       auto start = std::chrono::high_resolution_clock::now();
       for (uint64_t i = 0; i < iterations; i++) {
-        state.call(callInfo, txContext, CPP, randomnessHash, randomnessHash, randomnessHash, leftOverGas);
+        state.call(callInfo, txContext, ContractType::CPP, randomnessHash, randomnessHash, randomnessHash, leftOverGas);
       }
       auto end = std::chrono::high_resolution_clock::now();
 
@@ -93,6 +92,8 @@ namespace TERC721BENCHMARK {
       // Dump the state
       sdk.getState().saveToDB();
     }
+
+    // TODO: AddressSanitizer heap-use-after-free here for some reason, someone plz fix it
     SECTION("EVM ERC721 Benchmark") {
       std::unique_ptr<Options> options = nullptr;
       Address to(Utils::randBytes(20));
@@ -131,7 +132,7 @@ namespace TERC721BENCHMARK {
 
       auto start = std::chrono::high_resolution_clock::now();
       for (uint64_t i = 0; i < iterations; i++) {
-        state.call(callInfo, txContext, EVM, randomnessHash, randomnessHash, randomnessHash, leftOverGas);
+        state.call(callInfo, txContext, ContractType::EVM, randomnessHash, randomnessHash, randomnessHash, leftOverGas);
       }
       auto end = std::chrono::high_resolution_clock::now();
 

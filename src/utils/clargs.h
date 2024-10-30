@@ -10,6 +10,8 @@ See the LICENSE.txt file in the project root for more information.
 
 #include <boost/program_options.hpp> // includes string internally (and probably algorithm somewhere due to std::transform)
 
+#include "../net/p2p/managernormal.h"
+
 /// List of BDK programs that the argument parser is aware of.
 enum class BDKTool { FULL_NODE, DISCOVERY_NODE, UNIT_TEST_SUITE };
 

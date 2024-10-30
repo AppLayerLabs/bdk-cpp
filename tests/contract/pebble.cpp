@@ -6,11 +6,10 @@ See the LICENSE.txt file in the project root for more information.
 */
 
 #include "../../src/libs/catch2/catch_amalgamated.hpp"
+
 #include "../../src/contract/templates/pebble.h"
 
 #include "../sdktestsuite.hpp"
-
-#include <filesystem>
 
 namespace TPEBBLE {
   TEST_CASE("Pebble Class", "[contract][pebble]") {

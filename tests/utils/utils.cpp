@@ -6,10 +6,8 @@ See the LICENSE.txt file in the project root for more information.
 */
 
 #include "../../src/libs/catch2/catch_amalgamated.hpp"
-#include "../../src/utils/utils.h"
-#include "../../src/utils/strings.h"
-#include "../../src/utils/hex.h"
-#include "bytes/view.h"
+
+#include "../../src/utils/utils.h" // (strings.h -> hex.h), (bytes/join.h -> bytes/range.h -> bytes/view.h)
 
 using Catch::Matchers::Equals;
 

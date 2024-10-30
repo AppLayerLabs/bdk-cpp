@@ -6,11 +6,8 @@ See the LICENSE.txt file in the project root for more information.
 */
 
 #include "../../src/libs/catch2/catch_amalgamated.hpp"
-#include "../../src/utils/db.h"
-#include "../../src/utils/strings.h"
 
-#include <filesystem>
-#include <string>
+#include "../../src/utils/db.h" // utils.h -> strings.h, libs/json.hpp -> (filesystem, string)
 
 using Catch::Matchers::Equals;
 
