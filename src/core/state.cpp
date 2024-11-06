@@ -44,7 +44,12 @@ State::State(
 
   // Load all the EVM Storage Slot/keys from the DB
   for (const auto& dbEntry : db.getBatch(DBPrefix::vmStorage)) {
-    this->vmStorage_.emplace(StorageKey(dbEntry.key), dbEntry.value);
+    Address addr(dbEntry.key | std::views::take(ADDRESS_SIZE));
+    Hash hash(dbEntry.key | std::views::drop(ADDRESS_SIZE));
+
+    this->vmStorage_.emplace(
+      StorageKeyView(addr, hash),
+      dbEntry.value);
   }
 
   auto latestBlock = this->storage_.latest();
@@ -137,7 +142,8 @@ DBBatch State::dump() const {
   }
   // There is also the need to dump the vmStorage_ map
   for (const auto& [storageKey, storageValue] : this->vmStorage_) {
-    stateBatch.push_back(storageKey, storageValue, DBPrefix::vmStorage);
+    const auto key = Utils::makeBytes(bytes::join(storageKey.first, storageKey.second));
+    stateBatch.push_back(key, storageValue, DBPrefix::vmStorage);
   }
 
   return stateBatch;

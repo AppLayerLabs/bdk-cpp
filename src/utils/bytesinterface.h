@@ -27,7 +27,7 @@ public:
   /**
    * Helper constructor from bytes initializer.
    */
-  explicit constexpr BytesInterface(const bytes::Initializer auto& initializer) {
+  explicit constexpr BytesInterface(bytes::Initializer auto&& initializer) {
     initializer.to(self());
   }
 
@@ -92,7 +92,12 @@ public:
   /**
    * @return size of the range.
    */
-  constexpr auto size() const { return std::distance(self().begin(), self().end()); }
+  constexpr size_t size() const {
+    if constexpr (N == std::dynamic_extent)
+      return std::distance(self().begin(), self().end());
+    else
+      return N;
+  }
 
   /**
    * @return pointer to the beginning of the range.
@@ -132,19 +137,19 @@ public:
    * @return a view from the given position and with the given length
    * @throw out of range exception if given position or length are invalid
    */
-  constexpr bytes::View view(size_t pos, size_t len) const {
+  constexpr View<Bytes> view(size_t pos, size_t len) const {
     const size_t real_len = std::min(len, N - pos);
 
     if (pos + real_len > size()) {
       throw std::out_of_range("len greater than size");
     }
 
-    return bytes::View(self().begin() + pos, self().begin() + pos + real_len);
+    return View<Bytes>(self().begin() + pos, self().begin() + pos + real_len);
   }
 
-  constexpr bytes::View view(size_t pos) const { return view(pos, size()); }
+  constexpr View<Bytes> view(size_t pos) const { return view(pos, size()); }
 
-  constexpr bytes::View view() const { return view(0); }
+  constexpr View<Bytes> view() const { return view(0); }
 
   /**
    * Transforms the range to Bytes
@@ -155,7 +160,6 @@ public:
     std::ranges::copy(self(), res.begin());
     return res;
   }
-
 
 private:
   constexpr T& self() { return static_cast<T&>(*this); }

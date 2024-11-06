@@ -14,7 +14,7 @@ ERC721::ERC721(const Address& address, const DB& db
   this->name_ = Utils::bytesToString(db.get(std::string("name_"), this->getDBPrefix()));
   this->symbol_ = Utils::bytesToString(db.get(std::string("symbol_"), this->getDBPrefix()));
   for (const auto& dbEntry : db.getBatch(this->getNewPrefix("owners_"))) {
-    bytes::View valueView(dbEntry.value);
+    View<Bytes> valueView(dbEntry.value);
     this->owners_[Utils::fromBigEndian<uint64_t>(dbEntry.key)] = Address(valueView.subspan(0, 20));
   }
   for (const auto& dbEntry : db.getBatch(this->getNewPrefix("balances_"))) {
@@ -24,7 +24,7 @@ ERC721::ERC721(const Address& address, const DB& db
     this->tokenApprovals_[Utils::fromBigEndian<uint64_t>(dbEntry.key)] = Address(dbEntry.value);
   }
   for (const auto& dbEntry : db.getBatch(this->getNewPrefix("operatorAddressApprovals_"))) {
-    bytes::View keyView(dbEntry.key);
+    View<Bytes> keyView(dbEntry.key);
     Address owner(keyView.subspan(0, 20));
     Address operatorAddress(keyView.subspan(20));
     this->operatorAddressApprovals_[owner][operatorAddress] = dbEntry.value[0];
@@ -265,7 +265,7 @@ void ERC721::transferFrom(const Address& from, const Address& to, const uint256_
 
 DBBatch ERC721::dump() const {
   DBBatch dbBatch = BaseContract::dump();
-  boost::unordered_flat_map<std::string, bytes::View> data {
+  boost::unordered_flat_map<std::string, View<Bytes>> data {
       {"name_",  Utils::stringToBytes(name_.get())},
       {"symbol_", Utils::stringToBytes(symbol_.get())}
   };

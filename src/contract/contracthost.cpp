@@ -111,7 +111,7 @@ Address ContractHost::deriveContractAddress(const uint64_t& nonce,
 
 Address ContractHost::deriveContractAddress(const Address& fromAddress,
                                             const Hash& salt,
-                                            const bytes::View& code)
+                                            const View<Bytes>& code)
 {
   const auto code_hash = Utils::sha3(code);
   Bytes buffer(1 + sizeof(fromAddress) + sizeof(salt) + sizeof(code_hash));
@@ -184,7 +184,7 @@ void ContractHost::traceCallFinished(const evmc_result& res) noexcept {
   }
 
   const uint64_t gasUsed = callTracer_.current().gas - res.gas_left;
-  Bytes output = Utils::makeBytes(bytes::View(res.output_data, res.output_size));
+  Bytes output = Utils::makeBytes(View<Bytes>(res.output_data, res.output_size));
 
   if (res.status_code == EVMC_SUCCESS) {
     callTracer_.callSucceeded(std::move(output), gasUsed);
@@ -311,7 +311,7 @@ void ContractHost::execute(const evmc_message& msg, const ContractType& type) {
                                                 this->accounts_[to]->code.data(),
                                                 this->accounts_[to]->code.size()));
 
-        output = Utils::makeBytes(bytes::View(result.output_data, result.output_size));
+        output = Utils::makeBytes(View<Bytes>(result.output_data, result.output_size));
 
         this->leftoverGas_ = result.gas_left; // gas_left is not linked with leftoverGas_, we need to link it.
         if (result.status_code) {
@@ -439,9 +439,8 @@ bool ContractHost::account_exists(const evmc::address& addr) const noexcept {
 
 evmc::bytes32 ContractHost::get_storage(const evmc::address& addr,
                                         const evmc::bytes32& key) const noexcept {
-  StorageKey storageKey(addr, key);
   try {
-    auto it = vmStorage_.find(storageKey);
+    auto it = vmStorage_.find(StorageKeyView{addr, key});
     if (it != vmStorage_.end())
       return bytes::cast<evmc::bytes32>(it->second);
   } catch (const std::exception& e) {
@@ -755,7 +754,7 @@ evmc::bytes32 ContractHost::get_transient_storage(const evmc::address &addr,
                                                   const evmc::bytes32 &key) const noexcept {
   StorageKey storageKey(addr, key);
   try {
-    auto it = transientStorage_.find(storageKey);
+    auto it = transientStorage_.find(StorageKeyView{addr, key});
     if (it != transientStorage_.end()) {
       return bytes::cast<evmc::bytes32>(it->second);
     }
@@ -769,10 +768,8 @@ evmc::bytes32 ContractHost::get_transient_storage(const evmc::address &addr,
 void ContractHost::set_transient_storage(const evmc::address &addr,
                                          const evmc::bytes32 &key,
                                          const evmc::bytes32 &value) noexcept {
-  StorageKey storageKey(addr, key);
   try {
-    Hash hashValue(value);
-    transientStorage_[storageKey] = hashValue;
+    transientStorage_.emplace(StorageKeyView{addr, key}, value);
   } catch (const std::exception& e) {
     this->evmcThrows_.emplace_back(e.what());
     this->evmcThrow_ = true;

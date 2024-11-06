@@ -1,5 +1,6 @@
 #include "address.h"
 #include "utils.h"
+#include "bytes/hex.h"
 
 Hex Address::checksum(View<Address> address) {
   // Hash requires lowercase address without "0x"
@@ -30,6 +31,6 @@ bool Address::isValid(const std::string_view add, bool inBytes) {
 }
 
 bool Address::isChksum(const std::string_view add) {
-  Address myAdd(add, false);
+  Address myAdd = bytes::hex(add);
   return (add == std::string_view(Address::checksum(myAdd)));
 }

@@ -92,7 +92,7 @@ class DBBatch {
    * @param value The entry's value.
    * @param prefix The entry's prefix.
    */
-  void push_back(const bytes::View key, const bytes::View value, const Bytes& prefix) {
+  void push_back(const View<Bytes> key, const View<Bytes> value, const Bytes& prefix) {
     Bytes tmp = prefix;
     tmp.reserve(prefix.size() + key.size());
     tmp.insert(tmp.end(), key.begin(), key.end());
@@ -110,7 +110,7 @@ class DBBatch {
      * @param key The entry's key.
      * @param prefix The entry's prefix.
      */
-    void delete_key(const bytes::View key, const Bytes& prefix) {
+    void delete_key(const View<Bytes> key, const Bytes& prefix) {
       Bytes tmp = prefix;
       tmp.reserve(prefix.size() + key.size());
       tmp.insert(tmp.end(), key.begin(), key.end());

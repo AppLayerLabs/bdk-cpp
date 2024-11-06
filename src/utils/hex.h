@@ -21,6 +21,7 @@ See the LICENSE.txt file in the project root for more information.
 
 #include "bytes/view.h"
 #include "bytes.h"
+#include "utils/view.h"
 
 template <std::size_t N>
 using BytesArr = std::array<Byte, N>;
@@ -62,7 +63,7 @@ class Hex {
      * @param strict (optional) If `true`, includes "0x". Defaults to `false`.
      * @return The constructed Hex object.
      */
-    static Hex fromBytes(const bytes::View bytes, bool strict = false);
+    static Hex fromBytes(const View<Bytes> bytes, bool strict = false);
 
     /**
      * Build a Hex object from a UTF-8 string ("example" = "6578616d706c65").
@@ -112,7 +113,7 @@ class Hex {
     inline uint256_t getUint() const {
       Bytes b = Hex::toBytes(this->hex_);
       if (b.size() > 32) throw std::length_error("Hex too big for uint conversion");
-      bytes::View bV(b.data(), b.size());
+      View<Bytes> bV(b.data(), b.size());
       uint256_t ret;
       boost::multiprecision::import_bits(ret, bV.begin(), bV.end(), 8);
       return ret;

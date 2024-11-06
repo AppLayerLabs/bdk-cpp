@@ -7,14 +7,14 @@
 #include "view.h"
 #include "zpp_bits.h"
 
-inline constexpr size_t ADDRESS_SIZE = 20;
+constexpr size_t ADDRESS_SIZE = 20;
 
 /// Abstraction for a single 20-byte address (e.g. "1234567890abcdef...")
 class Address : public BytesInterface<Address, ADDRESS_SIZE> {
 public:
 
   /**
-   * Constructs address with zeroes
+   * Constructs an address with all bits clear.
    */
   constexpr Address() : data_() {}
 
@@ -39,14 +39,6 @@ public:
 
     std::ranges::copy(initList, data_.begin());
   }
-
-  /**
-   * Copy constructor.
-   * @param add The address itself.
-   * @param inBytes If `true`, treats the input as a raw bytes string.
-   * @throw DynamicException if address has wrong size or is invalid.
-   */
-  Address(const std::string_view add, bool inBytes);
 
   /**
    * Returns the hexadecimal checksum of the given address representation.
@@ -92,25 +84,61 @@ private:
   std::array<Byte, ADDRESS_SIZE> data_;
 };
 
+/**
+ * Returns the beginning constant iterator of the bytes range.
+ * @param addr the target bytes range
+ * @return the beginning constant iterator of the data
+ */
+constexpr const Byte* begin(const evmc_address& addr) { return addr.bytes; }
 
 /**
- * Base class template for identifying address representation types.
- * Other address types must specialize.
+ * Returns the beginning iterator of the bytes range.
+ * @param addr the target bytes range
+ * @return the beginning iterator of the data
  */
-template<typename T>
-struct IsAddressType : std::is_same<T, Address> {};
+constexpr Byte* begin(evmc_address& addr) { return addr.bytes; }
 
 /**
- * Specialization for evmc::address
+ * Returns the sentinel constant iterator of the bytes range.
+ * @param addr the target bytes range
+ * @return the sentinel constant iterator of the data
  */
-template<>
-struct IsAddressType<evmc::address> : std::true_type {};
+constexpr const Byte* end(const evmc_address& addr) { return addr.bytes + ADDRESS_SIZE; }
 
 /**
- * Specialization for evmc_address
+ * Returns the sentinel iterator of the bytes range.
+ * @param addr the target bytes range
+ * @return the sentinel iterator of the data
  */
-template<>
-struct IsAddressType<evmc_address> : std::true_type {};
+constexpr Byte* end(evmc_address& addr) { return addr.bytes + ADDRESS_SIZE; }
+
+/**
+ * Returns the beginning constant iterator of the bytes range.
+ * @param addr the target bytes range
+ * @return the beginning constant iterator of the data
+ */
+constexpr const Byte* begin(const evmc::address& addr) { return addr.bytes; }
+
+/**
+ * Returns the beginning iterator of the bytes range.
+ * @param addr the target bytes range
+ * @return the beginning iterator of the data
+ */
+constexpr Byte* begin(evmc::address& addr) { return addr.bytes; }
+
+/**
+ * Returns the sentinel constant iterator of the bytes range.
+ * @param addr the target bytes range
+ * @return the sentinel constant iterator of the data
+ */
+constexpr const Byte* end(const evmc::address& addr) { return addr.bytes + ADDRESS_SIZE; }
+
+/**
+ * Returns the sentinel iterator of the bytes range.
+ * @param addr the target bytes range
+ * @return the sentinel iterator of the data
+ */
+constexpr Byte* end(evmc::address& addr) { return addr.bytes + ADDRESS_SIZE; }
 
 /**
  * View of a address representation type.
@@ -120,13 +148,38 @@ class View<Address> : public BytesInterface<View<Address>, ADDRESS_SIZE> {
 public:
 
   /**
-   * Constructs a address view from the given input.
-   * Implicit construction is allowed only for address representation types.
-   * e.g. Address, evmc_address, and evmc::address
+   * Constructs a address view from the given bytes ranges.
+   * 
+   * @param range the contiguous and sized range of bytes to be viewed
+   * @throw invalid argument exception case the range size is incompatible with the view size.
    */
-  template<typename R>
-  explicit(not IsAddressType<std::remove_cvref_t<R>>::value)
-  constexpr View(R&& address) : data_(std::forward<R>(address)) {}
+  template<bytes::DataRange R>
+  explicit constexpr View(R&& range) : data_(range) {
+    if (const size_t size = std::ranges::size(range); size != ADDRESS_SIZE) {
+      throw std::invalid_argument("address view requires exactly 20 bytes, but " + std::to_string(size) + " were given");
+    }
+  }
+
+  /**
+   * Implicitly contructs an address view from a address object
+   * 
+   * @param address the address object
+  */
+  constexpr View(const Address& address) : data_(address) {}
+
+  /**
+   * Implictly constructs an address view from the evmc address type.
+   * 
+   * @param address te address object
+   */
+  constexpr View(const evmc_address& address) : data_(address) {}
+
+  /**
+   * Implictly constructs an address view from the evmc address type.
+   * 
+   * @param address te address object
+   */
+  constexpr View(const evmc::address& address) : data_(address) {}
 
   /**
    * Returns the beginning constant iterator of the range
@@ -137,47 +190,5 @@ public:
 private:
   std::span<const Byte, ADDRESS_SIZE> data_;
 };
-
-/**
- * This allows the standard algorithms to treat evmc_address as a range of contiguous bytes.
- * @param addr the constant address representation
- * @return the beginning constant iterator of the address
- */
-constexpr const Byte* begin(const evmc_address& addr) { return addr.bytes; }
-
-/**
- * This allows the standard algorithms to treat evmc_address as a range of contiguous bytes.
- * @param addr the address representation
- * @return the beginning iterator of the address
- */
-constexpr Byte* begin(evmc_address& addr) { return addr.bytes; }
-
-
-/**
- * This allows the standard algorithms to treat evmc_address as a range of contiguous bytes.
- * @param addr the address representation
- * @return the sentinel constant iterator of the address
- */
-constexpr const Byte* end(const evmc_address& addr) { return addr.bytes + ADDRESS_SIZE; }
-
-/**
- * This allows the standard algorithms to treat evmc_address as a range of contiguous bytes.
- * @param addr the address representation
- * @return the sentinel iterator of the address
- */
-constexpr Byte* end(evmc_address& addr) { return addr.bytes + ADDRESS_SIZE; }
-
-/**
- * This allows the standard algorithms to treat evmc::address as a range of contiguous bytes.
- * @param addr the constant address representation
- * @return the beginning constant iterator of the address
- */
-constexpr const Byte* begin(const evmc::address& addr) { return addr.bytes; }
-
-constexpr Byte* begin(evmc::address& addr) { return addr.bytes; }
-
-constexpr const Byte* end(const evmc::address& addr) { return addr.bytes + ADDRESS_SIZE; }
-
-constexpr Byte* end(evmc::address& addr) { return addr.bytes + ADDRESS_SIZE; }
 
 #endif // BDK_UTILS_ADDRESS_H

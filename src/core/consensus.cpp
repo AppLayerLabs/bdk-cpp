@@ -202,8 +202,8 @@ void Consensus::doValidatorTx(const uint64_t& nHeight, const Validator& me) {
   );
 
   // Sanity check if tx is valid
-  bytes::View randomHashTxView(randomHashTx.getData());
-  bytes::View randomSeedTxView(seedTx.getData());
+  View<Bytes> randomHashTxView(randomHashTx.getData());
+  View<Bytes> randomSeedTxView(seedTx.getData());
   if (Utils::sha3(randomSeedTxView.subspan(4)) != Hash(randomHashTxView.subspan(4))) {
     LOGDEBUG("RandomHash transaction is not valid!!!");
     return;

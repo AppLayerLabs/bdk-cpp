@@ -9,6 +9,7 @@ See the LICENSE.txt file in the project root for more information.
 #include "../../src/utils/strings.h"
 #include "bytes/view.h"
 #include "bytes/random.h"
+#include "bytes/hex.h"
 
 using Catch::Matchers::Equals;
 
@@ -188,17 +189,17 @@ namespace TAddress {
   TEST_CASE("Address Class", "[utils]") {
     SECTION("Address Copy Constructor") {
       Address addr1(Bytes({0x71, 0xc7, 0x65, 0x6e, 0xc7, 0xab, 0x88, 0xb0, 0x98, 0xde, 0xfb, 0x75, 0x1b, 0x74, 0x01, 0xb5, 0xf6, 0xd8, 0x97, 0x6f}));
-      Address addr2(std::string("\x71\xc7\x65\x6e\xc7\xab\x88\xb0\x98\xde\xfb\x75\x1b\x74\x01\xb5\xf6\xd8\x97\x6f"), true);
+      Address addr2(bytes::view("\x71\xc7\x65\x6e\xc7\xab\x88\xb0\x98\xde\xfb\x75\x1b\x74\x01\xb5\xf6\xd8\x97\x6f"));
       REQUIRE(addr1 == addr2);
       REQUIRE_THAT(addr1.hex(), Equals("71c7656ec7ab88b098defb751b7401b5f6d8976f"));
       REQUIRE(addr2 == Address({0x71, 0xc7, 0x65, 0x6e, 0xc7, 0xab, 0x88, 0xb0, 0x98, 0xde, 0xfb, 0x75, 0x1b, 0x74, 0x01, 0xb5, 0xf6, 0xd8, 0x97, 0x6f}));
     }
 
     SECTION("Address toChksum") {
-      Address inputAddress(std::string("0xfb6916095ca1df60bb79ce92ce3ea74c37c5d359"), false);
+      Address inputAddress = bytes::hex("0xfb6916095ca1df60bb79ce92ce3ea74c37c5d359");
       std::string inputChecksum = Address::checksum(inputAddress);
-      Address outputAddress(inputChecksum, false);
-      Address expectedOutputAddress(std::string("0xfB6916095ca1df60bB79Ce92cE3Ea74c37c5d359"), false);
+      Address outputAddress = bytes::hex(inputChecksum);
+      Address expectedOutputAddress = bytes::hex("0xfB6916095ca1df60bB79Ce92cE3Ea74c37c5d359");
       REQUIRE(outputAddress == expectedOutputAddress);
     }
 

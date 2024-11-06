@@ -1,3 +1,4 @@
+
 #ifndef CONTRACT_HOST_H
 #define CONTRACT_HOST_H
 
@@ -75,8 +76,8 @@ class ContractHost : public evmc::Host {
     const evmc_tx_context& currentTxContext_; // MUST be initialized within the constructor.
     boost::unordered_flat_map<Address, std::unique_ptr<BaseContract>, SafeHash>& contracts_;
     boost::unordered_flat_map<Address, NonNullUniquePtr<Account>, SafeHash>& accounts_;
-    boost::unordered_flat_map<StorageKey, Hash, SafeHash>& vmStorage_;
-    boost::unordered_flat_map<StorageKey, Hash, SafeHash> transientStorage_;
+    boost::unordered_flat_map<StorageKey, Hash, SafeHash, SafeCompare>& vmStorage_;
+    boost::unordered_flat_map<StorageKey, Hash, SafeHash, SafeCompare> transientStorage_;
     bool mustRevert_ = true; // We always assume that we must revert until proven otherwise.
     mutable bool evmcThrow_ = false; // Did the EVMC throw an exception?
     mutable std::vector<std::string> evmcThrows_;
@@ -128,7 +129,7 @@ class ContractHost : public evmc::Host {
   Address computeNewAccountAddress(const Address& fromAddress,
                                    const uint64_t& nonce,
                                    const Hash& salt,
-                                   const bytes::View& init_code);
+                                   const View<Bytes>& init_code);
 
     bool isTracingCalls() const noexcept;
 
@@ -156,7 +157,7 @@ class ContractHost : public evmc::Host {
                  const evmc_tx_context& currentTxContext,
                  boost::unordered_flat_map<Address, std::unique_ptr<BaseContract>, SafeHash>& contracts,
                  boost::unordered_flat_map<Address, NonNullUniquePtr<Account>, SafeHash>& accounts,
-                 boost::unordered_flat_map<StorageKey, Hash, SafeHash>& vmStorage,
+                 boost::unordered_flat_map<StorageKey, Hash, SafeHash, SafeCompare>& vmStorage,
                  const Hash& txHash,
                  const uint64_t txIndex,
                  const Hash& blockHash,
@@ -187,7 +188,7 @@ class ContractHost : public evmc::Host {
 
     static Address deriveContractAddress(const Address& fromAddress,
                                          const Hash& salt,
-                                         const bytes::View& init_code);
+                                         const View<Bytes>& init_code);
 
     /// Executes a call
     void execute(const evmc_message& msg, const ContractType& type);
@@ -277,12 +278,12 @@ class ContractHost : public evmc::Host {
           evmc_revision::EVMC_LATEST_STABLE_REVISION, &msg, recipientAcc.code.data(), recipientAcc.code.size()));
           this->leftoverGas_ = result.gas_left;
           if (result.status_code) {
-            auto hexResult = Hex::fromBytes(bytes::View(result.output_data, result.output_data + result.output_size));
+            auto hexResult = Hex::fromBytes(View<Bytes>(result.output_data, result.output_data + result.output_size));
             throw DynamicException("ContractHost::callContractViewFunction: EVMC call failed - Type: "
               + Utils::getRealTypeName<C>() + " at address: " + targetAddr.hex().get() + " - Result: " + hexResult.get()
             );
           }
-          return std::get<0>(ABI::Decoder::decodeData<R>(bytes::View(result.output_data, result.output_data + result.output_size)));
+          return std::get<0>(ABI::Decoder::decodeData<R>(View<Bytes>(result.output_data, result.output_data + result.output_size)));
         } break;
         case ContractType::CPP : {
           this->deduceGas(1000);
@@ -412,7 +413,7 @@ class ContractHost : public evmc::Host {
           evmc_revision::EVMC_LATEST_STABLE_REVISION, &msg, recipientAcc.code.data(), recipientAcc.code.size()));
           this->leftoverGas_ = result.gas_left;
           if (result.status_code) {
-            auto hexResult = Hex::fromBytes(bytes::View(result.output_data, result.output_data + result.output_size));
+            auto hexResult = Hex::fromBytes(View<Bytes>(result.output_data, result.output_data + result.output_size));
             throw DynamicException("ContractHost::callContractFunction: EVMC call failed - Type: "
               + Utils::getRealTypeName<C>() + " at address: " + targetAddr.hex().get() + " - Result: " + hexResult.get()
             );
@@ -420,7 +421,7 @@ class ContractHost : public evmc::Host {
           if constexpr (std::same_as<R, void>) {
             return;
           } else {
-            return std::get<0>(ABI::Decoder::decodeData<R>(bytes::View(result.output_data, result.output_data + result.output_size)));
+            return std::get<0>(ABI::Decoder::decodeData<R>(View<Bytes>(result.output_data, result.output_data + result.output_size)));
           }
         } break;
         case ContractType::CPP : {

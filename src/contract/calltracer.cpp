@@ -32,7 +32,7 @@ Bytes encodeRevertReason(std::string_view reason) {
   ));
 }
 
-std::string decodeRevertReason(bytes::View data) {
+std::string decodeRevertReason(View<Bytes> data) {
   if (data.size() != 100) {
     throw DynamicException("Encoded revert reason is expected to have exactly 100 bytes");
   }
@@ -52,7 +52,7 @@ Call::Call(const evmc_message& msg)
     value(msg.value.bytes),
     gas(msg.gas),
     gasUsed(0),
-    input(Utils::makeBytes(bytes::View(msg.input_data, msg.input_size))) {}
+    input(Utils::makeBytes(View<Bytes>(msg.input_data, msg.input_size))) {}
 
 json Call::toJson() const {
   using enum Call::Type;

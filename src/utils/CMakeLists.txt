@@ -21,7 +21,6 @@ set(UTILS_SOURCES
   ${CMAKE_SOURCE_DIR}/src/utils/address.cpp
   ${CMAKE_SOURCE_DIR}/src/utils/hash.cpp
   ${CMAKE_SOURCE_DIR}/src/utils/utils.cpp
-  ${CMAKE_SOURCE_DIR}/src/utils/strings.cpp
   ${CMAKE_SOURCE_DIR}/src/utils/hex.cpp
   ${CMAKE_SOURCE_DIR}/src/utils/merkle.cpp
   ${CMAKE_SOURCE_DIR}/src/utils/ecdsa.cpp
