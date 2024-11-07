@@ -12,18 +12,39 @@
 template <size_t N>
 class FixedBytes : public BytesInterface<FixedBytes<N>, N> {
 public:
+
+  /**
+   * Constructs a fixed bytes container with all bits clear
+   */
   constexpr FixedBytes() : data_() {}
 
+  /**
+   * Constructs a fixed bytes container from the given initializer list
+   * 
+   * @param initList the initalizer list
+   * @throw invalid argument exception if the initializer list size does not match the container size
+   */
   constexpr FixedBytes(std::initializer_list<Byte> initList) {
     if (initList.size() != N)
-      throw DynamicException("Given initializer list of size " + std::to_string(initList.size()) + 
+      throw std::invalid_argument("Given initializer list of size " + std::to_string(initList.size()) + 
         " is not suitable for initializing a FixedBytes<" + std::to_string(N) + ">");
 
     std::ranges::copy(initList, data_.begin());
   }  
 
+  /**
+   * Constructs a fixed bytes container from the given bytes initializer
+   * 
+   * @param initializer the bytes initializer
+   */
   constexpr FixedBytes(bytes::Initializer auto&& initializer) { initializer.to(data_); }
 
+  /**
+   * Constructs a fixed bytes container by copying the bytes from the given range.
+   * 
+   * @param input the input bytes
+   * @throw invalid argument exception if the input size does not match the container size
+   */
   explicit constexpr FixedBytes(const bytes::Range auto& input) {
     if (const size_t size = std::ranges::size(input); size != N) {
       throw std::invalid_argument("Given bytes range of size " + std::to_string(size) +
@@ -33,8 +54,14 @@ public:
     std::ranges::copy(input, data_.begin());
   }
 
+  /**
+   * @return the beginning iterator of this container bytes
+   */
   constexpr auto begin() { return data_.begin(); }
 
+  /**
+   * @return the beginning constant iterator of this container bytes
+   */
   constexpr auto begin() const { return data_.begin(); }
 
 private:
