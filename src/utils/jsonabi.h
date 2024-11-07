@@ -8,9 +8,7 @@ See the LICENSE.txt file in the project root for more information.
 #ifndef JSONABI_H
 #define JSONABI_H
 
-// TODO: keep it like this?
-// includes contract templates -> dynamiccontract.h -> contracthost.h -> *contractreflectioninterface.h* -> contract/abi.h -> *utils.h, libs/json.hpp*
-#include "../contract/customcontracts.h"
+#include "../contract/customcontracts.h" // contract templates -> dynamiccontract.h -> contracthost.h -> contractreflectioninterface.h -> contract/abi.h -> utils.h, libs/json.hpp
 
 /// Namespace for managing and converting contract ABI data to JSON format.
 namespace JsonAbi {

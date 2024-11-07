@@ -91,7 +91,7 @@ class BaseContract : public ContractLocals, public Dumpable {
       batch.push_back(Utils::stringToBytes("contractName_"), Utils::stringToBytes(contractName_), this->getDBPrefix());
       batch.push_back(Utils::stringToBytes("contractAddress_"), contractAddress_, this->getDBPrefix());
       batch.push_back(Utils::stringToBytes("contractCreator_"), contractCreator_, this->getDBPrefix());
-      batch.push_back(Utils::stringToBytes("contractChainId_"), Utils::uint64ToBytes(contractChainId_), this->getDBPrefix());
+      batch.push_back(Utils::stringToBytes("contractChainId_"), UintConv::uint64ToBytes(contractChainId_), this->getDBPrefix());
       return batch;
     }
 
@@ -115,7 +115,7 @@ class BaseContract : public ContractLocals, public Dumpable {
        return Address(db.get(std::string("contractCreator_"), dbPrefix_));
       }()),
       contractChainId_([&]() {
-       return Utils::bytesToUint64(db.get(std::string("contractChainId_"), dbPrefix_));
+       return UintConv::bytesToUint64(db.get(std::string("contractChainId_"), dbPrefix_));
       }())
     {}
 

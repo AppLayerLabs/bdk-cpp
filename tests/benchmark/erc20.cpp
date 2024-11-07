@@ -8,6 +8,8 @@
 
 #include "../src/contract/templates/erc20.h"
 
+#include "../src/utils/uintconv.h"
+
 #include "../sdktestsuite.hpp"
 
 namespace TERC20BENCHMARK {
@@ -48,7 +50,7 @@ namespace TERC20BENCHMARK {
 
 
       // Create the transaction for transfer
-      auto functor = Utils::uint32ToBytes(ABI::FunctorEncoder::encode<Address, uint256_t>("transfer").value);
+      auto functor = UintConv::uint32ToBytes(ABI::FunctorEncoder::encode<Address, uint256_t>("transfer").value);
       Bytes transferEncoded(functor.cbegin(), functor.cend());
       Utils::appendBytes(transferEncoded, ABI::Encoder::encodeData<Address, uint256_t>(to, uint256_t("100")));
       TxBlock transferTx = sdk.createNewTx(sdk.getChainOwnerAccount(), erc20Address, 0, transferEncoded);
@@ -110,7 +112,7 @@ namespace TERC20BENCHMARK {
       REQUIRE(sdk.callViewFunction(erc20Address, &ERC20::balanceOf, sdk.getChainOwnerAccount().address) == uint256_t("10000000000000000000000"));
 
       // Create the transaction for transfer
-      auto functor = Utils::uint32ToBytes(ABI::FunctorEncoder::encode<Address, uint256_t>("transfer").value);
+      auto functor = UintConv::uint32ToBytes(ABI::FunctorEncoder::encode<Address, uint256_t>("transfer").value);
       Bytes transferEncoded(functor.cbegin(), functor.cend());
       Utils::appendBytes(transferEncoded, ABI::Encoder::encodeData<Address, uint256_t>(to, uint256_t("100")));
       TxBlock transferTx = sdk.createNewTx(sdk.getChainOwnerAccount(), erc20Address, 0, transferEncoded);

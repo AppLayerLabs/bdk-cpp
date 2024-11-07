@@ -9,6 +9,8 @@ See the LICENSE.txt file in the project root for more information.
 
 #include "../../src/utils/finalizedblock.h" // merkle.h -> tx.h -> ecdsa.h -> utils.h
 
+#include "../../src/utils/uintconv.h"
+
 using Catch::Matchers::Equals;
 
 namespace TBlock {
@@ -152,10 +154,10 @@ namespace TBlock {
         Address to(Utils::randBytes(20));
         Bytes data = Utils::randBytes(32);
         uint64_t chainId = 8080;
-        uint256_t nonce = Utils::bytesToUint32(Utils::randBytes(4));
-        uint256_t value = Utils::bytesToUint64(Utils::randBytes(8));
-        uint256_t gasLimit = Utils::bytesToUint32(Utils::randBytes(4));
-        uint256_t maxFeePerGas = Utils::bytesToUint32(Utils::randBytes(4));
+        uint256_t nonce = UintConv::bytesToUint32(Utils::randBytes(4));
+        uint256_t value = UintConv::bytesToUint64(Utils::randBytes(8));
+        uint256_t gasLimit = UintConv::bytesToUint32(Utils::randBytes(4));
+        uint256_t maxFeePerGas = UintConv::bytesToUint32(Utils::randBytes(4));
         txs.emplace_back(
           to,
           from,
@@ -253,10 +255,10 @@ namespace TBlock {
             Address to(Utils::randBytes(20));
             Bytes data = Utils::randBytes(32);
             uint64_t chainId = 8080;
-            uint256_t nonce = Utils::bytesToUint32(Utils::randBytes(4));
-            uint256_t value = Utils::bytesToUint64(Utils::randBytes(8));
-            uint256_t gasLimit = Utils::bytesToUint32(Utils::randBytes(4));
-            uint256_t maxFeePerGas = Utils::bytesToUint32(Utils::randBytes(4));
+            uint256_t nonce = UintConv::bytesToUint32(Utils::randBytes(4));
+            uint256_t value = UintConv::bytesToUint64(Utils::randBytes(8));
+            uint256_t gasLimit = UintConv::bytesToUint32(Utils::randBytes(4));
+            uint256_t maxFeePerGas = UintConv::bytesToUint32(Utils::randBytes(4));
             auto tx = TxBlock(
               to,
               from,

@@ -8,6 +8,9 @@ See the LICENSE.txt file in the project root for more information.
 #ifndef ABI_H
 #define ABI_H
 
+#include "../utils/intconv.h"
+#include "../utils/uintconv.h"
+#include "../utils/strconv.h"
 #include "../utils/utils.h" // libs/json.hpp -> string
 
 /// Namespace for Solidity ABI-related operations.
@@ -365,7 +368,7 @@ namespace ABI {
       Functor ret;
       std::string fullSig = funcSig + "(" + listArgumentTypes<Args...>() + ")";
       auto hash = Utils::sha3(Utils::create_view_span(fullSig));
-      ret.value = Utils::bytesToUint32(hash.view(0,4));
+      ret.value = UintConv::bytesToUint32(hash.view(0,4));
       return ret;
     }
   }; // namespace FunctorEncoder
@@ -397,15 +400,15 @@ namespace ABI {
     };
 
     // Specialization for default solidity types
-    template <> struct TypeEncoder<Address> { static Bytes encode(const Address& add) { return Utils::padLeftBytes(add, 32); }};
-    template <> struct TypeEncoder<bool> { static Bytes encode(const bool& b) { return Utils::padLeftBytes((b ? Bytes{0x01} : Bytes{0x00}), 32); }};
+    template <> struct TypeEncoder<Address> { static Bytes encode(const Address& add) { return StrConv::padLeftBytes(add, 32); }};
+    template <> struct TypeEncoder<bool> { static Bytes encode(const bool& b) { return StrConv::padLeftBytes((b ? Bytes{0x01} : Bytes{0x00}), 32); }};
     template <> struct TypeEncoder<Hash> { static Bytes encode(const Hash& hash) { return hash.asBytes(); }; };
     template <> struct TypeEncoder<Bytes> {
       static Bytes encode(const Bytes& bytes) {
         int pad = 0;
         do { pad += 32; } while (pad < bytes.size());
-        Bytes len = Utils::padLeftBytes(Utils::uintToBytes(bytes.size()), 32);
-        Bytes data = Utils::padRightBytes(bytes, pad);
+        Bytes len = StrConv::padLeftBytes(Utils::uintToBytes(bytes.size()), 32);
+        Bytes data = StrConv::padRightBytes(bytes, pad);
         len.reserve(len.size() + data.size());
         len.insert(len.end(), std::make_move_iterator(data.begin()), std::make_move_iterator(data.end()));
         return len;
@@ -416,8 +419,8 @@ namespace ABI {
         bytes::View bytes = Utils::create_view_span(str);
         int pad = 0;
         do { pad += 32; } while (pad < bytes.size());
-        Bytes len = Utils::padLeftBytes(Utils::uintToBytes(bytes.size()), 32);
-        Bytes data = Utils::padRightBytes(bytes, pad);
+        Bytes len = StrConv::padLeftBytes(Utils::uintToBytes(bytes.size()), 32);
+        Bytes data = StrConv::padRightBytes(bytes, pad);
         len.reserve(len.size() + data.size());
         len.insert(len.end(), std::make_move_iterator(data.begin()), std::make_move_iterator(data.end()));
         return len;
@@ -488,7 +491,7 @@ namespace ABI {
           auto encodeItem = [&]<typename ItemType>(const ItemType& item) {
             if (isDynamic<ItemType>()) {
               Bytes packed = TypeEncoder<ItemType>::encode(item);
-              append(result, Utils::padLeftBytes(Utils::uintToBytes(nextOffset), 32));
+              append(result, StrConv::padLeftBytes(Utils::uintToBytes(nextOffset), 32));
               nextOffset += packed.size();
               dynamicBytes.insert(dynamicBytes.end(), packed.begin(), packed.end());
             } else {
@@ -514,20 +517,20 @@ namespace ABI {
 
         // Encode each item within the vector
         for (const auto& t : v) {
-          append(dynamicOffSets, Utils::uint256ToBytes(nextOffset));
+          append(dynamicOffSets, UintConv::uint256ToBytes(nextOffset));
           Bytes dynamicBytes = TypeEncoder<T>::encode(t);  // We're calling the encode function specialized for the T type.
           nextOffset += dynamicBytes.size();
           dynamicData.insert(dynamicData.end(), dynamicBytes.begin(), dynamicBytes.end());
         }
 
         // Add the array length, dynamic offsets and dynamic data
-        append(result, Utils::padLeftBytes(Utils::uintToBytes(v.size()), 32));
+        append(result, StrConv::padLeftBytes(Utils::uintToBytes(v.size()), 32));
         append(result, dynamicOffSets);
         result.insert(result.end(), dynamicData.begin(), dynamicData.end());
         return result;
       } else {
         // Add array length and append
-        append(result, Utils::padLeftBytes(Utils::uintToBytes(v.size()), 32));
+        append(result, StrConv::padLeftBytes(Utils::uintToBytes(v.size()), 32));
         for (const auto& t : v) append(result, TypeEncoder<T>::encode(t));
         return result;
       }
@@ -549,7 +552,7 @@ namespace ABI {
       auto encodeItem = [&]<typename ItemType>(const ItemType& item) {
         if constexpr (isDynamic<ItemType>()) {
           Bytes packed = TypeEncoder<ItemType>::encode(item);
-          append(result, Utils::padLeftBytes(Utils::uintToBytes(nextOffset), 32));
+          append(result, StrConv::padLeftBytes(Utils::uintToBytes(nextOffset), 32));
           nextOffset += packed.size();
           dynamicBytes.insert(dynamicBytes.end(), packed.begin(), packed.end());
         } else append(result, TypeEncoder<ItemType>::encode(item));
@@ -593,7 +596,7 @@ namespace ABI {
         // Almost the same as ABI::Encoder::encode, but without the padding.
         int pad = 0;
         do { pad += 32; } while (pad < bytes.size());
-        return Utils::padRightBytes(bytes, pad);
+        return StrConv::padRightBytes(bytes, pad);
       }
     };
 
@@ -602,7 +605,7 @@ namespace ABI {
         bytes::View bytes = Utils::create_view_span(str);
         int pad = 0;
         do { pad += 32; } while (pad < bytes.size());
-        return Utils::padRightBytes(bytes, pad);
+        return StrConv::padRightBytes(bytes, pad);
       }
     };
 
@@ -709,7 +712,7 @@ namespace ABI {
         using ItemType = std::decay_t<decltype(item.value)>;
         if constexpr (isDynamic<ItemType>()) {
           Bytes packed = ABI::Encoder::TypeEncoder<ItemType>::encode(item.value);
-          append(result, Utils::padLeftBytes(Utils::uintToBytes(nextOffset), 32));
+          append(result, StrConv::padLeftBytes(Utils::uintToBytes(nextOffset), 32));
           nextOffset += packed.size();
           dynamicBytes.insert(dynamicBytes.end(), packed.begin(), packed.end());
         } else append(result, ABI::Encoder::TypeEncoder<ItemType>::encode(item.value));

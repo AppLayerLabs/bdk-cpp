@@ -8,6 +8,8 @@
 
 #include "../src/contract/templates/erc721test.h"
 
+#include "../src/utils/uintconv.h"
+
 #include "../sdktestsuite.hpp"
 
 namespace TERC721BENCHMARK {
@@ -52,7 +54,7 @@ namespace TERC721BENCHMARK {
       // as the encoding is the same
 
       // Create the transaction for transfer
-      auto functor = Utils::uint32ToBytes(ABI::FunctorEncoder::encode<Address>("mint").value);
+      auto functor = UintConv::uint32ToBytes(ABI::FunctorEncoder::encode<Address>("mint").value);
       Bytes mintEncoded(functor.cbegin(), functor.cend());
       Utils::appendBytes(mintEncoded, ABI::Encoder::encodeData<Address>(to));
       TxBlock transferTx = sdk.createNewTx(sdk.getChainOwnerAccount(), erc721Address, 0, mintEncoded);
@@ -105,7 +107,7 @@ namespace TERC721BENCHMARK {
       // as the encoding is the same
 
       // Create the transaction for transfer
-      auto functor = Utils::uint32ToBytes(ABI::FunctorEncoder::encode<Address>("mint").value);
+      auto functor = UintConv::uint32ToBytes(ABI::FunctorEncoder::encode<Address>("mint").value);
       Bytes mintEncoded(functor.cbegin(), functor.cend());
       Utils::appendBytes(mintEncoded, ABI::Encoder::encodeData<Address>(to));
       TxBlock transferTx = sdk.createNewTx(sdk.getChainOwnerAccount(), erc721Address, 0, mintEncoded);

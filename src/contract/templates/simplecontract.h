@@ -11,7 +11,6 @@ See the LICENSE.txt file in the project root for more information.
 #include "../dynamiccontract.h"
 #include "../variables/safestring.h"
 #include "../variables/safetuple.h"
-#include "../../utils/utils.h" // SafeUintX_t aliases declared here
 
 /**
  * SimpleContract is a simple contract that stores a name, number and tuple.

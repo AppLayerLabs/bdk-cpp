@@ -5,11 +5,13 @@ This software is distributed under the MIT License.
 See the LICENSE.txt file in the project root for more information.
 */
 
+#include <evmone/evmone.h>
+
 #include "state.h"
 
 #include "../contract/contracthost.h" // contractmanager.h
 
-#include <evmone/evmone.h>
+#include "../utils/uintconv.h"
 
 State::State(
   const DB& db,
@@ -209,19 +211,19 @@ void State::processTransaction(
   }
   try {
     evmc_tx_context txContext;
-    txContext.tx_gas_price = Utils::uint256ToEvmcUint256(tx.getMaxFeePerGas());
+    txContext.tx_gas_price = EVMCConv::uint256ToEvmcUint256(tx.getMaxFeePerGas());
     txContext.tx_origin = tx.getFrom().toEvmcAddress();
     txContext.block_coinbase = ContractGlobals::getCoinbase().toEvmcAddress();
     txContext.block_number = ContractGlobals::getBlockHeight();
     txContext.block_timestamp = ContractGlobals::getBlockTimestamp();
     txContext.block_gas_limit = 10000000;
     txContext.block_prev_randao = {};
-    txContext.chain_id = Utils::uint256ToEvmcUint256(this->options_.getChainID());
+    txContext.chain_id = EVMCConv::uint256ToEvmcUint256(this->options_.getChainID());
     txContext.block_base_fee = {};
     txContext.blob_base_fee = {};
     txContext.blob_hashes = nullptr;
     txContext.blob_hashes_count = 0;
-    Hash randomSeed(Utils::uint256ToBytes((randomnessHash.toUint256() + txIndex)));
+    Hash randomSeed(UintConv::uint256ToBytes((randomnessHash.toUint256() + txIndex)));
     ContractHost host(
       this->vm_,
       this->dumpManager_,
@@ -453,7 +455,7 @@ Bytes State::ethCall(const evmc_message& callInfo) {
     txContext.block_timestamp = static_cast<int64_t>(ContractGlobals::getBlockTimestamp());
     txContext.block_gas_limit = 10000000;
     txContext.block_prev_randao = {};
-    txContext.chain_id = Utils::uint256ToEvmcUint256(this->options_.getChainID());
+    txContext.chain_id = EVMCConv::uint256ToEvmcUint256(this->options_.getChainID());
     txContext.block_base_fee = {};
     txContext.blob_base_fee = {};
     txContext.blob_hashes = nullptr;

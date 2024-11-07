@@ -9,6 +9,8 @@ See the LICENSE.txt file in the project root for more information.
 
 #include "../../src/net/p2p/managerdiscovery.h"
 
+#include "../../src/utils/uintconv.h"
+
 #include "../blockchainwrapper.hpp" // blockchain.h -> consensus.h -> state.h -> (rdpos.h -> net/p2p/managernormal.h), dump.h -> storage.h, utils/db.h
 #include "../sdktestsuite.hpp" // contracthost.h -> contractmanager.h -> contractreflectioninterface.h -> abi.h
 
@@ -27,7 +29,7 @@ const std::vector<Hash> validatorPrivKeysState {
 std::pair<evmc_message, Bytes> buildCallInfo(const Address& addressToCall, const Functor& function, const Bytes& dataToCall) {
   std::pair<evmc_message, Bytes> callInfo;
   Bytes& messageBytes = std::get<1>(callInfo);
-  Utils::appendBytes(messageBytes, Utils::uint32ToBytes(function.value));
+  Utils::appendBytes(messageBytes, UintConv::uint32ToBytes(function.value));
   Utils::appendBytes(messageBytes, dataToCall);
   auto& [callKind,
     callFlags,

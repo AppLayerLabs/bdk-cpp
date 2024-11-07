@@ -12,6 +12,8 @@ See the LICENSE.txt file in the project root for more information.
 #include "../../src/contract/templates/erc20.h"
 #include "../../src/contract/templates/erc20wrapper.h"
 
+#include "../../src/utils/uintconv.h"
+
 #include "../sdktestsuite.hpp"
 
 static const Bytes testBytecode = Hex::toBytes("0x608060405234801561001057600080fd5b50610219806100206000396000f3fe608060405234801561001057600080fd5b50600436106100415760003560e01c80631003e2d2146100465780634fa522db14610062578063853255cc14610092575b600080fd5b610060600480360381019061005b9190610129565b6100b0565b005b61007c60048036038101906100779190610129565b6100cb565b6040516100899190610165565b60405180910390f35b61009a6100e5565b6040516100a79190610165565b60405180910390f35b806000808282546100c191906101af565b9250508190555050565b60006100d6826100b0565b6100de6100e5565b9050919050565b60008054905090565b600080fd5b6000819050919050565b610106816100f3565b811461011157600080fd5b50565b600081359050610123816100fd565b92915050565b60006020828403121561013f5761013e6100ee565b5b600061014d84828501610114565b91505092915050565b61015f816100f3565b82525050565b600060208201905061017a6000830184610156565b92915050565b7f4e487b7100000000000000000000000000000000000000000000000000000000600052601160045260246000fd5b60006101ba826100f3565b91506101c5836100f3565b92508282019050808211156101dd576101dc610180565b5b9291505056fea264697066735822122010806f8bd0eb78dd8bf1e05d0621ad54dfe78cd22c6a67e02decd89cd4a2208064736f6c63430008130033");
@@ -105,7 +107,7 @@ TEST_CASE("CallTracer Tests", "[trace]") {
     REQUIRE(callTrace->value == FixedBytes<32>());
     // TODO: gas and gasUsed?
     // TODO: what are these 4 bytes prefix?
-    REQUIRE(FixedBytes<32>(callTrace->input | std::views::drop(4)) == FixedBytes<32>(Utils::uint256ToBytes(uint256_t(33))));
+    REQUIRE(FixedBytes<32>(callTrace->input | std::views::drop(4)) == FixedBytes<32>(UintConv::uint256ToBytes(uint256_t(33))));
 
     REQUIRE(callTrace->output == Bytes());
     REQUIRE(callTrace->calls.empty());
@@ -125,9 +127,9 @@ TEST_CASE("CallTracer Tests", "[trace]") {
     REQUIRE(callTrace->value == FixedBytes<32>());
     // TODO: gas and gasUsed?
     // TODO: what are these 4 bytes prefix?
-    REQUIRE(FixedBytes<32>(callTrace->input | std::views::drop(4)) == FixedBytes<32>(Utils::uint256ToBytes(uint256_t(66))));
+    REQUIRE(FixedBytes<32>(callTrace->input | std::views::drop(4)) == FixedBytes<32>(UintConv::uint256ToBytes(uint256_t(66))));
 
-    REQUIRE(callTrace->output == Utils::makeBytes(Utils::uint256ToBytes(uint256_t(99))));
+    REQUIRE(callTrace->output == Utils::makeBytes(UintConv::uint256ToBytes(uint256_t(99))));
     REQUIRE(callTrace->calls.empty());
 
     res = sdk.callViewFunction(contractAddress, &TestWrapper::sum);
@@ -161,9 +163,9 @@ TEST_CASE("CallTracer Tests", "[trace]") {
     REQUIRE(callTrace->value == FixedBytes<32>());
     // TODO: gas and gasUsed
     REQUIRE(Address(callTrace->input | std::views::drop(16) | std::views::take(20)) == testContractAddress);
-    REQUIRE(FixedBytes<32>(callTrace->input | std::views::drop(36)) == FixedBytes<32>(Utils::uint256ToBytes(uint256_t(55))));
+    REQUIRE(FixedBytes<32>(callTrace->input | std::views::drop(36)) == FixedBytes<32>(UintConv::uint256ToBytes(uint256_t(55))));
 
-    REQUIRE(callTrace->output == Utils::makeBytes(Utils::uint256ToBytes(uint256_t(100))));
+    REQUIRE(callTrace->output == Utils::makeBytes(UintConv::uint256ToBytes(uint256_t(100))));
     REQUIRE(callTrace->calls.size() == 1);
 
     const trace::Call& nestedCall = callTrace->calls.front();
@@ -172,9 +174,9 @@ TEST_CASE("CallTracer Tests", "[trace]") {
     REQUIRE(nestedCall.from == testProxyContractAddress);
     REQUIRE(nestedCall.to == testContractAddress);
     REQUIRE(nestedCall.value == FixedBytes<32>());
-    REQUIRE(FixedBytes<32>(nestedCall.input | std::views::drop(4)) == FixedBytes<32>(Utils::uint256ToBytes(uint256_t(55))));
+    REQUIRE(FixedBytes<32>(nestedCall.input | std::views::drop(4)) == FixedBytes<32>(UintConv::uint256ToBytes(uint256_t(55))));
 
-    REQUIRE(nestedCall.output == Utils::makeBytes(Utils::uint256ToBytes(uint256_t(100))));
+    REQUIRE(nestedCall.output == Utils::makeBytes(UintConv::uint256ToBytes(uint256_t(100))));
     REQUIRE(nestedCall.calls.empty());
 
     res = sdk.callViewFunction(testContractAddress, &TestWrapper::sum);
@@ -295,7 +297,7 @@ TEST_CASE("CallTracer Tests", "[trace]") {
     REQUIRE(payCallTrace->status == trace::Status::SUCCEEDED);
     REQUIRE(payCallTrace->from == sdk.getOptions().getChainOwner());
     REQUIRE(payCallTrace->to == bankAddress);
-    REQUIRE(payCallTrace->value == FixedBytes<32>(Utils::uint256ToBytes(uint256_t(4568))));
+    REQUIRE(payCallTrace->value == FixedBytes<32>(UintConv::uint256ToBytes(uint256_t(4568))));
     REQUIRE(payCallTrace->input == Hex::toBytes("0x1b9265b8"));
     REQUIRE(payCallTrace->output == Bytes());
     REQUIRE(payCallTrace->calls.empty());

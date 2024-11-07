@@ -11,6 +11,9 @@ See the LICENSE.txt file in the project root for more information.
 // Leave it in to avoid "invalid use of incomplete type" warnings
 #include "contracthost.h" // utils/{contractreflectioninterface.h,safehash.h,string.h,utils.h}, contractmanager.h -> abi.h, contract.h
 
+#include "../utils/evmcconv.h"
+#include "../utils/uintconv.h"
+
 /// Factory **namespace** that does the setup, creation and registration of contracts to the blockchain.
 /// As it is a namespace, it must take the required arguments (such as current contract list, etc.) as parameters.
 /**
@@ -96,7 +99,7 @@ namespace ContractFactory {
       using ConstructorArguments = typename TContract::ConstructorArguments;
       using DecayedArguments = decltype(Utils::removeQualifiers<ConstructorArguments>());
       DecayedArguments arguments = std::apply([&callInfo](auto&&... args) {
-        return ABI::Decoder::decodeData<std::decay_t<decltype(args)>...>(Utils::getFunctionArgs(callInfo));
+        return ABI::Decoder::decodeData<std::decay_t<decltype(args)>...>(EVMCConv::getFunctionArgs(callInfo));
       }, DecayedArguments{});
       return arguments;
     }
@@ -150,7 +153,7 @@ namespace ContractFactory {
       createSignature += ")";
       auto hash = Utils::sha3(Utils::create_view_span(createSignature));
       Functor functor;
-      functor.value = Utils::bytesToUint32(hash.view(0,4));
+      functor.value = UintConv::bytesToUint32(hash.view(0,4));
       createContractFuncs[functor] = createFunc;
     }
 

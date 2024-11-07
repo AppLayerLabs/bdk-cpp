@@ -8,6 +8,8 @@ See the LICENSE.txt file in the project root for more information.
 #include "dexv2factory.h"
 #include "dexv2pair.h"
 
+#include "../../../utils/uintconv.h"
+
 DEXV2Factory::DEXV2Factory(const Address &address, const DB& db
 ) : DynamicContract(address, db), feeTo_(this), feeToSetter_(this),
   allPairs_(this), getPair_(this)
@@ -118,7 +120,7 @@ DBBatch DEXV2Factory::dump() const
   dbBatch.push_back(Utils::stringToBytes("feeToSetter_"), this->feeToSetter_.get().view(), this->getDBPrefix());
 
   for (const auto& address : this->allPairs_.get()) {
-    dbBatch.push_back(Utils::uint32ToBytes(i), address.view(), this->getNewPrefix("allPairs_"));
+    dbBatch.push_back(UintConv::uint32ToBytes(i), address.view(), this->getNewPrefix("allPairs_"));
     i++;
   }
 

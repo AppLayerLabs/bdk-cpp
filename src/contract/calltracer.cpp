@@ -7,17 +7,14 @@ See the LICENSE.txt file in the project root for more information.
 
 #include "calltracer.h"
 
+#include "../utils/uintconv.h"
+
 namespace trace {
 
 static Call::Type getCallType(const evmc_message& msg) {
   using enum Call::Type;
-
-  if (msg.kind == EVMC_CALL)
-    return (msg.flags == EVMC_STATIC) ? STATICCALL : CALL;
-
-  if (msg.kind == EVMC_DELEGATECALL)
-    return DELEGATECALL;
-  
+  if (msg.kind == EVMC_CALL) return (msg.flags == EVMC_STATIC) ? STATICCALL : CALL;
+  if (msg.kind == EVMC_DELEGATECALL) return DELEGATECALL;
   throw DynamicException("evmc_message is not from a function call");
 }
 
@@ -28,7 +25,7 @@ Bytes encodeRevertReason(std::string_view reason) {
   std::copy_n(reason.begin(), count, reasonEncoded.begin());
 
   const uint256_t size(reason.size());
-  const FixedBytes<32> sizeEncoded(Utils::uint256ToBytes(size));
+  const FixedBytes<32> sizeEncoded(UintConv::uint256ToBytes(size));
 
   return Utils::makeBytes(bytes::join(
     Hex::toBytes("0x08c379a0"),
@@ -43,7 +40,7 @@ std::string decodeRevertReason(bytes::View data) {
     throw DynamicException("Encoded revert reason is expected to have exactly 100 bytes");
   }
 
-  const size_t size = Utils::bytesToUint256(data.subspan(36, 32)).convert_to<size_t>();
+  const size_t size = UintConv::bytesToUint256(data.subspan(36, 32)).convert_to<size_t>();
 
   std::string res;
   res.reserve(size);
@@ -62,7 +59,7 @@ Call::Call(const evmc_message& msg)
 
 json Call::toJson() const {
   using enum Call::Type;
-  
+
   json res;
 
   switch (this->type) {
@@ -82,7 +79,7 @@ json Call::toJson() const {
   res["from"] = this->from.hex(true);
   res["to"] = this->to.hex(true);
 
-  const uint256_t value = Utils::bytesToUint256(this->value);
+  const uint256_t value = UintConv::bytesToUint256(this->value);
   res["value"] = Hex::fromBytes(Utils::uintToBytes(value), true).forRPC();
 
   res["gas"] = Hex::fromBytes(Utils::uintToBytes(this->gas), true).forRPC();
@@ -123,19 +120,13 @@ CallTracer::CallTracer(Call rootCall) : root_(std::make_unique<Call>(std::move(r
 }
 
 const Call& CallTracer::root() const {
-  if (!hasCalls())
-    throw DynamicException("root call does not exists since no call was traced");
-  
+  if (!hasCalls()) throw DynamicException("root call does not exists since no call was traced");
   return *root_;
 }
 
 const Call& CallTracer::current() const {
-  if (!hasCalls())
-    throw DynamicException("current call does not exists since no call was traced");
-
-  if (isFinished())
-    throw DynamicException("call tracer is already finished, no call currently opened");
-
+  if (!hasCalls()) throw DynamicException("current call does not exists since no call was traced");
+  if (isFinished()) throw DynamicException("call tracer is already finished, no call currently opened");
   return *stack_.back();
 }
 

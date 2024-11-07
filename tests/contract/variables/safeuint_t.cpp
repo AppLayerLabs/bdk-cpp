@@ -7,7 +7,7 @@ See the LICENSE.txt file in the project root for more information.
 
 #include "../../src/libs/catch2/catch_amalgamated.hpp"
 #include "../../src/contract/variables/safeuint.h"
-#include "../../src/utils/utils.h" // UnderlyingType
+#include "../../src/utils/uintconv.h" // UnderlyingType
 
 // Helper struct and templates for testing multiple types
 template <int Size> struct UnderlyingType;

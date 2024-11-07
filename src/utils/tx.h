@@ -9,6 +9,7 @@ See the LICENSE.txt file in the project root for more information.
 #define TX_H
 
 #include "ecdsa.h" // utils.h -> strings.h, (bytes/join.h -> bytes/view.h)
+#include "uintconv.h"
 
 /**
  * Abstraction of a block transaction.
@@ -288,7 +289,7 @@ class TxValidator {
     inline const Bytes& getData() const { return this->data_; }
     inline Functor getFunctor() const {
       Functor ret; if (this->data_.size() < 4) return ret;
-      ret.value = Utils::bytesToUint32(Utils::create_view_span(this->data_, 0, 4));
+      ret.value = UintConv::bytesToUint32(Utils::create_view_span(this->data_, 0, 4));
       return ret;
     }
     inline const uint64_t& getChainId() const { return this->chainId_; }

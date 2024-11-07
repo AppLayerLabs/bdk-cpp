@@ -17,6 +17,7 @@ See the LICENSE.txt file in the project root for more information.
 
 #include "dynamicexception.h" // TODO: see the size todo below
 #include "hex.h"
+#include "uintconv.h"
 
 // TODO: It is possible to implement **fast** operators for some types,
 // such as Address, Functor and Hash. Taking advantage that memory located within

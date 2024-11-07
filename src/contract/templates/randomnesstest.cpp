@@ -1,4 +1,13 @@
+/*
+Copyright (c) [2023-2024] [AppLayer Developers]
+
+This software is distributed under the MIT License.
+See the LICENSE.txt file in the project root for more information.
+*/
+
 #include "randomnesstest.h"
+
+#include "../../utils/uintconv.h"
 
 RandomnessTest::RandomnessTest(const Address& address,
   const Address& creator, const uint64_t& chainId
@@ -10,7 +19,7 @@ RandomnessTest::RandomnessTest(const Address& address,
 
 RandomnessTest::RandomnessTest(const Address& address, const DB& db)
   : DynamicContract(address, db) {
-  this->randomValue_ = Utils::bytesToUint256(db.get(std::string("randomValue_"), this->getDBPrefix()));
+  this->randomValue_ = UintConv::bytesToUint256(db.get(std::string("randomValue_"), this->getDBPrefix()));
   this->randomValue_.commit();
   registerContractFunctions();
   this->randomValue_.enableRegister();
@@ -35,7 +44,7 @@ uint256_t RandomnessTest::getRandom() const {
 
 DBBatch RandomnessTest::dump() const {
   DBBatch dbBatch = BaseContract::dump();
-  dbBatch.push_back(Utils::stringToBytes("randomValue_"), Utils::uint256ToBytes(randomValue_.get()), this->getDBPrefix());
+  dbBatch.push_back(Utils::stringToBytes("randomValue_"), UintConv::uint256ToBytes(randomValue_.get()), this->getDBPrefix());
   return dbBatch;
 }
 

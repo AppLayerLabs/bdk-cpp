@@ -5,11 +5,14 @@ This software is distributed under the MIT License.
 See the LICENSE.txt file in the project root for more information.
 */
 
-#include "../../../core/state.h" // dump.h -> utils/db.h, storage.h
+#include "methods.h"
 
 #include "blocktag.h"
-#include "methods.h"
 #include "variadicparser.h" // parser.h -> ranges, utils/utils.h -> libs/json.hpp
+
+#include "../../../utils/evmcconv.h"
+
+#include "../../../core/state.h" // dump.h -> utils/db.h, storage.h
 
 static inline constexpr std::string_view FIXED_BASE_FEE_PER_GAS = "0x9502f900"; // Fixed to 2.5 GWei
 
@@ -124,7 +127,7 @@ static std::pair<Bytes, evmc_message> parseEvmcMessage(const json& request, cons
   parseIfExists<uint64_t>(txJson, "gasPrice"); // gas price ignored as chain is fixed at 1 GWEI
 
   msg.value = parseIfExists<uint64_t>(txJson, "value")
-    .transform([] (uint64_t val) { return Utils::uint256ToEvmcUint256(uint256_t(val)); })
+    .transform([] (uint64_t val) { return EVMCConv::uint256ToEvmcUint256(uint256_t(val)); })
     .value_or(evmc::uint256be{});
 
   buffer = parseIfExists<Bytes>(txJson, "data").value_or(Bytes{});

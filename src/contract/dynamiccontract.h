@@ -8,6 +8,8 @@ See the LICENSE.txt file in the project root for more information.
 #ifndef DYNAMICCONTRACT_H
 #define DYNAMICCONTRACT_H
 
+#include "../utils/evmcconv.h" // getFunctor, getFunctionArgs
+
 #include "contracthost.h" // contractmanager.h -> contract.h, ...utils/utils.h,safehash.h
 #include "event.h" // abi.h
 
@@ -201,14 +203,14 @@ class DynamicContract : public BaseContract {
       Functor functor = ABI::FunctorEncoder::encode<Args...>(funcSignature);
       auto registrationFunc = [this, instance, memFunc, funcSignature](const evmc_message &callInfo) {
         using DecayedArgsTuple = std::tuple<std::decay_t<Args>...>;
-        DecayedArgsTuple decodedData = ABI::Decoder::decodeData<std::decay_t<Args>...>(Utils::getFunctionArgs(callInfo));
+        DecayedArgsTuple decodedData = ABI::Decoder::decodeData<std::decay_t<Args>...>(EVMCConv::getFunctionArgs(callInfo));
         std::apply([instance, memFunc](auto&&... args) {
             (instance->*memFunc)(std::forward<decltype(args)>(args)...);
         }, decodedData);
       };
       auto registrationFuncEVM = [this, instance, memFunc, funcSignature](const evmc_message &callInfo) -> Bytes {
         using DecayedArgsTuple = std::tuple<std::decay_t<Args>...>;
-        DecayedArgsTuple decodedData = ABI::Decoder::decodeData<std::decay_t<Args>...>(Utils::getFunctionArgs(callInfo));
+        DecayedArgsTuple decodedData = ABI::Decoder::decodeData<std::decay_t<Args>...>(EVMCConv::getFunctionArgs(callInfo));
         if constexpr (std::is_same_v<R, void>) {
           std::apply([instance, memFunc](auto&&... args) {
               (instance->*memFunc)(std::forward<decltype(args)>(args)...);
@@ -253,7 +255,7 @@ class DynamicContract : public BaseContract {
       Functor functor = ABI::FunctorEncoder::encode<Args...>(funcSignature);
       auto registrationFunc = [this, instance, memFunc, funcSignature](const evmc_message &callInfo) -> Bytes {
         using DecayedArgsTuple = std::tuple<std::decay_t<Args>...>;
-        DecayedArgsTuple decodedData = ABI::Decoder::decodeData<std::decay_t<Args>...>(Utils::getFunctionArgs(callInfo));
+        DecayedArgsTuple decodedData = ABI::Decoder::decodeData<std::decay_t<Args>...>(EVMCConv::getFunctionArgs(callInfo));
         // Use std::apply to call the member function and encode its return value
         return std::apply([instance, memFunc](Args... args) -> Bytes {
           // Call the member function and return its encoded result
@@ -269,7 +271,7 @@ class DynamicContract : public BaseContract {
       };
       auto registrationFuncEVM =  [this, instance, memFunc, funcSignature](const evmc_message &callInfo) -> Bytes {
         using DecayedArgsTuple = std::tuple<std::decay_t<Args>...>;
-        DecayedArgsTuple decodedData = ABI::Decoder::decodeData<std::decay_t<Args>...>(Utils::getFunctionArgs(callInfo));
+        DecayedArgsTuple decodedData = ABI::Decoder::decodeData<std::decay_t<Args>...>(EVMCConv::getFunctionArgs(callInfo));
         if constexpr (std::is_same_v<R, void>) {
           // If the function's return type is void, call the member function and return an empty Bytes object
           std::apply([instance, memFunc](Args... args) {
@@ -367,7 +369,7 @@ class DynamicContract : public BaseContract {
       this->host_ = host;
       PointerNullifier nullifier(this->host_);
       try {
-        Functor funcName = Utils::getFunctor(callInfo);
+        Functor funcName = EVMCConv::getFunctor(callInfo);
         if (this->isPayableFunction(funcName)) {
           auto func = this->payableFunctions_.find(funcName);
           if (func == this->payableFunctions_.end()) throw DynamicException("Functor not found for payable function");
@@ -391,7 +393,7 @@ class DynamicContract : public BaseContract {
       this->host_ = host;
       PointerNullifier nullifier(this->host_);
       try {
-        Functor funcName = Utils::getFunctor(callInfo);
+        Functor funcName = EVMCConv::getFunctor(callInfo);
         if (this->isPayableFunction(funcName)) {
           auto func = this->evmFunctions_.find(funcName);
           if (func == this->evmFunctions_.end()) throw DynamicException("Functor not found for payable function");
@@ -421,7 +423,7 @@ class DynamicContract : public BaseContract {
       this->host_ = host;
       PointerNullifier nullifier(this->host_);
       try {
-        Functor funcName = Utils::getFunctor(data);
+        Functor funcName = EVMCConv::getFunctor(data);
         auto func = this->viewFunctions_.find(funcName);
         if (func == this->viewFunctions_.end()) throw DynamicException("Functor not found");
         return func->second(data);

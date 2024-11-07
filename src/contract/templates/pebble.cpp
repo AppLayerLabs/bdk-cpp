@@ -1,6 +1,15 @@
+/*
+Copyright (c) [2023-2024] [AppLayer Developers]
+
+This software is distributed under the MIT License.
+See the LICENSE.txt file in the project root for more information.
+*/
+
 #include "pebble.h"
 
-#include "contract/variables/reentrancyguard.h"
+#include "../variables/reentrancyguard.h"
+
+#include "../../utils/uintconv.h"
 
 Pebble::Pebble(const Address& address, const DB& db)
   : DynamicContract(address, db),
@@ -11,8 +20,8 @@ Pebble::Pebble(const Address& address, const DB& db)
     tokenIds_(this),
     tokenRarity_(this) {
   // Load from DB.
-  this->maxSupply_ = Utils::bytesToUint256(db.get(std::string("maxSupply_"), this->getDBPrefix()));
-  this->tokenIds_ = Utils::bytesToUint256(db.get(std::string("tokenIds_"), this->getDBPrefix()));
+  this->maxSupply_ = UintConv::bytesToUint256(db.get(std::string("maxSupply_"), this->getDBPrefix()));
+  this->tokenIds_ = UintConv::bytesToUint256(db.get(std::string("tokenIds_"), this->getDBPrefix()));
   for (const auto& dbEntry : db.getBatch(this->getNewPrefix("tokenRarity_"))) {
     this->tokenRarity_[Utils::fromBigEndian<uint256_t>(dbEntry.key)] = static_cast<Rarity>(Utils::fromBigEndian<uint8_t>(dbEntry.value));
   }
@@ -54,10 +63,10 @@ DBBatch Pebble::dump() const {
     batch.delete_key(dbItem);
   }
   // Then, dump the contents of this class.
-  batch.push_back(Utils::stringToBytes("maxSupply_"), Utils::uint256ToBytes(this->maxSupply_.get()), this->getDBPrefix());
-  batch.push_back(Utils::stringToBytes("tokenIds_"), Utils::uint256ToBytes(this->tokenIds_.get()), this->getDBPrefix());
+  batch.push_back(Utils::stringToBytes("maxSupply_"), UintConv::uint256ToBytes(this->maxSupply_.get()), this->getDBPrefix());
+  batch.push_back(Utils::stringToBytes("tokenIds_"), UintConv::uint256ToBytes(this->tokenIds_.get()), this->getDBPrefix());
   for (auto it = this->tokenRarity_.cbegin(); it != this->tokenRarity_.cend(); ++it) {
-    batch.push_back(Utils::uint256ToBytes(it->first), Utils::uint8ToBytes(static_cast<uint8_t>(it->second)), this->getNewPrefix("tokenRarity_"));
+    batch.push_back(UintConv::uint256ToBytes(it->first), UintConv::uint8ToBytes(static_cast<uint8_t>(it->second)), this->getNewPrefix("tokenRarity_"));
   }
   return batch;
 }

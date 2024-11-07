@@ -13,6 +13,9 @@ See the LICENSE.txt file in the project root for more information.
 #include "contractmanager.h"
 #include "contractstack.h" // utils/{strings.h,safehash.h, bytes/join.h}
 
+#include "../utils/evmcconv.h"
+#include "../utils/uintconv.h"
+
 // TODO: EVMC Static Mode Handling
 // TODO: Contract creating other contracts (EVM Factories)
 // TODO: Proper gas limit tests.
@@ -254,7 +257,7 @@ class ContractHost : public evmc::Host {
           }
           auto functor = ABI::FunctorEncoder::encode<Args...>(functionName);
           Bytes fullData;
-          Utils::appendBytes(fullData, Utils::uint32ToBytes(functor.value));
+          Utils::appendBytes(fullData, UintConv::uint32ToBytes(functor.value));
           if constexpr (sizeof...(Args) > 0) {
             Utils::appendBytes(fullData, ABI::Encoder::encodeData<Args...>(args...));
           }
@@ -307,7 +310,7 @@ class ContractHost : public evmc::Host {
         const std::string functionName = ContractReflectionInterface::getFunctionName(func);
 
         const BytesArr<4> encodedFunctor =
-          Utils::uint32ToBytes(ABI::FunctorEncoder::encode<Args...>(functionName).value);
+          UintConv::uint32ToBytes(ABI::FunctorEncoder::encode<Args...>(functionName).value);
 
         if constexpr (sizeof...(args) > 0) {
           const Bytes encodedArgs = ABI::Encoder::encodeData<Args...>(args...);
@@ -377,7 +380,7 @@ class ContractHost : public evmc::Host {
       }
       NestedCallSafeGuard guard(caller, caller->caller_, caller->value_);
       switch (recipientAcc.contractType) {
-        case ContractType::EVM : {
+        case ContractType::EVM: {
           this->deduceGas(10000);
           evmc_message msg;
           msg.kind = EVMC_CALL;
@@ -392,13 +395,13 @@ class ContractHost : public evmc::Host {
           }
           auto functor = ABI::FunctorEncoder::encode<Args...>(functionName);
           Bytes fullData;
-          Utils::appendBytes(fullData, Utils::uint32ToBytes(functor.value));
+          Utils::appendBytes(fullData, UintConv::uint32ToBytes(functor.value));
           if constexpr (sizeof...(Args) > 0) {
             Utils::appendBytes(fullData, ABI::Encoder::encodeData<Args...>(args...));
           }
           msg.input_data = fullData.data();
           msg.input_size = fullData.size();
-          msg.value = Utils::uint256ToEvmcUint256(value);
+          msg.value = EVMCConv::uint256ToEvmcUint256(value);
           msg.create2_salt = {};
           msg.code_address = targetAddr.toEvmcAddress();
           evmc::Result result (evmc_execute(this->vm_, &this->get_interface(), this->to_context(),
@@ -416,7 +419,7 @@ class ContractHost : public evmc::Host {
             return std::get<0>(ABI::Decoder::decodeData<R>(bytes::View(result.output_data, result.output_data + result.output_size)));
           }
         } break;
-        case ContractType::CPP : {
+        case ContractType::CPP: {
           this->deduceGas(1000);
           C* contract = this->getContract<C>(targetAddr);
           this->setContractVars(contract, caller->getContractAddress(), value);
