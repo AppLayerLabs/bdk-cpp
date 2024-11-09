@@ -110,8 +110,8 @@ class State : public Dumpable, public Log::LogicalLocationProvider {
     const uint32_t& rdposGetMinValidators() const { std::shared_lock lock(this->stateMutex_); return this->rdpos_.getMinValidators(); }
     void rdposClearMempool() { std::unique_lock lock(this->stateMutex_); return this->rdpos_.clearMempool(); }
     bool rdposValidateBlock(const FinalizedBlock& block) const { std::shared_lock lock(this->stateMutex_); return this->rdpos_.validateBlock(block); }
-    Hash rdposProcessBlock(const FinalizedBlock& block) { std::shared_lock lock(this->stateMutex_); return this->rdpos_.processBlock(block); }
-    TxStatus rdposAddValidatorTx(const TxValidator& tx) { std::shared_lock lock(this->stateMutex_); return this->rdpos_.addValidatorTx(tx); }
+    Hash rdposProcessBlock(const FinalizedBlock& block) { std::unique_lock lock(this->stateMutex_); return this->rdpos_.processBlock(block); }
+    TxStatus rdposAddValidatorTx(const TxValidator& tx) { std::unique_lock lock(this->stateMutex_); return this->rdpos_.addValidatorTx(tx); }
     void dumpStartWorker() { this->dumpWorker_.startWorker(); }
     void dumpStopWorker() { this->dumpWorker_.stopWorker(); }
     size_t getDumpManagerSize() const { std::shared_lock lock(this->stateMutex_); return this->dumpManager_.size(); }

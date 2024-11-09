@@ -10,8 +10,6 @@ See the LICENSE.txt file in the project root for more information.
 
 #include <string>
 
-#include "../../../../libs/unordered_dense.h"
-
 /**
  * Namespace for Ethereum's JSON-RPC Specification.
  *

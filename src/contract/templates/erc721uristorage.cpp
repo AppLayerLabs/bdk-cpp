@@ -52,7 +52,6 @@ void ERC721URIStorage::registerContractFunctions() {
 }
 
 void ERC721URIStorage::setTokenURI_(const uint256_t &tokenId, const std::string &_tokenURI) {
-  std::cout << "setTokenURI_ called" << std::endl;
   if (this->ownerOf_(tokenId) == Address()) {
     throw DynamicException("ERC721URIStorage::_setTokenURI: Token does not exist.");
   }

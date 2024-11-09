@@ -30,13 +30,13 @@ protected:
   SafeString symbol_;
 
   /// Solidity: mapping(uint256 tokenId => address owner) internal owners_;
-  SafeUnorderedMap<uint256_t, Address> owners_;
+  SafeUnorderedMap<uint64_t, Address> owners_;
 
   /// Solidity: mapping(address => uint256) internal balances_;
-  SafeUnorderedMap<Address, uint256_t> balances_;
+  SafeUnorderedMap<Address, uint64_t> balances_;
 
   /// Solidity: mapping(uint256 => address) internal tokenApp;
-  SafeUnorderedMap<uint256_t, Address> tokenApprovals_;
+  SafeUnorderedMap<uint64_t, Address> tokenApprovals_;
 
   /// Solidity: mapping(address => mapping(address => bool)) internal operatorAddressApprovals_;
   SafeUnorderedMap<Address, boost::unordered_flat_map<Address, bool, SafeHash>> operatorAddressApprovals_;

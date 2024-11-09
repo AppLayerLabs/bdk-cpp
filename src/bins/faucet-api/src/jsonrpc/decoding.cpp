@@ -27,7 +27,7 @@ namespace JsonRPC::Decoding {
 
       return true;
     } catch (std::exception& e) {
-      LOGERROR(std::string("Error while checking json RPC spec: ") + e.what());
+      SLOGERROR(std::string("Error while checking json RPC spec: ") + e.what());
       throw DynamicException("Error while checking json RPC spec: " + std::string(e.what()));
     }
   }
@@ -39,7 +39,7 @@ namespace JsonRPC::Decoding {
       if (it == methodsLookupTable.end()) return Methods::invalid;
       return it->second;
     } catch (std::exception& e) {
-      LOGERROR(std::string("Error while getting method: ") + e.what());
+      SLOGERROR(std::string("Error while getting method: ") + e.what());
       throw DynamicException("Error while checking json RPC spec: " + std::string(e.what()));
     }
   }
@@ -51,7 +51,7 @@ namespace JsonRPC::Decoding {
       if (!std::regex_match(address, addFilter)) throw DynamicException("Invalid address hex");
       faucet.dripToAddress(Address(Hex::toBytes(address)));
     } catch (std::exception& e) {
-      LOGERROR(std::string("Error while decoding dripToAddress: ") + e.what());
+      SLOGERROR(std::string("Error while decoding dripToAddress: ") + e.what());
       throw DynamicException("Error while decoding dripToAddress: " + std::string(e.what()));
     }
   }
