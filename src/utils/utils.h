@@ -59,8 +59,6 @@ using json = nlohmann::ordered_json;
 /// Typedef for bigint.
 using bigint = boost::multiprecision::number<boost::multiprecision::cpp_int_backend<>>;
 
-template <std::size_t N> using BytesArr = std::array<Byte, N>; ///< Typedef for BytesArr.
-
 // Base case for the recursive helper - now using requires for an empty body function
 template<size_t I = 0, typename... Tp>
 requires (I == sizeof...(Tp))

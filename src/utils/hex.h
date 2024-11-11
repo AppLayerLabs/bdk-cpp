@@ -23,9 +23,6 @@ See the LICENSE.txt file in the project root for more information.
 #include "bytes.h"
 #include "utils/view.h"
 
-template <std::size_t N>
-using BytesArr = std::array<Byte, N>;
-
 using uint256_t = boost::multiprecision::number<boost::multiprecision::cpp_int_backend<256, 256, boost::multiprecision::unsigned_magnitude, boost::multiprecision::cpp_int_check_type::checked, void>>;
 
 /// Abstraction of a strictly hex-formatted string (`(0x)[1-9][a-f][A-F]`).
