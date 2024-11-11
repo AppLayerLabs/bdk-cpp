@@ -52,7 +52,7 @@ namespace TPEBBLE {
         // Derive the same randomness as the one generated to create the rarity
         // then check against the rarity inside the event.
         auto latestBlock = sdk.getStorage().latest();
-        auto latestRandomness = latestBlock->getBlockRandomness().toUint256();
+        auto latestRandomness = static_cast<uint256_t>(latestBlock->getBlockRandomness());
         auto expectedRarity = sdk.callViewFunction(pebbleAddr, &Pebble::determineRarity, latestRandomness);
         REQUIRE(std::get<2>(event) == expectedRarity);
         REQUIRE(sdk.callViewFunction(pebbleAddr, &Pebble::totalSupply) == uint256_t(1));

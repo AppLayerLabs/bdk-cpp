@@ -53,7 +53,7 @@ namespace TSNAILTRACERBENCHMARK {
       txContext.blob_hashes_count = 0;
 
       auto callInfo = benchmarkTx.txToMessage();
-      Hash randomnessHash = Hash::random();
+      Hash randomnessHash = bytes::random();
       int64_t leftOverGas = std::numeric_limits<int64_t>::max();
 
       auto start = std::chrono::high_resolution_clock::now();
@@ -98,7 +98,7 @@ namespace TSNAILTRACERBENCHMARK {
       txContext.blob_hashes_count = 0;
 
       auto callInfo = benchmarkTx.txToMessage();
-      Hash randomnessHash = Hash::random();
+      Hash randomnessHash = bytes::random();
       int64_t leftOverGas = std::numeric_limits<int64_t>::max();
 
       auto start = std::chrono::high_resolution_clock::now();

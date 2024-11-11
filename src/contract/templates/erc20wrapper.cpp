@@ -11,7 +11,7 @@ ERC20Wrapper::ERC20Wrapper(const Address& contractAddress, const DB& db
 ) : DynamicContract(contractAddress, db), tokensAndBalances_(this)
 {
   for (const auto& dbEntry : db.getBatch(this->getNewPrefix("tokensAndBalances_"))) {
-    bytes::View valueView(dbEntry.value);
+    View<Bytes> valueView(dbEntry.value);
     this->tokensAndBalances_[Address(dbEntry.key)][Address(valueView.subspan(0, 20))] = Utils::fromBigEndian<uint256_t>(valueView.subspan(20));
   }
 

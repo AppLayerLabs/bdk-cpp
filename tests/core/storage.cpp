@@ -10,6 +10,7 @@ See the LICENSE.txt file in the project root for more information.
 #include "../../src/utils/db.h"
 #include "../../src/utils/options.h"
 #include "../blockchainwrapper.hpp"
+#include "bytes/random.h"
 
 #include <filesystem>
 #include <utility>
@@ -35,7 +36,7 @@ TestBlockchainWrapper initialize(const std::vector<Hash>& validatorPrivKeys,
 
 // Random transaction
 TxBlock createRandomTx(const uint64_t& requiredChainId) {
-  PrivKey txPrivKey = PrivKey::random();
+  PrivKey txPrivKey = bytes::random();
   Address from = Secp256k1::toAddress(Secp256k1::toUPub(txPrivKey));
   Address to(Utils::randBytes(20));
   Bytes data = Utils::randBytes(32);
@@ -55,10 +56,10 @@ std::pair<std::vector<TxValidator>, Bytes> createRandomTxValidatorList(uint64_t 
   Bytes randomnessStr;
   ret.first.reserve(N);
 
-  std::vector<Hash> seeds(N, Hash::random());
+  std::vector<Hash> seeds(N, bytes::random());
   for (const auto& seed : seeds) {
     Utils::appendBytes(ret.second, seed);
-    PrivKey txValidatorPrivKey = PrivKey::random();
+    PrivKey txValidatorPrivKey = bytes::random();
     Address validatorAddress = Secp256k1::toAddress(Secp256k1::toUPub(txValidatorPrivKey));
     Bytes hashTxData = Hex::toBytes("0xcfffe746");
     Utils::appendBytes(hashTxData, Utils::sha3(seed));
@@ -84,7 +85,7 @@ std::pair<std::vector<TxValidator>, Bytes> createRandomTxValidatorList(uint64_t 
 }
 
 FinalizedBlock createRandomBlock(uint64_t txCount, uint64_t validatorCount, uint64_t nHeight, Hash prevHash, const uint64_t& requiredChainId) {
-  PrivKey blockValidatorPrivKey = PrivKey::random();
+  PrivKey blockValidatorPrivKey = bytes::random();
   uint64_t timestamp = 230915972837111; // Timestamp doesn't really matter.
 
   std::vector<TxBlock> txs;

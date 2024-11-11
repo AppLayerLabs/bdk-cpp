@@ -74,7 +74,7 @@ namespace TERC721BENCHMARK {
       txContext.blob_hashes_count = 0;
 
       auto callInfo = transferTx.txToMessage();
-      Hash randomnessHash = Hash::random();
+      Hash randomnessHash = bytes::random();
       int64_t leftOverGas = std::numeric_limits<int64_t>::max();
       uint64_t iterations = 1000000;
 
@@ -125,7 +125,7 @@ namespace TERC721BENCHMARK {
       txContext.blob_hashes_count = 0;
 
       auto callInfo = transferTx.txToMessage();
-      Hash randomnessHash = Hash::random();
+      Hash randomnessHash = bytes::random();
       int64_t leftOverGas = std::numeric_limits<int64_t>::max();
       uint64_t iterations = 100000;
 

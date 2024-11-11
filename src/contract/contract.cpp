@@ -17,7 +17,7 @@ Address BaseContract::getOrigin() const {
   if (this->host_ == nullptr) {
     throw DynamicException("Contracts going haywire! trying to get origin without a host!");
   }
-  return this->host_->get_tx_context().tx_origin;
+  return Address(this->host_->get_tx_context().tx_origin);
 }
 
 uint64_t BaseContract::getNonce(const Address& address) const {

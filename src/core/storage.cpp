@@ -83,7 +83,7 @@ void Storage::initializeBlockchain() {
   }
 }
 
-TxBlock Storage::getTxFromBlockWithIndex(bytes::View blockData, uint64_t txIndex) const {
+TxBlock Storage::getTxFromBlockWithIndex(View<Bytes> blockData, uint64_t txIndex) const {
   uint64_t index = 217; // Start of block tx range
   // Count txs until index.
   uint64_t currentTx = 0;
@@ -131,7 +131,7 @@ std::tuple<
   const Bytes txData = blocksDb_.get(tx, DBPrefix::txToBlock);
   if (txData.empty()) return std::make_tuple(nullptr, Hash(), 0u, 0u);
 
-  const bytes::View txDataView = txData;
+  const View<Bytes> txDataView = txData;
   const Hash blockHash(txDataView.subspan(0, 32));
   const uint64_t blockIndex = Utils::bytesToUint32(txDataView.subspan(32, 4));
   const uint64_t blockHeight = Utils::bytesToUint64(txDataView.subspan(36, 8));
@@ -149,7 +149,7 @@ std::tuple<
   const Bytes blockData = blocksDb_.get(blockHash, DBPrefix::blocks);
   if (blockData.empty()) std::make_tuple(nullptr, Hash(), 0u, 0u);
 
-  const uint64_t blockHeight = Utils::bytesToUint64(bytes::View(blockData).subspan(201, 8));
+  const uint64_t blockHeight = Utils::bytesToUint64(View<Bytes>(blockData).subspan(201, 8));
   return std::make_tuple(
     std::make_shared<TxBlock>(getTxFromBlockWithIndex(blockData, blockIndex)),
     blockHash, blockIndex, blockHeight

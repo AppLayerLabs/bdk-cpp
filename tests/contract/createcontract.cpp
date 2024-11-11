@@ -88,7 +88,7 @@ namespace TContractRandomness {
     SECTION("EVM Create Another EVM Contract Test") {
       auto sdk = SDKTestSuite::createNewEnvironment("ContractCreateContract");
       auto createContractAddress = sdk.deployBytecode(contractCreateAnotherContractBytecode);
-      auto salt = Hash::random();
+      Hash salt = bytes::random();
       REQUIRE(sdk.getState().getEvmContracts().size() == 1);
       sdk.callFunction(createContractAddress, &SolCreateContract::deployWithNew, uint256_t(100));
       Address newContractAddress = Address();

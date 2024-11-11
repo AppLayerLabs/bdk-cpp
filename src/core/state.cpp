@@ -8,6 +8,7 @@ See the LICENSE.txt file in the project root for more information.
 #include "state.h"
 #include <evmone/evmone.h>
 #include "../contract/contracthost.h"
+#include "bytes/random.h"
 
 State::State(
   const DB& db,
@@ -43,7 +44,12 @@ State::State(
 
   // Load all the EVM Storage Slot/keys from the DB
   for (const auto& dbEntry : db.getBatch(DBPrefix::vmStorage)) {
-    this->vmStorage_.emplace(StorageKey(dbEntry.key), dbEntry.value);
+    Address addr(dbEntry.key | std::views::take(ADDRESS_SIZE));
+    Hash hash(dbEntry.key | std::views::drop(ADDRESS_SIZE));
+
+    this->vmStorage_.emplace(
+      StorageKeyView(addr, hash),
+      dbEntry.value);
   }
 
   auto latestBlock = this->storage_.latest();
@@ -136,7 +142,8 @@ DBBatch State::dump() const {
   }
   // There is also the need to dump the vmStorage_ map
   for (const auto& [storageKey, storageValue] : this->vmStorage_) {
-    stateBatch.push_back(storageKey, storageValue, DBPrefix::vmStorage);
+    const auto key = Utils::makeBytes(bytes::join(storageKey.first, storageKey.second));
+    stateBatch.push_back(key, storageValue, DBPrefix::vmStorage);
   }
 
   return stateBatch;
@@ -208,8 +215,8 @@ void State::processTransaction(
   try {
     evmc_tx_context txContext;
     txContext.tx_gas_price = Utils::uint256ToEvmcUint256(tx.getMaxFeePerGas());
-    txContext.tx_origin = tx.getFrom().toEvmcAddress();
-    txContext.block_coinbase = ContractGlobals::getCoinbase().toEvmcAddress();
+    txContext.tx_origin = bytes::cast<evmc_address>(tx.getFrom());
+    txContext.block_coinbase = bytes::cast<evmc_address>(ContractGlobals::getCoinbase());
     txContext.block_number = ContractGlobals::getBlockHeight();
     txContext.block_timestamp = ContractGlobals::getBlockTimestamp();
     txContext.block_gas_limit = 10000000;
@@ -219,7 +226,7 @@ void State::processTransaction(
     txContext.blob_base_fee = {};
     txContext.blob_hashes = nullptr;
     txContext.blob_hashes_count = 0;
-    Hash randomSeed(Utils::uint256ToBytes((randomnessHash.toUint256() + txIndex)));
+    Hash randomSeed(Utils::uint256ToBytes((static_cast<uint256_t>(randomnessHash) + txIndex)));
     ContractHost host(
       this->vm_,
       this->dumpManager_,
@@ -436,7 +443,7 @@ Bytes State::ethCall(const evmc_message& callInfo) {
   // As the contract host will modify (reverting in the end) the state.
   std::unique_lock lock(this->stateMutex_);
   const auto recipient(callInfo.recipient);
-  const auto& accIt = this->accounts_.find(recipient);
+  const auto& accIt = this->accounts_.find(Address(recipient));
   if (accIt == this->accounts_.end()) {
     return {};
   }
@@ -446,7 +453,7 @@ Bytes State::ethCall(const evmc_message& callInfo) {
     evmc_tx_context txContext;
     txContext.tx_gas_price = {};
     txContext.tx_origin = callInfo.sender;
-    txContext.block_coinbase = ContractGlobals::getCoinbase().toEvmcAddress();
+    txContext.block_coinbase = bytes::cast<evmc_address>(ContractGlobals::getCoinbase());
     txContext.block_number = static_cast<int64_t>(ContractGlobals::getBlockHeight());
     txContext.block_timestamp = static_cast<int64_t>(ContractGlobals::getBlockTimestamp());
     txContext.block_gas_limit = 10000000;
@@ -457,7 +464,7 @@ Bytes State::ethCall(const evmc_message& callInfo) {
     txContext.blob_hashes = nullptr;
     txContext.blob_hashes_count = 0;
     // As we are simulating, the randomSeed can be anything
-    Hash randomSeed = Hash::random();
+    Hash randomSeed = bytes::random();
     return ContractHost(
       this->vm_,
       this->dumpManager_,
@@ -479,7 +486,7 @@ Bytes State::ethCall(const evmc_message& callInfo) {
 
 int64_t State::estimateGas(const evmc_message& callInfo) {
   std::unique_lock lock(this->stateMutex_);
-  const Address to = callInfo.recipient;
+  const Address to(callInfo.recipient);
   // ContractHost simulate already do all necessary checks
   // We just need to execute and get the leftOverGas
   ContractType type = ContractType::NOT_A_CONTRACT;
@@ -488,7 +495,7 @@ int64_t State::estimateGas(const evmc_message& callInfo) {
   }
 
   int64_t leftOverGas = callInfo.gas;
-  Hash randomSeed = Hash::random();
+  Hash randomSeed = bytes::random();
   ContractHost(
     this->vm_,
     this->dumpManager_,

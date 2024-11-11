@@ -12,7 +12,7 @@ namespace trace {
 
 Bytes encodeRevertReason(std::string_view reason);
 
-std::string decodeRevertReason(bytes::View data);
+std::string decodeRevertReason(View<Bytes> data);
 
 enum class Status {
   SUCCEEDED,

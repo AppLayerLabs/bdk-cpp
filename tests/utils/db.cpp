@@ -8,6 +8,7 @@ See the LICENSE.txt file in the project root for more information.
 #include "../../src/libs/catch2/catch_amalgamated.hpp"
 #include "../../src/utils/db.h"
 #include "../../src/utils/strings.h"
+#include "bytes/random.h"
 
 #include <filesystem>
 #include <string>
@@ -61,7 +62,7 @@ namespace TDB {
       DBBatch batchD;
       std::vector<Bytes> keys;
       for (int i = 0; i < 32; i++) {
-        batchP.push_back(Hash::random().asBytes(), Hash::random().asBytes(), pfx);
+        batchP.push_back(Utils::makeBytes(bytes::random(32)), Utils::makeBytes(bytes::random(32)), pfx);
         batchD.delete_key(batchP.getPuts()[i].key, pfx);
       }
 
@@ -88,7 +89,7 @@ namespace TDB {
       // Update
       DBBatch newPutB;
       for (int i = 0; i < 32; i++) {
-        newPutB.push_back(batchP.getPuts()[i].key, Hash::random().asBytes(), pfx);
+        newPutB.push_back(batchP.getPuts()[i].key, Utils::makeBytes(bytes::random(32)), pfx);
       }
       REQUIRE(db.putBatch(newPutB));
       /// No need to pass prefix as entry.key already contains it

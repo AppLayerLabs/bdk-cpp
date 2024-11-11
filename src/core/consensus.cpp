@@ -7,6 +7,7 @@ See the LICENSE.txt file in the project root for more information.
 
 #include "consensus.h"
 #include "blockchain.h"
+#include "bytes/random.h"
 
 void Consensus::validatorLoop() {
   LOGINFO("Starting validator loop.");
@@ -177,7 +178,7 @@ void Consensus::doValidatorBlock() {
 }
 
 void Consensus::doValidatorTx(const uint64_t& nHeight, const Validator& me) {
-  Hash randomness = Hash::random();
+  Hash randomness = bytes::random();
   Hash randomHash = Utils::sha3(randomness);
   LOGDEBUG("Creating random Hash transaction");
   Bytes randomHashBytes = Hex::toBytes("0xcfffe746");
@@ -201,8 +202,8 @@ void Consensus::doValidatorTx(const uint64_t& nHeight, const Validator& me) {
   );
 
   // Sanity check if tx is valid
-  bytes::View randomHashTxView(randomHashTx.getData());
-  bytes::View randomSeedTxView(seedTx.getData());
+  View<Bytes> randomHashTxView(randomHashTx.getData());
+  View<Bytes> randomSeedTxView(seedTx.getData());
   if (Utils::sha3(randomSeedTxView.subspan(4)) != Hash(randomHashTxView.subspan(4))) {
     LOGDEBUG("RandomHash transaction is not valid!!!");
     return;

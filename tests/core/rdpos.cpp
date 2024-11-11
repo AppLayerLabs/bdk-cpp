@@ -188,7 +188,7 @@ namespace TRdPoS {
       uint64_t newBlocknHeight = blockchainWrapper1.storage.latest()->getNHeight() + 1;
       std::vector<TxValidator> txValidators;
 
-      std::vector<Hash> randomSeeds(orderedPrivKeys.size(), Hash::random());
+      std::vector<Hash> randomSeeds(orderedPrivKeys.size(), bytes::random());
       for (uint64_t i = 0; i < orderedPrivKeys.size(); ++i) {
         Address validatorAddress = Secp256k1::toAddress(Secp256k1::toUPub(orderedPrivKeys[i]));
         Bytes hashTxData = Hex::toBytes("0xcfffe746");
@@ -439,7 +439,7 @@ namespace TRdPoS {
       // Create a block with 8 TxValidator transactions, 2 for each validator, in order (randomHash and random)
       uint64_t newBlocknHeight = blockchainWrapper1.storage.latest()->getNHeight() + 1;
       std::vector<TxValidator> txValidators;
-      std::vector<Hash> randomSeeds(orderedPrivKeys.size(), Hash::random());
+      std::vector<Hash> randomSeeds(orderedPrivKeys.size(), bytes::random());
       for (uint64_t i = 0; i < orderedPrivKeys.size(); ++i) {
         Address validatorAddress = Secp256k1::toAddress(Secp256k1::toUPub(orderedPrivKeys[i]));
         Bytes hashTxData = Hex::toBytes("0xcfffe746");

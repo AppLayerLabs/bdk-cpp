@@ -37,7 +37,7 @@ class Storage : public Log::LogicalLocationProvider {
 
     void initializeBlockchain();
 
-    TxBlock getTxFromBlockWithIndex(bytes::View blockData, uint64_t txIndex) const;
+    TxBlock getTxFromBlockWithIndex(View<Bytes> blockData, uint64_t txIndex) const;
 
   public:
     /**

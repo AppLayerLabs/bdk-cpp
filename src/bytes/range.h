@@ -3,10 +3,21 @@
 
 #include <cstdint>
 #include <ranges>
-
-using Byte = std::uint8_t;
+#include "utils/bytes.h"
 
 namespace bytes {
+  /**
+   * Concept of a bytes iterator.
+   */
+  template<typename T>
+  concept Iterator = std::input_or_output_iterator<T> && std::same_as<std::iter_value_t<T>, Byte>;
+
+  /**
+   * Concept of a bytes contiguous bytes iterator.
+   */
+  template<typename T>
+  concept DataIterator = Iterator<T> && std::contiguous_iterator<T>;
+
   /**
    * The concept of a range of bytes.
    */

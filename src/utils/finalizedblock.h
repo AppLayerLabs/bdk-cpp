@@ -129,7 +129,7 @@ class FinalizedBlock {
      * @return A FinalizedBlock instance.
      * @throw std::domain_error if deserialization fails for some reason.
      */
-    static FinalizedBlock fromBytes(const bytes::View bytes, const uint64_t& requiredChainId);
+    static FinalizedBlock fromBytes(const View<Bytes> bytes, const uint64_t& requiredChainId);
 
     /**
      * Serialize the entire block (including the header) to a raw bytes string.

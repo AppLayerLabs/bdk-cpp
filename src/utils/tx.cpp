@@ -6,10 +6,11 @@ See the LICENSE.txt file in the project root for more information.
 */
 
 #include "tx.h"
+#include "bytes/cast.h"
 
-TxBlock::TxBlock(const bytes::View bytes, const uint64_t&) {
+TxBlock::TxBlock(const View<Bytes> bytes, const uint64_t&) {
   uint64_t index = 0;
-  bytes::View txData = bytes.subspan(1);
+  View<Bytes> txData = bytes.subspan(1);
 
   // Check if Tx is type 2 and if first byte is equal or higher than 0xf7, meaning it is a list
   if (bytes[0] != 0x02) throw DynamicException("Tx is not type 2");
@@ -79,7 +80,7 @@ TxBlock::TxBlock(
   this->hash_ = Utils::sha3(this->rlpSerialize(true)); // Include signature
 }
 
-void TxBlock::parseChainId(bytes::View txData, uint64_t& index) {
+void TxBlock::parseChainId(View<Bytes> txData, uint64_t& index) {
   // If chainId > 0, get chainId from string.
   // chainId can be a small string or the byte itself
   if (
@@ -97,7 +98,7 @@ void TxBlock::parseChainId(bytes::View txData, uint64_t& index) {
   }
 }
 
-void TxBlock::parseNonce(bytes::View txData, uint64_t& index) {
+void TxBlock::parseNonce(View<Bytes> txData, uint64_t& index) {
   // If nonce > 0, get nonce from string.
   // nonce can be a small string or the byte itself
   if (
@@ -115,7 +116,7 @@ void TxBlock::parseNonce(bytes::View txData, uint64_t& index) {
   }
 }
 
-void TxBlock::parseMaxPriorityFeePerGas(bytes::View txData, uint64_t& index) {
+void TxBlock::parseMaxPriorityFeePerGas(View<Bytes> txData, uint64_t& index) {
   // If maxPriorityFeePerGas > 0, get maxPriorityFeePerGas from string.
   // maxPriorityFeePerGas can be a small string or the byte itself
   if (
@@ -135,7 +136,7 @@ void TxBlock::parseMaxPriorityFeePerGas(bytes::View txData, uint64_t& index) {
   }
 }
 
-void TxBlock::parseMaxFeePerGas(bytes::View txData, uint64_t& index) {
+void TxBlock::parseMaxFeePerGas(View<Bytes> txData, uint64_t& index) {
   // If maxFeePerGas > 0, get nonce from string.
   // maxFeePerGas can be a small string or the byte itself
   if (
@@ -153,7 +154,7 @@ void TxBlock::parseMaxFeePerGas(bytes::View txData, uint64_t& index) {
   }
 }
 
-void TxBlock::parseGasLimit(bytes::View txData, uint64_t& index) {
+void TxBlock::parseGasLimit(View<Bytes> txData, uint64_t& index) {
   // If gasLimit > 0, get gasLimit from string.
   // gasLimit can be a small string or the byte itself
   if (
@@ -171,7 +172,7 @@ void TxBlock::parseGasLimit(bytes::View txData, uint64_t& index) {
   }
 }
 
-void TxBlock::parseTo(bytes::View txData, uint64_t& index) {
+void TxBlock::parseTo(View<Bytes> txData, uint64_t& index) {
   // Get receiver address (to) - small string.
   // It can either be 20 bytes or 0x80 (empty string, Address()). Anything else is invalid.
   uint8_t toLength = txData[index] - 0x80;
@@ -187,7 +188,7 @@ void TxBlock::parseTo(bytes::View txData, uint64_t& index) {
   }
 }
 
-void TxBlock::parseValue(bytes::View txData, uint64_t& index) {
+void TxBlock::parseValue(View<Bytes> txData, uint64_t& index) {
   // Get value - small string or byte itself.
   if (
     uint8_t valueLength = (txData[index]) >= 0x80 ? txData[index] - 0x80 : 0;
@@ -204,7 +205,7 @@ void TxBlock::parseValue(bytes::View txData, uint64_t& index) {
   }
 }
 
-void TxBlock::parseData(bytes::View txData, uint64_t& index) {
+void TxBlock::parseData(View<Bytes> txData, uint64_t& index) {
   // Get data - it can be anything really, from nothing (0x80) to a big string (0xb7)
   if (uint8_t(txData[index]) < 0x80) {
     this->data_.assign(txData.begin() + index, txData.begin() + index + 1);
@@ -228,13 +229,13 @@ void TxBlock::parseData(bytes::View txData, uint64_t& index) {
   }
 }
 
-void TxBlock::parseAccessList(bytes::View txData, uint64_t& index) const {
+void TxBlock::parseAccessList(View<Bytes> txData, uint64_t& index) const {
   // Get access list - ALWAYS 0xc0 (empty list)
   if (txData[index] != 0xc0) throw DynamicException("Access list is not empty");
   index++; // Index at rlp[9] size
 }
 
-void TxBlock::parseVRS(bytes::View txData, uint64_t& index) {
+void TxBlock::parseVRS(View<Bytes> txData, uint64_t& index) {
   // Get v - always byte itself (1 byte)
   if (txData[index] == 0x80) {
     this->v_ = 0;
@@ -478,17 +479,17 @@ evmc_message TxBlock::txToMessage() const {
   msg.flags = 0;
   msg.depth = 1;
   msg.gas = static_cast<int64_t>(this->gasLimit_);
-  msg.recipient = this->to_.toEvmcAddress();
-  msg.sender = this->from_.toEvmcAddress();
+  msg.recipient = bytes::cast<evmc_address>(this->to_);
+  msg.sender = bytes::cast<evmc_address>(this->from_);
   msg.input_data = (this->data_.empty()) ? nullptr : this->data_.data();
   msg.input_size = this->data_.size();
   msg.value = Utils::uint256ToEvmcUint256(this->value_);
   msg.create2_salt = {};
-  msg.code_address = this->to_.toEvmcAddress();
+  msg.code_address = bytes::cast<evmc_address>(this->to_);
   return msg;
 }
 
-TxValidator::TxValidator(const bytes::View bytes, const uint64_t&) {
+TxValidator::TxValidator(const View<Bytes> bytes, const uint64_t&) {
   uint64_t index = 0;
 
   // Check if first byte is equal or higher than 0xf7, meaning it is a list
@@ -559,7 +560,7 @@ TxValidator::TxValidator(
   this->hash_ = Utils::sha3(this->rlpSerialize(true)); // Include signature
 }
 
-void TxValidator::parseData(bytes::View bytes, uint64_t& index) {
+void TxValidator::parseData(View<Bytes> bytes, uint64_t& index) {
   // Get data - it can be anything really, from nothing (0x80) to a big string (0xb7)
   if (uint8_t(bytes[index]) < 0x80) {
     this->data_.assign(bytes.begin() + index, bytes.begin() + index + 1);
@@ -581,7 +582,7 @@ void TxValidator::parseData(bytes::View bytes, uint64_t& index) {
   }
 }
 
-void TxValidator::parseNHeight(bytes::View bytes, uint64_t& index) {
+void TxValidator::parseNHeight(View<Bytes> bytes, uint64_t& index) {
   // Get nHeight - can be a small string or the byte itself
   if (
     const uint8_t nHeightLength = (bytes[index] >= 0x80) ? bytes[index] - 0x80 : 0;
@@ -597,7 +598,7 @@ void TxValidator::parseNHeight(bytes::View bytes, uint64_t& index) {
   }
 }
 
-void TxValidator::parseVRS(bytes::View bytes, uint64_t& index) {
+void TxValidator::parseVRS(View<Bytes> bytes, uint64_t& index) {
   // Get v - small string or the byte itself
   if (
     uint8_t vLength = (bytes[index] >= 0x80) ? bytes[index] - 0x80 : 0;

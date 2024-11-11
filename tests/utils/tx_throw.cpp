@@ -8,6 +8,7 @@ See the LICENSE.txt file in the project root for more information.
 #include "../../src/libs/catch2/catch_amalgamated.hpp"
 #include "../../src/utils/utils.h"
 #include "../../src/utils/tx.h"
+#include "bytes/random.h"
 
 using Catch::Matchers::Equals;
 
@@ -184,7 +185,7 @@ namespace TTX {
     SECTION("Tx invalid PrivKey (doesn't match from)") {
       bool catched = false;
       try {
-        PrivKey privKey(Hash::random());
+        PrivKey privKey(bytes::random());
         TxBlock tx(
           Address(Hex::toBytes("0x1234567890123456789012345678901234567890")),
           Address(Hex::toBytes("0x1234567890123456789012345678901234567890")),
@@ -294,7 +295,7 @@ namespace TTX {
     SECTION("Tx invalid PrivKey (doesn't match from)") {
       bool catched = false;
       try {
-        PrivKey privKey(Hash::random());
+        PrivKey privKey(bytes::random());
         TxValidator tx(
           Address(Hex::toBytes("0x1234567890123456789012345678901234567890")),
           {}, 8080, 0, privKey

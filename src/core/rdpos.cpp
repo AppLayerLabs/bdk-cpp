@@ -155,10 +155,10 @@ bool rdPoS::validateBlockTxSanityCheck(const TxValidator& hashTx, const TxValida
   }
 
   // Check if the randomHash transaction matches the random transaction.
-  bytes::View hashTxData = hashTx.getData();
-  bytes::View seedTxData = seedTx.getData();
-  bytes::View hash = hashTxData.subspan(4);
-  bytes::View random = seedTxData.subspan(4);
+  View<Bytes> hashTxData = hashTx.getData();
+  View<Bytes> seedTxData = seedTx.getData();
+  View<Bytes> hash = hashTxData.subspan(4);
+  View<Bytes> random = seedTxData.subspan(4);
 
   // Size sanity check, should be 32 bytes.
   if (hash.size() != 32) {
