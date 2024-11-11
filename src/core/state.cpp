@@ -502,7 +502,7 @@ int64_t State::estimateGas(const evmc_message& callInfo) {
     type = accIt->second->contractType;
   }
 
-  int64_t leftOverGas = callInfo.gas;
+  int64_t leftoverGas = callInfo.gas;
   Hash randomSeed = bytes::random();
   ContractHost(
     this->vm_,

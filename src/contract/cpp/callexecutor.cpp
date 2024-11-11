@@ -16,8 +16,8 @@ Bytes CallExecutor::executeCall(kind::Normal, Gas& gas, const evm::Message& msg)
     .flags = 0,
     .depth = msg.depth,
     .gas = gas.value(),
-    .recipient = msg.to.toEvmcAddress(),
-    .sender = msg.from.toEvmcAddress(),
+    .recipient = bytes::cast<evmc_address>(msg.to),
+    .sender = bytes::cast<evmc_address>(msg.from),
     .input_data = msg.input.data(),
     .input_size = msg.input.size()
   };
@@ -33,8 +33,8 @@ Bytes CallExecutor::executeCall(kind::Static, Gas& gas, const evm::Message& msg)
     .flags = EVMC_STATIC,
     .depth = msg.depth,
     .gas = gas.value(),
-    .recipient = msg.to.toEvmcAddress(),
-    .sender = msg.from.toEvmcAddress(),
+    .recipient = bytes::cast<evmc_address>(msg.to),
+    .sender = bytes::cast<evmc_address>(msg.from),
     .input_data = msg.input.data(),
     .input_size = msg.input.size()
   };

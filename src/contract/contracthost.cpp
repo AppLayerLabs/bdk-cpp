@@ -269,32 +269,6 @@ void ContractHost::execute(const evmc_message& msg, const ContractType& type) {
   const uint256_t value(Utils::evmcUint256ToUint256(msg.value));
   const bool isContractCall = isCall(msg);
 
-  bool enabled = true;
-
-  if (enabled && to != Address()) {
-    evm::Message emsg{
-      .from{msg.sender},
-      .to{msg.recipient},
-      .value = Utils::evmcUint256ToUint256(msg.value),
-      .depth = msg.depth,
-      .input = bytes::View(msg.input_data, msg.input_size)
-    };
-
-    Gas gas(leftoverGas_);
-
-    // TODO: return the result
-    try {
-      execute(gas, std::move(emsg));
-      leftoverGas_ = gas.value();
-    } catch (const std::exception& e) {
-      leftoverGas_ = gas.value();
-      throw e;
-    }
-
-    this->mustRevert_ = false;
-    return;
-  }
-
   if (isContractCall) {
     this->traceCallStarted(msg);
   }
@@ -409,10 +383,9 @@ Bytes ContractHost::ethCallView(const evmc_message& msg, const ContractType& typ
     .to = Address(msg.recipient),
     .value = Utils::evmcUint256ToUint256(msg.value),
     .depth = 0,
-    .input = bytes::View(msg.input_data, msg.input_size)
+    .input = View<Bytes>(msg.input_data, msg.input_size)
   };
-
-  return callHandler_.onCall(kind::STATIC, gas, std::move(evmcMsg));
+  // return callHandler_.onCall(kind::STATIC, gas, std::move(evmcMsg));
 
   Bytes ret;
   //const Address from(tx.sender);

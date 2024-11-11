@@ -9,14 +9,14 @@ struct Message {
   Address to;
   uint256_t value;
   uint32_t depth;
-  bytes::View input;
+  View<Bytes> input;
 };
 
 struct CreateMessage {
   Address from;
   uint256_t value;
   uint32_t depth;
-  bytes::View code;
+  View<Bytes> code;
   std::optional<Hash> salt;
 };
 

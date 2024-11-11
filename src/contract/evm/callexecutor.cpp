@@ -1,4 +1,5 @@
 #include "callexecutor.h"
+#include "bytes/cast.h"
 
 template<typename M>
 using map_value_t = decltype(std::declval<std::ranges::range_reference_t<M>>().second);
@@ -39,14 +40,14 @@ constexpr uint32_t getCallFlags(kind::Any callKind) noexcept {
 
 namespace evm {
 
-Bytes CallExecutor::executeCall(kind::Any callKind, Gas& gas, const Message& msg, bytes::View code) {
+Bytes CallExecutor::executeCall(kind::Any callKind, Gas& gas, const Message& msg, View<Bytes> code) {
   const evmc_message evmcMsg{
     .kind = getCallKind(callKind),
     .flags = getCallFlags(callKind),
     .depth = msg.depth,
     .gas = gas.value(),
-    .recipient = msg.to.toEvmcAddress(),
-    .sender = msg.from.toEvmcAddress(),
+    .recipient = bytes::cast<evmc_address>(msg.to),
+    .sender = bytes::cast<evmc_address>(msg.from),
     .input_data = msg.input.data(),
     .input_size = msg.input.size(),
     .value = Utils::uint256ToEvmcUint256(msg.value),
@@ -64,7 +65,7 @@ Bytes CallExecutor::executeCall(kind::Any callKind, Gas& gas, const Message& msg
 
   gas.use(evmcMsg.gas - result.gas_left);
 
-  bytes::View output(result.output_data, result.output_size);
+  View<Bytes> output(result.output_data, result.output_size);
 
   switch (result.status_code) {
     case EVMC_SUCCESS:
@@ -119,7 +120,7 @@ evmc::bytes32 CallExecutor::get_code_hash(const evmc::address& addr) const noexc
 
 size_t CallExecutor::copy_code(const evmc::address& addr, size_t code_offset, uint8_t* buffer_data, size_t buffer_size) const noexcept {
   const auto thenCopyCode = [&] (const auto& account) -> size_t {
-    bytes::View code = account.get()->code;
+    View<Bytes> code = account.get()->code;
 
     if (code_offset < code.size()) {
       const size_t n = std::min(buffer_size, code.size() - code_offset);
@@ -213,7 +214,7 @@ evmc::Result CallExecutor::call(const evmc_message& msg) noexcept {
         callMsg.to = Address(msg.recipient);
         callMsg.value = Utils::evmcUint256ToUint256(msg.value);
         callMsg.depth = msg.depth;
-        callMsg.input = bytes::View(msg.input_data, msg.input_size);
+        callMsg.input = View<Bytes>(msg.input_data, msg.input_size);
         result = callHandler_.onCall(callKind, gas, callMsg);
         break;
 

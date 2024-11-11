@@ -18,10 +18,10 @@ public:
   CallExecutor(AnyCallHandler callHandler, evmc_vm* vm, VmStorage& vmStorage, Accounts& accounts, ContractStack& stack, const Hash& txHash, uint64_t txIndex, const Hash& blockHash, const evmc_tx_context& currentTxContext)
       : callHandler_(std::move(callHandler)), vm_(vm), vmStorage_(vmStorage), accounts_(accounts), stack_(stack), txHash_(txHash), txIndex_(txIndex), blockHash_(blockHash), currentTxContext_(currentTxContext) {}
 
-  Bytes executeCall(kind::Any callKind, Gas& gas, const Message& msg, bytes::View code);
+  Bytes executeCall(kind::Any callKind, Gas& gas, const Message& msg, View<Bytes> code);
 
   template<typename M>
-  M::ReturnType executeCall(auto callKind, Gas& gas, cpp::Message<M> msg, bytes::View code) {
+  M::ReturnType executeCall(auto callKind, Gas& gas, cpp::Message<M> msg, View<Bytes> code) {
     const Bytes input = std::apply([&] <typename... Args> (const Args&... args) {
       const std::string functionName = ContractReflectionInterface::getFunctionName(msg.method.func);
 

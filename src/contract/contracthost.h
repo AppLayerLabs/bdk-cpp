@@ -92,7 +92,6 @@ class ContractHost : public evmc::Host {
     TxAdditionalData addTxData_;
     trace::CallTracer callTracer_;
     Gas *gas_ = nullptr;
-    CallDispatcher callHandler_;
 
     // Private as this is not available for contracts as it has safety checks
     void transfer(const Address& from, const Address& to, const uint256_t& value);
@@ -178,8 +177,7 @@ class ContractHost : public evmc::Host {
     blockHash_(blockHash),
     leftoverGas_(txGasLimit),
     addTxData_({.hash = txHash}),
-    stack_(),
-    callHandler_(cpp::CallExecutor(*this, contracts_), evm::CallExecutor(callHandler_, vm_, vmStorage, accounts, stack_, txHash, txIndex, blockHash, currentTxContext), [this] (const Address& from, const Address& to, const uint256_t& value) { transfer(from, to, value); }, accounts) {} // TODO: remove this lambda?
+    stack_() {}
     // callHandler_(cpp::CallExecutor(*this, contracts_), DummyHandler(), std::function<void(const Address&, const Address&, const uint256_t&)>(), accounts_){}
     // callHandler_(vm_, accounts_, contracts_, nullptr) {
     //   callHandler_.setContractHost(this);
@@ -202,15 +200,15 @@ class ContractHost : public evmc::Host {
     /// Executes a call
     void execute(const evmc_message& msg, const ContractType& type);
 
-    decltype(auto) execute(Gas& gas, auto&& msg) {
-      gas.use(21000);
+    decltype(auto) execute(auto&& msg) {
+      // gas.use(21000);
 
-      try {
-        return callHandler_.onCall(kind::NORMAL, gas, std::forward<decltype(msg)>(msg));
-      } catch (const std::exception& err) {
-        mustRevert_ = true;
-        throw err;
-      }
+      // try {
+      //   return callHandler_.onCall(kind::NORMAL, gas, std::forward<decltype(msg)>(msg));
+      // } catch (const std::exception& err) {
+      //   mustRevert_ = true;
+      //   throw err;
+      // }
     }
 
     /// Executes a eth_call RPC method (view)
@@ -262,7 +260,7 @@ class ContractHost : public evmc::Host {
         .method = cpp::PackagedMethod(func, args...)
       };
 
-      return callHandler_.onCall(kind::STATIC, *gas_, std::move(msg));
+      // return callHandler_.onCall(kind::STATIC, *gas_, std::move(msg));
 
       const auto recipientAccIt = this->accounts_.find(targetAddr);
       if (recipientAccIt == this->accounts_.end()) {
@@ -413,7 +411,7 @@ class ContractHost : public evmc::Host {
         .method = cpp::PackagedMethod(func, args...)
       };
 
-      return callHandler_.onCall(kind::NORMAL, *gas_, std::move(msg));
+      // return callHandler_.onCall(kind::NORMAL, *gas_, std::move(msg));
 
       // 1000 Gas Limit for every C++ contract call!
       auto& recipientAcc = *this->accounts_[targetAddr];
