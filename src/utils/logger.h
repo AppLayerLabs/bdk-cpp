@@ -161,26 +161,14 @@ namespace Log {
     return oss.str();
   }
 
-  /**
-   * Get the ID of the current thread as a string.
-   * @return The ID of the current thread as a string.
-   */
-  inline std::string getThreadIdAsString() {
-    std::ostringstream oss;
-    oss << std::this_thread::get_id();
-    return oss.str();
-  }
-
   /// LOG macro provider of logical location when the class of `this` extends `LogicalLocationProvider`.
-  template <typename T>
-  std::string getLogicalLocationIfAvailable(T* obj, std::true_type) {
+  template <typename T> std::string getLogicalLocationIfAvailable(T* obj, std::true_type) {
     return obj->getLogicalLocation();
   }
 
-  /// LOG macro provider of a default logical location (thread ID + value of `this` pointer).
-  template <typename T>
-  std::string getLogicalLocationIfAvailable(T* obj, std::false_type) {
-    return "{" + getThreadIdAsString() + "," + pointerToHexString(obj) + "}";
+  /// LOG macro provider of a default logical location (value of `this` pointer).
+  template <typename T> std::string getLogicalLocationIfAvailable(T* obj, std::false_type) {
+    return "{" + pointerToHexString(obj) + "}";
   }
 
   /// Get a pretty "ClassName::MethodName" for the current `this` object.

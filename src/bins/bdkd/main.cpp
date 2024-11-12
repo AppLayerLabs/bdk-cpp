@@ -14,6 +14,8 @@ See the LICENSE.txt file in the project root for more information.
 #include "src/core/blockchain.h"
 #include "src/utils/clargs.h"
 
+#include "src/utils/logger.h"
+
 std::unique_ptr<Blockchain> blockchain = nullptr;
 
 std::condition_variable cv;
