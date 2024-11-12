@@ -65,7 +65,7 @@ class CometListener {
 
     virtual void getBlockRetainHeight(uint64_t& height) {
       height = 0;
-    };
+    }
 
     // InitChain callback
     //
@@ -187,10 +187,13 @@ class Comet : public Log::LogicalLocationProvider {
   public:
     /**
      * Constructor.
+     * @param listener Pointer to an object of a class that implements the CometListener interface
+     *                 and that will receive event callbacks from this Comet instance.
      * @param instanceIdStr Instance ID string to use for logging.
      * @param options Reference to the Options singleton.
+     * @param extraArgs Extra command-line arguments to pass to 'cometbft start' (for testing).
      */
-    explicit Comet(CometListener* listener, std::string instanceIdStr, const Options& options);
+    explicit Comet(CometListener* listener, std::string instanceIdStr, const Options& options, const std::vector<std::string>& extraArgs = {});
 
     /**
      * Destructor; ensures all subordinate jobs are stopped.

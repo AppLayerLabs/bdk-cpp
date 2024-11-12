@@ -30,6 +30,7 @@ class CometImpl : public Log::LogicalLocationProvider, public ABCIHandler {
     CometListener* listener_; ///< Comet class application event listener/handler
     const std::string instanceIdStr_; ///< Identifier for logging
     const Options options_; ///< Copy of the supplied Options.
+    const std::vector<std::string> extraArgs_; ///< Extra arguments to 'cometbft start' (for testing).
 
     std::unique_ptr<ABCIServer> abciServer_; ///< TCP server for cometbft ABCI connection
     std::optional<boost::process::child> process_; ///< boost::process that points to the running "cometbft start" process
@@ -39,7 +40,7 @@ class CometImpl : public Log::LogicalLocationProvider, public ABCIHandler {
     std::atomic<bool> status_ = true; ///< Global status (true = OK, false = failed/terminated).
     std::string errorStr_; ///< Error message (if any).
 
-    std::atomic<CometState> state_ = CometState::STOPPED;   ///< Current step the Comet instance is in.
+    std::atomic<CometState> state_ = CometState::STOPPED; ///< Current step the Comet instance is in.
     std::atomic<CometState> pauseState_ = CometState::NONE; ///< Step to pause/hold the comet instance at, if any.
 
     std::atomic<int> infoCount_ = 0; ///< Simple counter for how many cometbft Info requests we got.
@@ -60,7 +61,7 @@ class CometImpl : public Log::LogicalLocationProvider, public ABCIHandler {
 
     std::string getLogicalLocation() const override { return instanceIdStr_; } ///< Log instance
 
-    explicit CometImpl(CometListener* listener, std::string instanceIdStr, const Options& options);
+    explicit CometImpl(CometListener* listener, std::string instanceIdStr, const Options& options, const std::vector<std::string>& extraArgs);
 
     virtual ~CometImpl();
 
@@ -104,8 +105,8 @@ class CometImpl : public Log::LogicalLocationProvider, public ABCIHandler {
     virtual void verify_vote_extension(const cometbft::abci::v1::VerifyVoteExtensionRequest& req, cometbft::abci::v1::VerifyVoteExtensionResponse* res);
 };
 
-CometImpl::CometImpl(CometListener* listener, std::string instanceIdStr, const Options& options) 
-  : listener_(listener), instanceIdStr_(instanceIdStr), options_(options)
+CometImpl::CometImpl(CometListener* listener, std::string instanceIdStr, const Options& options, const std::vector<std::string>& extraArgs)
+  : listener_(listener), instanceIdStr_(instanceIdStr), options_(options), extraArgs_(extraArgs)
 {
 }
 
@@ -308,11 +309,16 @@ void CometImpl::startCometBFT(const std::string& cometPath) {
       //   running and communicating pair of BDK <-> CometBFT.
       //
       std::vector<std::string> cometArgs = {
-        "start", 
+        "start",
         "--abci=socket",
         "--proxy_app=unix://" + abciServer_->getSocketPath(),
         "--home=" + cometPath
       };
+
+      // extraArgs should be used only for arguments that differ between
+      //  testing and production use and can't be made standard configs
+      //  and it doesn't make sense to add them to BDK Options::CometBFT.
+      cometArgs.insert(cometArgs.end(), this->extraArgs_.begin(), this->extraArgs_.end());
 
       LOGDEBUG("Launching cometbft");// with arguments: " + cometArgs);
 
@@ -675,8 +681,6 @@ void CometImpl::workerLoopInner() {
     configToml["storage"].as_table()->insert_or_assign("discard_abci_responses", toml::value(true));
     std::string p2p_param = "tcp://0.0.0.0:" + p2pPortJSON.get<std::string>();
     std::string rpc_param = "tcp://0.0.0.0:" + rpcPortJSON.get<std::string>();
-    LOGDEBUG("COMET P2P PORT PARAM = " + p2p_param);
-    LOGDEBUG("COMET RPC PORT PARAM = " + rpc_param);
     configToml["p2p"].as_table()->insert_or_assign("laddr", p2p_param);
     configToml["rpc"].as_table()->insert_or_assign("laddr", rpc_param);
 
@@ -1056,10 +1060,10 @@ void CometImpl::verify_vote_extension(const cometbft::abci::v1::VerifyVoteExtens
 // Comet class
 // ---------------------------------------------------------------------------------------
 
-Comet::Comet(CometListener* listener, std::string instanceIdStr, const Options& options) 
+Comet::Comet(CometListener* listener, std::string instanceIdStr, const Options& options, const std::vector<std::string>& extraArgs)
   : instanceIdStr_(instanceIdStr)
 {
-  impl_ = std::make_unique<CometImpl>(listener, instanceIdStr, options);
+  impl_ = std::make_unique<CometImpl>(listener, instanceIdStr, options, extraArgs);
 } 
 
 Comet::~Comet() {

@@ -439,6 +439,195 @@ Options getOptionsForCometTest(
   return options;
 }
 
+/**
+ * A simple stateful execution environment to test a Comet blockchain.
+ *
+ * Transactions must be ASCII strings in the following space-separated format:
+ *  "<Signature> <Operation> <Value>"
+ *
+ * The machine has a single memory cell that stores a signed integer and starts at 0.
+ *
+ * A valid signature is "SIG", an invalid signature is "BADSIG", anything else is a badly formatted transaction.
+ *
+ * Valid operations are + (add), - (subtract), = (set) and ? (assert value) to the memory cell.
+ *
+ * The apphash is just set to the current block height at the end (h_).
+ */
+/*
+class TestMachine : public CometListener {
+public:
+  int64_t m_ = 0; // machine state
+  uint64_t h_ = 0; // current block height (0 = genesis)
+
+  virtual void initChain() {
+    m_ = 0;
+    h_ = 0;
+  }
+
+  virtual void checkTx(const Bytes& tx, bool& accept) {
+    // TODO validate the tx according to the rules above
+    accept = true;
+  }
+
+  virtual void incomingBlock(const uint64_t height, const uint64_t syncingToHeight, const std::vector<Bytes>& txs, Bytes& appHash) {
+    appHash.clear(); // TODO
+    // an incoming block is valid if every tx in it is valid, meaning the signature is correct and the tx format is correct
+    // invalid blocks throw an error and do not advance the height or state
+  }
+
+  virtual void validateBlockProposal(const uint64_t height, const std::vector<Bytes>& txs, bool& accept) {
+    accept = true;
+    // a proposal is valid if every tx in it is valid, meaning the signature is correct and the tx format is correct
+    // invalid block proposals are accept = false;
+  }
+
+  virtual void getCurrentState(uint64_t& height, Bytes& appHash) {
+    height = h_;
+    appHash.clear(); // TODO
+  }
+
+  virtual void getBlockRetainHeight(uint64_t& height) {
+    height = 0;
+  }
+}
+*/
+class TestMachine : public CometListener {
+public:
+    std::atomic<int64_t> m_ = 0; // machine state
+    std::atomic<uint64_t> h_ = 0; // current block height (0 = genesis)
+    std::atomic<int> initChainCount_ = 0;
+
+    void initChain() override {
+        m_ = 0;
+        h_ = 0;
+        ++initChainCount_;
+    }
+
+    void checkTx(const Bytes& tx, bool& accept) override {
+        accept = false; // default to false
+        // Convert tx to string
+        std::string tx_str(tx.begin(), tx.end());
+        // Split tx_str into parts
+        std::istringstream iss(tx_str);
+        std::string signature, operation, value_str;
+        if (!(iss >> signature >> operation >> value_str)) {
+            // Transaction does not have exactly 3 parts
+            accept = false;
+            return;
+        }
+        if (signature == "BADSIG") {
+            // Invalid signature
+            accept = false;
+            return;
+        } else if (signature != "SIG") {
+            // Badly formatted transaction
+            accept = false;
+            return;
+        }
+        if (operation != "+" && operation != "-" && operation != "=" && operation != "?") {
+            // Invalid operation
+            accept = false;
+            return;
+        }
+        // Try to parse value as integer
+        char* endptr;
+        int64_t value = strtoll(value_str.c_str(), &endptr, 10);
+        if (*endptr != '\0') {
+            // value_str is not a valid integer
+            accept = false;
+            return;
+        }
+        // If we get here, accept the transaction
+        accept = true;
+    }
+
+    void incomingBlock(const uint64_t height, const uint64_t syncingToHeight, const std::vector<Bytes>& txs, Bytes& appHash) override {
+        // We need to process each transaction
+        // We need to save the current state of m_ and h_ in case we need to rollback
+        int64_t original_m = m_;
+        uint64_t original_h = h_;
+        try {
+            for (const Bytes& tx : txs) {
+                // Validate the transaction
+                bool accept;
+                checkTx(tx, accept);
+                if (!accept) {
+                    throw std::runtime_error("Invalid transaction");
+                }
+                // Convert tx to string
+                std::string tx_str(tx.begin(), tx.end());
+                // Split tx_str into parts
+                std::istringstream iss(tx_str);
+                std::string signature, operation, value_str;
+                iss >> signature >> operation >> value_str;
+                // We already know signature is "SIG"
+                // Parse value
+                int64_t value = std::stoll(value_str);
+                // Apply the operation
+                if (operation == "+") {
+                    m_ += value;
+                } else if (operation == "-") {
+                    m_ -= value;
+                } else if (operation == "=") {
+                    m_ = value;
+                } else if (operation == "?") {
+                    if (m_ != value) {
+                        throw std::runtime_error("Assertion failed");
+                    }
+                } else {
+                    // Should not reach here since we validated the operation in checkTx
+                    throw std::runtime_error("Invalid operation");
+                }
+            }
+            // If all transactions are processed successfully, advance the height
+            h_ = height;
+            // Set appHash to current block height
+            appHash.clear();
+            std::string appHashStr = std::to_string(h_);
+            appHash.insert(appHash.end(), appHashStr.begin(), appHashStr.end());
+        } catch (...) {
+            // Rollback state
+            m_ = original_m;
+            h_ = original_h;
+            throw;
+        }
+    }
+
+    void validateBlockProposal(const uint64_t height, const std::vector<Bytes>& txs, bool& accept) override {
+        accept = true;
+        for (const Bytes& tx : txs) {
+            bool tx_accept;
+            checkTx(tx, tx_accept);
+            if (!tx_accept) {
+                accept = false;
+                return;
+            }
+        }
+    }
+
+    void getCurrentState(uint64_t& height, Bytes& appHash) override {
+        height = h_;
+        appHash.clear();
+        std::string appHashStr = std::to_string(h_);
+        appHash.insert(appHash.end(), appHashStr.begin(), appHashStr.end());
+    }
+
+    void getBlockRetainHeight(uint64_t& height) override {
+        height = 0;
+    }
+};
+
+// extraArgs given to Comet() ctor so that cometbft will produce blocks in a controlled manner
+// (essentially one block per transaction, if you wait for the block to be finalized after you
+// feed it one transaction).
+std::vector<std::string> stepBlockProductionCometArgs = {
+  "--consensus.create_empty_blocks=false",
+  "--consensus.timeout_commit=999999999s",
+  "--consensus.timeout_propose=999999999s",
+  "--consensus.timeout_prevote=999999999s",
+  "--consensus.timeout_precommit=999999999s"
+};
+
 namespace TComet {
   TEST_CASE("Comet basic tests", "[core][comet]") {
     SECTION("CometBootTest") {
@@ -638,6 +827,52 @@ namespace TComet {
     // TODO: stop at block M and restart test with no block replay, 1 validator
     // (snapshotted state at M before shutdown reported by Info on restart)
     // Non-empty transactions and verify that it reaches the same end state
+    SECTION("CometRestartTest") {
+
+      std::string testDumpPath = createTestDumpPath("CometRestartTest");
+
+      GLOGDEBUG("TEST: Constructing Comet");
+
+      // get free ports to run tests on 
+      int p2p_port = SDKTestSuite::getTestPort();
+      int rpc_port = SDKTestSuite::getTestPort();
+
+      const Options options = getOptionsForCometTest(testDumpPath, p2p_port, rpc_port);
+
+      TestMachine cometListener;
+
+      // Set up comet with single validator
+      Comet comet(&cometListener, "", options, stepBlockProductionCometArgs);
+
+      // TODO: Finish test
+
+      // Start comet.
+      /*
+
+        // FIXME: this (start/stop) actually crashes! investigate
+        comet.start();
+        comet.stop();
+      */
+
+      // TODO: Implement send transaction API in Comet (which uses the
+      //       RPC connection to cometbft to send the raw transaction).
+
+      // TODO: Send one transaction (anything) to make it produce a block.
+
+      // TODO wait for block 1 to be produced
+
+      // TODO assert m_ is the expected value
+
+      // Stop comet.
+
+      // Start comet again (same data dir).
+
+      // TODO: check what callbacks we get / wait for it to settle (should be instant)
+
+      // TODO: check that the retained state still corresponds to the correct one
+      //       i.e. no blocks/txs replayed due to restarting, not affecting the
+      //       retained state, which is an emulation of having persisted the state.
+    }
 
     // TODO: stop at block M and restart test with some block replay, 1 validator
     // (Info on restart reports block N where N<M and thus replays N+1 to M)
