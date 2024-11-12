@@ -239,6 +239,12 @@ class Comet : public Log::LogicalLocationProvider {
     std::string waitPauseState(uint64_t timeoutMillis);
 
     /**
+     * Get the cometbft node ID; this is only guaranteed to be set from the INSPECTED_COMET state and ownards.
+     * @return The cometbft node id string, or an empty string if unknown (not yet computed) at this point.
+     */
+    std::string getNodeID();
+
+    /**
      * Start (or restart) the consensus engine loop.
      */
     void start();

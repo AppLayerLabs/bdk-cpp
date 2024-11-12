@@ -44,11 +44,15 @@ class CometImpl : public Log::LogicalLocationProvider, public ABCIHandler {
 
     std::atomic<int> infoCount_ = 0; ///< Simple counter for how many cometbft Info requests we got.
 
+    std::mutex nodeIdMutex_; ///< mutex to protect reading/writing nodeId_
+    std::string nodeId_; ///< Cometbft node id or an empty string if not yet retrieved.
+
     void setState(const CometState& state); ///< Apply a state transition, possibly pausing at the new state.
     void setError(const std::string& errorStr); ///< Signal a fatal error condition.
     void resetError(); ///< Reset internal error condition.
-    void startCometBFT(const std::string& cometPath); ///< Launch the CometBFT process_.
+    void startCometBFT(const std::string& cometPath); ///< Launch the CometBFT process_ ('cometbft start' for an async node run).
     void stopCometBFT(); ///< Terminate the CometBFT process_.
+    int runCometBFT(const std::string& cometPath, std::vector<std::string> cometArgs, std::string &sout, std::string &serr); ///< Blocking run cometbft w/ args
     void workerLoop(); ///< Worker loop responsible for establishing and managing a connection to cometbft.
     void workerLoopInner(); ///< Called by workerLoop().
 
@@ -71,6 +75,8 @@ class CometImpl : public Log::LogicalLocationProvider, public ABCIHandler {
     CometState getPauseState();
 
     std::string waitPauseState(uint64_t timeoutMillis);
+
+    std::string getNodeID();
 
     void start();
 
@@ -139,6 +145,11 @@ std::string CometImpl::waitPauseState(uint64_t timeoutMillis) {
     std::this_thread::sleep_for(std::chrono::milliseconds(20));
   }
   return "TIMEOUT";
+}
+
+std::string CometImpl::getNodeID() {
+  std::scoped_lock(this->nodeIdMutex_);
+  return this->nodeId_;
 }
 
 void CometImpl::start() {
@@ -389,6 +400,43 @@ void CometImpl::stopCometBFT() {
 
 }
 
+// One-shot run cometbft with the given cometArgs and block until it finishes, returning both
+//  the complete stdout and stderr streams as outparams and the exit_code as a return value.
+// This is to be used with e.g. "cometbft show-node-id" etc.
+int CometImpl::runCometBFT(const std::string& cometPath, std::vector<std::string> cometArgs, std::string &sout, std::string &serr) {
+  boost::filesystem::path exec_path = boost::process::search_path("cometbft");
+  if (exec_path.empty()) {
+    setError("cometbft executable not found in system PATH");
+    return -1;
+  }
+  auto bpout = std::make_shared<boost::process::ipstream>();
+  auto bperr = std::make_shared<boost::process::ipstream>();
+  // using a local "process" variable here since this is an one-shot run:
+  boost::process::child process(
+      exec_path,
+      boost::process::args(cometArgs),
+      boost::process::std_out > *bpout,
+      boost::process::std_err > *bperr
+  );
+  // these threads will pump the output streams while we wait (blocking) for cometbft to finish
+  // when the process terminates, they stop looping
+  std::thread stdout_thread([bpout, &sout]() {
+    std::string line;
+    if (std::getline(*bpout, line)) { sout += line; }
+    while (std::getline(*bpout, line)) { sout += '\n' + line; }
+  });
+  std::thread stderr_thread([bperr, &serr]() {
+    std::string line;
+    if (std::getline(*bperr, line)) { serr += line; }
+    while (std::getline(*bperr, line)) { serr += '\n' + line; }
+  });
+  process.wait(); // blocking wait until the cometbft execution completes
+  if (stdout_thread.joinable()) { stdout_thread.join(); }
+  if (stderr_thread.joinable()) { stderr_thread.join(); }
+  int exit_code = process.exit_code();
+  return exit_code;
+}
+
 void CometImpl::workerLoop() {
   LOGDEBUG("Comet worker thread: started");
   try {
@@ -417,6 +465,9 @@ void CometImpl::workerLoopInner() {
 
     // Reset any state we might have as an ABCIHandler
     infoCount_ = 0; // needed for the TESTING_COMET -> TESTED_COMET state transition.
+    std::unique_lock<std::mutex> resetInfoLock(this->nodeIdMutex_);
+    this->nodeId_ = ""; // only known after "comet/config/node_key.json" is set and "cometbft show-node-id" is run.
+    resetInfoLock.unlock();
 
     LOGDEBUG("Comet worker: running configuration step");
 
@@ -684,6 +735,27 @@ void CometImpl::workerLoopInner() {
     //  and recover from them. By default, recovery can be done by just wiping off the comet/
     //  directory and starting the node from scratch. Eventually, this fallback case can be
     //  augmented with e.g. using a local snapshots directory to speed up syncing.
+
+    // Let's use the inspect state to get the node ID
+        // run cometbft which will connect to our ABCI server
+    try {
+      std::string sout, serr;
+      int exitCode = runCometBFT(cometPath, { "show-node-id", "--home=" + cometPath }, sout, serr);
+      if (exitCode != 0) {
+        LOGERROR("ERROR: Error while attempting to fetch the cometbft node id. Exit code: " + std::to_string(exitCode) + "; stdout: " + sout + "; stderr: " + serr);
+        // Continue without knowing the node ID
+        // TODO: review this; this probably needs to be a setError and "continue;" to retry
+      } else {
+        // TODO: here we want to assert that the node ID we got is a proper hex string of the correct size
+        LOGDEBUG("Got comet node ID: [" + sout + "]");
+        std::scoped_lock(this->nodeIdMutex_);
+        this->nodeId_ = sout;
+      }
+    } catch (const std::exception& ex) {
+      // TODO: maybe we should attempt a restart in this case, with a retry counter?
+      setError("Exception caught when trying to run cometbft start: " + std::string(ex.what()));
+      return;
+    }
 
     // --------------------------------------------------------------------------------------
     // Stop cometbft inspect server.
@@ -1016,6 +1088,10 @@ CometState Comet::getPauseState() {
 
 std::string Comet::waitPauseState(uint64_t timeoutMillis) {
   return impl_->waitPauseState(timeoutMillis);
+}
+
+std::string Comet::getNodeID() {
+  return impl_->getNodeID();
 }
 
 void Comet::start() {
