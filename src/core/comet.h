@@ -173,6 +173,10 @@ class CometImpl;
  * The Comet class is instantiated by the BDK node to serve as an interface to CometBFT.
  * Most of its implementation details are private and contained in CometImpl, which is
  * declared and defined in comet.cpp, in order to keep this header short and simple.
+ *
+ * TODO:
+ * - comet / cometimpl cleanups
+ * - review and refactor the entire abci net code
  */
 class Comet : public Log::LogicalLocationProvider {
   private:
@@ -250,20 +254,13 @@ class Comet : public Log::LogicalLocationProvider {
     // have to continue being opaque just like they already are for all interactions with cometbft.
     // There's no reason to move a signature scheme and signature verification into this component,
     // as we can keep that at the class that is instantiating and using the Comet object.
-    //
-    // Note that the ABCIHandler component is implemented by the Comet class, but the Comet
-    // class should also:
-    //
-    // TODO: Expose its own callback interface to the Comet user.
+
+    // TODO: Review CometListener callback synchronization/multithreading requirements.
     //
     // This CometListener interface may or may not be called back from the ABCIHandler threads
     // (the ABCIServer threads) -- whatever satisfies the Comet class' interaction with cometbft;
     // the caller should assume the callbacks are not thread-safe, if they accidentally are
     // for some revision of the Comet class.
-    //
-    // We know that the user of the Comet class will not get to implement the ABCIHandler 
-    // directly, as that removes the option of the Comet class capturing and hiding some
-    // of these callbacks.
 
     /**
      * Return an instance (object) identifier for all LOGxxx() messages emitted this class.

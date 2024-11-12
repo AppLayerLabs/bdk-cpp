@@ -308,12 +308,10 @@ void CometImpl::startCometBFT(const std::string& cometPath) {
       // Launch the process
       process_ = boost::process::child(
         exec_path,
-        //cometArgs
         boost::process::args(cometArgs),
-        // TODO: redirect (currently going to terminal during basic testing)
         boost::process::std_out > *bpout,
         boost::process::std_err > *bperr
-        );
+      );
 
     std::string pidStr = std::to_string(process_->id());
     LOGDEBUG("cometbft start launched with PID: " + pidStr);
@@ -442,6 +440,12 @@ void CometImpl::workerLoopInner() {
     //   future we may want to unify the Options constructors into just one, and leave the
     //   initialization of "non-validator nodes" as the ones that set the
     //   cometBFT::privValidatorKey option to empty or undefined.
+    //
+    // node_key.json can also be forced to a known value. This should be the default behavior,
+    //   since deleting the comet/* directory (as an e.g. recovery strategy) would cause a
+    //   peer to otherwise regenerate their node key, which would impact its persistent
+    //   connection to other nodes that have explicitly configured themselves to connect
+    //   to the node id that specific node/peer.
 
     setState(CometState::CONFIGURING);
 
@@ -449,6 +453,7 @@ void CometImpl::workerLoopInner() {
     const std::string cometPath = rootPath + "/comet/";
     const std::string cometConfigPath = cometPath + "config/";
     const std::string cometConfigGenesisPath = cometConfigPath + "genesis.json";
+    const std::string cometConfigNodeKeyPath = cometConfigPath + "node_key.json";
     const std::string cometConfigPrivValidatorKeyPath = cometConfigPath + "priv_validator_key.json";
     const std::string cometConfigTomlPath = cometConfigPath + "config.toml";
 
@@ -472,6 +477,22 @@ void CometImpl::workerLoopInner() {
     json privValidatorKeyJSON = json::object();
     if (hasPrivValidatorKey) privValidatorKeyJSON = opt["privValidatorKey"];
 
+    bool hasNodeKey = opt.contains("nodeKey");
+    json nodeKeyJSON = json::object();
+    if (hasNodeKey) nodeKeyJSON = opt["nodeKey"];
+
+    bool hasP2PPort = opt.contains("p2p_port");
+    json p2pPortJSON = json::object();
+    if (hasP2PPort) p2pPortJSON = opt["p2p_port"];
+
+    bool hasRPCPort = opt.contains("rpc_port");
+    json rpcPortJSON = json::object();
+    if (hasRPCPort) rpcPortJSON = opt["rpc_port"];
+
+    bool hasPeers = opt.contains("peers");
+    json peersJSON = json::object();
+    if (hasPeers) peersJSON = opt["peers"];
+
     // --------------------------------------------------------------------------------------
     // Sanity check configuration: a comet genesis file must be explicitly given.
 
@@ -484,10 +505,27 @@ void CometImpl::workerLoopInner() {
       LOGINFO("CometBFT::genesis config found: " + genesisJSON.dump());
     }
 
-    LOGDEBUG("Comet worker: past cometgenesis");
+    if (!hasP2PPort) {
+      throw DynamicException("Configuration option cometBFT:: p2p_port is empty.");
+    } else {
+      LOGINFO("CometBFT::p2p_port config found: " + p2pPortJSON.get<std::string>());
+    }
+
+    if (!hasRPCPort) {
+      throw DynamicException("Configuration option cometBFT:: rpc_port is empty.");
+    } else {
+      LOGINFO("CometBFT::rpc_port config found: " + rpcPortJSON.get<std::string>());
+    }
+
+    if (!hasNodeKey) {
+      // This is allowed (some nodes will not care about what node ID they get), so just log it.
+      LOGINFO("Configuration option cometBFT::nodeKey is empty.");
+    } else {
+      LOGINFO("CometBFT::nodeKey config found: " + nodeKeyJSON.dump());
+    }
 
     if (!hasPrivValidatorKey) {
-      // This is allowed, so just log it.
+      // This is allowed (some nodes are not validators), so just log it.
       LOGINFO("Configuration option cometBFT::privValidatorKey is empty.");
     } else {
       LOGINFO("CometBFT::privValidatorKey config found: " + privValidatorKeyJSON.dump());
@@ -530,6 +568,18 @@ void CometImpl::workerLoopInner() {
     // Comet home directory exists; check its configuration is consistent with the current
     //   BDK configuration options. If it isn't then sync them all here.
 
+    // If cometBFT::nodeKey is set in options, write it over the default
+    //   node_key.json comet file to ensure it is the same.
+    if (hasNodeKey) {
+      std::ofstream outputFile(cometConfigNodeKeyPath);
+      if (outputFile.is_open()) {
+        outputFile << nodeKeyJSON.dump(4);
+        outputFile.close();
+      } else {
+        throw DynamicException("Cannot open comet nodeKey file for writing: " + cometConfigNodeKeyPath);
+      }
+    }
+
     // If cometBFT::privValidatorKey is set in options, write it over the default
     //   priv_validator_key.json comet file to ensure it is the same.
     if (hasPrivValidatorKey) {
@@ -569,8 +619,30 @@ void CometImpl::workerLoopInner() {
     }
 
     // Force all relevant option values into config.toml
-    configToml.insert_or_assign("abci", "grpc");
+    configToml.insert_or_assign("abci", "socket"); // gets overwritten by --abci, and this is the default value anyway
+    configToml.insert_or_assign("proxy_app", "unix://" + cometUNIXSocketPath); // gets overwritten by --proxy_app
     configToml["storage"].as_table()->insert_or_assign("discard_abci_responses", toml::value(true));
+    std::string p2p_param = "tcp://0.0.0.0:" + p2pPortJSON.get<std::string>();
+    std::string rpc_param = "tcp://0.0.0.0:" + rpcPortJSON.get<std::string>();
+    LOGDEBUG("COMET P2P PORT PARAM = " + p2p_param);
+    LOGDEBUG("COMET RPC PORT PARAM = " + rpc_param);
+    configToml["p2p"].as_table()->insert_or_assign("laddr", p2p_param);
+    configToml["rpc"].as_table()->insert_or_assign("laddr", rpc_param);
+
+    // FIXME/TODO: right now we are just testing, so these security params are relaxed to allow
+    //   testing on the same machine. these will have to be exposed as BDK options as well so
+    //   they can be toggled for testing.
+    configToml["p2p"].as_table()->insert_or_assign("allow_duplicate_ip", toml::value(true));
+    configToml["p2p"].as_table()->insert_or_assign("addr_book_strict", toml::value(false));
+
+    if (hasPeers) {
+      // persistent_peers is a single string with the following format:
+      // <ID>@<IP>:<PORT>
+      // BDK validators should specify as many nodes as possible as persistent peers.
+      // Additional methods for adding or discovering other validators and non-validators should also be available.
+      //  (e.g. seeds/PEX).
+      configToml["p2p"].as_table()->insert_or_assign("persistent_peers", peersJSON.get<std::string>());
+    }
 
     // Overwrite updated config.toml
     std::ofstream configTomlOutFile(cometConfigTomlPath);
