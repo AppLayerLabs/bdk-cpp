@@ -617,19 +617,10 @@ public:
     }
 };
 
-// extraArgs given to Comet() ctor so that cometbft will produce blocks in a controlled manner
-// (essentially one block per transaction, if you wait for the block to be finalized after you
-// feed it one transaction).
-std::vector<std::string> stepBlockProductionCometArgs = {
-  "--consensus.create_empty_blocks=false",
-  "--consensus.timeout_commit=999999999s",
-  "--consensus.timeout_propose=999999999s",
-  "--consensus.timeout_prevote=999999999s",
-  "--consensus.timeout_precommit=999999999s"
-};
-
+// FIXME/TODO: must time out of all future threads so testcases will eventually cleanup/exit
 namespace TComet {
   TEST_CASE("Comet basic tests", "[core][comet]") {
+
     SECTION("CometBootTest") {
 
       // Very simple test flow that runs a single cometbft node that runs a single-validator blockchain
@@ -651,9 +642,11 @@ namespace TComet {
         std::atomic<bool> gotInitChain = false;
         std::atomic<uint64_t> finalizedHeight = 0;
         virtual void initChain() {
+          GLOGDEBUG("TestCometListener: got initChain");
           gotInitChain = true;
         }
         virtual void incomingBlock(const uint64_t height, const uint64_t syncingToHeight, const std::vector<Bytes>& txs, Bytes& appHash) {
+          GLOGDEBUG("TestCometListener: got incomingBlock " + std::to_string(height));
           finalizedHeight = height;
           appHash.clear();
         }
@@ -718,17 +711,17 @@ namespace TComet {
       REQUIRE(futureInitChain.wait_for(std::chrono::seconds(5)) != std::future_status::timeout);
       REQUIRE(cometListener.gotInitChain);
 
-      // --- Wait for a FinalizeBlock ABCI callback for the first produced block ---
+      // --- Wait for a FinalizeBlock ABCI callback for a few block ---
 
-      GLOGDEBUG("TEST: Waiting for CometBFT FinalizeBlock");
-
+      GLOGDEBUG("TEST: Waiting for CometBFT FinalizeBlock for 3 blocks");
+      const int targetHeight = 3;
       auto futureFinalizeBlock = std::async(std::launch::async, [&]() {
-        while (cometListener.finalizedHeight < 1) {
+        while (cometListener.finalizedHeight < targetHeight) {
           std::this_thread::sleep_for(std::chrono::milliseconds(10));
         }
       });
-      REQUIRE(futureFinalizeBlock.wait_for(std::chrono::seconds(15)) != std::future_status::timeout);
-      REQUIRE(cometListener.finalizedHeight >= 1);
+      REQUIRE(futureFinalizeBlock.wait_for(std::chrono::seconds(60)) != std::future_status::timeout);
+      REQUIRE(cometListener.finalizedHeight >= targetHeight);
 
       // --- stop ---
 
@@ -773,9 +766,11 @@ namespace TComet {
         std::atomic<bool> gotInitChain = false;
         std::atomic<uint64_t> finalizedHeight = 0;
         virtual void initChain() {
+          GLOGDEBUG("TestCometListener: got initChain");
           gotInitChain = true;
         }
         virtual void incomingBlock(const uint64_t height, const uint64_t syncingToHeight, const std::vector<Bytes>& txs, Bytes& appHash) {
+          GLOGDEBUG("TestCometListener: got incomingBlock " + std::to_string(height));
           finalizedHeight = height;
           appHash.clear();
         }
@@ -795,15 +790,16 @@ namespace TComet {
       comet1.start();
 
       // Wait for both Comet instances to find one finalized block
-      GLOGDEBUG("TEST: Waiting for CometBFT FinalizeBlock on both instances");
+      GLOGDEBUG("TEST: Waiting for CometBFT FinalizeBlock to be called 3 times on both instances");
+      int targetHeight = 3;
       auto futureFinalizeBlock = std::async(std::launch::async, [&]() {
-        while (cometListener0.finalizedHeight < 1 || cometListener1.finalizedHeight < 1) {
+        while (cometListener0.finalizedHeight < targetHeight || cometListener1.finalizedHeight < targetHeight) {
           std::this_thread::sleep_for(std::chrono::milliseconds(10));
         }
       });
       REQUIRE(futureFinalizeBlock.wait_for(std::chrono::seconds(30)) != std::future_status::timeout);
-      REQUIRE(cometListener0.finalizedHeight >= 1);
-      REQUIRE(cometListener1.finalizedHeight >= 1);
+      REQUIRE(cometListener0.finalizedHeight >= targetHeight);
+      REQUIRE(cometListener1.finalizedHeight >= targetHeight);
 
       // Stop both cometbft instances
       GLOGDEBUG("TEST: Stopping both instances...");
@@ -817,13 +813,110 @@ namespace TComet {
       GLOGDEBUG("TEST: Finished");
     }
 
+    SECTION("CometTxTest") {
+
+      // Simple test that checks we can control block production with dispatching
+      // one transaction per block while running cometbft in stepMode_ == true.
+
+      std::string testDumpPath = createTestDumpPath("CometTxTest");
+
+      GLOGDEBUG("TEST: Constructing Comet");
+
+      // get free ports to run tests on 
+      int p2p_port = SDKTestSuite::getTestPort();
+      int rpc_port = SDKTestSuite::getTestPort();
+
+      const Options options = getOptionsForCometTest(testDumpPath, p2p_port, rpc_port);
+
+      // Create a simple listener that just records that we got InitChain and what the current height is.
+      class TestCometListener : public CometListener {
+      public:
+        std::atomic<bool> gotInitChain = false;
+        std::atomic<uint64_t> finalizedHeight = 0;
+        virtual void initChain() {
+          GLOGDEBUG("TestCometListener: got initChain");
+          gotInitChain = true;
+        }
+        virtual void incomingBlock(const uint64_t height, const uint64_t syncingToHeight, const std::vector<Bytes>& txs, Bytes& appHash) {
+          GLOGDEBUG("TestCometListener: got incomingBlock " + std::to_string(height));
+          finalizedHeight = height;
+          appHash.clear();
+        }
+      };
+      TestCometListener cometListener;
+
+      // Set up comet with single validator, no empty blocks and very large timeouts,
+      //   which essentially makes cometbft only produce a block when we send a tx.
+      Comet comet(&cometListener, "", options, true);
+
+      // Start comet
+      comet.start();
+
+      // Wait for InitChain
+      GLOGDEBUG("TEST: Waiting for CometBFT InitChain");
+      auto futureInitChain = std::async(std::launch::async, [&]() {
+        while (!cometListener.gotInitChain) {
+          std::this_thread::sleep_for(std::chrono::milliseconds(10));
+        }
+      });
+      REQUIRE(futureInitChain.wait_for(std::chrono::seconds(5)) != std::future_status::timeout);
+      REQUIRE(cometListener.gotInitChain);
+
+      // Wait for chain to advance to height==1
+      // Apparently, even with produce empty blocks set to false, it produces the first block without
+      //   any transactions for some reason.
+      GLOGDEBUG("TEST: Waiting for CometBFT FinalizeBlock for height 1 (block 1 is created even when set to not create empty blocks)");
+      auto futureFinalizeBlock1 = std::async(std::launch::async, [&]() {
+        while (cometListener.finalizedHeight < 1) {
+          std::this_thread::sleep_for(std::chrono::milliseconds(10));
+        }
+      });
+      REQUIRE(futureFinalizeBlock1.wait_for(std::chrono::seconds(10)) != std::future_status::timeout);
+      REQUIRE(cometListener.finalizedHeight == 1); // require exactly height 1
+
+      // Sleep for a while: this is where block production could have
+      //   most certainly advanced by now if we are allowing empty blocks
+      //   to be produced and the block interval params were otherwise correct.
+      // This 10s wait time is probably overkill, but we need at least one test
+      //   to waste this time to ensure that stepMode_ is indeed working.
+      GLOGDEBUG("TEST: Waiting to check that chain does not advance past height 1 until a transaction is sent (10s)");
+      std::this_thread::sleep_for(std::chrono::seconds(10));
+
+      // Ensure blockchain has indeed not advanced at all
+      GLOGDEBUG("TEST: Checking that chain has not advanced past height 1 without a transaction");
+      REQUIRE(cometListener.finalizedHeight == 1);
+
+      // Send a transaction to cause a block to be produced
+      // Just send whatever transaction data; the default CometListener accepts anything
+      GLOGDEBUG("TEST: Sending transaction");
+      comet.sendTransaction({0x0, 0x1, 0x2, 0x3, 0x4, 0x5}); // some random tx data
+
+      // Wait for chain to advance
+      GLOGDEBUG("TEST: Waiting for CometBFT FinalizeBlock for height 2");
+      auto futureFinalizeBlock2 = std::async(std::launch::async, [&]() {
+        while (cometListener.finalizedHeight < 2) {
+          std::this_thread::sleep_for(std::chrono::milliseconds(10));
+        }
+      });
+      REQUIRE(futureFinalizeBlock2.wait_for(std::chrono::seconds(10)) != std::future_status::timeout);
+      REQUIRE(cometListener.finalizedHeight == 2); // require exactly height 2
+
+      // Stop
+      GLOGDEBUG("TEST: Stopping...");
+      REQUIRE(comet.getStatus()); // no error reported (must check before stop())
+      comet.stop();
+      GLOGDEBUG("TEST: Stopped");
+      REQUIRE(comet.getState() == CometState::STOPPED);
+      GLOGDEBUG("TEST: Finished");
+    }
+
     // TODO:
 
     // The following tests (and any others after these) will all require a mock
     // execution environment ("class TestVM") that emulates a blockchain app by
     // consuming a series of blocks with mock transactions that it understands.
     // Place these under their own TESTCASE
-
+/*
     // TODO: stop at block M and restart test with no block replay, 1 validator
     // (snapshotted state at M before shutdown reported by Info on restart)
     // Non-empty transactions and verify that it reaches the same end state
@@ -842,17 +935,17 @@ namespace TComet {
       TestMachine cometListener;
 
       // Set up comet with single validator
-      Comet comet(&cometListener, "", options, stepBlockProductionCometArgs);
+      Comet comet(&cometListener, "", options, true);
 
       // TODO: Finish test
 
       // Start comet.
-      /*
+      
 
         // FIXME: this (start/stop) actually crashes! investigate
-        comet.start();
-        comet.stop();
-      */
+        //comet.start();
+        //comet.stop();
+      
 
       // TODO: Implement send transaction API in Comet (which uses the
       //       RPC connection to cometbft to send the raw transaction).
@@ -873,6 +966,7 @@ namespace TComet {
       //       i.e. no blocks/txs replayed due to restarting, not affecting the
       //       retained state, which is an emulation of having persisted the state.
     }
+*/
 
     // TODO: stop at block M and restart test with some block replay, 1 validator
     // (Info on restart reports block N where N<M and thus replays N+1 to M)

@@ -191,9 +191,11 @@ class Comet : public Log::LogicalLocationProvider {
      *                 and that will receive event callbacks from this Comet instance.
      * @param instanceIdStr Instance ID string to use for logging.
      * @param options Reference to the Options singleton.
-     * @param extraArgs Extra command-line arguments to pass to 'cometbft start' (for testing).
+//     * @param extraArgs Extra command-line arguments to pass to 'cometbft start' (for testing).
+     * @param stepMode If true, no empty blocks are ever produced (for unit testing only).
      */
-    explicit Comet(CometListener* listener, std::string instanceIdStr, const Options& options, const std::vector<std::string>& extraArgs = {});
+    explicit Comet(CometListener* listener, std::string instanceIdStr, const Options& options, bool stepMode = false);
+    //, const std::vector<std::string>& extraArgs = {}
 
     /**
      * Destructor; ensures all subordinate jobs are stopped.
@@ -246,6 +248,14 @@ class Comet : public Log::LogicalLocationProvider {
      * @return The cometbft node id string, or an empty string if unknown (not yet computed) at this point.
      */
     std::string getNodeID();
+
+    /**
+     * Enqueues a transaction to be sent to the cometbft node; will retry until the localhost cometbft
+     * instance is running and it acknowledges the receipt of the transaction bytes, meaning it should
+     * be in its mempool from now on (if it passes CheckTx, etc).
+     * @param tx The raw bytes of the transaction object.
+     */
+    void sendTransaction(const Bytes& tx);
 
     /**
      * Start (or restart) the consensus engine loop.
