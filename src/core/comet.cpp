@@ -241,8 +241,8 @@ std::string CometImpl::waitPauseState(uint64_t timeoutMillis) {
     if (!this->status_) {
       return this->errorStr_;
     }
-    if (this->pauseState_ == this->state_) {
-      return "";
+    if (this->pauseState_ == this->state_ || this->pauseState_ == CometState::NONE) {
+      return ""; // succeed if the pause state is reached or if pause is disabled (set to NONE)
     }
     std::this_thread::sleep_for(std::chrono::milliseconds(20));
   }

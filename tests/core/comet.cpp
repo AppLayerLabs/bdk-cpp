@@ -932,10 +932,6 @@ namespace TComet {
       // Set up comet with single validator
       Comet comet(&cometListener, "", options, true);
 
-      // FIXME: this (start/stop) actually crashes! investigate
-      //comet.start();
-      //comet.stop();
-
       // Start comet.
       GLOGDEBUG("TEST: Starting Comet");
       comet.start();
