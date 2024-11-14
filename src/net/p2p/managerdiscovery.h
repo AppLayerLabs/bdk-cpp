@@ -8,10 +8,7 @@ See the LICENSE.txt file in the project root for more information.
 #ifndef P2P_MANAGER_DISCOVERY_H
 #define P2P_MANAGER_DISCOVERY_H
 
-#include "managerbase.h"
-
-#include <algorithm>
-#include <iterator>
+#include "managerbase.h" // encoding.h -> utils/utils.h -> libs/json.hpp -> algorithm
 
 namespace P2P {
   /// Manager focused exclusively at Discovery nodes.

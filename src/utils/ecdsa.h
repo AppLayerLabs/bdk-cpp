@@ -8,9 +8,8 @@ See the LICENSE.txt file in the project root for more information.
 #ifndef ECDSA_H
 #define ECDSA_H
 
-#include <secp256k1.h>
-#include <secp256k1_ecdh.h>
-#include <secp256k1_recovery.h>
+//#include <secp256k1_ecdh.h> // TODO: find out where this is coming from
+#include <secp256k1_recovery.h> // includes secp256k1.h
 
 #include "utils.h"
 

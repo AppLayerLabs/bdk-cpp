@@ -7,10 +7,6 @@ See the LICENSE.txt file in the project root for more information.
 
 #include "../../src/libs/catch2/catch_amalgamated.hpp"
 #include "../../src/contract/variables/safetuple.h"
-#include <cstdint>
-#include <utility>
-#include <string>
-#include <tuple>
 
 namespace TSafeTuple {
   TEST_CASE("SafeTuple Class", "[contract][variables][safetuple]") {

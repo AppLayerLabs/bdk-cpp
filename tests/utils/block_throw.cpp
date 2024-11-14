@@ -6,11 +6,8 @@ See the LICENSE.txt file in the project root for more information.
 */
 
 #include "../../src/libs/catch2/catch_amalgamated.hpp"
-#include "../../src/utils/utils.h"
-#include "../../src/utils/tx.h"
-#include "../../src/utils/finalizedblock.h"
 
-#include "../../src/utils/ecdsa.h"
+#include "../../src/utils/finalizedblock.h" // merkle.h -> tx.h -> ecdsa.h -> utils.h
 
 using Catch::Matchers::Equals;
 

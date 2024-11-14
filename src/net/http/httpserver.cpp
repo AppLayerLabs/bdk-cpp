@@ -6,7 +6,6 @@ See the LICENSE.txt file in the project root for more information.
 */
 
 #include "httpserver.h"
-#include "../p2p/managernormal.h"
 
 std::string HTTPServer::getLogicalLocation() const { return p2p_.getLogicalLocation(); }
 

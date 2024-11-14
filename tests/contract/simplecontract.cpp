@@ -6,16 +6,10 @@ See the LICENSE.txt file in the project root for more information.
 */
 
 #include "../../src/libs/catch2/catch_amalgamated.hpp"
-#include "../../src/utils/db.h"
-#include "../../src/utils/options.h"
-#include "../../src/core/rdpos.h"
-#include "../../src/contract/abi.h"
-#include "../../src/contract/contractmanager.h"
+
 #include "../../src/contract/templates/simplecontract.h"
 
 #include "../sdktestsuite.hpp"
-
-#include <filesystem>
 
 namespace TSimpleContract {
   TEST_CASE("SimpleContract class", "[contract][simplecontract]") {

@@ -9,10 +9,8 @@ See the LICENSE.txt file in the project root for more information.
 #define P2P_MANAGER_NORMAL_H
 
 #include "managerbase.h"
-#include "nodeconns.h"
+#include "nodeconns.h" // encoding.h -> optional, NodeID, NodeInfo
 #include "broadcaster.h"
-
-#include <optional>
 
 // Forward declaration.
 class Storage;

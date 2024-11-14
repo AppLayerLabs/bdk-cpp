@@ -5,9 +5,9 @@ This software is distributed under the MIT License.
 See the LICENSE.txt file in the project root for more information.
 */
 
-#include <boost/asio/post.hpp>
-
 #include "storage.h"
+
+#include "../utils/uintconv.h"
 
 static bool topicsMatch(const Event& event, const std::vector<Hash>& topics) {
   if (topics.empty()) return true; // No topic filter applied
@@ -20,14 +20,14 @@ static bool topicsMatch(const Event& event, const std::vector<Hash>& topics) {
 static void storeBlock(DB& db, const FinalizedBlock& block, bool indexingEnabled) {
   DBBatch batch;
   batch.push_back(block.getHash(), block.serializeBlock(), DBPrefix::blocks);
-  batch.push_back(Utils::uint64ToBytes(block.getNHeight()), block.getHash(), DBPrefix::heightToBlock);
+  batch.push_back(UintConv::uint64ToBytes(block.getNHeight()), block.getHash(), DBPrefix::heightToBlock);
 
   if (indexingEnabled) {
     const auto& Txs = block.getTxs();
     for (uint32_t i = 0; i < Txs.size(); i++) {
       const auto& TxHash = Txs[i].hash();
       const FixedBytes<44> value(
-        bytes::join(block.getHash(), Utils::uint32ToBytes(i), Utils::uint64ToBytes(block.getNHeight()))
+        bytes::join(block.getHash(), UintConv::uint32ToBytes(i), UintConv::uint64ToBytes(block.getNHeight()))
       );
       batch.push_back(TxHash, value, DBPrefix::txToBlock);
     }
@@ -71,7 +71,7 @@ void Storage::initializeBlockchain() {
   }
 
   // Sanity check for genesis block. (check if genesis in DB matches genesis in Options)
-  const Hash genesisInDBHash(blocksDb_.get(Utils::uint64ToBytes(0), DBPrefix::heightToBlock));
+  const Hash genesisInDBHash(blocksDb_.get(UintConv::uint64ToBytes(0), DBPrefix::heightToBlock));
 
   FinalizedBlock genesisInDB = FinalizedBlock::fromBytes(
     blocksDb_.get(genesisInDBHash, DBPrefix::blocks), options_.getChainID()
@@ -88,11 +88,11 @@ TxBlock Storage::getTxFromBlockWithIndex(bytes::View blockData, uint64_t txIndex
   // Count txs until index.
   uint64_t currentTx = 0;
   while (currentTx < txIndex) {
-    uint32_t txSize = Utils::bytesToUint32(blockData.subspan(index, 4));
+    uint32_t txSize = UintConv::bytesToUint32(blockData.subspan(index, 4));
     index += txSize + 4;
     currentTx++;
   }
-  uint64_t txSize = Utils::bytesToUint32(blockData.subspan(index, 4));
+  uint64_t txSize = UintConv::bytesToUint32(blockData.subspan(index, 4));
   index += 4;
   return TxBlock(blockData.subspan(index, txSize), this->options_.getChainID());
 }
@@ -108,7 +108,7 @@ void Storage::pushBlock(FinalizedBlock block) {
 
 bool Storage::blockExists(const Hash& hash) const { return blocksDb_.has(hash, DBPrefix::blocks); }
 
-bool Storage::blockExists(uint64_t height) const { return blocksDb_.has(Utils::uint64ToBytes(height), DBPrefix::heightToBlock); }
+bool Storage::blockExists(uint64_t height) const { return blocksDb_.has(UintConv::uint64ToBytes(height), DBPrefix::heightToBlock); }
 
 bool Storage::txExists(const Hash& tx) const { return blocksDb_.has(tx, DBPrefix::txToBlock); }
 
@@ -119,7 +119,7 @@ std::shared_ptr<const FinalizedBlock> Storage::getBlock(const Hash& hash) const 
 }
 
 std::shared_ptr<const FinalizedBlock> Storage::getBlock(uint64_t height) const {
-  Bytes blockHash = blocksDb_.get(Utils::uint64ToBytes(height), DBPrefix::heightToBlock);
+  Bytes blockHash = blocksDb_.get(UintConv::uint64ToBytes(height), DBPrefix::heightToBlock);
   if (blockHash.empty()) return nullptr;
   Bytes blockBytes = blocksDb_.get(blockHash, DBPrefix::blocks);
   return std::make_shared<FinalizedBlock>(FinalizedBlock::fromBytes(blockBytes, this->options_.getChainID()));
@@ -133,8 +133,8 @@ std::tuple<
 
   const bytes::View txDataView = txData;
   const Hash blockHash(txDataView.subspan(0, 32));
-  const uint64_t blockIndex = Utils::bytesToUint32(txDataView.subspan(32, 4));
-  const uint64_t blockHeight = Utils::bytesToUint64(txDataView.subspan(36, 8));
+  const uint64_t blockIndex = UintConv::bytesToUint32(txDataView.subspan(32, 4));
+  const uint64_t blockHeight = UintConv::bytesToUint64(txDataView.subspan(36, 8));
   const Bytes blockData = blocksDb_.get(blockHash, DBPrefix::blocks);
 
   return std::make_tuple(
@@ -149,7 +149,7 @@ std::tuple<
   const Bytes blockData = blocksDb_.get(blockHash, DBPrefix::blocks);
   if (blockData.empty()) std::make_tuple(nullptr, Hash(), 0u, 0u);
 
-  const uint64_t blockHeight = Utils::bytesToUint64(bytes::View(blockData).subspan(201, 8));
+  const uint64_t blockHeight = UintConv::bytesToUint64(bytes::View(blockData).subspan(201, 8));
   return std::make_tuple(
     std::make_shared<TxBlock>(getTxFromBlockWithIndex(blockData, blockIndex)),
     blockHash, blockIndex, blockHeight
@@ -159,7 +159,7 @@ std::tuple<
 std::tuple<
   const std::shared_ptr<const TxBlock>, const Hash, const uint64_t, const uint64_t
 > Storage::getTxByBlockNumberAndIndex(uint64_t blockHeight, uint64_t blockIndex) const {
-  const Bytes blockHash = blocksDb_.get(Utils::uint64ToBytes(blockHeight), DBPrefix::heightToBlock);
+  const Bytes blockHash = blocksDb_.get(UintConv::uint64ToBytes(blockHeight), DBPrefix::heightToBlock);
   if (blockHash.empty()) return std::make_tuple(nullptr, Hash(), 0u, 0u);
 
   const Bytes blockData = blocksDb_.get(blockHash, DBPrefix::blocks);
@@ -216,19 +216,16 @@ std::optional<TxAdditionalData> Storage::getTxAdditionalData(const Hash& txHash)
 
 void Storage::putEvent(const Event& event) {
   const Bytes key = Utils::makeBytes(bytes::join(
-    Utils::uint64ToBytes(event.getBlockIndex()),
-    Utils::uint64ToBytes(event.getTxIndex()),
-    Utils::uint64ToBytes(event.getLogIndex()),
+    UintConv::uint64ToBytes(event.getBlockIndex()),
+    UintConv::uint64ToBytes(event.getTxIndex()),
+    UintConv::uint64ToBytes(event.getLogIndex()),
     event.getAddress()
   ));
-
   eventsDb_.put(key, Utils::stringToBytes(event.serializeToJson()), DBPrefix::events);
 }
 
 std::vector<Event> Storage::getEvents(uint64_t fromBlock, uint64_t toBlock, const Address& address, const std::vector<Hash>& topics) const {
-  if (toBlock < fromBlock) {
-    std::swap(fromBlock, toBlock);
-  }
+  if (toBlock < fromBlock) std::swap(fromBlock, toBlock);
 
   if (uint64_t count = toBlock - fromBlock + 1; count > options_.getEventBlockCap()) {
     throw std::out_of_range(
@@ -240,52 +237,35 @@ std::vector<Event> Storage::getEvents(uint64_t fromBlock, uint64_t toBlock, cons
   std::vector<Event> events;
   std::vector<Bytes> keys;
 
-  const Bytes startBytes = Utils::makeBytes(Utils::uint64ToBytes(fromBlock));
-  const Bytes endBytes = Utils::makeBytes(Utils::uint64ToBytes(toBlock));
+  const Bytes startBytes = Utils::makeBytes(UintConv::uint64ToBytes(fromBlock));
+  const Bytes endBytes = Utils::makeBytes(UintConv::uint64ToBytes(toBlock));
 
   for (Bytes key : eventsDb_.getKeys(DBPrefix::events, startBytes, endBytes)) {
-    uint64_t nHeight = Utils::bytesToUint64(Utils::create_view_span(key, 0, 8));
+    uint64_t nHeight = UintConv::bytesToUint64(Utils::create_view_span(key, 0, 8));
     Address currentAddress(Utils::create_view_span(key, 24, 20));
-
-    if (fromBlock > nHeight || toBlock < nHeight) {
-      continue;
-    }
-
-    if (address == currentAddress || address == Address()) {
-      keys.push_back(std::move(key));
-    }
+    if (fromBlock > nHeight || toBlock < nHeight) continue;
+    if (address == currentAddress || address == Address()) keys.push_back(std::move(key));
   }
 
   for (DBEntry item : eventsDb_.getBatch(DBPrefix::events, keys)) {
-    if (events.size() >= options_.getEventLogCap()) {
-      break;
-    }
-
+    if (events.size() >= options_.getEventLogCap()) break;
     Event event(Utils::bytesToString(item.value));
-
-    if (topicsMatch(event, topics)) {
-      events.push_back(std::move(event));
-    }
+    if (topicsMatch(event, topics)) events.push_back(std::move(event));
   }
-
   return events;
 }
 
 std::vector<Event> Storage::getEvents(uint64_t blockIndex, uint64_t txIndex) const {
-  std::vector<Event> events;  
-
+  std::vector<Event> events;
   for (
     Bytes fetchBytes = Utils::makeBytes(bytes::join(
-      DBPrefix::events, Utils::uint64ToBytes(blockIndex), Utils::uint64ToBytes(txIndex)
+      DBPrefix::events, UintConv::uint64ToBytes(blockIndex), UintConv::uint64ToBytes(txIndex)
     ));
     DBEntry entry : eventsDb_.getBatch(fetchBytes)
   ) {
-    if (events.size() >= options_.getEventLogCap()) {
-      break;
-    }
-
+    if (events.size() >= options_.getEventLogCap()) break;
     events.emplace_back(Utils::bytesToString(entry.value));
   }
-
   return events;
 }
+

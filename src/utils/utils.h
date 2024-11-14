@@ -8,42 +8,34 @@ See the LICENSE.txt file in the project root for more information.
 #ifndef UTILS_H
 #define UTILS_H
 
-#include <algorithm>
-#include <array>
-#include <atomic>
-#include <cxxabi.h>
+// TODO: find out where those are coming from
+//#include <atomic>
+//#include <cxxabi.h>
+//#include <string_view>
+//#include <thread>
+
 #include <filesystem>
 #include <fstream>
-#include <regex>
-#include <span>
-#include <string_view>
-#include <thread>
-#include <tuple>
-#include <variant>
+#include <regex> // used by jsonrpc/parser.cpp
 
-#include <boost/lexical_cast.hpp>
-#include <boost/multiprecision/cpp_dec_float.hpp>
-#include <boost/multiprecision/cpp_int.hpp>
+// TODO: find out where those are coming from
+//#include <boost/lexical_cast.hpp>
+//#include <boost/multiprecision/cpp_dec_float.hpp>
 #include <boost/beast/core/error.hpp>
 #include <boost/asio/ip/address.hpp>
 
-#include <evmc/evmc.hpp>
 #include <ethash/keccak.h>
-#include <openssl/rand.h>
 
-#include "strings.h"
-#include "logger.h"
+#include "../libs/json.hpp" // algorithm, array, tuple
 
-#include "../libs/zpp_bits.h"
-#include "../libs/json.hpp"
+#include "../bytes/join.h" // range.h, view.h, initializer.h
 
-#include "../bytes/join.h"
-#include "../bytes/range.h"
-#include "../bytes/view.h"
-#include "../bytes/initializer.h"
-
-#include "../contract/variables/safeuint.h"
 #include "../contract/variables/safeint.h"
+#include "../contract/variables/safeuint.h"
+
+#include "dynamicexception.h" // included by strings.h, leave it for now to avoid AddressSanitizer runtime errors - TODO: see create_view_span()
+#include "logger.h"
+#include "strings.h" // hex.h, openssl/rand.h, libs/zpp_bits.h -> algorithm, array, span, variant
 
 /// Localhost IPv4 address constant
 inline const boost::asio::ip::address LOCALHOST = boost::asio::ip::address::from_string("127.0.0.1");
@@ -55,9 +47,7 @@ class Hash;
 /// Typedef for json.
 using json = nlohmann::ordered_json;
 
-/// Typedef for bigint.
-using bigint = boost::multiprecision::number<boost::multiprecision::cpp_int_backend<>>;
-
+// TODO: duplicated in hex.h, strconv.h, evmcconv.h and (u)intconv.h, find a better way to handle this
 using Byte = uint8_t; ///< Typedef for Byte.
 using Bytes = std::vector<Byte>; ///< Typedef for Bytes.
 template <std::size_t N> using BytesArr = std::array<Byte, N>; ///< Typedef for BytesArr.
@@ -96,134 +86,6 @@ template<typename... Tp> struct printAtExit {
 
   ~printAtExit() { printDurationsHelper(id, timePoints, names); }
 };
-
-///@{
-/** Typedef for primitive integer type. */
-using uint24_t = boost::multiprecision::number<boost::multiprecision::cpp_int_backend<24, 24, boost::multiprecision::unsigned_magnitude, boost::multiprecision::cpp_int_check_type::checked, void>>;
-using uint40_t = boost::multiprecision::number<boost::multiprecision::cpp_int_backend<40, 40, boost::multiprecision::unsigned_magnitude, boost::multiprecision::cpp_int_check_type::checked, void>>;
-using uint48_t = boost::multiprecision::number<boost::multiprecision::cpp_int_backend<48, 48, boost::multiprecision::unsigned_magnitude, boost::multiprecision::cpp_int_check_type::checked, void>>;
-using uint56_t = boost::multiprecision::number<boost::multiprecision::cpp_int_backend<56, 56, boost::multiprecision::unsigned_magnitude, boost::multiprecision::cpp_int_check_type::checked, void>>;
-using uint72_t = boost::multiprecision::number<boost::multiprecision::cpp_int_backend<72, 72, boost::multiprecision::unsigned_magnitude, boost::multiprecision::cpp_int_check_type::checked, void>>;
-using uint80_t = boost::multiprecision::number<boost::multiprecision::cpp_int_backend<80, 80, boost::multiprecision::unsigned_magnitude, boost::multiprecision::cpp_int_check_type::checked, void>>;
-using uint88_t = boost::multiprecision::number<boost::multiprecision::cpp_int_backend<88, 88, boost::multiprecision::unsigned_magnitude, boost::multiprecision::cpp_int_check_type::checked, void>>;
-using uint96_t = boost::multiprecision::number<boost::multiprecision::cpp_int_backend<96, 96, boost::multiprecision::unsigned_magnitude, boost::multiprecision::cpp_int_check_type::checked, void>>;
-using uint104_t = boost::multiprecision::number<boost::multiprecision::cpp_int_backend<104, 104, boost::multiprecision::unsigned_magnitude, boost::multiprecision::cpp_int_check_type::checked, void>>;
-using uint112_t = boost::multiprecision::number<boost::multiprecision::cpp_int_backend<112, 112, boost::multiprecision::unsigned_magnitude, boost::multiprecision::cpp_int_check_type::checked, void>>;
-using uint120_t = boost::multiprecision::number<boost::multiprecision::cpp_int_backend<120, 120, boost::multiprecision::unsigned_magnitude, boost::multiprecision::cpp_int_check_type::checked, void>>;
-using uint128_t = boost::multiprecision::number<boost::multiprecision::cpp_int_backend<128, 128, boost::multiprecision::unsigned_magnitude, boost::multiprecision::cpp_int_check_type::checked, void>>;
-using uint136_t = boost::multiprecision::number<boost::multiprecision::cpp_int_backend<136, 136, boost::multiprecision::unsigned_magnitude, boost::multiprecision::cpp_int_check_type::checked, void>>;
-using uint144_t = boost::multiprecision::number<boost::multiprecision::cpp_int_backend<144, 144, boost::multiprecision::unsigned_magnitude, boost::multiprecision::cpp_int_check_type::checked, void>>;
-using uint152_t = boost::multiprecision::number<boost::multiprecision::cpp_int_backend<152, 152, boost::multiprecision::unsigned_magnitude, boost::multiprecision::cpp_int_check_type::checked, void>>;
-using uint160_t = boost::multiprecision::number<boost::multiprecision::cpp_int_backend<160, 160, boost::multiprecision::unsigned_magnitude, boost::multiprecision::cpp_int_check_type::checked, void>>;
-using uint168_t = boost::multiprecision::number<boost::multiprecision::cpp_int_backend<168, 168, boost::multiprecision::unsigned_magnitude, boost::multiprecision::cpp_int_check_type::checked, void>>;
-using uint176_t = boost::multiprecision::number<boost::multiprecision::cpp_int_backend<176, 176, boost::multiprecision::unsigned_magnitude, boost::multiprecision::cpp_int_check_type::checked, void>>;
-using uint184_t = boost::multiprecision::number<boost::multiprecision::cpp_int_backend<184, 184, boost::multiprecision::unsigned_magnitude, boost::multiprecision::cpp_int_check_type::checked, void>>;
-using uint192_t = boost::multiprecision::number<boost::multiprecision::cpp_int_backend<192, 192, boost::multiprecision::unsigned_magnitude, boost::multiprecision::cpp_int_check_type::checked, void>>;
-using uint200_t = boost::multiprecision::number<boost::multiprecision::cpp_int_backend<200, 200, boost::multiprecision::unsigned_magnitude, boost::multiprecision::cpp_int_check_type::checked, void>>;
-using uint208_t = boost::multiprecision::number<boost::multiprecision::cpp_int_backend<208, 208, boost::multiprecision::unsigned_magnitude, boost::multiprecision::cpp_int_check_type::checked, void>>;
-using uint216_t = boost::multiprecision::number<boost::multiprecision::cpp_int_backend<216, 216, boost::multiprecision::unsigned_magnitude, boost::multiprecision::cpp_int_check_type::checked, void>>;
-using uint224_t = boost::multiprecision::number<boost::multiprecision::cpp_int_backend<224, 224, boost::multiprecision::unsigned_magnitude, boost::multiprecision::cpp_int_check_type::checked, void>>;
-using uint232_t = boost::multiprecision::number<boost::multiprecision::cpp_int_backend<232, 232, boost::multiprecision::unsigned_magnitude, boost::multiprecision::cpp_int_check_type::checked, void>>;
-using uint240_t = boost::multiprecision::number<boost::multiprecision::cpp_int_backend<240, 240, boost::multiprecision::unsigned_magnitude, boost::multiprecision::cpp_int_check_type::checked, void>>;
-using uint248_t = boost::multiprecision::number<boost::multiprecision::cpp_int_backend<248, 248, boost::multiprecision::unsigned_magnitude, boost::multiprecision::cpp_int_check_type::checked, void>>;
-using uint256_t = boost::multiprecision::number<boost::multiprecision::cpp_int_backend<256, 256, boost::multiprecision::unsigned_magnitude, boost::multiprecision::cpp_int_check_type::checked, void>>;
-using int24_t = boost::multiprecision::number<boost::multiprecision::cpp_int_backend<24, 24, boost::multiprecision::signed_magnitude, boost::multiprecision::cpp_int_check_type::checked, void>>;
-using int40_t = boost::multiprecision::number<boost::multiprecision::cpp_int_backend<40, 40, boost::multiprecision::signed_magnitude, boost::multiprecision::cpp_int_check_type::checked, void>>;
-using int48_t = boost::multiprecision::number<boost::multiprecision::cpp_int_backend<48, 48, boost::multiprecision::signed_magnitude, boost::multiprecision::cpp_int_check_type::checked, void>>;
-using int56_t = boost::multiprecision::number<boost::multiprecision::cpp_int_backend<56, 56, boost::multiprecision::signed_magnitude, boost::multiprecision::cpp_int_check_type::checked, void>>;
-using int72_t = boost::multiprecision::number<boost::multiprecision::cpp_int_backend<72, 72, boost::multiprecision::signed_magnitude, boost::multiprecision::cpp_int_check_type::checked, void>>;
-using int80_t = boost::multiprecision::number<boost::multiprecision::cpp_int_backend<80, 80, boost::multiprecision::signed_magnitude, boost::multiprecision::cpp_int_check_type::checked, void>>;
-using int88_t = boost::multiprecision::number<boost::multiprecision::cpp_int_backend<88, 88, boost::multiprecision::signed_magnitude, boost::multiprecision::cpp_int_check_type::checked, void>>;
-using int96_t = boost::multiprecision::number<boost::multiprecision::cpp_int_backend<96, 96, boost::multiprecision::signed_magnitude, boost::multiprecision::cpp_int_check_type::checked, void>>;
-using int104_t = boost::multiprecision::number<boost::multiprecision::cpp_int_backend<104, 104, boost::multiprecision::signed_magnitude, boost::multiprecision::cpp_int_check_type::checked, void>>;
-using int112_t = boost::multiprecision::number<boost::multiprecision::cpp_int_backend<112, 112, boost::multiprecision::signed_magnitude, boost::multiprecision::cpp_int_check_type::checked, void>>;
-using int120_t = boost::multiprecision::number<boost::multiprecision::cpp_int_backend<120, 120, boost::multiprecision::signed_magnitude, boost::multiprecision::cpp_int_check_type::checked, void>>;
-using int128_t = boost::multiprecision::number<boost::multiprecision::cpp_int_backend<128, 128, boost::multiprecision::signed_magnitude, boost::multiprecision::cpp_int_check_type::checked, void>>;
-using int136_t = boost::multiprecision::number<boost::multiprecision::cpp_int_backend<136, 136, boost::multiprecision::signed_magnitude, boost::multiprecision::cpp_int_check_type::checked, void>>;
-using int144_t = boost::multiprecision::number<boost::multiprecision::cpp_int_backend<144, 144, boost::multiprecision::signed_magnitude, boost::multiprecision::cpp_int_check_type::checked, void>>;
-using int152_t = boost::multiprecision::number<boost::multiprecision::cpp_int_backend<152, 152, boost::multiprecision::signed_magnitude, boost::multiprecision::cpp_int_check_type::checked, void>>;
-using int160_t = boost::multiprecision::number<boost::multiprecision::cpp_int_backend<160, 160, boost::multiprecision::signed_magnitude, boost::multiprecision::cpp_int_check_type::checked, void>>;
-using int168_t = boost::multiprecision::number<boost::multiprecision::cpp_int_backend<168, 168, boost::multiprecision::signed_magnitude, boost::multiprecision::cpp_int_check_type::checked, void>>;
-using int176_t = boost::multiprecision::number<boost::multiprecision::cpp_int_backend<176, 176, boost::multiprecision::signed_magnitude, boost::multiprecision::cpp_int_check_type::checked, void>>;
-using int184_t = boost::multiprecision::number<boost::multiprecision::cpp_int_backend<184, 184, boost::multiprecision::signed_magnitude, boost::multiprecision::cpp_int_check_type::checked, void>>;
-using int192_t = boost::multiprecision::number<boost::multiprecision::cpp_int_backend<192, 192, boost::multiprecision::signed_magnitude, boost::multiprecision::cpp_int_check_type::checked, void>>;
-using int200_t = boost::multiprecision::number<boost::multiprecision::cpp_int_backend<200, 200, boost::multiprecision::signed_magnitude, boost::multiprecision::cpp_int_check_type::checked, void>>;
-using int208_t = boost::multiprecision::number<boost::multiprecision::cpp_int_backend<208, 208, boost::multiprecision::signed_magnitude, boost::multiprecision::cpp_int_check_type::checked, void>>;
-using int216_t = boost::multiprecision::number<boost::multiprecision::cpp_int_backend<216, 216, boost::multiprecision::signed_magnitude, boost::multiprecision::cpp_int_check_type::checked, void>>;
-using int224_t = boost::multiprecision::number<boost::multiprecision::cpp_int_backend<224, 224, boost::multiprecision::signed_magnitude, boost::multiprecision::cpp_int_check_type::checked, void>>;
-using int232_t = boost::multiprecision::number<boost::multiprecision::cpp_int_backend<232, 232, boost::multiprecision::signed_magnitude, boost::multiprecision::cpp_int_check_type::checked, void>>;
-using int240_t = boost::multiprecision::number<boost::multiprecision::cpp_int_backend<240, 240, boost::multiprecision::signed_magnitude, boost::multiprecision::cpp_int_check_type::checked, void>>;
-using int248_t = boost::multiprecision::number<boost::multiprecision::cpp_int_backend<248, 248, boost::multiprecision::signed_magnitude, boost::multiprecision::cpp_int_check_type::checked, void>>;
-using int256_t = boost::multiprecision::number<boost::multiprecision::cpp_int_backend<256, 256, boost::multiprecision::signed_magnitude, boost::multiprecision::cpp_int_check_type::checked, void>>;
-///@}
-
-///@{
-/** Typedef for SafeVariable integer type. */
-using SafeUint8_t = SafeUint_t<8>;
-using SafeUint16_t = SafeUint_t<16>;
-using SafeUint24_t = SafeUint_t<24>;
-using SafeUint32_t = SafeUint_t<32>;
-using SafeUint40_t = SafeUint_t<40>;
-using SafeUint48_t = SafeUint_t<48>;
-using SafeUint56_t = SafeUint_t<56>;
-using SafeUint64_t = SafeUint_t<64>;
-using SafeUint72_t = SafeUint_t<72>;
-using SafeUint80_t = SafeUint_t<80>;
-using SafeUint88_t = SafeUint_t<88>;
-using SafeUint96_t = SafeUint_t<96>;
-using SafeUint104_t = SafeUint_t<104>;
-using SafeUint112_t = SafeUint_t<112>;
-using SafeUint120_t = SafeUint_t<120>;
-using SafeUint128_t = SafeUint_t<128>;
-using SafeUint136_t = SafeUint_t<136>;
-using SafeUint144_t = SafeUint_t<144>;
-using SafeUint152_t = SafeUint_t<152>;
-using SafeUint160_t = SafeUint_t<160>;
-using SafeUint168_t = SafeUint_t<168>;
-using SafeUint176_t = SafeUint_t<176>;
-using SafeUint184_t = SafeUint_t<184>;
-using SafeUint192_t = SafeUint_t<192>;
-using SafeUint200_t = SafeUint_t<200>;
-using SafeUint208_t = SafeUint_t<208>;
-using SafeUint216_t = SafeUint_t<216>;
-using SafeUint224_t = SafeUint_t<224>;
-using SafeUint232_t = SafeUint_t<232>;
-using SafeUint240_t = SafeUint_t<240>;
-using SafeUint248_t = SafeUint_t<248>;
-using SafeUint256_t = SafeUint_t<256>;
-using SafeInt8_t = SafeInt_t<8>;
-using SafeInt16_t = SafeInt_t<16>;
-using SafeInt24_t = SafeInt_t<24>;
-using SafeInt32_t = SafeInt_t<32>;
-using SafeInt40_t = SafeInt_t<40>;
-using SafeInt48_t = SafeInt_t<48>;
-using SafeInt56_t = SafeInt_t<56>;
-using SafeInt64_t = SafeInt_t<64>;
-using SafeInt72_t = SafeInt_t<72>;
-using SafeInt80_t = SafeInt_t<80>;
-using SafeInt88_t = SafeInt_t<88>;
-using SafeInt96_t = SafeInt_t<96>;
-using SafeInt104_t = SafeInt_t<104>;
-using SafeInt112_t = SafeInt_t<112>;
-using SafeInt120_t = SafeInt_t<120>;
-using SafeInt128_t = SafeInt_t<128>;
-using SafeInt136_t = SafeInt_t<136>;
-using SafeInt144_t = SafeInt_t<144>;
-using SafeInt152_t = SafeInt_t<152>;
-using SafeInt160_t = SafeInt_t<160>;
-using SafeInt168_t = SafeInt_t<168>;
-using SafeInt176_t = SafeInt_t<176>;
-using SafeInt184_t = SafeInt_t<184>;
-using SafeInt192_t = SafeInt_t<192>;
-using SafeInt200_t = SafeInt_t<200>;
-using SafeInt208_t = SafeInt_t<208>;
-using SafeInt216_t = SafeInt_t<216>;
-using SafeInt224_t = SafeInt_t<224>;
-using SafeInt232_t = SafeInt_t<232>;
-using SafeInt240_t = SafeInt_t<240>;
-using SafeInt248_t = SafeInt_t<248>;
-using SafeInt256_t = SafeInt_t<256>;
-///@}
 
 /**
  * Map with addresses for contracts deployed at protocol level (name -> address).
@@ -448,25 +310,11 @@ namespace Utils {
   void logToFile(std::string_view str);
 
   /**
-   * Get the functor of a evmc_message
-   * @param msg The evmc_message to get the functor from.
-   * @return The functor of the evmc_message (0 if evmc_message size == 0).
-   */
-  Functor getFunctor(const evmc_message& msg);
-
-  /**
    * Create a Functor based on a std::string with the function signature (e.g. "functionName(uint256,uint256)").
    * @param funtionSignature The function signature.
    * @return The created Functor.
    */
   Functor makeFunctor(std::string_view functionSignature);
-
-  /**
-   * Get the bytes::View representing the function arguments of a given evmc_message.
-   * @param msg The evmc_message to get the function arguments from.
-   * @return The bytes::View representing the function arguments.
-   */
-  bytes::View getFunctionArgs(const evmc_message& msg);
 
   /**
    * Print a string to stdout. Does not print if in a test.
@@ -494,157 +342,10 @@ namespace Utils {
    */
   Bytes randBytes(const int& size);
 
-  ///@{
-  /**
-   * Convert a given EVMC type to a BDK type, or vice-versa.
-   * @param i (or b) The type to convert.
-   * @return The converted type.
-   */
-  uint256_t evmcUint256ToUint256(const evmc::uint256be& i);
-  evmc::uint256be uint256ToEvmcUint256(const uint256_t& i);
-  BytesArr<32> evmcUint256ToBytes(const evmc::uint256be& i);
-  evmc::uint256be bytesToEvmcUint256(const bytes::View b);
-  ///@}
-
-  /**
-   * Wrapper for EVMC's `ecrecover()` function.
-   * @param hash The hash to recover an address from.
-   * @param v The recover ID.
-   * @param r The first half of the ECDSA signature.
-   * @param s The second half of the ECDSA signature.
-   * @return The recovered address.
-   */
-  evmc::address ecrecover(evmc::bytes32 hash, evmc::bytes32 v, evmc::bytes32 r, evmc::bytes32 s);
-
-  ///@{
-  /**
-   * Convert a given integer to a bytes string. Use `Hex()` to properly print it.
-   * @param i The integer to convert.
-   * @return The converted integer as a bytes string.
-   */
-  BytesArr<32> uint256ToBytes(const uint256_t& i);
-  BytesArr<31> uint248ToBytes(const uint248_t& i);
-  BytesArr<30> uint240ToBytes(const uint240_t& i);
-  BytesArr<29> uint232ToBytes(const uint232_t& i);
-  BytesArr<28> uint224ToBytes(const uint224_t& i);
-  BytesArr<27> uint216ToBytes(const uint216_t& i);
-  BytesArr<26> uint208ToBytes(const uint208_t& i);
-  BytesArr<25> uint200ToBytes(const uint200_t& i);
-  BytesArr<24> uint192ToBytes(const uint192_t& i);
-  BytesArr<23> uint184ToBytes(const uint184_t& i);
-  BytesArr<22> uint176ToBytes(const uint176_t& i);
-  BytesArr<21> uint168ToBytes(const uint168_t& i);
-  BytesArr<20> uint160ToBytes(const uint160_t& i);
-  BytesArr<19> uint152ToBytes(const uint152_t& i);
-  BytesArr<18> uint144ToBytes(const uint144_t& i);
-  BytesArr<17> uint136ToBytes(const uint136_t& i);
-  BytesArr<16> uint128ToBytes(const uint128_t& i);
-  BytesArr<15> uint120ToBytes(const uint120_t& i);
-  BytesArr<14> uint112ToBytes(const uint112_t& i);
-  BytesArr<13> uint104ToBytes(const uint104_t& i);
-  BytesArr<12> uint96ToBytes(const uint96_t& i);
-  BytesArr<11> uint88ToBytes(const uint88_t& i);
-  BytesArr<10> uint80ToBytes(const uint80_t& i);
-  BytesArr<9> uint72ToBytes(const uint72_t& i);
-  BytesArr<8> uint64ToBytes(const uint64_t& i);
-  BytesArr<7> uint56ToBytes(const uint56_t& i);
-  BytesArr<6> uint48ToBytes(const uint48_t& i);
-  BytesArr<5> uint40ToBytes(const uint40_t& i);
-  BytesArr<4> uint32ToBytes(const uint32_t& i);
-  BytesArr<3> uint24ToBytes(const uint24_t& i);
-  BytesArr<2> uint16ToBytes(const uint16_t& i);
-  BytesArr<1> uint8ToBytes(const uint8_t& i);
-  BytesArr<32> int256ToBytes(const int256_t& i);
-  BytesArr<17> int136ToBytes(const int136_t& i);
-  BytesArr<8> int64ToBytes(const int64_t& i);
-  ///@}
-
-  ///@{
-  /**
-   * Convert a given bytes string to an integer.
-   * @param b The bytes string to convert.
-   * @return The converted integer.
-   * @throw DynamicException if string size is invalid.
-   */
-  uint256_t bytesToUint256(const bytes::View b);
-  uint248_t bytesToUint248(const bytes::View b);
-  uint240_t bytesToUint240(const bytes::View b);
-  uint232_t bytesToUint232(const bytes::View b);
-  uint224_t bytesToUint224(const bytes::View b);
-  uint216_t bytesToUint216(const bytes::View b);
-  uint208_t bytesToUint208(const bytes::View b);
-  uint200_t bytesToUint200(const bytes::View b);
-  uint192_t bytesToUint192(const bytes::View b);
-  uint184_t bytesToUint184(const bytes::View b);
-  uint176_t bytesToUint176(const bytes::View b);
-  uint168_t bytesToUint168(const bytes::View b);
-  uint160_t bytesToUint160(const bytes::View b);
-  uint152_t bytesToUint152(const bytes::View b);
-  uint144_t bytesToUint144(const bytes::View b);
-  uint136_t bytesToUint136(const bytes::View b);
-  uint128_t bytesToUint128(const bytes::View b);
-  uint120_t bytesToUint120(const bytes::View b);
-  uint112_t bytesToUint112(const bytes::View b);
-  uint104_t bytesToUint104(const bytes::View b);
-  uint96_t bytesToUint96(const bytes::View b);
-  uint88_t bytesToUint88(const bytes::View b);
-  uint80_t bytesToUint80(const bytes::View b);
-  uint72_t bytesToUint72(const bytes::View b);
-  uint64_t bytesToUint64(const bytes::View b);
-  uint56_t bytesToUint56(const bytes::View b);
-  uint48_t bytesToUint48(const bytes::View b);
-  uint40_t bytesToUint40(const bytes::View b);
-  uint32_t bytesToUint32(const bytes::View b);
-  uint24_t bytesToUint24(const bytes::View b);
-  uint16_t bytesToUint16(const bytes::View b);
-  uint8_t bytesToUint8(const bytes::View b);
-  int256_t bytesToInt256(const bytes::View b);
-  int136_t bytesToInt136(const bytes::View b);
-  int64_t bytesToInt64(const bytes::View b);
-  ///@}
-
-  /**
-   * Convert a C-style raw byte array to a raw bytes string.
-   * @param arr The array to convert.
-   * @param size The size of the array.
-   * @return The converted raw bytes string.
-   */
-  Bytes cArrayToBytes(const uint8_t* arr, size_t size);
-
-  /**
-   * Add padding to the left of a byte vector.
-   * @param bytes The vector to pad.
-   * @param charAmount The total amount of characters the resulting string should have.
-   *                   If this is less than the string's original size,
-   *                   the string will remain untouched.
-   *                   e.g. `padLeftBytes("aaa", 5)` = "00aaa", `padLeftBytes("aaa", 2)` = "aaa"
-   * @param sign (optional) The character to use as padding. Defaults to '0'.
-   * @return The padded vector.
-   */
-  Bytes padLeftBytes(const bytes::View bytes, unsigned int charAmount, uint8_t sign = 0x00);
-
-  /**
-   * Add padding to the right of a byte vector.
-   * @param bytes The vector to pad.
-   * @param charAmount The total amount of characters the resulting string should have.
-   *                   If this is less than the string's original size,
-   *                   the string will remain untouched.
-   *                   e.g. `padLeftBytes("aaa", 5)` = "aaa00", `padLeftBytes("aaa", 2)` = "aaa"
-   * @param sign (optional) The character to use as padding. Defaults to '0'.
-   * @return The padded vector.
-   */
-  Bytes padRightBytes(const bytes::View bytes, unsigned int charAmount, uint8_t sign = 0x00);
-
-  /// Overload of padLeftBytes() that works with UTF-8 strings.
-  std::string padLeft(std::string str, unsigned int charAmount, char sign = '\x00');
-
-  /// Overload of padRightBytes() that works with UTF-8 strings.
-  std::string padRight(std::string str, unsigned int charAmount, char sign = '\x00');
-
   /**
    * Convert a big-endian byte-stream represented on a templated collection to a templated integer value.
    * `In` will typically be either std::string or bytes.
-   * `T` will typically be unsigned, u160, u256 or bigint.
+   * `T` will typically be unsigned, u160, u256 or boost::multiprecision::number.
    * @param bytes The byte stream to convert.
    * @return The converted integer type.
    */
@@ -654,22 +355,6 @@ namespace Utils {
       ret = (T)((ret << 8) | (uint8_t)(typename std::make_unsigned_t<decltype(i)>) i);
     }
     return ret;
-  }
-
-  /**
-   * Convert a string to all-lowercase. Conversion is done in-place.
-   * @param str The string to convert.
-   */
-  inline void toLower(std::string& str) {
-    std::transform(str.begin(), str.end(), str.begin(), ::tolower);
-  }
-
-  /**
-   * Convert a string to all-uppercase. Conversion is done in-place.
-   * @param str The string to convert.
-   */
-  inline void toUpper(std::string& str) {
-    std::transform(str.begin(), str.end(), str.begin(), ::toupper);
   }
 
   /**
@@ -686,6 +371,7 @@ namespace Utils {
    */
   template <class T> inline unsigned bytesRequired(T i) {
     // bigint does not carry sign bit on shift
+    using bigint = boost::multiprecision::number<boost::multiprecision::cpp_int_backend<>>;
     static_assert(std::is_same_v<bigint, T> || !std::numeric_limits<T>::is_signed, "only unsigned types or bigint supported");
     unsigned ic = 0;
     for (; i != 0; ++ic, i >>= 8);
@@ -694,7 +380,7 @@ namespace Utils {
 
   /**
    * Convert an unsigned integer to bytes.
-   * Takes uint as little endian and has no padding, as opposed to uintToBytes().
+   * Takes uint as little endian and has no padding, as opposed to uintXToBytes().
    * @param i The integer to convert.
    * @return The converted bytes string.
    */
@@ -744,11 +430,9 @@ namespace Utils {
    * @param start The start index of the subvector.
    * @param size The size of the subvector.
    * @return The converted span.
+   * @throw DynamicException if range is invalid.
    */
-   inline bytes::View create_view_span(const Bytes& vec, size_t start, size_t size) {
-     if (start + size > vec.size()) throw DynamicException("Invalid range for span");
-     return bytes::View(vec.data() + start, size);
-   }
+   bytes::View create_view_span(const Bytes& vec, size_t start, size_t size);
 
   /**
    * Convert an array to const span.
@@ -765,10 +449,12 @@ namespace Utils {
    * @param start The start index of the subarray.
    * @param size The size of the subarray.
    * @return The converted span.
+   * @throw DynamicException if range is invalid.
    */
   template<std::size_t N> inline bytes::View create_view_span(
     const BytesArr<N>& arr, size_t start, size_t size
   ) {
+    // TODO: somehow migrate this to the cpp file so we can include dynamicexception.h only there, OR get rid of the exception altogether
     if (start + size > arr.size()) throw DynamicException("Invalid range for span");
     return bytes::View(arr.data() + start, size);
   }
@@ -788,13 +474,9 @@ namespace Utils {
    * @param start The start index of the substring.
    * @param size The size of the substring.
    * @return The converted span.
+   * @throw DynamicException if range is invalid.
    */
-  inline bytes::View create_view_span(const std::string_view str, size_t start, size_t size) {
-    if (start + size > str.size()) {
-      throw DynamicException("Invalid range for span");
-    }
-    return bytes::View(reinterpret_cast<const uint8_t*>(str.data()) + start, size);
-  }
+  bytes::View create_view_span(const std::string_view str, size_t start, size_t size);
 
   /**
    * Append a vector to another.

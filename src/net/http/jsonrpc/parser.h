@@ -1,14 +1,18 @@
+/*
+Copyright (c) [2023-2024] [AppLayer Developers]
+
+This software is distributed under the MIT License.
+See the LICENSE.txt file in the project root for more information.
+*/
+
 #ifndef JSONRPC_PARSER_H
 #define JSONRPC_PARSER_H
 
-#include "error.h"
-#include "../../../utils/utils.h"
-#include "../../../utils/strings.h"
-#include "../../../utils/tx.h"
-#include "../../../contract/contract.h"
-#include "../../../contract/event.h"
-
 #include <ranges>
+
+#include "../../../core/storage.h" // utils/safehash.h -> tx.h -> ecdsa.h -> utils.h
+
+#include "error.h"
 
 namespace jsonrpc {
 

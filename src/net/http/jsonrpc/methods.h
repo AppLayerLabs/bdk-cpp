@@ -1,5 +1,14 @@
+/*
+Copyright (c) [2023-2024] [AppLayer Developers]
+
+This software is distributed under the MIT License.
+See the LICENSE.txt file in the project root for more information.
+*/
+
 #ifndef JSONRPC_METHODS_H
 #define JSONRPC_METHODS_H
+
+#include "../../../libs/json.hpp" // Makes no difference but it should be here regardless
 
 #include "../../p2p/managernormal.h"
 
@@ -63,69 +72,37 @@
  */
 
 namespace jsonrpc {
-
-json web3_clientVersion(const json& request, const Options& options);
-
-json web3_sha3(const json& request);
-
-json net_version(const json& request, const Options& options);
-
-json net_listening(const json& request);
-
-json eth_protocolVersion(const json& request, const Options& options);
-
-json net_peerCount(const json& request, const P2P::ManagerNormal& manager);
-
-json eth_getBlockByHash(const json& request, const Storage& storage);
-
-json eth_getBlockByNumber(const json& request, const Storage& storage);
-
-json eth_getBlockTransactionCountByHash(const json& request, const Storage& storage);
-
-json eth_getBlockTransactionCountByNumber(const json& request, const Storage& storage);
-
-json eth_chainId(const json& request, const Options& options);
-
-json eth_syncing(const json& request);
-
-json eth_coinbase(const json& request, const Options& options);
-
-json eth_blockNumber(const json& request, const Storage& storage);
-
-json eth_call(const json& request, const Storage& storage, State& state);
-
-json eth_estimateGas(const json& request, const Storage& storage, State& state);
-
-json eth_gasPrice(const json& request);
-
-json eth_feeHistory(const json& request, const Storage& storage);
-
-json eth_getLogs(const json& request, const Storage& storage);
-
-json eth_getBalance(const json& request, const Storage& storage, const State& state);
-
-json eth_getTransactionCount(const json& request, const Storage& storage, const State& state);
-
-json eth_getCode(const json& request, const Storage& storage, const State& state);
-
-json eth_sendRawTransaction(const json& request, uint64_t chainId, State& state, P2P::ManagerNormal& p2p);
-
-json eth_getTransactionByHash(const json& request, const Storage& storage, const State& state);
-
-json eth_getTransactionByBlockHashAndIndex(const json& request, const Storage& storage);
-
-json eth_getTransactionByBlockNumberAndIndex(const json& request, const Storage& storage);
-
-json eth_getTransactionReceipt(const json& request, const Storage& storage);
-
-json eth_getUncleByBlockHashAndIndex();
-
-json txpool_content(const json& request, const State& state);
-
-json debug_traceBlockByNumber(const json& request, const Storage& storage);
-
-json debug_traceTransaction(const json& request, const Storage& storage);
-
+  json web3_clientVersion(const json& request, const Options& options);
+  json web3_sha3(const json& request);
+  json net_version(const json& request, const Options& options);
+  json net_listening(const json& request);
+  json eth_protocolVersion(const json& request, const Options& options);
+  json net_peerCount(const json& request, const P2P::ManagerNormal& manager);
+  json eth_getBlockByHash(const json& request, const Storage& storage);
+  json eth_getBlockByNumber(const json& request, const Storage& storage);
+  json eth_getBlockTransactionCountByHash(const json& request, const Storage& storage);
+  json eth_getBlockTransactionCountByNumber(const json& request, const Storage& storage);
+  json eth_chainId(const json& request, const Options& options);
+  json eth_syncing(const json& request);
+  json eth_coinbase(const json& request, const Options& options);
+  json eth_blockNumber(const json& request, const Storage& storage);
+  json eth_call(const json& request, const Storage& storage, State& state);
+  json eth_estimateGas(const json& request, const Storage& storage, State& state);
+  json eth_gasPrice(const json& request);
+  json eth_feeHistory(const json& request, const Storage& storage);
+  json eth_getLogs(const json& request, const Storage& storage);
+  json eth_getBalance(const json& request, const Storage& storage, const State& state);
+  json eth_getTransactionCount(const json& request, const Storage& storage, const State& state);
+  json eth_getCode(const json& request, const Storage& storage, const State& state);
+  json eth_sendRawTransaction(const json& request, uint64_t chainId, State& state, P2P::ManagerNormal& p2p);
+  json eth_getTransactionByHash(const json& request, const Storage& storage, const State& state);
+  json eth_getTransactionByBlockHashAndIndex(const json& request, const Storage& storage);
+  json eth_getTransactionByBlockNumberAndIndex(const json& request, const Storage& storage);
+  json eth_getTransactionReceipt(const json& request, const Storage& storage);
+  json eth_getUncleByBlockHashAndIndex();
+  json txpool_content(const json& request, const State& state);
+  json debug_traceBlockByNumber(const json& request, const Storage& storage);
+  json debug_traceTransaction(const json& request, const Storage& storage);
 } // namespace jsonrpc
 
 #endif // JSONRPC_METHODS_H

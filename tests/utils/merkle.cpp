@@ -5,11 +5,9 @@ This software is distributed under the MIT License.
 See the LICENSE.txt file in the project root for more information.
 */
 
-#include <algorithm>
-
-#include "../../src/utils/merkle.h"
-#include "../../src/utils/tx.h"
 #include "../../src/libs/catch2/catch_amalgamated.hpp"
+
+#include "../../src/utils/merkle.h" // tx.h
 
 using Catch::Matchers::Equals;
 

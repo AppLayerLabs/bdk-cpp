@@ -6,6 +6,7 @@ See the LICENSE.txt file in the project root for more information.
 */
 
 #include "ecdsa.h"
+#include "uintconv.h"
 
 const secp256k1_context* Secp256k1::getCtx() {
   static std::unique_ptr<secp256k1_context, ContextDeleter> s_ctx{
@@ -39,12 +40,12 @@ UPubKey Secp256k1::recover(const Signature& sig, const Hash& msg) {
 
 Signature Secp256k1::makeSig(const uint256_t& r, const uint256_t& s, const uint8_t& v) {
   BytesArr<65> sig;  // r = [0, 32], s = [32, 64], v = 65
-  auto tmpR = Utils::uint256ToBytes(r);
+  auto tmpR = UintConv::uint256ToBytes(r);
   for (uint16_t i = 0; i < tmpR.size(); i++) {
     // Replace bytes from tmp to ret to make it 32 bytes in size
     sig[31 - i] = tmpR[tmpR.size() - i - 1];
   }
-  auto tmpS = Utils::uint256ToBytes(s);
+  auto tmpS = UintConv::uint256ToBytes(s);
   for (uint16_t i = 0; i < tmpS.size(); i++) {
     // Replace bytes from tmp to ret to make it 32 bytes in size
     sig[63 - i] = tmpS[tmpS.size() - i - 1];
@@ -132,8 +133,8 @@ Signature Secp256k1::sign(const Hash& msg, const PrivKey& key) {
 
   auto sigView = Utils::create_view_span(sig);
   uint8_t rawV = v;
-  uint256_t r = Utils::bytesToUint256(sigView.subspan(0, 32));
-  uint256_t s = Utils::bytesToUint256(sigView.subspan(32, 32));
+  uint256_t r = UintConv::bytesToUint256(sigView.subspan(0, 32));
+  uint256_t s = UintConv::bytesToUint256(sigView.subspan(32, 32));
 
   if (s > (Secp256k1::ecConst / 2)) {
     rawV = static_cast<uint8_t>(rawV ^ 1);

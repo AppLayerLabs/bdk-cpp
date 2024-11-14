@@ -7,6 +7,9 @@ See the LICENSE.txt file in the project root for more information.
 
 #include "simplecontract.h"
 
+#include "../../utils/uintconv.h"
+#include "../../utils/utils.h"
+
 SimpleContract::SimpleContract(
   const std::string& name,
   const uint256_t& number,
@@ -37,10 +40,10 @@ SimpleContract::SimpleContract(
   const DB& db
 ) : DynamicContract(address, db), name_(this), number_(this), tuple_(this) {
   this->name_ = Utils::bytesToString(db.get(std::string("name_"), this->getDBPrefix()));
-  this->number_ = Utils::bytesToUint256(db.get(std::string("number_"), this->getDBPrefix()));
+  this->number_ = UintConv::bytesToUint256(db.get(std::string("number_"), this->getDBPrefix()));
   this->tuple_ = std::make_tuple(
     Utils::bytesToString(db.get(std::string("tuple_name"), this->getDBPrefix())),
-    Utils::bytesToUint256(db.get(std::string("tuple_number"), this->getDBPrefix()))
+    UintConv::bytesToUint256(db.get(std::string("tuple_number"), this->getDBPrefix()))
   );
 
   this->name_.commit();
@@ -222,9 +225,9 @@ DBBatch SimpleContract::dump() const
   DBBatch dbBatch;
 
   dbBatch.push_back(Utils::stringToBytes("name_"), Utils::stringToBytes(this->name_.get()), this->getDBPrefix());
-  dbBatch.push_back(Utils::stringToBytes("number_"), Utils::uint256ToBytes(this->number_.get()), this->getDBPrefix());
+  dbBatch.push_back(Utils::stringToBytes("number_"), UintConv::uint256ToBytes(this->number_.get()), this->getDBPrefix());
   dbBatch.push_back(Utils::stringToBytes("tuple_name"), Utils::stringToBytes(get<0>(this->tuple_)), this->getDBPrefix());
-  dbBatch.push_back(Utils::stringToBytes("tuple_number"), Utils::uint256ToBytes(get<1>(this->tuple_)), this->getDBPrefix());
+  dbBatch.push_back(Utils::stringToBytes("tuple_number"), UintConv::uint256ToBytes(get<1>(this->tuple_)), this->getDBPrefix());
 
   return dbBatch;
 }

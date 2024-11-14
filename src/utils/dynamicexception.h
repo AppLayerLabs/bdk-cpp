@@ -8,12 +8,13 @@ See the LICENSE.txt file in the project root for more information.
 #ifndef DYNAMIC_EXCEPTION_H
 #define DYNAMIC_EXCEPTION_H
 
-#include <exception>
-#include <string>
-#include <sstream>
-#include <chrono>
-#include <ctime>
-#include <iomanip>
+// TODO: find out where those are coming from
+//#include <exception>
+//#include <iomanip> // put_time()
+//#include <string>
+
+#include <chrono> // ctime
+#include <sstream> // ostringstream
 
 /// Abstraction of a custom exception class for dynamic message building and timestamping.
 class DynamicException : public std::exception {

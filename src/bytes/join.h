@@ -1,11 +1,9 @@
 #ifndef BYTES_JOIN_H
 #define BYTES_JOIN_H
 
-#include "view.h"
-#include "range.h"
-#include "initializer.h"
+//#include "utils/dynamicexception.h" // TODO: probably not used
 
-#include "utils/dynamicexception.h"
+#include "initializer.h" // view.h -> range.h
 
 namespace bytes {
   namespace detail {

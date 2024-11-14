@@ -8,18 +8,15 @@ See the LICENSE.txt file in the project root for more information.
 #ifndef STORAGE_H
 #define STORAGE_H
 
-#include <atomic>
+//#include <atomic> // TODO: find out where this is coming from
 
 #include "../utils/db.h"
-#include "../utils/ecdsa.h"
-#include "../utils/randomgen.h"
-#include "../utils/safehash.h"
-#include "../utils/utils.h"
+#include "../utils/randomgen.h" // utils.h
+#include "../utils/safehash.h" // tx.h -> ecdsa.h -> utils.h -> bytes/join.h, strings.h -> libs/zpp_bits.h
 #include "../utils/options.h"
+
 #include "../contract/calltracer.h"
 #include "../contract/event.h"
-#include "../libs/zpp_bits.h"
-#include "../bytes/join.h"
 
 /**
  * Abstraction of the blockchain history.

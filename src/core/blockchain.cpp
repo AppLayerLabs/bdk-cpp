@@ -7,8 +7,6 @@ See the LICENSE.txt file in the project root for more information.
 
 #include "blockchain.h"
 
-#include "../utils/logger.h"
-
 Blockchain::Blockchain(const std::string& blockchainPath) :
   options_(Options::fromFile(blockchainPath)),
   p2p_(options_.getP2PIp(), options_, storage_, state_),

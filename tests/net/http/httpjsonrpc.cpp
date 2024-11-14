@@ -6,13 +6,8 @@ See the LICENSE.txt file in the project root for more information.
 */
 
 #include "../../src/libs/catch2/catch_amalgamated.hpp"
-#include "../../src/utils/utils.h"
-#include "../../src/utils/options.h"
-#include "../../src/net/p2p/managernormal.h"
-#include "../../src/net/http/httpserver.h"
-#include "../../src/core/state.h"
-#include "../../src/core/storage.h"
-#include "../../blockchainwrapper.hpp"
+
+#include "../../blockchainwrapper.hpp" // blockchain.h -> (net/http/httpserver.h -> net/p2p/managernormal.h), consensus.h -> state.h -> dump.h -> (storage.h -> utils/options.h), utils/db.h -> utils.h
 
 std::string makeHTTPRequest(
   const std::string& reqBody, const std::string& host, const std::string& port,

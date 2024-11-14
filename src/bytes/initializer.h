@@ -1,9 +1,9 @@
 #ifndef BYTES_INITIALIZER_H
 #define BYTES_INITIALIZER_H
 
-#include <concepts>
-#include <functional>
-#include "view.h"
+//#include <functional> // TODO: probably not used
+
+#include "view.h" // range.h -> ranges -> concepts
 
 namespace bytes {
 

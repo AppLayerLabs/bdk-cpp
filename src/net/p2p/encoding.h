@@ -8,13 +8,9 @@ See the LICENSE.txt file in the project root for more information.
 #ifndef P2P_ENCODING_H
 #define P2P_ENCODING_H
 
-#include <future>
-#include <optional>
-
-#include "../../utils/utils.h"
-#include "../../utils/safehash.h"
-#include "../../utils/tx.h"
-#include "../../utils/finalizedblock.h"
+#include "../../utils/utils.h" // logger.h -> future
+#include "../../utils/safehash.h" // tx.h -> ecdsa.h -> utils.h -> libs/json.hpp -> boost/unordered/unordered_flat_map.hpp
+#include "../../utils/finalizedblock.h" // merkle.h -> tx.h
 #include "../../utils/options.h"
 
 namespace P2P {

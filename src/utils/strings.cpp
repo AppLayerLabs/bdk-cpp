@@ -6,9 +6,9 @@ See the LICENSE.txt file in the project root for more information.
 */
 
 #include "strings.h"
-#include "utils.h"
+#include "utils.h" // also includes "strings.h"
 
-Hash::Hash(const uint256_t& data) : FixedBytes<32>(Utils::uint256ToBytes(data)) {};
+Hash::Hash(const uint256_t& data) : FixedBytes<32>(UintConv::uint256ToBytes(data)) {};
 
 Hash::Hash(const std::string_view sv) {
   if (sv.size() != 32) throw std::invalid_argument("Hash must be 32 bytes long.");
@@ -20,7 +20,7 @@ Hash::Hash(const evmc::bytes32& data) {
   std::copy(data.bytes, data.bytes + 32, this->begin());
 }
 
-uint256_t Hash::toUint256() const { return Utils::bytesToUint256(*this); }
+uint256_t Hash::toUint256() const { return UintConv::bytesToUint256(*this); }
 
 evmc::bytes32 Hash::toEvmcBytes32() const {
   evmc::bytes32 bytes;
@@ -28,11 +28,11 @@ evmc::bytes32 Hash::toEvmcBytes32() const {
   return bytes;
 }
 
-uint256_t Signature::r() const { return Utils::bytesToUint256(this->view(0, 32)); }
+uint256_t Signature::r() const { return UintConv::bytesToUint256(this->view(0, 32)); }
 
-uint256_t Signature::s() const { return Utils::bytesToUint256(this->view(32, 32)); }
+uint256_t Signature::s() const { return UintConv::bytesToUint256(this->view(32, 32)); }
 
-uint8_t Signature::v() const { return Utils::bytesToUint8(this->view(64, 1)); }
+uint8_t Signature::v() const { return UintConv::bytesToUint8(this->view(64, 1)); }
 
 Address::Address(const std::string_view add, bool inBytes) {
   if (inBytes) {

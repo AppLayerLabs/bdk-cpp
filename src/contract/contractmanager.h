@@ -8,22 +8,9 @@ See the LICENSE.txt file in the project root for more information.
 #ifndef CONTRACTMANAGER_H
 #define CONTRACTMANAGER_H
 
-#include <memory>
-#include <shared_mutex>
-#include <boost/unordered/unordered_flat_map.hpp>
+#include "../utils/contractreflectioninterface.h" // contract/abi.h -> utils.h -> strings.h, libs/json.hpp -> boost/unordered/unordered_flat_map.hpp
 
-#include "abi.h"
-#include "contract.h"
-#include "event.h"
-#include "variables/safeunorderedmap.h"
-
-#include "../utils/db.h"
-#include "../utils/options.h"
-#include "../utils/safehash.h"
-#include "../utils/strings.h"
-#include "../utils/tx.h"
-#include "../utils/utils.h"
-#include "../utils/contractreflectioninterface.h"
+#include "contract.h" // core/dump.h -> utils/db.h
 
 /**
  * Class that holds all current contract instances in the blockchain state.

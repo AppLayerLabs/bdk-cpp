@@ -6,18 +6,11 @@ See the LICENSE.txt file in the project root for more information.
 */
 
 #include "../../src/libs/catch2/catch_amalgamated.hpp"
-#include "../../src/core/rdpos.h"
-#include "../../src/core/storage.h"
-#include "../../src/core/state.h"
-#include "../../src/utils/db.h"
-#include "../../src/utils/options.h"
-#include "../../src/net/p2p/managernormal.h"
-#include "../../src/net/p2p/managerdiscovery.h"
-#include "../blockchainwrapper.hpp"
-#include "../sdktestsuite.hpp"
 
-#include <filesystem>
-#include <utility>
+#include "../../src/net/p2p/managerdiscovery.h"
+
+#include "../blockchainwrapper.hpp" // blockchain.h -> consensus.h -> state.h -> (rdpos.h -> net/p2p/managernormal.h), dump.h -> (storage.h -> utils/options.h), utils/db.h
+#include "../sdktestsuite.hpp"
 
 const std::vector<Hash> validatorPrivKeysRdpos {
   Hash(Hex::toBytes("0x0a0415d68a5ec2df57aab65efc2a7231b59b029bae7ff1bd2e40df9af96418c8")),

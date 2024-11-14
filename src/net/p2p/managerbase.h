@@ -8,14 +8,12 @@ See the LICENSE.txt file in the project root for more information.
 #ifndef P2P_MANAGER_BASE
 #define P2P_MANAGER_BASE
 
-#include "session.h"
-#include "encoding.h"
 #include "discovery.h"
-#include "../../utils/options.h"
-#include "../../libs/BS_thread_pool_light.hpp"
+#include "session.h" // encoding.h -> utils/options.h
+
+class DiscoveryWorker; // Forward declaration
 
 namespace P2P {
-
   /**
    * Base manager class meant to be inherited by the respective managers for
    * both node types (Normal and Discovery).

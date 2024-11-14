@@ -1,10 +1,15 @@
+/*
+Copyright (c) [2023-2024] [AppLayer Developers]
+
+This software is distributed under the MIT License.
+See the LICENSE.txt file in the project root for more information.
+*/
+
 #ifndef STACKTRACE_H
 #define STACKTRACE_H
 
-#include <../utils/strings.h>
-#include <../utils/safehash.h>
-#include <../contract/event.h>
-#include "contract.h"
+// leave it in to avoid "AddressSanitizer unknown-crash" runtime errors
+#include "contract.h" // core/dump.h -> utils/db.h -> utils.h -> strings.h
 
 /**
  * ContractStack is a class/object required to initialize a sequence of contract executions (1 tx == 1 contract stack).

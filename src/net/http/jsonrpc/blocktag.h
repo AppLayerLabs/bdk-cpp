@@ -1,10 +1,16 @@
+/*
+Copyright (c) [2023-2024] [AppLayer Developers]
+
+This software is distributed under the MIT License.
+See the LICENSE.txt file in the project root for more information.
+*/
+
 #ifndef JSONRPC_BLOCKTAG_H
 #define JSONRPC_BLOCKTAG_H
 
 #include "parser.h"
 
 namespace jsonrpc {
-
 
 /// @brief used to identify blocks using tags
 enum class BlockTag {

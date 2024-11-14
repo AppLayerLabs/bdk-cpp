@@ -8,8 +8,9 @@ See the LICENSE.txt file in the project root for more information.
 #ifndef HTTPSERVER_H
 #define HTTPSERVER_H
 
-#include "httpparser.h"
-#include "httplistener.h"
+#include "httplistener.h" // httpsession.h -> httpparser.h
+
+#include "../p2p/managernormal.h"
 
 /// Abstraction of an HTTP server.
 class HTTPServer : public Log::LogicalLocationProvider {

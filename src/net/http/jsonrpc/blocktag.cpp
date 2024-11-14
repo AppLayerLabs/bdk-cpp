@@ -1,5 +1,11 @@
-#include "blocktag.h"
-#include "error.h"
+/*
+Copyright (c) [2023-2024] [AppLayer Developers]
+
+This software is distributed under the MIT License.
+See the LICENSE.txt file in the project root for more information.
+*/
+
+#include "blocktag.h" // parser.h -> error.h
 
 /**
  * Helper type for std::visit.
@@ -8,11 +14,9 @@
 template<class... Ts>
 struct Overloaded : Ts... { using Ts::operator()...; };
 
-
 /// Explicit deduction guide
 template<class... Ts>
 Overloaded(Ts...) -> Overloaded<Ts...>;
-
 
 namespace jsonrpc {
 

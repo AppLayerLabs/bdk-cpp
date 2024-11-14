@@ -7,6 +7,8 @@ See the LICENSE.txt file in the project root for more information.
 
 #include "hex.h"
 
+#include "dynamicexception.h"
+
 Hex::Hex(const std::string_view value, bool strict) : strict_(strict) {
   std::string ret(value);
   if (strict) {
@@ -117,5 +119,19 @@ Bytes Hex::bytes() const {
     ret.emplace_back(uint8_t(h * 16 + l));
   }
   return ret;
+}
+
+Hex& Hex::operator+=(const std::string& hex) {
+  if (Hex::isValid(hex, (hex[0] == '0' && (hex[1] == 'x' || hex[1] == 'X')))) {
+    this->hex_ += (hex[0] == '0' && (hex[1] == 'x' || hex[1] == 'X')) ? hex.substr(2) : hex;
+  } else {
+    throw DynamicException("Invalid Hex concat operation");
+  }
+  return *this;
+}
+
+Hex& Hex::operator+=(const Hex& other) {
+  this->hex_ += (other.strict_) ? other.hex_.substr(2) : other.hex_;
+  return *this;
 }
 

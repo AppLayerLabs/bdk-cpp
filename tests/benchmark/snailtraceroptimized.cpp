@@ -5,10 +5,11 @@
 */
 
 #include "../src/libs/catch2/catch_amalgamated.hpp"
+
 #include "../src/contract/templates/snailtraceroptimized.h"
-#include "../src/contract/abi.h"
-#include "../src/utils/options.h"
-#include "../src/core/rdpos.h"
+
+#include "../src/utils/uintconv.h"
+
 #include "../sdktestsuite.hpp"
 
 namespace TSNAILTRACEROPTIMIZEDBENCHMARK {
@@ -31,7 +32,7 @@ namespace TSNAILTRACEROPTIMIZEDBENCHMARK {
       // as the encoding is the same
 
       // Create the transaction for transfer
-      auto functor = Utils::uint32ToBytes(ABI::FunctorEncoder::encode("Benchmark").value);
+      auto functor = UintConv::uint32ToBytes(ABI::FunctorEncoder::encode("Benchmark").value);
       Bytes benchmarkEncoded(functor.cbegin(), functor.cend());
       //Utils::appendBytes(benchmarkEncoded, ABI::Encoder::encodeData<int136_t, int136_t>(1024, 768)); // TODO: this is a bug, the function does not take any params yet it is called with them just fine
       TxBlock benchmarkTx = sdk.createNewTx(sdk.getChainOwnerAccount(), snailtracerAddress, 0, benchmarkEncoded);
@@ -76,7 +77,7 @@ namespace TSNAILTRACEROPTIMIZEDBENCHMARK {
 
       auto snailtracerAddress = sdk.deployBytecode(snailTracerBytecode);
       // Create the transaction for transfer
-      auto functor = Utils::uint32ToBytes(ABI::FunctorEncoder::encode("Benchmark").value);
+      auto functor = UintConv::uint32ToBytes(ABI::FunctorEncoder::encode("Benchmark").value);
       Bytes benchmarkEncoded(functor.cbegin(), functor.cend());
       //Utils::appendBytes(benchmarkEncoded, ABI::Encoder::encodeData<int136_t, int136_t>(1024, 768)); // TODO: this is a bug, the function does not take any params yet it is called with them just fine
 

@@ -591,4 +591,38 @@ template <int Size> class SafeInt_t : public SafeBase {
     }
 };
 
+// Aliases for SafeInt
+using SafeInt8_t = SafeInt_t<8>;
+using SafeInt16_t = SafeInt_t<16>;
+using SafeInt24_t = SafeInt_t<24>;
+using SafeInt32_t = SafeInt_t<32>;
+using SafeInt40_t = SafeInt_t<40>;
+using SafeInt48_t = SafeInt_t<48>;
+using SafeInt56_t = SafeInt_t<56>;
+using SafeInt64_t = SafeInt_t<64>;
+using SafeInt72_t = SafeInt_t<72>;
+using SafeInt80_t = SafeInt_t<80>;
+using SafeInt88_t = SafeInt_t<88>;
+using SafeInt96_t = SafeInt_t<96>;
+using SafeInt104_t = SafeInt_t<104>;
+using SafeInt112_t = SafeInt_t<112>;
+using SafeInt120_t = SafeInt_t<120>;
+using SafeInt128_t = SafeInt_t<128>;
+using SafeInt136_t = SafeInt_t<136>;
+using SafeInt144_t = SafeInt_t<144>;
+using SafeInt152_t = SafeInt_t<152>;
+using SafeInt160_t = SafeInt_t<160>;
+using SafeInt168_t = SafeInt_t<168>;
+using SafeInt176_t = SafeInt_t<176>;
+using SafeInt184_t = SafeInt_t<184>;
+using SafeInt192_t = SafeInt_t<192>;
+using SafeInt200_t = SafeInt_t<200>;
+using SafeInt208_t = SafeInt_t<208>;
+using SafeInt216_t = SafeInt_t<216>;
+using SafeInt224_t = SafeInt_t<224>;
+using SafeInt232_t = SafeInt_t<232>;
+using SafeInt240_t = SafeInt_t<240>;
+using SafeInt248_t = SafeInt_t<248>;
+using SafeInt256_t = SafeInt_t<256>;
+
 #endif // SAFEINT_T_H

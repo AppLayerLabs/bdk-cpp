@@ -8,17 +8,9 @@ See the LICENSE.txt file in the project root for more information.
 #ifndef DB_H
 #define DB_H
 
-#include <cstring>
-#include <filesystem>
-#include <mutex>
-#include <string>
-#include <vector>
+#include <rocksdb/db.h> // rocksdb/transaction_log.h -> rocksdb/write_batch.h, includes mutex somewhere in there too
 
-#include <rocksdb/db.h>
-#include <rocksdb/write_batch.h>
-
-#include "utils.h"
-#include "dynamicexception.h"
+#include "utils.h" // libs/json.hpp -> (cstring, filesystem, string, vector)
 
 /// Namespace for accessing database prefixes.
 namespace DBPrefix {
@@ -131,7 +123,7 @@ class DBBatch {
 };
 
 /**
- * Abstraction of a [Speedb](https://github.com/speedb-io/speedb) database (Speedb is a RocksDB drop-in replacement).
+ * Abstraction of a [Speedb](https://github.com/speedb-io/speedb) database (RocksDB drop-in replacement).
  * Keys begin with prefixes that separate entries in several categories. @see DBPrefix
  */
 class DB {
