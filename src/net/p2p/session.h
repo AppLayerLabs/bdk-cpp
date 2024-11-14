@@ -170,7 +170,7 @@ namespace P2P {
       bool notifyUnregistered();
 
       ///@{
-      /* Getter. */
+      /** Getter. */
       const net::ip::address& address() const { return this->address_; }
       const unsigned short& port() const { return port_; }
       std::string addressAndPortStr() const {

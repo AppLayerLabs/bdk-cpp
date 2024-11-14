@@ -61,17 +61,16 @@ class ERC20 : public DynamicContract {
   public:
 
     /**
-    * ConstructorArguments is a tuple of the contract constructor arguments in the order they appear in the constructor.
-    */
+     * ConstructorArguments is a tuple of the contract constructor arguments in the order they appear in the constructor.
+     */
     using ConstructorArguments = std::tuple<const std::string&, const std::string&, const uint8_t&, const uint256_t&>;
+
     /**
      * Constructor for loading contract from DB.
      * @param address The address where the contract will be deployed.
      * @param db Reference to the database object.
-    */
-    ERC20(
-      const Address& address, const DB& db
-    );
+     */
+    ERC20(const Address& address, const DB& db);
 
     /**
      * Constructor to be used when creating a new contract.
@@ -82,7 +81,6 @@ class ERC20 : public DynamicContract {
      * @param address The address where the contract will be deployed.
      * @param creator The address of the creator of the contract.
      * @param chainId The chain where the contract wil be deployed.
-     * @param db Reference to the database object.
      */
     ERC20(
       const std::string &erc20name, const std::string &erc20symbol,

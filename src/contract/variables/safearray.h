@@ -88,6 +88,7 @@ template <typename T, unsigned N> class SafeArray : public SafeBase {
     inline const T& at(std::size_t pos) const { return this->value_.at(pos); }
     ///@}
 
+    ///@{
     /**
      * Access a specified element of the array (without bounds checking).
      * @param pos The position of the index to access.

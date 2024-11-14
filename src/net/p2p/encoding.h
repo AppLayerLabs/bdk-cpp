@@ -229,7 +229,8 @@ namespace P2P {
         return *this;
       }
 
-      /// Getter functions
+      ///@{
+      /** Getter functions */
       const uint64_t& nodeVersion() const { return this->nodeVersion_; }
       const uint64_t& currentNodeTimestamp() const { return this->currentNodeTimestamp_; }
       const uint64_t& currentTimestamp() const { return this->currentTimestamp_; }
@@ -237,6 +238,7 @@ namespace P2P {
       const uint64_t& latestBlockHeight() const { return this->latestBlockHeight_; }
       const Hash& latestBlockHash() const { return this->latestBlockHash_; }
       const std::vector<NodeID>& peers() const { return this->peers_; }
+      ///@}
   };
 
   /// Helper class used to create requests.

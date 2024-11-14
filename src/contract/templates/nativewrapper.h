@@ -34,7 +34,6 @@ class NativeWrapper : public ERC20 {
 
     /**
      * Constructor for loading contract from DB.
-     * @param interface Reference to the contract manager interface.
      * @param address The address where the contract will be deployed.
      * @param db Reference to the database object.
      */
@@ -48,7 +47,6 @@ class NativeWrapper : public ERC20 {
      * @param address The address where the contract will be deployed.
      * @param creator The address of the creator of the contract.
      * @param chainId The chain id of the contract.
-     * @param db Reference to the database object.
      */
     NativeWrapper(
       const std::string &erc20_name, const std::string &erc20_symbol,

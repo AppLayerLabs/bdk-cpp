@@ -59,11 +59,9 @@ class SimpleContract : public DynamicContract {
      * @param name The name of the contract.
      * @param number The number of the contract.
      * @param tuple The name and number tuple of the contract.
-     * @param interface The interface to the contract manager.
      * @param address The address of the contract.
      * @param creator The address of the creator of the contract.
      * @param chainId The chain ID.
-     * @param db The database to use.
      */
     SimpleContract(
       const std::string& name,
@@ -76,7 +74,6 @@ class SimpleContract : public DynamicContract {
 
     /**
      * Constructor from load. Load contract from database.
-     * @param interface The interface to the contract manager.
      * @param address The address of the contract.
      * @param db The database to use.
      */

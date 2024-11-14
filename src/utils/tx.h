@@ -202,11 +202,12 @@ class TxBlock {
     bool operator==(const TxBlock& tx) const { return this->hash() == tx.hash(); }
 };
 
+/// Helper struct for separating additional (not required for tracing) data from a transaction.
 struct TxAdditionalData {
-  Hash hash;
-  uint64_t gasUsed;
-  bool succeeded;
-  Address contractAddress;
+  Hash hash;  ///< The transaction's hash.
+  uint64_t gasUsed; ///< The cumulative gas used by the transaction.
+  bool succeeded; ///< Whether the transaction suceeded or not.
+  Address contractAddress;  ///< The address of the contract that made the transaction.
 };
 
 /**

@@ -76,6 +76,7 @@ void printDurationsHelper(std::string_view id, std::tuple<Tp...>& t, const std::
   printDurationsHelper<I + 1, Tp...>(id, t, names);
 }
 
+// TODO: document this
 template<typename... Tp> struct printAtExit {
   std::tuple<Tp...> timePoints;
   std::array<std::string, sizeof...(Tp)> names;
@@ -156,19 +157,16 @@ struct Account {
 /// Wrapper around std::unique_ptr that ensures the pointer is never null.
 template<typename T> class NonNullUniquePtr {
   private:
-    std::unique_ptr<T> ptr; /// Pointer value.
+    std::unique_ptr<T> ptr; ///< Pointer value.
 
   public:
     /// Constructor that calls T<Ts...> with the provided arguments.
     template<typename... Ts> explicit NonNullUniquePtr(Ts&&... args) : ptr(std::make_unique<T>(std::forward<Ts>(args)...)) {}
 
-    /// Move construction and assignment allowed.
-    NonNullUniquePtr(NonNullUniquePtr&& other) = default;
-    NonNullUniquePtr& operator=(NonNullUniquePtr&&) = default;
-
-    /// Deleted copy constructor and copy assignment operator to prevent copying.
-    NonNullUniquePtr(const NonNullUniquePtr&) = delete;
-    NonNullUniquePtr& operator=(const NonNullUniquePtr&) = delete;
+    NonNullUniquePtr(const NonNullUniquePtr&) = delete; ///< Copy constructor (deleted to prevent copying, Rule of Zero)
+    NonNullUniquePtr(NonNullUniquePtr&& other) = default; ///< Move constructor (allowed as default, Rule of Zero)
+    NonNullUniquePtr& operator=(const NonNullUniquePtr&) = delete; ///< Copy assignment operator (deleted to prevent copying, Rule of Zero)
+    NonNullUniquePtr& operator=(NonNullUniquePtr&&) = default; ///< Move assignment operator (allowed as default, Rule of Zero)
 
     /// Dereference operator.
     T& operator*() const { return *ptr; }
@@ -209,14 +207,22 @@ template<typename T, bool Index> struct EventParam {
 namespace Utils {
   std::string getTestDumpPath(); ///< Get the path to the test dump folder.
 
-  // TODO: document those later
-
+  /**
+   * Create a Bytes string out of a data range.
+   * @param data The range to use.
+   * @return A bytes string.
+   */
   constexpr Bytes makeBytes(const bytes::DataRange auto& data) {
     Bytes res(std::ranges::size(data));
     std::ranges::copy(data, res.begin());
     return res;
   }
 
+  /**
+   * Create a Bytes string out of a sized initializer.
+   * @param initializer The initializer to use.
+   * @return A bytes string.
+   */
   constexpr Bytes makeBytes(bytes::SizedInitializer auto&& initializer) {
     Bytes res(initializer.size());
     initializer.to(res);
@@ -311,7 +317,7 @@ namespace Utils {
 
   /**
    * Create a Functor based on a std::string with the function signature (e.g. "functionName(uint256,uint256)").
-   * @param funtionSignature The function signature.
+   * @param functionSignature The function signature.
    * @return The created Functor.
    */
   Functor makeFunctor(std::string_view functionSignature);

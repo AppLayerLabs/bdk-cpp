@@ -59,21 +59,12 @@ Call::Call(const evmc_message& msg)
 
 json Call::toJson() const {
   using enum Call::Type;
-
   json res;
 
   switch (this->type) {
-    case CALL:
-      res["type"] = "CALL";
-      break;
-
-    case STATICCALL:
-      res["type"] = "STATICCALL";
-      break;
-
-    case DELEGATECALL:
-      res["type"] = "DELEGATECALL";
-      break;
+    case CALL: res["type"] = "CALL"; break;
+    case STATICCALL: res["type"] = "STATICCALL"; break;
+    case DELEGATECALL: res["type"] = "DELEGATECALL"; break;
   }
 
   res["from"] = this->from.hex(true);
@@ -86,9 +77,7 @@ json Call::toJson() const {
   res["gasUsed"] = Hex::fromBytes(Utils::uintToBytes(this->gasUsed), true).forRPC();
   res["input"] = Hex::fromBytes(this->input, true);
 
-  if (!this->output.empty()) {
-    res["output"] = Hex::fromBytes(this->output, true);
-  }
+  if (!this->output.empty()) res["output"] = Hex::fromBytes(this->output, true);
 
   switch (this->status) {
     case Status::EXECUTION_REVERTED: {
@@ -99,17 +88,12 @@ json Call::toJson() const {
       } catch (const std::exception& ignored) {}
       break;
     }
-
-    case Status::OUT_OF_GAS:
-      res["error"] = "out of gas";
-      break;
+    case Status::OUT_OF_GAS: res["error"] = "out of gas"; break;
   }
 
   if (!this->calls.empty()) {
     res["calls"] = json::array();
-
-    for (const auto& subcall : this->calls)
-      res["calls"].push_back(subcall.toJson());
+    for (const auto& subcall : this->calls) res["calls"].push_back(subcall.toJson());
   }
 
   return res;

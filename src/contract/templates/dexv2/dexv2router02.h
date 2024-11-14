@@ -82,9 +82,7 @@ class DEXV2Router02 : public DynamicContract {
      * @param address The address where the contract will be deployed.
      * @param db Reference to the database object.
     */
-    DEXV2Router02(
-      const Address& address, const DB& db
-    );
+    DEXV2Router02(const Address& address, const DB& db);
 
     /**
      * Constructor to be used when creating a new contract.
@@ -93,7 +91,6 @@ class DEXV2Router02 : public DynamicContract {
      * @param address The address where the contract will be deployed.
      * @param creator The address of the creator of the contract.
      * @param chainId The chain where the contract wil be deployed.
-     * @param db Reference to the database object.
      */
     DEXV2Router02(
       const Address& factory, const Address& wrappedNative,

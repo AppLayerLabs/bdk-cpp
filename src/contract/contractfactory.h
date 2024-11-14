@@ -39,6 +39,7 @@ namespace ContractFactory {
      * @tparam Is The indices of the tuple.
      * @param creator The address of the contract creator.
      * @param derivedContractAddress The address of the contract to create.
+     * @param chainId The chain ID of the network the contract is in.
      * @param dataTlp The tuple of arguments to pass to the contract constructor.
      * @return A unique pointer to the newly created contract.
      * @throw DynamicException if any argument type mismatches.
@@ -71,6 +72,7 @@ namespace ContractFactory {
      * Helper function to create a new contract from a given call info.
      * @param creator The address of the contract creator.
      * @param derivedContractAddress The address of the contract to create.
+     * @param chainId The chain ID of the network the contract is in.
      * @param dataTpl The vector of arguments to pass to the contract constructor.
      * @throw DynamicException if the size of the vector does not match the number of arguments of the contract constructor.
      */
@@ -107,13 +109,17 @@ namespace ContractFactory {
     /**
      * Create a new contract from a given call info.
      * @param callInfo The call info to process.
+     * @param derivedAddress The derived address of the contract.
+     * @param contracts List of contracts.
+     * @param chainId Chain ID of the network the contract will be in.
+     * @param host Pointer to the contract host.
      * @throw DynamicException if the call to the ethCall function fails, or if the contract does not exist.
      */
-    template <typename TContract> void createNewContract(const evmc_message& callInfo,
-                                                         const Address& derivedAddress,
-                                                         boost::unordered_flat_map<Address, std::unique_ptr<BaseContract>, SafeHash>& contracts,
-                                                         const uint64_t& chainId,
-                                                         ContractHost* host) {
+    template <typename TContract> void createNewContract(
+      const evmc_message& callInfo, const Address& derivedAddress,
+      boost::unordered_flat_map<Address, std::unique_ptr<BaseContract>, SafeHash>& contracts,
+      const uint64_t& chainId, ContractHost* host
+    ) {
       using ConstructorArguments = typename TContract::ConstructorArguments;
       auto decodedData = setupNewContractArgs<TContract>(callInfo);
       if (!ContractReflectionInterface::isContractFunctionsRegistered<TContract>()) {

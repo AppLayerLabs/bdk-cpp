@@ -393,7 +393,7 @@ class Logger {
 
     /**
      * Set the log file limit for each rotating log file.
-     * @param logLineLimit Maximum number of log files to keep (0 = no limit).
+     * @param logFileLimit Maximum number of log files to keep (0 = no limit).
      */
     static inline void setLogFileLimit(int logFileLimit) {
       getInstance().logFileLimit_ = logFileLimit;

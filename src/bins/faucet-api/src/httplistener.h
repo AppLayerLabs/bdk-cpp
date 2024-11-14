@@ -11,23 +11,19 @@ See the LICENSE.txt file in the project root for more information.
 #include "httpparser.h"
 #include "httpsession.h"
 
+/// Namespace for faucet-related functionalities.
 namespace Faucet {
-  class Manager;
+  class Manager; // Forward declaration.
+  
   /// Class for listening to, accepting and dispatching incoming connections/sessions.
   class HTTPListener : public std::enable_shared_from_this<HTTPListener> {
   private:
     Manager& faucet_; ///< Reference to the faucet manager.
-    /// Provides core I/O functionality.
-    net::io_context& ioc_;
+    net::io_context& ioc_; ///< Provides core I/O functionality.
+    tcp::acceptor acc_; ///< Accepts incoming connections.
+    const std::shared_ptr<const std::string> docroot_; ///< Pointer to the root directory of the endpoint.
 
-    /// Accepts incoming connections.
-    tcp::acceptor acc_;
-
-    /// Pointer to the root directory of the endpoint.
-    const std::shared_ptr<const std::string> docroot_;
-
-    /// Accept an incoming connection from the endpoint. The new connection gets its own strand.
-    void do_accept();
+    void do_accept(); ///< Accept an incoming connection from the endpoint. The new connection gets its own strand.
 
     /**
      * Callback for do_accept().
@@ -43,10 +39,7 @@ namespace Faucet {
      * @param ioc Reference to the core I/O functionality object.
      * @param ep The endpoint (host and port) to listen to.
      * @param docroot Reference pointer to the root directory of the endpoint.
-     * @param state Reference pointer to the blockchain's state.
-     * @param storage Reference pointer to the blockchain's storage.
-     * @param p2p Reference pointer to the P2P connection manager.
-     * @param options Reference pointer to the options singleton.
+     * @param faucet Reference to the faucet manager.
      */
     HTTPListener(
       net::io_context& ioc, tcp::endpoint ep, const std::shared_ptr<const std::string>& docroot, Manager& faucet

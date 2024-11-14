@@ -189,64 +189,41 @@ void Pebble::mintNFT(const Address& to, const uint64_t& num) {
 
 std::string Pebble::getTokenRarity(const uint256_t& tokenId) const {
   auto it = this->tokenRarity_.find(static_cast<uint64_t>(tokenId));
-  if (it == this->tokenRarity_.cend()) {
-    return "Unknown";
-  }
+  if (it == this->tokenRarity_.cend()) return "Unknown";
   return this->rarityToString(it->second);
 }
 
-uint256_t Pebble::totalSupply() const {
-  return this->tokenIds_.get();
-}
+uint256_t Pebble::totalSupply() const { return this->tokenIds_.get(); }
 
-uint256_t Pebble::maxSupply() const {
-  return this->maxSupply_.get();
-}
+uint256_t Pebble::maxSupply() const { return this->maxSupply_.get(); }
 
-uint64_t Pebble::totalNormal() const {
-  return this->totalNormal_.get();
-}
+uint64_t Pebble::totalNormal() const { return this->totalNormal_.get(); }
 
-uint64_t Pebble::totalGold() const {
-  return this->totalGold_.get();
-}
+uint64_t Pebble::totalGold() const { return this->totalGold_.get(); }
 
-uint64_t Pebble::totalDiamond() const {
-  return this->totalDiamond_.get();
-}
+uint64_t Pebble::totalDiamond() const { return this->totalDiamond_.get(); }
 
-uint256_t Pebble::raritySeed() const {
-  return this->raritySeed_.get();
-}
+uint256_t Pebble::raritySeed() const { return this->raritySeed_.get(); }
 
-uint256_t Pebble::diamondRarity() const {
-  return this->diamondRarity_.get();
-}
+uint256_t Pebble::goldRarity() const { return this->goldRarity_.get(); }
 
-uint256_t Pebble::goldRarity() const {
-  return this->goldRarity_.get();
-}
+uint256_t Pebble::diamondRarity() const { return this->diamondRarity_.get(); }
 
 void Pebble::setRaritySeed(const uint256_t &seed) {
-  this->onlyOwner();
-  this->raritySeed_ = seed;
-}
-
-void Pebble::setDiamondRarity(const uint256_t &rarity) {
-  this->onlyOwner();
-  this->diamondRarity_ = rarity;
+  this->onlyOwner(); this->raritySeed_ = seed;
 }
 
 void Pebble::setGoldRarity(const uint256_t &rarity) {
-  this->onlyOwner();
-  this->goldRarity_ = rarity;
+  this->onlyOwner(); this->goldRarity_ = rarity;
+}
+
+void Pebble::setDiamondRarity(const uint256_t &rarity) {
+  this->onlyOwner(); this->diamondRarity_ = rarity;
 }
 
 std::string Pebble::tokenURI(const uint256_t &tokenId) const {
   auto it = this->tokenRarity_.find(static_cast<uint64_t>(tokenId));
-  if (it == this->tokenRarity_.cend()) {
-    return "";
-  }
+  if (it == this->tokenRarity_.cend()) return "";
   return std::string("https://s3.amazonaws.com/com.applayer.pebble/") + this->rarityToString(it->second) + ".json";
 }
 
@@ -308,7 +285,6 @@ Address Pebble::getAuthorizer() const {
   return this->authorizer_.get();
 }
 
-
 void Pebble::registerContractFunctions() {
   Pebble::registerContract();
   this->registerMemberFunction("mintNFT", &Pebble::mintNFT, FunctionTypes::NonPayable, this);
@@ -334,3 +310,4 @@ void Pebble::registerContractFunctions() {
   this->registerMemberFunction("canMint", &Pebble::canMint, FunctionTypes::View, this);
   this->registerMemberFunction("getAuthorizer", &Pebble::getAuthorizer, FunctionTypes::View, this);
 }
+

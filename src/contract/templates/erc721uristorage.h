@@ -64,6 +64,7 @@ class ERC721URIStorage : virtual public ERC721 {
 
     /**
      * Constructor to be used when creating a new contract.
+     * @param derivedTypeName The name of the derived type.
      * @param erc721_name The name of the ERC20 token.
      * @param erc721_symbol The symbol of the ERC20 token.
      * @param address The address where the contract will be deployed.

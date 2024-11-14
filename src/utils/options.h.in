@@ -52,21 +52,37 @@ See the LICENSE.txt file in the project root for more information.
  * }
  */
 
-// TODO: docs
 /// Helper class for setting the node's indexing mode.
 class IndexingMode {
   private:
-    int value_;
+    int value_; ///< The value of the setting.
+
+    /**
+     * Constructor.
+     * @param value The value of the setting.
+     */
     constexpr explicit IndexingMode(int value) : value_(value) {}
 
   public:
-    static const IndexingMode DISABLED;
-    static const IndexingMode RPC;
-    static const IndexingMode RPC_TRACE;
+    static const IndexingMode DISABLED; ///< Indexing is disabled.
+    static const IndexingMode RPC;  ///< Indexing is enabled (no tracing).
+    static const IndexingMode RPC_TRACE; ///< Indexing is enabled (with tracing).
 
-    explicit IndexingMode(std::string_view mode); // throws DynamicException
-    constexpr std::string_view toString() const;  // throws DynamicException
+    /**
+     * Constructor.
+     * @param mode The value of the setting, in string form.
+     * @throw DynamicException if the name doesn't match one of the names above.
+     */
+    explicit IndexingMode(std::string_view mode);
 
+    /**
+     * Convert the internal value back to its string form.
+     * @return The setting as a string.
+     * @throw DynamicException if value doesn't match one of the values above.
+     */
+    constexpr std::string_view toString() const;
+
+    /// Equality operator (default, as the internal value is just an int).
     constexpr bool operator==(const IndexingMode&) const = default;
 };
 
@@ -102,7 +118,7 @@ class Options {
     const FinalizedBlock genesisBlock_;  ///< Genesis block.
     const std::vector<std::pair<Address, uint256_t>> genesisBalances_;  ///< List of addresses and their respective initial balances.
     const std::vector<Address> genesisValidators_;  ///< List of genesis validators.
-    const IndexingMode indexingMode_;
+    const IndexingMode indexingMode_; ///< The node's indexing mode.
 
   public:
     /**
@@ -130,6 +146,7 @@ class Options {
      * @param genesisSigner Genesis signer.
      * @param genesisBalances List of addresses and their respective initial balances.
      * @param genesisValidators List of genesis validators.
+     * @param indexingMode The node's indexing mode.
      */
     Options(
       const std::string& rootPath, const std::string& web3clientVersion,
@@ -172,6 +189,7 @@ class Options {
      * @param genesisBalances List of addresses and their respective initial balances.
      * @param genesisValidators List of genesis validators.
      * @param privKey Private key of the Validator.
+     * @param indexingMode The node's indexing mode.
      */
     Options(
       const std::string& rootPath, const std::string& web3clientVersion,

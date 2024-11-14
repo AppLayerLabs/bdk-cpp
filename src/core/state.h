@@ -58,6 +58,7 @@ class State : public Dumpable, public Log::LogicalLocationProvider {
      * @param tx The transaction to process.
      * @param blockHash The hash of the block being processed.
      * @param txIndex The index of the transaction inside the block that is being processed.
+     * @param randomnessHash The hash of the previous block's randomness seed.
      */
     void processTransaction(const TxBlock& tx, const Hash& blockHash, const uint64_t& txIndex, const Hash& randomnessHash);
 
@@ -86,6 +87,7 @@ class State : public Dumpable, public Log::LogicalLocationProvider {
      * @param db Pointer to the database.
      * @param storage Pointer to the blockchain's storage.
      * @param p2pManager Pointer to the P2P connection manager.
+     * @param snapshotHeight The block height to start from.
      * @param options Pointer to the options singleton.
      * @throw DynamicException on any database size mismatch.
      */
@@ -250,6 +252,7 @@ class State : public Dumpable, public Log::LogicalLocationProvider {
 
     DBBatch dump() const final; ///< State dumping function.
 
+    /// Get the pending transactions from the mempool.
     auto getPendingTxs() const {
       std::shared_lock lock(this->stateMutex_);
       return this->mempool_;

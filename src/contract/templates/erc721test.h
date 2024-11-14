@@ -35,7 +35,6 @@ class ERC721Test : public ERC721 {
 
     /**
      * Constructor for loading contract from DB.
-     * @param interface Reference to the contract manager interface.
      * @param address The address where the contract will be deployed.
      * @param db Reference to the database object.
      */

@@ -125,6 +125,7 @@ class BaseContract : public ContractLocals, public Dumpable {
      * Invoke a contract function using a tuple of (from, to, gasLimit, gasPrice,
      * value, data). Should be overriden by derived classes.
      * @param data The tuple of (from, to, gasLimit, gasPrice, value, data).
+     * @param host Pointer to the contract host.
      * @throw DynamicException if the derived class does not override this.
      */
     virtual void ethCall(const evmc_message& data, ContractHost* host);
@@ -133,6 +134,7 @@ class BaseContract : public ContractLocals, public Dumpable {
      * Invoke a contract function and returns the ABI serialized output.
      * To be used by EVM -> CPP calls.
      * @param data The tuple of (from, to, gasLimit, gasPrice, value, data).
+     * @param host Pointer to the contract host.
      * @throw DynamicException if the derived class does not override this.
      * @returns The ABI serialized output.
      */
@@ -142,6 +144,7 @@ class BaseContract : public ContractLocals, public Dumpable {
      * Do a contract call to a view function.
      * Should be overriden by derived classes.
      * @param data The tuple of (from, to, gasLimit, gasPrice, value, data).
+     * @param host Pointer to the contract host.
      * @return A string with the answer to the call.
      * @throw DynamicException if the derived class does not override this.
      */

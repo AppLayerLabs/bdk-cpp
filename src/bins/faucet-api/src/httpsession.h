@@ -108,10 +108,7 @@ namespace Faucet {
      * Constructor.
      * @param sock The socket to take ownership of.
      * @param docroot Reference pointer to the root directory of the endpoint.
-     * @param state Reference pointer to the blockchain's state.
-     * @param storage Reference pointer to the blockchain's storage.
-     * @param p2p Reference pointer to the P2P connection manager.
-     * @param options Reference pointer to the options singleton.
+     * @param faucet Reference to the faucet manager.
      */
     HTTPSession(tcp::socket&& sock,
       const std::shared_ptr<const std::string>& docroot, Manager& faucet

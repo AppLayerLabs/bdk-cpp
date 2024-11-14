@@ -128,7 +128,7 @@ class FinalizedBlock {
      */
     Bytes serializeBlock() const;
 
-    /*
+    /**
      * Create a new valid block given the arguments.
      * `std::move()` MUST be used when passing the txs and txValidators vectors.
      * The function will automatically derive the block randomness, validator merkle root,

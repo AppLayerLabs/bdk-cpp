@@ -232,8 +232,19 @@ class DB {
       return true;
     }
 
+    /**
+     * Get the last value of a given prefix.
+     * @param pfx The prefix to query.
+     * @return The last value found in that prefix.
+     */
     Bytes getLastByPrefix(const Bytes& pfx) const;
 
+    /**
+     * Insert a new prefix into an already existing one. The new prefix is appended to the end of the old one.
+     * @param prefix The prefix to insert into.
+     * @param newPrefix The new prefix to insert.
+     * @return The newly-formed prefix.
+     */
     static Bytes makeNewPrefix(Bytes prefix, std::string_view newPrefix) {
       prefix.reserve(prefix.size() + newPrefix.size());
       prefix.insert(prefix.end(), newPrefix.cbegin(), newPrefix.cend());

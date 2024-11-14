@@ -83,6 +83,7 @@ class rdPoS : public BaseContract, public Log::LogicalLocationProvider {
     /**
      * Constructor.
      * @param db Reference to the database.
+     * @param manager Reference to the database dumping manager.
      * @param storage Reference to the blockchain's storage.
      * @param p2p Reference to the P2P connection manager.
      * @param options Reference to the options singleton.

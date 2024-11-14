@@ -10,13 +10,13 @@ See the LICENSE.txt file in the project root for more information.
 
 #include "encoding.h" // NodeID, NodeInfo, utils/safehash.h
 
-// Forward declaration.
+// Forward declarations.
 class Storage;
 class State;
 
+/// Namespace for P2P-relatd functionalities.
 namespace P2P {
-  // Forward declaration.
-  class ManagerNormal;
+  class ManagerNormal; // Forward declaration.
 
   /**
    * The Broadcaster is the component of the P2P engine that encapsulates all
@@ -36,34 +36,34 @@ namespace P2P {
       /**
        * Broadcast a message to all connected nodes.
        * @param message The message to broadcast.
-       * @param originalSender Node whose latest known peers won't receive the message from us (optional).
+       * @param originalSender The node whose latest known peers won't receive the message from us (optional).
        */
       void broadcastMessage(const std::shared_ptr<const Message> message, const std::optional<NodeID>& originalSender);
 
       /**
        * Handle a Validator transaction broadcast message.
-       * @param session The node that sent the broadcast.
+       * @param nodeId The ID of the node that sent the broadcast.
        * @param message The message that was broadcast.
        */
       void handleTxValidatorBroadcast(const NodeID &nodeId, const std::shared_ptr<const Message>& message);
 
       /**
        * Handle a block transaction broadcast message.
-       * @param session The node that sent the broadcast.
+       * @param nodeId The ID of the node that sent the broadcast.
        * @param message The message that was broadcast.
        */
       void handleTxBroadcast(const NodeID &nodeId, const std::shared_ptr<const Message>& message);
 
       /**
        * Handle a block broadcast message.
-       * @param session The node that sent the broadcast.
+       * @param nodeId The ID of the node that sent the broadcast.
        * @param message The message that was broadcast.
        */
       void handleBlockBroadcast(const NodeID &nodeId, const std::shared_ptr<const Message>& message);
 
       /**
        * Handle a info broadcast message.
-       * @param session The node that sent the broadcast.
+       * @param nodeId The ID of the node that sent the broadcast.
        * @param message The message that was broadcast.
        */
       void handleInfoBroadcast(const NodeID &nodeId, const std::shared_ptr<const Message>& message);
@@ -81,7 +81,7 @@ namespace P2P {
 
       /**
        * Handle a broadcast from a node.
-       * @param session The session that sent the broadcast.
+       * @param nodeId The ID of the node that sent the broadcast.
        * @param message The broadcast message to handle.
        */
       void handleBroadcast(const NodeID &nodeId, const std::shared_ptr<const Message>& message);

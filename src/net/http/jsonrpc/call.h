@@ -12,21 +12,27 @@ See the LICENSE.txt file in the project root for more information.
 
 #include "variadicparser.h" // parser.h -> utils/utils.h -> libs/json.hpp
 
+/// Namespace for JSON-RPC-related functionalities.
 namespace jsonrpc {
+  /**
+   * Process a JSON-RPC call.
+   * @param request The request in JSON format.
+   * @param state Reference to the chain state.
+   * @param storage Reference to the chain storage.
+   * @param p2p Reference to the P2P manager.
+   * @param options Reference to the global options.
+   */
+  json call(
+    const json& request, State& state, const Storage& storage,
+    P2P::ManagerNormal& p2p, const Options& options
+  ) noexcept;
 
-/// @brief process a json RPC call
-/// @param request the request in JSON format
-/// @param state reference to the chain state
-/// @param p2p reference to the P2P manager
-/// @param options reference to the global options
-json call(const json& request,
-  State& state,
-  const Storage& storage,
-  P2P::ManagerNormal& p2p,
-  const Options& options) noexcept;
-
-void checkJsonRPCSpec(const json& request);
-
+  /**
+   * Check that the JSON RPC request object conforms to the formatting standards.
+   * @param request The JSON RPC request object to check.
+   * @throw DynamicException on any non-conforming field.
+   */
+  void checkJsonRPCSpec(const json& request);
 } // namespace jsonrpc
 
 #endif // JSONRPC_CALL_H

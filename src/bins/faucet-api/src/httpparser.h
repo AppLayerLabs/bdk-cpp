@@ -61,10 +61,7 @@ namespace Faucet {
   /**
    * Parse a JSON-RPC request into a JSON-RPC response, handling all requests and errors.
    * @param body The request string.
-   * @param state Reference pointer to the blockchain's state.
-   * @param storage Reference pointer to the blockchain's storage.
-   * @param p2p Reference pointer to the P2P connection manager.
-   * @param options Reference pointer to the options singleton.
+   * @param faucet Reference to the faucet manager.
    * @return The response string.
    */
   std::string parseJsonRpcRequest(
@@ -78,10 +75,7 @@ namespace Faucet {
    * @param docroot The root directory of the endpoint.
    * @param req The request to handle.
    * @param send TODO: we're missing details on this, Allocator, Body, the function itself and where it's used
-   * @param state Reference pointer to the blockchain's state.
-   * @param storage Reference pointer to the blockchain's storage.
-   * @param p2p Reference pointer to the P2P connection manager.
-   * @param options Reference pointer to the options singleton.
+   * @param faucet Reference to the faucet manager.
    */
   template<class Body, class Allocator, class Send> void handle_request(
     [[maybe_unused]] beast::string_view docroot,

@@ -103,8 +103,7 @@ ContractHost::~ContractHost() {
   saveCallTrace();
 }
 
-Address ContractHost::deriveContractAddress(const uint64_t& nonce,
-                                            const Address& address) {
+Address ContractHost::deriveContractAddress(const uint64_t& nonce, const Address& address) {
   // Contract address is last 20 bytes of sha3
   // ( rlp ( tx from address + tx nonce ) )
   uint8_t rlpSize = 0xc0;
@@ -118,10 +117,9 @@ Address ContractHost::deriveContractAddress(const uint64_t& nonce,
   return Address(Utils::sha3(rlp).view(12));
 }
 
-Address ContractHost::deriveContractAddress(const Address& fromAddress,
-                                            const Hash& salt,
-                                            const bytes::View& code)
-{
+Address ContractHost::deriveContractAddress(
+  const Address& fromAddress, const Hash& salt, const bytes::View& code
+) {
   const auto code_hash = Utils::sha3(code);
   Bytes buffer(1 + sizeof(fromAddress) + sizeof(salt) + sizeof(code_hash));
   assert(std::size(buffer) == 85);
@@ -134,9 +132,9 @@ Address ContractHost::deriveContractAddress(const Address& fromAddress,
   return Address(Utils::sha3(buffer).view(12));
 }
 
-evmc::Result ContractHost::createEVMContract(const evmc_message& msg,
-                                             const Address& contractAddress,
-                                             const evmc_call_kind& kind) {
+evmc::Result ContractHost::createEVMContract(
+  const evmc_message& msg, const Address& contractAddress, const evmc_call_kind& kind
+) {
   assert (kind == evmc_call_kind::EVMC_CREATE || kind == evmc_call_kind::EVMC_CREATE2);
   // Create a new contract
   auto createMsg = msg;
@@ -174,7 +172,6 @@ bool ContractHost::isTracingCalls() const noexcept {
   return bool(txHash_) && storage_.getIndexingMode() == IndexingMode::RPC_TRACE;
 }
 
-
 void ContractHost::traceCallStarted(const evmc_message& msg) noexcept {
   if (this->isTracingCalls()) {
     callTracer_.callStarted(trace::Call(msg));
@@ -188,9 +185,7 @@ void ContractHost::traceCallSucceeded(Bytes output, uint64_t gasUsed) noexcept {
 }
 
 void ContractHost::traceCallFinished(const evmc_result& res) noexcept {
-  if (!this->isTracingCalls() || !callTracer_.hasCalls()) {
-    return;
-  }
+  if (!this->isTracingCalls() || !callTracer_.hasCalls()) return;
 
   const uint64_t gasUsed = callTracer_.current().gas - res.gas_left;
   Bytes output = Utils::makeBytes(bytes::View(res.output_data, res.output_size));
@@ -219,8 +214,7 @@ void ContractHost::traceCallOutOfGas() noexcept {
 }
 
 void ContractHost::saveCallTrace() noexcept {
-  if (!this->isTracingCalls() || !callTracer_.hasCalls())
-    return;
+  if (!this->isTracingCalls() || !callTracer_.hasCalls()) return;
 
   if (!callTracer_.isFinished()) {
     LOGERROR(std::string("Attempt to persist unfinished call trace, hash: ") + txHash_.hex(true).get());
@@ -235,10 +229,7 @@ void ContractHost::saveCallTrace() noexcept {
 }
 
 void ContractHost::saveTxAdditionalData() noexcept {
-  if (!this->addTxData_.hash || this->storage_.getIndexingMode() == IndexingMode::DISABLED) {
-    return;
-  }
-
+  if (!this->addTxData_.hash || this->storage_.getIndexingMode() == IndexingMode::DISABLED) return;
   try {
     this->storage_.putTxAdditionalData(this->addTxData_);
   } catch (const std::exception& err) {

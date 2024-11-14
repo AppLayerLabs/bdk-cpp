@@ -61,9 +61,14 @@ class Event {
 
     /**
      * Constructor for C++ events.
-     * after creating a new Event so the rest of the data can be set.
+     * After creating a new Event so the rest of the data can be set.
      * @tparam Args The types of the event's arguments.
      * @param name The event's name.
+     * @param logIndex The log index of the event.
+     * @param txHash The hash of the transaction that emitted the event.
+     * @param txIndex The index of the transaction that emitted the event.
+     * @param blockHash The hash of the block that emitted the event.
+     * @param blockIndex The index of the block that emitted the event.
      * @param address The address that emitted the event.
      * @param params The event's arguments. (a tuple of N std::pair<T, bool> where T is the type and bool is whether it's indexed or not)
      * @param anonymous Whether the event is anonymous or not. Defaults to false.

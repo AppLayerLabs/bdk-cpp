@@ -1,60 +1,88 @@
+/*
+Copyright (c) [2023-2024] [AppLayer Developers]
+
+This software is distributed under the MIT License.
+See the LICENSE.txt file in the project root for more information.
+*/
+
 #ifndef OWNABLE_H
 #define OWNABLE_H
 
 #include "../dynamiccontract.h"
 #include "../variables/safeaddress.h"
 
-
-/// Ownable Contract
-/// Based on OpenZeppelin v5.0.2 Ownable contract
+/// Template for an ownable contract. Based on OpenZeppelin v5.0.2 Ownable contract
 class Ownable : virtual public DynamicContract {
   private:
+    SafeAddress owner_; ///< Owner of the contract.
 
-    SafeAddress owner_;
-
+    /**
+     * Check that the contract caller is the owner.
+     * @throw DynamicException if caller is not the owner.
+     */
     void checkOwner_() const;
 
+    /**
+     * Transfer ownership of the contract to a new owner.
+     * @param newOwner The address that will be the new owner.
+     */
     void transferOwnership_(const Address& newOwner);
 
-    void registerContractFunctions() override;
-
+    void registerContractFunctions() override; ///< Register the contract functions.
 
   public:
-    using ConstructorArguments = std::tuple<Address>;
+    using ConstructorArguments = std::tuple<Address>; ///< The constructor argument types.
 
+    /// Event for when ownership of the contract is transferred.
     void ownershipTransferred(const EventParam<Address, true>& previousOwner, const EventParam<Address, true>& newOwner) {
       this->emitEvent(__func__, std::make_tuple(previousOwner, newOwner));
     }
 
-    // Constructor for loading contract from DB.
+    /**
+     * Constructor for loading contract from DB.
+     * @param address The address of the contract.
+     * @param db The database to use.
+     */
+    Ownable(const Address& address, const DB& db);
+
+    /**
+     * Constructor to be used when creating a new contract.
+     * @param initialOwner The address that will be the initial owner of the contract.
+     * @param address The address of the contract.
+     * @param creator The address of the creator of the contract.
+     * @param chainId The chain ID.
+     */
     Ownable(
-      const Address& address, const DB& db
+      const Address& initialOwner, const Address &address,
+      const Address &creator, const uint64_t &chainId
     );
 
-    // Constructor to be used when creating a new contract.
+    /**
+     * Constructor for derived types.
+     * @param derivedTypeName The name of the derived type.
+     * @param initialOwner The address that will be the initial owner of the contract.
+     * @param address The address of the contract.
+     * @param creator The address of the creator of the contract.
+     * @param chainId The chain ID.
+     */
     Ownable(
-      const Address& initialOwner, const Address &address, const Address &creator, const uint64_t &chainId
+      const std::string &derivedTypeName, const Address& initialOwner,
+      const Address &address, const Address &creator, const uint64_t &chainId
     );
 
-    // Constructor for derived types!
-    Ownable(
-      const std::string &derivedTypeName,
-      const Address& initialOwner, const Address &address, const Address &creator, const uint64_t &chainId
-    );
+    void onlyOwner() const; ///< Wrapper for checkOwner_().
+    Address owner() const; ///< Get the owner's address.
+    void renounceOwnership(); ///< Renounce ownership of the contract. Ownership is transferred to an empty address (Address()).
 
-    void onlyOwner() const;
-
-    Address owner() const;
-
-    void renounceOwnership();
-
+    /**
+     * Wrapper for transferOwnership_().
+     * @param newOwner The address of the new owner.
+     */
     void transferOwnership(const Address& newOwner);
 
-
+    /// Register the contract.
     static void registerContract() {
-      ContractReflectionInterface::registerContractMethods<
-        Ownable, const Address&
-      >(
+      ContractReflectionInterface::registerContractMethods<Ownable, const Address&>(
         std::vector<std::string>{"initialOwner"},
         std::make_tuple("onlyOwner", &Ownable::onlyOwner, FunctionTypes::NonPayable, std::vector<std::string>{}),
         std::make_tuple("owner", &Ownable::owner, FunctionTypes::View, std::vector<std::string>{}),
@@ -66,11 +94,7 @@ class Ownable : virtual public DynamicContract {
       );
     }
 
-    /// Dump method
-    DBBatch dump() const override;
+    DBBatch dump() const override; ///< Dump method.
 };
-
-
-
 
 #endif // OWNABLE_H

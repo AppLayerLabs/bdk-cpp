@@ -38,7 +38,7 @@ See the LICENSE.txt file in the project root for more information.
  */
 template <unsigned N> class FixedBytes {
   private:
-    BytesArr<N> data_;
+    BytesArr<N> data_; ///< The underlying data.
 
     friend zpp::bits::access;
     using serialize = zpp::bits::members<1>;
@@ -68,34 +68,44 @@ template <unsigned N> class FixedBytes {
       std::ranges::copy(data, data_.begin());
     }
 
-    ///@{
-    /* Get a pointer to the beginning of the bytes string. */
+    /// Get a pointer to the beginning of the bytes string (non-const).
     constexpr auto begin() { return data_.begin(); }
+
+    /// Get a pointer to the beginning of the bytes string (const).
     constexpr auto begin() const { return data_.begin(); }
+
+    /// Get a const pointer to the beginning of the bytes string (const).
     constexpr auto cbegin() const { return data_.cbegin(); }
-    ///@}
 
-    ///@{
-    /* Get a pointer to the end of the bytes string. */
+    /// Get a pointer to the end of the bytes string (non-const).
     constexpr auto end() { return data_.end(); }
-    constexpr auto end() const { return data_.end(); }
-    constexpr auto cend() const { return data_.cend(); }
-    ///@}
 
-    ///@{
-    /* Get a pointer to the bytes string's underlying data. */
+    /// Get a pointer to the end of the bytes string (const).
+    constexpr auto end() const { return data_.end(); }
+
+    /// Get a const pointer to the end of the bytes string (const).
+    constexpr auto cend() const { return data_.cend(); }
+
+    /// Get a pointer to the bytes string's underlying data (non-const).
     constexpr Byte* data() { return data_.data(); }
+
+    /// Get a pointer to the bytes string's underlying data (const).
     constexpr const Byte* data() const { return data_.data(); }
-    ///@}
 
     /// Get the total size of the bytes string.
     constexpr size_t size() const { return data_.size(); }
 
-    ///@{
-    /* Indexing operator. */
+    /**
+     * Indexing operator (non-const).
+     * @param index The index to operate on.
+     */
     constexpr Byte& operator[](size_t index) { return data_[index]; }
+
+    /**
+     * Indexing operator (const).
+     * @param index The index to operate on.
+     */
     constexpr const Byte& operator[](size_t index) const { return data_[index]; }
-    ///@}
 
     /**
      * Getter for `data_`, but returns it as a hex string.
@@ -179,7 +189,9 @@ class Hash : public FixedBytes<32> {
 
 /// Abstraction of a functor (the first 4 bytes of a function's keccak hash).
 struct Functor {
-  uint32_t value = 0;
+  uint32_t value = 0; ///< The value of the hash.
+
+  /// Equality operator.
   inline bool operator==(const Functor& other) const { return this->value == other.value; }
 };
 

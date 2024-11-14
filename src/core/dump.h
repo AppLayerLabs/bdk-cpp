@@ -32,7 +32,7 @@ class DumpManager : public Log::LogicalLocationProvider {
     const Options& options_; ///< Reference to the options object.
     const Storage& storage_; ///< Reference to the storage object
     std::shared_mutex& stateMutex_; ///< Mutex for managing read/write access to the state object.
-    std::vector<Dumpable*> dumpables_; /// List of Dumpable objects.
+    std::vector<Dumpable*> dumpables_; ///< List of Dumpable objects.
 
     /**
      * Auxiliary function used by async calls that processes a little slice of dumps in a separate thread.
@@ -110,7 +110,7 @@ class DumpWorker : public Log::LogicalLocationProvider {
   private:
     const Options& options_; ///< Reference to the Options singleton.
     const Storage& storage_; ///< Reference to the Storage object.
-    DumpManager& dumpManager_; /// Reference to the DumpManager object.
+    DumpManager& dumpManager_; ///< Reference to the DumpManager object.
     std::atomic<bool> stopWorker_ = false; ///< Flag for stopping the worker thread.
     std::future<bool> workerFuture_; ///< Future object for the worker thread, used to wait for the thread to finish.
     std::atomic<bool> canDump_ = false; ///< Flag for knowing if the worker is ready to dump.

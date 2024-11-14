@@ -45,48 +45,63 @@ using namespace evmc::literals;
 const auto ZERO_ADDRESS = 0x0000000000000000000000000000000000000000_address;
 const auto BDK_PRECOMPILE = 0x1000000000000000000000000000100000000001_address;
 
+/// Abstraction for a contract host.
 class ContractHost : public evmc::Host {
   private:
-    // We need this because nested calls can call the same contract multiple times
-    // Potentially taking advantage of wrong context variables.
+    /**
+     * Helper class for a nested call safe guard.
+     * We need this because nested calls can call the same contract multiple times,
+     * potentially taking advantage of wrong context variables.
+     */
     class NestedCallSafeGuard {
       private:
-        const ContractLocals* contract_;
-        Address caller_;
-        uint256_t value_;
-      public:
-        NestedCallSafeGuard(const ContractLocals* contract, const Address& caller, const uint256_t& value) :
-          contract_(contract), caller_(contract->caller_), value_(contract->value_) {
-        }
-        ~NestedCallSafeGuard() {
-          contract_->caller_ = caller_;
-          contract_->value_ = value_;
-        }
-    };
-    evmc_vm* vm_;
-    DumpManager& manager_;
-    Storage& storage_;
-    mutable ContractStack stack_;
-    mutable RandomGen randomGen_; // Random generator for the contract.
-    const evmc_tx_context& currentTxContext_; // MUST be initialized within the constructor.
-    boost::unordered_flat_map<Address, std::unique_ptr<BaseContract>, SafeHash>& contracts_;
-    boost::unordered_flat_map<Address, NonNullUniquePtr<Account>, SafeHash>& accounts_;
-    boost::unordered_flat_map<StorageKey, Hash, SafeHash>& vmStorage_;
-    boost::unordered_flat_map<StorageKey, Hash, SafeHash> transientStorage_;
-    bool mustRevert_ = true; // We always assume that we must revert until proven otherwise.
-    mutable bool evmcThrow_ = false; // Did the EVMC throw an exception?
-    mutable std::vector<std::string> evmcThrows_;
-    std::vector<Bytes> evmcResults_; /// evmc_result has a uint8_t* and a size, but we need to allocate memory for it.
-    uint64_t eventIndex_ = 0;
-    const Hash& txHash_;
-    const uint64_t txIndex_;
-    const Hash& blockHash_;
-    int64_t& leftoverGas_; /// Reference to the leftover gas from the transaction.
-                            /// The leftoverGas_ is a object given by the State
-    TxAdditionalData addTxData_;
-    trace::CallTracer callTracer_;
+        const ContractLocals* contract_; ///< Pointer to the contract being called.
+        Address caller_; ///< Address of the caller of the contract.
+        uint256_t value_; ///< Value used in the contract call.
 
-    // Private as this is not available for contracts as it has safety checks
+      public:
+        /**
+         * Constructor.
+         * @param contract Pointer to the contract being called.
+         * @param caller Address of the caller of the contract.
+         * @param value Value used in the contract call.
+         */
+        NestedCallSafeGuard(const ContractLocals* contract, const Address& caller, const uint256_t& value) :
+          contract_(contract), caller_(contract->caller_), value_(contract->value_) {}
+
+        /// Destructor.
+        ~NestedCallSafeGuard() { contract_->caller_ = caller_; contract_->value_ = value_; }
+    };
+
+    evmc_vm* vm_; ///< Pointer to the EVMC virtual machine.
+    DumpManager& manager_; ///< Reference to the database dumping manager.
+    Storage& storage_;  ///< Reference to the blockchain storage.
+    mutable ContractStack stack_; ///< Contract stack object (ephemeral).
+    mutable RandomGen randomGen_; ///< Random generator for the contract.
+    const evmc_tx_context& currentTxContext_; ///< Current transaction context. MUST be initialized within the constructor.
+    boost::unordered_flat_map<Address, std::unique_ptr<BaseContract>, SafeHash>& contracts_; ///< Map for deployed contracts.
+    boost::unordered_flat_map<Address, NonNullUniquePtr<Account>, SafeHash>& accounts_; ///< Map for active accounts.
+    boost::unordered_flat_map<StorageKey, Hash, SafeHash>& vmStorage_; ///< Map for EVM storage keys.
+    boost::unordered_flat_map<StorageKey, Hash, SafeHash> transientStorage_; ///< Map for transient storage keys.
+    bool mustRevert_ = true; ///< Flag to revert a contract call chain. Defaults to true (we always assume that we must revert until proven otherwise).
+    mutable bool evmcThrow_ = false; ///< Flag for when the EVMC throws an exception. Defaults to false.
+    mutable std::vector<std::string> evmcThrows_; ///< List of EVMC exception throws (ephemeral).
+    std::vector<Bytes> evmcResults_; ///< List of EVMC call results. evmc_result has a uint8_t* and a size, but we need to allocate memory for it.
+    uint64_t eventIndex_ = 0; ///< Current event emission index.
+    const Hash& txHash_; ///< Current transaction hash.
+    const uint64_t txIndex_; ///< Current transaction index.
+    const Hash& blockHash_; ///< Current block hash.
+    int64_t& leftoverGas_; ///< Reference to the leftover gas from the transaction (object given by the State).
+    TxAdditionalData addTxData_; ///< Additional transaction data.
+    trace::CallTracer callTracer_; ///< Call tracer object.
+
+    /**
+     * Transfer a given value from one address to another.
+     * Function is private because this is not available for contracts as it has safety checks.
+     * @param from The origin address.
+     * @param to The destination address.
+     * @param value The value to transfer.
+     */
     void transfer(const Address& from, const Address& to, const uint256_t& value);
 
     /**
@@ -96,106 +111,203 @@ class ContractHost : public evmc::Host {
      * @param caller The caller address to set.
      * @param value The value to set.
      */
-    inline void setContractVars(const ContractLocals* contract,
-                                const Address& caller,
-                                const uint256_t& value) const {
-      contract->caller_ = caller;
-      contract->value_ = value;
+    inline void setContractVars(
+      const ContractLocals* contract, const Address& caller, const uint256_t& value
+    ) const {
+      contract->caller_ = caller; contract->value_ = value;
     }
 
+    /**
+     * Deduce a given gas quantity from the transaction's leftover gas.
+     * @param gas The gas to deduce.
+     * @throw DynamicException if leftover gas runs out.
+     */
     inline void deduceGas(const int64_t& gas) const {
       this->leftoverGas_ -= gas;
-      if (this->leftoverGas_ < 0) {
-        throw DynamicException("ContractHost deduceGas: out of gas");
-      }
+      if (this->leftoverGas_ < 0) throw DynamicException("ContractHost deduceGas: out of gas");
     }
 
-    evmc::Result createEVMContract(const evmc_message& msg,
-                                   const Address& contractAddress,
-                                   const evmc_call_kind& kind);
+    /**
+     * Create an EVM contract.
+     * @param msg The call message that creates the contract.
+     * @param contractAddress The address where the contract will be deployed.
+     * @param kind The kind of contract call.
+     * @return The result of the call.
+     */
+    evmc::Result createEVMContract(
+      const evmc_message& msg, const Address& contractAddress, const evmc_call_kind& kind
+    );
 
+    /**
+     * Decode a given contract call type.
+     * @param msg The call message to decode.
+     * @return The contract call type.
+     */
     ContractType decodeContractCallType(const evmc_message& msg) const;
+
+    /**
+     * Process a call to a BDK precompile.
+     * @param msg The call message to process.
+     * @return The result of the call.
+     */
     evmc::Result processBDKPrecompile(const evmc_message& msg);
+
+    /**
+     * Process an EVM CREATE call.
+     * @param msg The call message to process.
+     * @return The result of the call.
+     */
     evmc::Result callEVMCreate(const evmc_message& msg);
+
+    /**
+     * Process an EVM CREATE2 call.
+     * @param msg The call message to process.
+     * @return The result of the call.
+     */
     evmc::Result callEVMCreate2(const evmc_message& msg);
+
+    /**
+     * Process an EVM contract call.
+     * @param msg The call message to process.
+     * @return The result of the call.
+     */
     evmc::Result callEVMContract(const evmc_message& msg);
+
+    /**
+     * Process a C++ contract call.
+     * @param msg The call message to process.
+     * @return The result of the call.
+     */
     evmc::Result callCPPContract(const evmc_message& msg);
 
-  Address computeNewAccountAddress(const Address& fromAddress,
-                                   const uint64_t& nonce,
-                                   const Hash& salt,
-                                   const bytes::View& init_code);
+    /**
+     * TODO: document this
+     */
+    Address computeNewAccountAddress(
+      const Address& fromAddress, const uint64_t& nonce,
+      const Hash& salt, const bytes::View& init_code
+    );
 
+    /**
+     * Check if the node is tracing contract calls (indexing mode is RPC_TRACE).
+     * @return `true` if calls are being traced, `false` otherwise.
+     */
     bool isTracingCalls() const noexcept;
 
+    /**
+     * Signal a trace call start.
+     * @param msg The message that starts the call.
+     */
     void traceCallStarted(const evmc_message& msg) noexcept;
 
+    /**
+     * Signal a trace call finish.
+     * @param res The result that finishes the call.
+     */
     void traceCallFinished(const evmc_result& res) noexcept;
 
+    /**
+     * Signal a trace call success.
+     * @param output The raw bytes output of the call.
+     * @param gasUsed The total gas used by the call.
+     */
     void traceCallSucceeded(Bytes output, uint64_t gasUsed) noexcept;
 
+    /**
+     * Signal a trace call finish.
+     * @param output The raw bytes output of the call.
+     * @param gasUsed The total gas used by the call.
+     */
     void traceCallReverted(Bytes output, uint64_t gasUsed) noexcept;
 
+    /**
+     * Signal a trace call revert.
+     * @param gasUsed The total gas used by the call.
+     */
     void traceCallReverted(uint64_t gasUsed) noexcept;
 
-    void traceCallOutOfGas() noexcept;
-
-    void saveCallTrace() noexcept;
-
-    void saveTxAdditionalData() noexcept;
+    void traceCallOutOfGas() noexcept; ///< Signal a trace call that ran out of gas.
+    void saveCallTrace() noexcept; ///< Save the current call trace in storage.
+    void saveTxAdditionalData() noexcept; ///< Save the current call's transaction's additional data in storage.
 
   public:
-    ContractHost(evmc_vm* vm,
-                 DumpManager& manager,
-                 Storage& storage,
-                 const Hash& randomnessSeed,
-                 const evmc_tx_context& currentTxContext,
-                 boost::unordered_flat_map<Address, std::unique_ptr<BaseContract>, SafeHash>& contracts,
-                 boost::unordered_flat_map<Address, NonNullUniquePtr<Account>, SafeHash>& accounts,
-                 boost::unordered_flat_map<StorageKey, Hash, SafeHash>& vmStorage,
-                 const Hash& txHash,
-                 const uint64_t txIndex,
-                 const Hash& blockHash,
-                 int64_t& txGasLimit) :
-    vm_(vm),
-    manager_(manager),
-    storage_(storage),
-    randomGen_(randomnessSeed),
-    currentTxContext_(currentTxContext),
-    contracts_(contracts),
-    accounts_(accounts),
-    vmStorage_(vmStorage),
-    txHash_(txHash),
-    txIndex_(txIndex),
-    blockHash_(blockHash),
-    leftoverGas_(txGasLimit),
-    addTxData_({.hash = txHash}) {}
+    /**
+     * Constructor.
+     */
+    ContractHost(
+      evmc_vm* vm,
+      DumpManager& manager,
+      Storage& storage,
+      const Hash& randomnessSeed,
+      const evmc_tx_context& currentTxContext,
+      boost::unordered_flat_map<Address, std::unique_ptr<BaseContract>, SafeHash>& contracts,
+      boost::unordered_flat_map<Address, NonNullUniquePtr<Account>, SafeHash>& accounts,
+      boost::unordered_flat_map<StorageKey, Hash, SafeHash>& vmStorage,
+      const Hash& txHash,
+      const uint64_t txIndex,
+      const Hash& blockHash,
+      int64_t& txGasLimit
+    ) : vm_(vm),
+        manager_(manager),
+        storage_(storage),
+        randomGen_(randomnessSeed),
+        currentTxContext_(currentTxContext),
+        contracts_(contracts),
+        accounts_(accounts),
+        vmStorage_(vmStorage),
+        txHash_(txHash),
+        txIndex_(txIndex),
+        blockHash_(blockHash),
+        leftoverGas_(txGasLimit),
+        addTxData_({.hash = txHash}) {}
 
-    // Rule of five, no copy/move allowed.
-    ContractHost(const ContractHost&) = delete;
-    ContractHost(ContractHost&&) = delete;
-    ContractHost& operator=(const ContractHost&) = delete;
-    ContractHost& operator=(ContractHost&&) = delete;
-    ~ContractHost() noexcept override;
+    ContractHost(const ContractHost&) = delete; ///< Copy constructor (deleted, Rule of Zero).
+    ContractHost(ContractHost&&) = delete; ///< Move constructor (deleted, Rule of Zero).
+    ContractHost& operator=(const ContractHost&) = delete; ///< Copy assignment operator (deleted, Rule of Zero).
+    ContractHost& operator=(ContractHost&&) = delete; ///< Move assignment operator (deleted, Rule of Zero).
+    ~ContractHost() noexcept override; ///< Destructor.
 
-    static Address deriveContractAddress(const uint64_t& nonce,
-                                         const Address& address);
+    /**
+     * Derive a new contract address from a given address and nonce.
+     * @param nonce The nonce to use.
+     * @param address The address to derive from.
+     */
+    static Address deriveContractAddress(const uint64_t& nonce, const Address& address);
 
-    static Address deriveContractAddress(const Address& fromAddress,
-                                         const Hash& salt,
-                                         const bytes::View& init_code);
+    /**
+     * Derive a new contract address from a given address, initialization code and a hashed salt.
+     * @param fromAddress The address to derive from.
+     * @param salt The salt to use.
+     * @param init_code The initialization code to use.
+     */
+    static Address deriveContractAddress(
+      const Address& fromAddress, const Hash& salt, const bytes::View& init_code
+    );
 
-    /// Executes a call
+    /**
+     * Execute a contract call (non-view).
+     * @param msg The call message to execute.
+     * @param type The type of call to execute.
+     */
     void execute(const evmc_message& msg, const ContractType& type);
 
-    /// Executes a eth_call RPC method (view)
-    /// returns the result of the call
+    /**
+     * Execute an `eth_call` RPC method (view).
+     * @param msg The call message to execute.
+     * @param type The type of call to execute.
+     * @return The result of the call.
+     */
     Bytes ethCallView(const evmc_message& msg, const ContractType& type);
 
-    /// Simulates a call
+    /**
+     * Simulate a contract call (dry run, won't affect state).
+     * @param msg The call message to execute.
+     * @param type The type of call to execute.
+     */
     void simulate(const evmc_message& msg, const ContractType& type);
 
-    /// EVMC FUNCTIONS
+    ///@{
+    /** Wrapper for EVMC function. */
     bool account_exists(const evmc::address& addr) const noexcept final;
     evmc::bytes32 get_storage(const evmc::address& addr, const evmc::bytes32& key) const noexcept final;
     evmc_storage_status set_storage(const evmc::address& addr, const evmc::bytes32& key, const evmc::bytes32& value) noexcept final;
@@ -212,16 +324,19 @@ class ContractHost : public evmc::Host {
     evmc_access_status access_storage(const evmc::address& addr, const evmc::bytes32& key) noexcept final;
     evmc::bytes32 get_transient_storage(const evmc::address &addr, const evmc::bytes32 &key) const noexcept final;
     void set_transient_storage(const evmc::address &addr, const evmc::bytes32 &key, const evmc::bytes32 &value) noexcept final;
-    /// END OF EVMC FUNCTIONS
+    ///@}
 
+    // ======================================================================
+    // CONTRACT INTERFACING FUNCTIONS
+    // ======================================================================
 
-    /// CONTRACT INTERFACING FUNCTIONS
     /**
      * Call a contract view function based on the basic requirements of a contract call.
      * @tparam R The return type of the view function.
      * @tparam C The contract type.
      * @tparam Args The argument types of the view function.
-     * @param address The address of the contract to call.
+     * @param caller Pointer to the contract that made the call.
+     * @param targetAddr The address of the contract to call.
      * @param func The view function to call.
      * @param args The arguments to pass to the view function.
      * @return The result of the view function.
@@ -266,9 +381,9 @@ class ContractHost : public evmc::Host {
           msg.value = {};
           msg.create2_salt = {};
           msg.code_address = targetAddr.toEvmcAddress();
-          /// TODO: OMG this is so ugly, we need to fix this.
-          /// A **CONST_CAST** is needed because we can't explicity tell the evmc_execute to do a view call.
-          /// Regardless of that, we set flag = 1 to indicate that this is a view/STATIC call.
+          // TODO: OMG this is so ugly, we need to fix this.
+          // A **CONST_CAST** is needed because we can't explicity tell the evmc_execute to do a view call.
+          // Regardless of that, we set flag = 1 to indicate that this is a view/STATIC call.
           evmc::Result result (evmc_execute(this->vm_, &this->get_interface(), const_cast<ContractHost*>(this)->to_context(),
           evmc_revision::EVMC_LATEST_STABLE_REVISION, &msg, recipientAcc.code.data(), recipientAcc.code.size()));
           this->leftoverGas_ = result.gas_left;
@@ -292,6 +407,18 @@ class ContractHost : public evmc::Host {
       }
     }
 
+    /**
+     * Call a contract non-view function based on the basic requirements of a contract call.
+     * @tparam R The return type of the view function.
+     * @tparam C The contract type.
+     * @tparam Args The argument types of the view function.
+     * @param caller Pointer to the contract that made the call.
+     * @param targetAddr The address of the contract to call.
+     * @param value The value to use in the call.
+     * @param func The view function to call.
+     * @param args The arguments to pass to the view function.
+     * @return The result of the non-view function.
+     */
     template <typename R, typename C, typename... Args>
     R callContractFunction(
       BaseContract* caller, const Address& targetAddr,
@@ -356,6 +483,7 @@ class ContractHost : public evmc::Host {
      * @tparam R The return type of the function.
      * @tparam C The contract type.
      * @tparam Args The arguments types.
+     * @param caller Pointer to the contract that made the call.
      * @param targetAddr The address of the contract to call.
      * @param value Flag to indicate if the function is payable.,
      * @param func The function to call.
@@ -441,14 +569,12 @@ class ContractHost : public evmc::Host {
      * Call the createNewContract function of a contract.
      * Used by DynamicContract to create new contracts.
      * @tparam TContract The contract type.
-     * @param callValue The caller value.
+     * @param caller Pointer to the contract that made the call.
+     * @param fullData The caller data.
      * @param encoder The ABI encoder.
      * @return The address of the new contract.
      */
-    template <typename TContract> Address callCreateContract(
-      BaseContract* caller,
-      const Bytes &fullData
-    ) {
+    template <typename TContract> Address callCreateContract(BaseContract* caller, const Bytes &fullData) {
       // 100k gas limit for every contract creation!
       this->deduceGas(50000);
       evmc_message callInfo;
@@ -566,36 +692,48 @@ class ContractHost : public evmc::Host {
      */
     uint64_t& getNonce(const Address& acc);
 
-    template <typename... Args, bool... Flags>
-    void emitEvent(
-      const std::string& name,
-      const Address& contract,
-      const std::tuple<EventParam<Args, Flags>...>& args,
-      bool anonymous
+    /**
+     * Emit an event.
+     * @param name The event's name.
+     * @param contract The contract that emitted the event.
+     * @param args The event's arguments.
+     * @param anonymous Whether the event is anonymous or not.
+     */
+    template <typename... Args, bool... Flags> void emitEvent(
+      const std::string& name, const Address& contract,
+      const std::tuple<EventParam<Args, Flags>...>& args, bool anonymous
     ) {
       Event event(name, // EVM events do not have names
-        this->eventIndex_,
-        this->txHash_,
-        this->txIndex_,
-        this->blockHash_,
-        this->currentTxContext_.block_number,
-        contract,
-        args,
-        anonymous
+        this->eventIndex_, this->txHash_, this->txIndex_, this->blockHash_,
+        this->currentTxContext_.block_number, contract, args, anonymous
       );
       this->eventIndex_++;
       this->stack_.registerEvent(std::move(event));
     }
 
+    /**
+     * Register a new C++ contract.
+     * @param addr The address where the contract will be deployed.
+     * @param contract The contract class to be created.
+     */
     void registerNewCPPContract(const Address& addr, BaseContract* contract);
+
+    /**
+     * Register a new EVM contract.
+     * @param addr The address where the contract will be deployed.
+     * @param code The contract creation code to be used.
+     * @param codeSize The size of the contract creation code.
+     */
     void registerNewEVMContract(const Address& addr, const uint8_t* code, size_t codeSize);
+
+    /**
+     * Register a new use of a given SafeVariable.
+     * @param variable Reference to the SafeVariable that was used.
+     */
     void registerVariableUse(SafeBase& variable);
 
-    uint256_t getRandomValue() const {
-      return this->randomGen_.operator()();
-    }
-    /// END OF CONTRACT INTERFACING FUNCTIONS
-
+    /// Random value generator.
+    uint256_t getRandomValue() const { return this->randomGen_.operator()(); }
 };
 
 #endif // CONTRACT_HOST_H

@@ -168,42 +168,36 @@ public:
 
   /**
    * Constructor for loading contract from DB.
-   * @param interface Reference to the contract manager interface.
    * @param address The address where the contract will be deployed.
    * @param db Reference to the database object.
    */
-  ERC721(const Address &address,
-         const DB& db);
+  ERC721(const Address &address, const DB& db);
 
   /**
    * Constructor to be used when creating a new contract.
    * @param erc721name The name of the ERC721 token.
    * @param erc721symbol The symbol of the ERC721 token.
-   * @param interface Reference to the contract manager interface.
    * @param address The address where the contract will be deployed.
    * @param creator The address of the creator of the contract.
    * @param chainId The chain where the contract wil be deployed.
-   * @param db Reference to the database object.
    */
   ERC721(const std::string &erc721name, const std::string &erc721symbol,
-         const Address &address,
-         const Address &creator, const uint64_t &chainId);
+    const Address &address, const Address &creator, const uint64_t &chainId
+  );
 
   /**
    * Constructor to be used when creating a new contract.
    * @param derivedTypeName The name of the derived type.
    * @param erc721name The name of the ERC721 token.
    * @param erc721symbol The symbol of the ERC721 token.
-   * @param interface Reference to the contract manager interface.
    * @param address The address where the contract will be deployed.
    * @param creator The address of the creator of the contract.
    * @param chainId The chain where the contract wil be deployed.
-   * @param db Reference to the database object.
    */
   ERC721(const std::string &derivedTypeName, const std::string &erc721name,
-         const std::string &erc721symbol,
-         const Address &address, const Address &creator,
-         const uint64_t &chainId);
+    const std::string &erc721symbol, const Address &address,
+    const Address &creator, const uint64_t &chainId
+  );
 
   /// Destructor.
   ~ERC721() override = default;

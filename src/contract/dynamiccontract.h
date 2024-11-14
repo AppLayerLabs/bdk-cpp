@@ -340,7 +340,6 @@ class DynamicContract : public BaseContract {
   public:
     /**
      * Constructor for creating the contract from scratch.
-     * @param interface Reference to the contract manager interface.
      * @param contractName The name of the contract.
      * @param address The address where the contract will be deployed.
      * @param creator The address of the creator of the contract.
@@ -352,7 +351,6 @@ class DynamicContract : public BaseContract {
 
     /**
      * Constructor for loading the contract from the database.
-     * @param interface Reference to the contract manager interface.
      * @param address The address where the contract will be deployed.
      * @param db Reference to the database object.
      */
@@ -363,6 +361,7 @@ class DynamicContract : public BaseContract {
      * Automatically differs between payable and non-payable functions.
      * Used by State when calling `processNewBlock()/validateNewBlock()`.
      * @param callInfo Tuple of (from, to, gasLimit, gasPrice, value, data).
+     * @param host Pointer to the contract host.
      * @throw DynamicException if the functor is not found or the function throws an exception.
      */
     void ethCall(const evmc_message& callInfo, ContractHost* host) final {
@@ -416,6 +415,7 @@ class DynamicContract : public BaseContract {
     /**
      * Do a contract call to a view function.
      * @param data Tuple of (from, to, gasLimit, gasPrice, value, data).
+     * @param host Pointer to the contract host.
      * @return The result of the view function.
      * @throw DynamicException if the functor is not found or the function throws an exception.
      */
@@ -489,7 +489,6 @@ class DynamicContract : public BaseContract {
      * @tparam Args The argument types of the view function.
      * @param address The address of the contract to call.
      * @param func The view function to call.
-     * @param args The arguments to pass to the view function.
      * @return The result of the view function.
      */
     template <typename R, typename C>
@@ -579,6 +578,7 @@ class DynamicContract : public BaseContract {
      * @tparam R The return type of the function.
      * @tparam C The contract type.
      * @tparam Args The argument types of the function.
+     * @param contractHost Pointer to the contract host.
      * @param func The function to call.
      * @param args The arguments to pass to the function.
      * @return The result of the function.
@@ -604,6 +604,7 @@ class DynamicContract : public BaseContract {
      * @tparam R The return type of the function.
      * @tparam C The contract type.
      * @tparam Args The argument types of the function.
+     * @param contractHost Pointer to the contract host.
      * @param func The function to call.
      * @return The result of the function.
      */
@@ -625,15 +626,10 @@ class DynamicContract : public BaseContract {
      * Call the create function of a contract.
      * @tparam TContract The contract type.
      * @tparam Args The arguments of the contract constructor.
-     * @param gas The gas limit.
-     * @param gasPrice The gas price.
-     * @param value The caller value.
      * @param args The arguments to pass to the constructor.
      * @return The address of the created contract.
      */
-    template<typename TContract, typename... Args> Address callCreateContract(
-      Args&&... args
-    ) {
+    template<typename TContract, typename... Args> Address callCreateContract(Args&&... args) {
       if (this->host_ == nullptr) {
         throw DynamicException("Contracts going haywire! trying to create a contract without a host!");
       }

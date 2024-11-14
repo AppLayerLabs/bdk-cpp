@@ -16,15 +16,14 @@ namespace jsonrpc {
 /// @brief JSON RPC error, refer to https://www.jsonrpc.org/specification#error_object
 class Error : public std::exception {
 private:
-  int code_;
-  std::string message_;
+  int code_;  ///< The error code.
+  std::string message_; ///< The error message.
 
 public:
   /// @brief error constructor
   /// @param code the error code
   /// @param message the error message
-  Error(int code, std::string message)
-    : code_(code), message_(std::move(message)) {}
+  Error(int code, std::string message) : code_(code), message_(std::move(message)) {}
 
   /// @brief returns the error code
   /// @return the error code
