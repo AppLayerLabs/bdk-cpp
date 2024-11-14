@@ -453,54 +453,25 @@ Options getOptionsForCometTest(
  *
  * The apphash is just set to the current block height at the end (h_).
  */
-/*
-class TestMachine : public CometListener {
-public:
-  int64_t m_ = 0; // machine state
-  uint64_t h_ = 0; // current block height (0 = genesis)
-
-  virtual void initChain() {
-    m_ = 0;
-    h_ = 0;
-  }
-
-  virtual void checkTx(const Bytes& tx, bool& accept) {
-    // TODO validate the tx according to the rules above
-    accept = true;
-  }
-
-  virtual void incomingBlock(const uint64_t height, const uint64_t syncingToHeight, const std::vector<Bytes>& txs, Bytes& appHash) {
-    appHash.clear(); // TODO
-    // an incoming block is valid if every tx in it is valid, meaning the signature is correct and the tx format is correct
-    // invalid blocks throw an error and do not advance the height or state
-  }
-
-  virtual void validateBlockProposal(const uint64_t height, const std::vector<Bytes>& txs, bool& accept) {
-    accept = true;
-    // a proposal is valid if every tx in it is valid, meaning the signature is correct and the tx format is correct
-    // invalid block proposals are accept = false;
-  }
-
-  virtual void getCurrentState(uint64_t& height, Bytes& appHash) {
-    height = h_;
-    appHash.clear(); // TODO
-  }
-
-  virtual void getBlockRetainHeight(uint64_t& height) {
-    height = 0;
-  }
-}
-*/
 class TestMachine : public CometListener {
 public:
     std::atomic<int64_t> m_ = 0; // machine state
     std::atomic<uint64_t> h_ = 0; // current block height (0 = genesis)
+
+    std::atomic<uint64_t> incomingHeight_ = 0; // value of height we got from incomingBlock() (0 if none yet)
+    std::atomic<uint64_t> incomingSyncingToHeight_ = 0; // value of syncingToHeight we got from incomingBlock() (0 if none yet)
+
+    std::atomic<uint64_t> requiredSyncingToHeight_ = 0; // If set to != 0, requires incomingBlock(syncingToHeight) to match this value
+
     std::atomic<int> initChainCount_ = 0;
 
     void initChain() override {
         GLOGDEBUG("TEST: TestMachine: initChain()");
         m_ = 0;
         h_ = 0;
+        incomingHeight_ = 0;
+        incomingSyncingToHeight_ = 0;
+        requiredSyncingToHeight_ = 0;
         ++initChainCount_;
     }
 
@@ -545,6 +516,15 @@ public:
 
     void incomingBlock(const uint64_t height, const uint64_t syncingToHeight, const std::vector<Bytes>& txs, Bytes& appHash) override {
         GLOGDEBUG("TEST: TestMachine: incomingBlock(): height=" + std::to_string(height) + "; syncingToheight="+std::to_string(syncingToHeight) + "; txs.size()="+std::to_string(txs.size()));
+
+        incomingHeight_ = height;
+        incomingSyncingToHeight_ = syncingToHeight;
+
+        if (requiredSyncingToHeight_ != 0) {
+          if (syncingToHeight != requiredSyncingToHeight_) {
+            GLOGFATAL_THROW("incomingBlock with unexpected syncingToHeight=" + std::to_string(syncingToHeight) + "; required=" + std::to_string(requiredSyncingToHeight_));
+          }
+        }
 
         // If we get a finalized block height that is different from what our internal model is,
         //  that's an error: the consensus process would be finalizing a duplicate block, meaning
@@ -600,8 +580,8 @@ public:
             appHash.clear();
             // FIXME: I think we screwed up here, the appHash is an actual string type (natively)
             //        for cometbft?
-            std::string appHashStr = std::to_string(h_);
-            appHash.insert(appHash.end(), appHashStr.begin(), appHashStr.end());
+            //std::string appHashStr = std::to_string(h_);
+            //appHash.insert(appHash.end(), appHashStr.begin(), appHashStr.end());
         } catch (...) {
             // Rollback state
             m_ = original_m;
@@ -629,8 +609,8 @@ public:
         appHash.clear();
         // FIXME: I think we screwed up here, the appHash is an actual string type (natively)
         //        for cometbft?
-        std::string appHashStr = std::to_string(h_);
-        appHash.insert(appHash.end(), appHashStr.begin(), appHashStr.end());
+        //std::string appHashStr = std::to_string(h_);
+        //appHash.insert(appHash.end(), appHashStr.begin(), appHashStr.end());
     }
 
     void getBlockRetainHeight(uint64_t& height) override {
@@ -641,7 +621,7 @@ public:
 
 // FIXME/TODO: must time out of all future threads so testcases will eventually cleanup/exit
 namespace TComet {
-  TEST_CASE("Comet basic tests", "[core][comet]") {
+  TEST_CASE("Comet tests", "[core][comet]") {
 
     SECTION("CometBootTest") {
 
@@ -932,14 +912,7 @@ namespace TComet {
       GLOGDEBUG("TEST: Finished");
     }
 
-    // TODO:
-
-    // The following tests (and any others after these) will all require a mock
-    // execution environment ("class TestVM") that emulates a blockchain app by
-    // consuming a series of blocks with mock transactions that it understands.
-    // Place these under their own TESTCASE
-
-    // TODO: stop at block M and restart test with no block replay, 1 validator
+    // Stop at block M and restart test with no block replay, 1 validator
     // (snapshotted state at M before shutdown reported by Info on restart)
     // Non-empty transactions and verify that it reaches the same end state
     SECTION("CometRestartTest") {
@@ -962,6 +935,114 @@ namespace TComet {
       // FIXME: this (start/stop) actually crashes! investigate
       //comet.start();
       //comet.stop();
+
+      // Start comet.
+      GLOGDEBUG("TEST: Starting Comet");
+      comet.start();
+
+      // Should stop at height 10
+      // Don't send a transation for height 1, since height 1 is seemingly produced
+      // even without a transaction from the app (empty block even with produce
+      // empty blocks option disabled).
+      GLOGDEBUG("TEST: Sending several ++m_ transactions...");
+      int targetHeight = 10; 
+      int expectedMachineMemoryValue = 0;
+      for (int i = 1; i <= targetHeight; ++i) {
+
+        GLOGDEBUG("TEST: Height=" + std::to_string(i));
+        // send a transaction (skip height==1 as that height is produced regardless).
+        if (i != 1) {
+          // transaction increments the memory cell (++cometListener.m_)
+          // The second parameter (i) is serving as the nonce (need to uniquify the transaction
+          //   otherwise it is understood as a replay).
+          std::string transaction = "SIG " + std::to_string(i) + " + 1";
+          GLOGDEBUG("TEST: Sending transaction: " + transaction);
+          Bytes transactionBytes(transaction.begin(), transaction.end());
+          comet.sendTransaction(transactionBytes);
+          ++expectedMachineMemoryValue;
+        }
+
+        // Wait for chain to advance
+        auto futureFinalizeBlock = std::async(std::launch::async, [&]() {
+          while (cometListener.h_ < i) {
+            std::this_thread::sleep_for(std::chrono::milliseconds(10));
+          }
+        });
+        REQUIRE(futureFinalizeBlock.wait_for(std::chrono::seconds(10)) != std::future_status::timeout);
+
+        // Ensure the block and transaction had the intended effect on the machine
+        GLOGDEBUG("TEST: Checking we are at block " + std::to_string(i) + " and m_ == " + std::to_string(expectedMachineMemoryValue));
+        REQUIRE(cometListener.h_ == i);
+        REQUIRE(cometListener.m_ == expectedMachineMemoryValue);
+      }
+
+      // Stop comet.
+      GLOGDEBUG("TEST: Stopping comet (before restart step)");
+      REQUIRE(comet.getStatus()); // no error reported (must check before stop())
+      comet.stop();
+      GLOGDEBUG("TEST: Stopped");
+      REQUIRE(comet.getState() == CometState::STOPPED);
+
+      // Restart comet
+      GLOGDEBUG("TEST: Restarting");
+      comet.start();
+      GLOGDEBUG("TEST: Restarted");
+
+      // This behavior actually depends on the app hash / commit hash changes;
+      // cometbft produces empty blocks regardless of the create-empty-blocks setting if
+      // there's a change in app hash / commit hash (not sure why or how that works exactly).
+      // In any case, we can't depend on it; the empty blocks option is for optimizing the
+      // network, not creating a step-mode for block production / debugging.
+      //
+      //   So it turns out that upon a successful restart, we should get a block produced
+      //    that is empty (again, ignoring our "dont't produce empty blocks) config.
+      //   That's actually useful, because it gives us a condition to wait for here.
+      //   In addition, the TestMachine class will error out if the restart generates a
+      //    bad incomingBlock() callback that would ignore what getCurrentState() is
+      //    informing cometbft.
+      //
+      // Wait for the last non-empty block we created before (targetHeight)
+      auto futureFinalizeBlock = std::async(std::launch::async, [&]() {
+        while (cometListener.h_ < targetHeight) {
+          std::this_thread::sleep_for(std::chrono::milliseconds(10));
+        }
+      });
+      REQUIRE(futureFinalizeBlock.wait_for(std::chrono::seconds(10)) != std::future_status::timeout);
+      REQUIRE(cometListener.h_ >= targetHeight); // We *might* produce more blocks (empty blocks), which is fine
+      REQUIRE(cometListener.m_ == expectedMachineMemoryValue); // Double-check that we didn't screw up the previous state
+
+      // FIXME: same bug here
+      //        crashes if start;/stop called in quick succession; this sleep is just a temp workaround
+      std::this_thread::sleep_for(std::chrono::milliseconds(3000));
+
+      // Stop
+      GLOGDEBUG("TEST: Stopping...");
+      REQUIRE(comet.getStatus()); // no error reported (must check before stop())
+      comet.stop();
+      GLOGDEBUG("TEST: Stopped");
+      REQUIRE(comet.getState() == CometState::STOPPED);
+      GLOGDEBUG("TEST: Finished");
+    }
+
+    // TODO: stop at block M and restart test with block replay from M/2, 1 validator
+    // (Info on restart reports block M/2 thus replays M/2+1 to M)
+    // Non-empty transactions and verify that it reaches the same end state
+    SECTION("CometReplayTest") {
+
+      std::string testDumpPath = createTestDumpPath("CometReplayTest");
+
+      GLOGDEBUG("TEST: Constructing Comet");
+
+      // get free ports to run tests on 
+      int p2p_port = SDKTestSuite::getTestPort();
+      int rpc_port = SDKTestSuite::getTestPort();
+
+      const Options options = getOptionsForCometTest(testDumpPath, p2p_port, rpc_port);
+
+      TestMachine cometListener;
+
+      // Set up comet with single validator
+      Comet comet(&cometListener, "", options, true);
 
       // Start comet.
       GLOGDEBUG("TEST: Starting Comet");
@@ -1010,27 +1091,55 @@ namespace TComet {
       GLOGDEBUG("TEST: Stopped");
       REQUIRE(comet.getState() == CometState::STOPPED);
 
+      // Here we will pretend that our node has crashed, and thus we have rolled back 
+      // our state to a previously-saved snapshot state, and so we need cometbft to
+      // replay some blocks for us.
+      GLOGDEBUG("TEST: Rolling back state (h_ == " + std::to_string(cometListener.h_) + ", m_ == " + std::to_string(cometListener.m_) + ")");
+      int finalAppState = cometListener.m_;
+      int finalAppHeight = cometListener.h_;
+      int snapshotAppHeight = cometListener.h_ / 2;
+      for (int i = finalAppHeight; i > snapshotAppHeight; --i) {
+        // Since all transactions we send to the app do ++m_, then each
+        //  height we unstack from the blockchain means we need to do --m_
+        //  (remember that this doesn't apply to height==1 since the first
+        //  block is empty because cometbft doesn't strictly respect the
+        //  "don't produce empty blocks" option, but since we are unstacking
+        //  it only back to h_/2, and h_ is like 9 here, then we should be
+        //  well clear off of accidentally unstacking the NOP block 1.)
+        --cometListener.h_;
+        --cometListener.m_;
+      }
+      GLOGDEBUG("TEST: Rolled back state (h_ == " + std::to_string(cometListener.h_) + ", m_ == " + std::to_string(cometListener.m_) + ")");
+
+      // Set the requiredSyncingToHeight_ into the machine (will throw if it doesn't match)
+      cometListener.requiredSyncingToHeight_ = finalAppHeight;
+
       // Restart comet
       GLOGDEBUG("TEST: Restarting");
       comet.start();
       GLOGDEBUG("TEST: Restarted");
 
-      // So it turns out that upon a successful restart, we should get a block produced
-      //  that is empty (again, ignoring our "dont't produce empty blocks) config.
-      // That's actually useful, because it gives us a condition to wait for here.
-      // In addition, the TestMachine class will error out if the restart generates a
-      //  bad incomingBlock() callback that would ignore what getCurrentState() is
-      //  informing cometbft.
-      // The expected height is targetHeight, since we test for < targetHeight in the
-      //  previous loop (above) instead of <= targetHeight.
+      // Wait until we get back to the finalAppHeight we recorded before the rollback.
       auto futureFinalizeBlock = std::async(std::launch::async, [&]() {
-        while (cometListener.h_ < targetHeight) {
+        while (cometListener.h_ < finalAppHeight) {
           std::this_thread::sleep_for(std::chrono::milliseconds(10));
         }
       });
       REQUIRE(futureFinalizeBlock.wait_for(std::chrono::seconds(10)) != std::future_status::timeout);
-      REQUIRE(cometListener.h_ == targetHeight);
-      REQUIRE(cometListener.m_ == expectedMachineMemoryValue); // Double-check that we didn't screw up the previous state
+      REQUIRE(cometListener.h_ == finalAppHeight);
+      REQUIRE(cometListener.m_ == finalAppState); // Double-check we reproduced the state after the replay
+
+      // Reset the required syncing to height, no longer syncing
+      cometListener.requiredSyncingToHeight_ = 0;
+
+      // FIXME/TODO: This can fail when we add a non-null apphash back in, but if the
+      //             apphash is JUST the actual state (m_) then maybe it works, instead
+      //             of the hack where the height is the apphash (which causes it to
+      //             always change, which was a bad idea anyways)
+      // Sleep a bit and check we didn't get some garbage added to the chain afterwards
+      std::this_thread::sleep_for(std::chrono::seconds(10));
+      REQUIRE(cometListener.h_ == finalAppHeight);
+      REQUIRE(cometListener.m_ == finalAppState);
 
       // Stop
       GLOGDEBUG("TEST: Stopping...");
@@ -1040,14 +1149,5 @@ namespace TComet {
       REQUIRE(comet.getState() == CometState::STOPPED);
       GLOGDEBUG("TEST: Finished");
     }
-
-
-    // TODO: stop at block M and restart test with some block replay, 1 validator
-    // (Info on restart reports block N where N<M and thus replays N+1 to M)
-    // Non-empty transactions and verify that it reaches the same end state
-
-    // TODO: stop and restart test with full block replay, 1 validator
-    // (Info on restart reports block 0, causing InitChain to be called again and replay to M)
-    // Non-empty transactions and verify that it reaches the same end state
   }
 }
