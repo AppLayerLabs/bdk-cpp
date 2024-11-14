@@ -274,7 +274,6 @@ void CometImpl::start() {
 }
 
 void CometImpl::stop() {
-  LOGXTRACE("1");
 
   if (this->loopFuture_.valid()) {
     this->stop_ = true;
@@ -299,7 +298,6 @@ void CometImpl::stop() {
 
     stopCometBFT();
 
-
     // (2)
     // We should know cometbft has disconnected from us when:
     //
@@ -312,66 +310,25 @@ void CometImpl::stop() {
     //       doing something else such as forcing kill -9 on cometbft, instead of looping
     //       forever here without a timeout check.
     //
-    LOGDEBUG("Waiting for grpcServer to finish");
-    while (abciServer_->running()) {
-      std::this_thread::sleep_for(std::chrono::milliseconds(20));
+    if (abciServer_) {
+      LOGDEBUG("Waiting for abciServer_ networking to stop running (a side-effect of the cometbft process exiting.)");
+      while (abciServer_->running()) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(20));
+      }
+      LOGDEBUG("abciServer_ networking has stopped running, we can now stop the ABCI net engine.");
+      abciServer_->stop();
+      LOGDEBUG("abciServer_ networking engine stopped.");
+      abciServer_.reset();
+      LOGDEBUG("abciServer_ networking engine destroyed.");
+    } else {
+      LOGDEBUG("No abciServer_ instance, so nothing to do.");
     }
-    LOGDEBUG("Finished grpcServer");
 
-
-    // (3)
-    // Now that cometbft should have disconnected from the gRPC server instance and it is
-    //  thus inactive, then we should be able to shut it down without any problems.
-
-    // -- Begin stop gRPC server if any
-    
-    /*
-        // FIXME;/TODO: this is about cancelling the ABCIsocket net engine
-
-    if (grpcServer_) {
-      LOGDEBUG("Shutting down grpcServer");
-      // this makes the grpc server thread actually terminate so we can join it 
-      grpcServer_->Shutdown();
-      LOGDEBUG("Shutted down grpcServer");
-    }
-    */
-
-
-   /*
-   
-        this has been encapsulated by ABCIServer (abciServer_)
-      
-    LOGXTRACE("4");
-    // Wait for the server thread to finish
-    if (runThread_) {
-      LOGXTRACE("5");
-      grpcServerThread_->join();
-      LOGXTRACE("6");
-      grpcServerThread_.reset();
-      LOGXTRACE("7");
-    }
-    LOGXTRACE("8");
-    // get rid of the grpcServer since it is shut down
-    //grpcServer_.reset();
-    ioContext_.reset();
-    threadPool_.reset();
-    LOGXTRACE("9");
-    // Force-reset these for good measure
-    grpcServerStarted_ = false;
-    grpcServerRunning_ = false;
-    // -- End stop gRPC server if any
-
-    */
-    abciServer_->stop();
-
-    
-    LOGXTRACE("11");
     this->setPauseState(); // must reset any pause state otherwise it won't ever finish
     this->loopFuture_.wait();
     this->loopFuture_.get();
     resetError(); // stop() clears any error status
     setState(CometState::STOPPED);
-    LOGXTRACE("12");
   }
 }
 
@@ -399,6 +356,9 @@ void CometImpl::resetError() {
 
 void CometImpl::startCometBFT(const std::string& cometPath) {
 
+  if (!abciServer_) {
+    LOGFATALP_THROW("Cannot call startCometBFT() without having first started the ABCI app server.");
+  }
 
     //boost::process::ipstream bpout;
     //boost::process::ipstream bperr;
@@ -834,7 +794,7 @@ void CometImpl::workerLoopInner() {
     if (stepMode_) {
       LOGDEBUG("stepMode_ is set, setting step mode parameters for testing.");
       configToml["consensus"].as_table()->insert_or_assign("create_empty_blocks", toml::value(false));
-      //configToml["consensus"].as_table()->insert_or_assign("skip_timeout_commit", toml::value(true));
+      configToml["consensus"].as_table()->insert_or_assign("skip_timeout_commit", toml::value(true)); // speeds up testing in general
       configToml["consensus"].as_table()->insert_or_assign("timeout_propose", "1s");
       configToml["consensus"].as_table()->insert_or_assign("timeout_propose_delta", "0s");
       configToml["consensus"].as_table()->insert_or_assign("timeout_prevote", "1s");
@@ -873,7 +833,6 @@ void CometImpl::workerLoopInner() {
     ///   state, ...). If anything is wrong that is fixable in a non-forceful fashion,
     //    then fix it that way and re-check, otherwise "fix it" by rm -rf the
     //    rootPath + /comet/  directory entirely and continue; this loop.
-    // TODO: check stop_ while in inner loop
     // TODO: ensure cometbft is terminated if we are killed (prctl()?)
 
     setState(CometState::INSPECTING_COMET);
@@ -935,21 +894,8 @@ void CometImpl::workerLoopInner() {
     setState(CometState::STARTING_ABCI);
 
     // start the ABCI server
-    //
-    // should assert/test that abciServer_ here is an unset unique_ptr (i.e. null ptr)
-    //
-    // assert (!server_thread)
-    //grpcServerThread_.emplace(&Comet::grpcServerRun, this);
     abciServer_ = std::make_unique<ABCIServer>(this, cometUNIXSocketPath);
     abciServer_->start();
-
-    // REMOVED: this is a bad idea in any case as running can now be set to false on its own
-    //          should probably remove the running flag
-    //
-    // wait until we are past opening the grpc server
-    //while (!abciServer_->running()) {
-    //  std::this_thread::sleep_for(std::chrono::milliseconds(20));
-    //}
 
     // the right thing would be to connect to ourselves here and test the connection before firing up 
     //   the external engine, but a massive enough sleep here (like 1 second) should do the job.
@@ -965,16 +911,6 @@ void CometImpl::workerLoopInner() {
     // if it is not running by now then it is probably because starting the GRPC server failed.
     if (!abciServer_->running()) {
       LOGERROR("Comet failed: ABCI server failed to start");
-
-      // cleanup failed grpc server/thread startup
-      //grpcServerThread_->join();
-      //grpcServerThread_.reset();
-      //grpcServer_.reset();
-      //ioContext_.reset();
-      //threadPool_.reset();
-
-      // Not needed -- we are force-resetting it at the start of the loop
-      //abciServer_.reset(); // calls abciServer_->stop()
 
       // Retry
       //

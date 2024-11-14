@@ -1,5 +1,7 @@
 #include "abcinetsession.h"
 
+#include "../../utils/logger.h"
+
 // TODO: redirect all calls to the ABCIHandler
 
 // TODO: review all the error handling and the net code in general
@@ -12,7 +14,9 @@ void ABCINetSession::start() {
 }
 
 void ABCINetSession::close() {
+    GLOGXTRACE("Before socket close");
     socket_.close();
+    GLOGXTRACE("After socket close");
 }
 
 void ABCINetSession::do_read_message() {

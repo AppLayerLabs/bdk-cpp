@@ -10,6 +10,7 @@ See the LICENSE.txt file in the project root for more information.
 
 #include <string>
 #include <iostream>
+#include <fstream>
 #include <queue>
 #include <condition_variable>
 #include <future>

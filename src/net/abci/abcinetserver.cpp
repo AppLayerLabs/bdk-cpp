@@ -5,6 +5,7 @@
 // ???
 #include "abcihandler.h"
 
+#include "../../utils/logger.h"
 
 ABCINetServer::ABCINetServer(ABCIHandler* handler, asio::io_context& io_context, const std::string& socket_path)
     : handler_(handler), io_context_(io_context), acceptor_(io_context, stream_protocol::endpoint(socket_path)), failed_(false)
@@ -46,7 +47,9 @@ void ABCINetServer::notify_failure(const std::string& reason) {
         }
         // Stop accepting new connections
         //std::cout << "Closing acceptor" << std::endl;
+        GLOGXTRACE("Before acceptor close");
         acceptor_.close();
+        GLOGXTRACE("After acceptor close");
         //std::cout << "Acceptor closed" << std::endl;
         // Stop the io_context
         //no need to do this: once the acceptor is closed, the io context run calls all exit
