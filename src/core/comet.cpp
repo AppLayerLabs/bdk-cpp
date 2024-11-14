@@ -1147,25 +1147,46 @@ void CometImpl::workerLoopInner() {
           std::string result;
 
           // Send the transaction using JSON-RPC
+          LOGTRACE("Sending transaction: " + encodedTx);
           bool success = makeJSONRPCCall("broadcast_tx_async", params, result);
+          json response = json::parse(result);
 
           // If the response is successful, remove the transaction from the queue
           if (success) {
-              json response = json::parse(result);
-
               if (response.contains("result")) {
-                  std::cout << "Transaction sent successfully. Response: " << result << std::endl;
+                  LOGTRACE("Transaction sent successfully. Response: " + result);
 
                   // Remove the transaction from the queue
                   std::lock_guard<std::mutex> lock(txOutMutex_);
                   txOut_.pop_front();
               } else {
-                  std::cerr << "Error in transaction response: " << result << std::endl;
+                  // ???
+                  LOGTRACE("Transaction send error. Result: " + result);
                   // On any error, always break out of the while (true) as we could be quitting
                   break;
               }
           } else {
-              std::cerr << "Failed to send transaction. Error: " << result << std::endl;
+
+              // Unfortunately, cometbft thinks that sending a transaction that it already knows
+              // about is an error, when it isn't -- it just means the job is already done, the
+              // sending of the transaction has been ultimately successful.
+              if (response.contains("result") && response[result].contains("error") && response["result"]["error"].contains("data")) {
+
+                  // TODO/REVIEW: do we actually need to do a string error message match to figure this out
+                  //              instead of e.g. matching an int error code?
+                  if (response["result"]["error"]["data"] == "tx already exists in cache") {
+                    LOGTRACE("Transaction sent successfully. Response: " + result);
+
+                    // Remove the transaction from the queue
+                    std::lock_guard<std::mutex> lock(txOutMutex_);
+                    txOut_.pop_front();
+
+                    // Override error condition below by just continuing the tx pump loop
+                    continue;
+                  }
+              }
+
+              LOGTRACE("Transaction send error. Result: " + result);
               // On any error, always break out of the while (true) as we could be quitting
               break;
           }
