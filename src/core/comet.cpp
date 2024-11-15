@@ -985,11 +985,14 @@ void CometImpl::workerLoopInner() {
         }
     }
 
+    // Check if quitting
+    if (stop_) break;
+
     // Test the RPC connection
     LOGDEBUG("Will connect to cometbft RPC at port: " + std::to_string(rpcPort_));
     int rpcTries = 50; //5s
     bool rpcSuccess = false;
-    while (rpcTries-- > 0) {
+    while (rpcTries-- > 0 && !stop_) {
       // wait first, otherwise 1st connection attempt always fails
       std::this_thread::sleep_for(std::chrono::milliseconds(100));
       if (startRPCConnection()) {
@@ -998,6 +1001,10 @@ void CometImpl::workerLoopInner() {
       }
       LOGDEBUG("Retrying RPC connection: " + std::to_string(rpcTries));
     }
+
+    // Check if quitting
+    if (stop_) break;
+
     if (!rpcSuccess) {
       setError("Can't connect to the cometbft RPC port.");
       // OR, alternatively, this could be a continue; so we retry the whole thing.
@@ -1050,20 +1057,6 @@ void CometImpl::workerLoopInner() {
         //       if it expires or errors out, it is just reinserted in the main queue.
         //       if it succeeds, it is just removed from the in-flight txsend map.
 
-        //  while true
-        //     lock queue
-        //     if empty { unlock queue, break; }
-        //     read tx from front
-        //     unlock queue
-        //     encode tx in base64
-        //     send it via rpc
-        //     wait response
-        //     if response == OK
-        //       lock queue
-        //       pop front
-        //       unlock queue
-        //     }
-        //  }
         Bytes tx;
         while (true) {
           // Lock the queue and check if it's empty
