@@ -220,14 +220,11 @@ void SimpleContract::registerContractFunctions() {
   this->registerMemberFunction("getTuple", &SimpleContract::getTuple, FunctionTypes::View, this);
 }
 
-DBBatch SimpleContract::dump() const
-{
+DBBatch SimpleContract::dump() const {
   DBBatch dbBatch;
-
   dbBatch.push_back(Utils::stringToBytes("name_"), Utils::stringToBytes(this->name_.get()), this->getDBPrefix());
   dbBatch.push_back(Utils::stringToBytes("number_"), UintConv::uint256ToBytes(this->number_.get()), this->getDBPrefix());
   dbBatch.push_back(Utils::stringToBytes("tuple_name"), Utils::stringToBytes(get<0>(this->tuple_)), this->getDBPrefix());
   dbBatch.push_back(Utils::stringToBytes("tuple_number"), UintConv::uint256ToBytes(get<1>(this->tuple_)), this->getDBPrefix());
-
   return dbBatch;
 }

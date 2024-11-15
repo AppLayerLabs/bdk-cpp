@@ -11,6 +11,7 @@ See the LICENSE.txt file in the project root for more information.
 #include "../dynamiccontract.h"
 #include "../variables/safestring.h"
 #include "../variables/safetuple.h"
+#include "../variables/safeuint.h"
 
 /**
  * SimpleContract is a simple contract that stores a name, number and tuple.
@@ -149,8 +150,7 @@ class SimpleContract : public DynamicContract {
     static void registerContract() {
       ContractReflectionInterface::registerContractMethods<
         SimpleContract, const std::string&, const uint256_t&, const std::tuple<std::string, uint256_t>&,
-        const Address&, const Address&, const uint64_t&,
-        DB&
+        const Address&, const Address&, const uint64_t&, const DB&
       >(
         std::vector<std::string>{"name_", "number_", "tuple_"},
         std::make_tuple("setName", &SimpleContract::setName, FunctionTypes::NonPayable, std::vector<std::string>{"argName"}),
