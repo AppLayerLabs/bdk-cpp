@@ -22,7 +22,7 @@ namespace DBPrefix {
   const Bytes contracts =          { 0x00, 0x06 }; ///< "contracts" = "0006"
   const Bytes contractManager =    { 0x00, 0x07 }; ///< "contractManager" = "0007"
   const Bytes events =             { 0x00, 0x08 }; ///< "events" = "0008"
-  const Bytes vmStorage =          { 0x00, 0x09 }; ///< "evmHost" = "0009"
+  const Bytes vmStorage =          { 0x00, 0x09 }; ///< "vmStorage" = "0009"
   const Bytes txToAdditionalData = { 0x00, 0x0A }; ///< "txToAdditionalData" = "000A"
   const Bytes txToCallTrace =      { 0x00, 0x0B }; ///< "txToCallTrace" = "000B"
 };
@@ -275,7 +275,7 @@ class DB {
      */
     std::vector<DBEntry> getBatch(
       const Bytes& bytesPfx, const std::vector<Bytes>& keys = {}
-      ) const;
+    ) const;
 
     /**
      * Get all keys from a given prefix.
