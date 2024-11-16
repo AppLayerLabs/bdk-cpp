@@ -8,19 +8,10 @@ See the LICENSE.txt file in the project root for more information.
 #ifndef UTILS_H
 #define UTILS_H
 
-// TODO: find out where those are coming from
-//#include <atomic>
-//#include <cxxabi.h>
-//#include <string_view>
-//#include <thread>
-
 #include <filesystem>
 #include <fstream>
 #include <regex> // used by jsonrpc/parser.cpp
 
-// TODO: find out where those are coming from
-//#include <boost/lexical_cast.hpp>
-//#include <boost/multiprecision/cpp_dec_float.hpp>
 #include <boost/beast/core/error.hpp>
 #include <boost/asio/ip/address.hpp>
 

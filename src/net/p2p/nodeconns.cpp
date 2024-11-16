@@ -8,9 +8,6 @@ See the LICENSE.txt file in the project root for more information.
 #include "nodeconns.h"
 #include "managernormal.h"
 
-// TODO: find out where this is coming from
-//#include <thread> // std::this_thread::sleep_for
-
 namespace P2P {
   void NodeConns::forceRefresh() {
     // forceRefresh() reduces the interval between a peer node having a TCP connection to us and it appearing

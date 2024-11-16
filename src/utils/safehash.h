@@ -8,8 +8,6 @@ See the LICENSE.txt file in the project root for more information.
 #ifndef HASH_H
 #define HASH_H
 
-//#include <memory> // TODO: probably not used(?)
-
 #include "../libs/wyhash.h"
 
 #include "tx.h" // ecdsa.h -> utils.h -> strings.h, bytes/join.h, boost/asio/ip/address.hpp

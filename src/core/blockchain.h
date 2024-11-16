@@ -8,7 +8,6 @@ See the LICENSE.txt file in the project root for more information.
 #ifndef BLOCKCHAIN_H
 #define BLOCKCHAIN_H
 
-//#include "../net/p2p/managerbase.h" // TODO: find out where this is coming from
 #include "../net/http/httpserver.h"
 
 #include "consensus.h" // state.h -> rdpos.h -> (utils/tx.h -> ecdsa.h -> utils.h -> logger.h), (dump.h -> utils/db.h, storage.h -> options.h)

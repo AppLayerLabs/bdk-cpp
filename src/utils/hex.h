@@ -8,13 +8,6 @@ See the LICENSE.txt file in the project root for more information.
 #ifndef HEX_H
 #define HEX_H
 
-// TODO: find out where those are coming from
-//#include <algorithm>
-//#include <fstream> // dynamicexception.h -> sstream
-//#include <regex>
-//#include <string_view>
-//#include <thread>
-
 #include <boost/multiprecision/cpp_int.hpp>
 
 #include "bytes/view.h" // bytes/ranges.h -> ranges -> span libs/zpp_bits.h -> span

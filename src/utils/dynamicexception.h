@@ -8,11 +8,6 @@ See the LICENSE.txt file in the project root for more information.
 #ifndef DYNAMIC_EXCEPTION_H
 #define DYNAMIC_EXCEPTION_H
 
-// TODO: find out where those are coming from
-//#include <exception>
-//#include <iomanip> // put_time()
-//#include <string>
-
 #include <chrono> // ctime
 #include <sstream> // ostringstream
 

@@ -1,7 +1,12 @@
+/*
+Copyright (c) [2023-2024] [AppLayer Developers]
+
+This software is distributed under the MIT License.
+See the LICENSE.txt file in the project root for more information.
+*/
+
 #ifndef BYTES_INITIALIZER_H
 #define BYTES_INITIALIZER_H
-
-//#include <functional> // TODO: probably not used
 
 #include "view.h" // range.h -> ranges -> concepts
 

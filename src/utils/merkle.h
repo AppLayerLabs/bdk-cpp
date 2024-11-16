@@ -8,11 +8,6 @@ See the LICENSE.txt file in the project root for more information.
 #ifndef MERKLE_H
 #define MERKLE_H
 
-// TODO: find out where those are coming from
-//#include <string>
-//#include <vector>
-
-//#include "safehash.h" // TODO: probably not used
 #include "tx.h" // ecdsa.h -> utils.h -> strings.h, bytes/join.h
 
 /**

@@ -22,7 +22,7 @@ See the LICENSE.txt file in the project root for more information.
  * web3_clientVersion ======================== DONE (RETURNS APPCHAIN SYSTEM SPECIFIC VERSION)
  * web3_sha3 ================================= DONE
  * net_version =============================== DONE (RETURNS APPCHAIN VERSION)
- * net_listening ============================= TODO: WAITING FOR BLOCKCHAIN
+ * net_listening ============================= DONE (hardcoded to true)
  * net_peerCount ============================= DONE
  * eth_protocolVersion ======================= DONE (RETURNS BDK VERSION)
  * eth_getBlockByHash ======================== DONE
@@ -32,8 +32,8 @@ See the LICENSE.txt file in the project root for more information.
  * eth_getUncleCountByBlockHash ============== CAN'T IMPLEMENT, WE ARE NOT DAG (Directed Acyclic Graph)
  * eth_getUncleCountByBlockNumber ============ CAN'T IMPLEMENT, WE ARE NOT DAG (Directed Acyclic Graph)
  * eth_chainId =============================== DONE
- * eth_syncing =============================== TODO: WAITING FOR BLOCKCHAIN
- * eth_coinbase ============================== TODO: WAITING FOR OPTIONS
+ * eth_syncing =============================== DONE (hardcoded to false)
+ * eth_coinbase ============================== DONE
  * eth_accounts ============================== NOT IMPLEMENTED: NODE IS NOT A WALLET
  * eth_blockNumber =========================== DONE
  * eth_call ================================== DONE
@@ -41,7 +41,7 @@ See the LICENSE.txt file in the project root for more information.
  * eth_createAccessList ====================== NOT IMPLEMENTED: NOT SUPPORTED BY THE BLOCKCHAIN, WE ARE NOT AN EVM
  * eth_gasPrice ============================== DONE
  * eth_maxPriorityFeePerGas ================== TODO: IMPLEMENT THIS
- * eth_feeHistory ============================ TODO: IMPLEMENT THIS, SEE https://docs.alchemy.com/reference/eth-feehistory
+ * eth_feeHistory ============================ DONE - see https://docs.alchemy.com/reference/eth-feehistory
  * eth_newFilter ============================= NOT IMPLEMENTED: WE DON'T SUPPORT FILTERS (FOR NOW)
  * eth_newBlockFilter ======================== NOT IMPLEMENTED: WE DON'T SUPPORT FILTERS (FOR NOW)
  * eth_newPendingTransactionFilter =========== NOT IMPLEMENTED: WE DON'T SUPPORT FILTERS (FOR NOW)

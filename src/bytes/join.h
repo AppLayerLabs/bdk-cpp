@@ -1,7 +1,12 @@
+/*
+Copyright (c) [2023-2024] [AppLayer Developers]
+
+This software is distributed under the MIT License.
+See the LICENSE.txt file in the project root for more information.
+*/
+
 #ifndef BYTES_JOIN_H
 #define BYTES_JOIN_H
-
-//#include "utils/dynamicexception.h" // TODO: probably not used
 
 #include "initializer.h" // view.h -> range.h
 

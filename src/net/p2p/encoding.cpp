@@ -111,7 +111,6 @@ namespace P2P {
     return txs;
   }
 
-  // TODO: This duplication is pointless, make it into one template or get rid of it.
   template<typename TxType>
   void txsToMessage(Bytes& message, const boost::unordered_flat_map<Hash, TxType, SafeHash>& txs) {
     for (const auto& [txHash, tx] : txs) {
@@ -191,7 +190,7 @@ namespace P2P {
   }
 
   Message RequestEncoder::ping() {
-    const Bytes& id = Utils::randBytes(8); // TODO: const& prevents AddressSanitizer, this shouldn't be happening
+    const Bytes& id = Utils::randBytes(8);
     return Message(Utils::makeBytes(bytes::join(
       getRequestTypePrefix(Requesting), id, getCommandPrefix(Ping)
     )));
@@ -210,28 +209,28 @@ namespace P2P {
   }
 
   Message RequestEncoder::requestNodes() {
-    const Bytes& id = Utils::randBytes(8); // TODO: const& prevents AddressSanitizer, this shouldn't be happening
+    const Bytes& id = Utils::randBytes(8);
     return Message(Utils::makeBytes(bytes::join(
       getRequestTypePrefix(Requesting), id, getCommandPrefix(RequestNodes)
     )));
   }
 
   Message RequestEncoder::requestValidatorTxs() {
-    const Bytes& id = Utils::randBytes(8); // TODO: const& prevents AddressSanitizer, this shouldn't be happening
+    const Bytes& id = Utils::randBytes(8);
     return Message(Utils::makeBytes(bytes::join(
       getRequestTypePrefix(Requesting), id, getCommandPrefix(RequestValidatorTxs)
     )));
   }
 
   Message RequestEncoder::requestTxs() {
-    const Bytes& id = Utils::randBytes(8); // TODO: const& prevents AddressSanitizer, this shouldn't be happening
+    const Bytes& id = Utils::randBytes(8);
     return Message(Utils::makeBytes(bytes::join(
       getRequestTypePrefix(Requesting), id, getCommandPrefix(RequestTxs)
     )));
   }
 
   Message RequestEncoder::requestBlock(uint64_t height, uint64_t heightEnd, uint64_t bytesLimit) {
-    const Bytes& id = Utils::randBytes(8); // TODO: const& prevents AddressSanitizer, this shouldn't be happening
+    const Bytes& id = Utils::randBytes(8);
     return Message(Utils::makeBytes(bytes::join(
       getRequestTypePrefix(Requesting), id, getCommandPrefix(RequestBlock),
       UintConv::uint64ToBytes(height), UintConv::uint64ToBytes(heightEnd), UintConv::uint64ToBytes(bytesLimit)
@@ -378,7 +377,7 @@ namespace P2P {
 
   Message BroadcastEncoder::broadcastValidatorTx(const TxValidator& tx) {
     // We need to use std::hash because hashing with SafeHash will always be different between nodes
-    const Bytes& serializedTx = tx.rlpSerialize(); // TODO: const& prevents AddressSanitizer, this shouldn't be happening
+    const Bytes& serializedTx = tx.rlpSerialize();
     return Message(Utils::makeBytes(bytes::join(
       getRequestTypePrefix(Broadcasting),
       UintConv::uint64ToBytes(FNVHash()(serializedTx)),
@@ -389,7 +388,7 @@ namespace P2P {
 
   Message BroadcastEncoder::broadcastTx(const TxBlock& tx) {
     // We need to use std::hash because hashing with SafeHash will always be different between nodes
-    const Bytes& serializedTx = tx.rlpSerialize(); // TODO: const& prevents AddressSanitizer, this shouldn't be happening
+    const Bytes& serializedTx = tx.rlpSerialize();
     return Message(Utils::makeBytes(bytes::join(
       getRequestTypePrefix(Broadcasting),
       UintConv::uint64ToBytes(FNVHash()(serializedTx)),
@@ -400,7 +399,7 @@ namespace P2P {
 
   Message BroadcastEncoder::broadcastBlock(const std::shared_ptr<const FinalizedBlock>& block) {
     // We need to use std::hash because hashing with SafeHash will always be different between nodes
-    const Bytes& serializedBlock = block->serializeBlock(); // TODO: const& prevents AddressSanitizer, this shouldn't be happening
+    const Bytes& serializedBlock = block->serializeBlock();
     return Message(Utils::makeBytes(bytes::join(
       getRequestTypePrefix(Broadcasting),
       UintConv::uint64ToBytes(FNVHash()(serializedBlock)),
