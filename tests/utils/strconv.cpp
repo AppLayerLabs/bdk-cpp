@@ -52,6 +52,24 @@ namespace TUtils {
       std::string expectedOutputStr = "ABCDEF";
       REQUIRE_THAT(outputStr, Equals(expectedOutputStr));
     }
+
+    SECTION("bytesToString Test") {
+      Bytes b1 = Bytes{0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37};
+      Bytes b2 = Bytes{0x30, 0x42, 0x34, 0x48, 0x52, 0x36, 0x33, 0x39};
+      std::string s1 = StrConv::bytesToString(b1);
+      std::string s2 = StrConv::bytesToString(b2);
+      REQUIRE_THAT(s1, Equals("01234567"));
+      REQUIRE_THAT(s2, Equals("0B4HR639"));
+    }
+
+    SECTION("stringToBytes Test") {
+      std::string s1 = "01234567";
+      std::string s2 = "0B4HR639";
+      Bytes b1 = StrConv::stringToBytes(s1);
+      Bytes b2 = StrConv::stringToBytes(s2);
+      REQUIRE(b1 == Bytes{0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37});
+      REQUIRE(b2 == Bytes{0x30, 0x42, 0x34, 0x48, 0x52, 0x36, 0x33, 0x39});
+    }
   }
 }
 

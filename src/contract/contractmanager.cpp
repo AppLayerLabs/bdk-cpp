@@ -23,7 +23,7 @@ ContractManager::ContractManager(
   for (const DBEntry& contract : db.getBatch(DBPrefix::contractManager)) {
     Address address(contract.key);
     if (!this->loadFromDB<ContractTypes>(contract, address, db)) {
-      throw DynamicException("Unknown contract: " + Utils::bytesToString(contract.value));
+      throw DynamicException("Unknown contract: " + StrConv::bytesToString(contract.value));
     }
   }
   manager.pushBack(this);
@@ -38,7 +38,7 @@ DBBatch ContractManager::dump() const {
     if (typeid(*contract) == typeid(rdPoS)) continue;
     contractsBatch.push_back(
       Bytes(address.asBytes()),
-      Utils::stringToBytes(contract->getContractName()),
+      StrConv::stringToBytes(contract->getContractName()),
       DBPrefix::contractManager
     );
   }

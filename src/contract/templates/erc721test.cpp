@@ -8,6 +8,7 @@ See the LICENSE.txt file in the project root for more information.
 #include "erc721test.h"
 
 #include "../../utils/uintconv.h"
+#include "../../utils/strconv.h"
 
 ERC721Test::ERC721Test(const Address &address, const DB& db)
 :  DynamicContract(address, db),
@@ -49,9 +50,9 @@ ERC721Test::ERC721Test(
 
 DBBatch ERC721Test::dump() const {
   DBBatch batch = ERC721::dump();
-  batch.push_back(Utils::stringToBytes("tokenIdCounter_"), UintConv::uint64ToBytes(this->tokenIdCounter_.get()), this->getDBPrefix());
-  batch.push_back(Utils::stringToBytes("maxTokens_"), UintConv::uint64ToBytes(this->maxTokens_.get()), this->getDBPrefix());
-  batch.push_back(Utils::stringToBytes("totalSupply_"), UintConv::uint64ToBytes(this->totalSupply_.get()), this->getDBPrefix());
+  batch.push_back(StrConv::stringToBytes("tokenIdCounter_"), UintConv::uint64ToBytes(this->tokenIdCounter_.get()), this->getDBPrefix());
+  batch.push_back(StrConv::stringToBytes("maxTokens_"), UintConv::uint64ToBytes(this->maxTokens_.get()), this->getDBPrefix());
+  batch.push_back(StrConv::stringToBytes("totalSupply_"), UintConv::uint64ToBytes(this->totalSupply_.get()), this->getDBPrefix());
   return batch;
 }
 

@@ -7,12 +7,14 @@ See the LICENSE.txt file in the project root for more information.
 
 #include "erc721.h"
 
+#include "../../utils/strconv.h"
+
 ERC721::ERC721(const Address& address, const DB& db
 ) : DynamicContract(address, db), name_(this), symbol_(this),
   owners_(this), balances_(this), tokenApprovals_(this), operatorAddressApprovals_(this)
 {
-  this->name_ = Utils::bytesToString(db.get(std::string("name_"), this->getDBPrefix()));
-  this->symbol_ = Utils::bytesToString(db.get(std::string("symbol_"), this->getDBPrefix()));
+  this->name_ = StrConv::bytesToString(db.get(std::string("name_"), this->getDBPrefix()));
+  this->symbol_ = StrConv::bytesToString(db.get(std::string("symbol_"), this->getDBPrefix()));
   for (const auto& dbEntry : db.getBatch(this->getNewPrefix("owners_"))) {
     bytes::View valueView(dbEntry.value);
     this->owners_[Utils::fromBigEndian<uint64_t>(dbEntry.key)] = Address(valueView.subspan(0, 20));
@@ -266,12 +268,12 @@ void ERC721::transferFrom(const Address& from, const Address& to, const uint256_
 DBBatch ERC721::dump() const {
   DBBatch dbBatch = BaseContract::dump();
   boost::unordered_flat_map<std::string, Bytes> data {
-      {"name_",  Utils::stringToBytes(name_.get())},
-      {"symbol_", Utils::stringToBytes(symbol_.get())}
+      {"name_",  StrConv::stringToBytes(name_.get())},
+      {"symbol_", StrConv::stringToBytes(symbol_.get())}
   };
 
   for (auto it = data.cbegin(); it != data.cend(); ++it) {
-    dbBatch.push_back(Utils::stringToBytes(it->first),
+    dbBatch.push_back(StrConv::stringToBytes(it->first),
                       it->second,
                       this->getDBPrefix());
   }

@@ -9,13 +9,15 @@ See the LICENSE.txt file in the project root for more information.
 
 #include "../../src/utils/utils.h" // (strings.h -> hex.h), (bytes/join.h -> bytes/range.h -> bytes/view.h)
 
+#include "../../src/utils/strconv.h"
+
 using Catch::Matchers::Equals;
 
 namespace TUtils {
   TEST_CASE("Utils Namespace", "[utils][utilsitself]") {
     SECTION("Sha3 Test") {
       std::string sha3Input = "My SHA3 Input";
-      auto sha3Output = Utils::sha3(Utils::stringToBytes(sha3Input));
+      auto sha3Output = Utils::sha3(StrConv::stringToBytes(sha3Input));
       Bytes sha3ExpectedOutput = Bytes{0x10, 0x11, 0x40, 0xd6, 0xe7, 0x50, 0x6f, 0x80, 0x4c, 0xf7, 0xb0, 0x37, 0x0f, 0xa9, 0x0b, 0x04, 0xc5, 0xe9, 0x37, 0x4d, 0xdb, 0x0c, 0x8c, 0xbe, 0x12, 0xaf, 0x15, 0x0c, 0x8f, 0xf3, 0xee, 0x36};
       REQUIRE(sha3Output == Hash(sha3ExpectedOutput));
     }
@@ -54,24 +56,6 @@ namespace TUtils {
       Bytes res = Bytes{0x78, 0xF0, 0xB2, 0x91, 0xAC, 0x26, 0x0E, 0x43};
       Utils::appendBytes(int1, int2);
       REQUIRE(int1 == res);
-    }
-
-    SECTION("bytesToString Test") {
-      Bytes b1 = Bytes{0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37};
-      Bytes b2 = Bytes{0x30, 0x42, 0x34, 0x48, 0x52, 0x36, 0x33, 0x39};
-      std::string s1 = Utils::bytesToString(b1);
-      std::string s2 = Utils::bytesToString(b2);
-      REQUIRE_THAT(s1, Equals("01234567"));
-      REQUIRE_THAT(s2, Equals("0B4HR639"));
-    }
-
-    SECTION("stringToBytes Test") {
-      std::string s1 = "01234567";
-      std::string s2 = "0B4HR639";
-      Bytes b1 = Utils::stringToBytes(s1);
-      Bytes b2 = Utils::stringToBytes(s2);
-      REQUIRE(b1 == Bytes{0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37});
-      REQUIRE(b2 == Bytes{0x30, 0x42, 0x34, 0x48, 0x52, 0x36, 0x33, 0x39});
     }
   }
 }

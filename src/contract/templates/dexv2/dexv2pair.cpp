@@ -9,6 +9,7 @@ See the LICENSE.txt file in the project root for more information.
 #include "dexv2factory.h"
 
 #include "../../../utils/uintconv.h"
+#include "../../../utils/strconv.h"
 
 DEXV2Pair::DEXV2Pair(const Address& address, const DB& db
 ) : ERC20(address, db), factory_(this), token0_(this), token1_(this),
@@ -254,20 +255,17 @@ void DEXV2Pair::sync() {
 }
 
 
-DBBatch DEXV2Pair::dump() const
-{
+DBBatch DEXV2Pair::dump() const {
   DBBatch dbBatch = BaseContract::dump();
-
-  dbBatch.push_back(Utils::stringToBytes("factory_"), this->factory_.get().view(), this->getDBPrefix());
-  dbBatch.push_back(Utils::stringToBytes("token0_"), this->token0_.get().view(), this->getDBPrefix());
-  dbBatch.push_back(Utils::stringToBytes("token1_"), this->token1_.get().view(), this->getDBPrefix());
-  dbBatch.push_back(Utils::stringToBytes("reserve0_"), UintConv::uint112ToBytes(this->reserve0_.get()), this->getDBPrefix());
-  dbBatch.push_back(Utils::stringToBytes("reserve1_"), UintConv::uint112ToBytes(this->reserve1_.get()), this->getDBPrefix());
-  dbBatch.push_back(Utils::stringToBytes("blockTimestampLast_"), UintConv::uint32ToBytes(this->blockTimestampLast_.get()), this->getDBPrefix());
-  dbBatch.push_back(Utils::stringToBytes("price0CumulativeLast_"), UintConv::uint256ToBytes(this->price0CumulativeLast_.get()), this->getDBPrefix());
-  dbBatch.push_back(Utils::stringToBytes("price1CumulativeLast_"), UintConv::uint256ToBytes(this->price1CumulativeLast_.get()), this->getDBPrefix());
-  dbBatch.push_back(Utils::stringToBytes("kLast_"), UintConv::uint256ToBytes(this->kLast_.get()), this->getDBPrefix());
-
+  dbBatch.push_back(StrConv::stringToBytes("factory_"), this->factory_.get().view(), this->getDBPrefix());
+  dbBatch.push_back(StrConv::stringToBytes("token0_"), this->token0_.get().view(), this->getDBPrefix());
+  dbBatch.push_back(StrConv::stringToBytes("token1_"), this->token1_.get().view(), this->getDBPrefix());
+  dbBatch.push_back(StrConv::stringToBytes("reserve0_"), UintConv::uint112ToBytes(this->reserve0_.get()), this->getDBPrefix());
+  dbBatch.push_back(StrConv::stringToBytes("reserve1_"), UintConv::uint112ToBytes(this->reserve1_.get()), this->getDBPrefix());
+  dbBatch.push_back(StrConv::stringToBytes("blockTimestampLast_"), UintConv::uint32ToBytes(this->blockTimestampLast_.get()), this->getDBPrefix());
+  dbBatch.push_back(StrConv::stringToBytes("price0CumulativeLast_"), UintConv::uint256ToBytes(this->price0CumulativeLast_.get()), this->getDBPrefix());
+  dbBatch.push_back(StrConv::stringToBytes("price1CumulativeLast_"), UintConv::uint256ToBytes(this->price1CumulativeLast_.get()), this->getDBPrefix());
+  dbBatch.push_back(StrConv::stringToBytes("kLast_"), UintConv::uint256ToBytes(this->kLast_.get()), this->getDBPrefix());
   return dbBatch;
 }
 

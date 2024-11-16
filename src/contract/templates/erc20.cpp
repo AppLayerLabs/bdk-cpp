@@ -8,13 +8,14 @@ See the LICENSE.txt file in the project root for more information.
 #include "erc20.h"
 
 #include "../../utils/uintconv.h"
+#include "../../utils/strconv.h"
 
 ERC20::ERC20(const Address& address, const DB& db)
 : DynamicContract(address, db), name_(this), symbol_(this), decimals_(this),
   totalSupply_(this), balances_(this), allowed_(this)
 {
-  this->name_ = Utils::bytesToString(db.get(std::string("name_"), this->getDBPrefix()));
-  this->symbol_ = Utils::bytesToString(db.get(std::string("symbol_"), this->getDBPrefix()));
+  this->name_ = StrConv::bytesToString(db.get(std::string("name_"), this->getDBPrefix()));
+  this->symbol_ = StrConv::bytesToString(db.get(std::string("symbol_"), this->getDBPrefix()));
   this->decimals_ = UintConv::bytesToUint8(db.get(std::string("decimals_"), this->getDBPrefix()));
   this->totalSupply_ = UintConv::bytesToUint256(db.get(std::string("totalSupply_"), this->getDBPrefix()));
   for (const auto& dbEntry : db.getBatch(this->getNewPrefix("balances_"))) {
@@ -171,10 +172,10 @@ DBBatch ERC20::dump() const
   DBBatch dbBatch = BaseContract::dump();
 
   // Name, Symbol, Decimals, Total Supply
-  dbBatch.push_back(Utils::stringToBytes("name_"), Utils::stringToBytes(name_.get()), this->getDBPrefix());
-  dbBatch.push_back(Utils::stringToBytes("symbol_"), Utils::stringToBytes(symbol_.get()), this->getDBPrefix());
-  dbBatch.push_back(Utils::stringToBytes("decimals_"), UintConv::uint8ToBytes(decimals_.get()), this->getDBPrefix());
-  dbBatch.push_back(Utils::stringToBytes("totalSupply_"), UintConv::uint256ToBytes(totalSupply_.get()), this->getDBPrefix());
+  dbBatch.push_back(StrConv::stringToBytes("name_"), StrConv::stringToBytes(name_.get()), this->getDBPrefix());
+  dbBatch.push_back(StrConv::stringToBytes("symbol_"), StrConv::stringToBytes(symbol_.get()), this->getDBPrefix());
+  dbBatch.push_back(StrConv::stringToBytes("decimals_"), UintConv::uint8ToBytes(decimals_.get()), this->getDBPrefix());
+  dbBatch.push_back(StrConv::stringToBytes("totalSupply_"), UintConv::uint256ToBytes(totalSupply_.get()), this->getDBPrefix());
   // Balances
   for (auto it = balances_.cbegin(); it != balances_.cend(); ++it) {
     const auto& key = it->first;

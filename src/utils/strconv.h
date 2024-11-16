@@ -68,6 +68,24 @@ namespace StrConv {
    * @param str The string to convert.
    */
   void toUpper(std::string& str);
+
+  /**
+   * Convert a given bytes vector/array to a string.
+   * Each byte is properly converted to its respective ASCII char value.
+   * @tparam T Can be either std::vector, std::span, or std::array.
+   * @return The converted bytes as a string.
+   */
+  template<typename T> inline std::string bytesToString(const T& bytes) {
+    return std::string(bytes.cbegin(), bytes.cend());
+  }
+
+  /**
+   * Convert a given string to a bytes vector.
+   * Each ASCII char is properly converted to its respective byte value.
+   * @param str The string to convert.
+   * @return The converted string as a bytes vector.
+   */
+  inline Bytes stringToBytes(std::string_view str) { return Bytes(str.cbegin(), str.cend()); }
 };
 
 #endif  // STRCONV_H

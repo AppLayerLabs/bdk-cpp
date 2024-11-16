@@ -12,6 +12,8 @@ See the LICENSE.txt file in the project root for more information.
 
 #include "contract.h" // core/dump.h -> utils/db.h
 
+#include "../utils/strconv.h"
+
 /**
  * Class that holds all current contract instances in the blockchain state.
  * Responsible for creating and deploying contracts in the chain.
@@ -75,7 +77,7 @@ class ContractManager : public BaseContract {
     bool loadFromDBT(const auto& contract, const Address& contractAddress, const DB& db) {
       // Here we disable this template when T is a tuple
       static_assert(!Utils::is_tuple<T>::value, "Must not be a tuple");
-      if (Utils::bytesToString(contract.value) == Utils::getRealTypeName<T>()) {
+      if (StrConv::bytesToString(contract.value) == Utils::getRealTypeName<T>()) {
         this->contracts_.insert(std::make_pair(
           contractAddress, std::make_unique<T>(contractAddress, db)
         ));

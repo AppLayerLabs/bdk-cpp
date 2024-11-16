@@ -8,6 +8,7 @@ See the LICENSE.txt file in the project root for more information.
 #include "randomnesstest.h"
 
 #include "../../utils/uintconv.h"
+#include "../../utils/strconv.h"
 
 RandomnessTest::RandomnessTest(const Address& address,
   const Address& creator, const uint64_t& chainId
@@ -44,7 +45,7 @@ uint256_t RandomnessTest::getRandom() const {
 
 DBBatch RandomnessTest::dump() const {
   DBBatch dbBatch = BaseContract::dump();
-  dbBatch.push_back(Utils::stringToBytes("randomValue_"), UintConv::uint256ToBytes(randomValue_.get()), this->getDBPrefix());
+  dbBatch.push_back(StrConv::stringToBytes("randomValue_"), UintConv::uint256ToBytes(randomValue_.get()), this->getDBPrefix());
   return dbBatch;
 }
 

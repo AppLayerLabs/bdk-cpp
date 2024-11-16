@@ -10,6 +10,9 @@ See the LICENSE.txt file in the project root for more information.
 
 #include "../core/dump.h" // core/storage.h, utils/db.h -> utils.h -> strings.h, libs/json.hpp -> cstdint, memory, string, tuple
 
+#include "../utils/uintconv.h"
+#include "../utils/strconv.h"
+
 // Forward declarations.
 class ContractHost;
 class State;
@@ -88,10 +91,10 @@ class BaseContract : public ContractLocals, public Dumpable {
 
     DBBatch dump() const override {
       DBBatch batch;
-      batch.push_back(Utils::stringToBytes("contractName_"), Utils::stringToBytes(contractName_), this->getDBPrefix());
-      batch.push_back(Utils::stringToBytes("contractAddress_"), contractAddress_, this->getDBPrefix());
-      batch.push_back(Utils::stringToBytes("contractCreator_"), contractCreator_, this->getDBPrefix());
-      batch.push_back(Utils::stringToBytes("contractChainId_"), UintConv::uint64ToBytes(contractChainId_), this->getDBPrefix());
+      batch.push_back(StrConv::stringToBytes("contractName_"), StrConv::stringToBytes(contractName_), this->getDBPrefix());
+      batch.push_back(StrConv::stringToBytes("contractAddress_"), contractAddress_, this->getDBPrefix());
+      batch.push_back(StrConv::stringToBytes("contractCreator_"), contractCreator_, this->getDBPrefix());
+      batch.push_back(StrConv::stringToBytes("contractChainId_"), UintConv::uint64ToBytes(contractChainId_), this->getDBPrefix());
       return batch;
     }
 
@@ -109,7 +112,7 @@ class BaseContract : public ContractLocals, public Dumpable {
        return prefix;
       }()),
       contractName_([&]() {
-       return Utils::bytesToString(db.get(std::string("contractName_"), dbPrefix_));
+       return StrConv::bytesToString(db.get(std::string("contractName_"), dbPrefix_));
       }()),
       contractCreator_([&]() {
        return Address(db.get(std::string("contractCreator_"), dbPrefix_));

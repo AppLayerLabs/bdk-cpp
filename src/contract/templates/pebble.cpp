@@ -10,6 +10,7 @@ See the LICENSE.txt file in the project root for more information.
 #include "../variables/reentrancyguard.h"
 
 #include "../../utils/uintconv.h"
+#include "../../utils/strconv.h"
 
 Pebble::Pebble(const Address& address, const DB& db)
   : DynamicContract(address, db), ERC721(address, db), ERC721URIStorage(address, db), Ownable(address, db),
@@ -117,21 +118,21 @@ DBBatch Pebble::dump() const {
     batch.delete_key(dbItem);
   }
   // Then, dump the contents of this class.
-  batch.push_back(Utils::stringToBytes("maxSupply_"), UintConv::uint256ToBytes(this->maxSupply_.get()), this->getDBPrefix());
-  batch.push_back(Utils::stringToBytes("tokenIds_"), UintConv::uint256ToBytes(this->tokenIds_.get()), this->getDBPrefix());
-  batch.push_back(Utils::stringToBytes("totalNormal_"), UintConv::uint64ToBytes(this->totalNormal_.get()), this->getDBPrefix());
-  batch.push_back(Utils::stringToBytes("totalGold_"), UintConv::uint64ToBytes(this->totalGold_.get()), this->getDBPrefix());
-  batch.push_back(Utils::stringToBytes("totalDiamond_"), UintConv::uint64ToBytes(this->totalDiamond_.get()), this->getDBPrefix());
-  batch.push_back(Utils::stringToBytes("raritySeed_"), UintConv::uint256ToBytes(this->raritySeed_.get()), this->getDBPrefix());
-  batch.push_back(Utils::stringToBytes("diamondRarity_"), UintConv::uint256ToBytes(this->diamondRarity_.get()), this->getDBPrefix());
-  batch.push_back(Utils::stringToBytes("goldRarity_"), UintConv::uint256ToBytes(this->goldRarity_.get()), this->getDBPrefix());
+  batch.push_back(StrConv::stringToBytes("maxSupply_"), UintConv::uint256ToBytes(this->maxSupply_.get()), this->getDBPrefix());
+  batch.push_back(StrConv::stringToBytes("tokenIds_"), UintConv::uint256ToBytes(this->tokenIds_.get()), this->getDBPrefix());
+  batch.push_back(StrConv::stringToBytes("totalNormal_"), UintConv::uint64ToBytes(this->totalNormal_.get()), this->getDBPrefix());
+  batch.push_back(StrConv::stringToBytes("totalGold_"), UintConv::uint64ToBytes(this->totalGold_.get()), this->getDBPrefix());
+  batch.push_back(StrConv::stringToBytes("totalDiamond_"), UintConv::uint64ToBytes(this->totalDiamond_.get()), this->getDBPrefix());
+  batch.push_back(StrConv::stringToBytes("raritySeed_"), UintConv::uint256ToBytes(this->raritySeed_.get()), this->getDBPrefix());
+  batch.push_back(StrConv::stringToBytes("diamondRarity_"), UintConv::uint256ToBytes(this->diamondRarity_.get()), this->getDBPrefix());
+  batch.push_back(StrConv::stringToBytes("goldRarity_"), UintConv::uint256ToBytes(this->goldRarity_.get()), this->getDBPrefix());
   for (auto it = this->tokenRarity_.cbegin(); it != this->tokenRarity_.cend(); ++it) {
     batch.push_back(UintConv::uint256ToBytes(it->first), UintConv::uint8ToBytes(static_cast<uint8_t>(it->second)), this->getNewPrefix("tokenRarity_"));
   }
   for (auto it = this->minters_.cbegin(); it != this->minters_.cend(); ++it) {
     batch.push_back(it->first.asBytes(), UintConv::uint8ToBytes(static_cast<uint8_t>(it->second)), this->getNewPrefix("minters_"));
   }
-  batch.push_back(Utils::stringToBytes("authorized_"), this->authorizer_.get().asBytes(), this->getDBPrefix());
+  batch.push_back(StrConv::stringToBytes("authorized_"), this->authorizer_.get().asBytes(), this->getDBPrefix());
   return batch;
 }
 

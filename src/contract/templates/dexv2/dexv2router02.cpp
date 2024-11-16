@@ -5,17 +5,21 @@ This software is distributed under the MIT License.
 See the LICENSE.txt file in the project root for more information.
 */
 
+#include <sys/types.h>
+
 #include "dexv2router02.h"
 #include "dexv2factory.h"
 #include "dexv2pair.h"
+
 #include "../nativewrapper.h"
-#include <sys/types.h>
+
+#include "../../../utils/strconv.h"
 
 DEXV2Router02::DEXV2Router02(const Address &address, const DB& db
 ) : DynamicContract(address, db), factory_(this), wrappedNative_(this)
 {
-  this->factory_ = Address(db.get(Utils::stringToBytes("factory_"), this->getDBPrefix()));
-  this->wrappedNative_ = Address(db.get(Utils::stringToBytes("wrappedNative_"), this->getDBPrefix()));
+  this->factory_ = Address(db.get(StrConv::stringToBytes("factory_"), this->getDBPrefix()));
+  this->wrappedNative_ = Address(db.get(StrConv::stringToBytes("wrappedNative_"), this->getDBPrefix()));
 
   this->factory_.commit();
   this->wrappedNative_.commit();
@@ -366,8 +370,8 @@ DBBatch DEXV2Router02::dump() const
 {
   DBBatch dbBatch = BaseContract::dump();
 
-  dbBatch.push_back(Utils::stringToBytes("factory_"), this->factory_.get().view(), this->getDBPrefix());
-  dbBatch.push_back(Utils::stringToBytes("wrappedNative_"), this->wrappedNative_.get().view(), this->getDBPrefix());
+  dbBatch.push_back(StrConv::stringToBytes("factory_"), this->factory_.get().view(), this->getDBPrefix());
+  dbBatch.push_back(StrConv::stringToBytes("wrappedNative_"), this->wrappedNative_.get().view(), this->getDBPrefix());
 
   return dbBatch;
 }

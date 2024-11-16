@@ -7,6 +7,7 @@ See the LICENSE.txt file in the project root for more information.
 
 #include "storage.h"
 
+#include "../utils/strconv.h"
 #include "../utils/uintconv.h"
 
 static bool topicsMatch(const Event& event, const std::vector<Hash>& topics) {
@@ -221,7 +222,7 @@ void Storage::putEvent(const Event& event) {
     UintConv::uint64ToBytes(event.getLogIndex()),
     event.getAddress()
   ));
-  eventsDb_.put(key, Utils::stringToBytes(event.serializeToJson()), DBPrefix::events);
+  eventsDb_.put(key, StrConv::stringToBytes(event.serializeToJson()), DBPrefix::events);
 }
 
 std::vector<Event> Storage::getEvents(uint64_t fromBlock, uint64_t toBlock, const Address& address, const std::vector<Hash>& topics) const {
@@ -249,7 +250,7 @@ std::vector<Event> Storage::getEvents(uint64_t fromBlock, uint64_t toBlock, cons
 
   for (DBEntry item : eventsDb_.getBatch(DBPrefix::events, keys)) {
     if (events.size() >= options_.getEventLogCap()) break;
-    Event event(Utils::bytesToString(item.value));
+    Event event(StrConv::bytesToString(item.value));
     if (topicsMatch(event, topics)) events.push_back(std::move(event));
   }
   return events;
@@ -264,7 +265,7 @@ std::vector<Event> Storage::getEvents(uint64_t blockIndex, uint64_t txIndex) con
     DBEntry entry : eventsDb_.getBatch(fetchBytes)
   ) {
     if (events.size() >= options_.getEventLogCap()) break;
-    events.emplace_back(Utils::bytesToString(entry.value));
+    events.emplace_back(StrConv::bytesToString(entry.value));
   }
   return events;
 }

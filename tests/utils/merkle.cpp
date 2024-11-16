@@ -9,16 +9,18 @@ See the LICENSE.txt file in the project root for more information.
 
 #include "../../src/utils/merkle.h" // tx.h
 
+#include "../../src/utils/strconv.h"
+
 using Catch::Matchers::Equals;
 
 namespace TMerkle {
   TEST_CASE("Merkle Tests", "[utils][merkle]") {
     SECTION("Simple Merkle Tree") {
       std::vector<Bytes> unhashedLeafs = {
-        Utils::stringToBytes("ab"), Utils::stringToBytes("bc"), Utils::stringToBytes("cd"),
-        Utils::stringToBytes("de"), Utils::stringToBytes("ef"), Utils::stringToBytes("fg"),
-        Utils::stringToBytes("gh"), Utils::stringToBytes("hi"), Utils::stringToBytes("ij"),
-        Utils::stringToBytes("jk"), Utils::stringToBytes("km"), Utils::stringToBytes("mn")
+        StrConv::stringToBytes("ab"), StrConv::stringToBytes("bc"), StrConv::stringToBytes("cd"),
+        StrConv::stringToBytes("de"), StrConv::stringToBytes("ef"), StrConv::stringToBytes("fg"),
+        StrConv::stringToBytes("gh"), StrConv::stringToBytes("hi"), StrConv::stringToBytes("ij"),
+        StrConv::stringToBytes("jk"), StrConv::stringToBytes("km"), StrConv::stringToBytes("mn")
       };
       std::vector<Hash> hashedLeafs;
       for(const Bytes& leaf : unhashedLeafs) hashedLeafs.emplace_back(Utils::sha3(leaf));
