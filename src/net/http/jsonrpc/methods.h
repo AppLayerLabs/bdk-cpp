@@ -10,7 +10,11 @@ See the LICENSE.txt file in the project root for more information.
 
 #include "../../../libs/json.hpp" // Makes no difference but it should be here regardless
 
+#include "../../../core/state.h" // dump.h -> utils/db.h, storage.h
+
 #include "../../p2p/managernormal.h"
+
+#include "error.h"
 
 /**
  * Namespace with all known methods for Ethereum's JSON-RPC.

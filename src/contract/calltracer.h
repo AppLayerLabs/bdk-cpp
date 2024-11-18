@@ -32,18 +32,6 @@ std::string decodeRevertReason(bytes::View data);
 /// Enum for the call's status.
 enum class Status { SUCCEEDED, EXECUTION_REVERTED, OUT_OF_GAS };
 
-/**
- * Get the respective call type from a given message.
- * @param msg The message to parse.
- * @return The call type.
- */
-static Call::Type getCallType(const evmc_message& msg) {
-  using enum Call::Type;
-  if (msg.kind == EVMC_CALL) return (msg.flags == EVMC_STATIC) ? STATICCALL : CALL;
-  if (msg.kind == EVMC_DELEGATECALL) return DELEGATECALL;
-  throw DynamicException("evmc_message is not from a function call");
-}
-
 /// Abstraction of a contract call.
 struct Call {
   using serialize = zpp::bits::members<10>; ///< Typedef for the serialization struct.
@@ -72,6 +60,18 @@ struct Call {
 
   json toJson() const; ///< Serialize the call data to a JSON object.
 };
+
+/**
+ * Get the respective call type from a given message.
+ * @param msg The message to parse.
+ * @return The call type.
+ */
+static Call::Type getCallType(const evmc_message& msg) {
+  using enum Call::Type;
+  if (msg.kind == EVMC_CALL) return (msg.flags == EVMC_STATIC) ? STATICCALL : CALL;
+  if (msg.kind == EVMC_DELEGATECALL) return DELEGATECALL;
+  throw DynamicException("evmc_message is not from a function call");
+}
 
 /// Abstraction of a contract call tracer.
 class CallTracer {

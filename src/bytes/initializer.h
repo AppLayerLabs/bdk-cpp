@@ -13,10 +13,10 @@ See the LICENSE.txt file in the project root for more information.
 /// Namespace for bytes-related functionalities.
 namespace bytes {
   /// The concept of an initializer. It should be able to initialize any sized span of bytes.
-  template<typename T> concept Initializer = requires (const T& a) { a.to(std::declval<Span>()); };
+  template <typename T> concept Initializer = requires (const T& a) { a.to(std::declval<Span>()); };
 
   /// The concept of an initializer with a specific size target. It should be able to only initialize a fixed-size span of bytes.
-  templati<typename T> concept SizedInitializer = Initializer<T> && requires (const T& a) {
+  template <typename T> concept SizedInitializer = Initializer<T> && requires (const T& a) {
     a.to(std::declval<Byte*>());
     { a.size() } -> std::convertible_to<std::size_t>;
   };

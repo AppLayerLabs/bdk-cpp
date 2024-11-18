@@ -12,13 +12,11 @@ See the LICENSE.txt file in the project root for more information.
 
 #include "../../../utils/evmcconv.h"
 
-#include "../../../core/state.h" // dump.h -> utils/db.h, storage.h
-
 static inline constexpr std::string_view FIXED_BASE_FEE_PER_GAS = "0x9502f900"; // Fixed to 2.5 GWei
 
 namespace jsonrpc {
 
-static json getBlockJson(const FinalizedBlock* block, bool includeTransactions) {
+json getBlockJson(const FinalizedBlock* block, bool includeTransactions) {
   json ret;
   if (block == nullptr) { ret = json::value_t::null; return ret; }
   ret["hash"] = block->getHash().hex(true);
@@ -71,7 +69,7 @@ static json getBlockJson(const FinalizedBlock* block, bool includeTransactions) 
   return ret;
 }
 
-static std::pair<Bytes, evmc_message> parseEvmcMessage(const json& request, const Storage& storage, bool recipientRequired) {
+std::pair<Bytes, evmc_message> parseEvmcMessage(const json& request, const Storage& storage, bool recipientRequired) {
   std::pair<Bytes, evmc_message> res{};
 
   Bytes& buffer = res.first;

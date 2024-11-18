@@ -44,13 +44,13 @@ using Bytes = std::vector<Byte>; ///< Typedef for Bytes.
 template <std::size_t N> using BytesArr = std::array<Byte, N>; ///< Typedef for BytesArr.
 
 /// Base case for the recursive helper - now using requires for an empty body function.
-template<size_t I = 0, typename... Tp> requires (I == sizeof...(Tp))
+template <size_t I = 0, typename... Tp> requires (I == sizeof...(Tp))
 void printDurationsHelper(std::string_view, std::tuple<Tp...>&, const std::array<std::string, sizeof...(Tp)>&) {
   // Empty body, stopping condition for the recursion
 }
 
 /// Recursive helper function to print each duration - with requires.
-template<size_t I = 0, typename... Tp> requires (I < sizeof...(Tp))
+template <size_t I = 0, typename... Tp> requires (I < sizeof...(Tp))
 void printDurationsHelper(std::string_view id, std::tuple<Tp...>& t, const std::array<std::string, sizeof...(Tp)>& names) {
   auto now = std::chrono::high_resolution_clock::now();
   auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(now - std::get<I>(t));
@@ -66,7 +66,7 @@ void printDurationsHelper(std::string_view id, std::tuple<Tp...>& t, const std::
 }
 
 /// Helper templated struct for profiling names and time points.
-[[maybe_unused]] template<typename... Tp> struct printAtExit {
+template <typename... Tp> struct printAtExit {
   std::tuple<Tp...> timePoints; ///< List of time points.
   std::array<std::string, sizeof...(Tp)> names; ///< List of names.
   std::string_view id;  ///< ID of the struct.
