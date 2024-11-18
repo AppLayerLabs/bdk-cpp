@@ -848,17 +848,40 @@ namespace TComet {
 
       const Options options = getOptionsForCometTest(testDumpPath, p2p_port, rpc_port);
 
+      // NOTE: Can't currently send transactions that are much larger than this because we're
+      //       hitting an HTTP/RPC size limit (considering the transaction is Base64-encoded).
+      const int txSize = 700000;
+
+      const uint8_t txContentByte = 0xde;
+      const uint8_t txBorderByte = 0xad;
+
       // Create a simple listener that just records that we got InitChain and what the current height is.
       class TestCometListener : public CometListener {
       public:
         std::atomic<bool> gotInitChain = false;
         std::atomic<uint64_t> finalizedHeight = 0;
+        std::atomic<int> txCount = 0;
         virtual void initChain() {
           GLOGDEBUG("TestCometListener: got initChain");
           gotInitChain = true;
         }
         virtual void incomingBlock(const uint64_t height, const uint64_t syncingToHeight, const std::vector<Bytes>& txs, Bytes& appHash) {
           GLOGDEBUG("TestCometListener: got incomingBlock " + std::to_string(height));
+          if (txs.size() != 0) {
+            REQUIRE(txs.size() == 1);
+            REQUIRE(txs[0].size() == txSize);
+            REQUIRE(txs[0][0] == txBorderByte);
+            bool err = false;
+            for (int i = 1; i < txs[0].size() - 1; ++i) {
+              if (txs[0][i] != txContentByte) {
+                err = true;
+                break;
+              }
+            }
+            REQUIRE(err == false);
+            REQUIRE(txs[0][txs[0].size()-1] == txBorderByte);
+            ++txCount;
+          }
           finalizedHeight = height;
           appHash.clear();
         }
@@ -907,9 +930,11 @@ namespace TComet {
       REQUIRE(cometListener.finalizedHeight == 1);
 
       // Send a transaction to cause a block to be produced
-      // Just send whatever transaction data; the default CometListener accepts anything
       GLOGDEBUG("TEST: Sending transaction");
-      comet.sendTransaction({0x0, 0x1, 0x2, 0x3, 0x4, 0x5}); // some random tx data
+      std::vector<uint8_t> largeTransaction(txSize, txContentByte);
+      largeTransaction[0] = txBorderByte;
+      largeTransaction[largeTransaction.size()-1] = txBorderByte;
+      comet.sendTransaction(largeTransaction);
 
       // Wait for chain to advance
       GLOGDEBUG("TEST: Waiting for CometBFT FinalizeBlock for height 2");
@@ -920,6 +945,9 @@ namespace TComet {
       });
       REQUIRE(futureFinalizeBlock2.wait_for(std::chrono::seconds(10)) != std::future_status::timeout);
       REQUIRE(cometListener.finalizedHeight == 2); // require exactly height 2
+
+      // Require successful processing of the transaction we sent
+      REQUIRE(cometListener.txCount == 1);
 
       // Stop
       GLOGDEBUG("TEST: Stopping...");

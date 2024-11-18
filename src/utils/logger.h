@@ -8,6 +8,7 @@ See the LICENSE.txt file in the project root for more information.
 #ifndef LOGGER_H
 #define LOGGER_H
 
+#include <filesystem>
 #include <string>
 #include <iostream>
 #include <fstream>

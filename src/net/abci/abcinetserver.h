@@ -1,42 +1,9 @@
 #ifndef _ABCINETSERVER_H_
 #define _ABCINETSERVER_H_
 
-#include <iostream>
-#include <string>
-#include <set>
-#include <memory>
 #include <boost/asio.hpp>
 
-
-/**
- * TODO: 
- * 
- * need to heavily redesign this ABCI Server / Session implementation.
- * 
- * need to take a pointer/ref to a callback interface which actually implements
- *   handling the ABCI calls from the running cometbft process (which is the
- *   ABCI client to this server). this callback interface should be implemented
- *   by CometImpl, which is the reference/pointer we give to the ABCINetServer object.
- * 
- *   since it is the ABCISession that actually gets called back, we need to
- *   pass the CometImpl pointer (as a ABCIHandler implementor/interface) to
- *   the ABCISession objects as well, probably that's what we'll do here.
- * 
- * io_context should be an implementation detail of the ABCINetServer class.
- * 
- * ABCINetServer should cleanly start and stop and hide all networking details
- * within it. if needed, we should create another top level class to wrap 
- * everything up like we did in the net/p2p engine.
- * 
- * 
- */
-
-namespace asio = boost::asio;
-using boost::asio::local::stream_protocol;
-
-const uint64_t MAX_MESSAGE_SIZE = 64 * 1024 * 1024; // 64 MB limit
-
-class ABCINetSession; // Forward declaration
+class ABCINetSession;
 
 class ABCIHandler;
 
@@ -44,36 +11,46 @@ class ABCIHandler;
  * ABCINetServer implements a boost::asio TCP socket server that accepts
  * ABCI TCP socket connection requests from cometbft and instantiates
  * an ABCINetSession to handle it.
- * It is given an ABCIHandler instance which actually handles the callbacks      gotInitChain_(false), lastBlockHeight_(0)
-
+ * It is given an ABCIHandler instance which actually handles the callbacks
  * received from cometbft.
  */
 class ABCINetServer : public std::enable_shared_from_this<ABCINetServer> {
-public:
-    ABCINetServer(ABCIHandler* handler, asio::io_context& io_context, const std::string& socket_path);
+  private:
+    const std::string cometUNIXSocketPath_; ///< Pathname for the abci.sock UNIX domain sockets file
 
-    void start(); // New method to start accepting connections
+    ABCIHandler *handler_; ///< Listener for all ABCI callbacks received by this netserver.
 
-    void notify_failure(const std::string& reason);
+    boost::asio::io_context ioContext_; ///< io_context for this netserver.
+    boost::asio::thread_pool threadPool_; ///< thread pool for this netserver.
+    boost::asio::executor_work_guard<boost::asio::io_context::executor_type> workGuard_; ///< Work guard for the io_context.
 
-    bool failed() const;
+    boost::asio::local::stream_protocol::acceptor acceptor_; ///< UNIX listen socket connection acceptor.
 
-    const std::string& reason() const;
+    std::mutex sessionsMutex_; ///< Serilize access to sessions_.
+    std::vector<std::weak_ptr<ABCINetSession>> sessions_; ///< So we can explicitly close all sockets on stop().
 
+    std::atomic<bool> started_; ///< If net engine was ever started.
+    std::atomic<bool> stopped_; ///< If net engine was ever stopped (cannot be restarted).
 
-private:
     void do_accept();
 
-    ABCIHandler* handler_;
+  public:
+    ABCINetServer(ABCIHandler *handler, const std::string &cometUNIXSocketPath);
 
-    asio::io_context& io_context_;
-    stream_protocol::acceptor acceptor_;
-    std::set<std::weak_ptr<ABCINetSession>, std::owner_less<std::weak_ptr<ABCINetSession>>> sessions_;
-    bool failed_;
-    std::string reason_;
+    /**
+     * Start the ABCI net engine (only once).
+     */
+    void start();
+
+    /**
+     * Stop the ABCI net engine (cannot be restarted).
+     */
+    void stop(const std::string &reason);
+
+    /**
+     * Check if the net server is running.
+     */
+    bool running();
 };
-
-
-
 
 #endif

@@ -1,68 +1,94 @@
+
 #include "abcinetserver.h"
-
 #include "abcinetsession.h"
-
-// ???
-#include "abcihandler.h"
 
 #include "../../utils/logger.h"
 
-ABCINetServer::ABCINetServer(ABCIHandler* handler, asio::io_context& io_context, const std::string& socket_path)
-    : handler_(handler), io_context_(io_context), acceptor_(io_context, stream_protocol::endpoint(socket_path)), failed_(false)
+#define ABCI_NET_SERVER_NUM_THREADS 4
+
+ABCINetServer::ABCINetServer(ABCIHandler *handler, const std::string &cometUNIXSocketPath)
+  : handler_(handler),
+    acceptor_(ioContext_),
+    cometUNIXSocketPath_(cometUNIXSocketPath),
+    threadPool_(ABCI_NET_SERVER_NUM_THREADS),
+    workGuard_(boost::asio::make_work_guard(ioContext_))
 {
-    // Do not call do_accept() here
 }
 
 void ABCINetServer::start() {
-    do_accept();
+  if (started_ || stopped_) {
+    return;
+  }
+  started_ = true;
+
+  for (std::size_t i = 0; i < ABCI_NET_SERVER_NUM_THREADS; ++i) {
+    boost::asio::post(threadPool_.get_executor(), [this]() { this->ioContext_.run(); });
+  }
+
+  try {
+    acceptor_.open(boost::asio::local::stream_protocol());
+    acceptor_.bind(boost::asio::local::stream_protocol::endpoint(cometUNIXSocketPath_));
+    acceptor_.listen();
+  } catch (const std::exception& e) {
+    LOGERROR("Error while trying to start ABCI listen socket: " + std::string(e.what()));
+    stop("ABCINetServer::start() failed acceptor: " + std::string(e.what()));
+    return;
+  }
+
+  do_accept();
 }
 
-void ABCINetServer::do_accept() {
-    auto self(shared_from_this());
-    acceptor_.async_accept([this, self](boost::system::error_code ec, stream_protocol::socket socket) {
-        if (!ec) {
-            auto session = std::make_shared<ABCINetSession>(handler_, std::move(socket), self);
-            sessions_.insert(session);
-            session->start();
-        } else {
-            // Notify failure
-            notify_failure("Error accepting connection: " + ec.message());
-        }
-        if (!failed_) {
-            do_accept();
-        }
-    });
-}
+void ABCINetServer::stop(const std::string &reason) {
+  if (stopped_) {
+    return;
+  }
 
-void ABCINetServer::notify_failure(const std::string& reason) {
-    if (!failed_) {
-        failed_ = true;
-        reason_ = reason;
-        // Close all active sessions
-        for (auto& weak_session : sessions_) {
-            if (auto session = weak_session.lock()) {
-                //std::cout << "Closing one session" << std::endl;
-                session->close();
-            }
-        }
-        // Stop accepting new connections
-        //std::cout << "Closing acceptor" << std::endl;
-        GLOGXTRACE("Before acceptor close");
-        acceptor_.close();
-        GLOGXTRACE("After acceptor close");
-        //std::cout << "Acceptor closed" << std::endl;
-        // Stop the io_context
-        //no need to do this: once the acceptor is closed, the io context run calls all exit
-        //  since there is no more work -- no connections/sessions and no way to get more sessions.
-        //std::cout << "Stopping io_context" << std::endl;
-        //io_context_.stop();
+  std::unique_lock<std::mutex> lock(sessionsMutex_);
+
+  stopped_ = true;
+
+  // stop creating new sessions
+  acceptor_.close();
+
+  // Close all active sessions
+  // Since we only keep weak pointers we don't need to actually clear the sessions list
+  for (auto &weak_session : sessions_) {
+    if (auto session = weak_session.lock()) {
+      session->close();
     }
+  }
+
+  lock.unlock();
+
+  // stop the net engine
+  workGuard_.reset();
+  ioContext_.stop();
+  threadPool_.join();
 }
 
-bool ABCINetServer::failed() const {
-    return failed_;
+bool ABCINetServer::running() {
+  return started_ && !stopped_;
 }
 
-const std::string& ABCINetServer::reason() const {
-    return reason_;
+void ABCINetServer::do_accept()
+{
+  auto self(shared_from_this());
+  acceptor_.async_accept(
+    [this, self](boost::system::error_code ec, boost::asio::local::stream_protocol::socket socket)
+    {
+      if (!ec) {
+        std::scoped_lock lock(sessionsMutex_);
+        if (!stopped_) {
+          auto session = std::make_shared<ABCINetSession>(handler_, std::move(socket), self);
+          sessions_.push_back(session);
+          session->start();
+          do_accept();
+        } else {
+          socket.close();
+        }
+      } else {
+        stop("Error accepting connection: " + ec.message());
+      }
+    }
+  );
 }

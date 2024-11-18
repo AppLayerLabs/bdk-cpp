@@ -133,14 +133,17 @@ class CometImpl : public Log::LogicalLocationProvider, public ABCIHandler {
 
             boost::beast::http::read(*socket_, buffer, res);
 
-            if (res.result() != boost::beast::http::status::ok) {
-                outResult = "HTTP error: " + std::to_string(res.result_int());
-                return false;
-            }
+          // This is broken, we have to always return json.
+          //if (res.result() != boost::beast::http::status::ok) {
+          //    LOGDEBUG("ACTUAL RESULT STRING: [" + boost::beast::buffers_to_string(res.body().data()) + "]" );
+          //    outResult = "HTTP error: " + std::to_string(res.result_int());
+          //    return false;
+          // }
+          outResult = boost::beast::buffers_to_string(res.body().data());
+          auto jsonResponse = json::parse(outResult);
 
-           outResult = boost::beast::buffers_to_string(res.body().data());
-           auto jsonResponse = json::parse(outResult);
-           return !jsonResponse.contains("error");
+          // Check both the JSON-RPC error field and the HTTP return code to ensure we don't miss errors.
+          return ! ( jsonResponse.contains("error") || (res.result() != boost::beast::http::status::ok) );
 
         } catch (const std::exception& e) {
             stopRPCConnection();  // Close connection on error
@@ -345,6 +348,7 @@ void CometImpl::setState(const CometState& state) {
 }
 
 void CometImpl::setError(const std::string& errorStr) {
+  LOGDEBUG("Comet ERROR raised: " + errorStr);
   this->errorStr_ = errorStr;
   this->status_ = false;
 }
@@ -1076,9 +1080,25 @@ void CometImpl::workerLoopInner() {
           std::string result;
 
           // Send the transaction using JSON-RPC
-          LOGTRACE("Sending transaction: " + encodedTx);
+          LOGTRACE("Sending tx via RPC, size: " + std::to_string(tx.size()));
           bool success = makeJSONRPCCall("broadcast_tx_async", params, result);
+          LOGTRACE("Got RPC result: " + result);
+
+
+          // *********************************************************************************
+          // FIXME/TODO: this has to be protected by try/catch otherwise it will error out
+          //  the comet worker (exception throws it out of workerloopinner)
+          // *********************************************************************************
           json response = json::parse(result);
+
+          // *********************************************************************************
+          // FIXME/TODO: attempting to send a transaction that is too large results in this:
+          // Transaction send error. Result: {"jsonrpc":"2.0","error":{"code":-32600,"message":"Invalid Request","data":"error reading request body: http: request body too large"}}
+          // In that case, the transaction will NEVER go through: the failure is not transient, and this would just loop forever.
+          // Have to rethink the idea of retrying transaction sending here.
+          // It would be better if the Comet API responded with whether the transaction could be delivered or not.
+          // It could return the transaction via the CometListener so it can be resent (or dropped). Also forward the error we got in the listener.
+          // *********************************************************************************
 
           // If the response is successful, remove the transaction from the queue
           if (success) {
