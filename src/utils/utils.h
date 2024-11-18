@@ -43,16 +43,14 @@ using Byte = uint8_t; ///< Typedef for Byte.
 using Bytes = std::vector<Byte>; ///< Typedef for Bytes.
 template <std::size_t N> using BytesArr = std::array<Byte, N>; ///< Typedef for BytesArr.
 
-// Base case for the recursive helper - now using requires for an empty body function
-template<size_t I = 0, typename... Tp>
-requires (I == sizeof...(Tp))
+/// Base case for the recursive helper - now using requires for an empty body function.
+template<size_t I = 0, typename... Tp> requires (I == sizeof...(Tp))
 void printDurationsHelper(std::string_view, std::tuple<Tp...>&, const std::array<std::string, sizeof...(Tp)>&) {
   // Empty body, stopping condition for the recursion
 }
 
-// Recursive helper function to print each duration - with requires
-template<size_t I = 0, typename... Tp>
-requires (I < sizeof...(Tp))
+/// Recursive helper function to print each duration - with requires.
+template<size_t I = 0, typename... Tp> requires (I < sizeof...(Tp))
 void printDurationsHelper(std::string_view id, std::tuple<Tp...>& t, const std::array<std::string, sizeof...(Tp)>& names) {
   auto now = std::chrono::high_resolution_clock::now();
   auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(now - std::get<I>(t));
@@ -67,15 +65,22 @@ void printDurationsHelper(std::string_view id, std::tuple<Tp...>& t, const std::
   printDurationsHelper<I + 1, Tp...>(id, t, names);
 }
 
-// TODO: document this
-template<typename... Tp> struct printAtExit {
-  std::tuple<Tp...> timePoints;
-  std::array<std::string, sizeof...(Tp)> names;
-  std::string_view id;
+/// Helper templated struct for profiling names and time points.
+[[maybe_unused]] template<typename... Tp> struct printAtExit {
+  std::tuple<Tp...> timePoints; ///< List of time points.
+  std::array<std::string, sizeof...(Tp)> names; ///< List of names.
+  std::string_view id;  ///< ID of the struct.
 
+  /**
+   * Constructor.
+   * @param id_ ID of the struct.
+   * @param names_ List of names to profile.
+   * @param timePoints_ List of time points to profile.
+   */
   printAtExit(const std::string& id_, const std::array<std::string, sizeof...(Tp)>& names_, Tp&... timePoints_)
     : timePoints(std::tie(timePoints_...)), names(names_), id(id_) {}
 
+  /// Destructor.
   ~printAtExit() { printDurationsHelper(id, timePoints, names); }
 };
 

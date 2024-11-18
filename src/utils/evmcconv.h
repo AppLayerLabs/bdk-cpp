@@ -36,13 +36,13 @@ namespace EVMCConv {
   ///@{
   /**
    * Convert a given EVMC type to a BDK type, or vice-versa.
-   * @param i (or b) The type to convert.
+   * @param x The type to convert.
    * @return The converted type.
    */
-  uint256_t evmcUint256ToUint256(const evmc::uint256be& i);
-  evmc::uint256be uint256ToEvmcUint256(const uint256_t& i);
-  BytesArr<32> evmcUint256ToBytes(const evmc::uint256be& i);
-  evmc::uint256be bytesToEvmcUint256(const bytes::View b);
+  uint256_t evmcUint256ToUint256(const evmc::uint256be& x);
+  evmc::uint256be uint256ToEvmcUint256(const uint256_t& x);
+  BytesArr<32> evmcUint256ToBytes(const evmc::uint256be& x);
+  evmc::uint256be bytesToEvmcUint256(const bytes::View x);
   ///@}
 
   /**

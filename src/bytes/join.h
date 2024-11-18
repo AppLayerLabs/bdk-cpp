@@ -39,6 +39,12 @@ namespace bytes {
     }
   } // namespace detail
 
+  /**
+   * Join several raw byte strings into one.
+   * @tparam Ts The raw byte strings' type.
+   * @param args One or more raw byte strings.
+   * @return A fixed-size initializer with the result of the concatenation.
+   */
   template<typename... Ts> SizedInitializer auto join(Ts&&... args) {
     const size_t size = detail::joinedSize(args...);
 

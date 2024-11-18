@@ -1,23 +1,28 @@
+/*
+Copyright (c) [2023-2024] [AppLayer Developers]
+
+This software is distributed under the MIT License.
+See the LICENSE.txt file in the project root for more information.
+*/
+
 #ifndef ERC721_TEST
 #define ERC721_TEST
 
+#include "erc721.h" // ERC721Test derives from base ERC721
 
-// ERC721Test derives from base ERC721
-#include "erc721.h"
-
-
-/*
- * ERC721Test testing class
- * This is a class to test the capabilities of the ERC721 template contract
- * The ERC721 contract is based on the OpenZeppelin ERC721 implementation
- * As the ERC721 (OpenZeppelin) contract does not have a public function for minting and burning the tokens
+/**
+ * ERC721Test testing class.
+ * This is a class to test the capabilities of the ERC721 template contract.
+ * The ERC721 contract is based on the OpenZeppelin ERC721 implementation.
+ * As the ERC721 (OpenZeppelin) contract does not have a public function for minting and burning the tokens,
  * this wrapper class is used to make that functions available.
- * The mint function will use a internal counter to generate the token id
- * Anyone can mint a token and there is a limit of X tokens defined in the constructor
- * The burn function will use the token id to burn the token, the sender of the burn transaction MUST be the owner of the token
- * OR an approved operator for the token (All these cases are included in the tests) (the ERC721::_update function is used to check ownership and allowance)
+ * The mint function will use a internal counter to generate the token ID.
+ * Anyone can mint a token and there is a limit of X tokens defined in the constructor.
+ * The burn function will use the token id to burn the token,
+ * the sender of the burn transaction MUST be the owner of the token OR
+ * an approved operator for the token (All these cases are included in the tests)
+ * (the ERC721::_update function is used to check ownership and allowance).
  */
-
 class ERC721Test : public ERC721 {
   private:
     SafeUint64_t tokenIdCounter_; ///< TokenId Counter for the public mint() functions.

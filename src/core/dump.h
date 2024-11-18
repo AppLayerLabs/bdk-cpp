@@ -76,7 +76,7 @@ class DumpManager : public Log::LogicalLocationProvider {
     static std::pair<std::string, uint64_t> getBestStateDBPath(const Options& options) {
       std::filesystem::path stateDbRootFolder = options.getRootPath() + "/stateDb/";
       // Each state DB patch is named with the block height.
-      // Therefore, we need to list all the directories in the stateDbRootFolder and return 
+      // Therefore, we need to list all the directories in the stateDbRootFolder and return
       // the one with the highest block height using std::filesystem::directory_iterator.
       uint64_t bestHeight = 0;
       std::string bestPath;
@@ -102,6 +102,7 @@ class DumpManager : public Log::LogicalLocationProvider {
     }
 };
 
+/// Helper class for the database dumper's worker thread.
 class DumpWorker : public Log::LogicalLocationProvider {
   private:
     const Options& options_; ///< Reference to the Options singleton.

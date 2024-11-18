@@ -11,13 +11,6 @@ See the LICENSE.txt file in the project root for more information.
 
 namespace trace {
 
-static Call::Type getCallType(const evmc_message& msg) {
-  using enum Call::Type;
-  if (msg.kind == EVMC_CALL) return (msg.flags == EVMC_STATIC) ? STATICCALL : CALL;
-  if (msg.kind == EVMC_DELEGATECALL) return DELEGATECALL;
-  throw DynamicException("evmc_message is not from a function call");
-}
-
 Bytes encodeRevertReason(std::string_view reason) {
   FixedBytes<32> reasonEncoded{};
 

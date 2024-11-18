@@ -136,22 +136,22 @@ namespace ContractFactory {
     }
 
     /**
-     * Adds contract create and validate functions to the respective maps
-     * @tparam Contract Contract type
-     * @param createFunc Function to create a new contract
+     * Adds contract create and validate functions to the respective maps.
+     * @tparam Contract Contract type.
+     * @param createFunc Function to create a new contract.
+     * @param createContractFuncs Function to create the functions of a new contract.
      */
-    template <typename Contract>
-    void addContractFuncs(const std::function<
-                       void(const evmc_message&,
-                            const Address&,
-                            boost::unordered_flat_map<Address, std::unique_ptr<BaseContract>, SafeHash>& contracts_,
-                            const uint64_t&,
-                            ContractHost* host)>& createFunc
-                      ,boost::unordered_flat_map<Functor,std::function<void(const evmc_message&,
-                                                                     const Address&,
-                                                                     boost::unordered_flat_map<Address, std::unique_ptr<BaseContract>, SafeHash>& contracts_,
-                                                                     const uint64_t&,
-                                                                     ContractHost*)>,SafeHash>& createContractFuncs
+    template <typename Contract> void addContractFuncs(
+      const std::function<void(
+        const evmc_message&, const Address&,
+        boost::unordered_flat_map<Address, std::unique_ptr<BaseContract>, SafeHash>& contracts_,
+        const uint64_t&, ContractHost* host
+      )>& createFunc,
+      boost::unordered_flat_map<Functor,std::function<void(
+        const evmc_message&, const Address&,
+        boost::unordered_flat_map<Address, std::unique_ptr<BaseContract>, SafeHash>& contracts_,
+        const uint64_t&, ContractHost*
+      )>,SafeHash>& createContractFuncs
     ) {
       std::string createSignature = "createNew" + Utils::getRealTypeName<Contract>() + "Contract(";
       // Append args

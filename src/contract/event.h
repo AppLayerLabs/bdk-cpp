@@ -21,7 +21,7 @@ using json = nlohmann::ordered_json;
 class Event {
   friend struct event_indices;
   friend zpp::bits::access;
-  using serialize = zpp::bits::members<10>;
+  using serialize = zpp::bits::members<10>; ///< Typedef for the serialization struct.
 
   private:
     std::string name_;          ///< Event name.

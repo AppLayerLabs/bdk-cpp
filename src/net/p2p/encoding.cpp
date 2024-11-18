@@ -82,8 +82,8 @@ namespace P2P {
     Bytes& message,
     const std::shared_ptr<const FinalizedBlock>& latestBlock,
     const boost::unordered_flat_map<NodeID, NodeType, SafeHash>& nodes,
-    const Options& options)
-  {
+    const Options& options
+  ) {
     Utils::appendBytes(message, UintConv::uint64ToBytes(options.getVersion()));
     uint64_t currentEpoch = std::chrono::duration_cast<std::chrono::microseconds>(
       std::chrono::system_clock::now().time_since_epoch()
@@ -92,40 +92,6 @@ namespace P2P {
     Utils::appendBytes(message, UintConv::uint64ToBytes(latestBlock->getNHeight()));
     Utils::appendBytes(message, latestBlock->getHash());
     nodesToMessage(message, nodes);
-  }
-
-  template<typename TxType>
-  std::vector<TxType> txsFromMessage(const bytes::View& data, const uint64_t& requiredChainId) {
-    std::vector<TxType> txs;
-    size_t index = 0;
-    while (index < data.size()) {
-      if (data.size() - index < 4) { throw DynamicException("Invalid data size."); }
-      uint32_t txSize = UintConv::bytesToUint32(data.subspan(index, 4));
-      index += 4;
-      if (data.size() - index < txSize) { throw DynamicException("Invalid data size."); }
-      bytes::View txData = data.subspan(index, txSize);
-      index += txSize;
-      // Assuming requiredChainId is declared elsewhere
-      txs.emplace_back(txData, requiredChainId);
-    }
-    return txs;
-  }
-
-  template<typename TxType>
-  void txsToMessage(Bytes& message, const boost::unordered_flat_map<Hash, TxType, SafeHash>& txs) {
-    for (const auto& [txHash, tx] : txs) {
-      Bytes rlp = tx.rlpSerialize();
-      Utils::appendBytes(message, UintConv::uint32ToBytes(rlp.size()));
-      message.insert(message.end(), rlp.begin(), rlp.end());
-    }
-  }
-  template<typename TxType>
-  void txsToMessage(Bytes& message, const std::vector<TxType>& txs) {
-    for (const auto& tx : txs) {
-      Bytes rlp = tx.rlpSerialize();
-      Utils::appendBytes(message, UintConv::uint32ToBytes(rlp.size()));
-      message.insert(message.end(), rlp.begin(), rlp.end());
-    }
   }
 
   std::vector<FinalizedBlock> blocksFromMessage(const bytes::View& data, const uint64_t& requiredChainId) {
@@ -148,6 +114,58 @@ namespace P2P {
       Bytes serializedBlock = block->serializeBlock();
       Utils::appendBytes(message, UintConv::uint64ToBytes(serializedBlock.size()));
       Utils::appendBytes(message, serializedBlock);
+    }
+  }
+
+  /**
+   * Helper function for getting transaction data from a raw bytes string.
+   * @param data The raw bytes string to parse.
+   * @param requiredChainId The chain ID of the transaction.
+   * @return A list of transactions.
+   * @throw DynamicException if data size is invalid.
+   */
+  template<typename TxType>
+  std::vector<TxType> txsFromMessage(const bytes::View& data, const uint64_t& requiredChainId) {
+    std::vector<TxType> txs;
+    size_t index = 0;
+    while (index < data.size()) {
+      if (data.size() - index < 4) { throw DynamicException("Invalid data size."); }
+      uint32_t txSize = UintConv::bytesToUint32(data.subspan(index, 4));
+      index += 4;
+      if (data.size() - index < txSize) { throw DynamicException("Invalid data size."); }
+      bytes::View txData = data.subspan(index, txSize);
+      index += txSize;
+      // Assuming requiredChainId is declared elsewhere
+      txs.emplace_back(txData, requiredChainId);
+    }
+    return txs;
+  }
+
+  /**
+   * Helper function for converting transaction data to a message. Conversion is done in-place.
+   * @param message The message buffer.
+   * @param txs A map of transactions.
+   */
+  template<typename TxType>
+  void txsToMessage(Bytes& message, const boost::unordered_flat_map<Hash, TxType, SafeHash>& txs) {
+    for (const auto& [txHash, tx] : txs) {
+      Bytes rlp = tx.rlpSerialize();
+      Utils::appendBytes(message, UintConv::uint32ToBytes(rlp.size()));
+      message.insert(message.end(), rlp.begin(), rlp.end());
+    }
+  }
+
+  /**
+   * Overload of txsToMessage() that accepts std::vector instead of boost::unordered_flat_map.
+   * @param message The message buffer.
+   * @param txs A list of transactions.
+   */
+  template<typename TxType>
+  void txsToMessage(Bytes& message, const std::vector<TxType>& txs) {
+    for (const auto& tx : txs) {
+      Bytes rlp = tx.rlpSerialize();
+      Utils::appendBytes(message, UintConv::uint32ToBytes(rlp.size()));
+      message.insert(message.end(), rlp.begin(), rlp.end());
     }
   }
 

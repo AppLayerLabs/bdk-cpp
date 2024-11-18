@@ -65,11 +65,25 @@ class TxBlock {
     void serializeMaxPriorityFeePerGas(Bytes& ret, const uint64_t& reqBytes) const;
     void serializeMaxFeePerGas(Bytes& ret, const uint64_t& reqBytes) const;
     void serializeGasLimit(Bytes& ret, const uint64_t& reqBytes) const;
-    void serializeTo(Bytes& ret) const;
     void serializeValue(Bytes& ret, const uint64_t& reqBytes) const;
     void serializeData(Bytes& ret, const uint64_t& reqBytes) const;
-    void serializeVRS(Bytes& ret, const uint64_t& reqBytesR, const uint64_t& reqBytesS) const;
     ///@}
+
+    /**
+     * Serialize the specified tx element to a raw byte string.
+     * Used exclusively by rlpSerialize().
+     * @param ret The raw byte string to serialize to.
+     */
+    void serializeTo(Bytes& ret) const;
+
+    /**
+     * Serialize the specified tx element to a raw byte string.
+     * Used exclusively by rlpSerialize().
+     * @param ret The raw byte string to serialize to.
+     * @param reqBytesR The required number of bytes for the element.
+     * @param reqBytesS The required number of bytes for the element.
+     */
+    void serializeVRS(Bytes& ret, const uint64_t& reqBytesR, const uint64_t& reqBytesS) const;
 
   public:
     /**
@@ -246,9 +260,18 @@ class TxValidator {
      */
     void serializeData(Bytes& ret, const uint64_t& reqBytes) const;
     void serializeNHeight(Bytes& ret, const uint64_t& reqBytes) const;
-    void serializeVRS(Bytes& ret, const uint64_t& reqBytesV, const uint64_t& reqBytesR, const uint64_t& reqBytesS) const;
     void serializeChainId(Bytes& ret, const uint64_t& reqBytes) const;
     ///@}
+
+    /**
+     * Serialize the specified tx element to a raw byte string.
+     * Used exclusively by rlpSerialize().
+     * @param ret The raw byte string to serialize to.
+     * @param reqBytesV The required number of bytes for the element.
+     * @param reqBytesR The required number of bytes for the element.
+     * @param reqBytesS The required number of bytes for the element.
+     */
+    void serializeVRS(Bytes& ret, const uint64_t& reqBytesV, const uint64_t& reqBytesR, const uint64_t& reqBytesS) const;
 
   public:
     /**

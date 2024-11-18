@@ -41,7 +41,7 @@ template <unsigned N> class FixedBytes {
     BytesArr<N> data_; ///< The underlying data.
 
     friend zpp::bits::access;
-    using serialize = zpp::bits::members<1>;
+    using serialize = zpp::bits::members<1>; ///< Typedef for the serialization struct.
 
   public:
     /// Empty constructor.

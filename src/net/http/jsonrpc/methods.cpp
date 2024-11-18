@@ -18,37 +18,7 @@ static inline constexpr std::string_view FIXED_BASE_FEE_PER_GAS = "0x9502f900"; 
 
 namespace jsonrpc {
 
-static std::optional<uint64_t> getBlockNumber(const Storage& storage, const Hash& hash) {
-  if (const auto block = storage.getBlock(hash); block != nullptr) return block->getNHeight();
-  return std::nullopt;
-}
-
-template<typename T, std::ranges::input_range R>
-requires std::convertible_to<std::ranges::range_value_t<R>, T>
-static std::vector<T> makeVector(R&& range) {
-  std::vector<T> res(std::ranges::size(range));
-  std::ranges::copy(std::forward<R>(range), res.begin());
-  return res;
-}
-
-static inline void forbidParams(const json& request) {
-  if (request.contains("params") && !request["params"].empty())
-    throw DynamicException("\"params\" are not required for method");
-}
-
-static inline void requiresIndexing(const Storage& storage, std::string_view method) {
-  if (storage.getIndexingMode() == IndexingMode::DISABLED) {
-    throw Error::methodNotAvailable(method);
-  }
-}
-
-static inline void requiresDebugIndexing(const Storage& storage, std::string_view method) {
-  if (storage.getIndexingMode() != IndexingMode::RPC_TRACE) {
-    throw Error::methodNotAvailable(method);
-  }
-}
-
-static json getBlockJson(const FinalizedBlock *block, bool includeTransactions) {
+static json getBlockJson(const FinalizedBlock* block, bool includeTransactions) {
   json ret;
   if (block == nullptr) { ret = json::value_t::null; return ret; }
   ret["hash"] = block->getHash().hex(true);
@@ -138,6 +108,10 @@ static std::pair<Bytes, evmc_message> parseEvmcMessage(const json& request, cons
   return res;
 }
 
+// ========================================================================
+//  METHODS START HERE
+// ========================================================================
+
 json web3_clientVersion(const json& request, const Options& options) {
   forbidParams(request);
   return options.getWeb3ClientVersion();
@@ -164,9 +138,9 @@ json eth_protocolVersion(const json& request, const Options& options) {
   return options.getSDKVersion();
 }
 
-json net_peerCount(const json& request, const P2P::ManagerNormal& manager) {
+json net_peerCount(const json& request, const P2P::ManagerNormal& p2p) {
   forbidParams(request);
-  return Hex::fromBytes(Utils::uintToBytes(manager.getPeerCount()), true).forRPC();
+  return Hex::fromBytes(Utils::uintToBytes(p2p.getPeerCount()), true).forRPC();
 }
 
 json eth_getBlockByHash(const json& request, const Storage& storage) {

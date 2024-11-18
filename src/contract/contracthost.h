@@ -571,7 +571,6 @@ class ContractHost : public evmc::Host {
      * @tparam TContract The contract type.
      * @param caller Pointer to the contract that made the call.
      * @param fullData The caller data.
-     * @param encoder The ABI encoder.
      * @return The address of the new contract.
      */
     template <typename TContract> Address callCreateContract(BaseContract* caller, const Bytes &fullData) {
