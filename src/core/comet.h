@@ -43,28 +43,67 @@ class CometListener {
     //       reserved for e.g. some status or error handling use.
     //       all user return values are outparams.
 
+    /**
+     * Called upon starting a fresh blockchain (i.e. empty block storage) from a given genesis config.
+     * TODO: Check all parameters involved and use/handle them as needed.
+     */
     virtual void initChain() {
     }
 
+    /**
+     * Check if a transaction is valid.
+     * @param tx The transaction to check.
+     * @param accept Outparam to be set to `true` if the transaction is valid, `false` if it is invalid.
+     */
     virtual void checkTx(const Bytes& tx, bool& accept) {
       accept = true;
     }
 
+    /**
+     * Notification of a new finalized block added to the chain.
+     * @param height The block height of the new finalized block at the new head of the chain.
+     * @param syncingToHeight If the blockchain is doing a replay, syncingToHeight > height, otherwise syncingToHeight == height.
+     * @param txs All transactions included in the block, which need to be processed into the application state.
+     * @param appHash Outparam to be set with the hash of the application state after all `txs` are processed into it.
+     */
     virtual void incomingBlock(const uint64_t height, const uint64_t syncingToHeight, const std::vector<Bytes>& txs, Bytes& appHash) {
       appHash.clear();
     }
 
+    /**
+     * Validator node receives a block proposal from the block proposer, and must check if the proposal is a valid one.
+     * @param height The block height of the new block being proposed.
+     * @param txs All transactions included in the block, which need to be verified.
+     * @param accept Outparam to be set to `true` if the proposed block is valid, `false` otherwise.
+     */
     virtual void validateBlockProposal(const uint64_t height, const std::vector<Bytes>& txs, bool& accept) {
       accept = true;
     }
 
+    /**
+     * Callback from cometbft to check what is the current state of the application.
+     * @param height Outparam to be set with the height of the last block processed to generate the current application state.
+     * @param appHash Outparam to be set with the hash of the current application state (i.e. the state at `height`).
+     */
     virtual void getCurrentState(uint64_t& height, Bytes& appHash) {
       height = 0;
       appHash.clear();
     }
 
+    /**
+     * Callback from cometbft to check if it can prune some old blocks from its block store.
+     * @param height Outparam to be set with the height of the earliest block that must be kept (all earlier blocks are deleted).
+     */
     virtual void getBlockRetainHeight(uint64_t& height) {
       height = 0;
+    }
+
+    /**
+     * Notification that Comet failed to deliver a transaction to cometbft via the CometBFT RPC port.
+     * @param tx Transaction that was previously sent via `Comet::sendTransaction()` but that failed to be sent.
+     * @param error Error message (JSON-RPC response).
+     */
+    virtual void sendTransactionFailed(const Bytes& tx, const std::string& error) {
     }
 
     // InitChain callback

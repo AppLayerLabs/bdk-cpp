@@ -23,7 +23,7 @@ std::string createTestDumpPath(const std::string& testDir) {
 }
 
 // a set of ports used by one running Comet instance.
-// proxy_app is an unix sockets file inside comet/ (we don't support remote proxy_apps), 
+// proxy_app is an unix sockets file inside comet/ (we don't support remote proxy_apps),
 //   so one less net port to manage.
 struct CometTestPorts {
   int p2p; // CometBFT P2P port e.g. 26656
@@ -281,7 +281,7 @@ std::vector<CometTestKeys> cometTestKeys = {
  * @return Options object set up for testing a Comet instance.
  */
 Options getOptionsForCometTest(
-  const std::string rootPath, 
+  const std::string rootPath,
   int p2pPort = 26656, int rpcPort = 26657,
   int keyNumber = 0, int numKeys = 1,
   std::vector<CometTestPorts> ports = {}
@@ -362,7 +362,7 @@ Options getOptionsForCometTest(
         peersStr += cometTestKeys[i].node_id + "@localhost:" + std::to_string(ports[i].p2p);
       }
     }
-    // The cometBFT options.json option name inside the cometBFT key is "peers". That this 
+    // The cometBFT options.json option name inside the cometBFT key is "peers". That this
     //   gets sent to comet/config/config.toml as "[p2p] persistent_peers = ..." is an
     //   implementation detail.
     defaultCometBFTOptions["peers"] = peersStr;
@@ -441,7 +441,7 @@ Options getOptionsForCometTest(
 
 /**
  * A simple stateful execution environment to test a Comet blockchain.
- * 
+ *
  * Transactions must be ASCII strings in the following space-separated format:
  *  "<Signature> <Nonce> <Operation> <Value>"
  * Nonce is any string (whatever makes sense for the testcase).
@@ -652,7 +652,7 @@ namespace TComet {
 
       GLOGDEBUG("TEST: Constructing Comet");
 
-      // get free ports to run tests on 
+      // get free ports to run tests on
       int p2p_port = SDKTestSuite::getTestPort();
       int rpc_port = SDKTestSuite::getTestPort();
 
@@ -770,7 +770,7 @@ namespace TComet {
 
       GLOGDEBUG("TEST: Constructing two Comet instances");
 
-      // get free ports to run tests on 
+      // get free ports to run tests on
       auto ports = generateCometTestPorts(2);
 
       // Create two test dump (i.e. BDK options rootPath) directories, one for each comet instance.
@@ -842,7 +842,7 @@ namespace TComet {
 
       GLOGDEBUG("TEST: Constructing Comet");
 
-      // get free ports to run tests on 
+      // get free ports to run tests on
       int p2p_port = SDKTestSuite::getTestPort();
       int rpc_port = SDKTestSuite::getTestPort();
 
@@ -956,6 +956,64 @@ namespace TComet {
       GLOGDEBUG("TEST: Finished");
     }
 
+    // Simple test that checks that failed transactions are returned to the listener.
+    SECTION("CometTxFailTest") {
+      std::string testDumpPath = createTestDumpPath("CometTxFailTest");
+
+      GLOGDEBUG("TEST: Constructing Comet");
+
+      // get free ports to run tests on
+      int p2p_port = SDKTestSuite::getTestPort();
+      int rpc_port = SDKTestSuite::getTestPort();
+
+      const Options options = getOptionsForCometTest(testDumpPath, p2p_port, rpc_port);
+
+      const int txSize = 10000000; // Transaction is too large (10 MB)
+
+      // Create a simple listener that just records that we got InitChain and what the current height is.
+      class TestCometListener : public CometListener {
+      public:
+        std::atomic<int> failTxCount = 0;
+        virtual void sendTransactionFailed(const Bytes& tx, const std::string& error) {
+          GLOGDEBUG("TestCometListener: got sendTransactionFailed: " + error);
+          REQUIRE(tx.size() == txSize);
+          ++failTxCount;
+        }
+      };
+      TestCometListener cometListener;
+
+      // Set up comet with single validator and stepMode_
+      Comet comet(&cometListener, "", options, true);
+
+      // Start comet
+      comet.start();
+
+      // Send a transaction to cause a block to be produced
+      GLOGDEBUG("TEST: Sending transaction");
+      std::vector<uint8_t> largeTransaction(txSize, 0x00);
+      comet.sendTransaction(largeTransaction);
+
+      // Wait for failTxCount
+      GLOGDEBUG("TEST: Waiting for sendTransaction to fail");
+      auto futureFailTx = std::async(std::launch::async, [&]() {
+        while (cometListener.failTxCount < 1) {
+          std::this_thread::sleep_for(std::chrono::milliseconds(10));
+        }
+      });
+      REQUIRE(futureFailTx.wait_for(std::chrono::seconds(10)) != std::future_status::timeout);
+
+      // Require that the transaction has failed
+      REQUIRE(cometListener.failTxCount == 1);
+
+      // Stop
+      GLOGDEBUG("TEST: Stopping...");
+      REQUIRE(comet.getStatus()); // no error reported (must check before stop())
+      comet.stop();
+      GLOGDEBUG("TEST: Stopped");
+      REQUIRE(comet.getState() == CometState::STOPPED);
+      GLOGDEBUG("TEST: Finished");
+    }
+
     // Stop at block M and restart test with no block replay, 1 validator
     // (snapshotted state at M before shutdown reported by Info on restart)
     // Non-empty transactions and verify that it reaches the same end state
@@ -965,7 +1023,7 @@ namespace TComet {
 
       GLOGDEBUG("TEST: Constructing Comet");
 
-      // get free ports to run tests on 
+      // get free ports to run tests on
       int p2p_port = SDKTestSuite::getTestPort();
       int rpc_port = SDKTestSuite::getTestPort();
 
@@ -985,7 +1043,7 @@ namespace TComet {
       // even without a transaction from the app (empty block even with produce
       // empty blocks option disabled).
       GLOGDEBUG("TEST: Sending several ++m_ transactions...");
-      int targetHeight = 10; 
+      int targetHeight = 10;
       int expectedMachineMemoryValue = 0;
       for (int i = 1; i <= targetHeight; ++i) {
 
@@ -1078,7 +1136,7 @@ namespace TComet {
 
       GLOGDEBUG("TEST: Constructing Comet");
 
-      // get free ports to run tests on 
+      // get free ports to run tests on
       int p2p_port = SDKTestSuite::getTestPort();
       int rpc_port = SDKTestSuite::getTestPort();
 
@@ -1098,7 +1156,7 @@ namespace TComet {
       // even without a transaction from the app (empty block even with produce
       // empty blocks option disabled).
       GLOGDEBUG("TEST: Sending several ++m_ transactions...");
-      int targetHeight = 10; 
+      int targetHeight = 10;
       int expectedMachineMemoryValue = 0;
       for (int i = 1; i < targetHeight; ++i) {
 
@@ -1136,7 +1194,7 @@ namespace TComet {
       GLOGDEBUG("TEST: Stopped");
       REQUIRE(comet.getState() == CometState::STOPPED);
 
-      // Here we will pretend that our node has crashed, and thus we have rolled back 
+      // Here we will pretend that our node has crashed, and thus we have rolled back
       // our state to a previously-saved snapshot state, and so we need cometbft to
       // replay some blocks for us.
       GLOGDEBUG("TEST: Rolling back state (h_ == " + std::to_string(cometListener.h_) + ", m_ == " + std::to_string(cometListener.m_) + ")");
@@ -1209,7 +1267,7 @@ namespace TComet {
 
       GLOGDEBUG("TEST: Constructing Comet");
 
-      // get free ports to run tests on 
+      // get free ports to run tests on
       int p2p_port = SDKTestSuite::getTestPort();
       int rpc_port = SDKTestSuite::getTestPort();
 

@@ -5,6 +5,9 @@
 
 #include "../../utils/logger.h"
 
+// ABCI connections are trusted, but enforce a reasonable limit
+#define COMET_ABCI_MAX_MESSAGE_SIZE 1000000000
+
 // TODO: review all the error handling and the net code in general
 
 ABCINetSession::ABCINetSession(ABCIHandler *handler, boost::asio::local::stream_protocol::socket socket, std::shared_ptr<ABCINetServer> server)
@@ -92,16 +95,18 @@ void ABCINetSession::handle_read_varint_byte(boost::system::error_code ec, std::
 }
 
 void ABCINetSession::handle_read_message_length(bool success, uint64_t msg_len) {
-  if (!success || msg_len == 0) {
-    if (!success) {
-      server_->stop("Error reading message length (failed)");
-    } else {
-      server_->stop("Error reading message length (len==0)");
-    }
+  if (!success) {
+    server_->stop("Error reading message length (failed)");
+    return;
+  } else if (msg_len == 0) {
+    server_->stop("Error reading message length (len==0)");
+    return;
+  } else if (msg_len > COMET_ABCI_MAX_MESSAGE_SIZE) {
+    server_->stop("Error reading message length (too large; len==" + std::to_string(msg_len) + ")");
     return;
   }
 
-  LOGDEBUG("WILL READ MESSAGE OF SIZE: " + std::to_string(msg_len));
+  //LOGDEBUG("WILL READ MESSAGE OF SIZE: " + std::to_string(msg_len));
   message_data_.resize(msg_len);
 
   boost::asio::async_read(
@@ -127,7 +132,7 @@ void ABCINetSession::do_write_message() {
   varint_buffer_.clear();
   write_varint(response_data_.size(), varint_buffer_);
 
-  LOGDEBUG("WILL WRITE VARINT OF SIZE: " + std::to_string(varint_buffer_.size()) + ", FOLLOWED BY MESSAGE OF SIZE: " + std::to_string(response_data_.size()));
+  //LOGDEBUG("WILL WRITE VARINT OF SIZE: " + std::to_string(varint_buffer_.size()) + ", FOLLOWED BY MESSAGE OF SIZE: " + std::to_string(response_data_.size()));
 
   // Write the varint first
   boost::asio::async_write(
@@ -146,7 +151,7 @@ void ABCINetSession::handle_write_varint(boost::system::error_code ec, std::size
     return;
   }
 
-  LOGDEBUG("VARINT WRITTEN, SIZE: " + std::to_string(length));
+  //LOGDEBUG("VARINT WRITTEN, SIZE: " + std::to_string(length));
 
   // Write the actual response buffer next
   boost::asio::async_write(
@@ -165,7 +170,7 @@ void ABCINetSession::handle_write_message(boost::system::error_code ec, std::siz
     return;
   }
 
-  LOGDEBUG("MESSAGE WRITTEN, SIZE: " + std::to_string(length));
+  //LOGDEBUG("MESSAGE WRITTEN, SIZE: " + std::to_string(length));
 
   // Proceed to read the next message
   boost::asio::post(

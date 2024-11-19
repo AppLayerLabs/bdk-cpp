@@ -807,14 +807,13 @@ void CometImpl::workerLoopInner() {
     if (stepMode_) {
       LOGDEBUG("stepMode_ is set, setting step mode parameters for testing.");
       configToml["consensus"].as_table()->insert_or_assign("create_empty_blocks", toml::value(false));
-      configToml["consensus"].as_table()->insert_or_assign("skip_timeout_commit", toml::value(true)); // speeds up testing in general
       configToml["consensus"].as_table()->insert_or_assign("timeout_propose", "1s");
       configToml["consensus"].as_table()->insert_or_assign("timeout_propose_delta", "0s");
       configToml["consensus"].as_table()->insert_or_assign("timeout_prevote", "1s");
       configToml["consensus"].as_table()->insert_or_assign("timeout_prevote_delta", "0s");
       configToml["consensus"].as_table()->insert_or_assign("timeout_precommit", "1s");
       configToml["consensus"].as_table()->insert_or_assign("timeout_precommit_delta", "0s");
-      configToml["consensus"].as_table()->insert_or_assign("timeout_commit", "1s");
+      configToml["consensus"].as_table()->insert_or_assign("timeout_commit", "0s");
     }
 
     // Overwrite updated config.toml
@@ -1047,122 +1046,69 @@ void CometImpl::workerLoopInner() {
 
     setState(CometState::RUNNING);
 
-    // NOTE:
-    // If this loop breaks for whatever reason without !stop being true, we will be
-    //   in the TERMINATED state, unless we decide to continue; to retry, which is
-    //   also possibly what we will end up doing here.
-    //
+    // NOTE: If this loop breaks for whatever reason without !stop being true, we will be
+    //       in the TERMINATED state, which is there to catch bugs.
     while (!stop_) {
 
-        // TODO: here we are doing work such as:
-        //   - polling/blocking at the outgoing transactions queue and pumping them into the running
-        //     'cometbft start' process_
+      // FIXME/TODO: replace the cometbft rpc connection with the websocket version
+      // TODO: improve the RPC transaction pump to be asynchronous, which allows us to send
+      //       multiple transactions at once and then wait for the responses. this is probably
+      //       using the websocket version of the transaction pump.
+      //       in the websocket version, once the tx is pulled from the main queue, it is
+      //       inserted into an in-flight txsend map with the RPC request ID as the index
+      //       and a timeout; the timeout is the primary way the in-flight request expires
+      //       in case the response for the (client-side-generated req id) never arrives for
+      //       some reason (like RPC connection remade, cometbft restarted, etc)
+      //       if it expires or errors out, it is just reinserted in the main queue.
+      //       if it succeeds, it is just removed from the in-flight txsend map.
 
-        // FIXME/TODO: replace the cometbft rpc connection with the websocket version
-        // TODO: improve the RPC transaction pump to be asynchronous, which allows us to send
-        //       multiple transactions at once and then wait for the responses. this is probably
-        //       using the websocket version of the transaction pump.
-        //       in the websocket version, once the tx is pulled from the main queue, it is
-        //       inserted into an in-flight txsend map with the RPC request ID as the index
-        //       and a timeout; the timeout is the primary way the in-flight request expires
-        //       in case the response for the (client-side-generated req id) never arrives for
-        //       some reason (like RPC connection remade, cometbft restarted, etc)
-        //       if it expires or errors out, it is just reinserted in the main queue.
-        //       if it succeeds, it is just removed from the in-flight txsend map.
-
-        Bytes tx;
-        while (true) {
-          // Lock the queue and check if it's empty
-          {
-              std::lock_guard<std::mutex> lock(txOutMutex_);
-              if (txOut_.empty()) {
-                  break;  // Exit if the queue is empty
-              }
-              tx = txOut_.front();  // Copy the transaction from the front of the queue
+      Bytes *tx;
+      while (!stop_) {
+        {
+          std::lock_guard<std::mutex> lock(txOutMutex_);
+          if (txOut_.empty()) {
+            break;
           }
-
-          // Encode transaction in base64 (assume base64_encode function is defined)
-          std::string encodedTx = base64::encode_into<std::string>(tx.begin(), tx.end());
-
-          // Create the JSON-RPC parameters with the encoded transaction
-          json params = { {"tx", encodedTx} };
-          std::string result;
-
-          // Send the transaction using JSON-RPC
-          LOGTRACE("Sending tx via RPC, size: " + std::to_string(tx.size()));
-          bool success = makeJSONRPCCall("broadcast_tx_async", params, result);
-          LOGTRACE("Got RPC result: " + result);
-
-
-          // *********************************************************************************
-          // FIXME/TODO: this has to be protected by try/catch otherwise it will error out
-          //  the comet worker (exception throws it out of workerloopinner)
-          // *********************************************************************************
-          json response = json::parse(result);
-
-          // *********************************************************************************
-          // FIXME/TODO: attempting to send a transaction that is too large results in this:
-          // Transaction send error. Result: {"jsonrpc":"2.0","error":{"code":-32600,"message":"Invalid Request","data":"error reading request body: http: request body too large"}}
-          // In that case, the transaction will NEVER go through: the failure is not transient, and this would just loop forever.
-          // Have to rethink the idea of retrying transaction sending here.
-          // It would be better if the Comet API responded with whether the transaction could be delivered or not.
-          // It could return the transaction via the CometListener so it can be resent (or dropped). Also forward the error we got in the listener.
-          // *********************************************************************************
-
-          // If the response is successful, remove the transaction from the queue
-          if (success) {
-              if (response.contains("result")) {
-                  LOGTRACE("Transaction sent successfully. Response: " + result);
-
-                  // Remove the transaction from the queue
-                  std::lock_guard<std::mutex> lock(txOutMutex_);
-                  txOut_.pop_front();
-              } else {
-                  // ???
-                  LOGTRACE("Transaction send error. Result: " + result);
-                  // On any error, always break out of the while (true) as we could be quitting
-                  break;
-              }
-          } else {
-
-              // Unfortunately, cometbft thinks that sending a transaction that it already knows
-              // about is an error, when it isn't -- it just means the job is already done, the
-              // sending of the transaction has been ultimately successful.
-              if (response.contains("result") && response[result].contains("error") && response["result"]["error"].contains("data")) {
-
-                  // TODO/REVIEW: do we actually need to do a string error message match to figure this out
-                  //              instead of e.g. matching an int error code?
-                  if (response["result"]["error"]["data"] == "tx already exists in cache") {
-                    LOGTRACE("Transaction sent successfully. Response: " + result);
-
-                    // Remove the transaction from the queue
-                    std::lock_guard<std::mutex> lock(txOutMutex_);
-                    txOut_.pop_front();
-
-                    // Override error condition below by just continuing the tx pump loop
-                    continue;
-                  }
-              }
-
-              LOGTRACE("Transaction send error. Result: " + result);
-              // On any error, always break out of the while (true) as we could be quitting
-              break;
-          }
+          tx = &(txOut_.front());
         }
 
-        // wait a little bit before we poll the transaction queue and the stop flag again
-        // TODO: optimize to condition variables later (when everything else is done)
-        std::this_thread::sleep_for(std::chrono::milliseconds(20));
+        std::string encodedTx = base64::encode_into<std::string>(tx->begin(), tx->end());
+
+        LOGXTRACE("Sending tx via RPC, size: " + std::to_string(tx->size()));
+
+        json params = { {"tx", encodedTx} };
+        std::string result;
+        bool success = makeJSONRPCCall("broadcast_tx_async", params, result);
+
+        // Give the transaction back to the application if broadcast_tx_async failed
+        if (success) {
+          LOGXTRACE("Transaction sent successfully. Response: " + result);
+        } else {
+          LOGDEBUG("Transaction send error. Result: " + result);
+          listener_->sendTransactionFailed(*tx, result);
+        }
+
+        // Always remove the transaction from the send queue (if it failed, it will have to be resent)
+        {
+          std::lock_guard<std::mutex> lock(txOutMutex_);
+          txOut_.pop_front();
+        }
+      }
+
+      // wait a little bit before we poll the transaction queue and the stop flag again
+      // TODO: optimize to condition variables later (when everything else is done)
+      std::this_thread::sleep_for(std::chrono::milliseconds(20));
     }
 
-    // Check if quitting
+    // --------------------------------------------------------------------------------------
+    // If the main loop above exits and this is reached, it is because we are shutting down.
+    // Will shut down cometbft, clean up and break loop.
+    // stop_ *must* be set to true at this point.
     if (stop_) break;
 
     // --------------------------------------------------------------------------------------
-    // If the main loop exits and this is reached then, it is because we are shutting down.
-    // Shut down cometbft, clean up and break loop
-    // Reaching here is probably an error, and should actually not be possible.
-    // This has been useful to detect bugs in the RUNNING state loop above so leave it here.
+    // Reaching here is a bug as stop_ *must* have been set to true.
+    // This is useful to detect bugs in the RUNNING state loop above.
 
     setState(CometState::TERMINATED);
 
