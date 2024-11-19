@@ -70,8 +70,7 @@ bool ABCINetServer::running() {
   return started_ && !stopped_;
 }
 
-void ABCINetServer::do_accept()
-{
+void ABCINetServer::do_accept() {
   auto self(shared_from_this());
   acceptor_.async_accept(
     [this, self](boost::system::error_code ec, boost::asio::local::stream_protocol::socket socket)

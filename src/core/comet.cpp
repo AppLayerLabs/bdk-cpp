@@ -22,6 +22,9 @@ See the LICENSE.txt file in the project root for more information.
 // CometImpl class
 // ---------------------------------------------------------------------------------------
 
+// Maximum size of an RPC request (should be loopback only, so the limit can be relaxed)
+#define COMET_RPC_MAX_BODY_BYTES 10000000
+
 /**
  * CometImpl implements the interface to CometBFT using ABCIServer and ABCISession from
  * src/net/abci/*, which implement the TCP ABCI Socket server for a cometbft instance to
@@ -776,6 +779,12 @@ void CometImpl::workerLoopInner() {
     std::string rpc_param = "tcp://0.0.0.0:" + rpcPortJSON.get<std::string>();
     configToml["p2p"].as_table()->insert_or_assign("laddr", p2p_param);
     configToml["rpc"].as_table()->insert_or_assign("laddr", rpc_param);
+
+    // RPC options. Since the RPC port should be made accessible for local (loopback) connections only, it can
+    //   accept unsafe comands if we need it to.
+    // REVIEW: Maybe we should try and have the RPC endpoint be an unix:/// socket as well?
+    configToml["rpc"].as_table()->insert_or_assign("max_body_bytes", COMET_RPC_MAX_BODY_BYTES);
+    //configToml["rpc"].as_table()->insert_or_assign("unsafe", toml::value(true));
 
     // FIXME/TODO: right now we are just testing, so these security params are relaxed to allow
     //   testing on the same machine. these will have to be exposed as BDK options as well so

@@ -848,9 +848,7 @@ namespace TComet {
 
       const Options options = getOptionsForCometTest(testDumpPath, p2p_port, rpc_port);
 
-      // NOTE: Can't currently send transactions that are much larger than this because we're
-      //       hitting an HTTP/RPC size limit (considering the transaction is Base64-encoded).
-      const int txSize = 700000;
+      const int txSize = 1048576;
 
       const uint8_t txContentByte = 0xde;
       const uint8_t txBorderByte = 0xad;
