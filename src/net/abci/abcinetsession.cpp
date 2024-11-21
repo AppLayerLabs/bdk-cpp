@@ -8,8 +8,6 @@
 // ABCI connections are trusted, but enforce a reasonable limit
 #define COMET_ABCI_MAX_MESSAGE_SIZE 1000000000
 
-// TODO: review all the error handling and the net code in general
-
 ABCINetSession::ABCINetSession(ABCIHandler *handler, boost::asio::local::stream_protocol::socket socket, std::shared_ptr<ABCINetServer> server)
   : handler_(handler),
     socket_(std::move(socket)),
@@ -19,6 +17,12 @@ ABCINetSession::ABCINetSession(ABCIHandler *handler, boost::asio::local::stream_
 }
 
 void ABCINetSession::start() {
+  std::scoped_lock lock(startedMutex_);
+  if (started_) {
+    return;
+  }
+  started_ = true;
+
   boost::asio::post(
     strand_,
     std::bind(&ABCINetSession::start_read_varint, shared_from_this())
@@ -106,12 +110,15 @@ void ABCINetSession::handle_read_message_length(bool success, uint64_t msg_len) 
     return;
   }
 
-  //LOGDEBUG("WILL READ MESSAGE OF SIZE: " + std::to_string(msg_len));
-  message_data_.resize(msg_len);
+  if (databuf_.size() < msg_len) {
+    databuf_.resize(msg_len);
+  }
+
+  databuf_message_size_ = msg_len;
 
   boost::asio::async_read(
     socket_,
-    boost::asio::buffer(message_data_),
+    boost::asio::buffer(databuf_, databuf_message_size_),
     boost::asio::bind_executor(
       strand_,
       std::bind(&ABCINetSession::handle_read_message, shared_from_this(), std::placeholders::_1, std::placeholders::_2)
@@ -128,13 +135,20 @@ void ABCINetSession::handle_read_message(boost::system::error_code ec, std::size
 }
 
 void ABCINetSession::do_write_message() {
-  // Prepare the varint
   varint_buffer_.clear();
-  write_varint(response_data_.size(), varint_buffer_);
+  uint64_t value = databuf_message_size_;
+  while (true) {
+    uint8_t byte = value & 0x7F;
+    value >>= 7;
+    if (value) {
+      byte |= 0x80;
+    }
+    varint_buffer_.push_back(byte);
+    if (!value) {
+      break;
+    }
+  }
 
-  //LOGDEBUG("WILL WRITE VARINT OF SIZE: " + std::to_string(varint_buffer_.size()) + ", FOLLOWED BY MESSAGE OF SIZE: " + std::to_string(response_data_.size()));
-
-  // Write the varint first
   boost::asio::async_write(
     socket_,
     boost::asio::buffer(varint_buffer_),
@@ -151,12 +165,9 @@ void ABCINetSession::handle_write_varint(boost::system::error_code ec, std::size
     return;
   }
 
-  //LOGDEBUG("VARINT WRITTEN, SIZE: " + std::to_string(length));
-
-  // Write the actual response buffer next
   boost::asio::async_write(
     socket_,
-    boost::asio::buffer(response_data_),
+    boost::asio::buffer(databuf_, databuf_message_size_),
     boost::asio::bind_executor(
       strand_,
       std::bind(&ABCINetSession::handle_write_message, shared_from_this(), std::placeholders::_1, std::placeholders::_2)
@@ -170,41 +181,21 @@ void ABCINetSession::handle_write_message(boost::system::error_code ec, std::siz
     return;
   }
 
-  //LOGDEBUG("MESSAGE WRITTEN, SIZE: " + std::to_string(length));
-
-  // Proceed to read the next message
   boost::asio::post(
     strand_,
     std::bind(&ABCINetSession::start_read_varint, shared_from_this())
   );
 }
 
-void ABCINetSession::write_varint(uint64_t value, std::vector<uint8_t> &buffer) {
-  while (true) {
-    uint8_t byte = value & 0x7F;
-    value >>= 7;
-    if (value) {
-      byte |= 0x80;
-    }
-    buffer.push_back(byte);
-    if (!value) {
-      break;
-    }
-  }
-}
-
 void ABCINetSession::process_request() {
-  // Parse the message into a Request
   cometbft::abci::v1::Request request;
-  if (!request.ParseFromArray(message_data_.data(), message_data_.size())) {
+  if (!request.ParseFromArray(databuf_.data(), databuf_message_size_)) {
     server_->stop("Failed to parse request");
     return;
   }
 
-  // Create a Response message
   cometbft::abci::v1::Response response;
 
-  // Handle the request
   switch (request.value_case()) {
     case cometbft::abci::v1::Request::kEcho:
     {
@@ -347,14 +338,17 @@ void ABCINetSession::process_request() {
     }
   }
 
-  // Serialize the response
   size_t response_size = response.ByteSizeLong();
-  response_data_.resize(response_size);
-  if (!response.SerializeToArray(response_data_.data(), response_size)) {
+  if (databuf_.size() < response_size) {
+    databuf_.resize(response_size);
+  }
+
+  if (!response.SerializeToArray(databuf_.data(), response_size)) {
     server_->stop("Failed to serialize response");
     return;
   }
 
-  // Write the response
+  databuf_message_size_ = response_size;
+
   do_write_message();
 }

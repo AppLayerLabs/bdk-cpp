@@ -4,6 +4,8 @@
 
 #include "../../utils/logger.h"
 
+// Since the ABCI opens 4 stream connections, run 4 threads just so no request can ever block other requests in other connections.
+// REVIEW: Do we actually need 4 threads, or can we get away with processing just one (or two) ABCI requests at a time?
 #define ABCI_NET_SERVER_NUM_THREADS 4
 
 ABCINetServer::ABCINetServer(ABCIHandler *handler, const std::string &cometUNIXSocketPath)
@@ -48,7 +50,11 @@ void ABCINetServer::stop(const std::string &reason) {
   stopped_ = true;
 
   // stop creating new sessions
-  acceptor_.close();
+  boost::system::error_code ec;
+  acceptor_.cancel(ec); // Cancel the acceptor.
+  if (ec) { LOGDEBUG("Failed to cancel acceptor operations: " + ec.message()); }
+  acceptor_.close(ec); // Close the acceptor.
+  if (ec) { LOGDEBUG("Failed to close acceptor: " + ec.message()); }
 
   // Close all active sessions
   // Since we only keep weak pointers we don't need to actually clear the sessions list

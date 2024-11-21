@@ -8,8 +8,8 @@ class ABCINetSession;
 class ABCIHandler;
 
 /**
- * ABCINetServer implements a boost::asio TCP socket server that accepts
- * ABCI TCP socket connection requests from cometbft and instantiates
+ * ABCINetServer implements a boost::asio stream socket server that accepts
+ * ABCI stream socket connection requests from cometbft and instantiates
  * an ABCINetSession to handle it.
  * It is given an ABCIHandler instance which actually handles the callbacks
  * received from cometbft.
@@ -26,15 +26,21 @@ class ABCINetServer : public std::enable_shared_from_this<ABCINetServer> {
 
     boost::asio::local::stream_protocol::acceptor acceptor_; ///< UNIX listen socket connection acceptor.
 
-    std::mutex sessionsMutex_; ///< Serilize access to sessions_.
+    std::mutex sessionsMutex_; ///< Serialize access to sessions_ (also protects acceptor_ so we don't need an acceptor strand).
     std::vector<std::weak_ptr<ABCINetSession>> sessions_; ///< So we can explicitly close all sockets on stop().
 
     std::atomic<bool> started_; ///< If net engine was ever started.
     std::atomic<bool> stopped_; ///< If net engine was ever stopped (cannot be restarted).
 
-    void do_accept();
+    void do_accept(); ///< Accepts another incoming ABCI stream connection through acceptor_ (net handler).
 
   public:
+
+    /**
+     * Creates an ABCI stream socket net server for cometbft to connect to.
+     * @param handler The application object that actually handles ABCI requests and provides an ABCI response.
+     * @param cometUNIXSocketPath UNIX socket file path to listen for incoming stream connections.
+     */
     ABCINetServer(ABCIHandler *handler, const std::string &cometUNIXSocketPath);
 
     /**
