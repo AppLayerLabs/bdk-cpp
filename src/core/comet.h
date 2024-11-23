@@ -46,8 +46,10 @@ class CometListener {
     /**
      * Called upon starting a fresh blockchain (i.e. empty block storage) from a given genesis config.
      * TODO: Check all parameters involved and use/handle them as needed.
+     * @param appHash Outparam to be set to the application's initial app hash.
      */
-    virtual void initChain() {
+    virtual void initChain(Bytes& appHash) {
+      appHash.clear();
     }
 
     /**
@@ -96,6 +98,17 @@ class CometListener {
      */
     virtual void getBlockRetainHeight(uint64_t& height) {
       height = 0;
+    }
+
+    /**
+     * Notification of what the cometbft block store height is. If the application is ahead, it can bring itself to a height
+     * that is equal or lower than this, or it can prepare to report a correct app_hash and validator set changes after
+     * each incomingBlock() callback that it will get with a height that is lower or equal than its current heigh without
+     * computing state (i.e. feeding it to Comet via stored historical data that it has computed in the past or that it has
+     * obtained off-band). The application is free to block this callback for any amount of time.
+     * @param height The current head height in the cometbft block store (the height that the cometbft node/db is at).
+     */
+    virtual void currentCometBFTHeight(const uint64_t height) {
     }
 
     /**
@@ -215,7 +228,6 @@ class CometImpl;
  *
  * TODO:
  * - comet / cometimpl cleanups
- * - review and refactor the entire abci net code
  */
 class Comet : public Log::LogicalLocationProvider {
   private:
@@ -305,13 +317,6 @@ class Comet : public Log::LogicalLocationProvider {
      * Stop the consensus engine loop; sets the pause state to CometState::NONE.
      */
     void stop();
-
-    // TODO: Send transaction (arbitrary byte array)
-    //
-    // To allow for this integration to be easily tested with a simple mock, transactions would
-    // have to continue being opaque just like they already are for all interactions with cometbft.
-    // There's no reason to move a signature scheme and signature verification into this component,
-    // as we can keep that at the class that is instantiating and using the Comet object.
 
     // TODO: Review CometListener callback synchronization/multithreading requirements.
     //

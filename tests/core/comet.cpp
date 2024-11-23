@@ -272,19 +272,26 @@ std::vector<CometTestKeys> cometTestKeys = {
  * options JSON for every peer, since every peer's config file needs to know about
  * ALL of the peers).
  *
+ * @param rootPath Root directory for the testcase.
+ * @param appHash Application state hash at genesis.
  * @param p2pPort The CometBFT P2P local port number to use.
  * @param rpcPort The CometBFT RPC local port number to use.
  * @param keyNumber Index of validator key from the predefined test validator key set.
  * @param numKeys Number of validator keys to include in the genesis spec.
  * @param ports Vector of ports allocated by all peers (unused, if numKeys == 1).
- *
+ * @param numNonValidators Number of peers that are not validators (excluded from the validator set).
+ * The non-validator peers, if any, are the last peers in the sequence (e.g. if numKeys == 10 and
+ * numNonValidators == 3, then key indices 0..6 are validators, but keys 7..9 are excluded from the
+ * validator set (but all 10 nodes are still fully connected to each other via persistent_peers).
  * @return Options object set up for testing a Comet instance.
  */
 Options getOptionsForCometTest(
   const std::string rootPath,
+  const std::string appHash,
   int p2pPort = 26656, int rpcPort = 26657,
   int keyNumber = 0, int numKeys = 1,
-  std::vector<CometTestPorts> ports = {}
+  std::vector<CometTestPorts> ports = {},
+  int numNonValidators = 0
 ) {
   // Note: all Comet instances are validators.
 
@@ -339,12 +346,16 @@ Options getOptionsForCometTest(
     }
   )");
 
+  defaultCometBFTOptions["genesis"]["app_hash"] = appHash;
+
   // Add entries for the CometBFT P2P and RPC port values that we will use
   defaultCometBFTOptions["p2p_port"] = std::to_string(p2pPort);
   defaultCometBFTOptions["rpc_port"] = std::to_string(rpcPort);
 
   // If the unit test is going to require more than one Comet instance, then we will need
   //   to set the BDK "peers" option with the full peer list for this peer to connect to.
+  // NOTE: all keys in numKeys are peers of each other as we want all keys/nodes to be
+  //   able to connect to each other.
   if (numKeys > 1) {
     // Build the peers array considering all nodes that will be peers with node keyNumber.
     std::string peersStr;
@@ -388,9 +399,10 @@ Options getOptionsForCometTest(
     }}
   };
 
-  // Build the "validators" array with the first numKeys elements
+  // Build the "validators" array with the first numKeys elements, but skip
+  //   "numNonValidator" entries at the end.
   std::vector<json> validators;
-  for (int i = 0; i < numKeys; ++i) {
+  for (int i = 0; i < numKeys - numNonValidators; ++i) {
     const CometTestKeys& validatorKeys = cometTestKeys[i];
     json validator = {
       {"address", validatorKeys.address},
@@ -439,6 +451,10 @@ Options getOptionsForCometTest(
   return options;
 }
 
+std::string appHashToString(const Bytes& appHash) {
+  return Hex::fromBytes(appHash, false).get();
+}
+
 /**
  * A simple stateful execution environment to test a Comet blockchain.
  *
@@ -476,6 +492,8 @@ private:
     return true;
   }
 
+  std::atomic<bool> enableAppHash_ = false; // Enables computing the app_hash based on m_ (instead of leaving it empty)
+
 public:
   std::atomic<int64_t> m_ = 0; // machine state
   std::atomic<uint64_t> h_ = 0; // current block height (0 = genesis)
@@ -483,8 +501,22 @@ public:
   std::atomic<uint64_t> incomingSyncingToHeight_ = 0; // value of syncingToHeight we got from incomingBlock() (0 if none yet)
   std::atomic<uint64_t> requiredSyncingToHeight_ = 0; // If set to != 0, requires incomingBlock(syncingToHeight) to match this value
   std::atomic<int> initChainCount_ = 0; // Flag for syncing with the cometbft InitChain callback
-  std::atomic<bool> enableAppHash_ = false; // Enables computing the app_hash based on m_ (instead of leaving it empty)
   Bytes appHash_; // Lastest apphash corresponding to m_ (if enableApphash_ == true)
+
+  TestMachine(bool enableAppHash = false) : enableAppHash_(enableAppHash) {
+    updateAppHash();
+  }
+
+  /**
+   * Get the appHash as a string.
+   */
+  std::string getAppHashString() {
+    std::string ret;
+    if (enableAppHash_) {
+      ret = appHashToString(appHash_);
+    }
+    return ret;
+  }
 
   /**
    * Recompute appHash_ based on m_ if enableAppHash_ == true.
@@ -494,19 +526,33 @@ public:
     // So, only compute the apphash if the testcase asks for it (via enableApphash_).
     appHash_.clear();
     if (enableAppHash_) {
-      // The "app hash" is just m_, with the exception that an empty app hash "" is set when m_ == 0
-      // which makes it easier to set the default app_hash in e.g. genesis.
-      if (m_ != 0) {
-        auto arr = Utils::int64ToBytes(m_);
-        appHash_ = Bytes(arr.begin(), arr.end());
-      }
+      auto arr = Utils::int64ToBytes(m_);
+      appHash_ = Bytes(arr.begin(), arr.end());
+    }
+  }
+
+  /**
+   * Unfortunately, cometbft cannot be behind the application state, and by default if we don't have an app state
+   * snapshot that we kept to match that "height" then we just reset to genesis.
+   * TODO: allow TestMachine to store snapshots (i.e. values of m_) for all heights it processes and let tests use
+   * them as they need it.
+   * TODO: this callback should also forward the current validator set here because that's also state that the application
+   * needs to be aware of.
+   */
+  void currentCometBFTHeight(const uint64_t height) override {
+    if (h_ > height) {
+      // comply by resetting to genesis
+      GLOGDEBUG("TEST: TestMachine: currentCometBFTHeight " + std::to_string(height) + " > " + std::to_string(h_));
+      h_ = 0;
+      m_ = 0;
+      updateAppHash();
     }
   }
 
   /**
    * InitChain ABCI callback.
    */
-  void initChain() override {
+  void initChain(Bytes& appHash) override {
     GLOGDEBUG("TEST: TestMachine: initChain()");
     m_ = 0;
     h_ = 0;
@@ -515,6 +561,7 @@ public:
     requiredSyncingToHeight_ = 0;
     ++initChainCount_;
     updateAppHash();
+    appHash = appHash_;
   }
 
   /**
@@ -656,18 +703,19 @@ namespace TComet {
       int p2p_port = SDKTestSuite::getTestPort();
       int rpc_port = SDKTestSuite::getTestPort();
 
-      const Options options = getOptionsForCometTest(testDumpPath, p2p_port, rpc_port);
+      const Options options = getOptionsForCometTest(testDumpPath, "", p2p_port, rpc_port);
 
       // Create a simple listener that just records that we got InitChain and what the current height is.
       class TestCometListener : public CometListener {
       public:
         std::atomic<bool> gotInitChain = false;
         std::atomic<uint64_t> finalizedHeight = 0;
-        virtual void initChain() {
+        virtual void initChain(Bytes& appHash) override {
+          appHash.clear();
           GLOGDEBUG("TestCometListener: got initChain");
           gotInitChain = true;
         }
-        virtual void incomingBlock(const uint64_t height, const uint64_t syncingToHeight, const std::vector<Bytes>& txs, Bytes& appHash) {
+        virtual void incomingBlock(const uint64_t height, const uint64_t syncingToHeight, const std::vector<Bytes>& txs, Bytes& appHash) override {
           GLOGDEBUG("TestCometListener: got incomingBlock " + std::to_string(height));
           finalizedHeight = height;
           appHash.clear();
@@ -777,21 +825,22 @@ namespace TComet {
       // This is needed because each BDK instance only supports one running comet instance normally,
       //   so each options/rootPath has one "comet" subdirectory in it to be the cometbft home dir.
       std::string testDumpPath0 = createTestDumpPath("CometBootTest2_0");
-      const Options options0 = getOptionsForCometTest(testDumpPath0, ports[0].p2p, ports[0].rpc, 0, 2, ports); // key 0 (totals 2 keys: 0 and 1)
+      const Options options0 = getOptionsForCometTest(testDumpPath0, "", ports[0].p2p, ports[0].rpc, 0, 2, ports); // key 0 (totals 2 keys: 0 and 1)
 
       std::string testDumpPath1 = createTestDumpPath("CometBootTest2_1");
-      const Options options1 = getOptionsForCometTest(testDumpPath1, ports[1].p2p, ports[1].rpc, 1, 2, ports); // key 1 (totals 2 keys: 0 and 1)
+      const Options options1 = getOptionsForCometTest(testDumpPath1, "", ports[1].p2p, ports[1].rpc, 1, 2, ports); // key 1 (totals 2 keys: 0 and 1)
 
       // Create a simple listener that just records that we got InitChain and what the current height is.
       class TestCometListener : public CometListener {
       public:
         std::atomic<bool> gotInitChain = false;
         std::atomic<uint64_t> finalizedHeight = 0;
-        virtual void initChain() {
+        virtual void initChain(Bytes& appHash) override {
+          appHash.clear();
           GLOGDEBUG("TestCometListener: got initChain");
           gotInitChain = true;
         }
-        virtual void incomingBlock(const uint64_t height, const uint64_t syncingToHeight, const std::vector<Bytes>& txs, Bytes& appHash) {
+        virtual void incomingBlock(const uint64_t height, const uint64_t syncingToHeight, const std::vector<Bytes>& txs, Bytes& appHash) override {
           GLOGDEBUG("TestCometListener: got incomingBlock " + std::to_string(height));
           finalizedHeight = height;
           appHash.clear();
@@ -846,7 +895,7 @@ namespace TComet {
       int p2p_port = SDKTestSuite::getTestPort();
       int rpc_port = SDKTestSuite::getTestPort();
 
-      const Options options = getOptionsForCometTest(testDumpPath, p2p_port, rpc_port);
+      const Options options = getOptionsForCometTest(testDumpPath, "", p2p_port, rpc_port);
 
       const int txSize = 1048576;
 
@@ -859,11 +908,12 @@ namespace TComet {
         std::atomic<bool> gotInitChain = false;
         std::atomic<uint64_t> finalizedHeight = 0;
         std::atomic<int> txCount = 0;
-        virtual void initChain() {
+        virtual void initChain(Bytes& appHash) override {
+          appHash.clear();
           GLOGDEBUG("TestCometListener: got initChain");
           gotInitChain = true;
         }
-        virtual void incomingBlock(const uint64_t height, const uint64_t syncingToHeight, const std::vector<Bytes>& txs, Bytes& appHash) {
+        virtual void incomingBlock(const uint64_t height, const uint64_t syncingToHeight, const std::vector<Bytes>& txs, Bytes& appHash) override {
           GLOGDEBUG("TestCometListener: got incomingBlock " + std::to_string(height));
           if (txs.size() != 0) {
             REQUIRE(txs.size() == 1);
@@ -962,25 +1012,25 @@ namespace TComet {
 
       GLOGDEBUG("TEST: Constructing Comet");
 
-      // get free ports to run tests on
-      int p2p_port = SDKTestSuite::getTestPort();
-      int rpc_port = SDKTestSuite::getTestPort();
-
-      const Options options = getOptionsForCometTest(testDumpPath, p2p_port, rpc_port);
-
       const int txSize = 10000000; // Transaction is too large (10 MB)
 
       // Create a simple listener that just records that we got InitChain and what the current height is.
       class TestCometListener : public CometListener {
       public:
         std::atomic<int> failTxCount = 0;
-        virtual void sendTransactionFailed(const Bytes& tx, const std::string& error) {
+        virtual void sendTransactionFailed(const Bytes& tx, const std::string& error) override {
           GLOGDEBUG("TestCometListener: got sendTransactionFailed: " + error);
           REQUIRE(tx.size() == txSize);
           ++failTxCount;
         }
       };
       TestCometListener cometListener;
+
+      // get free ports to run tests on
+      int p2p_port = SDKTestSuite::getTestPort();
+      int rpc_port = SDKTestSuite::getTestPort();
+
+      const Options options = getOptionsForCometTest(testDumpPath, "", p2p_port, rpc_port);
 
       // Set up comet with single validator and stepMode_
       Comet comet(&cometListener, "", options, true);
@@ -1023,13 +1073,13 @@ namespace TComet {
 
       GLOGDEBUG("TEST: Constructing Comet");
 
+      TestMachine cometListener;
+
       // get free ports to run tests on
       int p2p_port = SDKTestSuite::getTestPort();
       int rpc_port = SDKTestSuite::getTestPort();
 
-      const Options options = getOptionsForCometTest(testDumpPath, p2p_port, rpc_port);
-
-      TestMachine cometListener;
+      const Options options = getOptionsForCometTest(testDumpPath, cometListener.getAppHashString(), p2p_port, rpc_port);
 
       // Set up comet with single validator
       Comet comet(&cometListener, "", options, true);
@@ -1136,13 +1186,13 @@ namespace TComet {
 
       GLOGDEBUG("TEST: Constructing Comet");
 
+      TestMachine cometListener;
+
       // get free ports to run tests on
       int p2p_port = SDKTestSuite::getTestPort();
       int rpc_port = SDKTestSuite::getTestPort();
 
-      const Options options = getOptionsForCometTest(testDumpPath, p2p_port, rpc_port);
-
-      TestMachine cometListener;
+      const Options options = getOptionsForCometTest(testDumpPath, cometListener.getAppHashString(), p2p_port, rpc_port);
 
       // Set up comet with single validator
       Comet comet(&cometListener, "", options, true);
@@ -1267,15 +1317,14 @@ namespace TComet {
 
       GLOGDEBUG("TEST: Constructing Comet");
 
+      // Create a TestMachine with app_hash enabled.
+      TestMachine cometListener(true);
+
       // get free ports to run tests on
       int p2p_port = SDKTestSuite::getTestPort();
       int rpc_port = SDKTestSuite::getTestPort();
 
-      const Options options = getOptionsForCometTest(testDumpPath, p2p_port, rpc_port);
-
-      // Create a TestMachine with app_hash enabled.
-      TestMachine cometListener;
-      cometListener.enableAppHash_ = true;
+      const Options options = getOptionsForCometTest(testDumpPath, cometListener.getAppHashString(), p2p_port, rpc_port);
 
       // Set up comet with single validator and no stepMode.
       Comet comet(&cometListener, "", options);
@@ -1310,11 +1359,7 @@ namespace TComet {
         REQUIRE(futureMemoryUpdated.wait_for(std::chrono::seconds(10)) != std::future_status::timeout);
 
         // Log the appHash
-        if (cometListener.appHash_.size() != sizeof(int64_t)) {
-          GLOGDEBUG("TEST: AppHash is empty.");
-        } else {
-          GLOGDEBUG("TEST: AppHash is now: " + std::to_string(Utils::bytesToInt64(cometListener.appHash_)));
-        }
+        GLOGDEBUG("TEST: AppHash is now: " + appHashToString(cometListener.appHash_));
 
         // Ensure the block and transaction had the intended effect on the machine
         GLOGDEBUG("TEST: Checking m_ == " + std::to_string(expectedMachineMemoryValue));
@@ -1365,6 +1410,184 @@ namespace TComet {
       comet.stop();
       GLOGDEBUG("TEST: Stopped");
       REQUIRE(comet.getState() == CometState::STOPPED);
+      GLOGDEBUG("TEST: Finished");
+    }
+
+    // Validator produces blocks, then launch another non-validator node
+    // that connects to it and syncs from some block height.
+    SECTION("CometSyncTest") {
+
+      GLOGDEBUG("TEST: Constructing two Comet instances");
+
+      // Instantiate the listener object twice, one for each running Comet instance
+      TestMachine cometListener0(true);
+      TestMachine cometListener1(true);
+
+      // get free ports to run tests on
+      auto ports = generateCometTestPorts(2);
+
+      // Create two test dump (i.e. BDK options rootPath) directories, one for each comet instance.
+      // This is needed because each BDK instance only supports one running comet instance normally,
+      //   so each options/rootPath has one "comet" subdirectory in it to be the cometbft home dir.
+      // numKeys == 2 (keys 0 and 1), and numNonValidators (last param) == 1, since only comet0 is
+      //   a validator; comet1 is a nonvalidator that will sync to the chain mined only by comet0.
+      std::string testDumpPath0 = createTestDumpPath("CometSyncTest_0");
+      const Options options0 = getOptionsForCometTest(testDumpPath0, cometListener0.getAppHashString(), ports[0].p2p, ports[0].rpc, 0, 2, ports, 1);
+
+      std::string testDumpPath1 = createTestDumpPath("CometSyncTest_1");
+      const Options options1 = getOptionsForCometTest(testDumpPath1, cometListener1.getAppHashString(), ports[1].p2p, ports[1].rpc, 1, 2, ports, 1);
+
+      // Set up our two running Comet instances
+      Comet comet0(&cometListener0, "Comet0", options0);
+      Comet comet1(&cometListener1, "Comet1", options1);
+
+      // Start the validator first so the chain can advance to the target block height.
+      GLOGDEBUG("TEST: Starting validator (node 0)");
+      comet0.start();
+
+      // Send several transactions across different blocks (stepMode is disabled,
+      // so cometbft can produce empty blocks).
+      GLOGDEBUG("TEST: Sending several ++m_ transactions...");
+      int numTxs = 3;
+      int64_t expectedMachineMemoryValue = 0;
+      for (int i = 0; i < numTxs; ++i) {
+
+        // transaction increments the memory cell (++cometListener.m_)
+        // The second parameter (i) is serving as the nonce (need to uniquify the transaction
+        //   otherwise it is understood as a replay).
+        std::string transaction = "SIG " + std::to_string(i) + " + 1";
+        GLOGDEBUG("TEST: Sending transaction: " + transaction);
+        Bytes transactionBytes(transaction.begin(), transaction.end());
+        comet0.sendTransaction(transactionBytes);
+        ++expectedMachineMemoryValue;
+
+        // Wait for memory cell to update (meaning the transaction was picked up)
+        GLOGDEBUG("TEST: Waiting for m_ == " + std::to_string(expectedMachineMemoryValue));
+        auto futureMemoryUpdated = std::async(std::launch::async, [&]() {
+          while (cometListener0.m_ != expectedMachineMemoryValue) {
+            std::this_thread::sleep_for(std::chrono::milliseconds(10));
+          }
+        });
+        REQUIRE(futureMemoryUpdated.wait_for(std::chrono::seconds(10)) != std::future_status::timeout);
+
+        // Log the appHash
+        GLOGDEBUG("TEST: AppHash is now: " + cometListener0.getAppHashString()); //std::to_string(Utils::bytesToInt64(cometListener0.appHash_)));
+
+        // Ensure the block and transaction had the intended effect on the machine
+        GLOGDEBUG("TEST: Checking m_ == " + std::to_string(expectedMachineMemoryValue));
+        REQUIRE(cometListener0.m_ == expectedMachineMemoryValue);
+      }
+
+      // Fetch the current block height (any value here is good, even if this is racing
+      // block production, since any h_ value here is guaranteed to have the state after
+      // the test transactions above, which is what matters).
+      uint64_t comet1StartHeight = cometListener0.h_;
+      uint64_t comet1StartMachineMemoryValue = cometListener0.m_;
+      Bytes comet1StartAppHash = cometListener0.appHash_;
+      std::string comet1StartAppHashStr = appHashToString(comet1StartAppHash);
+
+      GLOGDEBUG(
+        "TEST: comet1StartHeight will be " + std::to_string(comet1StartHeight) +
+        ", comet1StartMachineMemoryValue will be " + std::to_string(comet1StartMachineMemoryValue) +
+        ", comet1StartAppHash will be " + comet1StartAppHashStr
+      );
+
+      // Wait for comet0 to produce at least one more block
+      auto futureFinalizeBlock = std::async(std::launch::async, [&]() {
+        while (cometListener0.h_ <= comet1StartHeight) {
+          std::this_thread::sleep_for(std::chrono::milliseconds(10));
+        }
+      });
+      REQUIRE(futureFinalizeBlock.wait_for(std::chrono::seconds(10)) != std::future_status::timeout);
+      REQUIRE(cometListener0.h_ > comet1StartHeight);
+
+      // Add another set of transactions to produce a final target state
+      // Send several transactions across different blocks (stepMode is disabled,
+      // so cometbft can produce empty blocks).
+      GLOGDEBUG("TEST: Sending more ++m_ transactions...");
+      int startTxs = numTxs;
+      numTxs = 3;
+      for (int i = startTxs; i < startTxs + numTxs; ++i) {
+
+        // transaction increments the memory cell (++cometListener.m_)
+        // The second parameter (i) is serving as the nonce (need to uniquify the transaction
+        //   otherwise it is understood as a replay).
+        std::string transaction = "SIG " + std::to_string(i) + " + 1";
+        GLOGDEBUG("TEST: Sending transaction: " + transaction);
+        Bytes transactionBytes(transaction.begin(), transaction.end());
+        comet0.sendTransaction(transactionBytes);
+        ++expectedMachineMemoryValue;
+
+        // Wait for memory cell to update (meaning the transaction was picked up)
+        GLOGDEBUG("TEST: Waiting for m_ == " + std::to_string(expectedMachineMemoryValue));
+        auto futureMemoryUpdated = std::async(std::launch::async, [&]() {
+          while (cometListener0.m_ != expectedMachineMemoryValue) {
+            std::this_thread::sleep_for(std::chrono::milliseconds(10));
+          }
+        });
+        REQUIRE(futureMemoryUpdated.wait_for(std::chrono::seconds(10)) != std::future_status::timeout);
+
+        // Log the appHash
+        GLOGDEBUG("TEST: AppHash is now: " + cometListener0.getAppHashString());
+
+        // Ensure the block and transaction had the intended effect on the machine
+        GLOGDEBUG("TEST: Checking m_ == " + std::to_string(expectedMachineMemoryValue));
+        REQUIRE(cometListener0.m_ == expectedMachineMemoryValue);
+      }
+
+      // Here comet0 will just keep running.
+      // Whatever h_ comet0 is in now will be the sync target for comet1, as it will already
+      //   have the second batch of test transactions applied to it.
+      uint64_t comet1TargetHeight = cometListener0.h_;
+      uint64_t comet1TargetMachineMemoryValue = cometListener0.m_;
+      Bytes comet1TargetAppHash = cometListener0.appHash_;
+      std::string comet1TargetAppHashStr = appHashToString(comet1TargetAppHash);
+      GLOGDEBUG(
+        "TEST: comet1TargetHeight will be " + std::to_string(comet1TargetHeight) +
+        ", comet1TargetMachineMemoryValue will be " + std::to_string(comet1TargetMachineMemoryValue) +
+        ", comet1TargetAppHash will be " + comet1TargetAppHashStr
+      );
+
+      // Now we switch to testing comet1
+      // Start by rigging the cometListener1 to start at the start height and memory value,
+      //   as if it had loaded a BDK app state DB/snapshot.
+      // NOTE: These will be simply ignored, since cometbft height is 0 (this is a fresh node).
+      //       TestMachine will force its h_ to genesis when it is notified of this.
+      // TODO: In a future version, the Comet driver will use cometbft state sync,
+      //       snapshots, light-client verification, etc. instead and this test will
+      //       actually start the node1 instance from comet1StartHeight and its current
+      //       comet1StartMachineMemoryValue and comet1StartAppHash, without reverting to
+      //       genesis state.
+      cometListener1.h_ = comet1StartHeight;
+      cometListener1.m_ = comet1StartMachineMemoryValue;
+      cometListener1.appHash_ = comet1StartAppHash;
+
+      // Start comet1 at the start height
+      GLOGDEBUG("TEST: Starting non-validator (node 1) at comet1Start* values as logged above");
+      comet1.start();
+
+      // Wait for comet1 to reach the taget height
+      auto futureFinalizeBlock1 = std::async(std::launch::async, [&]() {
+        while (cometListener1.h_ <= comet1TargetHeight) {
+          std::this_thread::sleep_for(std::chrono::milliseconds(10));
+        }
+      });
+      REQUIRE(futureFinalizeBlock1.wait_for(std::chrono::seconds(10)) != std::future_status::timeout);
+      REQUIRE(cometListener1.h_ > comet1TargetHeight);
+
+      // comet1 must have synced to the target state
+      REQUIRE(cometListener1.m_ == comet1TargetMachineMemoryValue);
+      REQUIRE(cometListener1.appHash_ == comet1TargetAppHash);
+
+      // Stop both cometbft instances
+      GLOGDEBUG("TEST: Stopping both instances...");
+      REQUIRE(comet0.getStatus()); // no error reported (must check before stop())
+      comet0.stop();
+      REQUIRE(comet1.getStatus()); // no error reported (must check before stop())
+      comet1.stop();
+      GLOGDEBUG("TEST: Stopped both instances");
+      REQUIRE(comet0.getState() == CometState::STOPPED);
+      REQUIRE(comet1.getState() == CometState::STOPPED);
       GLOGDEBUG("TEST: Finished");
     }
   }
