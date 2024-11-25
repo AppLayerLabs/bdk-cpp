@@ -61,7 +61,8 @@ class CometImpl : public Log::LogicalLocationProvider, public ABCIHandler {
     std::string nodeId_; ///< Cometbft node id or an empty string if not yet retrieved.
 
     std::mutex txOutMutex_; ///< mutex to protect txOut_.
-    std::deque<Bytes> txOut_; ///< Txs that are pending dispatch to the local cometbft node's mempool.
+    uint64_t txOutTicketGen_ = 0; ///< ticket generator for sendTransaction().
+    std::deque<std::tuple<uint64_t, Bytes>> txOut_; ///< Queue of (ticket#,Tx) pending dispatch to the local cometbft node's mempool.
 
     uint64_t lastCometBFTBlockHeight_; ///< Current block height stored in the cometbft data dir, if known.
     std::string lastCometBFTAppHash_; ///< Current app hash stored in the cometbft data dir, if known.
@@ -191,7 +192,7 @@ class CometImpl : public Log::LogicalLocationProvider, public ABCIHandler {
 
     void stop();
 
-    void sendTransaction(const Bytes& tx);
+    uint64_t sendTransaction(const Bytes& tx);
 
     // ---------------------------------------------------------------------------------------
     // ABCIHandler interface
@@ -263,14 +264,16 @@ std::string CometImpl::getNodeID() {
   return this->nodeId_;
 }
 
-void CometImpl::sendTransaction(const Bytes& tx) {
+uint64_t CometImpl::sendTransaction(const Bytes& tx) {
   // Add transaction to a queue that will try to push it to our cometbft instance.
   // Queue is NEVER reset on continue; etc. it is the same node, need to deliver tx to it eventually.
   // NOTE: sendTransaction is about queuing the tx object so that it is eventually dispatched to
   //       the localhost cometbft node. the only guarantee is that the local cometbft node will see it.
   //       it does NOT mean it is accepted by the application's blockchain network or anything else.
   std::lock_guard<std::mutex> lock(txOutMutex_);
-  txOut_.push_back(tx);
+  ++txOutTicketGen_;
+  txOut_.emplace_back(txOutTicketGen_, tx);
+  return txOutTicketGen_;
 }
 
 void CometImpl::start() {
@@ -1255,15 +1258,22 @@ void CometImpl::workerLoopInner() {
       //       if it expires or errors out, it is just reinserted in the main queue.
       //       if it succeeds, it is just removed from the in-flight txsend map.
 
-      Bytes *tx;
       while (!stop_) {
-        {
-          std::lock_guard<std::mutex> lock(txOutMutex_);
-          if (txOut_.empty()) {
-            break;
-          }
-          tx = &(txOut_.front());
+
+        // lock the txOut_ queue to check its size
+        std::unique_lock<std::mutex> lock(txOutMutex_);
+        if (txOut_.empty()) {
+          lock.unlock();
+          break;
         }
+        lock.unlock();
+
+        // fetching the element in front works outside of locking txOutMutex_
+        // since only this loop can remove the front element, and elements in
+        // general (other threads will only be pushing new elements to the back).
+        const auto& txOutItem = txOut_.front();
+        uint64_t txTicketId = std::get<0>(txOutItem);
+        const Bytes* tx = &std::get<1>(txOutItem);
 
         std::string encodedTx = base64::encode_into<std::string>(tx->begin(), tx->end());
 
@@ -1273,19 +1283,23 @@ void CometImpl::workerLoopInner() {
         std::string result;
         bool success = makeJSONRPCCall("broadcast_tx_async", params, result);
 
-        // Give the transaction back to the application if broadcast_tx_async failed
-        if (success) {
-          LOGXTRACE("Transaction sent successfully. Response: " + result);
-        } else {
-          LOGDEBUG("Transaction send error. Result: " + result);
-          listener_->sendTransactionFailed(*tx, result);
+        // try to extract the SHA256 txhash computed by cometbft
+        std::string txHash = "";
+        try {
+          json response = json::parse(result);
+          if (response.contains("result") && response["result"].contains("hash")) {
+            txHash = response["result"]["hash"].get<std::string>();
+          }
+        } catch (const json::exception& e) {
         }
 
+        // Give the transaction back to the application in any case
+        listener_->sendTransactionResult(*tx, txTicketId, success, txHash, result);
+
         // Always remove the transaction from the send queue (if it failed, it will have to be resent)
-        {
-          std::lock_guard<std::mutex> lock(txOutMutex_);
-          txOut_.pop_front();
-        }
+        std::unique_lock<std::mutex> lockPop(txOutMutex_);
+        txOut_.pop_front();
+        lockPop.unlock();
 
         // If we got an RPC error, we might have bigger problems (e.g. cometbft died) so quit and re-check abciServer_ above.
         if (!success) {
@@ -1492,7 +1506,24 @@ void CometImpl::finalize_block(const cometbft::abci::v1::FinalizeBlockRequest& r
 }
 
 void CometImpl::query(const cometbft::abci::v1::QueryRequest& req, cometbft::abci::v1::QueryResponse* res) {
-    // Absorbed internally, may be used to implement other callbacks.
+  // Absorbed internally, may be used to implement other callbacks.
+
+  // From the CometBFT doc:
+  //  Query is a generic method with lots of flexibility to enable diverse sets of queries on application state.
+  //
+  //  The most important use of Query is to return Merkle proofs of the application state at some height that can be used for efficient application-specific light-clients.
+  //
+  //  CometBFT makes use of Query to filter new peers based on ID and IP, and exposes Query to the user over RPC.
+  //  When CometBFT connects to a peer, it sends two queries to the ABCI application using the following paths, with no additional data:
+  //   /p2p/filter/addr/<IP:PORT>, where <IP:PORT> denote the IP address and the port of the connection
+  //   p2p/filter/id/<ID>, where <ID> is the peer node ID (ie. the pubkey.Address() for the peer’s PubKey)
+  //  If either of these queries return a non-zero ABCI code, CometBFT will refuse to connect to the peer.
+  //
+  //  Note CometBFT has technically no requirements from the Query message for normal operation - that is, the ABCI app developer need not implement Query functionality if they do not wish to.
+
+  // TODO:
+  // - Implement query for light-client use (e.g. snapshot/state-sync).
+  // - Implement query for peer ID/IP rejection/filter (e.g. an IP address blacklist).
 }
 
 void CometImpl::list_snapshots(const cometbft::abci::v1::ListSnapshotsRequest& req, cometbft::abci::v1::ListSnapshotsResponse* res) {
@@ -1561,8 +1592,8 @@ std::string Comet::getNodeID() {
   return impl_->getNodeID();
 }
 
-void Comet::sendTransaction(const Bytes& tx) {
-  impl_->sendTransaction(tx);
+uint64_t Comet::sendTransaction(const Bytes& tx) {
+  return impl_->sendTransaction(tx);
 }
 
 void Comet::start() {

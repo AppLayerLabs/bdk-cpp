@@ -153,11 +153,16 @@ class CometListener {
     }
 
     /**
-     * Notification that Comet failed to deliver a transaction to cometbft via the CometBFT RPC port.
-     * @param tx Transaction that was previously sent via `Comet::sendTransaction()` but that failed to be sent.
-     * @param error Error message (JSON-RPC response).
+     * Notification of completing a Comet::sendTransaction() request.
+     * @param tx Transaction that was previously sent via `Comet::sendTransaction()`.
+     * @param txId The value that was returned by `Comet::sendTransaction()` (the request ticket/id).
+     * @param success `true` if sendTransaction() succeeded, `false` if the transaction failed to send.
+     * @param txHash Transaction hash as CometBFT sees it (SHA256: https://docs.cometbft.com/main/spec/core/encoding).
+     * @param response The full JSON-RPC response returned by cometbft.
      */
-    virtual void sendTransactionFailed(const Bytes& tx, const std::string& error) {
+    virtual void sendTransactionResult(
+      const Bytes& tx, const uint64_t txId, const bool success, const std::string& txHash, const std::string& response
+    ) {
     }
 };
 
@@ -241,8 +246,9 @@ class Comet : public Log::LogicalLocationProvider {
      * instance is running and it acknowledges the receipt of the transaction bytes, meaning it should
      * be in its mempool from now on (if it passes CheckTx, etc).
      * @param tx The raw bytes of the transaction object.
+     * @return Ticket number for the transaction send request (unique for one Comet object instantiation).
      */
-    void sendTransaction(const Bytes& tx);
+    uint64_t sendTransaction(const Bytes& tx);
 
     /**
      * Start (or restart) the consensus engine loop.

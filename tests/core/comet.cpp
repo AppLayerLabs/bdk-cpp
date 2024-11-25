@@ -941,6 +941,12 @@ namespace TComet {
           appHash.clear();
           txResults.resize(txs.size());
         }
+        virtual void sendTransactionResult(const Bytes& tx, const uint64_t txId, const bool success, const std::string& txHash, const std::string& response) override {
+          REQUIRE(success == true);
+          GLOGDEBUG("TestCometListener: got sendTransactionResult: " + response + ", txHash: " + txHash);
+          REQUIRE(tx.size() == txSize);
+          REQUIRE(txHash == "2A62F69DB37417A3EB7E72219BDE4D6ADCD1A9878527DA245D4CC30FD1F899AB");
+        }
       };
       TestCometListener cometListener;
 
@@ -1026,8 +1032,10 @@ namespace TComet {
       class TestCometListener : public CometListener {
       public:
         std::atomic<int> failTxCount = 0;
-        virtual void sendTransactionFailed(const Bytes& tx, const std::string& error) override {
-          GLOGDEBUG("TestCometListener: got sendTransactionFailed: " + error);
+        virtual void sendTransactionResult(const Bytes& tx, const uint64_t txId, const bool success, const std::string& txHash, const std::string& response) override {
+          REQUIRE(success == false); // we expect the only tx sent by this testcase to fail
+          REQUIRE(txId == 1); // we only sent one and the ID gen starts at 1
+          GLOGDEBUG("TestCometListener: got sendTransactionResult: " + response);
           REQUIRE(tx.size() == txSize);
           ++failTxCount;
         }
