@@ -164,6 +164,15 @@ class CometListener {
       const Bytes& tx, const uint64_t txId, const bool success, const std::string& txHash, const std::string& response
     ) {
     }
+
+    /**
+     * Notification of completing a Comet::checkTransaction() request.
+     * @param txHash The transaction hash that was checked.
+     * @param success Whether the transaction check (/tx RPC call) was successful or not.
+     * @param response The full JSON-RPC response returned by cometbft.
+     */
+    virtual void checkTransactionResult(const std::string& txHash, const bool success, const std::string& response) {
+    }
 };
 
 class CometImpl;
@@ -249,6 +258,12 @@ class Comet : public Log::LogicalLocationProvider {
      * @return Ticket number for the transaction send request (unique for one Comet object instantiation).
      */
     uint64_t sendTransaction(const Bytes& tx);
+
+    /**
+     * Enqueue a request to check the status of a transaction given its hash (CometBFT hash, i.e. SHA256).
+     * @param txHash A hex string (no "0x") with the SHA256 hex of the transaction to look for.
+     */
+    void checkTransaction(const std::string& txHash);
 
     /**
      * Start (or restart) the consensus engine loop.

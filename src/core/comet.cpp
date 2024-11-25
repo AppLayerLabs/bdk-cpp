@@ -64,6 +64,9 @@ class CometImpl : public Log::LogicalLocationProvider, public ABCIHandler {
     uint64_t txOutTicketGen_ = 0; ///< ticket generator for sendTransaction().
     std::deque<std::tuple<uint64_t, Bytes>> txOut_; ///< Queue of (ticket#,Tx) pending dispatch to the local cometbft node's mempool.
 
+    std::mutex txCheckMutex_; ///< mutex to protect txCheck_.
+    std::deque<std::string> txCheck_; ///< Queue of txHash (SHA256/cometbft) pending check via a call to /tx to the cometbft RPC port.
+
     uint64_t lastCometBFTBlockHeight_; ///< Current block height stored in the cometbft data dir, if known.
     std::string lastCometBFTAppHash_; ///< Current app hash stored in the cometbft data dir, if known.
 
@@ -194,6 +197,8 @@ class CometImpl : public Log::LogicalLocationProvider, public ABCIHandler {
 
     uint64_t sendTransaction(const Bytes& tx);
 
+    void checkTransaction(const std::string& txHash);
+
     // ---------------------------------------------------------------------------------------
     // ABCIHandler interface
     // ---------------------------------------------------------------------------------------
@@ -274,6 +279,27 @@ uint64_t CometImpl::sendTransaction(const Bytes& tx) {
   ++txOutTicketGen_;
   txOut_.emplace_back(txOutTicketGen_, tx);
   return txOutTicketGen_;
+}
+
+void CometImpl::checkTransaction(const std::string& txHash) {
+
+  // FIXME/TODO:
+  // Turns out the cometbft /tx RPC endpoint is not ideal, as it returns the entire transaction body
+  // when we are checking for the status of a transaction, and it also takes some time between
+  // seeing that the transaction went into a block and indexing it (it just says "not found"/error
+  // if the transaction is pending, i.e. as if it didn't exist at all). So, it's better to put a cache
+  // in front of the RPC request, so that if we know the transaction hash (because it is a transaction
+  // that we sent through here) then we instead wait to see it in a block, and when we do, we update
+  // our own transaction result tracking structure that we query here and return via a direct
+  // checkTransactionResult() callback from here (or we still put it the request in the queue here and
+  // let it resolve in the worker thread).
+  // OR, alternatively, we use our uint64_t tx ticket, or let the application handle this with its
+  // own scanning of produced blocks and indexing the transactions it sees there (since it does get
+  // CometListener::incomingBlock() after all, which would be sufficient to implement any transaction
+  // result/checking scheme).
+
+  std::lock_guard<std::mutex> lock(txCheckMutex_);
+  txCheck_.emplace_back(txHash);
 }
 
 void CometImpl::start() {
@@ -1258,6 +1284,7 @@ void CometImpl::workerLoopInner() {
       //       if it expires or errors out, it is just reinserted in the main queue.
       //       if it succeeds, it is just removed from the in-flight txsend map.
 
+      // pump all pending transactions to send first
       while (!stop_) {
 
         // lock the txOut_ queue to check its size
@@ -1302,6 +1329,53 @@ void CometImpl::workerLoopInner() {
         lockPop.unlock();
 
         // If we got an RPC error, we might have bigger problems (e.g. cometbft died) so quit and re-check abciServer_ above.
+        if (!success) {
+          break;
+        }
+      }
+
+      // TODO: We should actually have an array of persisted RPC connections, not just one,
+      // so that e.g. sendTransaction can't starve checkTransaction.
+      //
+      // when we don't have any more transactions to send, do all transaction check requests
+      while (!stop_) {
+
+        std::unique_lock<std::mutex> lock(txCheckMutex_);
+        if (txCheck_.empty()) {
+          lock.unlock();
+          break;
+        }
+        lock.unlock();
+
+        const std::string& txCheckHash = txCheck_.front();
+
+        LOGXTRACE("Checking txHash: " + txCheckHash);
+
+        // We need to convert the hex string of txCheckHash to bytes first
+        // Then we need to Base64-encode that because that is a requirement of the JSON-RPC POST interface of cometbft
+        Bytes hx = Hex::toBytes(txCheckHash);
+        std::string encodedHexBytes = base64::encode_into<std::string>(hx.begin(), hx.end());
+
+        json params = { {"hash", encodedHexBytes} };
+        std::string result;
+        bool success = makeJSONRPCCall("tx", params, result);
+
+        // Sample response: {"jsonrpc":"2.0","id":6,"result":{"hash":"2A62F69DB37417A3EB7E72219BDE4D6ADCD1A9878527DA245D4CC30FD1F899AB",
+        // "height":"2","index":0,"tx_result":{"code":0,"data":null,"log":"","info":"","gas_wanted":"0","gas_used":"0","events":[],
+        // "codespace":""},"tx":"rd7e3t7e3t7e3........
+        //
+        // Apparently cometbft responds "not found" if you ask for a transaction hash that is pending / in the mempool. It only
+        // returns via /tx in a non-erroneous way if it was in fact included in a block.
+        //
+        // This call also returns the entire transaction body, which is inefficient if all you want is a confirmation that the
+        // transaction went through and the transaction is big.
+
+        listener_->checkTransactionResult(txCheckHash, success, result);
+
+        std::unique_lock<std::mutex> lockPop(txCheckMutex_);
+        txCheck_.pop_front();
+        lockPop.unlock();
+
         if (!success) {
           break;
         }
@@ -1594,6 +1668,10 @@ std::string Comet::getNodeID() {
 
 uint64_t Comet::sendTransaction(const Bytes& tx) {
   return impl_->sendTransaction(tx);
+}
+
+void Comet::checkTransaction(const std::string& txHash) {
+  impl_->checkTransaction(txHash);
 }
 
 void Comet::start() {

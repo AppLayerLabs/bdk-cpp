@@ -909,12 +909,15 @@ namespace TComet {
       const uint8_t txContentByte = 0xde;
       const uint8_t txBorderByte = 0xad;
 
+      static const std::string transactionHash = "2A62F69DB37417A3EB7E72219BDE4D6ADCD1A9878527DA245D4CC30FD1F899AB";
+
       // Create a simple listener that just records that we got InitChain and what the current height is.
       class TestCometListener : public CometListener {
       public:
         std::atomic<bool> gotInitChain = false;
         std::atomic<uint64_t> finalizedHeight = 0;
         std::atomic<int> txCount = 0;
+        std::atomic<int> gotTxCheck = 0;
         virtual void initChain(const uint64_t genesisTime, const std::string& chainId, const Bytes& initialAppState, const uint64_t initialHeight, Bytes& appHash) override {
           appHash.clear();
           GLOGDEBUG("TestCometListener: got initChain");
@@ -945,7 +948,12 @@ namespace TComet {
           REQUIRE(success == true);
           GLOGDEBUG("TestCometListener: got sendTransactionResult: " + response + ", txHash: " + txHash);
           REQUIRE(tx.size() == txSize);
-          REQUIRE(txHash == "2A62F69DB37417A3EB7E72219BDE4D6ADCD1A9878527DA245D4CC30FD1F899AB");
+          REQUIRE(txHash == transactionHash);
+        }
+        virtual void checkTransactionResult(const std::string& txHash, const bool success, const std::string& response) override {
+          GLOGDEBUG("TestCometListener: got checkTransactionResult: " + response);
+          REQUIRE(success == true);
+          ++gotTxCheck;
         }
       };
       TestCometListener cometListener;
@@ -1010,6 +1018,23 @@ namespace TComet {
 
       // Require successful processing of the transaction we sent
       REQUIRE(cometListener.txCount == 1);
+
+      // Check the transaction
+      // Actually, you need to loop making multiple checkTransaction() calls until you get one
+      // that succeeds, since CometBFT takes some time to index the transaction AFTER it has successfully
+      // been included in a block.
+      // In any case, it has to be able to index the successful transaction that DID go in a block in
+      // say 3 seconds, so it's fine if we just wait upfront and then send one check request (simpler).
+      std::this_thread::sleep_for(std::chrono::seconds(3));
+      comet.checkTransaction(transactionHash);
+      GLOGDEBUG("TEST: Waiting for transaction check...");
+      auto futureCheckTx = std::async(std::launch::async, [&]() {
+        while (cometListener.gotTxCheck < 1) {
+          std::this_thread::sleep_for(std::chrono::milliseconds(10));
+        }
+      });
+      REQUIRE(futureCheckTx.wait_for(std::chrono::seconds(10)) != std::future_status::timeout);
+      REQUIRE(cometListener.gotTxCheck == 1);
 
       // Stop
       GLOGDEBUG("TEST: Stopping...");
