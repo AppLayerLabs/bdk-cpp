@@ -38,7 +38,6 @@ class CometImpl : public Log::LogicalLocationProvider, public ABCIHandler {
     CometListener* listener_; ///< Comet class application event listener/handler
     const std::string instanceIdStr_; ///< Identifier for logging
     const Options options_; ///< Copy of the supplied Options.
-    //const std::vector<std::string> extraArgs_; ///< Extra arguments to 'cometbft start' (for testing).
     const bool stepMode_; ///< Set to 'true' if unit testing with cometbft in step mode (no empty blocks).
 
     std::unique_ptr<ABCIServer> abciServer_; ///< TCP server for cometbft ABCI connection
@@ -169,7 +168,6 @@ class CometImpl : public Log::LogicalLocationProvider, public ABCIHandler {
     std::string getLogicalLocation() const override { return instanceIdStr_; } ///< Log instance
 
     explicit CometImpl(CometListener* listener, std::string instanceIdStr, const Options& options, bool stepMode);
-    //const std::vector<std::string>& extraArgs
 
     virtual ~CometImpl();
 
@@ -215,8 +213,8 @@ class CometImpl : public Log::LogicalLocationProvider, public ABCIHandler {
     virtual void verify_vote_extension(const cometbft::abci::v1::VerifyVoteExtensionRequest& req, cometbft::abci::v1::VerifyVoteExtensionResponse* res);
 };
 
-CometImpl::CometImpl(CometListener* listener, std::string instanceIdStr, const Options& options, bool stepMode/*const std::vector<std::string>& extraArgs*/)
-  : listener_(listener), instanceIdStr_(instanceIdStr), options_(options), stepMode_(stepMode)// extraArgs_(extraArgs)//, resolver_(ioc_)
+CometImpl::CometImpl(CometListener* listener, std::string instanceIdStr, const Options& options, bool stepMode)
+  : listener_(listener), instanceIdStr_(instanceIdStr), options_(options), stepMode_(stepMode)
 {
 }
 
@@ -399,12 +397,9 @@ void CometImpl::startCometBFT(const std::string& cometPath) {
         "--home=" + cometPath
       };
 
-      // extraArgs should be used only for arguments that differ between
-      //  testing and production use and can't be made standard configs
-      //  and it doesn't make sense to add them to BDK Options::CometBFT.
-      //cometArgs.insert(cometArgs.end(), this->extraArgs_.begin(), this->extraArgs_.end());
-
-      LOGDEBUG("Launching cometbft");// with arguments: " + cometArgs);
+      std::string argsString;
+      for (const auto& arg : cometArgs) { argsString += arg + " "; }
+      LOGDEBUG("Launching cometbft with arguments: " + argsString);
 
       // Launch the process
       process_ = boost::process::child(
@@ -1367,8 +1362,8 @@ void CometImpl::info(const cometbft::abci::v1::InfoRequest& req, cometbft::abci:
   listener_->getCurrentState(height, hashBytes);
 
   // We cannot pass to cometbft an application height that is AHEAD of its block store. if we do that,
-  // then cometbft just panics because it doesn't understand that the application being ahead just means
-  // it can sync the block store silently until it catches up to the application.
+  // then cometbft just panics. Not sure if there's a way to force cometbft to just sync the block store
+  // silently until it catches up to the application state.
   //
   // If the application hasn't reacted appropriately to the CometListener::currentCometBFTHeight() callback,
   // here we will have to error out, which is better than having cometbft error out downstream from this.
@@ -1388,7 +1383,27 @@ void CometImpl::init_chain(const cometbft::abci::v1::InitChainRequest& req, come
   listener_->initChain(hashBytes);
   std::string hashString(hashBytes.begin(), hashBytes.end());
   res->set_app_hash(hashString);
-  // TODO: There's more fields to fill in
+
+  auto* feature_params = res->mutable_consensus_params()->mutable_feature();
+
+  // TODO/REVIEW: If we enable Vote Extensions (which we probably want to enable even if we aren't using them
+  // for anything) here, we need to actually fill in vote extensions related ABCI request and response parameters
+  // otherwise it won't work (you'll get consensus failures).
+  //auto* vote_extensions_height = feature_params->mutable_vote_extensions_enable_height();
+  //vote_extensions_height->set_value(1);
+
+  // Enable PBTS from block #1 and onwards, and configure its consensus parameters
+  auto* pbts_enable_height = feature_params->mutable_pbts_enable_height();
+  pbts_enable_height->set_value(1);
+  auto* synchrony_params = res->mutable_consensus_params()->mutable_synchrony();
+  auto* precision = synchrony_params->mutable_precision();
+  precision->set_seconds(COMETBFT_PBTS_SYNCHRONY_PARAM_PRECISION_SECONDS);
+  precision->set_nanos(0);
+  auto* message_delay = synchrony_params->mutable_message_delay();
+  message_delay->set_seconds(COMETBFT_PBTS_SYNCHRONY_PARAM_MESSAGE_DELAY_SECONDS);
+  message_delay->set_nanos(0);
+
+  // FIXME/TODO: There's more fields to fill in
 }
 
 void CometImpl::prepare_proposal(const cometbft::abci::v1::PrepareProposalRequest& req, cometbft::abci::v1::PrepareProposalResponse* res) {
@@ -1430,7 +1445,11 @@ void CometImpl::finalize_block(const cometbft::abci::v1::FinalizeBlockRequest& r
   std::string hashString(hashBytes.begin(), hashBytes.end());
   res->set_app_hash(hashString);
 
-  // FIXME/TODO: We actually need to let the Comet user code set a whole lot of optional transaction execution result fields.
+  // FIXME/TODO: We actually need to let the Comet user code set a whole lot of optional
+  // transaction execution result fields, e.g.:
+  //   - everything about gas
+  //   - everything about logging
+  //   - transaction arbitrary return results (byte arrays)
   // For now just set the transaction as successfully executed.
   for (const auto& tx : req.txs()) {
     cometbft::abci::v1::ExecTxResult* tx_result = res->add_tx_results();
@@ -1439,7 +1458,7 @@ void CometImpl::finalize_block(const cometbft::abci::v1::FinalizeBlockRequest& r
 }
 
 void CometImpl::query(const cometbft::abci::v1::QueryRequest& req, cometbft::abci::v1::QueryResponse* res) {
-  // TODO
+    // Absorbed internally, may be used to implement other callbacks.
 }
 
 void CometImpl::list_snapshots(const cometbft::abci::v1::ListSnapshotsRequest& req, cometbft::abci::v1::ListSnapshotsResponse* res) {
@@ -1470,10 +1489,10 @@ void CometImpl::verify_vote_extension(const cometbft::abci::v1::VerifyVoteExtens
 // Comet class
 // ---------------------------------------------------------------------------------------
 
-Comet::Comet(CometListener* listener, std::string instanceIdStr, const Options& options, bool stepMode/*const std::vector<std::string>& extraArgs*/)
+Comet::Comet(CometListener* listener, std::string instanceIdStr, const Options& options, bool stepMode)
   : instanceIdStr_(instanceIdStr)
 {
-  impl_ = std::make_unique<CometImpl>(listener, instanceIdStr, options, stepMode/*extraArgs*/);
+  impl_ = std::make_unique<CometImpl>(listener, instanceIdStr, options, stepMode);
 }
 
 Comet::~Comet() {

@@ -11,7 +11,7 @@ See the LICENSE.txt file in the project root for more information.
 #include "../utils/options.h"
 #include "../utils/logger.h"
 
-/// Comet states
+/// Comet driver states
 enum class CometState {
   STOPPED          =  0, ///< Comet is in stopped state (no worker thread started)
   STARTED          =  1, ///< Comet worker thread just started
@@ -26,8 +26,8 @@ enum class CometState {
   TESTING_COMET    = 10, ///< Starting to test cometbft connection
   TESTED_COMET     = 11, ///< Finished cometbft connection test; all tests passed
   RUNNING          = 12, ///< Comet is running
-  TERMINATED       = 13, ///< Comet worker somehow ran out of work (probably an error)
-  FINISHED         = 14, ///< Comet worker loop quit (stop_ set to true?)
+  TERMINATED       = 13, ///< Comet worker somehow ran out of work (this is always an error)
+  FINISHED         = 14, ///< Comet worker loop quit (stopped for some explicit reason)
   NONE             = 15  ///< Dummy state to disable state stepping
 };
 
@@ -35,6 +35,9 @@ enum class CometState {
  * The Comet class notifies its user of events through the CometListener interface.
  * Users of the Comet class must implement a CometListener class and pass a pointer
  * to a CometListener object to Comet so that they can receive Comet events.
+ *
+ * NOTE: These callbacks may or may not be invoked in parallel. You should not assume
+ * that these are invoked in any particular order or that they aren't concurrent.
  */
 class CometListener {
   public:
@@ -118,105 +121,6 @@ class CometListener {
      */
     virtual void sendTransactionFailed(const Bytes& tx, const std::string& error) {
     }
-
-    // InitChain callback
-    //
-    // configuration-heavy, this will probably forward lots of parameters and
-    // get lots of parameters in return, not sure which ones will be hidden.
-    //
-    // void initChain( ..in params.. , ..out params.. )
-
-    // CheckTx callback
-    //
-    // needed so the mempool is not filled with garbage.
-    // MAY be enough to allow us to provide a default implementation of PrepareProposal
-    // that just forwards all txs to cometbft instead of rechecking them all.
-    // default for "accept" is false (it is the outparam)
-    //
-    // void checkTx(const Bytes& tx, bool& accept);
-
-    // FinalizeBlock callback (?)
-    // user should be notified of a new sequence of opaque transactions to execute
-    // note that there should not be a Block type because we don't want to imply that
-    // the user of the Comet class should ever be having or handling some kind of block
-    // store; the block store is in the cometbft home dir.
-    //
-    // this call delivers transactions for execution in the execution environment.
-    // the height parameter is a verification parameter; the execution environment
-    // should already be at that height, and if it isn't then something went wrong
-    // somewhere (i.e. it is a bug to receive this call while the execution environment
-    // of the Comet user is not already at that height)
-    //
-    // appHash is an outparam and must be a deterministic result of executing these
-    // transactions for that new block height at the user (execution environment).
-    //
-    // If the node is syncing/replaying blocks then syncing_to_height == target height. 
-    // If not, syncing_to_height == height.
-    //
-    //void incomingBlock(int height, int, syncingToHeight,
-    //                   const std::vector<Bytes>& txs, Hash& appHash)
-
-    // ProcessProposal callback
-    // user should validate a proposal (block)
-    // this is fundamental to protect against a malicious proposer that is proposing
-    // transaction content that renders the block invalid under block validation 
-    // rules for the user's execution environment.
-    // for example, transactions that can't offer payment for their own execution
-    // because they don't have a proper authorization from a funded account that is
-    // budgeting gas that could then be e.g. absorbed to pay for the rest of the
-    // transaction being erroneous or faulty in some way -- these transactions are
-    // attacks in the protocol and should probably render the entire proposed block
-    // invalid.
-    //
-    // this is called inside the ABCI ProcessProposal callback. the execution environment
-    // *could* execute these transactions to create a speculative version of state advancement
-    // as well, and then in the subsequent incomingBlock() it would not have anything to
-    // actually execute, it would just have to bless the speculative state instead of
-    // rolling it back or discarding it.
-    // HOWEVER, for now, we will implement it as BDK's execution environment needs it,
-    // which is first just run basic validation on the transactions to see they don't
-    // invalidate the whole block according to the execution environment's share of 
-    // block validaiton rules, then actually execute them only at incomingBlock().
-    //
-    // void validateBlockProposal(int height, const std::vector<Bytes>& txs)
-
-    // Info callback
-    // cometbft is essentially asking for the block we are in.
-    // here we return the block height and the block app hash (which we compute at the
-    // end of executing each block, needs to be deterministic) we are in.
-    // We will tell cometbft that state in memory is persisted and tell it to retain
-    // the blocks between the memory state and the state we have actually snapshotted,
-    // because on a subsequent recovery/sync we will tell it a different state (as if
-    // the state was "lost" from permanent storage -- there's no such thing as
-    // actually permanent storage in an execution environment) and it will replay the
-    // blocks for us.
-    //
-    // void getCurrentState(int& height, Hash& appHash); // out params
-
-    // Commit callback
-    // when cometbft asks us to persist state, we don't actually do that since that
-    // is too expensive. what we are really doing here is telling cometbft the 
-    // block pruning window.
-    //
-    // void getBlockRetainHeight(int& height); // out param
-
-
-    // absent callbacks (for now):
-    // - prepareproposal: will just forward the same transactions to cometbft
-    //   assuming that implementing CheckTx corretly is enough. if it isn't,
-    //   we would have to recheck every transaction instead of just forwarding
-    //   all of the transactions in the default impl of PrepareProposal.
-    //
-    // - echo: absorbed internally by Comet/ABCIHandler
-    // - flush: just require sync callback impls
-    // - query: absorbed internally, may be used to implement other callbacks
-    // - everything about configs
-    // - everything about validator set changes
-    // - everything about gas
-    // - everything about logging
-    // - transaction arbitrary return results (byte arrays)
-    // - etc.
-
 };
 
 class CometImpl;
@@ -225,14 +129,10 @@ class CometImpl;
  * The Comet class is instantiated by the BDK node to serve as an interface to CometBFT.
  * Most of its implementation details are private and contained in CometImpl, which is
  * declared and defined in comet.cpp, in order to keep this header short and simple.
- *
- * TODO:
- * - comet / cometimpl cleanups
  */
 class Comet : public Log::LogicalLocationProvider {
   private:
     const std::string instanceIdStr_; ///< Identifier for logging
-
     std::unique_ptr<CometImpl> impl_; ///< Private implementation details of a Comet instance.
 
   public:
@@ -242,11 +142,9 @@ class Comet : public Log::LogicalLocationProvider {
      *                 and that will receive event callbacks from this Comet instance.
      * @param instanceIdStr Instance ID string to use for logging.
      * @param options Reference to the Options singleton.
-//     * @param extraArgs Extra command-line arguments to pass to 'cometbft start' (for testing).
      * @param stepMode If true, no empty blocks are ever produced (for unit testing only).
      */
     explicit Comet(CometListener* listener, std::string instanceIdStr, const Options& options, bool stepMode = false);
-    //, const std::vector<std::string>& extraArgs = {}
 
     /**
      * Destructor; ensures all subordinate jobs are stopped.
@@ -318,17 +216,23 @@ class Comet : public Log::LogicalLocationProvider {
      */
     void stop();
 
-    // TODO: Review CometListener callback synchronization/multithreading requirements.
-    //
-    // This CometListener interface may or may not be called back from the ABCIHandler threads
-    // (the ABCIServer threads) -- whatever satisfies the Comet class' interaction with cometbft;
-    // the caller should assume the callbacks are not thread-safe, if they accidentally are
-    // for some revision of the Comet class.
-
     /**
      * Return an instance (object) identifier for all LOGxxx() messages emitted this class.
      */
     std::string getLogicalLocation() const override { return instanceIdStr_; }
 };
+
+/// Consensus parameter: PBTS Clock drift.
+/// This must be at least 500ms due to leap seconds.
+/// Give 1 whole second for clock drift, which is plenty.
+#define COMETBFT_PBTS_SYNCHRONY_PARAM_PRECISION_SECONDS 1
+
+/// Consensus parameter: PBTS Maximum network delay for proposal (header) propagation.
+/// This cannot be too small or else performance is affected.
+/// If it is too large, malicious validators can timestamp blocks up to this amount in the future,
+/// which slows downs the network (need to wait for real time to pass until it catches up with the
+/// timestamp of the previous block) but that's externally observable and punishable by governance.
+/// Five seconds is plenty for the propagation of a timestamp worldwide.
+#define COMETBFT_PBTS_SYNCHRONY_PARAM_MESSAGE_DELAY_SECONDS 5
 
 #endif
