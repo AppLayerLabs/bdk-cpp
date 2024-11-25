@@ -394,126 +394,103 @@ void CometImpl::resetError() {
 }
 
 void CometImpl::startCometBFT(const std::string& cometPath) {
-
   if (!abciServer_) {
     LOGFATALP_THROW("Cannot call startCometBFT() without having first started the ABCI app server.");
   }
+  // Search for the executable in the system's PATH
+  boost::filesystem::path exec_path = boost::process::search_path("cometbft");
+  if (exec_path.empty()) {
+    // This is a non-recoverable error
+    // The ABCI server will be stopped/collected during stop()
+    setError("cometbft executable not found in system PATH");
+    return;
+  }
 
-    //boost::process::ipstream bpout;
-    //boost::process::ipstream bperr;
-    auto bpout = std::make_shared<boost::process::ipstream>();
-    auto bperr = std::make_shared<boost::process::ipstream>();
+  // CometBFT arguments
+  //
+  // We are making it so that an abci.sock file within the root of the
+  //   CometBFT home directory ("cometPath" below) is the proxy_app
+  //   URL. That is, each home directory can only be used for one
+  //   running and communicating pair of BDK <-> CometBFT.
+  //
+  std::vector<std::string> cometArgs = {
+    "start",
+    "--abci=socket",
+    "--proxy_app=unix://" + abciServer_->getSocketPath(),
+    "--home=" + cometPath
+  };
+  std::string argsString;
+  for (const auto& arg : cometArgs) { argsString += arg + " "; }
+  LOGDEBUG("Launching cometbft with arguments: " + argsString);
 
-      // Search for the executable in the system's PATH
-      boost::filesystem::path exec_path = boost::process::search_path("cometbft");
-      if (exec_path.empty()) {
-        // This is a non-recoverable error
-        // The gRPC server will be stopped/collected during stop(), which
-        //   is also called by the destructor.
-        setError("cometbft executable not found in system PATH");
-        return;
-      }
+  // Launch the process
+  auto bpout = std::make_shared<boost::process::ipstream>();
+  auto bperr = std::make_shared<boost::process::ipstream>();
+  process_ = boost::process::child(
+    exec_path,
+    boost::process::args(cometArgs),
+    boost::process::std_out > *bpout,
+    boost::process::std_err > *bperr
+  );
+  std::string pidStr = std::to_string(process_->id());
+  LOGDEBUG("cometbft start launched with PID: " + pidStr);
 
-      // CometBFT arguments
-      //
-      // We are making it so that an abci.sock file within the root of the
-      //   CometBFT home directory ("cometPath" below) is the proxy_app
-      //   URL. That is, each home directory can only be used for one
-      //   running and communicating pair of BDK <-> CometBFT.
-      //
-      std::vector<std::string> cometArgs = {
-        "start",
-        "--abci=socket",
-        "--proxy_app=unix://" + abciServer_->getSocketPath(),
-        "--home=" + cometPath
-      };
-
-      std::string argsString;
-      for (const auto& arg : cometArgs) { argsString += arg + " "; }
-      LOGDEBUG("Launching cometbft with arguments: " + argsString);
-
-      // Launch the process
-      process_ = boost::process::child(
-        exec_path,
-        boost::process::args(cometArgs),
-        boost::process::std_out > *bpout,
-        boost::process::std_err > *bperr
-      );
-
-    std::string pidStr = std::to_string(process_->id());
-    LOGDEBUG("cometbft start launched with PID: " + pidStr);
-
-    // Spawn two detached threads to pump stdout and stderr to bdk.log.
-    // They should go away naturally when process_ is terminated.
-
-    std::thread stdout_thread([bpout, pidStr]() {
-        std::string line;
-        while (*bpout && std::getline(*bpout, line) && !line.empty()) {
-          // REVIEW: may want to upgrade this to DEBUG
-          GLOGTRACE("[cometbft stdout]: " + line);
-        }
-        GLOGDEBUG("cometbft stdout stream pump thread finished, cometbft pid = " + pidStr);
-    });
-
-    std::thread stderr_thread([bperr, pidStr]() {
-        std::string line;
-        while (*bperr && std::getline(*bperr, line) && !line.empty()) {
-          GLOGDEBUG("[cometbft stderr]: " + line);
-        }
-        GLOGDEBUG("cometbft stderr stream pump thread finished, cometbft pid = " + pidStr);
-    });
-
-    // Detach the threads to run independently, or join if preferred
-    stdout_thread.detach();
-    stderr_thread.detach();
-
+  // Spawn two detached threads to pump stdout and stderr to bdk.log.
+  // They should go away naturally when process_ is terminated.
+  std::thread stdout_thread([bpout, pidStr]() {
+    std::string line;
+    while (*bpout && std::getline(*bpout, line) && !line.empty()) {
+      // REVIEW: may want to upgrade this to DEBUG
+      GLOGTRACE("[cometbft stdout]: " + line);
+    }
+    GLOGDEBUG("cometbft stdout stream pump thread finished, cometbft pid = " + pidStr);
+  });
+  std::thread stderr_thread([bperr, pidStr]() {
+    std::string line;
+    while (*bperr && std::getline(*bperr, line) && !line.empty()) {
+      GLOGDEBUG("[cometbft stderr]: " + line);
+    }
+    GLOGDEBUG("cometbft stderr stream pump thread finished, cometbft pid = " + pidStr);
+  });
+  stdout_thread.detach();
+  stderr_thread.detach();
 }
 
 void CometImpl::stopCometBFT() {
-    // -- Begin stop process_ if any
-    // process shutdown -- TODO: assuming this is needed i.e. it doesn't shut down when the connected application goes away?
-    if (process_.has_value()) {
-      LOGDEBUG("Terminating CometBFT process");
-      LOGXTRACE("Term 1");
-      // terminate the process
-      pid_t pid = process_->id();
+  // process shutdown
+  if (process_.has_value()) {
+    LOGDEBUG("Terminating CometBFT process");
+    // terminate the process
+    pid_t pid = process_->id();
+    try {
+      process_->terminate(); // SIGTERM (graceful termination, equivalent to terminal CTRL+C)
+      LOGDEBUG("Process with PID " + std::to_string(pid) + " terminated");
+      process_->wait();  // Ensure the process is fully terminated
+      LOGDEBUG("Process with PID " + std::to_string(pid) + " joined");
+    } catch (const std::exception& ex) {
+      // This is bad, and if it actually happens, we need to be able to do something else here to ensure the process disappears
+      //   because we don't want a process using the data directory and using the socket ports.
+      // TODO: is this the best we can do? (what about `cometbft debug kill`?)
+      LOGWARNING("Failed to terminate process: " + std::string(ex.what()));
+      // Fallback: Forcefully kill the process using kill -9
       try {
-        LOGXTRACE("Term 2");
-        process_->terminate(); // SIGTERM (graceful termination, equivalent to terminal CTRL+C)
-        LOGXTRACE("Term 3");
-        LOGDEBUG("Process with PID " + std::to_string(pid) + " terminated");
-        LOGXTRACE("Term 4");
-        process_->wait();  // Ensure the process is fully terminated
-        LOGXTRACE("Term 5");
-        LOGDEBUG("Process with PID " + std::to_string(pid) + " joined");
-        LOGXTRACE("Term 6");
-      } catch (const std::exception& ex) {
-        // This is bad, and if it actually happens, we need to be able to do something else here to ensure the process disappears
-        //   because we don't want a process using the data directory and using the socket ports.
-        // TODO: is this the best we can do? (what about `cometbft debug kill`?)
-        LOGWARNING("Failed to terminate process: " + std::string(ex.what()));
-        // Fallback: Forcefully kill the process using kill -9
-        try {
-          std::string killCommand = "kill -9 " + std::to_string(pid);
-          LOGINFO("Attempting to force kill process with PID " + std::to_string(pid) + " using kill -9");
-          int result = std::system(killCommand.c_str());
-          if (result == 0) {
-            LOGINFO("Successfully killed process with PID " + std::to_string(pid) + " using kill -9");
-          } else {
-            LOGWARNING("Failed to kill process with PID " + std::to_string(pid) + " using kill -9. Error code: " + std::to_string(result));
-          }
-        } catch (const std::exception& ex2) {
-          LOGERROR("Failed to execute kill -9: " + std::string(ex2.what()));
+        std::string killCommand = "kill -9 " + std::to_string(pid);
+        LOGINFO("Attempting to force kill process with PID " + std::to_string(pid) + " using kill -9");
+        int result = std::system(killCommand.c_str());
+        if (result == 0) {
+          LOGINFO("Successfully killed process with PID " + std::to_string(pid) + " using kill -9");
+        } else {
+          LOGWARNING("Failed to kill process with PID " + std::to_string(pid) + " using kill -9. Error code: " + std::to_string(result));
         }
+      } catch (const std::exception& ex2) {
+        LOGERROR("Failed to execute kill -9: " + std::string(ex2.what()));
       }
-      LOGXTRACE("Term end");
     }
-    LOGXTRACE("10");
-    // we need to ensure we got rid of any process_ instance in any case so we can start another
-    process_.reset();
-    LOGDEBUG("CometBFT process terminated");
-    // -- End stop process_ if any
-
+    LOGXTRACE("Term end");
+  }
+  // we need to ensure we got rid of any process_ instance in any case so we can start another
+  process_.reset();
+  LOGDEBUG("CometBFT process terminated");
 }
 
 // One-shot run cometbft with the given cometArgs and block until it finishes, returning both

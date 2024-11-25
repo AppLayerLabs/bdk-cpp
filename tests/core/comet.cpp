@@ -451,6 +451,7 @@ Options getOptionsForCometTest(
   return options;
 }
 
+// Binary hash deserialization helper (to hex string without "0x" prefix)
 std::string appHashToString(const Bytes& appHash) {
   return Hex::fromBytes(appHash, false).get();
 }
@@ -485,7 +486,7 @@ private:
     if (iss >> extra) { return false; }
     if (sig == "BADSIG") { return false; }
     if (sig != "SIG") { return false; }
-    if (op != "+" && op != "-" && op != "=" && op != "?") { return false; }
+    if (op != "+" && op != "-" && op != "=" && op != "?" && op != "REVERT") { return false; }
     char* endptr;
     strtoll(val.c_str(), &endptr, 10);
     if (*endptr != '\0') { return false; }
@@ -502,6 +503,89 @@ public:
   std::atomic<uint64_t> requiredSyncingToHeight_ = 0; // If set to != 0, requires incomingBlock(syncingToHeight) to match this value
   std::atomic<int> initChainCount_ = 0; // Flag for syncing with the cometbft InitChain callback
   Bytes appHash_; // Lastest apphash corresponding to m_ (if enableApphash_ == true)
+
+  // ---------------------------------------------------------------------------
+  // Transaction result tracker
+  // ---------------------------------------------------------------------------
+
+  // Test transaction serialization helper
+  static Bytes toBytes(const std::string& str) {
+    return Bytes(str.begin(), str.end());
+  }
+
+  struct TransactionDetails {
+      // Fields from sendTransactionResult
+      Bytes tx;
+      uint64_t txId;
+      bool sendSuccess;
+      std::string txHash;
+      std::string sendResponse;
+
+      // Fields from checkTransactionResult
+      bool checkResultArrived = false; // Indicates if a check result has been processed
+      bool checkSuccess;
+      std::string checkResponse;
+  };
+  // Map to store transaction details, indexed by txId
+  std::mutex transactionMapMutex_;
+  std::unordered_map<uint64_t, TransactionDetails> transactionMap_;
+
+  std::string getSendTransactionHash(uint64_t txId) {
+    std::lock_guard<std::mutex> lock(transactionMapMutex_);
+    auto it = transactionMap_.find(txId);
+    if (it == transactionMap_.end()) {
+      LOGFATALP_THROW("Transaction ID not found: " + std::to_string(txId));
+    }
+    if (!it->second.sendSuccess) {
+      LOGFATALP_THROW("Transaction ID wasn't successfully sent (failed or did not succeed yet): " + std::to_string(txId));
+    }
+    return it->second.txHash;
+  }
+
+  virtual void sendTransactionResult(
+    const Bytes& tx, const uint64_t txId, const bool success,
+    const std::string& txHash, const std::string& response
+  ) override {
+    GLOGDEBUG("TEST: TestMachine: Got sendTransactionResult : " + std::to_string(txId) + " hash: " + txHash + " success: " + std::to_string(success)
+    + ", response: " + response);
+    TransactionDetails details = {tx, txId, success, txHash, response, false, false, ""};
+    std::lock_guard<std::mutex> lock(transactionMapMutex_);
+    transactionMap_[txId] = details;
+  }
+
+  virtual void checkTransactionResult(
+    const std::string& txHash, const bool success, const std::string& response
+  ) override {
+    GLOGDEBUG("TEST: TestMachine: Got checkTransactionResult : " + txHash + ", success: " + std::to_string(success) + ", response: "+ response);
+    std::lock_guard<std::mutex> lock(transactionMapMutex_);
+    for (auto& [txId, details] : transactionMap_) {
+      if (details.txHash == txHash) {
+        details.checkResultArrived = true;
+        details.checkSuccess = success;
+        details.checkResponse = response;
+        return;
+      }
+    }
+    LOGFATALP_THROW("No matching transaction found for the given txHash.");
+  }
+
+  std::string getCheckTransactionResult(uint64_t txId) {
+    std::lock_guard<std::mutex> lock(transactionMapMutex_);
+    auto it = transactionMap_.find(txId);
+    if (it == transactionMap_.end()) {
+      LOGFATALP_THROW("Transaction ID not found: " + std::to_string(txId));
+    }
+    TransactionDetails& details = it->second;
+    if (!details.checkResultArrived) {
+      LOGFATALP_THROW("Transaction ID no check result arrived: " + std::to_string(txId));
+    }
+    if (!details.checkSuccess) {
+      LOGFATALP_THROW("Transaction ID check result was failure: " + std::to_string(txId));
+    }
+    return details.checkResponse;
+  }
+
+  // ---------------------------------------------------------------------------
 
   TestMachine(bool enableAppHash = false) : enableAppHash_(enableAppHash) {
     updateAppHash();
@@ -607,6 +691,11 @@ public:
     try {
       GLOGTRACE("incomingBlock: transaction count: " + std::to_string(txs.size()));
       for (const Bytes& tx : txs) {
+        // Default tx result execution object:
+        // code: 0 (success)
+        // data: [] (zero bytes return value)
+        // gas_used = 0, gas_wanted = 0
+        CometExecTxResult txRes;
         // parse and validate the transaction
         std::string sig, nonce, op, val;
         bool accept = parseTransaction(tx, sig, nonce, op, val);
@@ -627,14 +716,17 @@ public:
         } else if (op == "=") {
           m_ = value;
         } else if (op == "?") {
-          if (m_ != value) {
-            GLOGFATAL_THROW("incomingBlock: assertion transaction (?) check failed");
-          }
+          // Return the assertion result in 1 byte of the transaction return data
+          txRes.data.push_back(m_ == value);
+        } else if (op == "REVERT") {
+          txRes.code = 1;
         } else {
           // Should not reach here since we validated the tx already
           GLOGFATAL_THROW("incomingBlock: transaction has an invalid operation");
         }
         GLOGXTRACE("TestMachine: incomingBlock updated m_ == " + std::to_string(m_));
+        // Must provide Comet a tx result object for each transaction executed
+        txResults.push_back(txRes);
       }
       // If all transactions are processed successfully, advance the height
       h_ = height;
@@ -642,8 +734,6 @@ public:
       // recompute the app_hash and return it
       updateAppHash();
       appHash = appHash_;
-      // transaction results are just the default ones, everything always succeeds
-      txResults.resize(txs.size());
     } catch (...) {
       GLOGFATAL_THROW("incomingBlock: unexpected exception caugth");
     }
@@ -1095,6 +1185,72 @@ namespace TComet {
 
       // Require that the transaction has failed
       REQUIRE(cometListener.failTxCount == 1);
+
+      // Stop
+      GLOGDEBUG("TEST: Stopping...");
+      REQUIRE(comet.getStatus()); // no error reported (must check before stop())
+      comet.stop();
+      GLOGDEBUG("TEST: Stopped");
+      REQUIRE(comet.getState() == CometState::STOPPED);
+      GLOGDEBUG("TEST: Finished");
+    }
+
+    // Test for transaction results such as reverted transaction or transaction return data
+    SECTION("CometTxResultTest") {
+
+      std::string testDumpPath = createTestDumpPath("CometTxResultTest");
+
+      GLOGDEBUG("TEST: Constructing Comet");
+
+      // Create a TestMachine with app_hash enabled.
+      TestMachine cometListener(true);
+
+      // get free ports to run tests on
+      int p2p_port = SDKTestSuite::getTestPort();
+      int rpc_port = SDKTestSuite::getTestPort();
+
+      const Options options = getOptionsForCometTest(testDumpPath, cometListener.getAppHashString(), p2p_port, rpc_port);
+
+      // Set up comet with single validator and no stepMode.
+      Comet comet(&cometListener, "", options);
+
+      // Start comet.
+      GLOGDEBUG("TEST: Starting Comet");
+      comet.start();
+
+      // Send transactions
+      uint64_t succeedAssertTxId = comet.sendTransaction(TestMachine::toBytes("SIG 1 ? 0")); // m_ == 0 so this returndata is true
+      uint64_t failAssertTxId = comet.sendTransaction(TestMachine::toBytes("SIG 2 ? 9876")); // m_ == 0 so this returndata is false
+      uint64_t revertTxId = comet.sendTransaction(TestMachine::toBytes("SIG 3 REVERT 1111")); // operand 1111 is ignored when REVERT op
+
+      // It's just simpler to wait for some large amount of time which guarantees that the transactions were included in a block
+      std::this_thread::sleep_for(std::chrono::seconds(5));
+
+      // After waiting a lot we can just call checkTransaction() to get the results since the txHash will already have resolved
+      // and the /tx endpoint will return the transaction result (sufficient time for the successful tx indexing to run also)
+      comet.checkTransaction(cometListener.getSendTransactionHash(succeedAssertTxId));
+      comet.checkTransaction(cometListener.getSendTransactionHash(failAssertTxId));
+      comet.checkTransaction(cometListener.getSendTransactionHash(revertTxId));
+
+      // And now just wait a little longer so that the Comet engine can make the 3 /tx RPC calls for sure
+      std::this_thread::sleep_for(std::chrono::seconds(3));
+
+      // After this long wait we expect the whole send/check pipeline must have resolved for all transactions
+      std::string succeedAssertResult = cometListener.getCheckTransactionResult(succeedAssertTxId);
+      std::string failAssertResult = cometListener.getCheckTransactionResult(failAssertTxId);
+      std::string revertResult = cometListener.getCheckTransactionResult(revertTxId);
+
+      GLOGDEBUG("TEST: succeedAssertResult: " + succeedAssertResult);
+      GLOGDEBUG("TEST: failAssertResult: " + failAssertResult);
+      GLOGDEBUG("TEST: revertResult: " + revertResult);
+
+      // It's faster if we just assert for the expected code/data field substrings in the json string
+      REQUIRE(succeedAssertResult.find("\"data\":\"AQ==\"") != std::string::npos); // AQ== is 1 in base64 (i.e. true, assert passed)
+      REQUIRE(succeedAssertResult.find("\"code\":0,") != std::string::npos); // code == 0: not reverted
+      REQUIRE(failAssertResult.find("\"data\":\"AA==\"") != std::string::npos); // AA== is 0 in base64 (i.e. false, assert failed)
+      REQUIRE(failAssertResult.find("\"code\":0,") != std::string::npos); // code == 0: not reverted
+      REQUIRE(revertResult.find("\"data\":null") != std::string::npos); // empty return value for the revert tx
+      REQUIRE(revertResult.find("\"code\":1,") != std::string::npos); // code == 1: reverted
 
       // Stop
       GLOGDEBUG("TEST: Stopping...");
