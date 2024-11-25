@@ -23,7 +23,9 @@ See the LICENSE.txt file in the project root for more information.
 // ---------------------------------------------------------------------------------------
 
 // Maximum size of an RPC request (should be loopback only, so the limit can be relaxed)
-#define COMET_RPC_MAX_BODY_BYTES 10000000
+// This should probably be greater than the maximum block size, in case we get a full
+// block transmitted via RPC for some reason.
+#define COMET_RPC_MAX_BODY_BYTES 200000000
 
 /**
  * CometImpl implements the interface to CometBFT using ABCIServer and ABCISession from
@@ -1347,6 +1349,11 @@ Bytes toBytes(const std::string& str) {
   return Bytes(str.begin(), str.end());
 }
 
+// Helper to convert std::vector<uint8_t> to the C++ implementation of a Protobuf "bytes" field
+std::string toStringForProtobuf(const Bytes& bytes) {
+  return std::string(bytes.begin(), bytes.end());
+}
+
 void CometImpl::echo(const cometbft::abci::v1::EchoRequest& req, cometbft::abci::v1::EchoResponse* res) {
   //res->set_message(req.message()); // This is done at the net/abci caller, we don't need to do it here.
   // This callback doesn't seem to be called for ABCI Sockets vs. ABCI gRPC? Not sure what's going on.
@@ -1359,7 +1366,9 @@ void CometImpl::flush(const cometbft::abci::v1::FlushRequest& req, cometbft::abc
 void CometImpl::info(const cometbft::abci::v1::InfoRequest& req, cometbft::abci::v1::InfoResponse* res) {
   uint64_t height;
   Bytes hashBytes;
-  listener_->getCurrentState(height, hashBytes);
+  std::string appSemVer;
+  uint64_t appVersion;
+  listener_->getCurrentState(height, hashBytes, appSemVer, appVersion);
 
   // We cannot pass to cometbft an application height that is AHEAD of its block store. if we do that,
   // then cometbft just panics. Not sure if there's a way to force cometbft to just sync the block store
@@ -1372,7 +1381,8 @@ void CometImpl::info(const cometbft::abci::v1::InfoRequest& req, cometbft::abci:
   }
 
   std::string hashString(hashBytes.begin(), hashBytes.end());
-  res->set_version("1.0.0"); // TODO: let caller decide/configure this
+  res->set_version(appSemVer);
+  res->set_app_version(appVersion);
   res->set_last_block_height(height);
   res->set_last_block_app_hash(hashString);
   ++infoCount_;
@@ -1380,13 +1390,28 @@ void CometImpl::info(const cometbft::abci::v1::InfoRequest& req, cometbft::abci:
 
 void CometImpl::init_chain(const cometbft::abci::v1::InitChainRequest& req, cometbft::abci::v1::InitChainResponse* res) {
   Bytes hashBytes;
-  listener_->initChain(hashBytes);
+  listener_->initChain(req.time().seconds(), req.chain_id(), toBytes(req.app_state_bytes()), req.initial_height(), hashBytes);
   std::string hashString(hashBytes.begin(), hashBytes.end());
   res->set_app_hash(hashString);
 
-  auto* feature_params = res->mutable_consensus_params()->mutable_feature();
+  auto* consensus_params = res->mutable_consensus_params();
 
-  // TODO/REVIEW: If we enable Vote Extensions (which we probably want to enable even if we aren't using them
+  // NOTE: initial_height, block params, validator params, evidence params, validator pub key types, etc.
+  // all that should be is in the genesis file so we assume we don't have to update or confirm these here.
+
+  // If we'd want to override what the genesis file is requesting w.r.t block limits, this is how we'd do it.
+  //
+  //auto* block_params = consensus_params->mutable_block();
+  //block_params->set_max_bytes(COMETBFT_BLOCK_PARAM_MAX_BYTES);
+  //block_params->set_max_gas(COMETBFT_BLOCK_PARAM_MAX_GAS);
+
+  // NOTE: From the cometbft docs:
+  //  If InitChainResponse.Validators is empty, the initial validator set will be the InitChainRequest.Validators
+  // Meaning we don't want to set validator nodes here; we just always accept what the genesis file provides.
+
+  auto* feature_params = consensus_params->mutable_feature();
+
+  // FIXME/TODO/REVIEW: If we enable Vote Extensions (which we probably want to enable even if we aren't using them
   // for anything) here, we need to actually fill in vote extensions related ABCI request and response parameters
   // otherwise it won't work (you'll get consensus failures).
   //auto* vote_extensions_height = feature_params->mutable_vote_extensions_enable_height();
@@ -1402,16 +1427,15 @@ void CometImpl::init_chain(const cometbft::abci::v1::InitChainRequest& req, come
   auto* message_delay = synchrony_params->mutable_message_delay();
   message_delay->set_seconds(COMETBFT_PBTS_SYNCHRONY_PARAM_MESSAGE_DELAY_SECONDS);
   message_delay->set_nanos(0);
-
-  // FIXME/TODO: There's more fields to fill in
 }
 
 void CometImpl::prepare_proposal(const cometbft::abci::v1::PrepareProposalRequest& req, cometbft::abci::v1::PrepareProposalResponse* res) {
-  // Just copy the recommended txs from the mempool into the proposal.
-  // This requires all block size and limit related params to be set in such a way that the
-  //  total byte size of txs in the request don't exceed the total byte size allowed for a block.
-  for (const auto& tx : req.txs()) {
-    res->add_txs(tx);
+  std::unordered_set<size_t> delTxIds;
+  listener_->buildBlockProposal(toBytesVector(req.txs()), delTxIds);
+  for (size_t i = 0; i < req.txs().size(); ++i) {
+    if (delTxIds.find(i) == delTxIds.end()) {
+      res->add_txs(req.txs()[i]);
+    }
   }
 }
 
@@ -1441,19 +1465,25 @@ void CometImpl::commit(const cometbft::abci::v1::CommitRequest& req, cometbft::a
 
 void CometImpl::finalize_block(const cometbft::abci::v1::FinalizeBlockRequest& req, cometbft::abci::v1::FinalizeBlockResponse* res) {
   Bytes hashBytes;
-  listener_->incomingBlock(req.height(), req.syncing_to_height(), toBytesVector(req.txs()), hashBytes);
+  std::vector<CometExecTxResult> txResults;
+  listener_->incomingBlock(req.height(), req.syncing_to_height(), toBytesVector(req.txs()), hashBytes, txResults);
+
+  // application must give us one txResult entry for every tx entry we have given it.
+  if (txResults.size() != req.txs().size()) {
+    LOGFATALP_THROW("FATAL: Comet incomingBlock got " + std::to_string(txResults.size()) + " txResults but txs size is " + std::to_string(req.txs().size()));
+  }
+
   std::string hashString(hashBytes.begin(), hashBytes.end());
   res->set_app_hash(hashString);
 
-  // FIXME/TODO: We actually need to let the Comet user code set a whole lot of optional
-  // transaction execution result fields, e.g.:
-  //   - everything about gas
-  //   - everything about logging
-  //   - transaction arbitrary return results (byte arrays)
-  // For now just set the transaction as successfully executed.
-  for (const auto& tx : req.txs()) {
+  // FIXME/TODO: Check if we need to expose more ExecTxResult fields to the application.
+  for (size_t i = 0; i < req.txs().size(); ++i) {
     cometbft::abci::v1::ExecTxResult* tx_result = res->add_tx_results();
-    tx_result->set_code(0); // 0 == successful tx
+    CometExecTxResult& txRes = txResults[i];
+    tx_result->set_code(txRes.code);
+    tx_result->set_data(toStringForProtobuf(txRes.data));
+    tx_result->set_gas_wanted(txRes.gas_wanted);
+    tx_result->set_gas_used(txRes.gas_used);
   }
 }
 

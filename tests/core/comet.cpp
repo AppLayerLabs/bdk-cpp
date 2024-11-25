@@ -552,7 +552,7 @@ public:
   /**
    * InitChain ABCI callback.
    */
-  void initChain(Bytes& appHash) override {
+  void initChain(const uint64_t genesisTime, const std::string& chainId, const Bytes& initialAppState, const uint64_t initialHeight, Bytes& appHash) override {
     GLOGDEBUG("TEST: TestMachine: initChain()");
     m_ = 0;
     h_ = 0;
@@ -582,7 +582,7 @@ public:
    * @param txs All transactions in the block that need to be executed.
    * @param appHash Outparam that needs to be filled with the new state hash of the application, if any.
    */
-  void incomingBlock(const uint64_t height, const uint64_t syncingToHeight, const std::vector<Bytes>& txs, Bytes& appHash) override {
+  void incomingBlock(const uint64_t height, const uint64_t syncingToHeight, const std::vector<Bytes>& txs, Bytes& appHash, std::vector<CometExecTxResult>& txResults) override {
     GLOGDEBUG("TEST: TestMachine: incomingBlock(): height=" + std::to_string(height) + "; syncingToheight="+std::to_string(syncingToHeight) + "; txs.size()="+std::to_string(txs.size()));
     incomingHeight_ = height;
     incomingSyncingToHeight_ = syncingToHeight;
@@ -642,6 +642,8 @@ public:
       // recompute the app_hash and return it
       updateAppHash();
       appHash = appHash_;
+      // transaction results are just the default ones, everything always succeeds
+      txResults.resize(txs.size());
     } catch (...) {
       GLOGFATAL_THROW("incomingBlock: unexpected exception caugth");
     }
@@ -671,11 +673,13 @@ public:
    * @param height Outparam that must be set to the current block height that the execution environment is in.
    * @param appHash Outparam that must be set to the current state hash of the application, if any.
    */
-  void getCurrentState(uint64_t& height, Bytes& appHash) override {
+  void getCurrentState(uint64_t& height, Bytes& appHash, std::string& appSemVer, uint64_t& appVersion) override {
     GLOGDEBUG("TEST: TestMachine: getCurrentState(): h_=" + std::to_string(h_));
     // return the currently computed apphash and the current height
     appHash = appHash_;
     height = h_;
+    appSemVer = "1.0.0";
+    appVersion = 0;
   }
 
   /**
@@ -710,15 +714,16 @@ namespace TComet {
       public:
         std::atomic<bool> gotInitChain = false;
         std::atomic<uint64_t> finalizedHeight = 0;
-        virtual void initChain(Bytes& appHash) override {
+        virtual void initChain(const uint64_t genesisTime, const std::string& chainId, const Bytes& initialAppState, const uint64_t initialHeight, Bytes& appHash) override {
           appHash.clear();
           GLOGDEBUG("TestCometListener: got initChain");
           gotInitChain = true;
         }
-        virtual void incomingBlock(const uint64_t height, const uint64_t syncingToHeight, const std::vector<Bytes>& txs, Bytes& appHash) override {
+        virtual void incomingBlock(const uint64_t height, const uint64_t syncingToHeight, const std::vector<Bytes>& txs, Bytes& appHash, std::vector<CometExecTxResult>& txResults) override {
           GLOGDEBUG("TestCometListener: got incomingBlock " + std::to_string(height));
           finalizedHeight = height;
           appHash.clear();
+          txResults.resize(txs.size());
         }
       };
       TestCometListener cometListener;
@@ -835,15 +840,16 @@ namespace TComet {
       public:
         std::atomic<bool> gotInitChain = false;
         std::atomic<uint64_t> finalizedHeight = 0;
-        virtual void initChain(Bytes& appHash) override {
+        virtual void initChain(const uint64_t genesisTime, const std::string& chainId, const Bytes& initialAppState, const uint64_t initialHeight, Bytes& appHash) override {
           appHash.clear();
           GLOGDEBUG("TestCometListener: got initChain");
           gotInitChain = true;
         }
-        virtual void incomingBlock(const uint64_t height, const uint64_t syncingToHeight, const std::vector<Bytes>& txs, Bytes& appHash) override {
+        virtual void incomingBlock(const uint64_t height, const uint64_t syncingToHeight, const std::vector<Bytes>& txs, Bytes& appHash, std::vector<CometExecTxResult>& txResults) override {
           GLOGDEBUG("TestCometListener: got incomingBlock " + std::to_string(height));
           finalizedHeight = height;
           appHash.clear();
+          txResults.resize(txs.size());
         }
       };
 
@@ -908,12 +914,12 @@ namespace TComet {
         std::atomic<bool> gotInitChain = false;
         std::atomic<uint64_t> finalizedHeight = 0;
         std::atomic<int> txCount = 0;
-        virtual void initChain(Bytes& appHash) override {
+        virtual void initChain(const uint64_t genesisTime, const std::string& chainId, const Bytes& initialAppState, const uint64_t initialHeight, Bytes& appHash) override {
           appHash.clear();
           GLOGDEBUG("TestCometListener: got initChain");
           gotInitChain = true;
         }
-        virtual void incomingBlock(const uint64_t height, const uint64_t syncingToHeight, const std::vector<Bytes>& txs, Bytes& appHash) override {
+        virtual void incomingBlock(const uint64_t height, const uint64_t syncingToHeight, const std::vector<Bytes>& txs, Bytes& appHash, std::vector<CometExecTxResult>& txResults) override {
           GLOGDEBUG("TestCometListener: got incomingBlock " + std::to_string(height));
           if (txs.size() != 0) {
             REQUIRE(txs.size() == 1);
@@ -932,6 +938,7 @@ namespace TComet {
           }
           finalizedHeight = height;
           appHash.clear();
+          txResults.resize(txs.size());
         }
       };
       TestCometListener cometListener;
