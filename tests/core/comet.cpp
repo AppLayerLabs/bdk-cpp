@@ -569,7 +569,7 @@ public:
    * @param tx Transaction to check.
    * @param accept Outparam to be set to `true` if the transaction is valid, `false` otherwise.
    */
-  void checkTx(const Bytes& tx, bool& accept) override {
+  void checkTx(const Bytes& tx, int64_t& gasWanted, bool& accept) override {
     GLOGDEBUG("TEST: TestMachine: checkTx()");
     std::string sig, nonce, op, val;
     accept = parseTransaction(tx, sig, nonce, op, val);
@@ -660,7 +660,8 @@ public:
     accept = true;
     for (const Bytes& tx : txs) {
       bool tx_accept;
-      checkTx(tx, tx_accept);
+      int64_t gas_limit;
+      checkTx(tx, gas_limit, tx_accept);
       if (!tx_accept) {
         accept = false;
         return;

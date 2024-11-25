@@ -1451,10 +1451,14 @@ void CometImpl::process_proposal(const cometbft::abci::v1::ProcessProposalReques
 
 void CometImpl::check_tx(const cometbft::abci::v1::CheckTxRequest& req, cometbft::abci::v1::CheckTxResponse* res) {
   bool accept = false;
-  listener_->checkTx(toBytes(req.tx()), accept);
+  int64_t gasWanted = -1;
+  listener_->checkTx(toBytes(req.tx()), gasWanted, accept);
   int ret_code = 0;
   if (!accept) { ret_code = 1; }
   res->set_code(ret_code);
+  if (gasWanted != -1) {
+    res->set_gas_wanted(gasWanted);
+  }
 }
 
 void CometImpl::commit(const cometbft::abci::v1::CommitRequest& req, cometbft::abci::v1::CommitResponse* res) {

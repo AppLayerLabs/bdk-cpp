@@ -75,9 +75,10 @@ class CometListener {
     /**
      * Check if a transaction is valid.
      * @param tx The transaction to check.
+     * @param gasWanted Outparam to be set to the gas_limit of this transaction (leave unmodified if unknown/irrelevant).
      * @param accept Outparam to be set to `true` if the transaction is valid, `false` if it is invalid.
      */
-    virtual void checkTx(const Bytes& tx, bool& accept) {
+    virtual void checkTx(const Bytes& tx, int64_t& gasWanted, bool& accept) {
       accept = true;
     }
 
