@@ -203,6 +203,31 @@ class CometListener {
      */
     virtual void checkTransactionResult(const std::string& txHash, const bool success, const std::string& response) {
     }
+
+    /**
+     * Notification of a state change in the Comet consensus engine driver.
+     *
+     * TODO: When an error condition is reached, we must completely stop and clean up the Comet instance.
+     * If there's any information that may help with handling the error, it should be saved at that point,
+     * but unless some kind of debug mode is explicitly enabled, it should close all connections and stop
+     * the cometbft process if any, etc.
+     *
+     * TODO: In TERMINATED or STOPPED state, the caller can immediately request that the Comet driver be
+     * restarted and it should be ready for that.
+     *
+     * There will be NO RETRIES, i.e. no "continue;" in the WorkerLoopInner. Every error is a fatal error
+     * reported here for the application to figure out, UNLESS we have an error that is transient and that
+     * we know about and that we can deal with internally.
+     *
+     * TODO: When an error condition is reached, cometbft is left at the TERMINATED state, which is the
+     * same as stopped but when it results from an error. The last error can then be retrieved with
+     * e.g. getErrorStr().
+     *
+     * @param newState The new CometState.
+     * @param oldState The previous CometState.
+     */
+    virtual void cometStateTransition(const CometState newState, const CometState oldState) {
+    }
 };
 
 class CometImpl;
@@ -297,13 +322,15 @@ class Comet : public Log::LogicalLocationProvider {
 
     /**
      * Start (or restart) the consensus engine loop.
+     * @return `true` if started, `false` if it was already started (need to call stop() first).
      */
-    void start();
+    bool start();
 
     /**
      * Stop the consensus engine loop; sets the pause state to CometState::NONE.
+     * @return `true` if stopped, `false` if it was already stopped (need to call start() first).
      */
-    void stop();
+    bool stop();
 
     /**
      * Return an instance (object) identifier for all LOGxxx() messages emitted this class.
