@@ -45,6 +45,15 @@ struct CometExecTxResult {
 };
 
 /**
+ * An update to the validator set (adding or removing a validator).
+ * A validator removal sets the power to 0, and a validator addition or power change is with a positive voting power value.
+ */
+struct CometValidatorUpdate {
+  Bytes       publicKey; ///< Validator's public key bytes.
+  int64_t     power; ///< Validator's new voting power value (0 to remove validator).
+};
+
+/**
  * The Comet class notifies its user of events through the CometListener interface.
  * Users of the Comet class must implement a CometListener class and pass a pointer
  * to a CometListener object to Comet so that they can receive Comet events.
@@ -54,6 +63,23 @@ struct CometExecTxResult {
  *
  * NOTE: the return value of all callbacks is set to void because they are reserved
  * for e.g. some status or error handling use; all user return values are outparams.
+ *
+ * NOTE: Althrough Comet could retrieve the current validator set from cometbft via
+ * RPC, it doesn't do that -- the Comet driver does not keep state w.r.t  the current
+ * validator set at all -- since validator set changes are entirely controlled by the
+ * application anyway; tracking the validator set is to be done by the application,
+ * and the application can know deterministically when the validator set changes it
+ * drives via CometListener::incomingBlock(..., &validatorUpdates) will take effect:
+ *
+ * FinalizeBlockResponse.validator_updates, triggered by block H, affect validation for
+ * blocks H+1, H+2, and H+3. Heights following a validator update are affected in the
+ * following way:
+ * - Height H+1: NextValidatorsHash includes the new validator_updates value.
+ * - Height H+2: The validator set change takes effect and ValidatorsHash is updated.
+ * - Height H+3: *_last_commit fields in PrepareProposal, ProcessProposal, and
+ *               FinalizeBlock now include the altered validator set.
+ *
+ * From: https://docs.cometbft.com/v1.0/spec/abci/abci++_methods#finalizeblock
  */
 class CometListener {
   public:
@@ -63,11 +89,12 @@ class CometListener {
      * @param chainId The chain ID.
      * @param initialAppState Serialized initial application state.
      * @param initialHeight The application's initial block height.
+     * @param initialValidators The genesis validator set.
      * @param appHash Outparam to be set to the application's initial app hash.
      */
     virtual void initChain(
-      const uint64_t genesisTime, const std::string& chainId, const Bytes& initialAppState,
-      const uint64_t initialHeight, Bytes& appHash
+      const uint64_t genesisTime, const std::string& chainId, const Bytes& initialAppState, const uint64_t initialHeight,
+      const std::vector<CometValidatorUpdate>& initialValidators, Bytes& appHash
     ) {
       appHash.clear();
     }
@@ -87,12 +114,15 @@ class CometListener {
      * @param height The block height of the new finalized block at the new head of the chain.
      * @param syncingToHeight If the blockchain is doing a replay, syncingToHeight > height, otherwise syncingToHeight == height.
      * @param txs All transactions included in the block, which need to be processed into the application state.
+     * @param proposerAddr Address of the validator that proposed the block.
+     * @param timeNanos Block timestamp in nanoseconds since epoch.
      * @param appHash Outparam to be set with the hash of the application state after all `txs` are processed into it.
      * @param txResults Outparam to be filled in with the result of executing each transaction in the `txs` vector (indices must match).
+     * @param validatorUpdates Outparam to be filled with the validator updates generated as a side-effect of applying this block to the app state.
      */
     virtual void incomingBlock(
-      const uint64_t height, const uint64_t syncingToHeight, const std::vector<Bytes>& txs, Bytes& appHash,
-      std::vector<CometExecTxResult>& txResults
+      const uint64_t height, const uint64_t syncingToHeight, const std::vector<Bytes>& txs, const Bytes& proposerAddr, const uint64_t timeNanos,
+      Bytes& appHash, std::vector<CometExecTxResult>& txResults, std::vector<CometValidatorUpdate>& validatorUpdates
     ) {
       appHash.clear();
       txResults.resize(txs.size());

@@ -18,6 +18,25 @@ See the LICENSE.txt file in the project root for more information.
 
 #include "../libs/base64.hpp"
 
+/*
+  NOTE: cometbft public key vs. address
+
+  Public Key types are hard-coded in the Comet driver.
+
+  Address
+  Address is a type alias of a slice of bytes. The address is calculated by hashing the public key using sha256 and
+  truncating it to only use the first 20 bytes of the slice.
+
+  const (
+    TruncatedSize = 20
+  )
+
+  func SumTruncated(bz []byte) []byte {
+    hash := sha256.Sum256(bz)
+    return hash[:TruncatedSize]
+  }
+*/
+
 // ---------------------------------------------------------------------------------------
 // CometImpl class
 // ---------------------------------------------------------------------------------------
@@ -297,6 +316,11 @@ void CometImpl::checkTransaction(const std::string& txHash) {
   // own scanning of produced blocks and indexing the transactions it sees there (since it does get
   // CometListener::incomingBlock() after all, which would be sufficient to implement any transaction
   // result/checking scheme).
+  //
+  // Since the execution environment (cometbft app) is going to use its own hashing function to
+  // generate transaction hashes (say sha3/keccak256), the application should probably also keep
+  // track, on its own, of pushed transactions, indexed by its own idea of what the transaction hash
+  // is, and keep its own database of completed transactions as it receives e.g. incomingBlock() calls.
 
   std::lock_guard<std::mutex> lock(txCheckMutex_);
   txCheck_.emplace_back(txHash);
@@ -1419,6 +1443,12 @@ std::string toStringForProtobuf(const Bytes& bytes) {
   return std::string(bytes.begin(), bytes.end());
 }
 
+// Helper to convert a google.protobuf.Timestamp to uint64_t nanoseconds since epoch.
+uint64_t toNanosSinceEpoch(const google::protobuf::Timestamp& timestamp) {
+  uint64_t nanoseconds_since_epoch = static_cast<uint64_t>(timestamp.seconds()) * 1000000000ULL + static_cast<uint64_t>(timestamp.nanos());
+  return nanoseconds_since_epoch;
+}
+
 void CometImpl::echo(const cometbft::abci::v1::EchoRequest& req, cometbft::abci::v1::EchoResponse* res) {
   //res->set_message(req.message()); // This is done at the net/abci caller, we don't need to do it here.
   // This callback doesn't seem to be called for ABCI Sockets vs. ABCI gRPC? Not sure what's going on.
@@ -1454,8 +1484,17 @@ void CometImpl::info(const cometbft::abci::v1::InfoRequest& req, cometbft::abci:
 }
 
 void CometImpl::init_chain(const cometbft::abci::v1::InitChainRequest& req, cometbft::abci::v1::InitChainResponse* res) {
+  std::vector<CometValidatorUpdate> validatorUpdates;
+  for (const auto& update : req.validators()) {
+    CometValidatorUpdate validatorUpdate;
+    validatorUpdate.publicKey = toBytes(update.pub_key_bytes());
+    validatorUpdate.power = update.power();
+    validatorUpdates.push_back(validatorUpdate);
+  }
+
   Bytes hashBytes;
-  listener_->initChain(req.time().seconds(), req.chain_id(), toBytes(req.app_state_bytes()), req.initial_height(), hashBytes);
+  listener_->initChain(req.time().seconds(), req.chain_id(), toBytes(req.app_state_bytes()), req.initial_height(), validatorUpdates, hashBytes);
+
   std::string hashString(hashBytes.begin(), hashBytes.end());
   res->set_app_hash(hashString);
 
@@ -1535,7 +1574,11 @@ void CometImpl::commit(const cometbft::abci::v1::CommitRequest& req, cometbft::a
 void CometImpl::finalize_block(const cometbft::abci::v1::FinalizeBlockRequest& req, cometbft::abci::v1::FinalizeBlockResponse* res) {
   Bytes hashBytes;
   std::vector<CometExecTxResult> txResults;
-  listener_->incomingBlock(req.height(), req.syncing_to_height(), toBytesVector(req.txs()), hashBytes, txResults);
+  std::vector<CometValidatorUpdate> validatorUpdates;
+  listener_->incomingBlock(
+    req.height(), req.syncing_to_height(), toBytesVector(req.txs()), toBytes(req.proposer_address()), toNanosSinceEpoch(req.time()),
+    hashBytes, txResults, validatorUpdates
+  );
 
   // application must give us one txResult entry for every tx entry we have given it.
   if (txResults.size() != req.txs().size()) {
@@ -1554,6 +1597,19 @@ void CometImpl::finalize_block(const cometbft::abci::v1::FinalizeBlockRequest& r
     tx_result->set_gas_wanted(txRes.gas_wanted);
     tx_result->set_gas_used(txRes.gas_used);
   }
+
+  // Relay validator update commands to cometbft
+  for (const auto& validatorUpdate : validatorUpdates) {
+    auto* update = res->add_validator_updates();
+    update->set_power(validatorUpdate.power);
+    update->set_pub_key_type("ed25519"); //<-- string that appears by default in a cometbft init genesis file ("tendermint/PubKeyEd25519");
+    update->set_pub_key_bytes(toStringForProtobuf(validatorUpdate.publicKey));
+  }
+
+  // TODO: The Application can use FinalizeBlockRequest.decided_last_commit and FinalizeBlockRequest.misbehavior
+  // to determine rewards and punishments for the validators.
+
+  // TODO: We will have to support consensus param updates, which are done through here.
 }
 
 void CometImpl::query(const cometbft::abci::v1::QueryRequest& req, cometbft::abci::v1::QueryResponse* res) {

@@ -12,6 +12,9 @@ See the LICENSE.txt file in the project root for more information.
 // for SDKTestSuite::getTestPort()
 #include "../sdktestsuite.hpp"
 
+// To decode the base64-encoded key strings
+#include "../libs/base64.hpp"
+
 std::string createTestDumpPath(const std::string& testDir) {
   std::string testDumpPath = Utils::getTestDumpPath() + "/" + testDir;
   if (std::filesystem::exists(testDumpPath)) {
@@ -636,7 +639,10 @@ public:
   /**
    * InitChain ABCI callback.
    */
-  void initChain(const uint64_t genesisTime, const std::string& chainId, const Bytes& initialAppState, const uint64_t initialHeight, Bytes& appHash) override {
+  void initChain(
+    const uint64_t genesisTime, const std::string& chainId, const Bytes& initialAppState, const uint64_t initialHeight,
+    const std::vector<CometValidatorUpdate>& initialValidators, Bytes& appHash) override
+  {
     GLOGDEBUG("TEST: TestMachine: initChain()");
     m_ = 0;
     h_ = 0;
@@ -666,7 +672,11 @@ public:
    * @param txs All transactions in the block that need to be executed.
    * @param appHash Outparam that needs to be filled with the new state hash of the application, if any.
    */
-  void incomingBlock(const uint64_t height, const uint64_t syncingToHeight, const std::vector<Bytes>& txs, Bytes& appHash, std::vector<CometExecTxResult>& txResults) override {
+  void incomingBlock(
+    const uint64_t height, const uint64_t syncingToHeight, const std::vector<Bytes>& txs, const Bytes& proposerAddr,
+    const uint64_t timeNanos, Bytes& appHash, std::vector<CometExecTxResult>& txResults, std::vector<CometValidatorUpdate>& validatorUpdates
+  ) override
+  {
     GLOGDEBUG("TEST: TestMachine: incomingBlock(): height=" + std::to_string(height) + "; syncingToheight="+std::to_string(syncingToHeight) + "; txs.size()="+std::to_string(txs.size()));
     incomingHeight_ = height;
     incomingSyncingToHeight_ = syncingToHeight;
@@ -805,12 +815,20 @@ namespace TComet {
       public:
         std::atomic<bool> gotInitChain = false;
         std::atomic<uint64_t> finalizedHeight = 0;
-        virtual void initChain(const uint64_t genesisTime, const std::string& chainId, const Bytes& initialAppState, const uint64_t initialHeight, Bytes& appHash) override {
+        virtual void initChain(
+          const uint64_t genesisTime, const std::string& chainId, const Bytes& initialAppState, const uint64_t initialHeight,
+          const std::vector<CometValidatorUpdate>& initialValidators, Bytes& appHash
+        ) override
+        {
           appHash.clear();
           GLOGDEBUG("TestCometListener: got initChain");
           gotInitChain = true;
         }
-        virtual void incomingBlock(const uint64_t height, const uint64_t syncingToHeight, const std::vector<Bytes>& txs, Bytes& appHash, std::vector<CometExecTxResult>& txResults) override {
+        virtual void incomingBlock(
+          const uint64_t height, const uint64_t syncingToHeight, const std::vector<Bytes>& txs, const Bytes& proposerAddr,
+          const uint64_t timeNanos, Bytes& appHash, std::vector<CometExecTxResult>& txResults, std::vector<CometValidatorUpdate>& validatorUpdates
+        ) override
+        {
           GLOGDEBUG("TestCometListener: got incomingBlock " + std::to_string(height));
           finalizedHeight = height;
           appHash.clear();
@@ -931,12 +949,20 @@ namespace TComet {
       public:
         std::atomic<bool> gotInitChain = false;
         std::atomic<uint64_t> finalizedHeight = 0;
-        virtual void initChain(const uint64_t genesisTime, const std::string& chainId, const Bytes& initialAppState, const uint64_t initialHeight, Bytes& appHash) override {
+        virtual void initChain(
+          const uint64_t genesisTime, const std::string& chainId, const Bytes& initialAppState, const uint64_t initialHeight,
+          const std::vector<CometValidatorUpdate>& initialValidators, Bytes& appHash
+        ) override
+        {
           appHash.clear();
           GLOGDEBUG("TestCometListener: got initChain");
           gotInitChain = true;
         }
-        virtual void incomingBlock(const uint64_t height, const uint64_t syncingToHeight, const std::vector<Bytes>& txs, Bytes& appHash, std::vector<CometExecTxResult>& txResults) override {
+        virtual void incomingBlock(
+          const uint64_t height, const uint64_t syncingToHeight, const std::vector<Bytes>& txs, const Bytes& proposerAddr,
+          const uint64_t timeNanos, Bytes& appHash, std::vector<CometExecTxResult>& txResults, std::vector<CometValidatorUpdate>& validatorUpdates
+        ) override
+        {
           GLOGDEBUG("TestCometListener: got incomingBlock " + std::to_string(height));
           finalizedHeight = height;
           appHash.clear();
@@ -1008,12 +1034,20 @@ namespace TComet {
         std::atomic<uint64_t> finalizedHeight = 0;
         std::atomic<int> txCount = 0;
         std::atomic<int> gotTxCheck = 0;
-        virtual void initChain(const uint64_t genesisTime, const std::string& chainId, const Bytes& initialAppState, const uint64_t initialHeight, Bytes& appHash) override {
+        virtual void initChain(
+          const uint64_t genesisTime, const std::string& chainId, const Bytes& initialAppState, const uint64_t initialHeight,
+          const std::vector<CometValidatorUpdate>& initialValidators, Bytes& appHash
+        ) override
+        {
           appHash.clear();
           GLOGDEBUG("TestCometListener: got initChain");
           gotInitChain = true;
         }
-        virtual void incomingBlock(const uint64_t height, const uint64_t syncingToHeight, const std::vector<Bytes>& txs, Bytes& appHash, std::vector<CometExecTxResult>& txResults) override {
+        virtual void incomingBlock(
+          const uint64_t height, const uint64_t syncingToHeight, const std::vector<Bytes>& txs, const Bytes& proposerAddr,
+          const uint64_t timeNanos, Bytes& appHash, std::vector<CometExecTxResult>& txResults, std::vector<CometValidatorUpdate>& validatorUpdates
+        ) override
+        {
           GLOGDEBUG("TestCometListener: got incomingBlock " + std::to_string(height));
           if (txs.size() != 0) {
             REQUIRE(txs.size() == 1);
@@ -1785,6 +1819,134 @@ namespace TComet {
       GLOGDEBUG("TEST: Stopped both instances");
       REQUIRE(comet0.getState() == CometState::STOPPED);
       REQUIRE(comet1.getState() == CometState::STOPPED);
+      GLOGDEBUG("TEST: Finished");
+    }
+
+    // Start chain with two validators 0 and 1 (both are required to advance the chain since need 2/3 votes).
+    // Change validator set to add validator 2.
+    // Change validator set to remove validator 0 (now both 1 and 2 are required to advance the chain, but not 0).
+    // Stop validator 0, verify that chain continues advancing normally.
+    SECTION("CometValidatorSetTest") {
+
+      GLOGDEBUG("TEST: Constructing three Comet instances");
+
+      // Listener that tracks the validator set
+      class TestCometListener : public CometListener {
+      public:
+        std::atomic<uint64_t> finalizedHeight_ = 0;
+        virtual void initChain(
+          const uint64_t genesisTime, const std::string& chainId, const Bytes& initialAppState, const uint64_t initialHeight,
+          const std::vector<CometValidatorUpdate>& initialValidators, Bytes& appHash
+        ) override
+        {
+          appHash.clear();
+          GLOGDEBUG("TestCometListener: got initChain");
+          // the genesis state has nodes 0 and 1 as validators only
+          REQUIRE(initialValidators.size() == 2);
+          REQUIRE(initialValidators[0].publicKey.size() == 32);
+          REQUIRE(initialValidators[1].publicKey.size() == 32);
+          std::string vs0 = base64::encode_into<std::string>(initialValidators[0].publicKey.begin(), initialValidators[0].publicKey.end());
+          std::string vs1 = base64::encode_into<std::string>(initialValidators[1].publicKey.begin(), initialValidators[1].publicKey.end());
+          // for some reason they can be flipped around (we can't use the order in the vector, although we should be able to get them in order...)
+          // so we have to search the validator keys in the whole vector
+          bool foundKey0 = vs0 == cometTestKeys[0].pub_key || vs1 == cometTestKeys[0].pub_key;
+          bool foundKey1 = vs0 == cometTestKeys[1].pub_key || vs1 == cometTestKeys[1].pub_key;
+          REQUIRE(foundKey0);
+          REQUIRE(foundKey1);
+        }
+        virtual void incomingBlock(
+          const uint64_t height, const uint64_t syncingToHeight, const std::vector<Bytes>& txs, const Bytes& proposerAddr,
+          const uint64_t timeNanos, Bytes& appHash, std::vector<CometExecTxResult>& txResults, std::vector<CometValidatorUpdate>& validatorUpdates
+        ) override
+        {
+          GLOGDEBUG("TestCometListener: got incomingBlock " + std::to_string(height));
+          finalizedHeight_ = height;
+          appHash.clear();
+
+          // At height == 2, we add node 2, so now the validator set has nodes 0, 1, and 2
+          if (height == 2) {
+            CometValidatorUpdate update;
+            update.publicKey = base64::decode_into<Bytes>(cometTestKeys[2].pub_key);
+            REQUIRE(update.publicKey.size() == 32);
+            update.power = 10;
+            validatorUpdates.push_back(update);
+          }
+
+          // At height == 5, we remove node 0, so now the validator set has nodes 1 and 2 only
+          if (height == 5) {
+            CometValidatorUpdate update;
+            update.publicKey = base64::decode_into<Bytes>(cometTestKeys[0].pub_key);
+            REQUIRE(update.publicKey.size() == 32);
+            update.power = 0;
+            validatorUpdates.push_back(update);
+          }
+        }
+      };
+      TestCometListener cometListener0;
+      TestCometListener cometListener1;
+      TestCometListener cometListener2;
+
+      // get free ports to run tests on
+      auto ports = generateCometTestPorts(3);
+
+      // Create nodes 0 and 1 as validators, and node 2 as a non-validator (it will be promoted to validator later)
+      // The validator/non-validator setup here affects the validator set for genesis; we're free to change the validator
+      //   set as we go as the non-validator nodes also get public/private validator keypairs even if those aren't initially
+      //   listed in the genesis validator set.
+      std::string testDumpPath0 = createTestDumpPath("CometValidatorSetTest_0");
+      const Options options0 = getOptionsForCometTest(testDumpPath0, "", ports[0].p2p, ports[0].rpc, 0, 3, ports, 1);
+      std::string testDumpPath1 = createTestDumpPath("CometValidatorSetTest_1");
+      const Options options1 = getOptionsForCometTest(testDumpPath1, "", ports[1].p2p, ports[1].rpc, 1, 3, ports, 1);
+      std::string testDumpPath2 = createTestDumpPath("CometValidatorSetTest_2");
+      const Options options2 = getOptionsForCometTest(testDumpPath2, "", ports[2].p2p, ports[2].rpc, 2, 3, ports, 1);
+
+      // Create the three nodes
+      Comet comet0(&cometListener0, "Comet0", options0);
+      Comet comet1(&cometListener1, "Comet1", options1);
+      Comet comet2(&cometListener2, "Comet2", options2);
+
+      // Start all of them
+      GLOGDEBUG("TEST: Starting all validators");
+      comet0.start();
+      comet1.start();
+      comet2.start();
+
+      // Wait for block 8 on validator 1
+      GLOGDEBUG("TEST: Waiting for node 1 to reach block 8...");
+      auto futureFinalizeBlock = std::async(std::launch::async, [&]() {
+        while (cometListener1.finalizedHeight_ < 8) {
+          std::this_thread::sleep_for(std::chrono::milliseconds(10));
+        }
+      });
+      REQUIRE(futureFinalizeBlock.wait_for(std::chrono::seconds(60)) != std::future_status::timeout);
+      REQUIRE(cometListener1.finalizedHeight_ >= 8);
+
+      // Stop node 0
+      GLOGDEBUG("TEST: Stopping node 0 (chain must continue since node0 is no longer a validator)...");
+      REQUIRE(comet0.getStatus()); // no error reported (must check before stop())
+      comet0.stop();
+      REQUIRE(comet0.getState() == CometState::STOPPED);
+      GLOGDEBUG("TEST: Stopped node 0");
+
+      // Wait for block 11 on validator 1
+      GLOGDEBUG("TEST: Waiting for node 1 to reach block 11...");
+      auto futureFinalizeBlock2 = std::async(std::launch::async, [&]() {
+        while (cometListener1.finalizedHeight_ < 11) {
+          std::this_thread::sleep_for(std::chrono::milliseconds(10));
+        }
+      });
+      REQUIRE(futureFinalizeBlock2.wait_for(std::chrono::seconds(20)) != std::future_status::timeout);
+      REQUIRE(cometListener1.finalizedHeight_ >= 11);
+
+      // Stop both remaining cometbft instances
+      GLOGDEBUG("TEST: Stopping node 1 and node 2...");
+      REQUIRE(comet1.getStatus()); // no error reported (must check before stop())
+      comet1.stop();
+      REQUIRE(comet2.getStatus()); // no error reported (must check before stop())
+      comet2.stop();
+      GLOGDEBUG("TEST: Stopped node1 and node 2.");
+      REQUIRE(comet1.getState() == CometState::STOPPED);
+      REQUIRE(comet2.getState() == CometState::STOPPED);
       GLOGDEBUG("TEST: Finished");
     }
   }
