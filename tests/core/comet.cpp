@@ -1949,5 +1949,43 @@ namespace TComet {
       REQUIRE(comet2.getState() == CometState::STOPPED);
       GLOGDEBUG("TEST: Finished");
     }
+
+    // Test the Comet::rpcCall feature
+    SECTION("CometRpcCallTest") {
+      std::string testDumpPath = createTestDumpPath("CometRpcCallTest");
+
+      GLOGDEBUG("TEST: Constructing Comet");
+
+      int p2p_port = SDKTestSuite::getTestPort();
+      int rpc_port = SDKTestSuite::getTestPort();
+      const Options options = getOptionsForCometTest(testDumpPath, "", p2p_port, rpc_port);
+
+      // Just use the dummy default listener
+      CometListener cometListener;
+      Comet comet(&cometListener, "", options);
+
+      // Set pause at inspect so we can use RPC calls on inspect
+      comet.setPauseState(CometState::INSPECT_RUNNING);
+      GLOGDEBUG("TEST: Starting comet...");
+      comet.start();
+      GLOGDEBUG("TEST: Waiting for cometbft inspect RPC to be up...");
+      REQUIRE(comet.waitPauseState(10000) == "");
+
+      // Make an RPC call
+      GLOGDEBUG("TEST: Making rpcCall()...");
+      std::string healthResult;
+      bool success = comet.rpcCall("header", json::object(), healthResult);
+      GLOGDEBUG("TEST: rpcCall() result: " + healthResult);
+      REQUIRE(success == true);
+      REQUIRE(healthResult.find("\"result\":{\"header\":null}") != std::string::npos); // expect null last header since empty chain
+
+      // Don't need to unpause, can just stop
+      GLOGDEBUG("TEST: Stopping...");
+      REQUIRE(comet.getStatus()); // no error reported (must check before stop())
+      comet.stop();
+      GLOGDEBUG("TEST: Stopped");
+      REQUIRE(comet.getState() == CometState::STOPPED);
+      GLOGDEBUG("TEST: Finished");
+    }
   }
 }

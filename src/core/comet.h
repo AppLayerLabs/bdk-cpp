@@ -14,6 +14,8 @@ See the LICENSE.txt file in the project root for more information.
 #include <unordered_set>
 #include <vector>
 
+/// FIXME/TODO: Add CometError enum here + CometImpl::setErrorCode(CometError) + Comet::getErrorCode() + CometImpl::cometErrorCode_
+
 /// Comet driver states
 enum class CometState {
   STOPPED          =  0, ///< Comet is in stopped state (no worker thread started)
@@ -21,17 +23,34 @@ enum class CometState {
   CONFIGURING      =  2, ///< Starting to set up comet config
   CONFIGURED       =  3, ///< Finished setting up comet config
   INSPECTING_COMET =  4, ///< Starting cometbft inspect
-  INSPECTED_COMET  =  5, ///< Stopped cometbft inspect; all tests passed
-  STARTING_ABCI    =  6, ///< Starting ABCI server on our end
-  STARTED_ABCI     =  7, ///< Started ABCI server
-  STARTING_COMET   =  8, ///< Running cometbft start
-  STARTED_COMET    =  9, ///< cometbft start successful
-  TESTING_COMET    = 10, ///< Starting to test cometbft connection
-  TESTED_COMET     = 11, ///< Finished cometbft connection test; all tests passed
-  RUNNING          = 12, ///< Comet is running
-  TERMINATED       = 13, ///< Comet worker somehow ran out of work (this is always an error)
-  FINISHED         = 14, ///< Comet worker loop quit (stopped for some explicit reason)
-  NONE             = 15  ///< Dummy state to disable state stepping
+  INSPECT_RUNNING  =  5, ///< Application can use setPauseState(INSPECT_RUNNING) to keep cometbft inspect open.
+  INSPECTED_COMET  =  6, ///< Stopped cometbft inspect; all tests passed
+  STARTING_ABCI    =  7, ///< Starting ABCI server on our end
+  STARTED_ABCI     =  8, ///< Started ABCI server
+  STARTING_COMET   =  9, ///< Running cometbft start
+  STARTED_COMET    = 10, ///< cometbft start successful
+  TESTING_COMET    = 11, ///< Starting to test cometbft connection
+  TESTED_COMET     = 12, ///< Finished cometbft connection test; all tests passed
+  RUNNING          = 13, ///< Comet is running
+  TERMINATED       = 14, ///< Comet worker somehow ran out of work (this is always an error)
+  FINISHED         = 15, ///< Comet worker loop quit (stopped for some explicit reason)
+  NONE             = 16  ///< Dummy state to disable state stepping
+};
+
+/// Comet error codes so that the application can decide to e.g. retry cometbft start or not
+enum class CometError {
+  NONE               =  0, ///< No error
+  FATAL              =  1, ///< Generic fatal error
+  CONFIG             =  2, ///< cometbft config files/dirs error
+  DATA               =  3, ///< cometbft data directory has bad/corrupted/unexpected data
+  RUN                =  4, ///< Error trying to launch cometbft
+  RUN_TIMEOUT        =  5, ///< Timed out while waiting for a cometbft run to complete (e.g. cometbft show-node-id)
+  FAIL               =  6, ///< Unexpected failure that might be transient (if not, it may be cometbft data corruption)
+  RPC_TIMEOUT        =  7, ///< Timed out while trying to connect to the cometbft RPC port
+  RPC_CALL_FAILED    =  8, ///< JSON-RPC call returned an error (JSON-RPC or HTTP error)
+  RPC_BAD_RESPONSE   =  9, ///< cometbft RPC method response is invalid (parse error)
+  ABCI_SERVER_FAILED = 10, ///< ABCI server (socket connections) closed
+  ABCI_TIMEOUT       = 11  ///< Timed out while waiting for an expected ABCI callblack from cometbft
 };
 
 /**
@@ -207,21 +226,12 @@ class CometListener {
     /**
      * Notification of a state change in the Comet consensus engine driver.
      *
-     * TODO: When an error condition is reached, we must completely stop and clean up the Comet instance.
-     * If there's any information that may help with handling the error, it should be saved at that point,
-     * but unless some kind of debug mode is explicitly enabled, it should close all connections and stop
-     * the cometbft process if any, etc.
+     * In TERMINATED, FINISHED or STOPPED state, the receiver of this callback can (in *another thread*)
+     * can call stop(), then start() again if they want to retry. At the point the TERMINATED state is
+     * reached, the error code and the error string are already set.
      *
-     * TODO: In TERMINATED or STOPPED state, the caller can immediately request that the Comet driver be
-     * restarted and it should be ready for that.
-     *
-     * There will be NO RETRIES, i.e. no "continue;" in the WorkerLoopInner. Every error is a fatal error
-     * reported here for the application to figure out, UNLESS we have an error that is transient and that
-     * we know about and that we can deal with internally.
-     *
-     * TODO: When an error condition is reached, cometbft is left at the TERMINATED state, which is the
-     * same as stopped but when it results from an error. The last error can then be retrieved with
-     * e.g. getErrorStr().
+     * There will be no retries, i.e. no "continue;" in the WorkerLoopInner. Every error is a fatal error
+     * reported here for the application to figure out.
      *
      * @param newState The new CometState.
      * @param oldState The previous CometState.
@@ -272,6 +282,13 @@ class Comet : public Log::LogicalLocationProvider {
     const std::string& getErrorStr();
 
     /**
+     * Get the last error code from the Comet worker (not synchronized; call only after
+     * getStatus() returns false).
+     * @return Error code (of CometError enum type); CometError::NONE if no error.
+     */
+    CometError getErrorCode();
+
+    /**
      * Get the current state of the Comet worker (or last known state before failure/termination;
      * must also call getStatus()).
      * @return The current state.
@@ -319,6 +336,16 @@ class Comet : public Log::LogicalLocationProvider {
      * @param txHash A hex string (no "0x") with the SHA256 hex of the transaction to look for.
      */
     void checkTransaction(const std::string& txHash);
+
+    /**
+     * Make a JSON-RPC call to the RPC endpoint. The Comet engine must be in a state that has cometbft
+     * running, with the RPC connection already established, otherwise this method will error out.
+     * @param method Name of the JSON-RPC method to call.
+     * @param params Parameters to the method call.
+     * @param outResult Outparam string that is set with the entire HTTP body response, or an error message.
+     * @return `true` if the call succeeded, `false` if any error occurred.
+     */
+    bool rpcCall(const std::string& method, const json& params, std::string& outResult);
 
     /**
      * Start (or restart) the consensus engine loop.

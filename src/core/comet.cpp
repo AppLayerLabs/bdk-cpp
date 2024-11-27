@@ -62,13 +62,16 @@ class CometImpl : public Log::LogicalLocationProvider, public ABCIHandler {
     const bool stepMode_; ///< Set to 'true' if unit testing with cometbft in step mode (no empty blocks).
 
     std::unique_ptr<ABCIServer> abciServer_; ///< TCP server for cometbft ABCI connection
-    std::optional<boost::process::child> process_; ///< boost::process that points to the running "cometbft start" process
+    std::optional<boost::process::child> process_; ///< boost::process that points to the internally-tracked async cometbft process
+    std::string processStdout_, processStderr_; ///< Buffers for saving the output of process_ (if not redirecting to the log file).
+    std::atomic<bool> processDone_; ///< Set to `true` when process_ (likely) exited.
 
     std::mutex stateMutex_; //< Serializes start() and stop() calls
     std::future<void> loopFuture_; ///< Future object holding the consensus engine thread.
     std::atomic<bool> stop_ = false; ///< Flag for stopping the consensus engine thread.
     std::atomic<bool> status_ = true; ///< Global status (true = OK, false = failed/terminated).
     std::string errorStr_; ///< Error message (if any).
+    CometError errorCode_; ///< Error code (CometError::NONE if no error).
 
     std::atomic<CometState> state_ = CometState::STOPPED; ///< Current step the Comet instance is in.
     std::atomic<CometState> pauseState_ = CometState::NONE; ///< Step to pause/hold the comet instance at, if any.
@@ -90,135 +93,128 @@ class CometImpl : public Log::LogicalLocationProvider, public ABCIHandler {
     uint64_t lastCometBFTBlockHeight_; ///< Current block height stored in the cometbft data dir, if known.
     std::string lastCometBFTAppHash_; ///< Current app hash stored in the cometbft data dir, if known.
 
-    // FIXME/TODO: remove connected_ and use socket_ instead ; socket_.reset() to set it to disconnected
-    //             rename rpcIoc rpcSocket rpcRequestIdCounter
-    boost::asio::io_context ioc_; ///< io_context for our persisted RPC socket connection.
-    std::unique_ptr<boost::asio::ip::tcp::socket> socket_; ///< Persisted RPC socket connection.
-    bool connected_ = false; ///< Check if the RPC connection is established.
-    uint64_t requestIdCounter_ = 0; ///< Client-side request ID generator for our JSON-RPC calls to cometbft.
+    std::unique_ptr<boost::asio::ip::tcp::socket> rpcSocket_; ///< Persisted RPC socket connection.
+    boost::asio::io_context rpcIoc_; ///< io_context for our persisted RPC socket connection.
+    uint64_t rpcRequestIdCounter_ = 0; ///< Client-side request ID generator for our JSON-RPC calls to cometbft (don't reset with start()/stop()).
 
     void setState(const CometState& state); ///< Apply a state transition, possibly pausing at the new state.
     void setError(const std::string& errorStr); ///< Signal a fatal error condition.
+    void setErrorCode(CometError errorCode); ///< Specify the error code when there's an error condition.
     void resetError(); ///< Reset internal error condition.
     void cleanup(); ///< Ensure Comet is in a cleaned up state (kill cometbft, close RPC connection, stop & delete ABCI server, etc.)
-    void startCometBFT(const std::string& cometPath); ///< Launch the CometBFT process_ ('cometbft start' for an async node run).
+    void startCometBFT(const std::vector<std::string>& cometArgs, bool saveOutput); ///< Launch the CometBFT process_ (at most one at a time).
     void stopCometBFT(); ///< Terminate the CometBFT process_.
-    int runCometBFT(const std::string& cometPath, std::vector<std::string> cometArgs, std::string &sout, std::string &serr, std::atomic<uint64_t>* pid = nullptr); ///< Blocking run cometbft w/ args
     void workerLoop(); ///< Worker loop responsible for establishing and managing a connection to cometbft.
     void workerLoopInner(); ///< Called by workerLoop().
 
+    /**
+     * Start the persisted rpcSocket_ connection to the cometbft process_.
+     * @return `true` if the connection was established or is already established, `false` if failed to
+     * connect or can't connect (e.g. RPC port number is not yet known).
+     */
     bool startRPCConnection() {
-      if (rpcPort_ == 0) return false; // we have not figured out what the rpcPort_ configuration is yet
-      if (connected_) return true;
+      if (rpcPort_ == 0) {
+        return false; // we have not figured out what the rpcPort_ configuration is yet
+      }
+      if (rpcSocket_) {
+        return true; // already started
+      }
       try {
-          socket_ = std::make_unique<boost::asio::ip::tcp::socket>(ioc_);
-            boost::asio::ip::tcp::endpoint endpoint(
-            boost::asio::ip::make_address("127.0.0.1"), rpcPort_
-          );
-          socket_->connect(endpoint);
-          connected_ = true;
-          return true;
+        rpcSocket_ = std::make_unique<boost::asio::ip::tcp::socket>(rpcIoc_);
+        boost::asio::ip::tcp::endpoint endpoint(boost::asio::ip::make_address("127.0.0.1"), rpcPort_);
+        rpcSocket_->connect(endpoint);
+        return true;
       } catch (const std::exception& e) {
-          connected_ = false;
-          return false;
+        LOGDEBUG("ERROR trying to connect to RPC port: " + std::string(e.what()));
+        rpcSocket_.reset();
+        return false;
       }
     }
 
+    /**
+     * Stop the persisted rpcSocket_ connection to the cometbft process_ (if there is one).
+     */
     void stopRPCConnection() {
-        if (socket_ && connected_) {
-            boost::system::error_code ec;
-            socket_->shutdown(boost::asio::ip::tcp::socket::shutdown_both, ec);
-            connected_ = false;
-        }
+      if (rpcSocket_) {
+        boost::system::error_code ec;
+        rpcSocket_->shutdown(boost::asio::ip::tcp::socket::shutdown_both, ec);
+        rpcSocket_.reset();
+      }
     }
 
+    /**
+     * Make a JSON RPC call to the running cometbft node.
+     * @param method Name of the JSON-RPC method to call.
+     * @param params Parameters to the method call.
+     * @param outResult Outparam string that is set with the entire HTTP body response, or an error message.
+     * @param retry If `true`, will make a recursive call to itself to transparently retry the call (once).
+     * @return `true` if outResult is guaranteed JSON and the method call was successfully completed, `false` if some error occurred.
+     */
     bool makeJSONRPCCall(const std::string& method, const json& params, std::string& outResult, bool retry = true) {
-        if (!connected_ && !startRPCConnection()) {
-            outResult = "Connection failed";
-            return false;
+      if (!rpcSocket_ && !startRPCConnection()) {
+        outResult = "ERROR: Connection failed";
+        return false;
+      }
+
+      int requestId = ++rpcRequestIdCounter_;  // Generate a unique JSON-RPC request ID
+      json requestBody = {{ "jsonrpc", "2.0" }, { "method", method }, { "params", params }, { "id", requestId }};
+
+      try {
+        // Request the method call
+        boost::beast::http::request<boost::beast::http::string_body> req{boost::beast::http::verb::post, "/", 11};
+        req.set(boost::beast::http::field::host, "localhost");
+        req.set(boost::beast::http::field::user_agent, BOOST_BEAST_VERSION_STRING);
+        req.set(boost::beast::http::field::accept, "application/json");
+        req.set(boost::beast::http::field::content_type, "application/json");
+        req.set(boost::beast::http::field::connection, "keep-alive");
+        req.body() = requestBody.dump();
+        req.prepare_payload();
+        boost::beast::http::write(*rpcSocket_, req);
+
+        // Collect the result
+        boost::beast::flat_buffer buffer;
+        boost::beast::http::response<boost::beast::http::dynamic_body> res;
+        boost::beast::http::read(*rpcSocket_, buffer, res);
+
+        // Send the entire response body as the resulting string
+        // This may not be JSON if e.g. HTTP error (?)
+        outResult = boost::beast::buffers_to_string(res.body().data());
+
+        // Return true only if everything looks OK (i.e. HTTP 200 OK and JSON-RPC response isn't an error).
+        // Check both the JSON-RPC error field and the HTTP return code to ensure we don't miss errors.
+        auto jsonResponse = json::parse(outResult);
+        return ! ( jsonResponse.contains("error") || (res.result() != boost::beast::http::status::ok) );
+
+      } catch (const std::exception& e) {
+        stopRPCConnection();  // Close connection on error
+        // Retry the call transparently once, in case it is some transient connection error
+        if (retry && startRPCConnection()) {
+          LOGDEBUG("makeJSONRPCCall() failed, but is going to transparently retry once; error: " + std::string(e.what()));
+          return makeJSONRPCCall(method, params, outResult, false);
         }
-
-        int requestId = ++requestIdCounter_;  // Generate a unique request ID
-        json requestBody = {
-            {"jsonrpc", "2.0"},
-            {"method", method},
-            {"params", params},
-            {"id", requestId}
-        };
-
-        try {
-            // Set up the POST request with keep-alive
-            boost::beast::http::request<boost::beast::http::string_body> req{
-                boost::beast::http::verb::post, "/", 11};
-            req.set(boost::beast::http::field::host, "localhost");
-            req.set(boost::beast::http::field::user_agent, BOOST_BEAST_VERSION_STRING);
-            req.set(boost::beast::http::field::accept, "application/json");
-            req.set(boost::beast::http::field::content_type, "application/json");
-            req.set(boost::beast::http::field::connection, "keep-alive");  // Keep connection open
-            req.body() = requestBody.dump();  // Serialize JSON to string
-            req.prepare_payload();
-
-            boost::beast::http::write(*socket_, req);
-
-            boost::beast::flat_buffer buffer;
-            boost::beast::http::response<boost::beast::http::dynamic_body> res;
-
-            boost::beast::http::read(*socket_, buffer, res);
-
-          // This is broken, we have to always return json.
-          //if (res.result() != boost::beast::http::status::ok) {
-          //    LOGDEBUG("ACTUAL RESULT STRING: [" + boost::beast::buffers_to_string(res.body().data()) + "]" );
-          //    outResult = "HTTP error: " + std::to_string(res.result_int());
-          //    return false;
-          // }
-          outResult = boost::beast::buffers_to_string(res.body().data());
-          auto jsonResponse = json::parse(outResult);
-
-          // Check both the JSON-RPC error field and the HTTP return code to ensure we don't miss errors.
-          return ! ( jsonResponse.contains("error") || (res.result() != boost::beast::http::status::ok) );
-
-        } catch (const std::exception& e) {
-            stopRPCConnection();  // Close connection on error
-            outResult = "Exception occurred: " + std::string(e.what());
-            // Retry the call once, in case it is some transient error
-            // TODO: review this; this retry is not be strictly necessary as
-            //       the caller should handle failures instead
-            if (retry && startRPCConnection()) {
-                return makeJSONRPCCall(method, params, outResult, false);
-            }
-            return false;
-        }
+        outResult = "ERROR: " + std::string(e.what());
+        return false;
+      }
     }
 
   public:
 
     std::string getLogicalLocation() const override { return instanceIdStr_; } ///< Log instance
-
     explicit CometImpl(CometListener* listener, std::string instanceIdStr, const Options& options, bool stepMode);
-
     virtual ~CometImpl();
-
     bool getStatus();
-
     const std::string& getErrorStr();
-
+    CometError getErrorCode();
     CometState getState();
-
     void setPauseState(const CometState pauseState = CometState::NONE);
-
     CometState getPauseState();
-
     std::string waitPauseState(uint64_t timeoutMillis);
-
     std::string getNodeID();
-
     bool start();
-
     bool stop();
-
     uint64_t sendTransaction(const Bytes& tx);
-
     void checkTransaction(const std::string& txHash);
+    bool rpcCall(const std::string& method, const json& params, std::string& outResult);
 
     // ---------------------------------------------------------------------------------------
     // ABCIHandler interface
@@ -257,6 +253,10 @@ bool CometImpl::getStatus() {
 
 const std::string& CometImpl::getErrorStr() {
   return errorStr_;
+}
+
+CometError CometImpl::getErrorCode() {
+  return errorCode_;
 }
 
 CometState CometImpl::getState() {
@@ -328,6 +328,18 @@ void CometImpl::checkTransaction(const std::string& txHash) {
   txCheck_.emplace_back(txHash);
 }
 
+bool CometImpl::rpcCall(const std::string& method, const json& params, std::string& outResult) {
+  if (!process_.has_value()) {
+    outResult = "ERROR: cometbft is not running.";
+    return false;
+  }
+  if (!rpcSocket_) {
+    outResult = "ERROR: RPC connection with cometbft is not established.";
+    return false;
+  }
+  return makeJSONRPCCall(method, params, outResult);
+}
+
 bool CometImpl::start() {
   std::lock_guard<std::mutex> lock(this->stateMutex_);
   if (this->loopFuture_.valid()) {
@@ -351,7 +363,6 @@ bool CometImpl::stop() {
   this->loopFuture_.get(); // joins with the workerLoop thread and sets the future to invalid
   // The loopFuture (workerLoop) is responsible for calling cleanup(), irrespective of
   // the ending state (FINSIHED vs TERMINATED).
-  //cleanup(); // Shut down everything (RPC, cometbft, ABCI server) & reset state vars
   resetError(); // stop() clears any error status
   setState(CometState::STOPPED);
   return true;
@@ -377,9 +388,16 @@ void CometImpl::setError(const std::string& errorStr) {
   this->status_ = false;
 }
 
+void CometImpl::setErrorCode(CometError errorCode) {
+  LOGDEBUG("Comet ERROR raised (code): " + std::to_string(static_cast<int>(errorCode)));
+  this->errorCode_ = errorCode;
+  this->status_ = false;
+}
+
 void CometImpl::resetError() {
   this->status_ = true;
   this->errorStr_ = "";
+  this->errorCode_ = CometError::NONE;
 }
 
 void CometImpl::cleanup() {
@@ -418,32 +436,31 @@ void CometImpl::cleanup() {
   resetInfoLock.unlock();
 }
 
-void CometImpl::startCometBFT(const std::string& cometPath) {
-  if (!abciServer_) {
-    LOGFATALP_THROW("Cannot call startCometBFT() without having first started the ABCI app server.");
+/**
+ * Run the internally-tracked CometBFT instance if it is not already started.
+ * @param cometArgs Arguments to pass to cometbft.
+ * @param saveOutput If `true`, don't send stdout/stderr to the logfile and instead save to processStdout_ and processStderr_.
+ */
+void CometImpl::startCometBFT(const std::vector<std::string>& cometArgs, bool saveOutput) {
+  if (process_.has_value()) {
+    setErrorCode(CometError::FATAL);
+    throw DynamicException("Internal error: startCometBFT() called but there's already one process_ running.");
   }
+
+  this->processStdout_ = "";
+  this->processStderr_ = "";
+  this->processDone_ = false;
+
   // Search for the executable in the system's PATH
   boost::filesystem::path exec_path = boost::process::search_path("cometbft");
   if (exec_path.empty()) {
     // This is a non-recoverable error
     // The ABCI server will be stopped/collected during stop()
-    throw new DynamicException("cometbft executable not found in system PATH");
+    setErrorCode(CometError::FATAL);
+    throw DynamicException("cometbft executable not found in system PATH");
     return;
   }
 
-  // CometBFT arguments
-  //
-  // We are making it so that an abci.sock file within the root of the
-  //   CometBFT home directory ("cometPath" below) is the proxy_app
-  //   URL. That is, each home directory can only be used for one
-  //   running and communicating pair of BDK <-> CometBFT.
-  //
-  std::vector<std::string> cometArgs = {
-    "start",
-    "--abci=socket",
-    "--proxy_app=unix://" + abciServer_->getSocketPath(),
-    "--home=" + cometPath
-  };
   std::string argsString;
   for (const auto& arg : cometArgs) { argsString += arg + " "; }
   LOGDEBUG("Launching cometbft with arguments: " + argsString);
@@ -458,23 +475,34 @@ void CometImpl::startCometBFT(const std::string& cometPath) {
     boost::process::std_err > *bperr
   );
   std::string pidStr = std::to_string(process_->id());
-  LOGDEBUG("cometbft start launched with PID: " + pidStr);
+  LOGDEBUG("Launched cometbft with PID: " + pidStr);
 
   // Spawn two detached threads to pump stdout and stderr to bdk.log.
   // They should go away naturally when process_ is terminated.
-  std::thread stdout_thread([bpout, pidStr]() {
+  std::thread stdout_thread([saveOutput, bpout, pidStr, this]() {
     std::string line;
     while (*bpout && std::getline(*bpout, line) && !line.empty()) {
-      // REVIEW: may want to upgrade this to DEBUG
-      GLOGTRACE("[cometbft stdout]: " + line);
+      if (saveOutput) {
+        this->processStdout_ += line + '\n';
+      } else {
+        GLOGDEBUG("[cometbft stdout]: " + line);
+      }
     }
+    // remove trailing \n so that e.g. the node id from cometbft show-node-id is exactly processStdout_ without a need to trim it.
+    if (!this->processStdout_.empty()) { this->processStdout_.pop_back(); }
     GLOGDEBUG("cometbft stdout stream pump thread finished, cometbft pid = " + pidStr);
+    this->processDone_ = true; // if actually interested in reading processStderr_ you can just e.g. sleep(1s) first
   });
-  std::thread stderr_thread([bperr, pidStr]() {
+  std::thread stderr_thread([saveOutput, bperr, pidStr, this]() {
     std::string line;
     while (*bperr && std::getline(*bperr, line) && !line.empty()) {
-      GLOGDEBUG("[cometbft stderr]: " + line);
+      if (saveOutput) {
+        this->processStderr_ += line + '\n';
+      } else {
+        GLOGDEBUG("[cometbft stderr]: " + line);
+      }
     }
+    if (!this->processStderr_.empty()) { this->processStderr_.pop_back(); }
     GLOGDEBUG("cometbft stderr stream pump thread finished, cometbft pid = " + pidStr);
   });
   stdout_thread.detach();
@@ -482,7 +510,7 @@ void CometImpl::startCometBFT(const std::string& cometPath) {
 }
 
 void CometImpl::stopCometBFT() {
-  // process shutdown
+  // if we have a process_ running then we will send SIGTERM to it and if needed SIGKILL
   if (process_.has_value()) {
     LOGDEBUG("Terminating CometBFT process");
     // terminate the process
@@ -495,7 +523,6 @@ void CometImpl::stopCometBFT() {
     } catch (const std::exception& ex) {
       // This is bad, and if it actually happens, we need to be able to do something else here to ensure the process disappears
       //   because we don't want a process using the data directory and using the socket ports.
-      // TODO: is this the best we can do? (what about `cometbft debug kill`?)
       LOGWARNING("Failed to terminate process: " + std::string(ex.what()));
       // Fallback: Forcefully kill the process using kill -9
       try {
@@ -511,53 +538,9 @@ void CometImpl::stopCometBFT() {
         LOGERROR("Failed to execute kill -9: " + std::string(ex2.what()));
       }
     }
-    LOGXTRACE("Term end");
+    process_.reset(); // this signals that we are ready to call startCometBFT() again
+    LOGDEBUG("CometBFT process terminated");
   }
-  // we need to ensure we got rid of any process_ instance in any case so we can start another
-  process_.reset();
-  LOGDEBUG("CometBFT process terminated");
-}
-
-// One-shot run cometbft with the given cometArgs and block until it finishes, returning both
-//  the complete stdout and stderr streams as outparams and the exit_code as a return value.
-// This is to be used with e.g. "cometbft show-node-id" etc.
-// Once it knows the PID, it sets the pid outparam (so it can be killed if needed)
-int CometImpl::runCometBFT(const std::string& cometPath, std::vector<std::string> cometArgs, std::string &sout, std::string &serr, std::atomic<uint64_t>* pid) {
-  boost::filesystem::path exec_path = boost::process::search_path("cometbft");
-  if (exec_path.empty()) {
-    throw new DynamicException("cometbft executable not found in system PATH");
-    return -1; // FIXME
-  }
-  auto bpout = std::make_shared<boost::process::ipstream>();
-  auto bperr = std::make_shared<boost::process::ipstream>();
-  // using a local "process" variable here since this is an one-shot run:
-  boost::process::child process(
-      exec_path,
-      boost::process::args(cometArgs),
-      boost::process::std_out > *bpout,
-      boost::process::std_err > *bperr
-  );
-  // Set the PID as soon as the process is created
-  if (pid) {
-    *pid = process.id();
-  }
-  // these threads will pump the output streams while we wait (blocking) for cometbft to finish
-  // when the process terminates, they stop looping
-  std::thread stdout_thread([bpout, &sout]() {
-    std::string line;
-    if (std::getline(*bpout, line)) { sout += line; }
-    while (std::getline(*bpout, line)) { sout += '\n' + line; }
-  });
-  std::thread stderr_thread([bperr, &serr]() {
-    std::string line;
-    if (std::getline(*bperr, line)) { serr += line; }
-    while (std::getline(*bperr, line)) { serr += '\n' + line; }
-  });
-  process.wait(); // blocking wait until the cometbft execution completes
-  if (stdout_thread.joinable()) { stdout_thread.join(); }
-  if (stderr_thread.joinable()) { stderr_thread.join(); }
-  int exit_code = process.exit_code();
-  return exit_code;
 }
 
 void CometImpl::workerLoop() {
@@ -691,18 +674,21 @@ void CometImpl::workerLoopInner() {
       // Cannot proceed with an empty comet genesis spec on options.json.
       // E.g.: individual testcases or the test harness must fill in a valid
       //   cometBFT genesis config.
+      setErrorCode(CometError::CONFIG);
       throw DynamicException("Configuration option cometBFT::genesis is empty.");
     } else {
       LOGINFO("CometBFT::genesis config found: " + genesisJSON.dump());
     }
 
     if (!hasP2PPort) {
+      setErrorCode(CometError::CONFIG);
       throw DynamicException("Configuration option cometBFT:: p2p_port is empty.");
     } else {
       LOGINFO("CometBFT::p2p_port config found: " + p2pPortJSON.get<std::string>());
     }
 
     if (!hasRPCPort) {
+      setErrorCode(CometError::CONFIG);
       throw DynamicException("Configuration option cometBFT:: rpc_port is empty.");
     } else {
       LOGINFO("CometBFT::rpc_port config found: " + rpcPortJSON.get<std::string>());
@@ -730,16 +716,15 @@ void CometImpl::workerLoopInner() {
 
     // If rootPath does not exist for some reason, quit.
     if (!std::filesystem::exists(rootPath)) {
+      setErrorCode(CometError::FATAL);
       throw DynamicException("Root path not found: " + rootPath);
     }
 
     // --------------------------------------------------------------------------------------
     // If comet home directory does not exist inside rootPath, then create it via
-    //   cometbft init. It will be created with all required options with standard values,
-    //   which is what we want.
+    //   cometbft init. It will be created with all required options with standard values.
 
     if (!std::filesystem::exists(cometPath)) {
-
       LOGDEBUG("Comet worker: creating comet directory");
 
       // run cometbft init cometPath to create the cometbft directory with default configs
@@ -747,12 +732,14 @@ void CometImpl::workerLoopInner() {
 
       // check it exists now, otherwise halt node
       if (!std::filesystem::exists(cometPath)) {
+        setErrorCode(CometError::FATAL);
         throw DynamicException("Could not create cometbft home directory");
       }
     }
 
     if (!std::filesystem::exists(cometConfigPath)) {
       // comet/config/ does not exist for some reason, which means the comet/ directory is broken
+      setErrorCode(CometError::DATA);
       throw DynamicException("CometBFT home directory is broken: it doesn't have a config/ subdirectory");
     }
 
@@ -770,6 +757,7 @@ void CometImpl::workerLoopInner() {
         outputFile << nodeKeyJSON.dump(4);
         outputFile.close();
       } else {
+        setErrorCode(CometError::FATAL);
         throw DynamicException("Cannot open comet nodeKey file for writing: " + cometConfigNodeKeyPath);
       }
     }
@@ -782,6 +770,7 @@ void CometImpl::workerLoopInner() {
         outputFile << privValidatorKeyJSON.dump(4);
         outputFile.close();
       } else {
+        setErrorCode(CometError::FATAL);
         throw DynamicException("Cannot open comet privValidatorKey file for writing: " + cometConfigPrivValidatorKeyPath);
       }
     }
@@ -795,12 +784,14 @@ void CometImpl::workerLoopInner() {
         outputFile << genesisJSON.dump(4);
         outputFile.close();
       } else {
+        setErrorCode(CometError::FATAL);
         throw DynamicException("Cannot open comet genesis file for writing: " + cometConfigGenesisPath);
       }
     }
 
     // Sanity check the existence of the config.toml file
     if (!std::filesystem::exists(cometConfigTomlPath)) {
+      setErrorCode(CometError::DATA);
       throw DynamicException("Comet config.toml file does not exist: " + cometConfigTomlPath);
     }
 
@@ -809,6 +800,7 @@ void CometImpl::workerLoopInner() {
     try {
       configToml = toml::parse_file(cometConfigTomlPath);
     } catch (const toml::parse_error& err) {
+      setErrorCode(CometError::DATA);
       throw DynamicException("Error parsing TOML file: " + std::string(err.description()));
     }
 
@@ -860,14 +852,17 @@ void CometImpl::workerLoopInner() {
     // Overwrite updated config.toml
     std::ofstream configTomlOutFile(cometConfigTomlPath);
     if (!configTomlOutFile.is_open()) {
+      setErrorCode(CometError::FATAL);
       throw DynamicException("Could not open file for writing: " + cometConfigTomlPath);
     }
     configTomlOutFile << configToml;
     if (configTomlOutFile.fail()) {
+      setErrorCode(CometError::FATAL);
       throw DynamicException("Could not write file: " + cometConfigTomlPath);
     }
     configTomlOutFile.close();
     if (configTomlOutFile.fail()) {
+      setErrorCode(CometError::FATAL);
       throw DynamicException("Failed to close file properly: " + cometConfigTomlPath);
     }
 
@@ -882,82 +877,60 @@ void CometImpl::workerLoopInner() {
     if (stop_) break;
 
     // --------------------------------------------------------------------------------------
-    // Run cometbft inspect and check that everything is as expected here (validator key,
-    ///   state, ...). If anything is wrong that is fixable in a non-forceful fashion,
-    //    then fix it that way and re-check, otherwise "fix it" by rm -rf the
-    //    rootPath + /comet/  directory entirely and continue; this loop.
+    // Run cometbft inspect and check that everything is as expected.
     // TODO: ensure cometbft is terminated if we are killed (prctl()?)
 
     setState(CometState::INSPECTING_COMET);
 
-    // If there's a need to run cometbft inspect first, do it here.
-    //
-    // As we map out all the usual error conditions, we'll add more code here to catch them
-    //  and recover from them. By default, recovery can be done by just wiping off the comet/
-    //  directory and starting the node from scratch. Eventually, this fallback case can be
-    //  augmented with e.g. using a local snapshots directory to speed up syncing.
-
     // Run cometbft show-node-id to figure out what the node ID is
+    LOGDEBUG("Fetching own cometbft node-id...");
     try {
-      std::string sout, serr;
-      int exitCode = runCometBFT(cometPath, { "show-node-id", "--home=" + cometPath }, sout, serr);
-      if (exitCode != 0) {
-        LOGERROR("ERROR: Error while attempting to fetch the cometbft node id. Exit code: " + std::to_string(exitCode) + "; stdout: " + sout + "; stderr: " + serr);
-        // Continue without knowing the node ID
-        // TODO: review this; this probably needs to be a setError and "continue;" to retry
-      } else {
-        // TODO: here we want to assert that the node ID we got is a proper hex string of the correct size
-        LOGDEBUG("Got comet node ID: [" + sout + "]");
-        std::scoped_lock(this->nodeIdMutex_);
-        this->nodeId_ = sout;
-      }
+      std::vector<std::string> cometArgs = {
+        "show-node-id",
+        "--home=" + cometPath
+      };
+      startCometBFT(cometArgs, true);
     } catch (const std::exception& ex) {
-      // TODO: maybe we should attempt a restart in this case, with a retry counter?
-      throw new DynamicException("Exception caught when trying to run cometbft start: " + std::string(ex.what()));
-      return; // FIXME
+      setErrorCode(CometError::RUN);
+      throw DynamicException("Exception caught when trying to run cometbft show-node-id: " + std::string(ex.what()));
     }
 
-    // Here we need to inspect the current state of the cometbft node.
-    // TODO: inspect validator set and other parameters as well
-
-    // start cometbft inspect
-    std::atomic<uint64_t> inspectPid(0);
-    bool inspectFailed = false;
-    std::atomic<bool> inspectKilled = false;
-    std::atomic<bool> gotInspectInfo = false;
-    std::string inspectHeaderResult;
-
-    auto runCometFunc = [&]() {
-      std::string sout, serr;
-      try {
-        int exitCode = runCometBFT(cometPath, { "inspect", "--home=" + cometPath }, sout, serr, &inspectPid);
-        if (inspectKilled) {
-          LOGTRACE("cometbft inspect was killed (this is expected)");
-          return;
-        }
-        if (exitCode != 0) {
-          LOGERROR("ERROR: Error while attempting to run cometbft inspect. Exit code: " + std::to_string(exitCode) + "; stdout: " + sout + "; stderr: " + serr);
-        }
-        inspectFailed = (exitCode != 0);
-      } catch (const std::exception& ex) {
-        LOGERROR("Exception caught when trying to run cometbft inspect: " + std::string(ex.what()));
-        inspectFailed = true;
-      }
-    };
-
-    std::thread cometThread(runCometFunc);
-
-    while (!inspectFailed && inspectPid == 0) {
+    // Loop until process exits or we time out here
+    int inspectTries = 50; //5s
+    while (!processDone_ && --inspectTries > 0) {
       std::this_thread::sleep_for(std::chrono::milliseconds(100));
     }
+    if (!processDone_) {
+      setErrorCode(CometError::RUN_TIMEOUT);
+      throw DynamicException("Timed out while waiting for run cometbft show-node-id.");
+    }
 
-    if (inspectFailed) {
-      if (cometThread.joinable()) {
-        cometThread.join();
-      }
-      // TODO: retry instead?
-      throw new DynamicException("Failed to run cometbft inspect, can't know the current cometbft state");
-      return; // FIXME
+    stopCometBFT();
+
+    if (processStdout_.size() != 40) {
+      setErrorCode(CometError::FAIL);
+      throw DynamicException("Got a cometbft node-id of unexpected size (!= 40 hex chars): [" + processStdout_ + "]");
+    }
+
+    LOGDEBUG("Got comet node ID: [" + processStdout_ + "]");
+    std::unique_lock<std::mutex> lock(this->nodeIdMutex_);
+    this->nodeId_ = processStdout_;
+    this->nodeIdMutex_.unlock();
+
+    // Here we need to inspect the current state of the cometbft node.
+    // Any error thrown will close the running cometbft inspect since it's tracked by process_, just like
+    //   cometbft start (regular node) is.
+
+    // start cometbft inspect
+    try {
+      std::vector<std::string> cometArgs = {
+        "inspect",
+        "--home=" + cometPath
+      };
+      startCometBFT(cometArgs, true);
+    } catch (const std::exception& ex) {
+      setErrorCode(CometError::RUN);
+      throw DynamicException("Exception caught when trying to run cometbft inspect: " + std::string(ex.what()));
     }
 
     // start RPC connection
@@ -972,119 +945,53 @@ void CometImpl::workerLoopInner() {
       LOGDEBUG("Retrying RPC connection (inspect): " + std::to_string(inspectRpcTries));
     }
 
-    if (inspectRpcSuccess) {
-
-      // Retrieve the latest header
-      gotInspectInfo = makeJSONRPCCall("header", json::object(), inspectHeaderResult);
-      if (gotInspectInfo) {
-        LOGDEBUG("cometbft inspect RPC header call returned OK: "+ inspectHeaderResult);
-      }// else {
-      //  LOGERROR("ERROR: cometbft inspect RPC header call failed: " + inspectHeaderResult);
-      // }
-
-      // Stop the RPC connection with cometbft inspect
-      stopRPCConnection();
-    } //else {
-      //LOGERROR("Can't connect to the cometbft RPC port (inspect).");
-    //}
-
-    // FIXME/TODO: create member variables to track an ancillary cometbft process
-    //             and then kill it during cleanup() instead of here if necessary
-    //             (e.g. on TERMINATED/setError) which is far less error-prone
-    //
-    // unconditionally, we need to make sure cometbft inspect is terminated
-    //
-    try {
-      std::string killCommand = "kill -9 " + std::to_string(inspectPid);
-      LOGINFO("Attempting to force kill process with PID " + std::to_string(inspectPid) + " using kill -9");
-      inspectKilled = true; // when it errors out, ignore it
-      int result = std::system(killCommand.c_str());
-      if (result == 0) {
-        LOGINFO("Successfully killed process with PID " + std::to_string(inspectPid) + " using kill -9");
-      } else {
-        // This is bad
-        LOGFATAL_THROW("Failed to kill cometbft inspect process with PID " + std::to_string(inspectPid) + " using kill -9. Error code: " + std::to_string(result));
-        return; // FIXME
-      }
-    } catch (const std::exception& ex2) {
-      LOGFATAL_THROW("Failed to execute kill -9: " + std::string(ex2.what()));
-    }
-
-    if (cometThread.joinable()) {
-      cometThread.join();
-    }
-
-    // Handle failures after we are sure cometbft inspect is terminated
     if (!inspectRpcSuccess) {
-      // REVIEW: Do we really want to continue/retry here?
-      //         For one Comet::start(), we can have a retry count (relaunch and do over, e.g. once (1)) and when
-      //         the retry count is exhausted, we use the data recovery dir if it exists, and if
-      //         that one fails two times, then we stop Comet with setError.
-      //         All this behavior should be controlled via the Comet class interface (options/properties).
-      //LOGERROR("Will stop cometbft, relaunch cometbft and reconnect (inspect RPC failure).");
-      //continue;
-      throw new DynamicException("Can't connect to the cometbft RPC port (inspect).");
-    }
-    if (!gotInspectInfo) {
-      // REVIEW: Do we really want to continue/retry here?
-      //LOGERROR("Will stop cometbft, relaunch cometbft and reconnect (inspect RPC call failed).");
-      //continue;
-      throw new DynamicException("ERROR: cometbft inspect RPC header call failed: " + inspectHeaderResult);
+      setErrorCode(CometError::RPC_TIMEOUT);
+      throw DynamicException("Can't connect to the cometbft RPC port (inspect).");
     }
 
-    // We got an inspect latest header response.
+    std::string inspectHeaderResult;
+    if (!makeJSONRPCCall("header", json::object(), inspectHeaderResult)) {
+      setErrorCode(CometError::RPC_CALL_FAILED);
+      throw DynamicException("ERROR: cometbft inspect RPC header call failed: " + inspectHeaderResult);
+    }
+
+    LOGDEBUG("cometbft inspect RPC header call returned OK: "+ inspectHeaderResult);
+
+    // We got an inspect latest header response; parse it to figure out
+    //  lastCometBFTBlockHeight_ and lastCometBFTAppHash_.
+    json insRes;
     try {
-      bool validResponse = true;
-      std::string parseError;
-
-      // Parse the JSON result
-      json response = json::parse(inspectHeaderResult);
-
-      // Validate response structure
-      if (!response.is_object() || !response.contains("result") || !response["result"].is_object()) {
-        validResponse = false;
-        parseError = "Invalid or missing 'result' in cometbft inspect header response.";
-      }
-
-      const auto& result = validResponse ? response["result"] : json::object();
-
-      // Validate header structure
-      if (validResponse && (!result.contains("header"))) {
-        validResponse = false;
-        parseError = "Invalid or missing 'header' in cometbft inspect header response.";
-      }
-
-      const auto& header = validResponse ? result["header"] : json::object();
-
-      if (validResponse && header.is_null()) {
-        // Header is null, which is valid and indicates an empty block store
-        LOGDEBUG("Header is null; block store is empty. Last Block Height = 0, Last App Hash = \"\"");
-      } else {
-        // Validate required fields
-        if (validResponse && (!header.contains("height") || !header["height"].is_string())) {
-          validResponse = false;
-          parseError = "Missing or invalid 'height' in header.";
-        }
-        if (validResponse && (!header.contains("app_hash") || !header["app_hash"].is_string())) {
-          validResponse = false;
-          parseError = "Missing or invalid 'app_hash' in header.";
-        }
-        if (validResponse) {
-          // Assign values
-          lastCometBFTBlockHeight_ = header["height"].get<std::string>().empty() ? 0 : std::stoull(header["height"].get<std::string>());
-          lastCometBFTAppHash_ = header["app_hash"].get<std::string>();
-          LOGDEBUG("Parsed header successfully: Last Block Height = " + std::to_string(lastCometBFTBlockHeight_) + ", Last App Hash = " + lastCometBFTAppHash_);
-        }
-      }
-      if (!validResponse) {
-        LOGERROR("Error parsing cometbft inspect header response: " + parseError);
-        LOGERROR("Will stop cometbft, relaunch cometbft, and reconnect.");
-        continue;
-      }
+      insRes = json::parse(inspectHeaderResult);
     } catch (const std::exception& e) {
-      LOGERROR(std::string("Exception occurred while parsing cometbft inspect header response: ") + e.what());
-      LOGERROR("Will stop cometbft, relaunch cometbft, and reconnect.");
-      continue;
+      setErrorCode(CometError::RPC_BAD_RESPONSE);
+      throw DynamicException("Exception occurred while parsing cometbft inspect header response: " + std::string(e.what()));
+    }
+    if (!insRes.is_object() || !insRes.contains("result") || !insRes["result"].is_object()) {
+      setErrorCode(CometError::RPC_BAD_RESPONSE);
+      throw DynamicException("Invalid or missing 'result' in cometbft inspect header response.");
+    }
+    if (!insRes["result"].contains("header")) {
+      setErrorCode(CometError::RPC_BAD_RESPONSE);
+      throw DynamicException("Invalid or missing 'header' in cometbft inspect header response.");
+    }
+    const auto& header = insRes["result"]["header"];
+    if (header.is_null()) {
+      // Header is null, which is valid and indicates an empty block store
+      LOGDEBUG("Header is null; block store is empty.");
+    } else {
+      if ((!header.contains("height") || !header["height"].is_string())) {
+        setErrorCode(CometError::RPC_BAD_RESPONSE);
+        throw DynamicException("Missing or invalid 'height' in header.");
+      }
+      if ((!header.contains("app_hash") || !header["app_hash"].is_string())) {
+        setErrorCode(CometError::RPC_BAD_RESPONSE);
+        throw DynamicException("Missing or invalid 'app_hash' in header.");
+      }
+      // Got a non-empty header response, so we are past genesis in the cometbft store
+      lastCometBFTBlockHeight_ = header["height"].get<std::string>().empty() ? 0 : std::stoull(header["height"].get<std::string>());
+      lastCometBFTAppHash_ = header["app_hash"].get<std::string>();
+      LOGDEBUG("Parsed header successfully: Last Block Height = " + std::to_string(lastCometBFTBlockHeight_) + ", Last App Hash = " + lastCometBFTAppHash_);
     }
 
     // Notify the application of the height that CometBFT has in its block store.
@@ -1092,7 +999,17 @@ void CometImpl::workerLoopInner() {
     listener_->currentCometBFTHeight(lastCometBFTBlockHeight_);
 
     // --------------------------------------------------------------------------------------
+    // Intermediary hold state that the app can setPauseState() at and then use the RPC
+    //  call method to check anything it wants.
+
+    setState(CometState::INSPECT_RUNNING);
+
+    // --------------------------------------------------------------------------------------
     // Finished inspect step.
+
+    stopRPCConnection();
+
+    stopCometBFT();
 
     setState(CometState::INSPECTED_COMET);
 
@@ -1101,7 +1018,7 @@ void CometImpl::workerLoopInner() {
     if (stop_) break;
 
     // --------------------------------------------------------------------------------------
-    // Start our cometbft application gRPC server; make sure it is started.
+    // Start our cometbft application's ABCI socket server; make sure it is started.
 
     setState(CometState::STARTING_ABCI);
 
@@ -1109,29 +1026,13 @@ void CometImpl::workerLoopInner() {
     abciServer_ = std::make_unique<ABCIServer>(this, cometUNIXSocketPath);
     abciServer_->start();
 
-    // the right thing would be to connect to ourselves here and test the connection before firing up
-    //   the external engine, but a massive enough sleep here (like 1 second) should do the job.
-    //   If 1s is not enough, make it e.g. 3s then. or use the GRPC async API which is significantly
-    //   more complex.
-    // All we are waiting here is for the other thread to be in scheduling to be able to get into Wait()
-    //   and do a blocking read on a TCP listen socket that is already opened (or instantly fail on some
-    //   read or create error), which is almost zero work.
-    // Unless the machine's CPU is completely overloaded, a massive sleep should be able to get that
-    //   scheduled in and executed.
+    // the ABCI server listen socket will probably be up and running after this sleep.
     std::this_thread::sleep_for(std::chrono::seconds(1));
 
-    // if it is not running by now then it is probably because starting the GRPC server failed.
+    // if it is not running by now then it is probably because starting the ABCI server failed.
     if (!abciServer_->running()) {
-      LOGERROR("Comet failed: ABCI server failed to start");
-
-      // Retry
-      //
-      // TODO: So, the main idea of this loop we are in is that we will continously try and retry
-      //       to set up comet. But every time we do a continue; we need to make sure that makes
-      //       sense, i.e. there is a chance it will work next time; log it, maybe introduce a
-      //       delay, etc. OR fail permanently with an error message.
-      //
-      continue;
+      setErrorCode(CometError::ABCI_SERVER_FAILED);
+      throw DynamicException("Comet failed: ABCI server failed to start");
     }
 
     setState(CometState::STARTED_ABCI);
@@ -1141,32 +1042,36 @@ void CometImpl::workerLoopInner() {
     if (stop_) break;
 
     // --------------------------------------------------------------------------------------
-    // Run cometbft start, passing the socket address of our gRPC server as a parameter.
+    // Run cometbft start, passing the socket address of our ABCI server as a parameter.
     // TODO: ensure cometbft is terminated if we are killed (prctl()?)
-    //
-    // NOTE: cannot simply continue; if we know the process_ exists; we need to handle any
-    //       alive process_ in this loop iteration before a continue;
-    //       the only other place where we stop process_ is in stop().
 
     setState(CometState::STARTING_COMET);
 
     // run cometbft which will connect to our ABCI server
     try {
 
-      startCometBFT(cometPath);
+      // ABCI server needs to be up and running at this point, which we ensured above.
+
+      // CometBFT arguments
+      //
+      // We are making it so that an abci.sock file within the root of the
+      //   CometBFT home directory ("cometPath" below) is the proxy_app
+      //   URL. That is, each home directory can only be used for one
+      //   running and communicating pair of BDK <-> CometBFT.
+      //
+      std::vector<std::string> cometArgs = {
+        "start",
+        "--abci=socket",
+        "--proxy_app=unix://" + cometUNIXSocketPath,
+        "--home=" + cometPath
+      };
+
+      startCometBFT(cometArgs, false);
 
     } catch (const std::exception& ex) {
-      // TODO: maybe we should attempt a restart in this case, with a retry counter?
-      throw new DynamicException("Exception caught when trying to run cometbft start: " + std::string(ex.what()));
-      return; // FIXME
+      setErrorCode(CometError::RUN);
+      throw DynamicException("Exception caught when trying to run cometbft start: " + std::string(ex.what()));
     }
-
-    // TODO: check if this wait is actually useful/needed
-    //std::this_thread::sleep_for(std::chrono::seconds(1));
-
-    // If any immediate error trying to start cometbft, quit here
-    // TODO: must check this elsewhere as well?
-    if (!this->status_) return;
 
     setState(CometState::STARTED_COMET);
 
@@ -1181,37 +1086,23 @@ void CometImpl::workerLoopInner() {
     uint64_t testingStartTime = Utils::getCurrentTimeMillisSinceEpoch();
     while (!stop_) {
       std::this_thread::sleep_for(std::chrono::milliseconds(10));
-
       // Info is a reliable call; cometbft always calls it to figure out what
       //  is the last block height that we have so it will e.g. replay from there.
       if (this->infoCount_ > 0) {
         break;
       }
-
       // Time out in 10 seconds, should never happen
       uint64_t currentTime = Utils::getCurrentTimeMillisSinceEpoch();
       if (currentTime - testingStartTime >= 10000) {
-        // Timeout
-        // TODO: should warn and continue; instead?
-        //       failing to get an info callback seems it would be some kind of unrecoverable condition.
-        //       ideally, we would have a saved up data directory that we can use to replace the data
-        //       directory that we are using now, so we can remove the current one and start again with the
-        //       fresh one (unit tests can be run without the saved/recovery data dir, which would then
-        //       be the mode where we DON'T remove the data dir and retry.)
-        // TODO: also, shouldn't setError + return always ensure cometbft and the abci server are killed (not running)?
-        throw new DynamicException("Timed out while waiting for an Info call from cometbft");
-        return; // FIXME
+        setErrorCode(CometError::ABCI_TIMEOUT);
+        throw DynamicException("Timed out while waiting for an Info call from cometbft");
       }
     }
 
     // Check if quitting
     if (stop_) break;
 
-    // Test the RPC connection
-    // So, it turns out that in some kinds of failed-to-start node scenarios, the RPC port will not be available.
-    // As far as we know, some of these failure modes may be recoverable with a retry, so if we fail to connect
-    //   to the RPC port, then just restart the comet instance (retry the connection) instead of setting an error
-    //   condition.
+    // Start RPC connection
     LOGDEBUG("Will connect to cometbft RPC at port: " + std::to_string(rpcPort_));
     int rpcTries = 50; //5s
     bool rpcSuccess = false;
@@ -1228,41 +1119,30 @@ void CometImpl::workerLoopInner() {
     // Check if quitting
     if (stop_) break;
 
+    // So, it turns out that in some kinds of failed-to-start node scenarios, the RPC port will not be available.
+    // As far as we know, some of these failure modes may be recoverable with a retry.
+    // TODO: Notify the app with a specific error code so it can choose to retry.
     if (!rpcSuccess) {
-      LOGERROR("Can't connect to the cometbft RPC port.");
-      // REVIEW: Do we really want to continue/retry here?
-      //         For one Comet::start(), we can have a retry count (relaunch and do over, e.g. once (1)) and when
-      //         the retry count is exhausted, we use the data recovery dir if it exists, and if
-      //         that one fails two times, then we stop Comet with setError.
-      //         All this behavior should be controlled via the Comet class interface (options/properties).
-      LOGERROR("Will stop cometbft, relaunch cometbft and reconnect.");
-      continue;
+      setErrorCode(CometError::RPC_TIMEOUT);
+      throw DynamicException("Can't connect to the cometbft RPC port (RPC test).");
     }
 
+    // Test the RPC connection (and also check node health)
     // Make a sample RPC call using the persisted connection
-    std::string result;
-    bool success = makeJSONRPCCall("health", json::object(), result);
-    if (success) {
-      LOGDEBUG("cometbft RPC health call returned OK: "+ result);
-    } else {
-      LOGERROR("ERROR: cometbft RPC health call failed: " + result);
-      // REVIEW: Do we really want to continue/retry here?
-      LOGERROR("Will stop cometbft, relaunch cometbft and reconnect.");
-      continue;
+    std::string healthResult;
+    if (!makeJSONRPCCall("health", json::object(), healthResult)) {
+      setErrorCode(CometError::RPC_CALL_FAILED);
+      throw DynamicException("ERROR: cometbft RPC health call failed: " + healthResult);
     }
+    LOGDEBUG("cometbft RPC health call returned OK: " + healthResult);
 
     setState(CometState::TESTED_COMET);
 
     // --------------------------------------------------------------------------------------
     // Main loop.
     // If there are queued requests, send them to the comet process.
-    // Monitor cometbft integration health until node is shutting down.
-    // If something goes wrong, terminate cometbft and restart this worker
-    //   (i.e. continue; this outer loop) and it will reconnect/restart comet.
 
     setState(CometState::RUNNING);
-
-    bool relaunch = false;
 
     // NOTE: If this loop breaks for whatever reason without !stop being true, we will be
     //       in the TERMINATED state, which is there to catch bugs.
@@ -1270,18 +1150,14 @@ void CometImpl::workerLoopInner() {
 
       // The ABCI connection can die if e.g. cometbft errors out and decides to close it or if
       //   the cometbft process dies. In any case, the ABCI connection closing means this
-      //   run of the cometbft process is over and we either error out the Comet engine or
-      //   we transparently attempt to restart the backing cometbft process.
+      //   run of the cometbft process is over.
       if (!abciServer_->running()) {
-        LOGERROR("ABCIServer is not running (ABCI connection with cometbft has been closed.");
-        // REVIEW: Do we really want to continue/retry here?
-        LOGERROR("Will stop cometbft, relaunch cometbft and reconnect.");
-        relaunch = true;
-        break;
+        setErrorCode(CometError::ABCI_SERVER_FAILED);
+        throw DynamicException("ABCIServer is not running (ABCI connection with cometbft has been closed.");
       }
 
-      // FIXME/TODO: replace the cometbft rpc connection with the websocket version
-      // TODO: improve the RPC transaction pump to be asynchronous, which allows us to send
+      // TODO: replace the cometbft rpc connection with the websocket version
+      //       improve the RPC transaction pump to be asynchronous, which allows us to send
       //       multiple transactions at once and then wait for the responses. this is probably
       //       using the websocket version of the transaction pump.
       //       in the websocket version, once the tx is pulled from the main queue, it is
@@ -1292,99 +1168,112 @@ void CometImpl::workerLoopInner() {
       //       if it expires or errors out, it is just reinserted in the main queue.
       //       if it succeeds, it is just removed from the in-flight txsend map.
 
-      // pump all pending transactions to send first
+      // alternate between sendTransaction and checkTransaction jobs so one can't starve
+      // the other in the shared RPC connection.
       while (!stop_) {
+
+        // --------------------------------------------------------------------------------
+        // sendTransaction
+        // --------------------------------------------------------------------------------
 
         // lock the txOut_ queue to check its size
-        std::unique_lock<std::mutex> lock(txOutMutex_);
-        if (txOut_.empty()) {
-          lock.unlock();
-          break;
-        }
-        lock.unlock();
+        bool txOutEmpty;
+        std::unique_lock<std::mutex> stlock(txOutMutex_);
+        txOutEmpty = txOut_.empty();
+        stlock.unlock();
 
-        // fetching the element in front works outside of locking txOutMutex_
-        // since only this loop can remove the front element, and elements in
-        // general (other threads will only be pushing new elements to the back).
-        const auto& txOutItem = txOut_.front();
-        uint64_t txTicketId = std::get<0>(txOutItem);
-        const Bytes* tx = &std::get<1>(txOutItem);
+        if (!txOutEmpty) {
+          // fetching the element in front works outside of locking txOutMutex_
+          // since only this loop can remove the front element, and elements in
+          // general (other threads will only be pushing new elements to the back).
+          const auto& txOutItem = txOut_.front();
+          uint64_t txTicketId = std::get<0>(txOutItem);
+          const Bytes* tx = &std::get<1>(txOutItem);
 
-        std::string encodedTx = base64::encode_into<std::string>(tx->begin(), tx->end());
+          std::string encodedTx = base64::encode_into<std::string>(tx->begin(), tx->end());
 
-        LOGXTRACE("Sending tx via RPC, size: " + std::to_string(tx->size()));
+          LOGXTRACE("Sending tx via RPC, size: " + std::to_string(tx->size()));
 
-        json params = { {"tx", encodedTx} };
-        std::string result;
-        bool success = makeJSONRPCCall("broadcast_tx_async", params, result);
+          json stparams = { {"tx", encodedTx} };
+          std::string stresult;
+          bool stsuccess = makeJSONRPCCall("broadcast_tx_async", stparams, stresult);
 
-        // try to extract the SHA256 txhash computed by cometbft
-        std::string txHash = "";
-        try {
-          json response = json::parse(result);
-          if (response.contains("result") && response["result"].contains("hash")) {
-            txHash = response["result"]["hash"].get<std::string>();
+          // try to extract the SHA256 txhash computed by cometbft
+          std::string txHash = "";
+          try {
+            json response = json::parse(stresult);
+            if (response.contains("result") && response["result"].contains("hash")) {
+              txHash = response["result"]["hash"].get<std::string>();
+            }
+          } catch (const json::exception& e) {
+            // This just never happens
+            setErrorCode(CometError::FAIL);
+            throw DynamicException("Error parsing broadcast_tx_async JSON-RPC response: " + std::string(e.what()));
           }
-        } catch (const json::exception& e) {
+
+          // Give the transaction back to the application in any case
+          listener_->sendTransactionResult(*tx, txTicketId, stsuccess, txHash, stresult);
+
+          // Always remove the transaction from the send queue (if it failed, it will have to be resent)
+          std::unique_lock<std::mutex> stlockPop(txOutMutex_);
+          txOut_.pop_front();
+          stlockPop.unlock();
+
+          // If we got an RPC error, we might have bigger problems (e.g. cometbft died) so quit and re-check abciServer_ above.
+          if (!stsuccess) {
+            break;
+          }
         }
 
-        // Give the transaction back to the application in any case
-        listener_->sendTransactionResult(*tx, txTicketId, success, txHash, result);
+        // --------------------------------------------------------------------------------
+        // checkTransaction
+        // --------------------------------------------------------------------------------
 
-        // Always remove the transaction from the send queue (if it failed, it will have to be resent)
-        std::unique_lock<std::mutex> lockPop(txOutMutex_);
-        txOut_.pop_front();
-        lockPop.unlock();
+        bool txCheckEmpty;
+        std::unique_lock<std::mutex> ctlock(txCheckMutex_);
+        txCheckEmpty = txCheck_.empty();
+        ctlock.unlock();
 
-        // If we got an RPC error, we might have bigger problems (e.g. cometbft died) so quit and re-check abciServer_ above.
-        if (!success) {
-          break;
+        if (!txCheckEmpty) {
+          const std::string& txCheckHash = txCheck_.front();
+
+          LOGXTRACE("Checking txHash: " + txCheckHash);
+
+          // We need to convert the hex string of txCheckHash to bytes first
+          // Then we need to Base64-encode that because that is a requirement of the JSON-RPC POST interface of cometbft
+          Bytes hx = Hex::toBytes(txCheckHash);
+          std::string encodedHexBytes = base64::encode_into<std::string>(hx.begin(), hx.end());
+
+          json ctparams = { {"hash", encodedHexBytes} };
+          std::string ctresult;
+          bool ctsuccess = makeJSONRPCCall("tx", ctparams, ctresult);
+
+          // Sample response: {"jsonrpc":"2.0","id":6,"result":{"hash":"2A62F69DB37417A3EB7E72219BDE4D6ADCD1A9878527DA245D4CC30FD1F899AB",
+          // "height":"2","index":0,"tx_result":{"code":0,"data":null,"log":"","info":"","gas_wanted":"0","gas_used":"0","events":[],
+          // "codespace":""},"tx":"rd7e3t7e3t7e3........
+          //
+          // Apparently cometbft responds "not found" if you ask for a transaction hash that is pending / in the mempool. It only
+          // returns via /tx in a non-erroneous way if it was in fact included in a block.
+          //
+          // This call also returns the entire transaction body, which is inefficient if all you want is a confirmation that the
+          // transaction went through and the transaction is big.
+
+          listener_->checkTransactionResult(txCheckHash, ctsuccess, ctresult);
+
+          std::unique_lock<std::mutex> ctlockPop(txCheckMutex_);
+          txCheck_.pop_front();
+          ctlockPop.unlock();
+
+          if (!ctsuccess) {
+            break;
+          }
         }
-      }
 
-      // TODO: We should actually have an array of persisted RPC connections, not just one,
-      // so that e.g. sendTransaction can't starve checkTransaction.
-      //
-      // when we don't have any more transactions to send, do all transaction check requests
-      while (!stop_) {
+        // --------------------------------------------------------------------------------
+        // if no work, break the busy loop and sleep for a while
+        // --------------------------------------------------------------------------------
 
-        std::unique_lock<std::mutex> lock(txCheckMutex_);
-        if (txCheck_.empty()) {
-          lock.unlock();
-          break;
-        }
-        lock.unlock();
-
-        const std::string& txCheckHash = txCheck_.front();
-
-        LOGXTRACE("Checking txHash: " + txCheckHash);
-
-        // We need to convert the hex string of txCheckHash to bytes first
-        // Then we need to Base64-encode that because that is a requirement of the JSON-RPC POST interface of cometbft
-        Bytes hx = Hex::toBytes(txCheckHash);
-        std::string encodedHexBytes = base64::encode_into<std::string>(hx.begin(), hx.end());
-
-        json params = { {"hash", encodedHexBytes} };
-        std::string result;
-        bool success = makeJSONRPCCall("tx", params, result);
-
-        // Sample response: {"jsonrpc":"2.0","id":6,"result":{"hash":"2A62F69DB37417A3EB7E72219BDE4D6ADCD1A9878527DA245D4CC30FD1F899AB",
-        // "height":"2","index":0,"tx_result":{"code":0,"data":null,"log":"","info":"","gas_wanted":"0","gas_used":"0","events":[],
-        // "codespace":""},"tx":"rd7e3t7e3t7e3........
-        //
-        // Apparently cometbft responds "not found" if you ask for a transaction hash that is pending / in the mempool. It only
-        // returns via /tx in a non-erroneous way if it was in fact included in a block.
-        //
-        // This call also returns the entire transaction body, which is inefficient if all you want is a confirmation that the
-        // transaction went through and the transaction is big.
-
-        listener_->checkTransactionResult(txCheckHash, success, result);
-
-        std::unique_lock<std::mutex> lockPop(txCheckMutex_);
-        txCheck_.pop_front();
-        lockPop.unlock();
-
-        if (!success) {
+        if (txOutEmpty && txCheckEmpty) {
           break;
         }
       }
@@ -1392,11 +1281,6 @@ void CometImpl::workerLoopInner() {
       // wait a little bit before we poll the transaction queue and the stop flag again
       // TODO: optimize to condition variables later (when everything else is done)
       std::this_thread::sleep_for(std::chrono::milliseconds(20));
-    }
-
-    // If the running loop exits with the relaunch flag set, then continue to relaunch cometbft.
-    if (relaunch) {
-      continue;
     }
 
     // --------------------------------------------------------------------------------------
@@ -1409,16 +1293,9 @@ void CometImpl::workerLoopInner() {
     // Reaching here is a bug as stop_ *must* have been set to true.
     // This is useful to detect bugs in the RUNNING state loop above.
 
-    // throw sets it to terminated state at the catch
-    //setState(CometState::TERMINATED);
-
-    throw new DynamicException("Comet worker: exiting (loop end reached); this is an error!");
-    //setError("Reached TERMINATED state (should not be possible).");
-    return; // FIXME
+    setErrorCode(CometError::FATAL);
+    throw DynamicException("Comet worker: exiting (loop end reached); this is an error!");
   }
-
-  // This is set at the outer loop which is better
-  //setState(CometState::FINISHED);
 
   LOGDEBUG("Comet worker: exiting (quit loop)");
 }
@@ -1688,6 +1565,10 @@ const std::string& Comet::getErrorStr() {
   return impl_->getErrorStr();
 }
 
+CometError Comet::getErrorCode() {
+  return impl_->getErrorCode();
+}
+
 CometState Comet::getState() {
   return impl_->getState();
 }
@@ -1714,6 +1595,10 @@ uint64_t Comet::sendTransaction(const Bytes& tx) {
 
 void Comet::checkTransaction(const std::string& txHash) {
   impl_->checkTransaction(txHash);
+}
+
+bool Comet::rpcCall(const std::string& method, const json& params, std::string& outResult) {
+  return impl_->rpcCall(method, params, outResult);
 }
 
 bool Comet::start() {
