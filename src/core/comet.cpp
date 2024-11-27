@@ -71,7 +71,7 @@ class CometImpl : public Log::LogicalLocationProvider, public ABCIHandler {
     std::atomic<bool> stop_ = false; ///< Flag for stopping the consensus engine thread.
     std::atomic<bool> status_ = true; ///< Global status (true = OK, false = failed/terminated).
     std::string errorStr_; ///< Error message (if any).
-    CometError errorCode_; ///< Error code (CometError::NONE if no error).
+    CometError errorCode_ = CometError::NONE; ///< Error code (CometError::NONE if no error).
 
     std::atomic<CometState> state_ = CometState::STOPPED; ///< Current step the Comet instance is in.
     std::atomic<CometState> pauseState_ = CometState::NONE; ///< Step to pause/hold the comet instance at, if any.
@@ -385,6 +385,11 @@ void CometImpl::setState(const CometState& state) {
 void CometImpl::setError(const std::string& errorStr) {
   LOGDEBUG("Comet ERROR raised: " + errorStr);
   this->errorStr_ = errorStr;
+  // If we raise an error condition, with an error message, but the error code
+  // is still unset, then set the error to the generic CometError::ERROR value.
+  if (this->errorCode_ == CometError::NONE) {
+    this->errorCode_ = CometError::ERROR;
+  }
   this->status_ = false;
 }
 
@@ -411,11 +416,18 @@ void CometImpl::cleanup() {
   // Stop and destroy the ABCI net engine, if any
   if (abciServer_) {
     LOGTRACE("Waiting for abciServer_ networking to stop running (a side-effect of the cometbft process exiting.)");
-    // FIXME/TODO: implement a timeout here to not risk waiting forever
-    while (abciServer_->running()) {
+    // wait up to 4s for the ABCI connection to close from the cometbft end
+    // we don't actually need to wait at all for this, but it's arguably better if cometbft is gone
+    //   before we close the ABCI app server.
+    int waitRunningTries = 200;
+    while (abciServer_->running() && --waitRunningTries > 0) {
       std::this_thread::sleep_for(std::chrono::milliseconds(20));
     }
-    LOGTRACE("abciServer_ networking has stopped running, we can now stop the ABCI net engine.");
+    if (waitRunningTries) {
+      LOGTRACE("abciServer_ networking has stopped running, we can now stop the ABCI net engine.");
+    } else {
+      LOGDEBUG("WARNING: abciServer_ has not stopped running after waiting (cometbft might still be up); will stop the ABCI net engine regardless.");
+    }
     abciServer_->stop();
     LOGTRACE("abciServer_ networking engine stopped.");
     abciServer_.reset();
@@ -547,13 +559,10 @@ void CometImpl::workerLoop() {
   LOGDEBUG("Comet worker thread: started");
   // So basically we take every exception that can be thrown in the inner worker loop and if
   //   we catch one it means the Comet driver goes into TERMINATED state and we record the
-  //   error condition as a message.
-  //
-  // TODO: What we really want is to set an integer error code for known error conditions
-  //   and put these in an enum so the user can react appropriately depending on what kind
-  //   of error was encountered (e.g. retry, give up, ...)
-  //   So before throwing (or re-throwing) the exception a setErrorCode() should be called.
-  //
+  //   error condition as an error message.
+  // In case of error (exception), before explicitly throwing the exception a custom error
+  //   code should have already been set. If an explicit error code wasn't set, then the
+  //   setError() method will set one internally.
   // Both FINISHED and TERMINATED state transitions only trigger AFTER we have cleaned up
   // the state. Note that you *cannot* reenter Comet via Comet::stop() from that callback!
   try {
@@ -1121,7 +1130,6 @@ void CometImpl::workerLoopInner() {
 
     // So, it turns out that in some kinds of failed-to-start node scenarios, the RPC port will not be available.
     // As far as we know, some of these failure modes may be recoverable with a retry.
-    // TODO: Notify the app with a specific error code so it can choose to retry.
     if (!rpcSuccess) {
       setErrorCode(CometError::RPC_TIMEOUT);
       throw DynamicException("Can't connect to the cometbft RPC port (RPC test).");

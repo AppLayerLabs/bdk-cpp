@@ -40,17 +40,18 @@ enum class CometState {
 /// Comet error codes so that the application can decide to e.g. retry cometbft start or not
 enum class CometError {
   NONE               =  0, ///< No error
-  FATAL              =  1, ///< Generic fatal error
-  CONFIG             =  2, ///< cometbft config files/dirs error
-  DATA               =  3, ///< cometbft data directory has bad/corrupted/unexpected data
-  RUN                =  4, ///< Error trying to launch cometbft
-  RUN_TIMEOUT        =  5, ///< Timed out while waiting for a cometbft run to complete (e.g. cometbft show-node-id)
-  FAIL               =  6, ///< Unexpected failure that might be transient (if not, it may be cometbft data corruption)
-  RPC_TIMEOUT        =  7, ///< Timed out while trying to connect to the cometbft RPC port
-  RPC_CALL_FAILED    =  8, ///< JSON-RPC call returned an error (JSON-RPC or HTTP error)
-  RPC_BAD_RESPONSE   =  9, ///< cometbft RPC method response is invalid (parse error)
-  ABCI_SERVER_FAILED = 10, ///< ABCI server (socket connections) closed
-  ABCI_TIMEOUT       = 11  ///< Timed out while waiting for an expected ABCI callblack from cometbft
+  ERROR              =  1, ///< Generic error (when no explicit error code is set prior to an exception being thrown)
+  FATAL              =  2, ///< Generic fatal error
+  CONFIG             =  3, ///< cometbft config files/dirs error
+  DATA               =  4, ///< cometbft data directory has bad/corrupted/unexpected data
+  RUN                =  5, ///< Error trying to launch cometbft
+  RUN_TIMEOUT        =  6, ///< Timed out while waiting for a cometbft run to complete (e.g. cometbft show-node-id)
+  FAIL               =  7, ///< Unexpected failure that might be transient (if not, it may be cometbft data corruption)
+  RPC_TIMEOUT        =  8, ///< Timed out while trying to connect to the cometbft RPC port
+  RPC_CALL_FAILED    =  9, ///< JSON-RPC call returned an error (JSON-RPC or HTTP error)
+  RPC_BAD_RESPONSE   = 10, ///< cometbft RPC method response is invalid (parse error)
+  ABCI_SERVER_FAILED = 11, ///< ABCI server (socket connections) closed
+  ABCI_TIMEOUT       = 12  ///< Timed out while waiting for an expected ABCI callblack from cometbft
 };
 
 /**
@@ -354,7 +355,8 @@ class Comet : public Log::LogicalLocationProvider {
     bool start();
 
     /**
-     * Stop the consensus engine loop; sets the pause state to CometState::NONE.
+     * Stop the consensus engine loop; sets the pause state to CometState::NONE and clears out
+     * any error message or error code (so collect those before calling stop()).
      * @return `true` if stopped, `false` if it was already stopped (need to call start() first).
      */
     bool stop();
