@@ -11,7 +11,7 @@ See the LICENSE.txt file in the project root for more information.
 #include "../libs/toml.hpp"
 
 #include "../net/abci/abciserver.h"
-#include "../net/abci/abcihandler.h"   // ???
+#include "../net/abci/abcihandler.h"
 
 #include <boost/beast.hpp>
 #include <boost/asio.hpp>
@@ -19,13 +19,15 @@ See the LICENSE.txt file in the project root for more information.
 #include "../libs/base64.hpp"
 
 /*
-  NOTE: cometbft public key vs. address
+  NOTE: cometbft public key vs. cometbft address
 
-  Public Key types are hard-coded in the Comet driver.
+  There is only one public key type and it is hard-coded in the Comet driver.
+  The cometbft genesis.json file should have "tendermint/PubKeyEd25519" as the only public key type,
+  whose equivalent in ABCI parlance is the "ed25519" string below.
 
   Address
-  Address is a type alias of a slice of bytes. The address is calculated by hashing the public key using sha256 and
-  truncating it to only use the first 20 bytes of the slice.
+  Address is a type alias of a slice of bytes. The address is calculated by hashing the public key
+  using sha256 and truncating it to only use the first 20 bytes of the slice.
 
   const (
     TruncatedSize = 20
@@ -36,6 +38,7 @@ See the LICENSE.txt file in the project root for more information.
     return hash[:TruncatedSize]
   }
 */
+#define COMET_PUB_KEY_TYPE "ed25519"
 
 // ---------------------------------------------------------------------------------------
 // CometImpl class
@@ -995,6 +998,9 @@ void CometImpl::workerLoopInner() {
     this->nodeId_ = processStdout_;
     this->nodeIdMutex_.unlock();
 
+    // Check if quitting
+    if (stop_) break;
+
     // Here we need to inspect the current state of the cometbft node.
     // Any error thrown will close the running cometbft inspect since it's tracked by process_, just like
     //   cometbft start (regular node) is.
@@ -1022,6 +1028,9 @@ void CometImpl::workerLoopInner() {
       }
       LOGDEBUG("Retrying RPC connection (inspect): " + std::to_string(inspectRpcTries));
     }
+
+    // Check if quitting
+    if (stop_) break;
 
     if (!inspectRpcSuccess) {
       setErrorCode(CometError::RPC_TIMEOUT);
@@ -1072,6 +1081,9 @@ void CometImpl::workerLoopInner() {
       LOGDEBUG("Parsed header successfully: Last Block Height = " + std::to_string(lastCometBFTBlockHeight_) + ", Last App Hash = " + lastCometBFTAppHash_);
     }
 
+    // Check if quitting
+    if (stop_) break;
+
     // Notify the application of the height that CometBFT has in its block store.
     // If the application is ahead of this, it will need a strategy to cope with it.
     listener_->currentCometBFTHeight(lastCometBFTBlockHeight_);
@@ -1079,6 +1091,9 @@ void CometImpl::workerLoopInner() {
     // --------------------------------------------------------------------------------------
     // Intermediary hold state that the app can setPauseState() at and then use the RPC
     //  call method to check anything it wants.
+
+    // Check if quitting
+    if (stop_) break;
 
     setState(CometState::INSPECT_RUNNING);
 
@@ -1154,6 +1169,10 @@ void CometImpl::workerLoopInner() {
     setState(CometState::STARTED_COMET);
 
     // --------------------------------------------------------------------------------------
+    // Check if quitting
+    if (stop_) break;
+
+    // --------------------------------------------------------------------------------------
     // Test cometbft: check that the node has started successfully.
     // TODO: ensure cometbft is terminated if we are killed (prctl()?)
 
@@ -1214,6 +1233,10 @@ void CometImpl::workerLoopInner() {
     LOGDEBUG("cometbft RPC health call returned OK: " + healthResult);
 
     setState(CometState::TESTED_COMET);
+
+    // --------------------------------------------------------------------------------------
+    // Check if quitting
+    if (stop_) break;
 
     // --------------------------------------------------------------------------------------
     // Main loop.
@@ -1633,7 +1656,7 @@ void CometImpl::finalize_block(const cometbft::abci::v1::FinalizeBlockRequest& r
   for (const auto& validatorUpdate : validatorUpdates) {
     auto* update = res->add_validator_updates();
     update->set_power(validatorUpdate.power);
-    update->set_pub_key_type("ed25519"); //<-- string that appears by default in a cometbft init genesis file ("tendermint/PubKeyEd25519");
+    update->set_pub_key_type(COMET_PUB_KEY_TYPE);
     update->set_pub_key_bytes(toStringForProtobuf(validatorUpdate.publicKey));
   }
 
