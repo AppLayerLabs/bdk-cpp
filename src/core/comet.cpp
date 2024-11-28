@@ -85,7 +85,7 @@ class CometImpl : public Log::LogicalLocationProvider, public ABCIHandler {
 
     std::mutex txOutMutex_; ///< mutex to protect txOut_.
     uint64_t txOutTicketGen_ = 0; ///< ticket generator for sendTransaction().
-    std::deque<std::tuple<uint64_t, std::shared_ptr<Hash>, Bytes>> txOut_; ///< Queue of (ticket#,sha3,Tx) pending dispatch to the local cometbft node's mempool.
+    std::deque<std::tuple<uint64_t, std::optional<Hash>, Bytes>> txOut_; ///< Queue of (ticket#,sha3,Tx) pending dispatch to the local cometbft node's mempool.
 
     std::mutex txCheckMutex_; ///< mutex to protect txCheck_.
     std::deque<std::string> txCheck_; ///< Queue of txHash (SHA256/cometbft) pending check via a call to /tx to the cometbft RPC port.
@@ -360,7 +360,7 @@ uint64_t CometImpl::sendTransaction(const Bytes& tx, std::shared_ptr<Hash>* ethH
   // Add the transaction to the send-to-cometbft-via-RPC queue
   std::lock_guard<std::mutex> lock(txOutMutex_);
   ++txOutTicketGen_; // Valid generated ticket is never 0.
-  txOut_.emplace_back(txOutTicketGen_, ethHash ? ethHash->get() : nullptr, tx);
+  txOut_.emplace_back(txOutTicketGen_, ethHash ? *(*ethHash) : std::optional<Hash>{}, tx);
   return txOutTicketGen_;
 }
 
@@ -1265,7 +1265,7 @@ void CometImpl::workerLoopInner() {
           // general (other threads will only be pushing new elements to the back).
           const auto& txOutItem = txOut_.front();
           uint64_t txTicketId = std::get<0>(txOutItem);
-          const std::shared_ptr<Hash>& txEthHash = std::get<1>(txOutItem);
+          const std::optional<Hash>& txEthHash = std::get<1>(txOutItem);
           const Bytes* tx = &std::get<2>(txOutItem);
 
           std::string encodedTx = base64::encode_into<std::string>(tx->begin(), tx->end());
@@ -1281,7 +1281,8 @@ void CometImpl::workerLoopInner() {
               auto& bucket = txCache_[(txCacheBucket_ + i) % 2];
               auto it = bucket.find(*txEthHash);
               if (it != bucket.end()) {
-                it->second.height = CometTxStatusHeight::SUBMITTING;
+                CometTxStatus& txStatus = it->second;
+                txStatus.height = CometTxStatusHeight::SUBMITTING;
                 break;
               }
             }
@@ -1313,7 +1314,14 @@ void CometImpl::workerLoopInner() {
               auto& bucket = txCache_[(txCacheBucket_ + i) % 2];
               auto it = bucket.find(*txEthHash);
               if (it != bucket.end()) {
-                it->second.height = stsuccess ? CometTxStatusHeight::SUBMITTED : CometTxStatusHeight::REJECTED;
+                CometTxStatus& txStatus = it->second;
+                if (stsuccess) {
+                  txStatus.height = CometTxStatusHeight::SUBMITTED;
+                  txStatus.cometTxHash = txHash;
+                } else {
+                  // cometTxHash is not returned in the RPC response in case of error
+                  txStatus.height = CometTxStatusHeight::REJECTED;
+                }
                 break;
               }
             }
@@ -1592,8 +1600,8 @@ void CometImpl::finalize_block(const cometbft::abci::v1::FinalizeBlockRequest& r
     CometExecTxResult& txRes = txResults[i];
     tx_result->set_code(txRes.code);
     tx_result->set_data(toStringForProtobuf(txRes.data));
-    tx_result->set_gas_wanted(txRes.gas_wanted);
-    tx_result->set_gas_used(txRes.gas_used);
+    tx_result->set_gas_wanted(txRes.gasWanted);
+    tx_result->set_gas_used(txRes.gasUsed);
 
     // If the transaction cache is enabled, we can fill in the result of each transaction
     // as their execution and inclusion in a block is definitive.

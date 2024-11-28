@@ -455,7 +455,7 @@ Options getOptionsForCometTest(
 }
 
 // Binary hash deserialization helper (to hex string without "0x" prefix)
-std::string appHashToString(const Bytes& appHash) {
+std::string bytesToString(const Bytes& appHash) {
   return Hex::fromBytes(appHash, false).get();
 }
 
@@ -600,7 +600,7 @@ public:
   std::string getAppHashString() {
     std::string ret;
     if (enableAppHash_) {
-      ret = appHashToString(appHash_);
+      ret = bytesToString(appHash_);
     }
     return ret;
   }
@@ -1255,7 +1255,7 @@ namespace TComet {
       // Send transactions
       uint64_t succeedAssertTxId = comet.sendTransaction(TestMachine::toBytes("SIG 1 ? 0")); // m_ == 0 so this returndata is true
       uint64_t failAssertTxId = comet.sendTransaction(TestMachine::toBytes("SIG 2 ? 9876")); // m_ == 0 so this returndata is false
-      uint64_t revertTxId = comet.sendTransaction(TestMachine::toBytes("SIG 3 REVERT 1111")); // operand 1111 is ignored when REVERT op
+      uint64_t revertTxId = comet.sendTransaction(TestMachine::toBytes("SIG 3 REVERT 1111")); // operand (1111) is ignored when REVERT op
 
       // It's just simpler to wait for some large amount of time which guarantees that the transactions were included in a block
       std::this_thread::sleep_for(std::chrono::seconds(5));
@@ -1590,7 +1590,7 @@ namespace TComet {
         REQUIRE(futureMemoryUpdated.wait_for(std::chrono::seconds(10)) != std::future_status::timeout);
 
         // Log the appHash
-        GLOGDEBUG("TEST: AppHash is now: " + appHashToString(cometListener.appHash_));
+        GLOGDEBUG("TEST: AppHash is now: " + bytesToString(cometListener.appHash_));
 
         // Ensure the block and transaction had the intended effect on the machine
         GLOGDEBUG("TEST: Checking m_ == " + std::to_string(expectedMachineMemoryValue));
@@ -1715,7 +1715,7 @@ namespace TComet {
       uint64_t comet1StartHeight = cometListener0.h_;
       uint64_t comet1StartMachineMemoryValue = cometListener0.m_;
       Bytes comet1StartAppHash = cometListener0.appHash_;
-      std::string comet1StartAppHashStr = appHashToString(comet1StartAppHash);
+      std::string comet1StartAppHashStr = bytesToString(comet1StartAppHash);
 
       GLOGDEBUG(
         "TEST: comet1StartHeight will be " + std::to_string(comet1StartHeight) +
@@ -1772,7 +1772,7 @@ namespace TComet {
       uint64_t comet1TargetHeight = cometListener0.h_;
       uint64_t comet1TargetMachineMemoryValue = cometListener0.m_;
       Bytes comet1TargetAppHash = cometListener0.appHash_;
-      std::string comet1TargetAppHashStr = appHashToString(comet1TargetAppHash);
+      std::string comet1TargetAppHashStr = bytesToString(comet1TargetAppHash);
       GLOGDEBUG(
         "TEST: comet1TargetHeight will be " + std::to_string(comet1TargetHeight) +
         ", comet1TargetMachineMemoryValue will be " + std::to_string(comet1TargetMachineMemoryValue) +
@@ -1988,6 +1988,117 @@ namespace TComet {
       GLOGDEBUG("TEST: Finished");
     }
 
-    // FIXME/TODO: Write txCache test
+    // Test the Comet::rpcCall feature
+    SECTION("CometRpcCallTest") {
+      std::string testDumpPath = createTestDumpPath("CometRpcCallTest");
+
+      GLOGDEBUG("TEST: Constructing Comet");
+
+      int p2p_port = SDKTestSuite::getTestPort();
+      int rpc_port = SDKTestSuite::getTestPort();
+      const Options options = getOptionsForCometTest(testDumpPath, "", p2p_port, rpc_port);
+
+      // Just use the dummy default listener
+      CometListener cometListener;
+      Comet comet(&cometListener, "", options);
+
+      // Set pause at inspect so we can use RPC calls on inspect
+      comet.setPauseState(CometState::INSPECT_RUNNING);
+      GLOGDEBUG("TEST: Starting comet...");
+      comet.start();
+      GLOGDEBUG("TEST: Waiting for cometbft inspect RPC to be up...");
+      REQUIRE(comet.waitPauseState(10000) == "");
+
+      // Make an RPC call
+      GLOGDEBUG("TEST: Making rpcCall()...");
+      std::string healthResult;
+      bool success = comet.rpcCall("header", json::object(), healthResult);
+      GLOGDEBUG("TEST: rpcCall() result: " + healthResult);
+      REQUIRE(success == true);
+      REQUIRE(healthResult.find("\"result\":{\"header\":null}") != std::string::npos); // expect null last header since empty chain
+
+      // Don't need to unpause, can just stop
+      GLOGDEBUG("TEST: Stopping...");
+      REQUIRE(comet.getStatus()); // no error reported (must check before stop())
+      comet.stop();
+      GLOGDEBUG("TEST: Stopped");
+      REQUIRE(comet.getState() == CometState::STOPPED);
+      GLOGDEBUG("TEST: Finished");
+    }
+
+    // Test the Comet::rpcCall feature
+    SECTION("CometTxCacheTest") {
+      std::string testDumpPath = createTestDumpPath("CometTxCacheTest");
+
+      GLOGDEBUG("TEST: Constructing Comet");
+
+      int p2p_port = SDKTestSuite::getTestPort();
+      int rpc_port = SDKTestSuite::getTestPort();
+      const Options options = getOptionsForCometTest(testDumpPath, "", p2p_port, rpc_port);
+
+      TestMachine cometListener(true);
+      Comet comet(&cometListener, "", options);
+
+      // Guarantee that txCache is enabled
+      comet.setTransactionCacheSize(1000000);
+
+      // Send the transaction before starting the chain, to "ensure" (not really, but, in
+      //  practice, yes) it will be included in the first block.
+      GLOGDEBUG("TEST: Sending a transaction...");
+
+      std::shared_ptr<Hash> ethHashPtr;
+      comet.sendTransaction(TestMachine::toBytes("SIG 1 REVERT 1111"), &ethHashPtr); // operand (1111) is ignored when REVERT op
+
+      REQUIRE(ethHashPtr.get() != nullptr);
+      Hash& ethHash = *ethHashPtr.get();
+
+      // Start Comet driver
+      GLOGDEBUG("TEST: Starting comet...");
+      comet.start();
+
+      // Wait at least until we reach the point "cometbft start" is going to be called
+      // to slightly reduce the CPU use of the test with the busy wait loop below.
+      comet.setPauseState(CometState::STARTING_COMET);
+      GLOGDEBUG("TEST: Waiting until we are ready to run 'cometbft start'...");
+      REQUIRE(comet.waitPauseState(10000) == "");
+      comet.setPauseState();
+
+      // Aggressively poll the cache in a busy loop
+      GLOGDEBUG("TEST: Querying txCache until transaction is included in a block...");
+      CometTxStatus txs;
+      auto futureFinalizeTx = std::async(std::launch::async, [&]() {
+        int64_t previousIndex = CometTxStatusHeight::NONE;
+        do {
+          comet.checkTransactionInCache(ethHash, txs);
+          if (txs.height != previousIndex) {
+            REQUIRE(txs.height > previousIndex); // as the tx status evolves, the height value always increases
+            REQUIRE(txs.height != CometTxStatusHeight::REJECTED); // cometbft broadcast_tx_async should not reject it
+            previousIndex = txs.height;
+            GLOGDEBUG(
+              "TEST: Transaction status: height: " + std::to_string(txs.height) +
+              " index: " + std::to_string(txs.index) +
+              " cometTxHash: " + txs.cometTxHash +
+              " code: " + std::to_string(txs.result.code) +
+              " data: " + bytesToString(txs.result.data) +
+              " gasWanted: " + std::to_string(txs.result.gasWanted) +
+              " gasUsed: " + std::to_string(txs.result.gasUsed)
+            );
+          }
+          // Do not sleep here; do a busy wait to try to catch and log every state transition.
+        } while (txs.height < 0);
+      });
+      REQUIRE(futureFinalizeTx.wait_for(std::chrono::seconds(10)) != std::future_status::timeout);
+      REQUIRE(txs.height == 1); // should have been included in the first block unless your test machine is in serious trouble
+      REQUIRE(txs.index == 0); // first transaction in the block (since it is the only one)
+      REQUIRE(txs.result.code == 1); // the TestMachine "REVERT" op tx transaction should have a revert status
+
+      // Stop
+      GLOGDEBUG("TEST: Stopping...");
+      REQUIRE(comet.getStatus()); // no error reported (must check before stop())
+      comet.stop();
+      GLOGDEBUG("TEST: Stopped");
+      REQUIRE(comet.getState() == CometState::STOPPED);
+      GLOGDEBUG("TEST: Finished");
+    }
   }
 }
