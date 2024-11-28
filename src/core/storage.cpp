@@ -38,8 +38,8 @@ static void storeBlock(DB& db, const FinalizedBlock& block, bool indexingEnabled
 }
 
 Storage::Storage(std::string instanceIdStr, const Options& options)
-  : blocksDb_(options.getRootPath() + "/blocksDb/"),
-    eventsDb_(options.getRootPath() + "/eventsDb/"),
+  : blocksDb_(options.getRootPath() + "/blocksDb/"),  // Uncompressed
+    eventsDb_(options.getRootPath() + "/eventsDb/", true),  // Compressed
     options_(options), instanceIdStr_(std::move(instanceIdStr))
 {
   // Initialize the blockchain if latest block doesn't exist.

@@ -70,30 +70,22 @@ void DumpManager::dumpToDB() const {
   auto toDump = this->dumpState();
   const auto& [batches, blockHeight] = toDump;
   std::string dbName = options_.getRootPath() + "/stateDb/" + std::to_string(blockHeight);
-  DB stateDb(dbName);
-  for (const auto& batch : batches) {
-    stateDb.putBatch(batch);
-  }
+  DB stateDb(dbName, true); // Compressed
+  for (const auto& batch : batches) stateDb.putBatch(batch);
 }
 
-DumpWorker::DumpWorker(const Options& options,
-                       const Storage& storage,
-                       DumpManager& dumpManager)
-  : options_(options),
-    storage_(storage),
-    dumpManager_(dumpManager)
+DumpWorker::DumpWorker(const Options& options, const Storage& storage, DumpManager& dumpManager)
+  : options_(options), storage_(storage), dumpManager_(dumpManager)
 {
   LOGXTRACE("DumpWorker Started.");
 }
 
-DumpWorker::~DumpWorker()
-{
+DumpWorker::~DumpWorker() {
   stopWorker();
   LOGXTRACE("DumpWorker Stopped.");
 }
 
-bool DumpWorker::workerLoop()
-{
+bool DumpWorker::workerLoop() {
   uint64_t latestBlock = this->storage_.currentChainSize();
   while (!this->stopWorker_) {
     if (latestBlock + this->options_.getStateDumpTrigger() < this->storage_.currentChainSize()) {

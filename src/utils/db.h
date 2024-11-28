@@ -136,9 +136,10 @@ class DB {
     /**
      * Constructor. Automatically creates the database if it doesn't exist.
      * @param path The database's filesystem path (relative to the binary's current working directory).
+     * @param compress (optional) If `true`, activates compression on the database. Defaults to `false`.
      * @throw DynamicException if database opening fails.
      */
-    explicit DB(const std::filesystem::path& path);
+    explicit DB(const std::filesystem::path& path, bool compress = false);
 
     /// Destructor. Automatically closes the database so it doesn't leave a LOCK file behind.
     ~DB() { this->close(); delete this->db_; this->db_ = nullptr; }

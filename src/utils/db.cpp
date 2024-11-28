@@ -9,8 +9,9 @@ See the LICENSE.txt file in the project root for more information.
 
 #include "dynamicexception.h"
 
-DB::DB(const std::filesystem::path& path) {
-  this->opts_.create_if_missing = true;
+DB::DB(const std::filesystem::path& path, bool compress) {
+  this->opts_.create_if_missing = true; // Create database folder in disk if it doesn't exist
+  if (compress) this->opts_.compression = rocksdb::kLZ4Compression; // Activate LZ4 compression for database entries if requested
   if (!std::filesystem::exists(path)) { // Ensure the database path can actually be found
     std::filesystem::create_directories(path);
   }
