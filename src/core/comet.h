@@ -14,8 +14,6 @@ See the LICENSE.txt file in the project root for more information.
 #include <unordered_set>
 #include <vector>
 
-/// FIXME/TODO: Add CometError enum here + CometImpl::setErrorCode(CometError) + Comet::getErrorCode() + CometImpl::cometErrorCode_
-
 /// Comet driver states
 enum class CometState {
   STOPPED          =  0, ///< Comet is in stopped state (no worker thread started)
@@ -71,6 +69,31 @@ struct CometExecTxResult {
 struct CometValidatorUpdate {
   Bytes       publicKey; ///< Validator's public key bytes.
   int64_t     power; ///< Validator's new voting power value (0 to remove validator).
+};
+
+/**
+ * Special values for CometTxStatus::height that signal different reasons for a transaction to not be included in a block yet.
+ */
+enum CometTxStatusHeight : int64_t {
+  REJECTED   = -4, ///< Last we know about this transaction is that cometbft rejected it (won't add to mempool or send it etc).
+  QUEUED     = -3, ///< Transaction is queued internally in the Comet driver for sending via RPC to cometbft.
+  SUBMITTING = -2, ///< Sent the transaction to the cometbft RPC port.
+  SUBMITTED  = -1  ///< cometbft acknowledged and accepted it.
+};
+
+/**
+ * The current status of a transaction in the network.
+ * Instances of this struct will be indexed by the sha3 hash of the transaction in a hash table.
+ * If there isn't a CometTxStatus entry in the hash table at all, it means the Comet driver has no idea about it,
+ * but that doesn't mean the network doesn't know about it (there's an unconfirmed-transactions method in the
+ * cometbft RPC server that can be queried to figure it out, but you'll need cometbft transaction hashes, i.e.
+ * SHA256 to locate it).
+ */
+struct CometTxStatus {
+  int64_t           height; ///< Height of the block in which this transaction was included (< 0 if not included in any block).
+  int32_t           index; ///< Index of the transaction in the block in which it was included (valid only if height >= 0).
+  std::string       cometTxHash; ///< cometbft tx hash (i.e. SHA256) if known.
+  CometExecTxResult result; ///< Transaction execution result (valid only if height >= 0).
 };
 
 /**
@@ -216,7 +239,7 @@ class CometListener {
     }
 
     /**
-     * Notification of completing a Comet::checkTransaction() request.
+     * Notification of completing a Comet::checkTransaction(txHash) request (i.e. when it is made via RPC).
      * @param txHash The transaction hash that was checked.
      * @param success Whether the transaction check (/tx RPC call) was successful or not.
      * @param response The full JSON-RPC response returned by cometbft.
@@ -268,6 +291,15 @@ class Comet : public Log::LogicalLocationProvider {
      * Destructor; ensures all subordinate jobs are stopped.
      */
     virtual ~Comet();
+
+    /**
+     * Set the transaction cache size (if 0, the cache is disabled).
+     * When the cache is enabled, transactions will get their eth-compatible hash computed,
+     * and Comet will keep the most recent transactions it has seen in the cache with their
+     * status (submitted, included in a block at some height, etc).
+     * @param cacheSize New cache capacity, in transaction count (if zero, disable the cache).
+     */
+    void setTransactionCacheSize(const uint64_t cacheSize);
 
     /**
      * Get the global status of the Comet worker.
@@ -327,16 +359,38 @@ class Comet : public Log::LogicalLocationProvider {
      * Enqueues a transaction to be sent to the cometbft node; will retry until the localhost cometbft
      * instance is running and it acknowledges the receipt of the transaction bytes, meaning it should
      * be in its mempool from now on (if it passes CheckTx, etc).
+     * If the ethash parameter is not provided, the transaction will not be added to the transaction
+     * cache at the time of its creation.
      * @param tx The raw bytes of the transaction object.
-     * @return Ticket number for the transaction send request (unique for one Comet object instantiation).
+     * @param ethHash If ethHash is nullptr, won't compute the sha3 hash and won't track the transaction
+     * in the internal tx cache. If ethHash points to a shared_ptr that is nullptr, then it will create
+     * a shared Hash and store it in ethHash, and track the transaction in the tx cache. If ethHash
+     * points to a shared_ptr that is not nullptr, the function will assume the Hash value provided is
+     * the eth hash of tx and use it when storing the tx in the tx cache.
+     * @return If > 0, the ticket number for the transaction send request (unique for one Comet object
+     * instantiation), or 0 if ethHash is not nullptr, the internal tx cache is enabled, and the
+     * transaction was not sent because there's already an entry for the transaction in the cache and
+     * its height is not CometTxStatusHeight::REJECTED (which allows for the transaction to be resent).
      */
-    uint64_t sendTransaction(const Bytes& tx);
+    uint64_t sendTransaction(const Bytes& tx, std::shared_ptr<Hash>* ethHash = nullptr);
 
     /**
      * Enqueue a request to check the status of a transaction given its hash (CometBFT hash, i.e. SHA256).
+     * This will query the cometbft RPC /tx endpoint, not the internal tx cache.
      * @param txHash A hex string (no "0x") with the SHA256 hex of the transaction to look for.
      */
     void checkTransaction(const std::string& txHash);
+
+    /**
+     * Check the status of a transaction given its eth hash.
+     * This will query the internal tx cache (which is also updated when FinalizedBlock is processed),
+     * instead of the cometbft RPC /tx endpoint and so returns the result immediately instead of via
+     * CometListener::checkTransactionResult().
+     * @param txHash The binary eth hash of the transaction.
+     * @param txStatus Outparam to be filled with the current status of the transaction if it is found.
+     * @return `true` if a CometTxStatus for the tx was found, `false` otherwise (txStatus is unmodified).
+     */
+    bool checkTransactionInCache(const Hash& txHash, CometTxStatus& txStatus);
 
     /**
      * Make a JSON-RPC call to the RPC endpoint. The Comet engine must be in a state that has cometbft

@@ -1987,5 +1987,7 @@ namespace TComet {
       REQUIRE(comet.getState() == CometState::STOPPED);
       GLOGDEBUG("TEST: Finished");
     }
+
+    // FIXME/TODO: Write txCache test
   }
 }
