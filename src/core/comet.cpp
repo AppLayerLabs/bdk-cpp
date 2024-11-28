@@ -535,9 +535,13 @@ void CometImpl::startCometBFT(const std::vector<std::string>& cometArgs, bool sa
   this->processStderr_ = "";
   this->processDone_ = false;
 
-  // Search for the executable in the system's PATH
-  boost::filesystem::path exec_path = boost::process::search_path("cometbft");
-  if (exec_path.empty()) {
+  // execute either setpriv or cometbft directly
+  boost::filesystem::path exec_path;
+  std::vector<std::string> exec_args;
+
+  // Search for the cometbft executable in the system's PATH
+  boost::filesystem::path cometbft_exec_path = boost::process::search_path("cometbft");
+  if (cometbft_exec_path.empty()) {
     // This is a non-recoverable error
     // The ABCI server will be stopped/collected during stop()
     setErrorCode(CometError::FATAL);
@@ -545,16 +549,43 @@ void CometImpl::startCometBFT(const std::vector<std::string>& cometArgs, bool sa
     return;
   }
 
+  // Search for setpriv in the PATH
+  boost::filesystem::path setpriv_exec_path = boost::process::search_path("setpriv");
+  if (setpriv_exec_path.empty()) {
+    // setpriv not found, so just run cometbft directly, which is less good and requires the node
+    // operator to run its own watchdog or handle dangling cometbft processes.
+    LOGWARNING("setpriv utility not found in system PATH (usually found at /usr/bin/setpriv). cometbft child process will not be automatically terminated if this BDK node process crashes.");
+    exec_path = cometbft_exec_path;
+    exec_args = cometArgs;
+  } else {
+    // setpriv found, so use it to send SIGTERM to cometbft if this BDK node process (parent process) dies
+    // note that setpriv replaces its executable image with that of the process given in its args, in this
+    //   case, cometbft. so the PID of the setpriv child process will be the same PID of the cometbft process
+    //   that is passed as an arg to setpriv, along with the arguments to forward to cometbft.
+    //   however, and that is the point of using setpriv, the resulting cometbft process will receive a SIGTERM
+    //   if its parent process (this BDK node process) dies, so that we don't get a dangling cometbft in that case.
+    LOGDEBUG("Launching cometbft via setpriv --pdeathsig SIGTERM");
+    exec_path = setpriv_exec_path;
+    exec_args = {
+      "setpriv",
+      "--pdeathsig", "SIGTERM",
+      "--",
+      cometbft_exec_path.string()
+    };
+    // append cometbft args after the setpriv args
+    exec_args.insert(exec_args.end(), cometArgs.begin(), cometArgs.end());
+  }
+
   std::string argsString;
-  for (const auto& arg : cometArgs) { argsString += arg + " "; }
-  LOGDEBUG("Launching cometbft with arguments: " + argsString);
+  for (const auto& arg : exec_args) { argsString += arg + " "; }
+  LOGDEBUG("Launching " + exec_path.string() + " with arguments: " + argsString);
 
   // Launch the process
   auto bpout = std::make_shared<boost::process::ipstream>();
   auto bperr = std::make_shared<boost::process::ipstream>();
   process_ = boost::process::child(
     exec_path,
-    boost::process::args(cometArgs),
+    boost::process::args(exec_args),
     boost::process::std_out > *bpout,
     boost::process::std_err > *bperr
   );
@@ -567,6 +598,7 @@ void CometImpl::startCometBFT(const std::vector<std::string>& cometArgs, bool sa
     std::string line;
     while (*bpout && std::getline(*bpout, line) && !line.empty()) {
       if (saveOutput) {
+        GLOGXTRACE("[cometbft stdout]: " + line);
         this->processStdout_ += line + '\n';
       } else {
         GLOGDEBUG("[cometbft stdout]: " + line);
@@ -581,6 +613,7 @@ void CometImpl::startCometBFT(const std::vector<std::string>& cometArgs, bool sa
     std::string line;
     while (*bperr && std::getline(*bperr, line) && !line.empty()) {
       if (saveOutput) {
+        GLOGXTRACE("[cometbft stderr]: " + line);
         this->processStderr_ += line + '\n';
       } else {
         GLOGDEBUG("[cometbft stderr]: " + line);
@@ -600,7 +633,7 @@ void CometImpl::stopCometBFT() {
     // terminate the process
     pid_t pid = process_->id();
     try {
-      process_->terminate(); // SIGTERM (graceful termination, equivalent to terminal CTRL+C)
+      process_->terminate(); // SIGTERM (graceful termination, equivalent to terminal CTRL+C/SIGINT)
       LOGDEBUG("Process with PID " + std::to_string(pid) + " terminated");
       process_->wait();  // Ensure the process is fully terminated
       LOGDEBUG("Process with PID " + std::to_string(pid) + " joined");
@@ -959,7 +992,6 @@ void CometImpl::workerLoopInner() {
 
     // --------------------------------------------------------------------------------------
     // Run cometbft inspect and check that everything is as expected.
-    // TODO: ensure cometbft is terminated if we are killed (prctl()?)
 
     setState(CometState::INSPECTING_COMET);
 
@@ -1136,7 +1168,6 @@ void CometImpl::workerLoopInner() {
 
     // --------------------------------------------------------------------------------------
     // Run cometbft start, passing the socket address of our ABCI server as a parameter.
-    // TODO: ensure cometbft is terminated if we are killed (prctl()?)
 
     setState(CometState::STARTING_COMET);
 
@@ -1174,7 +1205,6 @@ void CometImpl::workerLoopInner() {
 
     // --------------------------------------------------------------------------------------
     // Test cometbft: check that the node has started successfully.
-    // TODO: ensure cometbft is terminated if we are killed (prctl()?)
 
     setState(CometState::TESTING_COMET);
 
