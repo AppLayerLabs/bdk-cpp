@@ -7,8 +7,8 @@
 
 #include "orderbook.h"
 
-OrderBook::OrderBook(const Address& addA, const std::string& tickerA,
-                     const Address& addB, const std::string& tickerB,
+OrderBook::OrderBook(const Address& addA, const std::string& tickerA, const uint8_t decA,
+                     const Address& addB, const std::string& tickerB, const uint8_t decB,
                      const Address& address, const Address& creator,
                      const uint64_t& chainId)
   : DynamicContract("OrderBook", address, creator, chainId),
@@ -19,6 +19,7 @@ OrderBook::OrderBook(const Address& addA, const std::string& tickerA,
     tickerAssetB_(this),
     spread_(this)
 {
+  // set
   this->nextOrderID_ = 0;
   this->addressAssetA_ = addA;
   this->addressAssetB_ = addB;
@@ -26,8 +27,9 @@ OrderBook::OrderBook(const Address& addA, const std::string& tickerA,
   this->tickerAssetB_ = tickerB;
   this->spread_ = 0;
   this->lastPrice_ = 0;
-  this->lotSize_ = 0;
-  this->tickSize_ = 0;
+  this->tickSize_ = Utils::exp10<uint256_t>(decB - 4);
+  this->lotSize_ = Utils::exp10<uint256_t>(decA - 4);
+  // commit
   this->nextOrderID_.commit();
   this->addressAssetA_.commit();
   this->addressAssetB_.commit();
@@ -37,9 +39,9 @@ OrderBook::OrderBook(const Address& addA, const std::string& tickerA,
   this->lastPrice_.commit();
   this->lotSize_.commit();
   this->tickSize_.commit();
-
+  // register functions
   this->registerContractFunctions();
-
+  // enable register
   this->nextOrderID_.enableRegister();
   this->addressAssetA_.enableRegister();
   this->addressAssetB_.enableRegister();
@@ -52,26 +54,54 @@ OrderBook::OrderBook(const Address& addA, const std::string& tickerA,
 }
 
 OrderBook::OrderBook(
-  const Address& address,
-  const DB &db
-  ) : DynamicContract(address, db),
-      nextOrderID_(this),
-      addressAssetA_(this),
-      tickerAssetA_(this),
-      addressAssetB_(this),
-      tickerAssetB_(this),
-      spread_(this)
+                     const Address& address,
+                     const DB &db
+                     ) : DynamicContract(address, db),
+                         nextOrderID_(this),
+                         addressAssetA_(this),
+                         tickerAssetA_(this),
+                         addressAssetB_(this),
+                         tickerAssetB_(this),
+                         spread_(this)
 {
-  this->nextOrderID_ = Utils::bytesToUint256(db.get(std::string("nextOrderID_"), this->getDBPrefix()));
+  // set
+  this->nextOrderID_ = UintConv::bytesToUint256(db.get(std::string("nextOrderID_"), this->getDBPrefix()));
   this->addressAssetA_ = Address(db.get(std::string("addressAssetA_"), this->getDBPrefix()));
   this->addressAssetB_ = Address(db.get(std::string("addressAssetB_"), this->getDBPrefix()));
-  this->tickerAssetA_ = Utils::bytesToString(db.get(std::string("tickerAssetA_"), this->getDBPrefix()));
-  this->tickerAssetB_ = Utils::bytesToString(db.get(std::string("tickerAssetB_"), this->getDBPrefix()));
-  this->spread_ = Utils::bytesToUint256(db.get(std::string("spread_"), this->getDBPrefix()));
-  this->tickSize_ = Utils::bytesToUint256(db.get(std::string("tickSize_"), this->getDBPrefix()));
-  this->lotSize_ = Utils::bytesToUint256(db.get(std::string("lotSize_"), this->getDBPrefix()));
-  this->lastPrice_ = Utils::bytesToUint256(db.get(std::string("lastPrice_"), this->getDBPrefix()));
+  this->tickerAssetA_ = StrConv::bytesToString(db.get(std::string("tickerAssetA_"), this->getDBPrefix()));
+  this->tickerAssetB_ = StrConv::bytesToString(db.get(std::string("tickerAssetB_"), this->getDBPrefix()));
+  this->spread_ = UintConv::bytesToUint256(db.get(std::string("spread_"), this->getDBPrefix()));
+  this->tickSize_ = UintConv::bytesToUint256(db.get(std::string("tickSize_"), this->getDBPrefix()));
+  this->lotSize_ = UintConv::bytesToUint256(db.get(std::string("lotSize_"), this->getDBPrefix()));
+  this->lastPrice_ = UintConv::bytesToUint256(db.get(std::string("lastPrice_"), this->getDBPrefix()));
+  // commit
+  this->nextOrderID_.commit();
+  this->addressAssetA_.commit();
+  this->addressAssetB_.commit();
+  this->tickerAssetA_.commit();
+  this->tickerAssetB_.commit();
+  this->spread_.commit();
+  this->lastPrice_.commit();
+  this->lotSize_.commit();
+  this->tickSize_.commit();
+  // register functions
   this->registerContractFunctions();
+  // enable register
+  this->nextOrderID_.enableRegister();
+  this->addressAssetA_.enableRegister();
+  this->addressAssetB_.enableRegister();
+  this->tickerAssetA_.enableRegister();
+  this->tickerAssetB_.enableRegister();
+  this->spread_.enableRegister();
+  this->lastPrice_.enableRegister();
+  this->lotSize_.enableRegister();
+  this->tickSize_.enableRegister();
+}
+
+inline uint256_t OrderBook::convertToken(const uint256_t& assetAmount,
+                                         const uint256_t& assetPrice) const
+{
+  return ((this->convertTick(assetAmount * assetPrice)) / this->precision_);
 }
 
 inline void OrderBook::insertAskOrder(const Order& askOrder)
@@ -97,29 +127,36 @@ inline void OrderBook::eraseBidOrder(const Order& bidOrder)
 void OrderBook::executeOrder(const Address& askOwner,
                              const Address& bidOwner,
                              uint256_t tokenAmount,
-                             uint256_t lotAmount)
+                             uint256_t assetAmount)
 {
   this->callContractFunction(this->addressAssetB_.get(), &ERC20::transfer, askOwner, tokenAmount);
-  this->callContractFunction(this->addressAssetA_.get(), &ERC20::transfer, bidOwner, this->convertLot(lotAmount));
+  this->callContractFunction(this->addressAssetA_.get(), &ERC20::transfer, bidOwner, this->convertLot(assetAmount));
 }
 
 Order* OrderBook::findMatchAskOrder(const Order& bidOrder)
 {
   auto& bidAssetAmount = std::get<3>(bidOrder);
   // do we have any asks orders?
-  // bid order was filled already?
-  if (this->asks_.empty() || bidAssetAmount == 0) {
-    // not found
+  if (this->asks_.empty()) {
     return nullptr;
   }
   // get the first ask order
   const Order* askOrder = &(*(this->asks_.begin()));
   auto& askAssetPrice = std::get<4>(*askOrder);
   auto& bidAssetPrice = std::get<4>(bidOrder);
-  // we want to buy for the lower price
-  // at the limit bid asset price
-  if (bidAssetPrice <= askAssetPrice) {
+  auto& bidOrderType = std::get<5>(bidOrder);
+  switch (bidOrderType) {
+    // doesn't matter the price return the first ask order found
+  case OrderType::MARKET: {
     return const_cast<Order*>(askOrder);
+  }
+    // we want to buy for the lowest price
+  case OrderType::LIMIT: {
+    return ((bidAssetPrice <= askAssetPrice) ? const_cast<Order*>(askOrder) : nullptr);
+  }
+    // default do nothing
+  default:
+    break;
   }
   // not found
   return nullptr;
@@ -128,158 +165,176 @@ Order* OrderBook::findMatchAskOrder(const Order& bidOrder)
 Order* OrderBook::findMatchBidOrder(const Order& askOrder)
 {
   auto& askAssetAmount = std::get<3>(askOrder);
-  // do we have any asks orders?
-  // ask order was filled already?
-  if (this->bids_.empty() || askAssetAmount == 0) {
+  // do we have bid orders?
+  if (this->bids_.empty()) {
     return nullptr;
   }
-  // get the first bid order
+  // get the first bid order (the higher value)
   const Order* bidOrder = &(*(this->bids_.begin()));
   // we want to sell for the higher bid price
   // but never not lower to the ask price limit
   auto& bidAssetPrice = std::get<4>(*bidOrder);
   auto& askAssetPrice = std::get<4>(askOrder);
-  // we should not sell below the ask price limit
-  if (bidAssetPrice >= askAssetPrice) {
+  auto& askOrderType = std::get<5>(askOrder);
+  switch (askOrderType) {
+    // doesn't matter the price return the first bid order found
+  case OrderType::MARKET: {
     return const_cast<Order*>(bidOrder);
+  }
+    // we want to sell at the highest price
+  case OrderType::LIMIT: {
+    return ((bidAssetPrice >= askAssetPrice) ? const_cast<Order*>(bidOrder) : nullptr);
+  }
+  default:
+    break;
   }
   // not found
   return nullptr;
 }
 
-inline uint256_t OrderBook::convertToken(const uint256_t& assetAmount,
-                                         const uint256_t& assetPrice) const
+void OrderBook::evaluateBidOrder(Order& bidOrder)
 {
-  return this->convertTick(assetAmount * assetPrice) / this->precision_;
-}
-
-void OrderBook::evaluateBidLimitOrder(Order& bidOrder)
-{
-  Order *matchAskOrder = findMatchAskOrder(bidOrder);
+  Order *matchAskOrder;
+  // get bid order attributes values
+  const auto& bidOwner = std::get<2>(bidOrder);
   auto& bidAssetAmount = std::get<3>(bidOrder);
-  if (matchAskOrder != nullptr) {
-    // get bid order attributes values
-    const auto& bidOwner = std::get<2>(bidOrder);
-    auto& bidAssetPrice = std::get<4>(bidOrder);
-    // aggressive order, will be executed
-    // the side effect here will be the transfer from asks order owner
-    // to the bid owner order
-    // and the askOrder can be altered leaving a remainder in its assetAmount
-    // or remove from the asks set in case it's filled
-    // if the bidOrder is not filled it will the added to the bid order set
-    do {
-      // get ask order attributes values
-      const auto& askOwner = std::get<2>(*matchAskOrder);
-      auto& askAssetAmount = std::get<3>(*matchAskOrder);
-      auto& askAssetPrice = std::get<4>(*matchAskOrder);
-
-      // compute the asset and token amount
-      uint256_t assetAmount = std::min(askAssetAmount, bidAssetAmount);
-      uint256_t tokenAmount = this->convertToken(assetAmount, askAssetPrice);
-
-      // executes the order, transfer the tokens from ask owner to bid owner
-      this->executeOrder(askOwner, bidOwner, tokenAmount, assetAmount);
-
-      // update amount information
-      bidAssetAmount -= assetAmount;
-      askAssetAmount -= assetAmount;
-
-      // erase the ask asset if filled
-      if (askAssetAmount == 0) {
-        this->eraseAskOrder(*matchAskOrder);
-      }
-      // find next match ask order
-      matchAskOrder = findMatchAskOrder(bidOrder);
-    } while (matchAskOrder != nullptr);
+  auto& bidAssetPrice = std::get<4>(bidOrder);
+  while(((matchAskOrder = findMatchAskOrder(bidOrder)) != nullptr) and
+        (bidAssetAmount > 0)) {
+    // get ask order attributes values
+    const auto& askOwner = std::get<2>(*matchAskOrder);
+    auto& askAssetAmount = std::get<3>(*matchAskOrder);
+    auto& askAssetPrice = std::get<4>(*matchAskOrder);
+    // compute the asset and token amount
+    uint256_t assetAmount = std::min(askAssetAmount, bidAssetAmount);
+    uint256_t tokenAmount = this->convertToken(assetAmount, askAssetPrice);
+    // executes the order, transfer the tokens from ask owner to bid owner
+    this->executeOrder(askOwner, bidOwner, tokenAmount, assetAmount);
+    // update amount information
+    bidAssetAmount -= assetAmount;
+    askAssetAmount -= assetAmount;
+    // update the current price
+    this->updateLastPrice(askAssetPrice);
+    // erase the ask asset if filled
+    if (askAssetAmount == 0) {
+      this->eraseAskOrder(*matchAskOrder);
+    }
   }
   // handle the bid order that was not filled (remainder)
   if (bidAssetAmount > 0) {
     this->insertBidOrder(bidOrder);
   }
+  // update spread and mid price
+  this->updateSpreadAndMidPrice();
 }
 
-void OrderBook::evaluateAskLimitOrder(Order& askOrder)
+void OrderBook::evaluateAskOrder(Order& askOrder)
 {
-  Order *matchBidOrder = findMatchBidOrder(askOrder);
+  Order *matchBidOrder;
+  const auto& askOwner = std::get<2>(askOrder);
   auto& askAssetAmount = std::get<3>(askOrder);
-  if (matchBidOrder != nullptr) {
-    const auto& askOwner = std::get<2>(askOrder);
-    auto& askAssetPrice = std::get<4>(askOrder);
-    do {
-      const auto& bidOwner = std::get<2>(*matchBidOrder);
-      auto& bidAssetAmount = std::get<3>(*matchBidOrder);
-      auto& bidAssetPrice = std::get<4>(*matchBidOrder);
-      // compute the asset and token amount
-      uint256_t assetAmount = std::min(askAssetAmount, bidAssetAmount);
-      uint256_t tokenAmount = this->convertToken(assetAmount, askAssetPrice);
-      // update order asset amounts
-      askAssetAmount -= assetAmount;
-      bidAssetAmount -= assetAmount;
-      // erase the bid order filled
-      if (bidAssetAmount == 0) {
-        this->eraseBidOrder(*matchBidOrder);
-      }
-      // find next match ask order
-      matchBidOrder = findMatchBidOrder(askOrder);
-    } while (matchBidOrder != nullptr);
+  auto& askAssetPrice = std::get<4>(askOrder);
+  while (((matchBidOrder = findMatchBidOrder(askOrder)) != nullptr) and
+         (askAssetAmount > 0)) {
+    // get bid order attributes values
+    const auto& bidOwner = std::get<2>(*matchBidOrder);
+    auto& bidAssetAmount = std::get<3>(*matchBidOrder);
+    auto& bidAssetPrice = std::get<4>(*matchBidOrder);
+    // compute the asset and token amount
+    uint256_t assetAmount = std::min(askAssetAmount, bidAssetAmount);
+    uint256_t tokenAmount = this->convertToken(assetAmount, askAssetPrice);
+    // executes the order, transfer the tokens from ask owner to bid owner
+    this->executeOrder(askOwner, bidOwner, tokenAmount, assetAmount);
+    // update order asset amounts
+    askAssetAmount -= assetAmount;
+    bidAssetAmount -= assetAmount;
+    // update the current price
+    this->updateLastPrice(bidAssetPrice);
+    // erase the bid order if was filled
+    if (bidAssetAmount == 0) {
+      this->eraseBidOrder(*matchBidOrder);
+    }
   }
-  // handle the bid order that was not filled (remainder)
+  // handle the ask order that was not filled (remainder)
   if (askAssetAmount > 0) {
     this->insertAskOrder(askOrder);
   }
+  // update spread and mid price
+  this->updateSpreadAndMidPrice();
 }
 
 void OrderBook::transferToContract(const Address& assetAddress,
-                                   const uint256_t &tokenAmount)
+                                   const uint256_t& assetAmount)
 {
   this->callContractFunction(assetAddress,
                              &ERC20::transferFrom,
                              this->getCaller(),
                              this->getContractAddress(),
-                             tokenAmount);
+                             assetAmount);
 }
 
 Order* OrderBook::makeOrder(const uint256_t& assetAmount,
-                            const uint256_t& assetPrice)
+                            const uint256_t& assetPrice,
+                            const OrderType orderType)
 {
   return (new Order(this->nextOrderID_.get(),
                     this->getCurrentTimestamp(),
                     this->getCaller(),
                     assetAmount,
-                    assetPrice));
+                    assetPrice,
+                    orderType));
 }
 
 void OrderBook::addBidLimitOrder(const uint256_t& assetAmount,
                                  const uint256_t& assetPrice)
 {
-  // get caller = owner address
+  // get caller will return the owner address
   uint256_t assetBalance = \
     this->callContractViewFunction(this->addressAssetB_.get(),
                                    &ERC20::balanceOf,
                                    this->getCaller());
   // convert to token amount
   uint256_t tokenAmount = this->convertToken(assetAmount, assetPrice);
-
   // verify the asset balance
   if (tokenAmount > assetBalance) {
     throw std::runtime_error("OrderBook::addBidLimitOrder: INSUFFICIENT_BALANCE");
   }
   // transfer token amount to order book contract
-  this->callContractFunction(this->addressAssetB_.get(),
-                             &ERC20::transferFrom,
-                             this->getCaller(),
-                             this->getContractAddress(),
-                             tokenAmount);
   // evaluate the bid limit order
-  this->evaluateBidLimitOrder(*(this->makeOrder(assetAmount, assetPrice)));
   // increment the order id
+  this->transferToContract(this->addressAssetB_.get(), tokenAmount);
+  this->evaluateBidOrder(*(this->makeOrder(assetAmount,
+                                           assetPrice,
+                                           OrderType::LIMIT)));
   this->nextOrderID_++;
+}
+
+void OrderBook::delBidLimitOrder(const uint256_t& id)
+{
+  this->bids_.erase_if([&id, this](const Order& bidOrder) {
+    auto const& bidId = std::get<0>(bidOrder);
+    if (bidId != id) {
+      return false;
+    }
+    auto const& bidOwner = std::get<2>(bidOrder);
+    auto const& bidAssetAmount = std::get<3>(bidOrder);
+    auto const& bidAssetPrice = std::get<4>(bidOrder);
+    if (bidOwner != this->getCaller()) {
+      throw std::runtime_error("OrderBook::delBidLimitOrder: INVALID_OWNER");
+    }
+    this->callContractFunction(this->addressAssetB_.get(),
+                               &ERC20::transfer,
+                               bidOwner,
+                               this->convertToken(bidAssetAmount, bidAssetPrice));
+    return true;
+  });
 }
 
 void OrderBook::addAskLimitOrder(const uint256_t& assetAmount,
                                  const uint256_t& assetPrice)
 {
-  // set asset balance
+  // get owner asset balance
+  // get caller will return the owner address
   uint256_t assetBalance = \
     this->callContractViewFunction(this->addressAssetA_.get(),
                                    &ERC20::balanceOf,
@@ -291,36 +346,88 @@ void OrderBook::addAskLimitOrder(const uint256_t& assetAmount,
     throw std::runtime_error("OrderBook::addAskLimitOrder: INSUFFICIENT_BALANCE");
   }
   // transfer lot amount to order book contract
-  this->callContractFunction(this->addressAssetA_.get(),
-                             &ERC20::transferFrom,
-                             this->getCaller(),
-                             this->getContractAddress(),
-                             lotAmount);
   // evaluate the the nearly created ask limit order
-  this->evaluateAskLimitOrder(*(this->makeOrder(assetAmount, assetPrice)));
   // increment next order id
+  this->transferToContract(this->addressAssetA_.get(), lotAmount);
+  this->evaluateAskOrder(*(this->makeOrder(assetAmount,
+                                           assetPrice,
+                                           OrderType::LIMIT)));
   this->nextOrderID_++;
 }
 
-void OrderBook::updateLastPrice(const uint256_t &price)
+void OrderBook::delAskLimitOrder(const uint256_t& id)
+{
+  this->asks_.erase_if([&id, this](const Order& askOrder) {
+    auto const& askId = std::get<0>(askOrder);
+    if (askId != id) {
+      return false;
+    }
+    auto const& askOwner = std::get<2>(askOrder);
+    auto const& askAssetAmount = std::get<3>(askOrder);
+    if (askOwner != this->getCaller()) {
+      throw std::runtime_error("OrderBook::delBidLimitOrder: INVALID_OWNER");
+    }
+    this->callContractFunction(this->addressAssetB_.get(),
+                               &ERC20::transfer,
+                               askOwner,
+                               this->convertLot(askAssetAmount));
+    return true;
+  });
+}
+
+void OrderBook::addAskMarketOrder(const uint256_t& assetAmount)
+{
+  // set asset balance
+  uint256_t assetBalance = \
+    this->callContractViewFunction(this->addressAssetA_.get(),
+                                   &ERC20::balanceOf,
+                                   this->getCaller());
+  // convert lot amount
+  uint256_t lotAmount = this->convertLot(assetAmount);
+  // verify if tick amount is bigger than user balance
+  if (lotAmount > assetBalance) {
+    throw std::runtime_error("OrderBook::addAskMarketOrder: INSUFFICIENT_BALANCE");
+  }
+  this->transferToContract(this->addressAssetA_.get(), lotAmount);
+  this->evaluateAskOrder(*(this->makeOrder(assetAmount, 0, OrderType::MARKET)));
+  this->nextOrderID_++;
+}
+
+void OrderBook::addBidMarketOrder(const uint256_t& assetAmount)
+{
+  // set asset balance
+  uint256_t assetBalance = \
+    this->callContractViewFunction(this->addressAssetA_.get(),
+                                   &ERC20::balanceOf,
+                                   this->getCaller());
+  // convert tick amount
+  uint256_t tickAmount = this->convertTick(assetAmount);
+  // verify if tick amount is bigger than user balance
+  if (tickAmount > assetBalance) {
+    throw std::runtime_error("OrderBook::addBidMarketOrder: INSUFFICIENT_BALANCE");
+  }
+  this->evaluateBidOrder(*(this->makeOrder(assetAmount, 0, OrderType::MARKET)));
+  this->nextOrderID_++;
+}
+
+inline void OrderBook::updateLastPrice(const uint256_t &price)
 {
   this->lastPrice_ = price;
 }
 
 void OrderBook::updateSpreadAndMidPrice()
 {
+  if (this->bids_.empty() or this->asks_.empty()) return;
   uint256_t bidPrice = std::get<4>(*this->bids_.cbegin());
   uint256_t askPrice = std::get<4>(*this->asks_.cbegin());
-  this->spread_ = ((bidPrice >= askPrice) ?     \
-                   bidPrice - askPrice : \
-                   askPrice - bidPrice);
+  this->spread_ = (std::max(bidPrice, askPrice) -\
+                   std::min(bidPrice, askPrice));
 }
 
 uint64_t OrderBook::getCurrentTimestamp() const
 {
-  return std::chrono::duration_cast<std::chrono::milliseconds>(
-    std::chrono::system_clock::now().time_since_epoch()
-    ).count();
+  return std::chrono::duration_cast<std::chrono::milliseconds>
+    (std::chrono::system_clock::now().time_since_epoch()).count();
 }
 
 std::vector<Order> OrderBook::getBids() const
@@ -365,18 +472,6 @@ OrderBook::getUserOrders(const Address& user) const
   return ret;
 }
 
-void OrderBook::setDecimals()
-{
-  uint8_t decA = this->callContractViewFunction(this->addressAssetA_.get(), &ERC20::decimals);
-  uint8_t decB = this->callContractViewFunction(this->addressAssetB_.get(), &ERC20::decimals);
-
-  if (decA <= 8 || decB <= 8) {
-    throw std::runtime_error("Token decimals must be greater than 8");
-  }
-  this->lotSize_ = Utils::exp10<uint256_t>(decA - 4);
-  this->tickSize_ = Utils::exp10<uint256_t>(decB - 4);
-}
-
 void OrderBook::registerContractFunctions()
 {
   registerContract();
@@ -393,25 +488,27 @@ void OrderBook::registerContractFunctions()
   this->registerMemberFunction("getBids", &OrderBook::getBids, FunctionTypes::View, this);
   this->registerMemberFunction("getAsks", &OrderBook::getAsks, FunctionTypes::View, this);
   this->registerMemberFunction("getUserOrders", &OrderBook::getUserOrders, FunctionTypes::View, this);
-  this->registerMemberFunction("addBidLimitOrder", &OrderBook::addBidLimitOrder, FunctionTypes::NonPayable, this);
   this->registerMemberFunction("addAskLimitOrder", &OrderBook::addAskLimitOrder, FunctionTypes::NonPayable, this);
-  this->registerMemberFunction("setDecimals", &OrderBook::setDecimals, FunctionTypes::NonPayable, this);
+  this->registerMemberFunction("addBidLimitOrder", &OrderBook::addBidLimitOrder, FunctionTypes::NonPayable, this);
+  this->registerMemberFunction("delAskLimitOrder", &OrderBook::delAskLimitOrder, FunctionTypes::NonPayable, this);
+  this->registerMemberFunction("delBidLimitOrder", &OrderBook::delBidLimitOrder, FunctionTypes::NonPayable, this);
+  this->registerMemberFunction("addAskMarketOrder", &OrderBook::addAskLimitOrder, FunctionTypes::NonPayable, this);
+  this->registerMemberFunction("addBidMarketOrder", &OrderBook::addAskLimitOrder, FunctionTypes::NonPayable, this);
 }
 
 DBBatch OrderBook::dump() const
 {
   DBBatch b = BaseContract::dump();
 
-  b.push_back(Utils::stringToBytes("nextOrderID_"), Utils::uint256ToBytes(this->nextOrderID_.get()), this->getDBPrefix());
-  b.push_back(Utils::stringToBytes("addressAssetA_"), this->addressAssetA_.get().view(), this->getDBPrefix());
-  b.push_back(Utils::stringToBytes("addressAssetB_"), this->addressAssetB_.get().view(), this->getDBPrefix());
-  b.push_back(Utils::stringToBytes("tickerAssetA_"), Utils::stringToBytes(this->tickerAssetA_.get()), this->getDBPrefix());
-  b.push_back(Utils::stringToBytes("tickerAssetB_"), Utils::stringToBytes(this->tickerAssetB_.get()), this->getDBPrefix());
-  b.push_back(Utils::stringToBytes("spread_"), Utils::uint256ToBytes(this->spread_.get()), this->getDBPrefix());
-  b.push_back(Utils::stringToBytes("tickSize_"), Utils::uint256ToBytes(this->tickSize_.get()), this->getDBPrefix());
-  b.push_back(Utils::stringToBytes("lotSize_"), Utils::uint256ToBytes(this->lotSize_.get()), this->getDBPrefix());
-  b.push_back(Utils::stringToBytes("lastPrice_"), Utils::uint256ToBytes(this->lastPrice_.get()), this->getDBPrefix());
+  b.push_back(StrConv::stringToBytes("nextOrderID_"), UintConv::uint256ToBytes(this->nextOrderID_.get()), this->getDBPrefix());
+  b.push_back(StrConv::stringToBytes("addressAssetA_"), this->addressAssetA_.get().view(), this->getDBPrefix());
+  b.push_back(StrConv::stringToBytes("addressAssetB_"), this->addressAssetB_.get().view(), this->getDBPrefix());
+  b.push_back(StrConv::stringToBytes("tickerAssetA_"), StrConv::stringToBytes(this->tickerAssetA_.get()), this->getDBPrefix());
+  b.push_back(StrConv::stringToBytes("tickerAssetB_"), StrConv::stringToBytes(this->tickerAssetB_.get()), this->getDBPrefix());
+  b.push_back(StrConv::stringToBytes("spread_"), UintConv::uint256ToBytes(this->spread_.get()), this->getDBPrefix());
+  b.push_back(StrConv::stringToBytes("tickSize_"), UintConv::uint256ToBytes(this->tickSize_.get()), this->getDBPrefix());
+  b.push_back(StrConv::stringToBytes("lotSize_"), UintConv::uint256ToBytes(this->lotSize_.get()), this->getDBPrefix());
+  b.push_back(StrConv::stringToBytes("lastPrice_"), UintConv::uint256ToBytes(this->lastPrice_.get()), this->getDBPrefix());
 
   return b;
 }
-
