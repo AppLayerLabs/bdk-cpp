@@ -28,14 +28,19 @@
 /// Enum for identifying order types (market or limit, and the respective stops).
 enum OrderType { MARKET, LIMIT, STOPMARKET, STOPLIMIT };
 
-// better names?
-// enum OrderType { MARKET_ORDER, \
-LIMIT_ORDER, \
-STOP_MARKET_ORDER, \
-STOP_LIMIT_ORDER };
-
 /// Enum for identifying order side (bid or ask).
 enum OrderSide { BID, ASK };
+
+/// Order Fields
+enum OrderField {
+  ID = 0,
+  TIMESTAMP,
+  OWNER,
+  AMOUNT,
+  PRICE,
+  TYPE
+};
+
 /**
  * Tuple for a given stop order in the book.
  * 0 - const uint256_t  - id          - Sequential unique ID of the order.
@@ -93,12 +98,14 @@ inline bool operator>(const StopOrder& lhs, const StopOrder& rhs) {
  * 2 - const Address    - owner       - The address that made the order.
  * 3 - uint256_t        - assetAmount - The amount of the asset the order has to offer (tokenA for bids, tokenB for asks).
  * 4 - const uint256_t  - assetPrice  - The unit price of the asset the order has to offer in WEI of tokenB.
+ * 5 - const OrderType  - type        - Whether the order originally is a market or limit.
  */
 using Order = std::tuple<const uint256_t,
                          const uint64_t,
                          const Address,
                          uint256_t,
-                         const uint256_t>;
+                         const uint256_t,
+                         const OrderType>;
 
 /**
  * Lesser comparison operator.
@@ -136,7 +143,8 @@ inline Order orderFromStopOrder(const StopOrder& stopOrder, const uint64_t& time
                          timestamp,
                          std::get<2>(stopOrder),
                          std::get<3>(stopOrder),
-                         std::get<4>(stopOrder));
+                         std::get<4>(stopOrder),
+                         std::get<7>(stopOrder));
 }
 
 /// Contract template for a given exchange pair order book.
@@ -160,27 +168,32 @@ private:
   SafeMultiSet<StopOrder, std::less<StopOrder>> stops_; ///< List of stop orders, from lower to highest stop price.
 
   /**
-   * <Description>
-   * @param  Param Description
-   * @param  ...
-   * @return Return Value Description
+   * Transfer tokens from an address to the order book contract.
+   * @param assetAddress, the address where to get the tokens from.
+   * @param assetAmount, the amount to be transferred.
    */
-  void transferToContract(const Address& from, const uint256_t &tickAmount);
+  void transferToContract(const Address& assetAddress,
+                          const uint256_t &assetAmount);
 
   /**
-   * <Description>
-   * @param  Param Description
-   * @param  ...
-   * @return Return Value Description
+   * Create a order.
+   * @param assetAmount, the order asset amount.
+   * @param assetPrice, the order asset prince.
+   * @return A pointer to the nearly created order.
    */
   Order* makeOrder(const uint256_t& assetAmount,
-                   const uint256_t& assetPrice);
+                   const uint256_t& assetPrice,
+                   const OrderType orderType);
 
   /**
-   * <Description>
-   * @param  Param Description
-   * @param  ...
-   * @return Return Value Description
+   * Execute the order, i.e, transfer the token amount to the ask owner and
+   * transfer the asset amount to the bid owner.
+   *
+   * @param askOwner, the address of the ask owner.
+   * @param bidOwner, the address of the bid owner.
+   * @param bidOwner, the address of the bid owner.
+   * @param tokenAmount, the token amount to be transferred to the ask owner.
+   * @param assetAmount, the asset amount to be transferred to the bid owner.
    */
   void executeOrder(const Address& askOwner,
                     const Address& bidOwner,
@@ -188,66 +201,56 @@ private:
                     uint256_t assetAmount);
 
   /**
-   * <Description>
-   * @param  Param Description
-   * @param  ...
-   * @return Return Value Description
+   * Insert an ask order to the ask order list.
+   * @param askOrder, the ask order to be inserted.
    */
   inline void insertAskOrder(const Order& askOrder);
 
   /**
-   * <Description>
-   * @param  Param Description
-   * @param  ...
-   * @return Return Value Description
+   * Insert an bid order to the ask order list.
+   * @param bidOrder, the bid order to be inserted.
    */
   inline void insertBidOrder(const Order& bidOrder);
 
   /**
-   * <Description>
-   * @param  Param Description
-   * @param  ...
-   * @return Return Value Description
+   * Erase (remove) an ask order from the ask order list.
+   * @param askOrder, the ask order to be removed.
    */
   inline void eraseAskOrder(const Order& askOrder);
 
   /**
-   * <Description>
-   * @param  Param Description
-   * @param  ...
-   * @return Return Value Description
+   * Erase (remove) a bid order from the bid order list.
+   * @param bidOrder, the bid order to be removed.
    */
   inline void eraseBidOrder(const Order& bidOrder);
 
   /**
-   * <Description>
-   * @param  Param Description
-   * @param  ...
-   * @return Return Value Description
+   * Evaluate the bid order, i.e, try to find the a matching ask order and
+   * execute the order pair, if the order isn't filled add the bid order to
+   * the bid order list (passive order).
+   * @param bidOrder, the bid order.
    */
-  void evaluateBidLimitOrder(Order& bidOrder);
+  void evaluateBidOrder(Order& bidOrder);
 
   /**
-   * <Description>
-   * @param  Param Description
-   * @param  ...
-   * @return Return Value Description
+   * Evaluate the ask order, i.e, try to find the a matching bid order and
+   * execute the order pair, if the order isn't filled add the ask order to
+   * the ask order list (passive order).
+   * @param askOrder, the ask order.
    */
-  void evaluateAskLimitOrder(Order& askOrder);
+  void evaluateAskOrder(Order& askOrder);
 
   /**
-   * <Description>
-   * @param  Param Description
-   * @param  ...
-   * @return Return Value Description
+   * Find a matching ask order for an arbitrary bid order.
+   * @param bidOrder, the bid order.
+   * @return A order pointer if an ask order was found, nullptr otherwise.
    */
   Order* findMatchAskOrder(const Order& bidOrder);
 
   /**
-   * <Description>
-   * @param  Param Description
-   * @param  ...
-   * @return Return Value Description
+   * Find a matching bid order for an arbitrary ask order.
+   * @param askOrder, the ask order.
+   * @return A order pointer if a bid order was found, nullptr otherwise.
    */
   Order* findMatchBidOrder(const Order& askOrder);
 
@@ -255,12 +258,16 @@ private:
    * Update the last price of the pair.
    * @param price The new last price.
    */
-  void updateLastPrice(const uint256_t& price);
+  inline void updateLastPrice(const uint256_t& price);
 
-  /// Update the current spread and mid price based on top bid and top ask prices.
+  /**
+   * Update the current spread and mid price based on top bid and top ask prices.
+   */
   void updateSpreadAndMidPrice();
 
-  /// Get the current epoch timestamp, in milliseconds.
+  /**
+   * Get the current epoch timestamp, in milliseconds.
+   */
   uint64_t getCurrentTimestamp() const;
 
   /**
@@ -272,10 +279,10 @@ private:
   }
 
   /**
-   * <Description>
-   * @param  Param Description
-   * @param  ...
-   * @return Return Value Description
+   * Compute the token amount from the asset amount and its price.
+   * @param assetAmount, the asset amount.
+   * @param assetPrice, the asset price.
+   * @return The computed token amount
    */
   inline uint256_t convertToken(const uint256_t& assetAmount,
                                 const uint256_t& assetPrice) const;
@@ -296,22 +303,25 @@ private:
 
 public:
   using ConstructorArguments = std::tuple<
-    const Address&, const std::string&, const Address&, const std::string&
+    const Address&, const std::string&, const uint8_t,
+    const Address&, const std::string&, const uint8_t
     >;
   /**
    * Constructor from scratch.
    * @param addA The address of the pair's first asset.
    * @param tickerA The ticker of the pair's first asset.
+   * @param decA The decimal number from the first asset.
    * @param addB The address of the pair's second asset.
+   * @param tickerB The ticker of the pair's second asset.
+   * @param decB The decimals of the second asset.
    * @param tickerB The ticker of the pair's second asset.
    * @param address The address of the contract.
    * @param creator The address of the creator of the contract.
    * @param chainId The chain ID.
    */
-  OrderBook(const Address& addA, const std::string& tickerA,
-            const Address& addB, const std::string& tickerB,
-            const Address& address, const Address& creator,
-            const uint64_t& chainId);
+  OrderBook(const Address& addA, const std::string& tickerA, const uint8_t decA,
+            const Address& addB, const std::string& tickerB, const uint8_t decB,
+            const Address& address, const Address& creator, const uint64_t& chainId);
 
   /**
    * Constructor from load. Load contract from database.
@@ -372,25 +382,46 @@ public:
              std::vector<StopOrder>> getUserOrders(const Address& user) const;
 
   /**
-   * <Description>
-   * @param  Param Description
-   * @param  ...
+   * Add bid limit order to be evaluated, i.e, to be executed or be put in the
+   * bid order list.
+   * @param assetAmount, the bid order asset amount.
+   * @param assetPrice, the bid order asset price.
    */
   void addBidLimitOrder(const uint256_t& assetAmount,
                         const uint256_t& assetPrice);
 
   /**
-   * <Description>
-   * @param  Param Description
-   * @param  ...
+   * Remove the bid order from the bid order list.
+   * @param id, the bid order identifier.
+   */
+  void delBidLimitOrder(const uint256_t& id);
+
+  /**
+   * Add ask limit order to be evaluated, i.e, to be executed or be put in the
+   * ask order list.
+   * @param assetAmount, the ask order asset amount.
+   * @param assetPrice, the ask order asset price.
    */
   void addAskLimitOrder(const uint256_t& assetAmount,
                         const uint256_t& assetPrice);
 
   /**
-   * <Description>
+   * Remove the ask order from the ask order list.
+   * @param id, the ask order identifier.
    */
-  void setDecimals();
+  void delAskLimitOrder(const uint256_t& id);
+
+  /**
+   * Add a market ask order to be evaluated.
+   * @param assetAmount, the market ask order asset amount.
+   */
+  void addAskMarketOrder(const uint256_t& assetAmount);
+
+  /**
+   * Add a market bid order to be evaluated.
+   * @param assetAmount, the market bid order asset amount.
+   */
+  void addBidMarketOrder(const uint256_t& assetAmount);
 
   /// Register the contract structure.
   static void registerContract() {
@@ -421,7 +452,10 @@ public:
         std::make_tuple("getUserOrders", &OrderBook::getUserOrders, FunctionTypes::View, std::vector<std::string>{"user"}),
         std::make_tuple("addBidLimitOrder", &OrderBook::addBidLimitOrder, FunctionTypes::NonPayable, std::vector<std::string>{"assetAmount", "assetPrice"}),
         std::make_tuple("addAskLimitOrder", &OrderBook::addAskLimitOrder, FunctionTypes::NonPayable, std::vector<std::string>{"assetAmount", "assetPrice"}),
-        std::make_tuple("setDecimals", &OrderBook::setDecimals, FunctionTypes::NonPayable, std::vector<std::string>{})
+        std::make_tuple("delAskLimitOrder", &OrderBook::delAskLimitOrder, FunctionTypes::NonPayable, std::vector<std::string>{"id"}),
+        std::make_tuple("delBidLimitOrder", &OrderBook::delBidLimitOrder, FunctionTypes::NonPayable, std::vector<std::string>{"id"}),
+        std::make_tuple("addAskLimitOrder", &OrderBook::addAskMarketOrder, FunctionTypes::NonPayable, std::vector<std::string>{"assetAmount"}),
+        std::make_tuple("addAskLimitOrder", &OrderBook::addBidMarketOrder, FunctionTypes::NonPayable, std::vector<std::string>{"assetAmount"})
         );
   }
 };
