@@ -334,7 +334,7 @@ namespace P2P{
   // Somehow change to wait_for.
   std::vector<TxValidator> ManagerNormal::requestValidatorTxs(const NodeID& nodeId) {
     auto request = std::make_shared<const Message>(RequestEncoder::requestValidatorTxs());
-    LOGTRACE("Requesting nodes from " + toString(nodeId));
+    LOGTRACE("Requesting validatorTxs from " + toString(nodeId));
     auto requestPtr = this->sendRequestTo(nodeId, request);
     if (requestPtr == nullptr) {
       LOGDEBUG("Request to " + toString(nodeId) + " failed.");
@@ -356,7 +356,7 @@ namespace P2P{
 
   std::vector<TxBlock> ManagerNormal::requestTxs(const NodeID& nodeId) {
     auto request = std::make_shared<const Message>(RequestEncoder::requestTxs());
-    LOGTRACE("Requesting nodes from " + toString(nodeId));
+    LOGTRACE("Requesting txs from " + toString(nodeId));
     auto requestPtr = this->sendRequestTo(nodeId, request);
     if (requestPtr == nullptr) {
       LOGDEBUG("Request to " + toString(nodeId) + " failed.");

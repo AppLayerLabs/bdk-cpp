@@ -10,8 +10,6 @@ See the LICENSE.txt file in the project root for more information.
 
 #include "state.h" // rdpos.h -> utils/tx.h -> ecdsa.h -> utils.h -> strings.h, logger.h, (libs/json.hpp -> boost/unordered/unordered_flat_map.hpp)
 
-// TODO: tests for Consensus (if necessary)
-
 /// Class responsible for processing blocks and transactions.
 class Consensus : public Log::LogicalLocationProvider {
   private:
@@ -22,6 +20,13 @@ class Consensus : public Log::LogicalLocationProvider {
 
     std::future<void> loopFuture_;  ///< Future object holding the thread for the consensus loop.
     std::atomic<bool> stop_ = false; ///< Flag for stopping the consensus processing.
+
+    boost::asio::thread_pool threadPool_; ///< Thread pool for async tasks
+
+    /**
+     * Pull all validator votes known by all direct peers and into the blockchain state.
+     */
+    void requestValidatorTxsFromAllPeers();
 
     /**
      * Create and broadcast a Validator block (called by validatorLoop()).
@@ -47,8 +52,12 @@ class Consensus : public Log::LogicalLocationProvider {
      * @param storage Reference to the blockchain storage.
      * @param options Reference to the Options singleton.
      */
-    explicit Consensus(State& state, P2P::ManagerNormal& p2p, const Storage& storage, const Options& options) :
-      state_(state), p2p_(p2p), storage_(storage), options_(options) {}
+    explicit Consensus(State& state, P2P::ManagerNormal& p2p, const Storage& storage, const Options& options);
+
+    /**
+     * Destructor.
+     */
+    virtual ~Consensus();
 
     std::string getLogicalLocation() const override { return p2p_.getLogicalLocation(); } ///< Log instance from P2P
 

@@ -188,7 +188,7 @@ Hash rdPoS::processBlock(const FinalizedBlock& block) {
 
 TxStatus rdPoS::addValidatorTx(const TxValidator& tx) {
   if (this->validatorMempool_.contains(tx.hash())) {
-    LOGTRACE("TxValidator already exists in mempool.");
+    LOGXTRACE("TxValidator already exists in mempool.");
     return TxStatus::ValidExisting;
   }
 

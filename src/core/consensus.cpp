@@ -7,6 +7,23 @@ See the LICENSE.txt file in the project root for more information.
 
 #include "consensus.h"
 
+// The size of the consensus async-task thread pool should not be correlated to hardware concurrency, as
+// the tasks themselves are light networking tasks and they do mostly zero work; most of the time spent on the
+// task is zero-CPU waiting for a network response. Rather, the thread pool size should be proportional to the
+// number of direct network peers a BDK node is expected to have, so that the overall latency of e.g.
+// requestValidatorTxsFromAllPeers() is that of the peer with the largest response latency.
+#define CONSENSUS_ASYNC_TASK_THREAD_POOL_SIZE 40
+
+Consensus::Consensus(State& state, P2P::ManagerNormal& p2p, const Storage& storage, const Options& options)
+  : state_(state), p2p_(p2p), storage_(storage), options_(options), threadPool_(CONSENSUS_ASYNC_TASK_THREAD_POOL_SIZE)
+{
+}
+
+Consensus::~Consensus() {
+  stop();
+  threadPool_.join();
+}
+
 void Consensus::validatorLoop() {
   LOGINFO("Starting validator loop.");
   Validator me(Secp256k1::toAddress(Secp256k1::toUPub(this->options_.getValidatorPrivKey())));
@@ -36,6 +53,21 @@ void Consensus::validatorLoop() {
   }
 }
 
+void Consensus::requestValidatorTxsFromAllPeers() {
+  // Try to get more transactions from other nodes within the network
+  auto sessionIDs = this->p2p_.getSessionsIDs(P2P::NodeType::NORMAL_NODE);
+  for (const auto& nodeId : sessionIDs) {
+    boost::asio::post(threadPool_, [this, nodeId]() {
+      if (this->stop_) { return; }
+      auto txList = this->p2p_.requestValidatorTxs(nodeId);
+      if (this->stop_) { return; }
+      for (const auto& tx : txList) {
+        this->state_.addValidatorTx(tx);
+      }
+    });
+  }
+}
+
 void Consensus::doValidatorBlock() {
   // TODO: Improve this somehow.
   // Wait until we are ready to create the block
@@ -49,12 +81,7 @@ void Consensus::doValidatorBlock() {
       LOGDEBUG("Block creator has: " + std::to_string(validatorMempoolSize) + " transactions in mempool");
     }
     validatorMempoolSize = this->state_.rdposGetMempoolSize();
-    // Try to get more transactions from other nodes within the network
-    for (const auto& nodeId : this->p2p_.getSessionsIDs(P2P::NodeType::NORMAL_NODE)) {
-      auto txList = this->p2p_.requestValidatorTxs(nodeId);
-      if (this->stop_) return;
-      for (const auto& tx : txList) this->state_.addValidatorTx(tx);
-    }
+    requestValidatorTxsFromAllPeers();
     std::this_thread::sleep_for(std::chrono::microseconds(10));
   }
   LOGDEBUG("Validator ready to create a block");
@@ -62,6 +89,8 @@ void Consensus::doValidatorBlock() {
   // Wait until we have all required transactions to create the block.
   auto waitForTxs = std::chrono::high_resolution_clock::now();
   bool logged = false;
+  // NOTE: Change this to "< 0" to allow for the production of empty blocks
+  //       which is useful when profiling block production latency.
   while (this->state_.getMempoolSize() < 1) {
     if (!logged) {
       logged = true;
@@ -222,12 +251,7 @@ void Consensus::doValidatorTx(const uint64_t& nHeight, const Validator& me) {
       LOGDEBUG("Validator has: " + std::to_string(validatorMempoolSize) + " transactions in mempool");
     }
     validatorMempoolSize = this->state_.rdposGetMempoolSize();
-    // Try to get more transactions from other nodes within the network
-    for (const auto& nodeId : this->p2p_.getSessionsIDs(P2P::NodeType::NORMAL_NODE)) {
-      if (this->stop_) return;
-      auto txList = this->p2p_.requestValidatorTxs(nodeId);
-      for (const auto& tx : txList) this->state_.addValidatorTx(tx);
-    }
+    requestValidatorTxsFromAllPeers();
     std::this_thread::sleep_for(std::chrono::microseconds(10));
   }
 
