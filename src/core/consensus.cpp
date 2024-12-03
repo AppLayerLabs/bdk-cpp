@@ -14,18 +14,22 @@ See the LICENSE.txt file in the project root for more information.
 // requestValidatorTxsFromAllPeers() is that of the peer with the largest response latency.
 #define CONSENSUS_ASYNC_TASK_THREAD_POOL_SIZE 40
 
+// Minimum number of transactions in a produced block; producer waits until this quota is reached.
+// Set to 0 to allow production of empty blocks (useful for profiling block production latency).
+#define MIN_TRANSACTIONS_PER_BLOCK 1
+
 Consensus::Consensus(State& state, P2P::ManagerNormal& p2p, const Storage& storage, const Options& options)
-  : state_(state), p2p_(p2p), storage_(storage), options_(options), threadPool_(CONSENSUS_ASYNC_TASK_THREAD_POOL_SIZE)
+  : state_(state), p2p_(p2p), storage_(storage), options_(options)
 {
 }
 
 Consensus::~Consensus() {
   stop();
-  threadPool_.join();
 }
 
 void Consensus::validatorLoop() {
-  LOGINFO("Starting validator loop.");
+  LOGDEBUG("Starting validator loop.");
+  threadPool_ = std::make_unique<boost::asio::thread_pool>(CONSENSUS_ASYNC_TASK_THREAD_POOL_SIZE);
   Validator me(Secp256k1::toAddress(Secp256k1::toUPub(this->options_.getValidatorPrivKey())));
   while (!this->stop_) {
     std::shared_ptr<const FinalizedBlock> latestBlock = this->storage_.latest();
@@ -51,25 +55,76 @@ void Consensus::validatorLoop() {
       std::this_thread::sleep_for(std::chrono::microseconds(10));
     }
   }
+  LOGDEBUG("Joining thread pool.");
+  threadPool_->join();
+  LOGDEBUG("Joined thread pool.");
+  threadPool_.reset();
+  LOGDEBUG("Validator loop done.");
 }
 
 void Consensus::requestValidatorTxsFromAllPeers() {
   // Try to get more transactions from other nodes within the network
   auto sessionIDs = this->p2p_.getSessionsIDs(P2P::NodeType::NORMAL_NODE);
+  std::atomic<int> tasksRemaining = static_cast<int>(sessionIDs.size());
+  std::mutex mutex;
+  std::condition_variable cv;
+  std::atomic<bool> abort = false; // If the thread pool is not large enough and requests get queued
   for (const auto& nodeId : sessionIDs) {
-    boost::asio::post(threadPool_, [this, nodeId]() {
-      if (this->stop_) { return; }
-      auto txList = this->p2p_.requestValidatorTxs(nodeId);
-      if (this->stop_) { return; }
-      for (const auto& tx : txList) {
-        this->state_.addValidatorTx(tx);
+    boost::asio::post(*threadPool_, [this, nodeId, &tasksRemaining, &cv, &abort]() {
+      try {
+        if (this->stop_ || abort) {
+          --tasksRemaining;
+          cv.notify_one();
+          return;
+        }
+        auto txList = this->p2p_.requestValidatorTxs(nodeId);
+        if (this->stop_ || abort) {
+          --tasksRemaining;
+          cv.notify_one();
+          return;
+        }
+        for (const auto& tx : txList) {
+          this->state_.addValidatorTx(tx);
+        }
+      } catch (const std::exception& ex) {
+        LOGWARNING("Unexpected exception caught: " + std::string(ex.what()));
       }
+      --tasksRemaining;
+      cv.notify_one();
     });
+  }
+  std::unique_lock<std::mutex> lock(mutex);
+  // Put a time limit for posting validator transactions requests to peers.
+  bool completed = cv.wait_for(lock, std::chrono::seconds(10), [&tasksRemaining]() {
+    return tasksRemaining.load() <= 0;
+  });
+  lock.unlock();
+  if (!completed || tasksRemaining > 0) {
+    LOGWARNING(
+      "Consensus thread pool took too long to request validator txs from all peers; remaining tasks = "
+      + std::to_string(tasksRemaining) + ", completed: " + std::to_string(completed)
+    );
+    // Signal that all queued tasks in the thread pool should be aborted.
+    // Wait for all in-flight tasks to complete.
+    abort = true;
+    lock.lock();
+    completed = cv.wait_for(lock, std::chrono::seconds(10), [&tasksRemaining]() {
+      return tasksRemaining.load() <= 0;
+    });
+    lock.unlock();
+    if (!completed || tasksRemaining > 0) {
+      // This is very much likely an error, as it should not take more than 2 seconds for
+      // any in-flight request to complete, which is significantly less than 10 seconds.
+      // This only triggers if there's some kind of synchronization or protocol bug somewhere.
+      LOGERROR(
+        "Timed out while waiting for all tasks to signal completion or abort; remaining tasks = "
+        + std::to_string(tasksRemaining) + ", completed: " + std::to_string(completed)
+      );
+    }
   }
 }
 
 void Consensus::doValidatorBlock() {
-  // TODO: Improve this somehow.
   // Wait until we are ready to create the block
   auto start = std::chrono::high_resolution_clock::now();
   LOGDEBUG("Block creator: waiting for txs");
@@ -89,16 +144,14 @@ void Consensus::doValidatorBlock() {
   // Wait until we have all required transactions to create the block.
   auto waitForTxs = std::chrono::high_resolution_clock::now();
   bool logged = false;
-  // NOTE: Change this to "< 0" to allow for the production of empty blocks
-  //       which is useful when profiling block production latency.
-  while (this->state_.getMempoolSize() < 1) {
+  while (this->state_.getMempoolSize() < MIN_TRANSACTIONS_PER_BLOCK) {
     if (!logged) {
       logged = true;
       LOGDEBUG("Waiting for at least one transaction in the mempool.");
     }
     if (this->stop_) return;
-
     // Try to get transactions from the network.
+    // Should not really need to do async/parallel requests here.
     for (const auto& nodeId : this->p2p_.getSessionsIDs(P2P::NodeType::NORMAL_NODE)) {
       LOGDEBUG("Requesting txs...");
       if (this->stop_) break;
@@ -107,6 +160,11 @@ void Consensus::doValidatorBlock() {
       for (const auto& tx : txList) {
         TxBlock txBlock(tx);
         this->state_.addTx(std::move(txBlock));
+      }
+      // As soon as we have hit the criteria of minimum number of transactions for
+      // producing a block, stop pulling transactions from peers and continue.
+      if (this->state_.getMempoolSize() >= MIN_TRANSACTIONS_PER_BLOCK) {
+        break;
       }
     }
     std::this_thread::sleep_for(std::chrono::microseconds(10));

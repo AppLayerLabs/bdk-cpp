@@ -21,7 +21,7 @@ class Consensus : public Log::LogicalLocationProvider {
     std::future<void> loopFuture_;  ///< Future object holding the thread for the consensus loop.
     std::atomic<bool> stop_ = false; ///< Flag for stopping the consensus processing.
 
-    boost::asio::thread_pool threadPool_; ///< Thread pool for async tasks
+    std::unique_ptr<boost::asio::thread_pool> threadPool_; ///< Thread pool for async tasks
 
     /**
      * Pull all validator votes known by all direct peers and into the blockchain state.

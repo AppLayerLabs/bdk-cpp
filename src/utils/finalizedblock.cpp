@@ -14,7 +14,7 @@ See the LICENSE.txt file in the project root for more information.
 FinalizedBlock FinalizedBlock::fromBytes(const bytes::View bytes, const uint64_t& requiredChainId) {
   try {
     // Verify minimum size for a valid block
-    SLOGTRACE("Deserializing block...");
+    SLOGXTRACE("Deserializing block...");
     if (bytes.size() < 217) throw std::length_error("Invalid block size - too short");
 
     // Parsing fixed-size fields
@@ -27,7 +27,7 @@ FinalizedBlock FinalizedBlock::fromBytes(const bytes::View bytes, const uint64_t
     uint64_t nHeight = UintConv::bytesToUint64(bytes.subspan(201, 8));
     uint64_t txValidatorStart = UintConv::bytesToUint64(bytes.subspan(209, 8));
 
-    SLOGTRACE("Deserializing transactions...");
+    SLOGXTRACE("Deserializing transactions...");
 
     std::vector<TxBlock> txs;
     std::vector<TxValidator> txValidators;
