@@ -82,12 +82,16 @@ namespace P2P {
     // Log the Session failure
     if (this->nodeId_.second > 0) {
       // nodeId_ is valid
-      LOGDEBUG("Peer connection " + toString(this->nodeId_) + " error (" +
-               func + ", " + std::to_string(ec.value()) + "): " + ec.message());
+      LOGXTRACE(
+        "Peer connection " + toString(this->nodeId_) + " error (" +
+        func + ", " + std::to_string(ec.value()) + "): " + ec.message()
+      );
     } else {
       // nodeId_ is not resolved, so use the next best thing (addressAndPortStr)
-      LOGDEBUG("Peer connection (INBOUND non-handshaked) (" + this->addressAndPortStr() + ") error (" +
-                func + ", " + std::to_string(ec.value()) + "): " + ec.message());
+      LOGXTRACE(
+        "Peer connection (INBOUND non-handshaked) (" + this->addressAndPortStr() + ") error (" +
+        func + ", " + std::to_string(ec.value()) + "): " + ec.message()
+      );
     }
 
     // Close the socket.
@@ -399,7 +403,7 @@ namespace P2P {
       peerStr = this->addressAndPortStr() + " (INBOUND non-handshaked)";
     }
 
-    LOGTRACE("Closing peer connection: " + peerStr + " (reason: " + reason + ")");
+    LOGXTRACE("Closing peer connection: " + peerStr + " (reason: " + reason + ")");
 
     boost::system::error_code ec;
 

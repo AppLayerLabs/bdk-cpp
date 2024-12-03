@@ -209,7 +209,7 @@ TxStatus rdPoS::addValidatorTx(const TxValidator& tx) {
     }
   }
   if (!participates) {
-    LOGTRACE("TxValidator sender is not a validator or is not participating in this rdPoS round.");
+    LOGXTRACE("TxValidator sender is not a validator or is not participating in this rdPoS round.");
     return TxStatus::InvalidUnexpected;
   }
 

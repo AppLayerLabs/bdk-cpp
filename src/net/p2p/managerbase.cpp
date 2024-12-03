@@ -627,7 +627,7 @@ namespace P2P {
       return;
     }
     auto request = std::make_shared<const Message>(RequestEncoder::ping());
-    LOGTRACE("Pinging " + toString(nodeId));
+    LOGXTRACE("Pinging " + toString(nodeId));
     auto requestPtr = sendRequestTo(nodeId, request);
     if (requestPtr == nullptr) throw DynamicException(
       "Failed to send ping to " + toString(nodeId)
@@ -643,7 +643,7 @@ namespace P2P {
       return {};
     }
     auto request = std::make_shared<const Message>(RequestEncoder::requestNodes());
-    LOGTRACE("Requesting nodes from " + toString(nodeId));
+    LOGXTRACE("Requesting nodes from " + toString(nodeId));
     auto requestPtr = sendRequestTo(nodeId, request);
     if (requestPtr == nullptr) {
       LOGDEBUG("Request to " + toString(nodeId) + " failed.");

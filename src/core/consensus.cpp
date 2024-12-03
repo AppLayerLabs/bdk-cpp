@@ -137,7 +137,11 @@ void Consensus::doValidatorBlock() {
     }
     requestValidatorTxsFromAllPeers();
     validatorMempoolSize = this->state_.rdposGetMempoolSize();
-    std::this_thread::sleep_for(std::chrono::microseconds(10));
+    if (validatorMempoolSize == this->state_.rdposGetMinValidators() * 2 || this->stop_) {
+      break;
+    }
+    // Wait a significant amount of time before firing off another batch of network requests to all peers
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
   }
   LOGDEBUG("Validator ready to create a block");
 
@@ -310,7 +314,11 @@ void Consensus::doValidatorTx(const uint64_t& nHeight, const Validator& me) {
     }
     requestValidatorTxsFromAllPeers();
     validatorMempoolSize = this->state_.rdposGetMempoolSize();
-    std::this_thread::sleep_for(std::chrono::microseconds(10));
+    if (validatorMempoolSize == this->state_.rdposGetMinValidators() * 2 || this->stop_) {
+      break;
+    }
+    // Wait a significant amount of time before firing off another batch of network requests to all peers
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
   }
 
   LOGDEBUG("Broadcasting random transaction");

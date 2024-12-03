@@ -334,7 +334,7 @@ namespace P2P{
   // Somehow change to wait_for.
   std::vector<TxValidator> ManagerNormal::requestValidatorTxs(const NodeID& nodeId) {
     auto request = std::make_shared<const Message>(RequestEncoder::requestValidatorTxs());
-    LOGTRACE("Requesting validatorTxs from " + toString(nodeId));
+    LOGXTRACE("Requesting validatorTxs from " + toString(nodeId));
     auto requestPtr = this->sendRequestTo(nodeId, request);
     if (requestPtr == nullptr) {
       LOGDEBUG("Request to " + toString(nodeId) + " failed.");
@@ -356,7 +356,7 @@ namespace P2P{
 
   std::vector<TxBlock> ManagerNormal::requestTxs(const NodeID& nodeId) {
     auto request = std::make_shared<const Message>(RequestEncoder::requestTxs());
-    LOGTRACE("Requesting txs from " + toString(nodeId));
+    LOGXTRACE("Requesting txs from " + toString(nodeId));
     auto requestPtr = this->sendRequestTo(nodeId, request);
     if (requestPtr == nullptr) {
       LOGDEBUG("Request to " + toString(nodeId) + " failed.");
@@ -378,7 +378,7 @@ namespace P2P{
 
   NodeInfo ManagerNormal::requestNodeInfo(const NodeID& nodeId) {
     auto request = std::make_shared<const Message>(RequestEncoder::info(this->storage_.latest(), this->nodeConns_.getConnectedWithNodeType(), this->options_));
-    LOGTRACE("Requesting nodes from " + toString(nodeId));
+    LOGXTRACE("Requesting nodes from " + toString(nodeId));
     auto requestPtr = sendRequestTo(nodeId, request);
     if (requestPtr == nullptr) {
       LOGDEBUG("Request to " + toString(nodeId) + " failed.");
