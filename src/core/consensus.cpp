@@ -135,8 +135,8 @@ void Consensus::doValidatorBlock() {
       lastLog = std::make_unique<uint64_t>(validatorMempoolSize);
       LOGDEBUG("Block creator has: " + std::to_string(validatorMempoolSize) + " transactions in mempool");
     }
-    validatorMempoolSize = this->state_.rdposGetMempoolSize();
     requestValidatorTxsFromAllPeers();
+    validatorMempoolSize = this->state_.rdposGetMempoolSize();
     std::this_thread::sleep_for(std::chrono::microseconds(10));
   }
   LOGDEBUG("Validator ready to create a block");
@@ -308,8 +308,8 @@ void Consensus::doValidatorTx(const uint64_t& nHeight, const Validator& me) {
       lastLog = std::make_unique<uint64_t>(validatorMempoolSize);
       LOGDEBUG("Validator has: " + std::to_string(validatorMempoolSize) + " transactions in mempool");
     }
-    validatorMempoolSize = this->state_.rdposGetMempoolSize();
     requestValidatorTxsFromAllPeers();
+    validatorMempoolSize = this->state_.rdposGetMempoolSize();
     std::this_thread::sleep_for(std::chrono::microseconds(10));
   }
 
