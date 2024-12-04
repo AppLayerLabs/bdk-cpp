@@ -65,20 +65,26 @@ void Consensus::validatorLoop() {
 void Consensus::requestValidatorTxsFromAllPeers() {
   // Try to get more transactions from other nodes within the network
   auto sessionIDs = this->p2p_.getSessionsIDs(P2P::NodeType::NORMAL_NODE);
-  std::atomic<int> tasksRemaining = static_cast<int>(sessionIDs.size());
+  int tasksRemaining = static_cast<int>(sessionIDs.size());
+  if (tasksRemaining == 0) {
+    return;
+  }
   std::mutex mutex;
   std::condition_variable cv;
   std::atomic<bool> abort = false; // If the thread pool is not large enough and requests get queued
+  std::unique_lock<std::mutex> lock(mutex); // Lock before tasks are pushed so we don't have to read the counter before waiting on cv
   for (const auto& nodeId : sessionIDs) {
-    boost::asio::post(*threadPool_, [this, nodeId, &tasksRemaining, &cv, &abort]() {
+    boost::asio::post(*threadPool_, [this, nodeId, &tasksRemaining, &cv, &mutex, &abort]() {
       try {
         if (this->stop_ || abort) {
+          std::unique_lock<std::mutex> lock(mutex);
           --tasksRemaining;
           cv.notify_one();
           return;
         }
         auto txList = this->p2p_.requestValidatorTxs(nodeId);
         if (this->stop_ || abort) {
+          std::unique_lock<std::mutex> lock(mutex);
           --tasksRemaining;
           cv.notify_one();
           return;
@@ -89,28 +95,34 @@ void Consensus::requestValidatorTxsFromAllPeers() {
       } catch (const std::exception& ex) {
         LOGWARNING("Unexpected exception caught: " + std::string(ex.what()));
       }
+      std::unique_lock<std::mutex> lock(mutex);
       --tasksRemaining;
       cv.notify_one();
     });
   }
-  std::unique_lock<std::mutex> lock(mutex);
   // Put a time limit for posting validator transactions requests to peers.
   bool completed = cv.wait_for(lock, std::chrono::seconds(10), [&tasksRemaining]() {
-    return tasksRemaining.load() <= 0;
+    return tasksRemaining <= 0;
   });
+  int tasksFailed = tasksRemaining;
   lock.unlock();
-  if (!completed || tasksRemaining > 0) {
+  if (!completed || tasksFailed) {
     LOGWARNING(
       "Consensus thread pool took too long to request validator txs from all peers; remaining tasks = "
-      + std::to_string(tasksRemaining) + ", completed: " + std::to_string(completed)
+      + std::to_string(tasksFailed) + ", completed?: " + std::to_string(completed)
     );
     // Signal that all queued tasks in the thread pool should be aborted.
     // Wait for all in-flight tasks to complete.
     abort = true;
     lock.lock();
-    completed = cv.wait_for(lock, std::chrono::seconds(10), [&tasksRemaining]() {
-      return tasksRemaining.load() <= 0;
-    });
+    if (tasksRemaining <= 0) {
+      completed = true;
+    } else {
+      completed = cv.wait_for(lock, std::chrono::seconds(10), [&tasksRemaining]() {
+        return tasksRemaining <= 0;
+      });
+    }
+    tasksFailed = tasksRemaining;
     lock.unlock();
     if (!completed || tasksRemaining > 0) {
       // This is very much likely an error, as it should not take more than 2 seconds for
@@ -118,7 +130,7 @@ void Consensus::requestValidatorTxsFromAllPeers() {
       // This only triggers if there's some kind of synchronization or protocol bug somewhere.
       LOGERROR(
         "Timed out while waiting for all tasks to signal completion or abort; remaining tasks = "
-        + std::to_string(tasksRemaining) + ", completed: " + std::to_string(completed)
+        + std::to_string(tasksFailed) + ", completed?: " + std::to_string(completed)
       );
     }
   }

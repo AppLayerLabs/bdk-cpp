@@ -126,8 +126,11 @@ namespace P2P {
     // Stop the IO context, which should error out anything that it is still doing, then join with the threadpool,
     //   which will ensure the io_context object has completely stopped, even if it would still be managing any
     //   kind of resource.
+    LOGXTRACE("Net engine stopping - work guard");
     work_guard_.reset();
+    LOGXTRACE("Net engine stopping - io context");
     io_context_.stop();
+    LOGXTRACE("Net engine stopping - thread pool");
     threadPool_.join();
 
     LOGTRACE("Net engine stopped");
@@ -423,6 +426,7 @@ namespace P2P {
     requests_[0].clear();
     requests_[1].clear();
     activeRequests_ = 0;
+    lockRequests.unlock();
   }
 
   bool ManagerBase::isActive() const {

@@ -192,7 +192,7 @@ namespace P2P {
       /// Start P2P::Server and P2P::ClientFactory.
       virtual void start();
 
-      ///< Stop the P2P::Server and P2P::ClientFactory.
+      /// Stop the P2P::Server and P2P::ClientFactory.
       virtual void stop();
 
       /**
