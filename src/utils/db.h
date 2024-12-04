@@ -175,20 +175,13 @@ class DB {
      * @return The requested value, or an empty Bytes object if the key doesn't exist.
      */
     template <typename BytesContainer> Bytes get(const BytesContainer& key, const Bytes& pfx = {}) const {
-      std::unique_ptr<rocksdb::Iterator> it(this->db_->NewIterator(rocksdb::ReadOptions()));
       Bytes keyTmp = pfx;
       keyTmp.reserve(pfx.size() + key.size());
       keyTmp.insert(keyTmp.end(), key.cbegin(), key.cend());
       rocksdb::Slice keySlice(reinterpret_cast<const char*>(keyTmp.data()), keyTmp.size());
-      for (it->Seek(keySlice); it->Valid(); it->Next()) {
-        if (it->key().ToString() == keySlice) {
-          Bytes value(it->value().data(), it->value().data() + it->value().size());
-          it.reset();
-          return value;
-        }
-      }
-      it.reset();
-      return {};
+      std::string ret; // std::string is used to avoid copying the value.
+      this->db_->Get(rocksdb::ReadOptions(), keySlice, &ret);
+      return Bytes(ret.begin(), ret.end());
     }
 
     /**
