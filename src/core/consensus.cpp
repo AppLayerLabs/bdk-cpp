@@ -130,6 +130,18 @@ void Consensus::doValidatorBlock() {
 
   // Get a copy of the mempool and current timestamp
   auto chainTxs = this->state_.getMempool();
+  // We need to filter chainTxs to only allow one transaction per address
+  // Otherwise we will have a nonce mismatch
+  std::unordered_map<Address, TxBlock, SafeHash> chainTxsMap;
+  for (const auto& tx : chainTxs) {
+    chainTxsMap.insert({tx.getFrom(), tx});
+  }
+  chainTxs.clear();
+  // Now copy the map back to the vector
+  for (const auto& [addr, tx] : chainTxsMap) {
+    chainTxs.emplace_back(tx);
+  }
+
   uint64_t timestamp = std::chrono::duration_cast<std::chrono::microseconds>(
     std::chrono::system_clock::now().time_since_epoch()
   ).count();
