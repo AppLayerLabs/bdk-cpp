@@ -375,23 +375,25 @@ BlockValidationStatus State::tryProcessNextBlock(FinalizedBlock&& block) {
   ContractGlobals::blockHeight_ = block.getNHeight();
   ContractGlobals::blockTimestamp_ = block.getTimestamp();
 
+  std::string blockNumStr = std::to_string(block.getNHeight());
+  std::string blockHashStr = block.getHash().hex().get();
+
   // Process transactions of the block within the current state
+  LOGTRACE("Block " + blockHashStr + " (#" + blockNumStr + ") processing...");
   uint64_t txIndex = 0;
   for (auto const& tx : block.getTxs()) {
     this->processTransaction(tx, blockHash, txIndex, block.getBlockRandomness());
+    LOGTRACE("Transaction " + tx.hash().hex().get() + " for block " + blockNumStr + " processed");
     txIndex++;
   }
 
   // Process rdPoS State
   this->rdpos_.processBlock(block);
 
+  LOGINFO("Block " + blockHashStr + " (#" + blockNumStr + ") processed");
+
   // Refresh the mempool based on the block transactions
   this->refreshMempool(block);
-  LOGINFO("Block " + block.getHash().hex().get() + " processed successfully.");
-  Utils::safePrint("Block: " + block.getHash().hex().get() + " height: " + std::to_string(block.getNHeight()) + " was added to the blockchain");
-  for (const auto& tx : block.getTxs()) {
-    Utils::safePrint("Transaction: " + tx.hash().hex().get() + " was accepted in the blockchain");
-  }
 
   // Move block to storage
   this->storage_.pushBlock(std::move(block));
