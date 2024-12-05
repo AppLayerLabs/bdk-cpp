@@ -36,6 +36,26 @@ void Consensus::validatorLoop() {
   }
 }
 
+void Consensus::requestValidatorTxsFromAllPeers() {
+  std::vector<std::thread> threads;
+  auto sessionIDs = this->p2p_.getSessionsIDs(P2P::NodeType::NORMAL_NODE);
+  for (const auto& nodeId : sessionIDs) {
+    threads.emplace_back([&, nodeId]() {
+      if (this->stop_) return;
+      auto txList = this->p2p_.requestValidatorTxs(nodeId);
+      if (this->stop_) return;
+      for (const auto& tx : txList) {
+        this->state_.addValidatorTx(tx);
+      }
+    });
+  }
+  for (auto& thread : threads) {
+    if (thread.joinable()) {
+      thread.join();
+    }
+  }
+}
+
 void Consensus::doValidatorBlock() {
   // TODO: Improve this somehow.
   // Wait until we are ready to create the block
@@ -50,11 +70,7 @@ void Consensus::doValidatorBlock() {
     }
     validatorMempoolSize = this->state_.rdposGetMempoolSize();
     // Try to get more transactions from other nodes within the network
-    for (const auto& nodeId : this->p2p_.getSessionsIDs(P2P::NodeType::NORMAL_NODE)) {
-      auto txList = this->p2p_.requestValidatorTxs(nodeId);
-      if (this->stop_) return;
-      for (const auto& tx : txList) this->state_.addValidatorTx(tx);
-    }
+    requestValidatorTxsFromAllPeers();
     std::this_thread::sleep_for(std::chrono::microseconds(10));
   }
   LOGDEBUG("Validator ready to create a block");
@@ -243,11 +259,7 @@ void Consensus::doValidatorTx(const uint64_t& nHeight, const Validator& me) {
     }
     validatorMempoolSize = this->state_.rdposGetMempoolSize();
     // Try to get more transactions from other nodes within the network
-    for (const auto& nodeId : this->p2p_.getSessionsIDs(P2P::NodeType::NORMAL_NODE)) {
-      if (this->stop_) return;
-      auto txList = this->p2p_.requestValidatorTxs(nodeId);
-      for (const auto& tx : txList) this->state_.addValidatorTx(tx);
-    }
+    requestValidatorTxsFromAllPeers();
     std::this_thread::sleep_for(std::chrono::microseconds(10));
   }
 

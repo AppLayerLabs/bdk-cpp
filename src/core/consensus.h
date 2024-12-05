@@ -24,6 +24,11 @@ class Consensus : public Log::LogicalLocationProvider {
     std::atomic<bool> stop_ = false; ///< Flag for stopping the consensus processing.
 
     /**
+     * Pull all validator votes known by all direct peers and into the blockchain state.
+     */
+    void requestValidatorTxsFromAllPeers();
+
+    /**
      * Create and broadcast a Validator block (called by validatorLoop()).
      * If the node is a Validator and it has to create a new block,
      * this function will be called, the new block will be created based on the
