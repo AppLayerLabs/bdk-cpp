@@ -55,6 +55,7 @@ void Consensus::pullerLoop() {
   std::unordered_map<P2P::NodeID, std::future<std::vector<TxBlock>>, SafeHash> txBlockRequests;
   std::unordered_map<P2P::NodeID, std::future<std::vector<TxValidator>>, SafeHash> txValidatorRequests;
   while (!this->stop_) {
+    std::this_thread::sleep_for(std::chrono::milliseconds(10));
     // First, lets get a list of all nodes we are connected to.
     auto nodes = this->p2p_.getSessionsIDs(P2P::NodeType::NORMAL_NODE);
     // Now, we remove from the requests map all nodes that are not connected anymore.
@@ -73,6 +74,69 @@ void Consensus::pullerLoop() {
         ++it;
       }
     }
+
+    // Check if the latest block is older than 500ms. If yes, attempt to sync blocks.
+    {
+      // Get the timestamp of the latest known block
+      auto latestBlock = this->storage_.latest();
+      auto lastBlockTimestamp = latestBlock->getTimestamp();
+      // Get current system time
+      auto now = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+      // Compute the age of the block in milliseconds
+      auto blockAge = now - lastBlockTimestamp;
+      if (blockAge > 500000) {
+        // We are considered "behind" and need to sync blocks.
+        // Get connected nodes with their info
+        auto connected = this->p2p_.getNodeConns().getConnected();
+        if (!connected.empty()) {
+          // Find the node with the highest block height
+          std::pair<P2P::NodeID, uint64_t> highestNode = {P2P::NodeID{}, 0};
+          for (auto & [nodeId, nodeInfo] : connected) {
+            if (nodeInfo.latestBlockHeight() > highestNode.second) {
+              highestNode = {nodeId, nodeInfo.latestBlockHeight()};
+            }
+          }
+          auto currentNHeight = latestBlock->getNHeight();
+          // If we are not synced
+          if (highestNode.second > currentNHeight) {
+            Utils::safePrint("Block is older than 500ms, attempting to sync blocks.");
+            Utils::safePrint("Highest node with height: " + std::to_string(highestNode.second));
+            // For example:
+            uint64_t blocksPerRequest = 100;
+            uint64_t bytesPerRequestLimit = 1'000'000;
+            auto downloadNHeight = currentNHeight + 1;
+            auto downloadNHeightEnd = downloadNHeight + blocksPerRequest - 1;
+
+            // Request the next range of blocks from the best node
+            Utils::safePrint("Requesting blocks [" + std::to_string(downloadNHeight) + "," + std::to_string(downloadNHeightEnd) + "]");
+            auto result = this->p2p_.requestBlock(
+              highestNode.first, downloadNHeight, downloadNHeightEnd, bytesPerRequestLimit
+            );
+            Utils::safePrint("Received " + std::to_string(result.size()));
+
+            // If we got blocks, process them
+            if (!result.empty()) {
+              try {
+                for (auto & block : result) {
+                  if (block.getNHeight() != downloadNHeight) {
+                    this->p2p_.disconnectSession(highestNode.first);
+                    break;
+                  }
+                  this->state_.tryProcessNextBlock(std::move(block));
+                  downloadNHeight++;
+                }
+              } catch (std::exception &e) {
+                // We actually don't do anything here, because broadcast might have received a block
+              }
+            }
+          }
+        } else {
+          // Not connected to any node? just wait for the next loop...
+          continue;
+        }
+      }
+    }
+
     // Now, we request transactions from all nodes that we are connected to AND we don't have a request for.
     for (const auto& nodeId : nodes) {
       if (txBlockRequests.find(nodeId) == txBlockRequests.end()) {
@@ -316,6 +380,8 @@ void Consensus::doValidatorTx(const uint64_t& nHeight, const Validator& me) {
 void Consensus::start() {
   if (this->state_.rdposGetIsValidator() && !this->loopFuture_.valid()) {
     this->loopFuture_ = std::async(std::launch::async, &Consensus::validatorLoop, this);
+  }
+  if (!this->pullFuture_.valid()) {
     this->pullFuture_ = std::async(std::launch::async, &Consensus::pullerLoop, this);
   }
 }
@@ -325,6 +391,10 @@ void Consensus::stop() {
     this->stop_ = true;
     this->loopFuture_.wait();
     this->loopFuture_.get();
+  }
+  if (this->pullFuture_.valid()) {
+    this->pullFuture_.wait();
+    this->pullFuture_.get();
   }
 }
 

@@ -103,7 +103,7 @@ mkdir local_testnet
 if [ "$ONLY_DEPLOY" = false ]; then
   ## Build the project
   cd build_local_testnet
-  cmake -DDEBUG=$DEBUG ..
+  cmake -DDEBUG=$DEBUG -DBUILD_TESTS=OFF -DBUILD_VARIABLES_TESTS=OFF ..
   make -j${CORES}
 fi
 
@@ -744,7 +744,7 @@ if [ "$DEPLOY" = true ]; then
 
   echo "Launching Normal Node 6"
   cd ../local_testnet_normal6
-  tmux new-session -d -s local_testnet_normal6 './bdkd || bash && bash'
+  tmux new-session -d -s local_testnet_normal6 './bdkd > output.txt || bash && bash'
 
   # Finish deploying
   GREEN=$'\e[0;32m'
