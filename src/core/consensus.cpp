@@ -9,25 +9,39 @@ See the LICENSE.txt file in the project root for more information.
 
 void Consensus::validatorLoop() {
   LOGINFO("Starting validator loop.");
+  uint64_t loop = this->storage_.latest()->getNHeight() + 1;
   Validator me(Secp256k1::toAddress(Secp256k1::toUPub(this->options_.getValidatorPrivKey())));
   while (!this->stop_) {
-    std::shared_ptr<const FinalizedBlock> latestBlock = this->storage_.latest();
+    Utils::safePrint("Validator: " + me.hex(true).get() + " Loop: " + std::to_string(loop++));
+    auto latestBlockHeight = this->storage_.latest()->getNHeight();
 
     // Check if validator is within the current validator list.
     const auto currentRandomList = this->state_.rdposGetRandomList();
     bool isBlockCreator = false;
     if (currentRandomList[0] == me) {
       isBlockCreator = true;
+      Utils::safePrint("Validator: " + me.hex(true).get() + " doValidatorBlock nHeight: " + std::to_string(latestBlockHeight + 1));
       this->doValidatorBlock();
     }
     if (this->stop_) return;
-    if (!isBlockCreator) this->doValidatorTx(latestBlock->getNHeight() + 1, me);
+    if (!isBlockCreator) {
+      // Check if we are a validator that has to create a transaction.
+      uint64_t index = 1;
+      for (uint64_t i = 0; i < this->state_.rdposGetMinValidators(); ++i) {
+        if (currentRandomList[index] == me) {
+          this->doValidatorTx(latestBlockHeight + 1, me);
+          break;
+        }
+        ++index;
+      }
+    }
 
     // Keep looping while we don't reach the latest block
     bool logged = false;
-    while (latestBlock == this->storage_.latest() && !this->stop_) {
+    while (latestBlockHeight == this->storage_.latest()->getNHeight() && !this->stop_) {
       if (!logged) {
         LOGDEBUG("Waiting for next block to be created.");
+        Utils::safePrint("Validator: " + me.hex(true).get() + " Waiting for next block to be created.");
         logged = true;
       }
       // Wait for next block to be created.
@@ -35,6 +49,71 @@ void Consensus::validatorLoop() {
     }
   }
 }
+
+void Consensus::pullerLoop() {
+  // List of all current existing requests towards other nodes. A list for TxBlock and a list for TxValidator.
+  std::unordered_map<P2P::NodeID, std::future<std::vector<TxBlock>>, SafeHash> txBlockRequests;
+  std::unordered_map<P2P::NodeID, std::future<std::vector<TxValidator>>, SafeHash> txValidatorRequests;
+  while (!this->stop_) {
+    // First, lets get a list of all nodes we are connected to.
+    auto nodes = this->p2p_.getSessionsIDs(P2P::NodeType::NORMAL_NODE);
+    // Now, we remove from the requests map all nodes that are not connected anymore.
+    for (auto it = txBlockRequests.begin(); it != txBlockRequests.end();) {
+      if (std::find(nodes.begin(), nodes.end(), it->first) == nodes.end()) {
+        it = txBlockRequests.erase(it);
+      } else {
+        ++it;
+      }
+    }
+    // Same thing but for the validator transactions.
+    for (auto it = txValidatorRequests.begin(); it != txValidatorRequests.end();) {
+      if (std::find(nodes.begin(), nodes.end(), it->first) == nodes.end()) {
+        it = txValidatorRequests.erase(it);
+      } else {
+        ++it;
+      }
+    }
+    // Now, we request transactions from all nodes that we are connected to AND we don't have a request for.
+    for (const auto& nodeId : nodes) {
+      if (txBlockRequests.find(nodeId) == txBlockRequests.end()) {
+        txBlockRequests[nodeId] = std::async(std::launch::async, &P2P::ManagerNormal::requestTxs, &this->p2p_, nodeId);
+      }
+      if (txValidatorRequests.find(nodeId) == txValidatorRequests.end()) {
+        txValidatorRequests[nodeId] = std::async(std::launch::async, &P2P::ManagerNormal::requestValidatorTxs, &this->p2p_, nodeId);
+      }
+    }
+    // Loop through all the current requests **without blocking**.
+    for (auto it = txBlockRequests.begin(); it != txBlockRequests.end();) {
+      auto& future = it->second;
+      if (future.wait_for(std::chrono::seconds(0)) == std::future_status::ready) {
+        auto txList = future.get();
+        for (const auto& tx : txList) {
+          TxBlock txBlock(tx);
+          this->state_.addTx(std::move(txBlock));
+        }
+        // Remove the request from the list.
+        it = txBlockRequests.erase(it);
+      } else {
+        ++it;
+      }
+    }
+    // Same thing but for the validator transactions.
+    for (auto it = txValidatorRequests.begin(); it != txValidatorRequests.end();) {
+      auto& future = it->second;
+      if (future.wait_for(std::chrono::seconds(0)) == std::future_status::ready) {
+        auto txList = future.get();
+        for (const auto& tx : txList) {
+          this->state_.addValidatorTx(tx);
+        }
+        // Remove the request from the list.
+        it = txValidatorRequests.erase(it);
+      } else {
+        ++it;
+      }
+    }
+  }
+}
+
 
 void Consensus::doValidatorBlock() {
   // TODO: Improve this somehow.
@@ -49,12 +128,6 @@ void Consensus::doValidatorBlock() {
       LOGDEBUG("Block creator has: " + std::to_string(validatorMempoolSize) + " transactions in mempool");
     }
     validatorMempoolSize = this->state_.rdposGetMempoolSize();
-    // Try to get more transactions from other nodes within the network
-    for (const auto& nodeId : this->p2p_.getSessionsIDs(P2P::NodeType::NORMAL_NODE)) {
-      auto txList = this->p2p_.requestValidatorTxs(nodeId);
-      if (this->stop_) return;
-      for (const auto& tx : txList) this->state_.addValidatorTx(tx);
-    }
     std::this_thread::sleep_for(std::chrono::microseconds(10));
   }
   LOGDEBUG("Validator ready to create a block");
@@ -68,18 +141,6 @@ void Consensus::doValidatorBlock() {
       LOGDEBUG("Waiting for at least one transaction in the mempool.");
     }
     if (this->stop_) return;
-
-    // Try to get transactions from the network.
-    for (const auto& nodeId : this->p2p_.getSessionsIDs(P2P::NodeType::NORMAL_NODE)) {
-      LOGDEBUG("Requesting txs...");
-      if (this->stop_) break;
-      auto txList = this->p2p_.requestTxs(nodeId);
-      if (this->stop_) break;
-      for (const auto& tx : txList) {
-        TxBlock txBlock(tx);
-        this->state_.addTx(std::move(txBlock));
-      }
-    }
     std::this_thread::sleep_for(std::chrono::microseconds(10));
   }
 
@@ -196,6 +257,7 @@ void Consensus::doValidatorBlock() {
 }
 
 void Consensus::doValidatorTx(const uint64_t& nHeight, const Validator& me) {
+  Utils::safePrint("Validator: " + me.hex(true).get() + " doValidatorTx nHeight: " + std::to_string(nHeight));
   Hash randomness = Hash::random();
   Hash randomHash = Utils::sha3(randomness);
   LOGDEBUG("Creating random Hash transaction");
@@ -242,12 +304,6 @@ void Consensus::doValidatorTx(const uint64_t& nHeight, const Validator& me) {
       LOGDEBUG("Validator has: " + std::to_string(validatorMempoolSize) + " transactions in mempool");
     }
     validatorMempoolSize = this->state_.rdposGetMempoolSize();
-    // Try to get more transactions from other nodes within the network
-    for (const auto& nodeId : this->p2p_.getSessionsIDs(P2P::NodeType::NORMAL_NODE)) {
-      if (this->stop_) return;
-      auto txList = this->p2p_.requestValidatorTxs(nodeId);
-      for (const auto& tx : txList) this->state_.addValidatorTx(tx);
-    }
     std::this_thread::sleep_for(std::chrono::microseconds(10));
   }
 
@@ -260,6 +316,7 @@ void Consensus::doValidatorTx(const uint64_t& nHeight, const Validator& me) {
 void Consensus::start() {
   if (this->state_.rdposGetIsValidator() && !this->loopFuture_.valid()) {
     this->loopFuture_ = std::async(std::launch::async, &Consensus::validatorLoop, this);
+    this->pullFuture_ = std::async(std::launch::async, &Consensus::pullerLoop, this);
   }
 }
 

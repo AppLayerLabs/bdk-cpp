@@ -90,7 +90,7 @@ inline TestBlockchainWrapper initialize(const std::vector<Hash>& validatorPrivKe
         2000,
         10000,
         1000,
-        4,
+        7,
         discoveryNodes,
         genesis,
         genesisTimestamp,
@@ -116,7 +116,7 @@ inline TestBlockchainWrapper initialize(const std::vector<Hash>& validatorPrivKe
       2000,
       10000,
       1000,
-      4,
+      7,
       discoveryNodes,
       genesis,
       genesisTimestamp,
@@ -202,7 +202,7 @@ inline FinalizedBlock createValidBlock(const std::vector<Hash>& validatorPrivKey
 
   // Check rdPoS mempool.
   auto rdPoSmempool = state.rdposGetMempool();
-  REQUIRE(state.rdposGetMempool().size() == 8);
+  REQUIRE(state.rdposGetMempool().size() == 14);
   for (const auto& tx : randomHashTxs) {
     REQUIRE(rdPoSmempool.contains(tx.hash()));
   }
