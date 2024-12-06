@@ -72,13 +72,12 @@ struct CometValidatorUpdate {
 };
 
 /**
- * Special values for CometTxStatus::height that signal different reasons for a transaction to not be included in a block yet.
+ * Special values for CometTxStatus::height that signal different reasons for a transaction not being included in a block yet.
  */
 enum CometTxStatusHeight : int64_t {
   NONE       = -9, ///< A state that is never set on the object.
-  QUEUED     = -4, ///< Transaction is queued internally in the Comet driver for sending via RPC to cometbft.
   SUBMITTING = -3, ///< Sent the transaction to the cometbft RPC port.
-  REJECTED   = -2, ///< Last we know about this transaction is that cometbft rejected it (won't add to mempool or send it etc).
+  REJECTED   = -2, ///< cometbft rejected the transaction or it never reached it due to some local communication error.
   SUBMITTED  = -1  ///< cometbft acknowledged and accepted it.
 };
 
@@ -228,24 +227,27 @@ class CometListener {
 
     /**
      * Notification of completing a Comet::sendTransaction() request.
+     * @param tId The sendTransaction() request ticket ID.
      * @param tx Transaction that was previously sent via `Comet::sendTransaction()`.
-     * @param txId The value that was returned by `Comet::sendTransaction()` (the request ticket/id).
      * @param success `true` if sendTransaction() succeeded, `false` if the transaction failed to send.
      * @param txHash Transaction hash as CometBFT sees it (SHA256: https://docs.cometbft.com/main/spec/core/encoding).
      * @param response The full JSON-RPC response returned by cometbft.
      */
     virtual void sendTransactionResult(
-      const Bytes& tx, const uint64_t txId, const bool success, const std::string& txHash, const json& response
+      const uint64_t tId, const Bytes& tx, const bool success, const std::string& txHash, const json& response
     ) {
     }
 
     /**
      * Notification of completing a Comet::checkTransaction(txHash) request (i.e. when it is made via RPC).
+     * @param tId The checkTransaction() request ticket ID.
      * @param txHash The transaction hash that was checked.
      * @param success Whether the transaction check (/tx RPC call) was successful or not.
      * @param response The full JSON-RPC response returned by cometbft.
      */
-    virtual void checkTransactionResult(const std::string& txHash, const bool success, const json& response) {
+    virtual void checkTransactionResult(
+      const uint64_t tId, const std::string& txHash, const bool success, const json& response
+    ) {
     }
 
     /**
@@ -379,19 +381,20 @@ class Comet : public Log::LogicalLocationProvider {
      * Enqueue a request to check the status of a transaction given its hash (CometBFT hash, i.e. SHA256).
      * This will query the cometbft RPC /tx endpoint, not the internal tx cache.
      * @param txHash A hex string (no "0x") with the SHA256 hex of the transaction to look for.
+     * @return The ticket number for the transaction check request, or 0 on error (RPC call not made).
      */
-    void checkTransaction(const std::string& txHash);
+    uint64_t checkTransaction(const std::string& txHash);
 
     /**
      * Check the status of a transaction given its eth hash.
      * This will query the internal tx cache (which is also updated when FinalizedBlock is processed),
      * instead of the cometbft RPC /tx endpoint and so returns the result immediately instead of via
      * CometListener::checkTransactionResult().
-     * @param txHash The binary eth hash of the transaction.
+     * @param txEthHash The binary Ethereum-compatible hash of the transaction.
      * @param txStatus Outparam to be filled with the current status of the transaction if it is found.
      * @return `true` if a CometTxStatus for the tx was found, `false` otherwise (txStatus is unmodified).
      */
-    bool checkTransactionInCache(const Hash& txHash, CometTxStatus& txStatus);
+    bool checkTransactionInCache(const Hash& txEthHash, CometTxStatus& txStatus);
 
     /**
      * Make a JSON-RPC call to the RPC endpoint. The Comet engine must be in a state that has cometbft

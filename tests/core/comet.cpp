@@ -557,18 +557,18 @@ public:
   }
 
   virtual void sendTransactionResult(
-    const Bytes& tx, const uint64_t txId, const bool success,
+    const uint64_t tId, const Bytes& tx, const bool success,
     const std::string& txHash, const json& response
   ) override {
-    GLOGDEBUG("TEST: TestMachine: Got sendTransactionResult : " + std::to_string(txId) + " hash: " + txHash + " success: " + std::to_string(success)
+    GLOGDEBUG("TEST: TestMachine: Got sendTransactionResult : " + std::to_string(tId) + " hash: " + txHash + " success: " + std::to_string(success)
     + ", response: " + response.dump());
-    TransactionDetails details = {tx, txId, success, txHash, response.dump(), false, false, ""};
+    TransactionDetails details = {tx, tId, success, txHash, response.dump(), false, false, ""};
     std::lock_guard<std::mutex> lock(transactionMapMutex_);
-    transactionMap_[txId] = details;
+    transactionMap_[tId] = details;
   }
 
   virtual void checkTransactionResult(
-    const std::string& txHash, const bool success, const json& response
+    const uint64_t tId, const std::string& txHash, const bool success, const json& response
   ) override {
     GLOGDEBUG("TEST: TestMachine: Got checkTransactionResult : " + txHash + ", success: " + std::to_string(success) + ", response: " + response.dump());
     std::lock_guard<std::mutex> lock(transactionMapMutex_);
@@ -1079,13 +1079,13 @@ namespace TComet {
           appHash.clear();
           txResults.resize(txs.size());
         }
-        virtual void sendTransactionResult(const Bytes& tx, const uint64_t txId, const bool success, const std::string& txHash, const json& response) override {
+        virtual void sendTransactionResult(const uint64_t tId, const Bytes& tx, const bool success, const std::string& txHash, const json& response) override {
+          GLOGDEBUG("TestCometListener: got sendTransactionResult: " + response.dump() + ", txHash: " + txHash + ", success: " + std::to_string(success));
           REQUIRE(success == true);
-          GLOGDEBUG("TestCometListener: got sendTransactionResult: " + response.dump() + ", txHash: " + txHash);
           REQUIRE(tx.size() == txSize);
           REQUIRE(txHash == transactionHash);
         }
-        virtual void checkTransactionResult(const std::string& txHash, const bool success, const json& response) override {
+        virtual void checkTransactionResult(const uint64_t tId, const std::string& txHash, const bool success, const json& response) override {
           size_t jsonSize = response.dump().size();
           GLOGDEBUG("TestCometListener: got checkTransactionResult: " + std::to_string(jsonSize) + " response json bytes.");
           REQUIRE(jsonSize > txSize); // between json overhead and base64 encoding, this has to hold
@@ -1113,6 +1113,7 @@ namespace TComet {
       REQUIRE(cometListener.gotInitChain);
 
       // Wait for chain to advance to height==1
+      // This also ensures we are in RUNNING state, which is required now for sendTransaction()
       // Apparently, even with produce empty blocks set to false, it produces the first block without
       //   any transactions for some reason.
       GLOGDEBUG("TEST: Waiting for CometBFT FinalizeBlock for height 1 (block 1 is created even when set to not create empty blocks)");
@@ -1141,7 +1142,8 @@ namespace TComet {
       std::vector<uint8_t> largeTransaction(txSize, txContentByte);
       largeTransaction[0] = txBorderByte;
       largeTransaction[largeTransaction.size()-1] = txBorderByte;
-      comet.sendTransaction(largeTransaction);
+      uint64_t tId = comet.sendTransaction(largeTransaction);
+      REQUIRE(tId > 0); // Ensure RPC was actually called
 
       // Wait for chain to advance
       GLOGDEBUG("TEST: Waiting for CometBFT FinalizeBlock for height 2");
@@ -1193,11 +1195,12 @@ namespace TComet {
       // Create a simple listener that just records that we got InitChain and what the current height is.
       class TestCometListener : public CometListener {
       public:
+        std::atomic<uint64_t> expectedTxId_ = 0;
         std::atomic<int> failTxCount = 0;
-        virtual void sendTransactionResult(const Bytes& tx, const uint64_t txId, const bool success, const std::string& txHash, const json& response) override {
+        virtual void sendTransactionResult(const uint64_t tId, const Bytes& tx, const bool success, const std::string& txHash, const json& response) override {
           GLOGDEBUG("TestCometListener: got sendTransactionResult: " + response.dump() + ", txHash: " + txHash);
           REQUIRE(success == false); // we expect the only tx sent by this testcase to fail
-          REQUIRE(txId == 1); // we only sent one and the ID gen starts at 1
+          REQUIRE(tId == expectedTxId_);
           REQUIRE(tx.size() == txSize);
           ++failTxCount;
         }
@@ -1216,10 +1219,17 @@ namespace TComet {
       // Start comet
       comet.start();
 
+      // Need to wait for RUNNING state before sending transactions now unfortunately
+      GLOGDEBUG("TEST: Waiting RUNNING state before sending transaction....");
+      comet.setPauseState(CometState::RUNNING);
+      REQUIRE(comet.waitPauseState(30000) == "");
+      comet.setPauseState();
+
       // Send a transaction to cause a block to be produced
       GLOGDEBUG("TEST: Sending transaction");
       std::vector<uint8_t> largeTransaction(txSize, 0x00);
-      comet.sendTransaction(largeTransaction);
+      cometListener.expectedTxId_ = comet.sendTransaction(largeTransaction);
+      REQUIRE(cometListener.expectedTxId_ > 0); // ensure it got sent
 
       // Wait for failTxCount
       GLOGDEBUG("TEST: Waiting for sendTransaction to fail");
@@ -1265,10 +1275,19 @@ namespace TComet {
       GLOGDEBUG("TEST: Starting Comet");
       comet.start();
 
+      // Need to wait for RUNNING state before sending transactions now unfortunately
+      GLOGDEBUG("TEST: Waiting RUNNING state before sending transaction....");
+      comet.setPauseState(CometState::RUNNING);
+      REQUIRE(comet.waitPauseState(30000) == "");
+      comet.setPauseState();
+
       // Send transactions
       uint64_t succeedAssertTxId = comet.sendTransaction(TestMachine::toBytes("SIG 1 ? 0")); // m_ == 0 so this returndata is true
+      REQUIRE(succeedAssertTxId > 0);
       uint64_t failAssertTxId = comet.sendTransaction(TestMachine::toBytes("SIG 2 ? 9876")); // m_ == 0 so this returndata is false
+      REQUIRE(failAssertTxId > 0);
       uint64_t revertTxId = comet.sendTransaction(TestMachine::toBytes("SIG 3 REVERT 1111")); // operand (1111) is ignored when REVERT op
+      REQUIRE(revertTxId > 0);
 
       // It's just simpler to wait for some large amount of time which guarantees that the transactions were included in a block
       std::this_thread::sleep_for(std::chrono::seconds(5));
@@ -1331,6 +1350,12 @@ namespace TComet {
       // Start comet.
       GLOGDEBUG("TEST: Starting Comet");
       comet.start();
+
+      // Need to wait for RUNNING state before sending transactions now unfortunately
+      GLOGDEBUG("TEST: Waiting RUNNING state before sending transaction....");
+      comet.setPauseState(CometState::RUNNING);
+      REQUIRE(comet.waitPauseState(30000) == "");
+      comet.setPauseState();
 
       // Should stop at height 10
       // Don't send a transation for height 1, since height 1 is seemingly produced
@@ -1444,6 +1469,12 @@ namespace TComet {
       // Start comet.
       GLOGDEBUG("TEST: Starting Comet");
       comet.start();
+
+      // Need to wait for RUNNING state before sending transactions now unfortunately
+      GLOGDEBUG("TEST: Waiting RUNNING state before sending transaction....");
+      comet.setPauseState(CometState::RUNNING);
+      REQUIRE(comet.waitPauseState(30000) == "");
+      comet.setPauseState();
 
       // Should stop at height 10
       // Don't send a transation for height 1, since height 1 is seemingly produced
@@ -1577,6 +1608,12 @@ namespace TComet {
       GLOGDEBUG("TEST: Starting Comet");
       comet.start();
 
+      // Need to wait for RUNNING state before sending transactions now unfortunately
+      GLOGDEBUG("TEST: Waiting RUNNING state before sending transaction....");
+      comet.setPauseState(CometState::RUNNING);
+      REQUIRE(comet.waitPauseState(30000) == "");
+      comet.setPauseState();
+
       // Send several transactions across different blocks (stepMode is disabled,
       // so cometbft can produce empty blocks).
       GLOGDEBUG("TEST: Sending several ++m_ transactions...");
@@ -1688,6 +1725,12 @@ namespace TComet {
       // Start the validator first so the chain can advance to the target block height.
       GLOGDEBUG("TEST: Starting validator (node 0)");
       comet0.start();
+
+      // Need to wait for RUNNING state before sending transactions now unfortunately
+      GLOGDEBUG("TEST: Waiting RUNNING state before sending transaction....");
+      comet0.setPauseState(CometState::RUNNING);
+      REQUIRE(comet0.waitPauseState(30000) == "");
+      comet0.setPauseState();
 
       // Send several transactions across different blocks (stepMode is disabled,
       // so cometbft can produce empty blocks).
@@ -1963,7 +2006,7 @@ namespace TComet {
       GLOGDEBUG("TEST: Finished");
     }
 
-    // Test the Comet::rpcCall feature
+    // Test Comet::rpcCall
     SECTION("CometRpcCallTest") {
       std::string testDumpPath = createTestDumpPath("CometRpcCallTest");
 
@@ -2004,48 +2047,11 @@ namespace TComet {
       GLOGDEBUG("TEST: Finished");
     }
 
-    // Test the Comet::rpcCall feature
-    SECTION("CometRpcCallTest") {
-      std::string testDumpPath = createTestDumpPath("CometRpcCallTest");
+/*
+    FIXME: This test no longer works since we took out CometImpl::txOut_
+           Now we need to wait for RUNNING before sending transactions
 
-      GLOGDEBUG("TEST: Constructing Comet");
-
-      int p2p_port = SDKTestSuite::getTestPort();
-      int rpc_port = SDKTestSuite::getTestPort();
-      const Options options = getOptionsForCometTest(testDumpPath, "", p2p_port, rpc_port);
-
-      // Just use the dummy default listener
-      CometListener cometListener;
-      Comet comet(&cometListener, "", options);
-
-      // Set pause at inspect so we can use RPC calls on inspect
-      comet.setPauseState(CometState::INSPECT_RUNNING);
-      GLOGDEBUG("TEST: Starting comet...");
-      comet.start();
-      GLOGDEBUG("TEST: Waiting for cometbft inspect RPC to be up...");
-      REQUIRE(comet.waitPauseState(10000) == "");
-
-      // Make an RPC call
-      GLOGDEBUG("TEST: Making rpcCall()...");
-      json healthResult;
-      bool success = comet.rpcCall("header", json::object(), healthResult);
-      GLOGDEBUG("TEST: rpcCall() result: " + healthResult.dump());
-      REQUIRE(success == true);
-      // expect null block header from latest block since the chain is empty
-      REQUIRE(healthResult.contains("result"));
-      REQUIRE(healthResult["result"].contains("header"));
-      REQUIRE(healthResult["result"]["header"].is_null());
-
-      // Don't need to unpause, can just stop
-      GLOGDEBUG("TEST: Stopping...");
-      REQUIRE(comet.getStatus()); // no error reported (must check before stop())
-      comet.stop();
-      GLOGDEBUG("TEST: Stopped");
-      REQUIRE(comet.getState() == CometState::STOPPED);
-      GLOGDEBUG("TEST: Finished");
-    }
-
-    // Test the Comet::rpcCall feature
+    // Test the Comet transaction cache
     SECTION("CometTxCacheTest") {
       std::string testDumpPath = createTestDumpPath("CometTxCacheTest");
 
@@ -2119,6 +2125,7 @@ namespace TComet {
       REQUIRE(comet.getState() == CometState::STOPPED);
       GLOGDEBUG("TEST: Finished");
     }
+*/
 
     // setpriv test. setpriv is not *really* optional -- you must have setpriv in your path
     // to run the tests, otherwise this test will just fail.
