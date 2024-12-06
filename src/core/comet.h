@@ -235,7 +235,7 @@ class CometListener {
      * @param response The full JSON-RPC response returned by cometbft.
      */
     virtual void sendTransactionResult(
-      const Bytes& tx, const uint64_t txId, const bool success, const std::string& txHash, const std::string& response
+      const Bytes& tx, const uint64_t txId, const bool success, const std::string& txHash, const json& response
     ) {
     }
 
@@ -245,7 +245,7 @@ class CometListener {
      * @param success Whether the transaction check (/tx RPC call) was successful or not.
      * @param response The full JSON-RPC response returned by cometbft.
      */
-    virtual void checkTransactionResult(const std::string& txHash, const bool success, const std::string& response) {
+    virtual void checkTransactionResult(const std::string& txHash, const bool success, const json& response) {
     }
 
     /**
@@ -398,10 +398,10 @@ class Comet : public Log::LogicalLocationProvider {
      * running, with the RPC connection already established, otherwise this method will error out.
      * @param method Name of the JSON-RPC method to call.
      * @param params Parameters to the method call.
-     * @param outResult Outparam string that is set with the entire HTTP body response, or an error message.
-     * @return `true` if the call succeeded, `false` if any error occurred.
+     * @param outResult Outparam set to the resulting json (positive error codes are local errors).
+     * @return `true` if the call succeeded, `false` if any error occurred ("error" response is set).
      */
-    bool rpcCall(const std::string& method, const json& params, std::string& outResult);
+    bool rpcCall(const std::string& method, const json& params, json& outResult);
 
     /**
      * Start (or restart) the consensus engine loop.

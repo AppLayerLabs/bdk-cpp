@@ -13,8 +13,9 @@ See the LICENSE.txt file in the project root for more information.
 #include "../net/abci/abciserver.h"
 #include "../net/abci/abcihandler.h"
 
-#include <boost/beast.hpp>
 #include <boost/asio.hpp>
+#include <boost/beast.hpp>
+#include <boost/beast/websocket.hpp>
 
 #include "../libs/base64.hpp"
 
@@ -41,6 +42,311 @@ See the LICENSE.txt file in the project root for more information.
 #define COMET_PUB_KEY_TYPE "ed25519"
 
 // ---------------------------------------------------------------------------------------
+// WebsocketRPCConnection class
+// ---------------------------------------------------------------------------------------
+
+/**
+ * Create a compliant JSON-RPC object with the given error message.
+ * @param message The error message.
+ */
+json rpcMakeInternalError(const std::string& message) {
+  return {
+    {"jsonrpc", "2.0"},
+    {"error",
+      {
+        {"code", 1000},
+        {"message", message}
+      }
+    },
+    {"id", nullptr}
+  };
+}
+
+/**
+ * One websocket JSON-RPC connection to a cometbft process.
+ * This class is thread-safe.
+ */
+class WebsocketRPCConnection {
+  protected:
+    std::mutex rpcStateMutex_; ///< Mutex that serializes all method calls involving communication.
+    std::mutex rpcRequestMapMutex_; ///< Mutex to protect all access to rpcRequestMap_.
+    std::atomic<int> rpcServerPort_ = 0; ///< Configured localhost RPC port to connect to.
+    std::unique_ptr<boost::beast::websocket::stream<boost::asio::ip::tcp::socket>> rpcWs_; ///< RPC websocket connection.
+    boost::asio::io_context rpcIoc_; ///< io_context for the websocket connection.
+    boost::asio::strand<boost::asio::io_context::executor_type> rpcStrand_{rpcIoc_.get_executor()}; ///< Strand to serialize read/write operations.
+    std::thread rpcThread_; ///< Thread for rpcIoc_.run() (async RPC responses read loop).
+    std::unordered_map<uint64_t, json> rpcRequestMap_; ///< Map of request ID to response object, if any received.
+    uint64_t rpcRequestIdCounter_ = 0; ///< Client-side request ID generator for JSON-RPC calls.
+    std::atomic<bool> rpcRunning_ = false; ///< Flag to manage the async read thread lifecycle (must be atomic).
+
+    /**
+     * Schedule a read task.
+     * NOTE: The caller must have locked rpcStateMutex_.
+     */
+    void rpcAsyncRead();
+
+    /**
+     * Handle a read message and schedule the next read task if no error.
+     */
+    void rpcHandleAsyncRead(std::shared_ptr<boost::beast::flat_buffer> buffer, boost::system::error_code ec, std::size_t);
+
+    /**
+     * Start the persisted rpcSocket_ connection to the cometbft process_.
+     * NOTE: Does not acquire the mutex.
+     * @param port Localhost TCP listen port to connect to (-1 to use previously given port number).
+     * @return `true` if the connection was established or is already established, `false` if failed to
+     * connect or can't connect (e.g. RPC port number is not yet known).
+     */
+    bool rpcDoStart(int rpcPort = -1);
+
+    /**
+     * Stop the websocket connection to the cometbft process_ (if there is one).
+     * NOTE: Does not acquire the mutex.
+     */
+    void rpcDoStop();
+
+    /**
+     * Make an asynchronous (non-blocking) JSON-RPC call.
+     * NOTE: Does not acquire the mutex.
+     * @param method RPC method name to call.
+     * @param params Parameters to pass to the RPC method.
+     * @param retry If true, retries the RPC connection and the method call once if it fails.
+     * @return The requestId (can be passed to rpcGetResponse() later) if successful, or 0 on error.
+     */
+    uint64_t rpcDoAsyncCall(const std::string& method, const json& params, bool retry = true);
+
+  public:
+
+    /**
+     * Start the persisted rpcSocket_ connection to the cometbft process_.
+     * @param port Localhost TCP listen port to connect to (-1 to use previously given port number).
+     * @return `true` if the connection was established or is already established, `false` if failed to
+     * connect or can't connect (e.g. RPC port number is not yet known).
+     */
+    bool rpcStartConnection(int rpcPort = -1);
+
+    /**
+     * Stop the websocket connection to the cometbft process_ (if there is one).
+     */
+    void rpcStopConnection();
+
+    /**
+     * Gets the response to a request, if already available.
+     * If a response is retrieved through this method, it is deleted from the internal responses map,
+     * so that a subsequent call with the same requestId parameter will return `false`.
+     * @param requestId ID of the request.
+     * @param outResult Outparam set to the json response to the request.
+     * @return `true` if there was a response to read, `false` otherwise (outResult is unset).
+     */
+    bool rpcGetResponse(const uint64_t requestId, json& outResult);
+
+    /**
+     * Make an asynchronous (non-blocking) JSON-RPC call.
+     * @param method RPC method name to call.
+     * @param params Parameters to pass to the RPC method.
+     * @param retry If true, retries the RPC connection and the method call once if it fails.
+     * @return The requestId (can be passed to rpcGetResponse() later) if successful, or 0 on error.
+     */
+    uint64_t rpcAsyncCall(const std::string& method, const json& params, bool retry = true);
+
+    /**
+     * Make a synchronous (blocking) RPC call.
+     * NOTE: SLOW, polling with sleep. Use rpcAsyncCall() or improve this to use condition variables.
+     * @param method RPC method name to call.
+     * @param params Parameters to pass to the RPC method.
+     * @param outResult Outparam set to the json response to the request.
+     * @param retry If true, retries the RPC connection and the method call once if it fails.
+     * @return `true` if call is successful, `false` on any error.
+     */
+    bool rpcSyncCall(const std::string& method, const json& params, json& outResult, bool retry = true);
+};
+
+void WebsocketRPCConnection::rpcAsyncRead() {
+  auto buffer = std::make_shared<boost::beast::flat_buffer>();
+  rpcWs_->async_read(*buffer,
+    boost::asio::bind_executor(
+      rpcStrand_,
+      std::bind(&WebsocketRPCConnection::rpcHandleAsyncRead, this, buffer, std::placeholders::_1, std::placeholders::_2)
+    )
+  );
+}
+
+void WebsocketRPCConnection::rpcHandleAsyncRead(std::shared_ptr<boost::beast::flat_buffer> buffer, boost::system::error_code ec, std::size_t) {
+  if (ec) {
+    // FIXME: read error, should force or flag a disconnect?
+    return;
+  }
+  try {
+    auto responseStr = boost::beast::buffers_to_string(buffer->data());
+    auto jsonResponse = json::parse(responseStr);
+    if (jsonResponse.contains("id")) {
+      uint64_t requestId = jsonResponse["id"];
+      std::scoped_lock lock(rpcRequestMapMutex_);
+      rpcRequestMap_[requestId] = jsonResponse;
+    } else {
+      // FIXME: bad response, should force or flag a disconnect?
+      return;
+    }
+  } catch (const std::exception& ex) {
+      // FIXME: bad response, should force or flag a disconnect?
+    return;
+  }
+  buffer->consume(buffer->size());
+  std::scoped_lock stateLock(rpcStateMutex_);
+  rpcAsyncRead();
+}
+
+bool WebsocketRPCConnection::rpcDoStart(int rpcPort) {
+  if (rpcRunning_) {
+    return true;
+  }
+  if (rpcPort >= 0) {
+    rpcServerPort_ = rpcPort;
+  }
+  if (rpcServerPort_ == 0) {
+    return false; // CometImpl has not figured out what the RPC port is yet
+  }
+  try {
+    rpcRunning_ = true; // Set this first to ensure rpcDoStop() in catch() below will work.
+    boost::asio::ip::tcp::endpoint endpoint(boost::asio::ip::make_address("127.0.0.1"), rpcServerPort_);
+    rpcWs_ = std::make_unique<boost::beast::websocket::stream<boost::asio::ip::tcp::socket>>(rpcIoc_);
+    rpcWs_->next_layer().connect(endpoint);
+    rpcWs_->handshake("127.0.0.1", "/websocket");
+    rpcAsyncRead(); // Post the first async_read operation
+    rpcThread_ = std::thread([this]() {
+      try {
+        rpcIoc_.run(); // For async read of RPC responses into the request map
+      } catch (const std::exception& ex) {
+        SLOGDEBUG("ERROR: Exception in rpcThread_: " + std::string(ex.what()));
+      }
+      // Acquire the state lock and ensure we are stopped.
+      // If already flagged as stopped, we don't need to do it.
+      if (rpcRunning_) {
+        rpcStopConnection();
+      }
+    });
+    return true;
+  } catch (const std::exception& ex) {
+    LOGDEBUG("ERROR: websocket connection failed: " + std::string(ex.what()));
+    rpcDoStop();
+    return false;
+  }
+}
+
+void WebsocketRPCConnection::rpcDoStop() {
+  if (!rpcRunning_) {
+    return;
+  }
+  rpcRunning_ = false; // Set this first so that completion handlers can avoid calling rpcDoStop() again
+  if (rpcWs_) {
+    boost::system::error_code ec;
+    if (rpcWs_) {
+      rpcWs_->close(boost::beast::websocket::close_code::normal, ec);
+      rpcWs_.reset();
+    }
+  }
+  rpcIoc_.stop();
+  if (rpcThread_.joinable()) {
+    rpcThread_.join();
+  }
+  rpcIoc_.restart();
+}
+
+uint64_t WebsocketRPCConnection::rpcDoAsyncCall(const std::string& method, const json& params, bool retry) {
+  if (!rpcWs_ && !rpcDoStart()) {
+    return 0;
+  }
+  uint64_t requestId = ++rpcRequestIdCounter_;
+  json requestBody = {
+    {"jsonrpc", "2.0"},
+    {"method", method},
+    {"params", params},
+    {"id", requestId}
+  };
+  auto message = std::make_shared<std::string>(requestBody.dump());
+  boost::asio::post(rpcStrand_, [this, requestId, message]() {
+    boost::system::error_code ec;
+    std::unique_lock<std::mutex> stateLock(rpcStateMutex_);
+    if (!rpcWs_ && !rpcDoStart()) {
+      std::lock_guard<std::mutex> lock(rpcRequestMapMutex_);
+      rpcRequestMap_[requestId] = rpcMakeInternalError("Websocket write failed, can't reconnect to RPC port.");
+    } else if (rpcWs_) {
+      rpcWs_->write(boost::asio::buffer(*message), ec);
+      if (ec) {
+        // Since we can't make rpcDoAsyncCall() block on the completion handler, if the
+        // websocket->write() fails, it will set an error response to the request Id.
+        std::lock_guard<std::mutex> lock(rpcRequestMapMutex_);
+        rpcRequestMap_[requestId] = rpcMakeInternalError("Websocket write failed: " + ec.message());
+      }
+    } else {
+      // This should be impossible to reach unless rpcDoStart() has a bug
+      rpcRequestMap_[requestId] = rpcMakeInternalError("Websocket write failed, missing websocket object (unexpected, internal failure).");
+    }
+  });
+  return requestId;
+}
+
+bool WebsocketRPCConnection::rpcStartConnection(int rpcPort) {
+  std::scoped_lock lock(rpcStateMutex_);
+  return rpcDoStart(rpcPort);
+}
+
+void WebsocketRPCConnection::rpcStopConnection() {
+  std::scoped_lock lock(rpcStateMutex_);
+  rpcDoStop();
+}
+
+bool WebsocketRPCConnection::rpcGetResponse(const uint64_t requestId, json& outResult) {
+  std::scoped_lock lock(rpcRequestMapMutex_);
+  auto it = rpcRequestMap_.find(requestId);
+  if (it != rpcRequestMap_.end()) {
+    outResult = it->second;
+    rpcRequestMap_.erase(it);
+    return true;
+  }
+  return false;
+}
+
+uint64_t WebsocketRPCConnection::rpcAsyncCall(const std::string& method, const json& params, bool retry) {
+  std::scoped_lock stateLock(rpcStateMutex_);
+  return rpcDoAsyncCall(method, params, retry);
+}
+
+bool WebsocketRPCConnection::rpcSyncCall(const std::string& method, const json& params, json& outResult, bool retry) {
+  std::unique_lock<std::mutex> stateLock(rpcStateMutex_);
+  if (!rpcWs_ && !rpcDoStart()) {
+    outResult = rpcMakeInternalError("Connection failed");
+    return false;
+  }
+  uint64_t requestId;
+  try {
+    requestId = rpcDoAsyncCall(method, params);
+  } catch (const std::exception& ex) {
+    if (retry) {
+      stateLock.unlock();
+      LOGTRACE("Exception in rpcSyncCall(): " + std::string(ex.what()));
+      return rpcSyncCall(method, params, outResult, false); // Retry once
+    }
+    outResult = rpcMakeInternalError("Exception caught: " + std::string(ex.what()));
+    return false;
+  }
+  stateLock.unlock();
+  if (requestId == 0) {
+    return false;
+  }
+  // Block waiting for a response to the request.
+  // It is imperative that every request that is successfully sent gets a response
+  // OR that the RPC connection is closed.
+  while (true) {
+    if (rpcGetResponse(requestId, outResult)) {
+      return !outResult.contains("error");
+    }
+    // TODO: Slow, terrible; should be condition_variable instead, using cv.wait(rpcRequestMapMutex_)
+    std::this_thread::sleep_for(std::chrono::milliseconds(10));
+  }
+}
+
+// ---------------------------------------------------------------------------------------
 // CometImpl class
 // ---------------------------------------------------------------------------------------
 
@@ -57,7 +363,7 @@ See the LICENSE.txt file in the project root for more information.
  * CometImpl also manages configuring, launching, monitoring and terminating the cometbft
  * process, as well as interfacing with its RPC port which is not exposed to BDK users.
  */
-class CometImpl : public Log::LogicalLocationProvider, public ABCIHandler {
+class CometImpl : public Log::LogicalLocationProvider, public ABCIHandler, public WebsocketRPCConnection {
   private:
     CometListener* listener_; ///< Comet class application event listener/handler
     const std::string instanceIdStr_; ///< Identifier for logging
@@ -90,15 +396,14 @@ class CometImpl : public Log::LogicalLocationProvider, public ABCIHandler {
     uint64_t txOutTicketGen_ = 0; ///< ticket generator for sendTransaction().
     std::deque<std::tuple<uint64_t, std::optional<Hash>, Bytes>> txOut_; ///< Queue of (ticket#,sha3,Tx) pending dispatch to the local cometbft node's mempool.
 
+    std::mutex txOutSentMutex_; ///< mutex to protect txOutSent_.
+    std::map<uint64_t, std::tuple<uint64_t, std::optional<Hash>, Bytes>> txOutSent_; ///< Map of items removed from txOut_ and sent, indexed by JSON-RPC id.
+
     std::mutex txCheckMutex_; ///< mutex to protect txCheck_.
     std::deque<std::string> txCheck_; ///< Queue of txHash (SHA256/cometbft) pending check via a call to /tx to the cometbft RPC port.
 
     uint64_t lastCometBFTBlockHeight_; ///< Current block height stored in the cometbft data dir, if known.
     std::string lastCometBFTAppHash_; ///< Current app hash stored in the cometbft data dir, if known.
-
-    std::unique_ptr<boost::asio::ip::tcp::socket> rpcSocket_; ///< Persisted RPC socket connection.
-    boost::asio::io_context rpcIoc_; ///< io_context for our persisted RPC socket connection.
-    uint64_t rpcRequestIdCounter_ = 0; ///< Client-side request ID generator for our JSON-RPC calls to cometbft (don't reset with start()/stop()).
 
     std::atomic<uint64_t> txCacheSize_ = 1000000; ///< Transaction cache size in maximum entries per bucket (0 to disable).
     std::mutex txCacheMutex_; ///< Mutex to protect cache access.
@@ -114,96 +419,6 @@ class CometImpl : public Log::LogicalLocationProvider, public ABCIHandler {
     void stopCometBFT(); ///< Terminate the CometBFT process_.
     void workerLoop(); ///< Worker loop responsible for establishing and managing a connection to cometbft.
     void workerLoopInner(); ///< Called by workerLoop().
-
-    /**
-     * Start the persisted rpcSocket_ connection to the cometbft process_.
-     * @return `true` if the connection was established or is already established, `false` if failed to
-     * connect or can't connect (e.g. RPC port number is not yet known).
-     */
-    bool startRPCConnection() {
-      if (rpcPort_ == 0) {
-        return false; // we have not figured out what the rpcPort_ configuration is yet
-      }
-      if (rpcSocket_) {
-        return true; // already started
-      }
-      try {
-        rpcSocket_ = std::make_unique<boost::asio::ip::tcp::socket>(rpcIoc_);
-        boost::asio::ip::tcp::endpoint endpoint(boost::asio::ip::make_address("127.0.0.1"), rpcPort_);
-        rpcSocket_->connect(endpoint);
-        return true;
-      } catch (const std::exception& e) {
-        LOGDEBUG("ERROR trying to connect to RPC port: " + std::string(e.what()));
-        rpcSocket_.reset();
-        return false;
-      }
-    }
-
-    /**
-     * Stop the persisted rpcSocket_ connection to the cometbft process_ (if there is one).
-     */
-    void stopRPCConnection() {
-      if (rpcSocket_) {
-        boost::system::error_code ec;
-        rpcSocket_->shutdown(boost::asio::ip::tcp::socket::shutdown_both, ec);
-        rpcSocket_.reset();
-      }
-    }
-
-    /**
-     * Make a JSON RPC call to the running cometbft node.
-     * @param method Name of the JSON-RPC method to call.
-     * @param params Parameters to the method call.
-     * @param outResult Outparam string that is set with the entire HTTP body response, or an error message.
-     * @param retry If `true`, will make a recursive call to itself to transparently retry the call (once).
-     * @return `true` if outResult is guaranteed JSON and the method call was successfully completed, `false` if some error occurred.
-     */
-    bool makeJSONRPCCall(const std::string& method, const json& params, std::string& outResult, bool retry = true) {
-      if (!rpcSocket_ && !startRPCConnection()) {
-        outResult = "ERROR: Connection failed";
-        return false;
-      }
-
-      int requestId = ++rpcRequestIdCounter_;  // Generate a unique JSON-RPC request ID
-      json requestBody = {{ "jsonrpc", "2.0" }, { "method", method }, { "params", params }, { "id", requestId }};
-
-      try {
-        // Request the method call
-        boost::beast::http::request<boost::beast::http::string_body> req{boost::beast::http::verb::post, "/", 11};
-        req.set(boost::beast::http::field::host, "localhost");
-        req.set(boost::beast::http::field::user_agent, BOOST_BEAST_VERSION_STRING);
-        req.set(boost::beast::http::field::accept, "application/json");
-        req.set(boost::beast::http::field::content_type, "application/json");
-        req.set(boost::beast::http::field::connection, "keep-alive");
-        req.body() = requestBody.dump();
-        req.prepare_payload();
-        boost::beast::http::write(*rpcSocket_, req);
-
-        // Collect the result
-        boost::beast::flat_buffer buffer;
-        boost::beast::http::response<boost::beast::http::dynamic_body> res;
-        boost::beast::http::read(*rpcSocket_, buffer, res);
-
-        // Send the entire response body as the resulting string
-        // This may not be JSON if e.g. HTTP error (?)
-        outResult = boost::beast::buffers_to_string(res.body().data());
-
-        // Return true only if everything looks OK (i.e. HTTP 200 OK and JSON-RPC response isn't an error).
-        // Check both the JSON-RPC error field and the HTTP return code to ensure we don't miss errors.
-        auto jsonResponse = json::parse(outResult);
-        return ! ( jsonResponse.contains("error") || (res.result() != boost::beast::http::status::ok) );
-
-      } catch (const std::exception& e) {
-        stopRPCConnection();  // Close connection on error
-        // Retry the call transparently once, in case it is some transient connection error
-        if (retry && startRPCConnection()) {
-          LOGDEBUG("makeJSONRPCCall() failed, but is going to transparently retry once; error: " + std::string(e.what()));
-          return makeJSONRPCCall(method, params, outResult, false);
-        }
-        outResult = "ERROR: " + std::string(e.what());
-        return false;
-      }
-    }
 
   public:
 
@@ -224,7 +439,7 @@ class CometImpl : public Log::LogicalLocationProvider, public ABCIHandler {
     uint64_t sendTransaction(const Bytes& tx, std::shared_ptr<Hash>* ethHash);
     void checkTransaction(const std::string& txHash);
     bool checkTransactionInCache(const Hash& txHash, CometTxStatus& txStatus);
-    bool rpcCall(const std::string& method, const json& params, std::string& outResult);
+    bool rpcCall(const std::string& method, const json& params, json& outResult);
 
     // ---------------------------------------------------------------------------------------
     // ABCIHandler interface
@@ -400,16 +615,12 @@ void CometImpl::checkTransaction(const std::string& txHash) {
   txCheck_.emplace_back(txHash);
 }
 
-bool CometImpl::rpcCall(const std::string& method, const json& params, std::string& outResult) {
+bool CometImpl::rpcCall(const std::string& method, const json& params, json& outResult) {
   if (!process_.has_value()) {
-    outResult = "ERROR: cometbft is not running.";
+    outResult = rpcMakeInternalError("Cometbft is not running.");
     return false;
   }
-  if (!rpcSocket_) {
-    outResult = "ERROR: RPC connection with cometbft is not established.";
-    return false;
-  }
-  return makeJSONRPCCall(method, params, outResult);
+  return rpcSyncCall(method, params, outResult);
 }
 
 bool CometImpl::start() {
@@ -480,7 +691,7 @@ void CometImpl::resetError() {
 void CometImpl::cleanup() {
 
   // Close the RPC connection, if any
-  stopRPCConnection();
+  rpcStopConnection();
 
   // Stop the CometBFT node, if any
   stopCometBFT();
@@ -1037,6 +1248,8 @@ void CometImpl::workerLoopInner() {
     // Any error thrown will close the running cometbft inspect since it's tracked by process_, just like
     //   cometbft start (regular node) is.
 
+    LOGDEBUG("Starting cometbft inspect");
+
     // start cometbft inspect
     try {
       std::vector<std::string> cometArgs = {
@@ -1049,17 +1262,21 @@ void CometImpl::workerLoopInner() {
       throw DynamicException("Exception caught when trying to run cometbft inspect: " + std::string(ex.what()));
     }
 
+    LOGDEBUG("Starting RPC connection");
+
     // start RPC connection
     int inspectRpcTries = 50; //5s
     bool inspectRpcSuccess = false;
     while (inspectRpcTries-- > 0 && !stop_) {
       std::this_thread::sleep_for(std::chrono::milliseconds(100));
-      if (startRPCConnection()) {
+      if (rpcStartConnection(rpcPort_)) {
         inspectRpcSuccess = true;
         break;
       }
       LOGDEBUG("Retrying RPC connection (inspect): " + std::to_string(inspectRpcTries));
     }
+
+    LOGDEBUG("Done starting RPC connection");
 
     // Check if quitting
     if (stop_) break;
@@ -1069,23 +1286,17 @@ void CometImpl::workerLoopInner() {
       throw DynamicException("Can't connect to the cometbft RPC port (inspect).");
     }
 
-    std::string inspectHeaderResult;
-    if (!makeJSONRPCCall("header", json::object(), inspectHeaderResult)) {
+    json insRes;
+    LOGDEBUG("Making sample RPC call");
+    if (!rpcSyncCall("header", json::object(), insRes)) {
       setErrorCode(CometError::RPC_CALL_FAILED);
-      throw DynamicException("ERROR: cometbft inspect RPC header call failed: " + inspectHeaderResult);
+      throw DynamicException("ERROR: cometbft inspect RPC header call failed: " + insRes.dump());
     }
 
-    LOGDEBUG("cometbft inspect RPC header call returned OK: "+ inspectHeaderResult);
+    LOGDEBUG("cometbft inspect RPC header call returned OK: "+ insRes.dump());
 
     // We got an inspect latest header response; parse it to figure out
     //  lastCometBFTBlockHeight_ and lastCometBFTAppHash_.
-    json insRes;
-    try {
-      insRes = json::parse(inspectHeaderResult);
-    } catch (const std::exception& e) {
-      setErrorCode(CometError::RPC_BAD_RESPONSE);
-      throw DynamicException("Exception occurred while parsing cometbft inspect header response: " + std::string(e.what()));
-    }
     if (!insRes.is_object() || !insRes.contains("result") || !insRes["result"].is_object()) {
       setErrorCode(CometError::RPC_BAD_RESPONSE);
       throw DynamicException("Invalid or missing 'result' in cometbft inspect header response.");
@@ -1132,7 +1343,7 @@ void CometImpl::workerLoopInner() {
     // --------------------------------------------------------------------------------------
     // Finished inspect step.
 
-    stopRPCConnection();
+    rpcStopConnection();
 
     stopCometBFT();
 
@@ -1236,7 +1447,7 @@ void CometImpl::workerLoopInner() {
     while (rpcTries-- > 0 && !stop_) {
       // wait first, otherwise 1st connection attempt always fails
       std::this_thread::sleep_for(std::chrono::milliseconds(100));
-      if (startRPCConnection()) {
+      if (rpcStartConnection(rpcPort_)) {
         rpcSuccess = true;
         break;
       }
@@ -1255,12 +1466,12 @@ void CometImpl::workerLoopInner() {
 
     // Test the RPC connection (and also check node health)
     // Make a sample RPC call using the persisted connection
-    std::string healthResult;
-    if (!makeJSONRPCCall("health", json::object(), healthResult)) {
+    json healthResult;
+    if (!rpcSyncCall("health", json::object(), healthResult)) {
       setErrorCode(CometError::RPC_CALL_FAILED);
-      throw DynamicException("ERROR: cometbft RPC health call failed: " + healthResult);
+      throw DynamicException("ERROR: cometbft RPC health call failed: " + healthResult.dump());
     }
-    LOGDEBUG("cometbft RPC health call returned OK: " + healthResult);
+    LOGDEBUG("cometbft RPC health call returned OK: " + healthResult.dump());
 
     setState(CometState::TESTED_COMET);
 
@@ -1286,11 +1497,10 @@ void CometImpl::workerLoopInner() {
         throw DynamicException("ABCIServer is not running (ABCI connection with cometbft has been closed.");
       }
 
-      // TODO: replace the cometbft rpc connection with the websocket version
+      // FIXME/TODO: use rpcAsyncCall instead of rpcSyncCall here:
       //       improve the RPC transaction pump to be asynchronous, which allows us to send
-      //       multiple transactions at once and then wait for the responses. this is probably
-      //       using the websocket version of the transaction pump.
-      //       in the websocket version, once the tx is pulled from the main queue, it is
+      //       multiple transactions at once and then wait for the responses.
+      //       once the tx is pulled from the main queue, it is
       //       inserted into an in-flight txsend map with the RPC request ID as the index
       //       and a timeout; the timeout is the primary way the in-flight request expires
       //       in case the response for the (client-side-generated req id) never arrives for
@@ -1341,21 +1551,54 @@ void CometImpl::workerLoopInner() {
             }
           }
 
+/*
+FIXME/TODO: rpcAsyncCall conversion
+
+uint64_t rpcRequestId = rpcAsyncCall("broadcast_tx_async", stparams);
+
+if (rpcRequestId > 0) {
+  txOutSent_.insert(rpcRequestId, (txOutItem tuple));
+  pop item from txOut_
+  // NO callbacks
+} else {
+  time to break out of the loop, recheck quit flag etc.
+}
+
+THEN:
+
+// This pump doesn't starve the others because you make 1 request before running this
+while has response in the RPC responses map {
+  match the rpc request Id in txOutSent_
+  remove item from txOutSent_ map
+  do the CometListener callback
+}
+
+
+(
+
+
+I think that's it?
+txOutSent_ doesn't need timeouts if the RPC connection actually works AND
+we flush it on a detected disconnection instead of just blindly clearing it.
+on RPC connection stop, which is part of stop, it needs to call the application
+so that it can requeue the requests if it needs to (can do so outside of
+start()-stop() cycle as well since it's just a queue -- txOut_)
+)
+
+
+On Comet or RPC disconnection:
+  Loop through all of txOutSent_ and fire off the callbacks rejecting them
+
+*/
+
           json stparams = { {"tx", encodedTx} };
-          std::string stresult;
-          bool stsuccess = makeJSONRPCCall("broadcast_tx_async", stparams, stresult);
+          json stresponse;
+          bool stsuccess = rpcSyncCall("broadcast_tx_async", stparams, stresponse);
 
           // try to extract the SHA256 txhash computed by cometbft
           std::string txHash = "";
-          try {
-            json response = json::parse(stresult);
-            if (response.contains("result") && response["result"].contains("hash")) {
-              txHash = response["result"]["hash"].get<std::string>();
-            }
-          } catch (const json::exception& e) {
-            // This just never happens
-            setErrorCode(CometError::FAIL);
-            throw DynamicException("Error parsing broadcast_tx_async JSON-RPC response: " + std::string(e.what()));
+          if (stresponse.contains("result") && stresponse["result"].contains("hash")) {
+            txHash = stresponse["result"]["hash"].get<std::string>();
           }
 
           // If txCache is enabled and we enabled sha3 computation for outgoing txs,
@@ -1381,7 +1624,7 @@ void CometImpl::workerLoopInner() {
           }
 
           // Give the transaction back to the application in any case
-          listener_->sendTransactionResult(*tx, txTicketId, stsuccess, txHash, stresult);
+          listener_->sendTransactionResult(*tx, txTicketId, stsuccess, txHash, stresponse);
 
           // Always remove the transaction from the send queue (if it failed, it will have to be resent)
           std::unique_lock<std::mutex> stlockPop(txOutMutex_);
@@ -1397,6 +1640,8 @@ void CometImpl::workerLoopInner() {
         // --------------------------------------------------------------------------------
         // checkTransaction
         // --------------------------------------------------------------------------------
+
+        // TODO: This could also be made to use rpcAsyncCall
 
         bool txCheckEmpty;
         std::unique_lock<std::mutex> ctlock(txCheckMutex_);
@@ -1414,8 +1659,8 @@ void CometImpl::workerLoopInner() {
           std::string encodedHexBytes = base64::encode_into<std::string>(hx.begin(), hx.end());
 
           json ctparams = { {"hash", encodedHexBytes} };
-          std::string ctresult;
-          bool ctsuccess = makeJSONRPCCall("tx", ctparams, ctresult);
+          json ctresponse;
+          bool ctsuccess = rpcSyncCall("tx", ctparams, ctresponse);
 
           // Sample response: {"jsonrpc":"2.0","id":6,"result":{"hash":"2A62F69DB37417A3EB7E72219BDE4D6ADCD1A9878527DA245D4CC30FD1F899AB",
           // "height":"2","index":0,"tx_result":{"code":0,"data":null,"log":"","info":"","gas_wanted":"0","gas_used":"0","events":[],
@@ -1427,7 +1672,7 @@ void CometImpl::workerLoopInner() {
           // This call also returns the entire transaction body, which is inefficient if all you want is a confirmation that the
           // transaction went through and the transaction is big.
 
-          listener_->checkTransactionResult(txCheckHash, ctsuccess, ctresult);
+          listener_->checkTransactionResult(txCheckHash, ctsuccess, ctresponse);
 
           std::unique_lock<std::mutex> ctlockPop(txCheckMutex_);
           txCheck_.pop_front();
@@ -1803,7 +2048,7 @@ bool Comet::checkTransactionInCache(const Hash& txHash, CometTxStatus& txStatus)
   return impl_->checkTransactionInCache(txHash, txStatus);
 }
 
-bool Comet::rpcCall(const std::string& method, const json& params, std::string& outResult) {
+bool Comet::rpcCall(const std::string& method, const json& params, json& outResult) {
   return impl_->rpcCall(method, params, outResult);
 }
 

@@ -558,25 +558,25 @@ public:
 
   virtual void sendTransactionResult(
     const Bytes& tx, const uint64_t txId, const bool success,
-    const std::string& txHash, const std::string& response
+    const std::string& txHash, const json& response
   ) override {
     GLOGDEBUG("TEST: TestMachine: Got sendTransactionResult : " + std::to_string(txId) + " hash: " + txHash + " success: " + std::to_string(success)
-    + ", response: " + response);
-    TransactionDetails details = {tx, txId, success, txHash, response, false, false, ""};
+    + ", response: " + response.dump());
+    TransactionDetails details = {tx, txId, success, txHash, response.dump(), false, false, ""};
     std::lock_guard<std::mutex> lock(transactionMapMutex_);
     transactionMap_[txId] = details;
   }
 
   virtual void checkTransactionResult(
-    const std::string& txHash, const bool success, const std::string& response
+    const std::string& txHash, const bool success, const json& response
   ) override {
-    GLOGDEBUG("TEST: TestMachine: Got checkTransactionResult : " + txHash + ", success: " + std::to_string(success) + ", response: "+ response);
+    GLOGDEBUG("TEST: TestMachine: Got checkTransactionResult : " + txHash + ", success: " + std::to_string(success) + ", response: " + response.dump());
     std::lock_guard<std::mutex> lock(transactionMapMutex_);
     for (auto& [txId, details] : transactionMap_) {
       if (details.txHash == txHash) {
         details.checkResultArrived = true;
         details.checkSuccess = success;
-        details.checkResponse = response;
+        details.checkResponse = response.dump();
         return;
       }
     }
@@ -808,110 +808,6 @@ public:
 namespace TComet {
   TEST_CASE("Comet tests", "[core][comet]") {
 
-    // setpriv test. setpriv is not *really* optional -- you must have setpriv in your path
-    // to run the tests, otherwise this test will just fail.
-    SECTION("CometSetprivTest") {
-      // setpriv must be available, if not always then at least for running tests
-      boost::filesystem::path setpriv_path = boost::process::search_path("setpriv");
-      REQUIRE(!setpriv_path.empty());
-
-      std::string testDumpPath = createTestDumpPath("CometSetprivTest");
-      int p2p_port = SDKTestSuite::getTestPort();
-      int rpc_port = SDKTestSuite::getTestPort();
-      const Options options = getOptionsForCometTest(testDumpPath, "", p2p_port, rpc_port);
-      CometListener cometListener;
-      Comet comet(&cometListener, "", options);
-
-      // Expected test behavior (if tasks take a minimally-reasonable time to complete):
-      // < 5s: child process has cometbft inspect server running
-      // at 5s: parent process sees RPC port to cometbft inspect is open
-      // at 10s: child process terminates itself, making setpriv-wrapped cometbft inspect
-      //         terminate itself soon after.
-      // at 15s: parent process sees RPC port to cometbft inspect is closed
-
-      // Spawn a disposable child process of the tester with a different PID that will actually call
-      // comet.start(), and then the parent tester process will kill that process, which should kill
-      // its child process (cometbft inspect) due to its setpriv wrapper.
-      pid_t pid = fork();
-      // Fork must have succeeded
-      REQUIRE(pid != -1);
-      if (pid == 0) {
-        // Redirect stdout and stderr to /dev/null so we don't get any duplicate
-        // Catch2 harness output generated, which is confusing and which we do get
-        // if the prctrl() below goes into effect (i.e. we get a SIGTERM)
-        int devnull = open("/dev/null", O_WRONLY);
-        if (devnull == -1) {
-          std::cerr << "ERROR: CometSetprivTest: can't open /dev/null" << std::endl;
-          _exit(1); // _exit with underscore guarantees we immediately die
-        }
-        dup2(devnull, STDOUT_FILENO);
-        dup2(devnull, STDERR_FILENO);
-        close(devnull);
-        // This is the tester child process, which wraps setpriv, which wraps cometbft inspect
-        // Make sure this child process dies if the parent tester dies first for whatever reason
-        // so we don't get dangling processes.
-        std::cout << "CometSetprivTest: In child process." << std::endl;
-        if (prctl(PR_SET_PDEATHSIG, SIGTERM) == -1) {
-          std::cerr << "ERROR: CometSetprivTest: prctl() failed" << std::endl;
-          _exit(1); // _exit with underscore guarantees we immediately die
-        }
-        // Hold the driver at "cometbft inspect" running, which is enough to test
-        comet.setPauseState(CometState::INSPECT_RUNNING);
-        // Only start the driver in the child process
-        comet.start();
-        comet.waitPauseState(10000);
-        std::cout << "CometSetprivTest: Child process reached CometState::INSPECT_RUNNING" << std::endl;
-        std::this_thread::sleep_for(std::chrono::seconds(10));
-        std::cout << "CometSetprivTest: Child process forcefully terminating itself" << std::endl;
-        // We just kill ourselves after exactly 10 seconds -- we don't receive an
-        // external SIGTERM, which is problematic. Instead, which is easier and simpler,
-        // we just quit, so we can check that the setpriv mechanism is working.
-        // This emulates any kind of failure condition where the BDK node (parent of the
-        // cometbft process) dies for whatever reason.
-        _exit(0); // _exit with underscore guarantees we immediately die
-      }
-
-      // Everything from here on runs in the parent tester process only
-      GLOGDEBUG("TEST: Waiting 5s to test RPC port of child with PID = " + std::to_string(pid));
-
-      // Give the child time to run prctrl() and then actually start cometbft inspect
-      std::this_thread::sleep_for(std::chrono::seconds(5));
-
-      // try to connect to the cometbft inspect RPC port. this should succeed, meaning that
-      // starting cometbft inspect actually worked in the first place.
-      GLOGDEBUG("TEST: Testing RPC port (must be open)");
-      try {
-        boost::asio::io_context io_context;
-        boost::asio::ip::tcp::socket socket(io_context);
-        boost::asio::ip::tcp::endpoint endpoint(boost::asio::ip::make_address("127.0.0.1"), rpc_port);
-        socket.connect(endpoint);
-        GLOGDEBUG("TEST: cometbft inspect RPC port is open as expected: " + std::to_string(rpc_port));
-        socket.close();
-      } catch (const std::exception& e) {
-        FAIL("TEST: ERROR, failed to connect to RPC port when it should be open: " + std::to_string(rpc_port) + ": " + std::string(e.what()));
-      }
-
-      // Give the child time to decide to terminate on its own, and time for
-      // the setpriv wrapper to detect that its parent process has died, so
-      // it send SIGTERM to cometbft inspect, which then closes the RPC port.
-      GLOGDEBUG("TEST: Waiting another 10s to test RPC port of child with PID = " + std::to_string(pid));
-      std::this_thread::sleep_for(std::chrono::seconds(10));
-
-      // try to connect to the cometbft inspect RPC port. this should fail,
-      // which is enough for us to conclude that the cometbft inspect process is dead.
-      GLOGDEBUG("TEST: Testing RPC port (must be closed)");
-      try {
-        boost::asio::io_context io_context;
-        boost::asio::ip::tcp::socket socket(io_context);
-        boost::asio::ip::tcp::endpoint endpoint(boost::asio::ip::make_address("127.0.0.1"), rpc_port);
-        socket.connect(endpoint);
-        FAIL("TEST: ERROR: connection to cometbft inspect RPC port succeeded, but port should be closed: " + std::to_string(rpc_port));
-        socket.close();
-      } catch (const std::exception& e) {
-        GLOGDEBUG("TEST: SUCCESS, failed to connect to cometbft inspect RPC port, which was expected: " + std::string(e.what()));
-      }
-    }
-
     // Very simple test flow that runs a single cometbft node that runs a single-validator blockchain
     //   that can thus advance with a single validator producing blocks.
     SECTION("CometBootTest") {
@@ -974,7 +870,7 @@ namespace TComet {
 
       comet.setPauseState(CometState::STARTED_ABCI);
 
-      GLOGDEBUG("TEST: Waiting for gRPC server to be successfully started");
+      GLOGDEBUG("TEST: Waiting for ABCI server to be successfully started");
 
       // Waits for the pause state or error status
       REQUIRE(comet.waitPauseState(10000) == "");
@@ -1183,14 +1079,16 @@ namespace TComet {
           appHash.clear();
           txResults.resize(txs.size());
         }
-        virtual void sendTransactionResult(const Bytes& tx, const uint64_t txId, const bool success, const std::string& txHash, const std::string& response) override {
+        virtual void sendTransactionResult(const Bytes& tx, const uint64_t txId, const bool success, const std::string& txHash, const json& response) override {
           REQUIRE(success == true);
-          GLOGDEBUG("TestCometListener: got sendTransactionResult: " + response + ", txHash: " + txHash);
+          GLOGDEBUG("TestCometListener: got sendTransactionResult: " + response.dump() + ", txHash: " + txHash);
           REQUIRE(tx.size() == txSize);
           REQUIRE(txHash == transactionHash);
         }
-        virtual void checkTransactionResult(const std::string& txHash, const bool success, const std::string& response) override {
-          GLOGDEBUG("TestCometListener: got checkTransactionResult: " + response);
+        virtual void checkTransactionResult(const std::string& txHash, const bool success, const json& response) override {
+          size_t jsonSize = response.dump().size();
+          GLOGDEBUG("TestCometListener: got checkTransactionResult: " + std::to_string(jsonSize) + " response json bytes.");
+          REQUIRE(jsonSize > txSize); // between json overhead and base64 encoding, this has to hold
           REQUIRE(success == true);
           ++gotTxCheck;
         }
@@ -1296,10 +1194,10 @@ namespace TComet {
       class TestCometListener : public CometListener {
       public:
         std::atomic<int> failTxCount = 0;
-        virtual void sendTransactionResult(const Bytes& tx, const uint64_t txId, const bool success, const std::string& txHash, const std::string& response) override {
+        virtual void sendTransactionResult(const Bytes& tx, const uint64_t txId, const bool success, const std::string& txHash, const json& response) override {
+          GLOGDEBUG("TestCometListener: got sendTransactionResult: " + response.dump() + ", txHash: " + txHash);
           REQUIRE(success == false); // we expect the only tx sent by this testcase to fail
           REQUIRE(txId == 1); // we only sent one and the ID gen starts at 1
-          GLOGDEBUG("TestCometListener: got sendTransactionResult: " + response);
           REQUIRE(tx.size() == txSize);
           ++failTxCount;
         }
@@ -2088,11 +1986,14 @@ namespace TComet {
 
       // Make an RPC call
       GLOGDEBUG("TEST: Making rpcCall()...");
-      std::string healthResult;
+      json healthResult;
       bool success = comet.rpcCall("header", json::object(), healthResult);
-      GLOGDEBUG("TEST: rpcCall() result: " + healthResult);
+      GLOGDEBUG("TEST: rpcCall() result: " + healthResult.dump());
       REQUIRE(success == true);
-      REQUIRE(healthResult.find("\"result\":{\"header\":null}") != std::string::npos); // expect null last header since empty chain
+      // expect null block header from latest block since the chain is empty
+      REQUIRE(healthResult.contains("result"));
+      REQUIRE(healthResult["result"].contains("header"));
+      REQUIRE(healthResult["result"]["header"].is_null());
 
       // Don't need to unpause, can just stop
       GLOGDEBUG("TEST: Stopping...");
@@ -2126,11 +2027,14 @@ namespace TComet {
 
       // Make an RPC call
       GLOGDEBUG("TEST: Making rpcCall()...");
-      std::string healthResult;
+      json healthResult;
       bool success = comet.rpcCall("header", json::object(), healthResult);
-      GLOGDEBUG("TEST: rpcCall() result: " + healthResult);
+      GLOGDEBUG("TEST: rpcCall() result: " + healthResult.dump());
       REQUIRE(success == true);
-      REQUIRE(healthResult.find("\"result\":{\"header\":null}") != std::string::npos); // expect null last header since empty chain
+      // expect null block header from latest block since the chain is empty
+      REQUIRE(healthResult.contains("result"));
+      REQUIRE(healthResult["result"].contains("header"));
+      REQUIRE(healthResult["result"]["header"].is_null());
 
       // Don't need to unpause, can just stop
       GLOGDEBUG("TEST: Stopping...");
@@ -2214,6 +2118,110 @@ namespace TComet {
       GLOGDEBUG("TEST: Stopped");
       REQUIRE(comet.getState() == CometState::STOPPED);
       GLOGDEBUG("TEST: Finished");
+    }
+
+    // setpriv test. setpriv is not *really* optional -- you must have setpriv in your path
+    // to run the tests, otherwise this test will just fail.
+    SECTION("CometSetprivTest") {
+      // setpriv must be available, if not always then at least for running tests
+      boost::filesystem::path setpriv_path = boost::process::search_path("setpriv");
+      REQUIRE(!setpriv_path.empty());
+
+      std::string testDumpPath = createTestDumpPath("CometSetprivTest");
+      int p2p_port = SDKTestSuite::getTestPort();
+      int rpc_port = SDKTestSuite::getTestPort();
+      const Options options = getOptionsForCometTest(testDumpPath, "", p2p_port, rpc_port);
+      CometListener cometListener;
+      Comet comet(&cometListener, "", options);
+
+      // Expected test behavior (if tasks take a minimally-reasonable time to complete):
+      // < 5s: child process has cometbft inspect server running
+      // at 5s: parent process sees RPC port to cometbft inspect is open
+      // at 10s: child process terminates itself, making setpriv-wrapped cometbft inspect
+      //         terminate itself soon after.
+      // at 15s: parent process sees RPC port to cometbft inspect is closed
+
+      // Spawn a disposable child process of the tester with a different PID that will actually call
+      // comet.start(), and then the parent tester process will kill that process, which should kill
+      // its child process (cometbft inspect) due to its setpriv wrapper.
+      pid_t pid = fork();
+      // Fork must have succeeded
+      REQUIRE(pid != -1);
+      if (pid == 0) {
+        // Redirect stdout and stderr to /dev/null so we don't get any duplicate
+        // Catch2 harness output generated, which is confusing and which we do get
+        // if the prctrl() below goes into effect (i.e. we get a SIGTERM)
+        int devnull = open("/dev/null", O_WRONLY);
+        if (devnull == -1) {
+          std::cerr << "ERROR: CometSetprivTest: can't open /dev/null" << std::endl;
+          _exit(1); // _exit with underscore guarantees we immediately die
+        }
+        dup2(devnull, STDOUT_FILENO);
+        dup2(devnull, STDERR_FILENO);
+        close(devnull);
+        // This is the tester child process, which wraps setpriv, which wraps cometbft inspect
+        // Make sure this child process dies if the parent tester dies first for whatever reason
+        // so we don't get dangling processes.
+        std::cout << "CometSetprivTest: In child process." << std::endl;
+        if (prctl(PR_SET_PDEATHSIG, SIGTERM) == -1) {
+          std::cerr << "ERROR: CometSetprivTest: prctl() failed" << std::endl;
+          _exit(1); // _exit with underscore guarantees we immediately die
+        }
+        // Hold the driver at "cometbft inspect" running, which is enough to test
+        comet.setPauseState(CometState::INSPECT_RUNNING);
+        // Only start the driver in the child process
+        comet.start();
+        comet.waitPauseState(10000);
+        std::cout << "CometSetprivTest: Child process reached CometState::INSPECT_RUNNING" << std::endl;
+        std::this_thread::sleep_for(std::chrono::seconds(10));
+        std::cout << "CometSetprivTest: Child process forcefully terminating itself" << std::endl;
+        // We just kill ourselves after exactly 10 seconds -- we don't receive an
+        // external SIGTERM, which is problematic. Instead, which is easier and simpler,
+        // we just quit, so we can check that the setpriv mechanism is working.
+        // This emulates any kind of failure condition where the BDK node (parent of the
+        // cometbft process) dies for whatever reason.
+        _exit(0); // _exit with underscore guarantees we immediately die
+      }
+
+      // Everything from here on runs in the parent tester process only
+      GLOGDEBUG("TEST: Waiting 5s to test RPC port of child with PID = " + std::to_string(pid));
+
+      // Give the child time to run prctrl() and then actually start cometbft inspect
+      std::this_thread::sleep_for(std::chrono::seconds(5));
+
+      // try to connect to the cometbft inspect RPC port. this should succeed, meaning that
+      // starting cometbft inspect actually worked in the first place.
+      GLOGDEBUG("TEST: Testing RPC port (must be open)");
+      try {
+        boost::asio::io_context io_context;
+        boost::asio::ip::tcp::socket socket(io_context);
+        boost::asio::ip::tcp::endpoint endpoint(boost::asio::ip::make_address("127.0.0.1"), rpc_port);
+        socket.connect(endpoint);
+        GLOGDEBUG("TEST: cometbft inspect RPC port is open as expected: " + std::to_string(rpc_port));
+        socket.close();
+      } catch (const std::exception& e) {
+        FAIL("TEST: ERROR, failed to connect to RPC port when it should be open: " + std::to_string(rpc_port) + ": " + std::string(e.what()));
+      }
+
+      // Give the child time to decide to terminate on its own, and time for
+      // the setpriv wrapper to detect that its parent process has died, so
+      // it send SIGTERM to cometbft inspect, which then closes the RPC port.
+      GLOGDEBUG("TEST: Waiting another 10s to test RPC port of child with PID = " + std::to_string(pid));
+      std::this_thread::sleep_for(std::chrono::seconds(10));
+
+      // try to connect to the cometbft inspect RPC port. this should fail,
+      // which is enough for us to conclude that the cometbft inspect process is dead.
+      GLOGDEBUG("TEST: Testing RPC port (must be closed)");
+      try {
+        boost::asio::io_context io_context;
+        boost::asio::ip::tcp::socket socket(io_context);
+        boost::asio::ip::tcp::endpoint endpoint(boost::asio::ip::make_address("127.0.0.1"), rpc_port);
+        socket.connect(endpoint);
+        FAIL("TEST: ERROR: connection to cometbft inspect RPC port succeeded, but port should be closed: " + std::to_string(rpc_port));
+        socket.close();
+      } catch (const std::exception& e) {
+        GLOGDEBUG("TEST: SUCCESS, failed to connect to cometbft inspect RPC port, which was expected: " + std::string(e.what()));
+      }
     }
   }
 }
