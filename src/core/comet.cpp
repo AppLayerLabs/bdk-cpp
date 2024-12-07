@@ -74,23 +74,37 @@ json rpcMakeInternalError(const std::string& message) {
  * the same process always, and we can safely assume that the handlers that matter -- calls to 'cometbft start' -- will always
  * land in the same process and run mode -- 'cometbft start'. Calls to 'cometbft inspect' should all be synchronous anyway
  * (since that's a diagnostic mode) and won't result in cancelled/leftover handlers upon close of the inspect RPC conection.
+ *
+ * NOTE: Even (2,4,6,..) JSON-RPC request IDs are used for async RPC calls, and odd IDs (1,3,5,..) are used for sync calls.
+ * This allows the RPC response read handler to know whether it should place the response in rpcAsyncResponseMap_ or
+ * rpcSyncResponseMap_, which is needed because sync responses don't pair with rpcAsyncSent_ elements. Splitting the request ID
+ * space at say 2^64/2 would just generate large IDs that are unreadable and use more space in plaintext.
  */
 template <typename T>
 class WebsocketRPCConnection {
   protected:
     std::mutex rpcStateMutex_; ///< Mutex that serializes all method calls involving communication.
-    std::mutex rpcRequestMapMutex_; ///< Mutex to protect all access to rpcRequestMap_.
     std::atomic<int> rpcServerPort_ = 0; ///< Configured localhost RPC port to connect to.
-    std::unique_ptr<boost::beast::websocket::stream<boost::asio::ip::tcp::socket>> rpcWs_; ///< RPC websocket connection.
+    std::unique_ptr<boost::beast::websocket::stream<boost::asio::ip::tcp::socket>> rpcWs_; ///< RPC websocket connection (guarantees async_read whole messages).
     boost::asio::io_context rpcIoc_; ///< io_context for the websocket connection.
     boost::asio::strand<boost::asio::io_context::executor_type> rpcStrand_{rpcIoc_.get_executor()}; ///< Strand to serialize read/write operations.
     std::thread rpcThread_; ///< Thread for rpcIoc_.run() (async RPC responses read loop).
-    std::unordered_map<uint64_t, json> rpcRequestMap_; ///< Map of request ID to response object, if any received.
-    std::atomic<bool> rpcRunning_ = false; ///< Flag to manage the async read thread lifecycle (must be atomic).
+    std::atomic<bool> rpcRunning_ = false; ///< Flag to manage the RPC connection lifecycle (must be atomic).
     std::atomic<bool> rpcFailed_ = false; ///< Error flag raised by failures in I/O handlers (must be atomic).
     static std::atomic<uint64_t> rpcRequestIdCounter_; ///< The JSON-RPC request ID generator is shared among all RPC connections (and all unit tests).
-    std::mutex rpcSentMutex_; ///< mutex to protect rpcSent_.
-    std::map<uint64_t, T> rpcSent_; ///< Map of JSON-RPC request id to application object that models the request.
+    std::mutex rpcAsyncSentMutex_; ///< mutex to protect rpcAsyncSent_.
+    std::map<uint64_t, T> rpcAsyncSent_; ///< Map of JSON-RPC request id to application object that models the request.
+    std::mutex rpcAsyncResponseMapMutex_; ///< Mutex to protect all access to rpcAsyncResponseMap_.
+    std::unordered_map<uint64_t, json> rpcAsyncResponseMap_; ///< Map of request ID to response object, if any received, for rpc async calls
+    std::mutex rpcSyncResponseMapMutex_; ///< Mutex to protect all access to rpcAsyncResponseMap_.
+    std::unordered_map<uint64_t, json> rpcSyncResponseMap_; ///< Map of request ID to response object, if any received, for rpc sync calls
+
+    /**
+     * Helper to set a JSON-RPC response to the correct map.
+     * @param requestId ID of the request (even=async, odd=sync).
+     * @param response The JSON-RPC response to the request.
+     */
+    void rpcSetResponse(const uint64_t requestId, const json& response);
 
     /**
      * Schedule a read task.
@@ -102,6 +116,13 @@ class WebsocketRPCConnection {
      * Handle a read message and schedule the next read task if no error.
      */
     void rpcHandleAsyncRead(std::shared_ptr<boost::beast::flat_buffer> buffer, boost::system::error_code ec, std::size_t);
+
+    /**
+     * Cancel all rpcAsyncCall() JSON-RPC requests in flight by assigning them
+     * a JSON-RPC response with the given error message.
+     * @param errorMessage The JSON-RPC error message to use for the cancelled RPCs.
+     */
+    void rpcCancelAllAsyncRequests(const std::string& errorMessage);
 
     /**
      * Start the persisted rpcSocket_ connection to the cometbft process_.
@@ -125,19 +146,18 @@ class WebsocketRPCConnection {
     void rpcDoReset();
 
     /**
-     * Make an asynchronous (non-blocking) JSON-RPC call.
+     * Back-end to rpcAsyncCall() and rpcSyncCall(). Generates an odd or even JSON-RPC request ID depending
+     * on what the caller is (sync vs async).
      * NOTE: The caller must have locked rpcStateMutex_.
      * @param method RPC method name to call.
      * @param params Parameters to pass to the RPC method.
-     * @param requestData Application data that is needed to generate the json rpc request call and that
-     * the application may want to return to its own client layer in its own RPC call-result callback;
-     * we don't know it's type (template type T) but we are responsible for tracking it internally as it
-     * is tied to the lifetime of RPC calls and also of the RPC connection (since connection closures
-     * will cancel pending RPC calls).
+     * @param requestData If an async RPC call, the application data that is needed to generate the json
+     * rpc request call and that the application may want to return to its own client layer in its own
+     * RPC call-result callback (*must not* be T{}). If a sync call, this *must be* T{}.
      * @param retry If true, retries the RPC connection and the method call once if it fails.
-     * @return The requestId (can be passed to rpcGetResponse() later) if successful, or 0 on error.
+     * @return The requestId (can be passed to rpcGetSyncResponse() later) if successful, or 0 on error.
      */
-    uint64_t rpcDoAsyncCall(const std::string& method, const json& params, const T& requestData, bool retry = true);
+    uint64_t rpcDoCall(const std::string& method, const json& params, const T& requestData, bool retry = true);
 
   public:
 
@@ -164,7 +184,7 @@ class WebsocketRPCConnection {
      * @param outResult Outparam set to the json response to the request.
      * @return `true` if there was a response to read, `false` otherwise (outResult is unset).
      */
-    bool rpcGetResponse(const uint64_t requestId, json& outResult);
+    bool rpcGetSyncResponse(const uint64_t requestId, json& outResult);
 
     /**
      * Retrieve a response, if available.
@@ -173,7 +193,7 @@ class WebsocketRPCConnection {
      * @param outRequestData Outparam set to the client request data object passed into the original RPC call request.
      * @return ID of the request, or 0 if there weren't any responses stored (outparams are unmodified).
      */
-    uint64_t rpcGetNextResponse(json& outResponse, T& outRequestData);
+    uint64_t rpcGetNextAsyncResponse(json& outResponse, T& outRequestData);
 
     /**
      * Make an asynchronous (non-blocking) JSON-RPC call.
@@ -184,31 +204,38 @@ class WebsocketRPCConnection {
      * @param method RPC method name to call.
      * @param params Parameters to pass to the RPC method.
      * @param requestData Application data that is needed to generate the json rpc request call and that
-     * the application may want to return to its own client layer in its own RPC call-result callback;
-     * we don't know it's type (template type T) but we are responsible for tracking it internally as it
-     * is tied to the lifetime of RPC calls and also of the RPC connection (since connection closures
-     * will cancel pending RPC calls).
+     * the application may want to return to its own client layer in its own RPC call-result callback.
      * @param retry If true, retries the RPC connection and the method call once if it fails.
-     * @return The requestId (can be passed to rpcGetResponse() later) if successful, or 0 on error.
+     * @return The requestId (can be passed to rpcGetSyncResponse() later) if successful, or 0 on error.
      */
     uint64_t rpcAsyncCall(const std::string& method, const json& params, const T& requestData, bool retry = true);
 
     /**
      * Make a synchronous (blocking) RPC call.
-     * NOTE: The T& outRequestData outparam is missing because in a sync call scenario the caller can
-     * just keep the original request data on local stack memory (don't need to be handed it back).
-     * NOTE: SLOW, polling with sleep. Use rpcAsyncCall() or improve this to use condition variables.
+     * Should use only when inspecting the cometbft node, otherwise should always use rpcAsyncCall() instead.
+     * NOTE: SLOW, polls with sleep, locks the entire RPC engine while waiting for its response.
      * @param method RPC method name to call.
      * @param params Parameters to pass to the RPC method.
      * @param outResult Outparam set to the json response to the request.
      * @param retry If true, retries the RPC connection and the method call once if it fails.
-     * @return `true` if call is successful, `false` on any error.
+     * @return `true` if call is successful, `false` on any error (e.g. connection fails while waiting).
      */
     bool rpcSyncCall(const std::string& method, const json& params, json& outResult, bool retry = true);
 };
 
 template <typename T>
 std::atomic<uint64_t> WebsocketRPCConnection<T>::rpcRequestIdCounter_{0};
+
+template <typename T>
+void WebsocketRPCConnection<T>::rpcSetResponse(const uint64_t requestId, const json& response) {
+  if (requestId % 2 == 0) {
+    std::scoped_lock lock(rpcAsyncResponseMapMutex_);
+    rpcAsyncResponseMap_[requestId] = response;
+  } else {
+    std::scoped_lock lock(rpcSyncResponseMapMutex_);
+    rpcSyncResponseMap_[requestId] = response;
+  }
+}
 
 template <typename T>
 void WebsocketRPCConnection<T>::rpcAsyncRead() {
@@ -237,35 +264,85 @@ void WebsocketRPCConnection<T>::rpcHandleAsyncRead(std::shared_ptr<boost::beast:
     auto jsonResponse = json::parse(responseStr);
     if (jsonResponse.contains("id")) {
       uint64_t requestId = jsonResponse["id"];
-      // If you have a response (rpcRequestMap_ entry) then you necessarily have a T in rpcSent_.
-      // So if we just got a response that doesn't have a matching rpcSent_, when we just DROP it:
+      // If you have a response (rpcAsyncResponseMap_ entry) then you necessarily have a T in rpcAsyncSent_.
+      // So if we just got a response that doesn't have a matching rpcAsyncSent_, when we just DROP it:
       // it means the user already collected another response in its place -- probably a
       // rpcMakeInternalError("RPC_CONNECTION_CLOSED").
       // (could be a stale response from a previous connection cycle, for  example, since we
-      // aren't currently preventing that -- TODO?)
+      // aren't currently preventing that)
       bool keepRequest = true;
-      {
-        std::scoped_lock lock(rpcSentMutex_);
-        auto it = rpcSent_.find(requestId);
-        if (it == rpcSent_.end()) {
+      if (requestId % 2 == 0) {
+        // rpcAsync only
+        std::scoped_lock lock(rpcAsyncSentMutex_);
+        auto it = rpcAsyncSent_.find(requestId);
+        if (it == rpcAsyncSent_.end()) {
           keepRequest = false;
           SLOGDEBUG("RPC dropping orphan response to request ID = " + std::to_string(requestId) + " : " + responseStr);
         }
       }
+      // TODO: Protect against storing stale sync responses as well.
+      // Keeping eventual stale sync responses is mostly harmless:
+      // - Sync is just used for testing cometbft, not in the running state.
+      // - Should be actually pretty rare for the RPC localhost connection to be continually reset and for that to cause aborted RPC calls.
+      // - rpcGetSyncResponse() does not loop over a structure like rpcGetNextAsyncResponse() does so it doesn't lose any time anyways.
+      // Would require a rpcSyncSent_ structure that's just a set of uint64_t.
       if (keepRequest) {
-        std::scoped_lock lock(rpcRequestMapMutex_);
-        rpcRequestMap_[requestId] = jsonResponse;
+        rpcSetResponse(requestId, jsonResponse);
       }
       buffer->consume(buffer->size());
+      // Post the next read handler
       std::scoped_lock stateLock(rpcStateMutex_);
       rpcAsyncRead();
     } else {
-      SLOGXTRACE("RPC failed (bad JSON-RPC with no 'id'): " + responseStr);
+      SLOGDEBUG("RPC failed (bad JSON-RPC with no 'id'): " + responseStr);
       rpcFailed_ = true;
     }
   } catch (const std::exception& ex) {
-    SLOGXTRACE("RPC failed (exception): " + std::string(ex.what()));
+    SLOGDEBUG("RPC failed (exception): " + std::string(ex.what()));
     rpcFailed_ = true;
+  }
+}
+
+template <typename T>
+void WebsocketRPCConnection<T>::rpcCancelAllAsyncRequests(const std::string& errorMessage) {
+  // FIXME/TODO/REVIEW: Stopping should not cause RPC responses that haven't been
+  // read yet to be discarded. Those will arrive later and will possibly not
+  // find an rpcAsyncSent_ item (because the app could have already collected
+  // it before the RPC response is received).
+  // We ensure these late RPC responses don't cause a double response to the
+  // request (i.e. the erroneous "request failed" answer which is made first
+  // is the one that sticks) but still, we'd rather at least take the RPC
+  // responses that are already readable and pump those out before intentionally
+  // closing the RPC connection.
+  //
+  // Whenever the websocket RPC connection is reset, the RPC request IDs that
+  //   we have in flight become meaningless, since they won't be answered in
+  //   a new connection that we happen to make (or we don't expect them to be
+  //   answered--in any case, we won't ever be reusing these request IDs as
+  //   the local JSON-RPC request ID generator is not reset to 1).
+  // So we need to iterate over every txSent_ entry we have with a requestID
+  //   waiting for an RPC response and generate local failure responses.
+  //
+  // NOTE: sync calls hold an exclusive mutex over the entire RPC engine, so
+  // RPC failures can be directly addressed inside rpcSyncCall() instead.
+  json rpcClosedResponse = rpcMakeInternalError(errorMessage);
+  // The rpcAsyncSent_ map is what gets filled in with pending requestIDs, so
+  // we need to collect all those IDs
+  std::vector<uint64_t> requestIds;
+  requestIds.reserve(rpcAsyncSent_.size());
+  std::unique_lock<std::mutex> sentLock(rpcAsyncSentMutex_);
+  for (const auto& kv : rpcAsyncSent_) {
+    const uint64_t& requestId = kv.first;
+    requestIds.push_back(requestId);
+  }
+  // Don't need and should not erase rpcAsyncSent_ elements here because the user has
+  // to "manually" collect both the rpcAsyncSent_ and the rpcAsyncResponseMap_ entries now
+  // via some rpcGetXX() method.
+  sentLock.unlock();
+  // Manufacture erroneous JSON-RPC responses for all requests that were pending
+  std::scoped_lock reqLock(rpcAsyncResponseMapMutex_);
+  for (uint64_t requestId : requestIds) {
+    rpcAsyncResponseMap_[requestId] = rpcClosedResponse;
   }
 }
 
@@ -307,43 +384,7 @@ bool WebsocketRPCConnection<T>::rpcDoStart(int rpcPort) {
 template <typename T>
 void WebsocketRPCConnection<T>::rpcDoStop() {
   rpcDoReset();
-
-  // FIXME/TODO: Stopping should not cause RPC responses that haven't been
-  // read yet to be discarded. Those will arrive later and will possibly not
-  // find an rpcSent_ item (because the app could have already collected
-  // it before the RPC response is received).
-  // We ensure these late RPC responses don't cause a double response to the
-  // request (i.e. the erroneous "request failed" answer which is made first
-  // is the one that sticks) but still, we'd rather at least take the RPC
-  // responses that are already readable and pump those out before intentionally
-  // closing the RPC connection.
-  //
-  // Whenever the websocket RPC connection is reset, the RPC request IDs that
-  //   we have in flight become meaningless, since they won't be answered in
-  //   a new connection that we happen to make (or we don't expect them to be
-  //   answered--in any case, we won't ever be reusing these request IDs as
-  //   the local JSON-RPC request ID generator is not reset to 1).
-  // So we need to iterate over every txSent_ entry we have with a requestID
-  //   waiting for an RPC response and generate local failure responses.
-  json rpcClosedResponse = rpcMakeInternalError("RPC_CONNECTION_CLOSED");
-  // The rpcSent_ map is what gets filled in with pending requestIDs, so
-  // we need to collect all those IDs
-  std::vector<uint64_t> requestIds;
-  requestIds.reserve(rpcSent_.size());
-  std::unique_lock<std::mutex> sentLock(rpcSentMutex_);
-  for (const auto& kv : rpcSent_) {
-    const uint64_t& requestId = kv.first;
-    requestIds.push_back(requestId);
-  }
-  // Don't need and should not erase rpcSent_ elements here because the user has
-  // to "manually" collect both the rpcSent_ and the rpcRequestMap_ entries now
-  // via some rpcGetXX() method.
-  sentLock.unlock();
-  // Manufacture erroneous JSON-RPC responses for all requests that were pending
-  std::scoped_lock reqLock(rpcRequestMapMutex_);
-  for (uint64_t requestId : requestIds) {
-    rpcRequestMap_[requestId] = rpcClosedResponse;
-  }
+  rpcCancelAllAsyncRequests("RPC_CONNECTION_CLOSED");
 }
 
 template <typename T>
@@ -367,14 +408,22 @@ void WebsocketRPCConnection<T>::rpcDoReset() {
 }
 
 template <typename T>
-uint64_t WebsocketRPCConnection<T>::rpcDoAsyncCall(const std::string& method, const json& params, const T& requestData, bool retry) {
+uint64_t WebsocketRPCConnection<T>::rpcDoCall(const std::string& method, const json& params, const T& requestData, bool retry) {
   if (rpcFailed_) {
     rpcDoStop();
   }
   if (!rpcWs_ && !rpcDoStart()) {
     return 0;
   }
-  uint64_t requestId = ++rpcRequestIdCounter_;
+
+  // Increment twice if a single increment lands on even ID for a sync call (T{}) or odd ID for an async call (not T{})
+  bool isSyncCall = requestData == T{};
+  ++rpcRequestIdCounter_;
+  bool gotEvenId = (rpcRequestIdCounter_ % 2) == 0;
+  rpcRequestIdCounter_ += (gotEvenId == isSyncCall); // true == 1, false == 0; increment on mismatch
+  uint64_t requestId = rpcRequestIdCounter_;
+
+  // Build the JSON-RPC request message
   json requestBody = {
     {"jsonrpc", "2.0"},
     {"method", method},
@@ -382,30 +431,29 @@ uint64_t WebsocketRPCConnection<T>::rpcDoAsyncCall(const std::string& method, co
     {"id", requestId}
   };
   auto message = std::make_shared<std::string>(requestBody.dump());
-  // Actually, DO allow T{} pushed into rpcSent_ to represent synchronous calls
-  // We need this to enforce having item in rpcRequestMap_ equals having item in rpcSent_
-  // rpcGetNextResponse() will just continously skip over those until rpcSyncCall gets rid of them
-  {
-    std::scoped_lock lock(rpcSentMutex_);
-    rpcSent_[requestId] = requestData;
+
+  // rpcAsyncSent_ is used by async calls only
+  if (requestData != T{}) {
+    std::scoped_lock lock(rpcAsyncSentMutex_);
+    rpcAsyncSent_[requestId] = requestData;
   }
+
   boost::asio::post(rpcStrand_, [this, requestId, message]() {
     boost::system::error_code ec;
     std::unique_lock<std::mutex> stateLock(rpcStateMutex_);
     if (!rpcWs_ && !rpcDoStart()) {
-      std::lock_guard<std::mutex> lock(rpcRequestMapMutex_);
-      rpcRequestMap_[requestId] = rpcMakeInternalError("Websocket write failed, can't reconnect to RPC port.");
+      rpcSetResponse(requestId, rpcMakeInternalError("Websocket write failed, can't reconnect to RPC port."));
     } else {
       rpcWs_->write(boost::asio::buffer(*message), ec);
       if (ec) {
         rpcFailed_ = true;
-        // Since we can't make rpcDoAsyncCall() block on the completion handler, if the
+        // Since we can't make rpcDoCall() block on the completion handler, if the
         // websocket->write() fails, it will set an error response to the request Id.
-        std::lock_guard<std::mutex> lock(rpcRequestMapMutex_);
-        rpcRequestMap_[requestId] = rpcMakeInternalError("Websocket write failed: " + ec.message());
+        rpcSetResponse(requestId, rpcMakeInternalError("Websocket write failed: " + ec.message()));
       }
     }
   });
+
   return requestId;
 }
 
@@ -422,32 +470,19 @@ void WebsocketRPCConnection<T>::rpcStopConnection() {
 }
 
 template <typename T>
-bool WebsocketRPCConnection<T>::rpcGetResponse(const uint64_t requestId, json& outResult) {
-  // Opportunistically check for I/O failure while polling responses
-  // to avoid waiting for actual RPC call tasks to trigger this check.
-  if (rpcFailed_) {
-    rpcStopConnection(); // we don't have the lock yet here so we call the public function
-  }
-  if (!rpcWs_) {
-    rpcStartConnection();
-    // and continue, since finding and returning a response doesn't actually use the connection
-  }
-  std::scoped_lock lock(rpcRequestMapMutex_);
-  auto it = rpcRequestMap_.find(requestId);
-  if (it != rpcRequestMap_.end()) {
+bool WebsocketRPCConnection<T>::rpcGetSyncResponse(const uint64_t requestId, json& outResult) {
+  std::scoped_lock lock(rpcSyncResponseMapMutex_);
+  auto it = rpcSyncResponseMap_.find(requestId);
+  if (it != rpcSyncResponseMap_.end()) {
     outResult = it->second;
-    rpcRequestMap_.erase(it);
-    // Remove the T{} rpcSent_ sync call placeholder as well
-    std::scoped_lock lock(rpcSentMutex_);
-    auto it = rpcSent_.find(requestId);
-    rpcSent_.erase(it);
+    rpcSyncResponseMap_.erase(it);
     return true;
   }
   return false;
 }
 
 template <typename T>
-uint64_t WebsocketRPCConnection<T>::rpcGetNextResponse(json& outResponse, T& outRequestData) {
+uint64_t WebsocketRPCConnection<T>::rpcGetNextAsyncResponse(json& outResponse, T& outRequestData) {
   // Opportunistically check for I/O failure while polling responses
   // to avoid waiting for actual RPC call tasks to trigger this check.
   if (rpcFailed_) {
@@ -460,53 +495,36 @@ uint64_t WebsocketRPCConnection<T>::rpcGetNextResponse(json& outResponse, T& out
   // Get next element and return it, if any
   uint64_t requestId;
   {
-    std::scoped_lock lock(rpcRequestMapMutex_);
-    if (rpcRequestMap_.empty()) {
+    std::scoped_lock lock(rpcAsyncResponseMapMutex_);
+    if (rpcAsyncResponseMap_.empty()) {
       return 0;
     }
-    // FIXME/TODO: This is unnecessarily costly; shouldn't need to loop skipping entries.
-    // The permanent solution to this unforeseen complication is to just split
-    // sync and async calls into different rpcRequestMap_'s (add a rpcSyncRequestMap_),
-    // so that rpcSent_ is only needed and used by rpcRequestMap_ (async requests).
-    // Signaling sync vs async requests can be as stupid as just using odd/even
-    // JSON-RPC 'id's (just skip ahead the request ID generator until you get odd/even)
-    // or using a different ID space (e.g. very large IDs > 1B) for sync requests.
-    auto it = rpcRequestMap_.begin();
-    while (it != rpcRequestMap_.end()) {
-      requestId = it->first;
-      // If it's a sync call result, skip it
-      {
-        std::scoped_lock lock(rpcSentMutex_);
-        auto itst = rpcSent_.find(requestId);
-        const T& requestData = itst->second;
-        if (requestData == T{}) {
-          // T{} signals the request is a sync call, which is pumped out elsewhere
-          ++it;
-          continue;
-        }
-      }
-      // Retrieve the response and erase it from the request map
-      outResponse = it->second;
-      rpcRequestMap_.erase(it);
-      // If you have a response (rpcRequestMap_ entry) then you necessarily have a T in rpcSent_.
-      // And if every request always gets a response set eventually (which is required for this
-      // class to be correct) then both objects get eventually cleared by rpcGetNextResponse.
-      {
-        std::scoped_lock lock(rpcSentMutex_);
-        auto it = rpcSent_.find(requestId);
-        outRequestData = it->second;
-        rpcSent_.erase(it);
-      }
-      return requestId;
-    }
+    auto it = rpcAsyncResponseMap_.begin();
+    requestId = it->first;
+    // Retrieve the response and erase it from the async request map
+    outResponse = it->second;
+    rpcAsyncResponseMap_.erase(it);
   }
-  return 0;
+  // If you have a response (rpcAsyncResponseMap_ entry) then you necessarily have a T in rpcAsyncSent_.
+  // And if every request always gets a response set eventually (which is required for this
+  // class to be correct) then both objects get eventually cleared by rpcGetNextAsyncResponse.
+  {
+    std::scoped_lock lock(rpcAsyncSentMutex_);
+    auto it = rpcAsyncSent_.find(requestId);
+    outRequestData = it->second;
+    rpcAsyncSent_.erase(it);
+  }
+  return requestId;
 }
 
 template <typename T>
 uint64_t WebsocketRPCConnection<T>::rpcAsyncCall(const std::string& method, const json& params, const T& requestData, bool retry) {
+  if (requestData == T{}) {
+    SLOGERROR("Internal error. rpcAsyncCal() invoked with empty requestData, which is reserved for rpcSyncCall().");
+    return 0;
+  }
   std::scoped_lock stateLock(rpcStateMutex_);
-  return rpcDoAsyncCall(method, params, requestData, retry);
+  return rpcDoCall(method, params, requestData, retry);
 }
 
 template <typename T>
@@ -521,8 +539,8 @@ bool WebsocketRPCConnection<T>::rpcSyncCall(const std::string& method, const jso
   }
   uint64_t requestId;
   try {
-    // Actually DOES insert T{} in rpcSent_, to signal a valid sync request
-    requestId = rpcDoAsyncCall(method, params, T{});
+    // T{} is how rpcDoCall() knows it's being used for a sync call
+    requestId = rpcDoCall(method, params, T{});
   } catch (const std::exception& ex) {
     if (retry) {
       stateLock.unlock();
@@ -540,7 +558,15 @@ bool WebsocketRPCConnection<T>::rpcSyncCall(const std::string& method, const jso
   // It is imperative that every request that is successfully sent gets a response
   // OR that the RPC connection is closed.
   while (true) {
-    if (rpcGetResponse(requestId, outResult)) {
+    // rpcWs_ can't be reset because we are holding the state mutex, but rpcFailed_ can be raised.
+    // If there's a failure, the RPC response we are waiting will never arrive.
+    if (rpcFailed_) {
+      rpcDoStop(); // Attempt to reboot it here, because why not, it's free
+      rpcDoStart();
+      return false;
+    }
+    // Poll for the response in the sync responses map
+    if (rpcGetSyncResponse(requestId, outResult)) {
       return !outResult.contains("error");
     }
     // Yes, it's slow, because you shouldn't use rpcSyncCall() unless it's for some kind of probing or testing.
@@ -1759,7 +1785,7 @@ void CometImpl::workerLoopInner() {
       while (!stop_) {
 
         // Fetch an async-call RPC response (any one)
-        requestId = rpcGetNextResponse(requestResponseJson, requestData);
+        requestId = rpcGetNextAsyncResponse(requestResponseJson, requestData);
         if (requestId == 0) {
           break; // Done pumping out all pending responses, so wait a bit, check quit flag, ...
         }
@@ -1816,7 +1842,7 @@ void CometImpl::workerLoopInner() {
 
           } else {
             // Bug, should never happen.
-            // For example, rpcGetNextResponse() should not return any request marked with T{} (from sync calls)
+            // For example, rpcGetNextAsyncResponse() should not return any request marked with T{} (from sync calls)
             LOGERROR("Internal error: got unknown RPC result type!");
           }
         }, requestData);
@@ -1943,7 +1969,7 @@ void CometImpl::init_chain(const cometbft::abci::v1::InitChainRequest& req, come
 
   auto* feature_params = consensus_params->mutable_feature();
 
-  // FIXME/TODO/REVIEW: If we enable Vote Extensions (which we probably want to enable even if we aren't using them
+  // TODO/REVIEW: If we enable Vote Extensions (which we probably want to enable even if we aren't using them
   // for anything) here, we need to actually fill in vote extensions related ABCI request and response parameters
   // otherwise it won't work (you'll get consensus failures).
   //auto* vote_extensions_height = feature_params->mutable_vote_extensions_enable_height();
@@ -2022,7 +2048,7 @@ void CometImpl::finalize_block(const cometbft::abci::v1::FinalizeBlockRequest& r
   std::string hashString(hashBytes.begin(), hashBytes.end());
   res->set_app_hash(hashString);
 
-  // FIXME/TODO: Check if we need to expose more ExecTxResult fields to the application.
+  // TODO/REVIEW: Check if we need to expose more ExecTxResult fields to the application.
   for (int32_t i = 0; i < req.txs().size(); ++i) {
     cometbft::abci::v1::ExecTxResult* tx_result = res->add_tx_results();
     CometExecTxResult& txRes = txResults[i];
