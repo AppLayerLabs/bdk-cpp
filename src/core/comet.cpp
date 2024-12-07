@@ -63,10 +63,8 @@ json rpcMakeInternalError(const std::string& message) {
 }
 
 /**
- * One websocket JSON-RPC connection to a cometbft process.
- * This class is thread-safe.
- * @tparam T Type of the custom data element stored with every in-flight JSON-RPC request (a std::variant is useful here).
- *
+ * One reusable websocket JSON-RPC connection to a cometbft process. Keeps track of JSON-RPC requests and responses.
+ * NOTE: This class is thread-safe.
  * NOTE: This uses the same io_context for multiple RPC connections; as usual with ASIO, this can cause (i) completion handler
  * cancellation from the previous connection to overlap with the new connection, and (ii) pending completion handlers to revive
  * in the new connection. For (i) we just drop the only handler that matters -- the read handler -- when the operation is
@@ -74,15 +72,18 @@ json rpcMakeInternalError(const std::string& message) {
  * the same process always, and we can safely assume that the handlers that matter -- calls to 'cometbft start' -- will always
  * land in the same process and run mode -- 'cometbft start'. Calls to 'cometbft inspect' should all be synchronous anyway
  * (since that's a diagnostic mode) and won't result in cancelled/leftover handlers upon close of the inspect RPC conection.
- *
  * NOTE: Even (2,4,6,..) JSON-RPC request IDs are used for async RPC calls, and odd IDs (1,3,5,..) are used for sync calls.
  * This allows the RPC response read handler to know whether it should place the response in rpcAsyncResponseMap_ or
  * rpcSyncResponseMap_, which is needed because sync responses don't pair with rpcAsyncSent_ elements. Splitting the request ID
  * space at say 2^64/2 would just generate large IDs that are unreadable and use more space in plaintext.
+ * @tparam T Type of the custom data element stored with every in-flight JSON-RPC request (a std::variant is useful here).
+ *
+ * FIXME: Need to fix utils/logger.h instance logging macros (LOGxxx) to work in template classes like WebsocketRPCConnection.
  */
 template <typename T>
-class WebsocketRPCConnection {
+class WebsocketRPCConnection : public Log::LogicalLocationProvider {
   protected:
+    const std::string instanceIdStr_; ///< Identifier for logging
     std::mutex rpcStateMutex_; ///< Mutex that serializes all method calls involving communication.
     std::atomic<int> rpcServerPort_ = 0; ///< Configured localhost RPC port to connect to.
     std::unique_ptr<boost::beast::websocket::stream<boost::asio::ip::tcp::socket>> rpcWs_; ///< RPC websocket connection (guarantees async_read whole messages).
@@ -160,6 +161,10 @@ class WebsocketRPCConnection {
     uint64_t rpcDoCall(const std::string& method, const json& params, const T& requestData, bool retry = true);
 
   public:
+
+    std::string getLogicalLocation() const override { return instanceIdStr_; } ///< Log instance
+
+    WebsocketRPCConnection(std::string instanceIdStr) : instanceIdStr_(instanceIdStr) {} ///< Constructor
 
     /**
      * Start the persisted rpcSocket_ connection to the cometbft process_.
@@ -597,7 +602,7 @@ using CometRPCRequestType = std::variant<TxSendType, TxCheckType, DefaultAsyncRP
  * CometImpl also manages configuring, launching, monitoring and terminating the cometbft
  * process, as well as interfacing with its RPC port which is not exposed to BDK users.
  */
-class CometImpl : public Log::LogicalLocationProvider, public ABCIHandler, public WebsocketRPCConnection<CometRPCRequestType> {
+class CometImpl : public ABCIHandler, public Log::LogicalLocationProvider {
   private:
     CometListener* listener_; ///< Comet class application event listener/handler
     const std::string instanceIdStr_; ///< Identifier for logging
@@ -631,8 +636,10 @@ class CometImpl : public Log::LogicalLocationProvider, public ABCIHandler, publi
 
     std::atomic<uint64_t> txCacheSize_ = 1000000; ///< Transaction cache size in maximum entries per bucket (0 to disable).
     std::mutex txCacheMutex_; ///< Mutex to protect cache access.
-    std::array<std::unordered_map<Hash, CometTxStatus, SafeHash>, 2> txCache_; /// Transaction cache as two rotating buckets.
+    std::array<std::unordered_map<Hash, CometTxStatus, SafeHash>, 2> txCache_; ///< Transaction cache as two rotating buckets.
     uint64_t txCacheBucket_ = 0; ///< Active txCache_ bucket.
+
+    WebsocketRPCConnection<CometRPCRequestType> rpc_; ///< Singleton websocket RPC connection to process_ (started/stopped as needed).
 
     void setState(const CometState& state); ///< Apply a state transition, possibly pausing at the new state.
     void setError(const std::string& errorStr); ///< Signal a fatal error condition.
@@ -647,7 +654,7 @@ class CometImpl : public Log::LogicalLocationProvider, public ABCIHandler, publi
   public:
 
     std::string getLogicalLocation() const override { return instanceIdStr_; } ///< Log instance
-    explicit CometImpl(CometListener* listener, std::string instanceIdStr, const Options& options, bool stepMode);
+    CometImpl(CometListener* listener, std::string instanceIdStr, const Options& options, bool stepMode);
     virtual ~CometImpl();
     void setTransactionCacheSize(const uint64_t cacheSize);
     bool getStatus();
@@ -689,7 +696,7 @@ class CometImpl : public Log::LogicalLocationProvider, public ABCIHandler, publi
 };
 
 CometImpl::CometImpl(CometListener* listener, std::string instanceIdStr, const Options& options, bool stepMode)
-  : listener_(listener), instanceIdStr_(instanceIdStr), options_(options), stepMode_(stepMode)
+  : listener_(listener), instanceIdStr_(instanceIdStr), options_(options), stepMode_(stepMode), rpc_(instanceIdStr)
 {
 }
 
@@ -802,7 +809,7 @@ uint64_t CometImpl::sendTransaction(const Bytes& tx, std::shared_ptr<Hash>* ethH
 
   CometRPCRequestType requestData = TxSendType{ethHash ? *ethHash : nullptr, tx};
 
-  uint64_t requestId = rpcAsyncCall("broadcast_tx_async", stparams, requestData);
+  uint64_t requestId = rpc_.rpcAsyncCall("broadcast_tx_async", stparams, requestData);
 
   if (requestId != 0) {
     // Only need to add the transaction to the cache if there's a chance
@@ -881,7 +888,7 @@ uint64_t CometImpl::checkTransaction(const std::string& txHash) {
 
   CometRPCRequestType requestData = TxCheckType{txHash};
 
-  uint64_t requestId = rpcAsyncCall("tx", ctparams, requestData);
+  uint64_t requestId = rpc_.rpcAsyncCall("tx", ctparams, requestData);
   return requestId;
 }
 
@@ -890,7 +897,7 @@ bool CometImpl::rpcCall(const std::string& method, const json& params, json& out
     outResult = rpcMakeInternalError("Cometbft is not running.");
     return false;
   }
-  return rpcSyncCall(method, params, outResult);
+  return rpc_.rpcSyncCall(method, params, outResult);
 }
 
 uint64_t CometImpl::rpcCall(const std::string& method, const json& params) {
@@ -898,7 +905,7 @@ uint64_t CometImpl::rpcCall(const std::string& method, const json& params) {
     return 0;
   }
   CometRPCRequestType requestData = DefaultAsyncRPCType{method, params};
-  return rpcAsyncCall(method, params, requestData);
+  return rpc_.rpcAsyncCall(method, params, requestData);
 }
 
 bool CometImpl::start() {
@@ -969,7 +976,7 @@ void CometImpl::resetError() {
 void CometImpl::cleanup() {
 
   // Close the RPC connection, if any
-  rpcStopConnection();
+  rpc_.rpcStopConnection();
 
   // Stop the CometBFT node, if any
   stopCometBFT();
@@ -1547,7 +1554,7 @@ void CometImpl::workerLoopInner() {
     bool inspectRpcSuccess = false;
     while (inspectRpcTries-- > 0 && !stop_) {
       std::this_thread::sleep_for(std::chrono::milliseconds(100));
-      if (rpcStartConnection(rpcPort_)) {
+      if (rpc_.rpcStartConnection(rpcPort_)) {
         inspectRpcSuccess = true;
         break;
       }
@@ -1566,7 +1573,7 @@ void CometImpl::workerLoopInner() {
 
     json insRes;
     LOGDEBUG("Making sample RPC call");
-    if (!rpcSyncCall("header", json::object(), insRes)) {
+    if (!rpc_.rpcSyncCall("header", json::object(), insRes)) {
       setErrorCode(CometError::RPC_CALL_FAILED);
       throw DynamicException("ERROR: cometbft inspect RPC header call failed: " + insRes.dump());
     }
@@ -1621,7 +1628,7 @@ void CometImpl::workerLoopInner() {
     // --------------------------------------------------------------------------------------
     // Finished inspect step.
 
-    rpcStopConnection();
+    rpc_.rpcStopConnection();
 
     stopCometBFT();
 
@@ -1725,7 +1732,7 @@ void CometImpl::workerLoopInner() {
     while (rpcTries-- > 0 && !stop_) {
       // wait first, otherwise 1st connection attempt always fails
       std::this_thread::sleep_for(std::chrono::milliseconds(100));
-      if (rpcStartConnection(rpcPort_)) {
+      if (rpc_.rpcStartConnection(rpcPort_)) {
         rpcSuccess = true;
         break;
       }
@@ -1745,7 +1752,7 @@ void CometImpl::workerLoopInner() {
     // Test the RPC connection (and also check node health)
     // Make a sample RPC call using the persisted connection
     json healthResult;
-    if (!rpcSyncCall("health", json::object(), healthResult)) {
+    if (!rpc_.rpcSyncCall("health", json::object(), healthResult)) {
       setErrorCode(CometError::RPC_CALL_FAILED);
       throw DynamicException("ERROR: cometbft RPC health call failed: " + healthResult.dump());
     }
@@ -1785,7 +1792,7 @@ void CometImpl::workerLoopInner() {
       while (!stop_) {
 
         // Fetch an async-call RPC response (any one)
-        requestId = rpcGetNextAsyncResponse(requestResponseJson, requestData);
+        requestId = rpc_.rpcGetNextAsyncResponse(requestResponseJson, requestData);
         if (requestId == 0) {
           break; // Done pumping out all pending responses, so wait a bit, check quit flag, ...
         }
