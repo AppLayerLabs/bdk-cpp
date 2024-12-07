@@ -578,6 +578,30 @@ bool WebsocketRPCConnection<T>::rpcSyncCall(const std::string& method, const jso
 }
 
 // ---------------------------------------------------------------------------------------
+// RPC request data types
+// ---------------------------------------------------------------------------------------
+
+// Comet::sendTransaction() async RPC request data
+// - std::shared_ptr<Hash>: Eth hash of the transaction being sent (nullptr if ignoring txCache)
+// - Bytes: transaction data (Bytes)
+using TxSendType = std::tuple<std::shared_ptr<Hash>, Bytes>;
+
+// Comet::checkTransaction() async RPC request data
+// - std::string: cometbft SHA256 hex hash of the transaction being queried (no "0x" prefix)
+using TxCheckType = std::string;
+
+// Generic async RPC request data (when calling any RPC)
+// - std::string: JSON-RPC call method name
+// - json: JSON-RPC call parameters
+// Use for driver user calls (async version of Comet::rpcCall()); can also be used by CometImpl
+// internally to perform async RPC calls that don't need to bind any extra data to the request
+// (can further multiplex in the std::visit step by e.g. method, parameters and/or result).
+using DefaultAsyncRPCType = std::tuple<std::string, json>;
+
+// Variant type that combines the request data type of all possible rpcAsyncCall() requests.
+using CometRPCRequestType = std::variant<TxSendType, TxCheckType, DefaultAsyncRPCType>;
+
+// ---------------------------------------------------------------------------------------
 // CometImpl class
 // ---------------------------------------------------------------------------------------
 
@@ -585,12 +609,6 @@ bool WebsocketRPCConnection<T>::rpcSyncCall(const std::string& method, const jso
 // This should probably be greater than the maximum block size, in case we get a full
 // block transmitted via RPC for some reason.
 #define COMET_RPC_MAX_BODY_BYTES 200000000
-
-// Types of RPC requests produced by CometImpl and the type of the request data item tracked by each.
-using TxSendType = std::tuple<std::shared_ptr<Hash>, Bytes>; // optional ethHash (may be nullptr), transaction data (Bytes)
-using TxCheckType = std::string; // cometbft SHA256 hex txHash (no 0x) or "" if unknown
-using DefaultAsyncRPCType = std::tuple<std::string, json>; /// method name, params (fallback type when none other is available)
-using CometRPCRequestType = std::variant<TxSendType, TxCheckType, DefaultAsyncRPCType>;
 
 /**
  * CometImpl implements the interface to CometBFT using ABCIServer and ABCISession from
