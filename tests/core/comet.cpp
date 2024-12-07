@@ -2047,10 +2047,6 @@ namespace TComet {
       GLOGDEBUG("TEST: Finished");
     }
 
-/*
-    FIXME: This test no longer works since we took out CometImpl::txOut_
-           Now we need to wait for RUNNING before sending transactions
-
     // Test the Comet transaction cache
     SECTION("CometTxCacheTest") {
       std::string testDumpPath = createTestDumpPath("CometTxCacheTest");
@@ -2067,8 +2063,21 @@ namespace TComet {
       // Guarantee that txCache is enabled
       comet.setTransactionCacheSize(1000000);
 
-      // Send the transaction before starting the chain, to "ensure" (not really, but, in
-      //  practice, yes) it will be included in the first block.
+      // Start Comet driver
+      GLOGDEBUG("TEST: Starting comet...");
+      comet.start();
+
+      // Need to wait for RUNNING state before sending transactions now unfortunately
+      GLOGDEBUG("TEST: Waiting RUNNING state before sending transaction....");
+      comet.setPauseState(CometState::RUNNING);
+      REQUIRE(comet.waitPauseState(30000) == "");
+      comet.setPauseState();
+
+      // Fetch current block height
+      uint64_t seenHeight = cometListener.h_;
+      GLOGDEBUG("TEST: Before sending the transaction, chain is at height: " + std::to_string(seenHeight));
+
+      // Send the transaction. We can't predict in which block this will end up but we don't have to.
       GLOGDEBUG("TEST: Sending a transaction...");
 
       std::shared_ptr<Hash> ethHashPtr;
@@ -2076,17 +2085,6 @@ namespace TComet {
 
       REQUIRE(ethHashPtr.get() != nullptr);
       Hash& ethHash = *ethHashPtr.get();
-
-      // Start Comet driver
-      GLOGDEBUG("TEST: Starting comet...");
-      comet.start();
-
-      // Wait at least until we reach the point "cometbft start" is going to be called
-      // to slightly reduce the CPU use of the test with the busy wait loop below.
-      comet.setPauseState(CometState::STARTING_COMET);
-      GLOGDEBUG("TEST: Waiting until we are ready to run 'cometbft start'...");
-      REQUIRE(comet.waitPauseState(10000) == "");
-      comet.setPauseState();
 
       // Aggressively poll the cache in a busy loop
       GLOGDEBUG("TEST: Querying txCache until transaction is included in a block...");
@@ -2113,7 +2111,7 @@ namespace TComet {
         } while (txs.height < 0);
       });
       REQUIRE(futureFinalizeTx.wait_for(std::chrono::seconds(10)) != std::future_status::timeout);
-      REQUIRE(txs.height == 1); // should have been included in the first block unless your test machine is in serious trouble
+      REQUIRE(txs.height > seenHeight); // must necessarily be greater than a finalized height we have seen before sending the transaction
       REQUIRE(txs.index == 0); // first transaction in the block (since it is the only one)
       REQUIRE(txs.result.code == 1); // the TestMachine "REVERT" op tx transaction should have a revert status
 
@@ -2125,7 +2123,6 @@ namespace TComet {
       REQUIRE(comet.getState() == CometState::STOPPED);
       GLOGDEBUG("TEST: Finished");
     }
-*/
 
     // setpriv test. setpriv is not *really* optional -- you must have setpriv in your path
     // to run the tests, otherwise this test will just fail.

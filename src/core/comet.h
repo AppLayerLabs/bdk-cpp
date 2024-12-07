@@ -226,7 +226,7 @@ class CometListener {
     }
 
     /**
-     * Notification of completing a Comet::sendTransaction() request.
+     * Notification of completing a Comet::sendTransaction() RPC request.
      * @param tId The sendTransaction() request ticket ID.
      * @param tx Transaction that was previously sent via `Comet::sendTransaction()`.
      * @param success `true` if sendTransaction() succeeded, `false` if the transaction failed to send.
@@ -239,14 +239,27 @@ class CometListener {
     }
 
     /**
-     * Notification of completing a Comet::checkTransaction(txHash) request (i.e. when it is made via RPC).
+     * Notification of completing a Comet::checkTransaction(txHash) RPC request.
      * @param tId The checkTransaction() request ticket ID.
      * @param txHash The transaction hash that was checked.
-     * @param success Whether the transaction check (/tx RPC call) was successful or not.
+     * @param success Whether the transaction check ('tx' JSON-RPC method call) was successful or not.
      * @param response The full JSON-RPC response returned by cometbft.
      */
     virtual void checkTransactionResult(
       const uint64_t tId, const std::string& txHash, const bool success, const json& response
+    ) {
+    }
+
+    /**
+     * Notification of completing an asynchronous Comet::rpcCall() RPC request.
+     * @param tId The checkTransaction() request ticket ID.
+     * @param method Method name for the RPC.
+     * @param params Parameters for the RPC.
+     * @param success Whether the RPC was successful or not.
+     * @param response The full JSON-RPC response returned by cometbft.
+     */
+    virtual void rpcAsyncCallResult(
+      const uint64_t tId, const std::string& method, const json& params, const bool success, const json& response
     ) {
     }
 
@@ -405,6 +418,15 @@ class Comet : public Log::LogicalLocationProvider {
      * @return `true` if the call succeeded, `false` if any error occurred ("error" response is set).
      */
     bool rpcCall(const std::string& method, const json& params, json& outResult);
+
+    /**
+     * Make an async JSON-RPC call to the RPC endpoint. The Comet engine must be in a state that has cometbft
+     * running, with the RPC connection already established, otherwise this method will error out.
+     * @param method Name of the JSON-RPC method to call.
+     * @param params Parameters to the method call.
+     * @return The JSON-RPC request ID generated for the call, or 0 on error.
+     */
+    uint64_t rpcCall(const std::string& method, const json& params);
 
     /**
      * Start (or restart) the consensus engine loop.
