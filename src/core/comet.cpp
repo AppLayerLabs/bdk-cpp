@@ -84,19 +84,26 @@ template <typename T>
 class WebsocketRPCConnection : public Log::LogicalLocationProvider {
   protected:
     const std::string instanceIdStr_; ///< Identifier for logging
-    std::mutex rpcStateMutex_; ///< Mutex that serializes all method calls involving communication.
     std::atomic<int> rpcServerPort_ = 0; ///< Configured localhost RPC port to connect to.
+    std::atomic<uint64_t> rpcRequestIdCounter_ = 0; ///< JSON-RPC request ID generator.
+
+    std::mutex rpcStopMutex_; ///< Mutex for rpcStop_
+    bool rpcStop_ = false; ///< Flag used to temporarily hold RPC calls so pending request responses can be flushed before stopping/rebooting the connection
+
+    std::mutex rpcStateMutex_; ///< Mutex that serializes all method calls involving communication.
+    bool rpcRunning_ = false; ///< Flag to manage the RPC connection lifecycle (access only while holding rpcStateMutex_).
+    std::atomic<bool> rpcFailed_ = false; ///< Error flag raised by failures in I/O handlers (must be atomic since it is set in the read handler).
+
     std::unique_ptr<boost::beast::websocket::stream<boost::asio::ip::tcp::socket>> rpcWs_; ///< RPC websocket connection (guarantees async_read whole messages).
     boost::asio::io_context rpcIoc_; ///< io_context for the websocket connection.
     boost::asio::strand<boost::asio::io_context::executor_type> rpcStrand_{rpcIoc_.get_executor()}; ///< Strand to serialize read/write operations.
     std::thread rpcThread_; ///< Thread for rpcIoc_.run() (async RPC responses read loop).
-    std::atomic<bool> rpcRunning_ = false; ///< Flag to manage the RPC connection lifecycle (must be atomic).
-    std::atomic<bool> rpcFailed_ = false; ///< Error flag raised by failures in I/O handlers (must be atomic).
-    std::atomic<uint64_t> rpcRequestIdCounter_ = 0; ///< JSON-RPC request ID generator.
+
     std::mutex rpcAsyncSentMutex_; ///< mutex to protect rpcAsyncSent_.
     std::map<uint64_t, T> rpcAsyncSent_; ///< Map of JSON-RPC request id to application object that models the request.
     std::mutex rpcAsyncResponseMapMutex_; ///< Mutex to protect all access to rpcAsyncResponseMap_.
     std::unordered_map<uint64_t, json> rpcAsyncResponseMap_; ///< Map of request ID to response object, if any received, for rpc async calls
+
     std::mutex rpcSyncResponseMapMutex_; ///< Mutex to protect all access to rpcAsyncResponseMap_.
     std::unordered_map<uint64_t, json> rpcSyncResponseMap_; ///< Map of request ID to response object, if any received, for rpc sync calls
 
@@ -155,10 +162,9 @@ class WebsocketRPCConnection : public Log::LogicalLocationProvider {
      * @param requestData If an async RPC call, the application data that is needed to generate the json
      * rpc request call and that the application may want to return to its own client layer in its own
      * RPC call-result callback (*must not* be T{}). If a sync call, this *must be* T{}.
-     * @param retry If true, retries the RPC connection and the method call once if it fails.
      * @return The requestId (can be passed to rpcGetSyncResponse() later) if successful, or 0 on error.
      */
-    uint64_t rpcDoCall(const std::string& method, const json& params, const T& requestData, bool retry = true);
+    uint64_t rpcDoCall(const std::string& method, const json& params, const T& requestData);
 
   public:
 
@@ -181,9 +187,13 @@ class WebsocketRPCConnection : public Log::LogicalLocationProvider {
     void rpcStopConnection();
 
     /**
-     * Gets the response to a request, if already available.
-     * If a response is retrieved through this method, it is deleted from the internal responses map,
-     * so that a subsequent call with the same requestId parameter will return `false`.
+     * Check if the RPC connection is alive and not in a failed state.
+     * @return `true` if the connection is alive and not flagged as failed, `false` otherwise.
+     */
+    bool rpcCheckConnection();
+
+    /**
+     * Pops the response to a specific sync request by requestId, if already available.
      * NOTE: The T& outRequestData outparam is missing because this is only used in rpcSyncCall().
      * @param requestId ID of the request.
      * @param outResult Outparam set to the json response to the request.
@@ -192,8 +202,7 @@ class WebsocketRPCConnection : public Log::LogicalLocationProvider {
     bool rpcGetSyncResponse(const uint64_t requestId, json& outResult);
 
     /**
-     * Retrieve a response, if available.
-     * If a response is retrieved through this method, it is deleted from the internal responses map.
+     * Pops a response to an async request, if any is available.
      * @param outResult Outparam set to the json response to the request.
      * @param outRequestData Outparam set to the client request data object passed into the original RPC call request.
      * @return ID of the request, or 0 if there weren't any responses stored (outparams are unmodified).
@@ -210,10 +219,9 @@ class WebsocketRPCConnection : public Log::LogicalLocationProvider {
      * @param params Parameters to pass to the RPC method.
      * @param requestData Application data that is needed to generate the json rpc request call and that
      * the application may want to return to its own client layer in its own RPC call-result callback.
-     * @param retry If true, retries the RPC connection and the method call once if it fails.
      * @return The requestId (can be passed to rpcGetSyncResponse() later) if successful, or 0 on error.
      */
-    uint64_t rpcAsyncCall(const std::string& method, const json& params, const T& requestData, bool retry = true);
+    uint64_t rpcAsyncCall(const std::string& method, const json& params, const T& requestData);
 
     /**
      * Make a synchronous (blocking) RPC call.
@@ -222,10 +230,9 @@ class WebsocketRPCConnection : public Log::LogicalLocationProvider {
      * @param method RPC method name to call.
      * @param params Parameters to pass to the RPC method.
      * @param outResult Outparam set to the json response to the request.
-     * @param retry If true, retries the RPC connection and the method call once if it fails.
      * @return `true` if call is successful, `false` on any error (e.g. connection fails while waiting).
      */
-    bool rpcSyncCall(const std::string& method, const json& params, json& outResult, bool retry = true);
+    bool rpcSyncCall(const std::string& method, const json& params, json& outResult);
 };
 
 template <typename T>
@@ -241,6 +248,17 @@ void WebsocketRPCConnection<T>::rpcSetResponse(const uint64_t requestId, const j
 
 template <typename T>
 void WebsocketRPCConnection<T>::rpcAsyncRead() {
+  // - Caller *must* be holding the rpcStateMutex_ here.
+  // - Checking !rpcRunning_ *must* substitute for checking !rpcWs_
+  // - Do NOT return if rpcFailed_ == true here because the entire point of the rpcStop_ feature is for us to
+  //   be able to pump messages out of an otherwise valid connection *before* we close it (i.e. before we make
+  //   rpcRunning_ = false -- i.e. actually closing the connection -- by reacting to rpcFailed == true).
+  if (!rpcRunning_) {
+    // async_read without checking that we actually have an rpcWs_ / connection here will cause:
+    // Assertion `! impl.rd_close' failed.
+    return;
+  }
+  // Post handler for the next read of a complete message (websocket/JSON-RPC).
   auto buffer = std::make_shared<boost::beast::flat_buffer>();
   rpcWs_->async_read(*buffer,
     boost::asio::bind_executor(
@@ -254,15 +272,25 @@ template <typename T>
 void WebsocketRPCConnection<T>::rpcHandleAsyncRead(std::shared_ptr<boost::beast::flat_buffer> buffer, boost::system::error_code ec, std::size_t) {
   // If the handler knows it is cancelled, then just skip it
   if (ec == boost::asio::error::operation_aborted) {
+    SLOGXTRACE("Read operation aborted; ignoring.");
     // Don't repost the handler; if the operation is cancelled, it means one connection
     // stopped, and when it is revived in a new connection, another read task will be posted.
-    SLOGXTRACE("Read operation aborted; ignoring.");
+    // This should work better now that we wait a bit for RPC tasks (rpcStop_ feature) before we
+    // will issue an rpcIoc_.stop(), which is what can cause an aborted read handler, which causes
+    // us to stop reading any potential RPC requests that could follow (and since we do wait now,
+    // the odds that we will get everything are increased).
+    return;
   } else if (ec) {
-    // In case of failures, just flag it and don't post another read handler
-    rpcFailed_ = true;
     SLOGXTRACE("RPC failed (ec): " + ec.message());
+    // In case of connection failures, flag it so that code outside this handler can read the flag and
+    // stop the RPC connection.
+    rpcFailed_ = true;
+    // Any network error likely means there's no RPC messages to read anyway (the connection should be dead)
+    // so we don't need to post a new read handler in any case.
+    return;
   } else try {
     auto responseStr = boost::beast::buffers_to_string(buffer->data());
+    buffer->consume(buffer->size());
     auto jsonResponse = json::parse(responseStr);
     if (jsonResponse.contains("id")) {
       uint64_t requestId = jsonResponse["id"];
@@ -282,7 +310,7 @@ void WebsocketRPCConnection<T>::rpcHandleAsyncRead(std::shared_ptr<boost::beast:
           SLOGDEBUG("RPC dropping orphan response to request ID = " + std::to_string(requestId) + " : " + responseStr);
         }
       }
-      // TODO: Protect against storing stale sync responses as well.
+      // REVIEW: Protect against storing stale sync responses as well.
       // Keeping eventual stale sync responses is mostly harmless:
       // - Sync is just used for testing cometbft, not in the running state.
       // - Should be actually pretty rare for the RPC localhost connection to be continually reset and for that to cause aborted RPC calls.
@@ -291,32 +319,27 @@ void WebsocketRPCConnection<T>::rpcHandleAsyncRead(std::shared_ptr<boost::beast:
       if (keepRequest) {
         rpcSetResponse(requestId, jsonResponse);
       }
-      buffer->consume(buffer->size());
-      // Post the next read handler
-      std::scoped_lock stateLock(rpcStateMutex_);
-      rpcAsyncRead();
+      // Continue to post next read handler
     } else {
       SLOGDEBUG("RPC failed (bad JSON-RPC with no 'id'): " + responseStr);
       rpcFailed_ = true;
+      // Continue to post next read handler
+      // A message format failure (which is unlikely) would not necessarily mean a failure of the connection itself
     }
   } catch (const std::exception& ex) {
     SLOGDEBUG("RPC failed (exception): " + std::string(ex.what()));
     rpcFailed_ = true;
+    // Continue to post next read handler
+    // This could be a json parse error. Probably nothing else.
+    // A message format failure (which is unlikely) would not necessarily mean a failure of the connection itself
   }
+  // Post the next read handler
+  std::scoped_lock stateLock(rpcStateMutex_);
+  rpcAsyncRead();
 }
 
 template <typename T>
 void WebsocketRPCConnection<T>::rpcCancelAllAsyncRequests(const std::string& errorMessage) {
-  // FIXME/TODO/REVIEW: Stopping should not cause RPC responses that haven't been
-  // read yet to be discarded. Those will arrive later and will possibly not
-  // find an rpcAsyncSent_ item (because the app could have already collected
-  // it before the RPC response is received).
-  // We ensure these late RPC responses don't cause a double response to the
-  // request (i.e. the erroneous "request failed" answer which is made first
-  // is the one that sticks) but still, we'd rather at least take the RPC
-  // responses that are already readable and pump those out before intentionally
-  // closing the RPC connection.
-  //
   // Whenever the websocket RPC connection is reset, the RPC request IDs that
   //   we have in flight become meaningless, since they won't be answered in
   //   a new connection that we happen to make (or we don't expect them to be
@@ -361,7 +384,7 @@ bool WebsocketRPCConnection<T>::rpcDoStart(int rpcPort) {
   }
   try {
     rpcFailed_ = false;
-    rpcRunning_ = true; // Set this first to ensure rpcDoStop() in catch() below will work.
+    rpcRunning_ = true; // Set this first to ensure rpcDoReset() in catch() below will work.
     boost::asio::ip::tcp::endpoint endpoint(boost::asio::ip::make_address("127.0.0.1"), rpcServerPort_);
     rpcWs_ = std::make_unique<boost::beast::websocket::stream<boost::asio::ip::tcp::socket>>(rpcIoc_);
     rpcWs_->next_layer().connect(endpoint);
@@ -410,11 +433,18 @@ void WebsocketRPCConnection<T>::rpcDoReset() {
 }
 
 template <typename T>
-uint64_t WebsocketRPCConnection<T>::rpcDoCall(const std::string& method, const json& params, const T& requestData, bool retry) {
+uint64_t WebsocketRPCConnection<T>::rpcDoCall(const std::string& method, const json& params, const T& requestData) {
+  // Maybe this shouldn't be here -- potentially unnecessary, but otherwise it's guaranteed harmless
+  // (the connection was flagged as failed for whatever reason, meaning we should positively not be
+  // making RPC calls -- an RPC call request, sync or async, in a failed connection must itself fail).
   if (rpcFailed_) {
-    rpcDoStop();
+    return 0;
   }
-  if (!rpcWs_ && !rpcDoStart()) {
+  // We are holding the state lock so we can check these
+  if (!rpcRunning_) {
+    // If we are not connected at this point for whatever reason then obviously this call
+    // can't succeed, no point in posting the write handler (even if it would succeed later,
+    // that would be potentially worse, not better).
     return 0;
   }
 
@@ -444,7 +474,7 @@ uint64_t WebsocketRPCConnection<T>::rpcDoCall(const std::string& method, const j
   boost::asio::post(rpcStrand_, [this, requestId, message]() {
     boost::system::error_code ec;
     std::unique_lock<std::mutex> stateLock(rpcStateMutex_);
-    if (!rpcWs_ && !rpcDoStart()) {
+    if (!rpcRunning_ && !rpcDoStart()) { // rpcRunning_ == true *must* mean that rpcWs_ is set (while holding rpcStateMutex_)
       rpcSetResponse(requestId, rpcMakeInternalError("Websocket write failed, can't reconnect to RPC port."));
     } else {
       rpcWs_->write(boost::asio::buffer(*message), ec);
@@ -468,8 +498,43 @@ bool WebsocketRPCConnection<T>::rpcStartConnection(int rpcPort) {
 
 template <typename T>
 void WebsocketRPCConnection<T>::rpcStopConnection() {
-  std::scoped_lock lock(rpcStateMutex_);
+  // Not super elegant, but we can lock an extra mutex and set an extra flag here that will block any thread
+  // trying to make another RPC call, just so that we stop trying to make more calls while we are stopping.
+  // Then, we just wait some time (say, 1 second) for any pending responses to be returned by cometbft to
+  // us (we are not holding rpcStateMutex_ here, so the read handler is free to repost itself).
+  // Finally, we turn off the flag and allow other threads to resume posting RPCs.
+  // This should eliminate or at least greatly reduce the possibility of RPC responses that ready to be
+  // read but are then thrown away by rpcDoStop().
+  std::unique_lock<std::mutex> stopLock(rpcStopMutex_);
+  if (rpcStop_) {
+    // Whoops, some other thread is also calling rpcStopConnection() for some reason.
+    // Wait for *that* rpcStopConnection() call in the other thread to complete.
+    while (rpcStop_) {
+      stopLock.unlock();
+      std::this_thread::sleep_for(std::chrono::milliseconds(10)); // Good enough latency
+      stopLock.lock();
+    }
+    // By definition we are already stopped, thanks to the other thread that was detected here.
+    return;
+  }
+  rpcStop_ = true; // prevents new rpc requests (and other threads calling rpcStopConnection())
+  stopLock.unlock();
+  // Wait some time so any pending RPC responses get a chance to be read
+  std::this_thread::sleep_for(std::chrono::seconds(1));
+  // Now that we gave it some time for in-flight async RPC responses to be absorbed, do stop
+  std::unique_lock<std::mutex> stateLock(rpcStateMutex_);
   rpcDoStop();
+  stateLock.unlock();
+  // Finally, allow new rpc requests to go through
+  stopLock.lock();
+  rpcStop_ = false;
+  //stopLock dtor unlocks here
+}
+
+template <typename T>
+bool WebsocketRPCConnection<T>::rpcCheckConnection() {
+  std::scoped_lock lock(rpcStateMutex_);
+  return rpcRunning_ && !rpcFailed_;
 }
 
 template <typename T>
@@ -486,15 +551,6 @@ bool WebsocketRPCConnection<T>::rpcGetSyncResponse(const uint64_t requestId, jso
 
 template <typename T>
 uint64_t WebsocketRPCConnection<T>::rpcGetNextAsyncResponse(json& outResponse, T& outRequestData) {
-  // Opportunistically check for I/O failure while polling responses
-  // to avoid waiting for actual RPC call tasks to trigger this check.
-  if (rpcFailed_) {
-    rpcStopConnection(); // we don't have the lock yet here so we call the public function
-  }
-  if (!rpcWs_) {
-    rpcStartConnection();
-    // and continue, since getting the next queued response doesn't actually use the connection
-  }
   // Get next element and return it, if any
   uint64_t requestId;
   {
@@ -521,51 +577,91 @@ uint64_t WebsocketRPCConnection<T>::rpcGetNextAsyncResponse(json& outResponse, T
 }
 
 template <typename T>
-uint64_t WebsocketRPCConnection<T>::rpcAsyncCall(const std::string& method, const json& params, const T& requestData, bool retry) {
+uint64_t WebsocketRPCConnection<T>::rpcAsyncCall(const std::string& method, const json& params, const T& requestData) {
   if (requestData == T{}) {
     SLOGERROR("Internal error. rpcAsyncCal() invoked with empty requestData, which is reserved for rpcSyncCall().");
     return 0;
   }
+
+  // If we want to check rpcFailed_ to close the connection opportunistically, we must do it first here
+  if (rpcFailed_) {
+    rpcStopConnection();
+  }
+
+  // If rpcStop_ is true, spin until it is false (must retain the mutex when exiting the loop)
+  // rpcStopMutex_ is always acquired before rpcStateMutex_ for all rpc requests
+  std::unique_lock<std::mutex> stopLock(rpcStopMutex_);
+  while (rpcStop_) {
+    stopLock.unlock();
+    std::this_thread::sleep_for(std::chrono::milliseconds(10)); // Good enough latency
+    stopLock.lock();
+  }
+
+  // Get the state mutex
   std::scoped_lock stateLock(rpcStateMutex_);
-  return rpcDoCall(method, params, requestData, retry);
+
+  // While holding both mutexes, it is safe to try to *start* the connection if we are not connected
+  // (say, if we stopped due to detecting rpcFailed_ above).
+  if (!rpcRunning_) {
+    rpcDoStart();
+  }
+
+  // Finally, do the call (if not connected or still failed, this will return 0)
+  return rpcDoCall(method, params, requestData);
 }
 
 template <typename T>
-bool WebsocketRPCConnection<T>::rpcSyncCall(const std::string& method, const json& params, json& outResult, bool retry) {
-  std::unique_lock<std::mutex> stateLock(rpcStateMutex_);
+bool WebsocketRPCConnection<T>::rpcSyncCall(const std::string& method, const json& params, json& outResult) {
+
+  // If we want to check rpcFailed_ to close the connection opportunistically, we must do it first here
   if (rpcFailed_) {
-    rpcDoStop();
+    rpcStopConnection();
   }
-  if (!rpcWs_ && !rpcDoStart()) {
-    outResult = rpcMakeInternalError("Connection failed");
-    return false;
+
+  // If rpcStop_ is true, spin until it is false (must retain the mutex when exiting the loop)
+  // rpcStopMutex_ is always acquired before rpcStateMutex_ for all rpc requests
+  std::unique_lock<std::mutex> stopLock(rpcStopMutex_);
+  while (rpcStop_) {
+    stopLock.unlock();
+    std::this_thread::sleep_for(std::chrono::milliseconds(10)); // Good enough latency
+    stopLock.lock();
   }
+
+  // Get the state mutex
+  std::unique_lock<std::mutex> stateLock(rpcStateMutex_);
+
+  // While holding both mutexes, it is safe to try to *start* the connection if we are not connected
+  // (say, if we stopped due to detecting rpcFailed_ above).
+  if (!rpcRunning_) {
+    rpcDoStart();
+  }
+
+  // Do the sync call
   uint64_t requestId;
   try {
     // T{} is how rpcDoCall() knows it's being used for a sync call
     requestId = rpcDoCall(method, params, T{});
   } catch (const std::exception& ex) {
-    if (retry) {
-      stateLock.unlock();
-      SLOGXTRACE("Exception in rpcSyncCall(): " + std::string(ex.what()));
-      return rpcSyncCall(method, params, outResult, false); // Retry once
-    }
     outResult = rpcMakeInternalError("Exception caught: " + std::string(ex.what()));
     return false;
   }
+
+  // Release the state mutex as we are done with comms and will
+  // just busy loop polling the rpcSyncRequestMap_
   stateLock.unlock();
-  if (requestId == 0) {
-    return false;
-  }
+
   // Block waiting for a response to the request.
   // It is imperative that every request that is successfully sent gets a response
   // OR that the RPC connection is closed.
+  if (requestId == 0) {
+    return false;
+  }
   while (true) {
-    // rpcWs_ can't be reset because we are holding the state mutex, but rpcFailed_ can be raised.
-    // If there's a failure, the RPC response we are waiting will never arrive.
-    if (rpcFailed_) {
-      rpcDoStop(); // Attempt to reboot it here, because why not, it's free
-      rpcDoStart();
+    // If the connection fails or closes for whatever reason, just fail the sync call since, upon stop,
+    // rpcCancelAllAsyncRequests() -- as the name implies -- doesn't do anything for sync calls (and stop
+    // isn't even called here on failure).
+    // This acquires the state mutex so you can't be already holding it here.
+    if (!rpcCheckConnection()) {
       return false;
     }
     // Poll for the response in the sync responses map
@@ -1562,7 +1658,7 @@ void CometImpl::workerLoopInner() {
       throw DynamicException("Exception caught when trying to run cometbft inspect: " + std::string(ex.what()));
     }
 
-    LOGDEBUG("Starting RPC connection");
+    LOGDEBUG("Starting RPC connection (inspect)");
 
     // start RPC connection
     int inspectRpcTries = 50; //5s
@@ -1789,16 +1885,41 @@ void CometImpl::workerLoopInner() {
     //       in the TERMINATED state, which is there to catch bugs.
     while (!stop_) {
 
+      // --------------------------------------------------------------------------------
       // The ABCI connection can die if e.g. cometbft errors out and decides to close it or if
       //   the cometbft process dies. In any case, the ABCI connection closing means this
       //   run of the cometbft process is over.
+      // --------------------------------------------------------------------------------
+
       if (!abciServer_->running()) {
         setErrorCode(CometError::ABCI_SERVER_FAILED);
         throw DynamicException("ABCIServer is not running (ABCI connection with cometbft has been closed.");
       }
 
       // --------------------------------------------------------------------------------
-      // Process all async RPC responses here
+      // Check RPC connection health and power-cycle it if needed.
+      // Only throw an error if the RPC connection can't be immediately reestablished,
+      //   which might mean the cometbft process died.
+      // In any case, being unable to connect to the RPC port is sufficiently bad to
+      //   warrant failing the entire driver connection.
+      // --------------------------------------------------------------------------------
+
+      if (!rpc_.rpcCheckConnection()) {
+        LOGWARNING("Cometbft RPC connection (RPC port: " + std::to_string(rpcPort_) + ") has failed or closed. Will attempt to restart it.");
+        LOGINFO("Cometbft RPC connection: stopping...");
+        rpc_.rpcStopConnection();
+        LOGINFO("Cometbft RPC connection: stopped. Restarting...");
+        if (!rpc_.rpcStartConnection()) {
+          // Can't reboot the RPC connection for whatever reason (maybe the cometbft process just crashed)
+          setErrorCode(CometError::RPC_TIMEOUT);
+          throw DynamicException("Can't reconnect to the cometbft RPC port.");
+        }
+        LOGINFO("Cometbft RPC connection restarted successfully.");
+      }
+
+      // --------------------------------------------------------------------------------
+      // Process all ready-to-read async RPC responses here
+      // Interrupted if stop_ is detected
       // --------------------------------------------------------------------------------
 
       CometRPCRequestType requestData;
@@ -1870,8 +1991,12 @@ void CometImpl::workerLoopInner() {
         }, requestData);
       }
 
-      // wait a little bit before we poll the transaction queue and the stop flag again
-      // TODO: optimize to condition variables later (when everything else is done)
+      // --------------------------------------------------------------------------------
+      // Wait a bit before we check everything again
+      // --------------------------------------------------------------------------------
+
+      if (stop_) break;
+
       std::this_thread::sleep_for(std::chrono::milliseconds(20));
     }
 
@@ -2082,7 +2207,7 @@ void CometImpl::finalize_block(const cometbft::abci::v1::FinalizeBlockRequest& r
     // If the transaction cache is enabled, we can fill in the result of each transaction
     // as their execution and inclusion in a block is definitive.
     if (txCacheSize_ > 0) {
-      // TODO/REVIEW: Should we instead acquire this mutex only once and block the
+      // REVIEW: Should we instead acquire this mutex only once and block the
       // tx cache for the whole transaction processing loop?
       std::scoped_lock lock(txCacheMutex_);
       Hash txEthHash = Utils::sha3(allTxs[i]);
