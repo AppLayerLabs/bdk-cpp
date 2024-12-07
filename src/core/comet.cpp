@@ -92,7 +92,7 @@ class WebsocketRPCConnection : public Log::LogicalLocationProvider {
     std::thread rpcThread_; ///< Thread for rpcIoc_.run() (async RPC responses read loop).
     std::atomic<bool> rpcRunning_ = false; ///< Flag to manage the RPC connection lifecycle (must be atomic).
     std::atomic<bool> rpcFailed_ = false; ///< Error flag raised by failures in I/O handlers (must be atomic).
-    static std::atomic<uint64_t> rpcRequestIdCounter_; ///< The JSON-RPC request ID generator is shared among all RPC connections (and all unit tests).
+    std::atomic<uint64_t> rpcRequestIdCounter_ = 0; ///< JSON-RPC request ID generator.
     std::mutex rpcAsyncSentMutex_; ///< mutex to protect rpcAsyncSent_.
     std::map<uint64_t, T> rpcAsyncSent_; ///< Map of JSON-RPC request id to application object that models the request.
     std::mutex rpcAsyncResponseMapMutex_; ///< Mutex to protect all access to rpcAsyncResponseMap_.
@@ -227,9 +227,6 @@ class WebsocketRPCConnection : public Log::LogicalLocationProvider {
      */
     bool rpcSyncCall(const std::string& method, const json& params, json& outResult, bool retry = true);
 };
-
-template <typename T>
-std::atomic<uint64_t> WebsocketRPCConnection<T>::rpcRequestIdCounter_{0};
 
 template <typename T>
 void WebsocketRPCConnection<T>::rpcSetResponse(const uint64_t requestId, const json& response) {
@@ -421,6 +418,7 @@ uint64_t WebsocketRPCConnection<T>::rpcDoCall(const std::string& method, const j
     return 0;
   }
 
+  // Protected by rpcStateMutex_ (necessarily acquired by caller)
   // Increment twice if a single increment lands on even ID for a sync call (T{}) or odd ID for an async call (not T{})
   bool isSyncCall = requestData == T{};
   ++rpcRequestIdCounter_;
