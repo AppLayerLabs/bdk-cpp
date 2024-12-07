@@ -2006,7 +2006,7 @@ namespace TComet {
       GLOGDEBUG("TEST: Finished");
     }
 
-    // Test Comet::rpcCall
+    // Test Comet RPC call API
     SECTION("CometRpcCallTest") {
       std::string testDumpPath = createTestDumpPath("CometRpcCallTest");
 
@@ -2028,10 +2028,10 @@ namespace TComet {
       REQUIRE(comet.waitPauseState(10000) == "");
 
       // Make an RPC call
-      GLOGDEBUG("TEST: Making rpcCall()...");
+      GLOGDEBUG("TEST: Making rpcSyncCall()...");
       json healthResult;
-      bool success = comet.rpcCall("header", json::object(), healthResult);
-      GLOGDEBUG("TEST: rpcCall() result: " + healthResult.dump());
+      bool success = comet.rpcSyncCall("header", json::object(), healthResult);
+      GLOGDEBUG("TEST: rpcSyncCall() result: " + healthResult.dump());
       REQUIRE(success == true);
       // expect null block header from latest block since the chain is empty
       REQUIRE(healthResult.contains("result"));

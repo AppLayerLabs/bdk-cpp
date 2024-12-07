@@ -593,7 +593,7 @@ using TxCheckType = std::string;
 // Generic async RPC request data (when calling any RPC)
 // - std::string: JSON-RPC call method name
 // - json: JSON-RPC call parameters
-// Use for driver user calls (async version of Comet::rpcCall()); can also be used by CometImpl
+// Mostly for driver user async calls (Comet::rpcAsyncCall()); can also be used by CometImpl
 // internally to perform async RPC calls that don't need to bind any extra data to the request
 // (can further multiplex in the std::visit step by e.g. method, parameters and/or result).
 using DefaultAsyncRPCType = std::tuple<std::string, json>;
@@ -686,8 +686,8 @@ class CometImpl : public ABCIHandler, public Log::LogicalLocationProvider {
     uint64_t sendTransaction(const Bytes& tx, std::shared_ptr<Hash>* ethHash);
     uint64_t checkTransaction(const std::string& txHash);
     bool checkTransactionInCache(const Hash& txEthHash, CometTxStatus& txStatus);
-    bool rpcCall(const std::string& method, const json& params, json& outResult);
-    uint64_t rpcCall(const std::string& method, const json& params);
+    bool rpcSyncCall(const std::string& method, const json& params, json& outResult);
+    uint64_t rpcAsyncCall(const std::string& method, const json& params);
 
     // ---------------------------------------------------------------------------------------
     // ABCIHandler interface
@@ -883,8 +883,7 @@ uint64_t CometImpl::checkTransaction(const std::string& txHash) {
   // Instead of putting a cache in front of this method, it's better to leave it as doing a /tx query
   // only, since it takes the SHA256 hash anyway (meaning you want cometbft's idea of the tx).
 
-  // NOTE: If you want to call 'tx' on cometbft ispect using an async RPC, use the async version
-  // of Comet::rpcCall() instead.
+  // NOTE: If you want to call 'tx' on cometbft ispect using an async RPC, use Comet::rpcAsyncCall().
 
   // Since we killed the txCheck_ queue and hardwired this to sending to the WebsocketRPCConnection,
   // we need to ensure the connection is to a cometbft start (CometState::RUNNING) node, not inspect
@@ -908,7 +907,7 @@ uint64_t CometImpl::checkTransaction(const std::string& txHash) {
   return requestId;
 }
 
-bool CometImpl::rpcCall(const std::string& method, const json& params, json& outResult) {
+bool CometImpl::rpcSyncCall(const std::string& method, const json& params, json& outResult) {
   if (!process_.has_value()) {
     outResult = rpcMakeInternalError("Cometbft is not running.");
     return false;
@@ -916,7 +915,7 @@ bool CometImpl::rpcCall(const std::string& method, const json& params, json& out
   return rpc_.rpcSyncCall(method, params, outResult);
 }
 
-uint64_t CometImpl::rpcCall(const std::string& method, const json& params) {
+uint64_t CometImpl::rpcAsyncCall(const std::string& method, const json& params) {
   if (!process_.has_value()) {
     return 0;
   }
@@ -2227,12 +2226,12 @@ bool Comet::checkTransactionInCache(const Hash& txEthHash, CometTxStatus& txStat
   return impl_->checkTransactionInCache(txEthHash, txStatus);
 }
 
-bool Comet::rpcCall(const std::string& method, const json& params, json& outResult) {
-  return impl_->rpcCall(method, params, outResult);
+bool Comet::rpcSyncCall(const std::string& method, const json& params, json& outResult) {
+  return impl_->rpcSyncCall(method, params, outResult);
 }
 
-uint64_t Comet::rpcCall(const std::string& method, const json& params) {
-  return impl_->rpcCall(method, params);
+uint64_t Comet::rpcAsyncCall(const std::string& method, const json& params) {
+  return impl_->rpcAsyncCall(method, params);
 }
 
 bool Comet::start() {

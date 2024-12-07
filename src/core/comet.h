@@ -251,7 +251,7 @@ class CometListener {
     }
 
     /**
-     * Notification of completing an asynchronous Comet::rpcCall() RPC request.
+     * Notification of completing an asynchronous Comet::rpcAsyncCall() RPC request.
      * @param tId The checkTransaction() request ticket ID.
      * @param method Method name for the RPC.
      * @param params Parameters for the RPC.
@@ -417,7 +417,7 @@ class Comet : public Log::LogicalLocationProvider {
      * @param outResult Outparam set to the resulting json (positive error codes are local errors).
      * @return `true` if the call succeeded, `false` if any error occurred ("error" response is set).
      */
-    bool rpcCall(const std::string& method, const json& params, json& outResult);
+    bool rpcSyncCall(const std::string& method, const json& params, json& outResult);
 
     /**
      * Make an async JSON-RPC call to the RPC endpoint. The Comet engine must be in a state that has cometbft
@@ -426,7 +426,7 @@ class Comet : public Log::LogicalLocationProvider {
      * @param params Parameters to the method call.
      * @return The JSON-RPC request ID generated for the call, or 0 on error.
      */
-    uint64_t rpcCall(const std::string& method, const json& params);
+    uint64_t rpcAsyncCall(const std::string& method, const json& params);
 
     /**
      * Start (or restart) the consensus engine loop.
