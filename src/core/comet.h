@@ -295,13 +295,32 @@ class Comet : public Log::LogicalLocationProvider {
   public:
     /**
      * Constructor.
+     * NOTE: Comet only reads configuration options from the "cometBFT" key in Options.
+     * These are the top-level keys found under the "cometBFT" key:
+     * - "genesis.json": fully overwrites config/genesis.json
+     * - "priv_validator_key.json": fully overwrites config/priv_validator_key.json
+     * - "node_key.json": fully overwrites config/node_key.json
+     * - "config.toml": json object that describes hierarchical key/value pairs to
+     *   overwrite individual entries in the config/config.toml TOML config file
+     * For example, the P2P and RPC ports are set like this in Options:
+     *   "cometBFT": {
+     *     "config.toml": {
+     *       "p2p": {
+     *          "laddr": "tcp://0.0.0.0:26656"
+     *       },
+     *       "rpc": {
+     *          "laddr": "tcp://0.0.0.0:26657"
+     *       }
+     *     }
+     *   }
+     * NOTE: Some values in config.toml are hardcoded in the Comet driver and are
+     * overwritten irrespective of what's specified in cometBFT::
      * @param listener Pointer to an object of a class that implements the CometListener interface
      *                 and that will receive event callbacks from this Comet instance.
      * @param instanceIdStr Instance ID string to use for logging.
      * @param options Reference to the Options singleton.
-     * @param stepMode If true, no empty blocks are ever produced (for unit testing only).
      */
-    explicit Comet(CometListener* listener, std::string instanceIdStr, const Options& options, bool stepMode = false);
+    explicit Comet(CometListener* listener, std::string instanceIdStr, const Options& options);
 
     /**
      * Destructor; ensures all subordinate jobs are stopped.
@@ -446,6 +465,14 @@ class Comet : public Log::LogicalLocationProvider {
      */
     std::string getLogicalLocation() const override { return instanceIdStr_; }
 };
+
+///@{
+/** Options key "cometBFT" has these configuration option json subkeys. */
+inline const std::string COMET_OPTION_GENESIS_JSON = "genesis.json";
+inline const std::string COMET_OPTION_PRIV_VALIDATOR_KEY_JSON = "priv_validator_key.json";
+inline const std::string COMET_OPTION_NODE_KEY_JSON = "node_key.json";
+inline const std::string COMET_OPTION_CONFIG_TOML = "config.toml";
+///@}
 
 /// Consensus parameter: PBTS Clock drift.
 /// This must be at least 500ms due to leap seconds.

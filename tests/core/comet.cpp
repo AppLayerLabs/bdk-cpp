@@ -295,6 +295,7 @@ std::vector<CometTestKeys> cometTestKeys = {
  */
 Options getOptionsForCometTest(
   const std::string rootPath,
+  const bool stepMode = false,
   const std::string appHash = "",
   int p2pPort = -1, int rpcPort = -1,
   int keyNumber = 0, int numKeys = 1,
@@ -326,7 +327,7 @@ Options getOptionsForCometTest(
   // a default cometBFT options structure (validators and privValidatorKey to be filled in)
   json defaultCometBFTOptions = json::parse(R"(
     {
-      "genesis":
+      "genesis.json":
       {
         "genesis_time": "2024-09-17T18:26:34.583377166Z",
         "chain_id": "test-chain-Q1JYzM",
@@ -356,17 +357,21 @@ Options getOptionsForCometTest(
         "validators": [],
         "app_hash": ""
       },
-      "nodeKey": {},
-      "privValidatorKey": {},
-      "peers": ""
+      "node_key.json": {},
+      "priv_validator_key.json": {},
+      "config.toml": {}
     }
   )");
 
-  defaultCometBFTOptions["genesis"]["app_hash"] = appHash;
+  defaultCometBFTOptions["config.toml"]["p2p"] = {
+    {"laddr", "tcp://0.0.0.0:" + std::to_string(p2pPort)},
+    {"allow_duplicate_ip", true},
+    {"addr_book_strict", false}
+  };
 
-  // Add entries for the CometBFT P2P and RPC port values that we will use
-  defaultCometBFTOptions["p2p_port"] = std::to_string(p2pPort);
-  defaultCometBFTOptions["rpc_port"] = std::to_string(rpcPort);
+  defaultCometBFTOptions["config.toml"]["rpc"] = {
+    {"laddr", "tcp://0.0.0.0:" + std::to_string(rpcPort)},
+  };
 
   // If the unit test is going to require more than one Comet instance, then we will need
   //   to set the BDK "peers" option with the full peer list for this peer to connect to.
@@ -389,15 +394,26 @@ Options getOptionsForCometTest(
         peersStr += cometTestKeys[i].node_id + "@localhost:" + std::to_string(ports[i].p2p);
       }
     }
-    // The cometBFT options.json option name inside the cometBFT key is "peers". That this
-    //   gets sent to comet/config/config.toml as "[p2p] persistent_peers = ..." is an
-    //   implementation detail.
-    defaultCometBFTOptions["peers"] = peersStr;
+    defaultCometBFTOptions["config.toml"]["p2p"]["persistent_peers"] = peersStr;
   }
 
-  // Replace "privValidatorKey" and "nodeKey" with the key at index keyNumber
+  if (stepMode) {
+    SLOGDEBUG("stepMode is set, setting step mode parameters for testing.");
+    defaultCometBFTOptions["config.toml"]["consensus"] = {
+      {"create_empty_blocks", false},
+      {"timeout_propose", "1s"},
+      {"timeout_propose_delta", "0s"},
+      {"timeout_prevote", "1s"},
+      {"timeout_prevote_delta", "0s"},
+      {"timeout_precommit", "1s"},
+      {"timeout_precommit_delta", "0s"},
+      {"timeout_commit", "0s"}
+    };
+  }
+
+  // Replace "priv_validator_key.json" with the key at index keyNumber
   const CometTestKeys& testKeys = cometTestKeys[keyNumber];
-  defaultCometBFTOptions["privValidatorKey"] = {
+  defaultCometBFTOptions["priv_validator_key.json"] = {
     {"address", testKeys.address},
     {"pub_key", {
         {"type", "tendermint/PubKeyEd25519"},
@@ -408,7 +424,9 @@ Options getOptionsForCometTest(
         {"value", testKeys.priv_key}
     }}
   };
-  defaultCometBFTOptions["nodeKey"] = {
+
+  // Replace "node_key.json" with the key at index keyNumber
+  defaultCometBFTOptions["node_key.json"] = {
     {"priv_key", {
         {"type", "tendermint/PrivKeyEd25519"},
         {"value", testKeys.node_priv_key}
@@ -432,7 +450,9 @@ Options getOptionsForCometTest(
     validators.push_back(validator);
   }
 
-  defaultCometBFTOptions["genesis"]["validators"] = validators;
+  defaultCometBFTOptions["genesis.json"]["validators"] = validators;
+
+  defaultCometBFTOptions["genesis.json"]["app_hash"] = appHash;
 
   // NOTE: most parameters are unused by the Comet class
   PrivKey genesisPrivKey(Hex::toBytes("0xe89ef6409c467285bcae9f80ab1cfeb3487cfe61ab28fb7d36443e1daa0c2867"));
@@ -825,7 +845,7 @@ namespace TComet {
       int p2p_port = SDKTestSuite::getTestPort();
       int rpc_port = SDKTestSuite::getTestPort();
 
-      const Options options = getOptionsForCometTest(testDumpPath, "", p2p_port, rpc_port);
+      const Options options = getOptionsForCometTest(testDumpPath, false, "", p2p_port, rpc_port);
 
       // Create a simple listener that just records that we got InitChain and what the current height is.
       class TestCometListener : public CometListener {
@@ -956,10 +976,10 @@ namespace TComet {
       // This is needed because each BDK instance only supports one running comet instance normally,
       //   so each options/rootPath has one "comet" subdirectory in it to be the cometbft home dir.
       std::string testDumpPath0 = createTestDumpPath("CometBootTest2_0");
-      const Options options0 = getOptionsForCometTest(testDumpPath0, "", ports[0].p2p, ports[0].rpc, 0, 2, ports); // key 0 (totals 2 keys: 0 and 1)
+      const Options options0 = getOptionsForCometTest(testDumpPath0, false, "", ports[0].p2p, ports[0].rpc, 0, 2, ports); // key 0 (totals 2 keys: 0 and 1)
 
       std::string testDumpPath1 = createTestDumpPath("CometBootTest2_1");
-      const Options options1 = getOptionsForCometTest(testDumpPath1, "", ports[1].p2p, ports[1].rpc, 1, 2, ports); // key 1 (totals 2 keys: 0 and 1)
+      const Options options1 = getOptionsForCometTest(testDumpPath1, false, "", ports[1].p2p, ports[1].rpc, 1, 2, ports); // key 1 (totals 2 keys: 0 and 1)
 
       // Create a simple listener that just records that we got InitChain and what the current height is.
       class TestCometListener : public CometListener {
@@ -1035,7 +1055,7 @@ namespace TComet {
       int p2p_port = SDKTestSuite::getTestPort();
       int rpc_port = SDKTestSuite::getTestPort();
 
-      const Options options = getOptionsForCometTest(testDumpPath, "", p2p_port, rpc_port);
+      const Options options = getOptionsForCometTest(testDumpPath, true, "", p2p_port, rpc_port); // stepMode enabled
 
       const int txSize = 1048576;
 
@@ -1103,7 +1123,7 @@ namespace TComet {
 
       // Set up comet with single validator, no empty blocks and very large timeouts,
       //   which essentially makes cometbft only produce a block when we send a tx.
-      Comet comet(&cometListener, "", options, true);
+      Comet comet(&cometListener, "", options);
 
       // Start comet
       comet.start();
@@ -1217,10 +1237,10 @@ namespace TComet {
       int p2p_port = SDKTestSuite::getTestPort();
       int rpc_port = SDKTestSuite::getTestPort();
 
-      const Options options = getOptionsForCometTest(testDumpPath, "", p2p_port, rpc_port);
+      const Options options = getOptionsForCometTest(testDumpPath, true, "", p2p_port, rpc_port); // stepMode enabled
 
-      // Set up comet with single validator and stepMode_
-      Comet comet(&cometListener, "", options, true);
+      // Set up comet with single validator
+      Comet comet(&cometListener, "", options);
 
       // Start comet
       comet.start();
@@ -1272,7 +1292,7 @@ namespace TComet {
       int p2p_port = SDKTestSuite::getTestPort();
       int rpc_port = SDKTestSuite::getTestPort();
 
-      const Options options = getOptionsForCometTest(testDumpPath, cometListener.getAppHashString(), p2p_port, rpc_port);
+      const Options options = getOptionsForCometTest(testDumpPath, false, cometListener.getAppHashString(), p2p_port, rpc_port);
 
       // Set up comet with single validator and no stepMode.
       Comet comet(&cometListener, "", options);
@@ -1348,10 +1368,10 @@ namespace TComet {
       int p2p_port = SDKTestSuite::getTestPort();
       int rpc_port = SDKTestSuite::getTestPort();
 
-      const Options options = getOptionsForCometTest(testDumpPath, cometListener.getAppHashString(), p2p_port, rpc_port);
+      const Options options = getOptionsForCometTest(testDumpPath, true, cometListener.getAppHashString(), p2p_port, rpc_port); // stepMode enabled
 
       // Set up comet with single validator
-      Comet comet(&cometListener, "", options, true);
+      Comet comet(&cometListener, "", options);
 
       // Start comet.
       GLOGDEBUG("TEST: Starting Comet");
@@ -1467,10 +1487,10 @@ namespace TComet {
       int p2p_port = SDKTestSuite::getTestPort();
       int rpc_port = SDKTestSuite::getTestPort();
 
-      const Options options = getOptionsForCometTest(testDumpPath, cometListener.getAppHashString(), p2p_port, rpc_port);
+      const Options options = getOptionsForCometTest(testDumpPath, true, cometListener.getAppHashString(), p2p_port, rpc_port); // stepMode enabled
 
       // Set up comet with single validator
-      Comet comet(&cometListener, "", options, true);
+      Comet comet(&cometListener, "", options);
 
       // Start comet.
       GLOGDEBUG("TEST: Starting Comet");
@@ -1605,7 +1625,7 @@ namespace TComet {
       int p2p_port = SDKTestSuite::getTestPort();
       int rpc_port = SDKTestSuite::getTestPort();
 
-      const Options options = getOptionsForCometTest(testDumpPath, cometListener.getAppHashString(), p2p_port, rpc_port);
+      const Options options = getOptionsForCometTest(testDumpPath, false, cometListener.getAppHashString(), p2p_port, rpc_port);
 
       // Set up comet with single validator and no stepMode.
       Comet comet(&cometListener, "", options);
@@ -1719,10 +1739,10 @@ namespace TComet {
       // numKeys == 2 (keys 0 and 1), and numNonValidators (last param) == 1, since only comet0 is
       //   a validator; comet1 is a nonvalidator that will sync to the chain mined only by comet0.
       std::string testDumpPath0 = createTestDumpPath("CometSyncTest_0");
-      const Options options0 = getOptionsForCometTest(testDumpPath0, cometListener0.getAppHashString(), ports[0].p2p, ports[0].rpc, 0, 2, ports, 1);
+      const Options options0 = getOptionsForCometTest(testDumpPath0, false, cometListener0.getAppHashString(), ports[0].p2p, ports[0].rpc, 0, 2, ports, 1);
 
       std::string testDumpPath1 = createTestDumpPath("CometSyncTest_1");
-      const Options options1 = getOptionsForCometTest(testDumpPath1, cometListener1.getAppHashString(), ports[1].p2p, ports[1].rpc, 1, 2, ports, 1);
+      const Options options1 = getOptionsForCometTest(testDumpPath1, false, cometListener1.getAppHashString(), ports[1].p2p, ports[1].rpc, 1, 2, ports, 1);
 
       // Set up our two running Comet instances
       Comet comet0(&cometListener0, "Comet0", options0);
@@ -1956,11 +1976,11 @@ namespace TComet {
       //   set as we go as the non-validator nodes also get public/private validator keypairs even if those aren't initially
       //   listed in the genesis validator set.
       std::string testDumpPath0 = createTestDumpPath("CometValidatorSetTest_0");
-      const Options options0 = getOptionsForCometTest(testDumpPath0, "", ports[0].p2p, ports[0].rpc, 0, 3, ports, 1);
+      const Options options0 = getOptionsForCometTest(testDumpPath0, false, "", ports[0].p2p, ports[0].rpc, 0, 3, ports, 1);
       std::string testDumpPath1 = createTestDumpPath("CometValidatorSetTest_1");
-      const Options options1 = getOptionsForCometTest(testDumpPath1, "", ports[1].p2p, ports[1].rpc, 1, 3, ports, 1);
+      const Options options1 = getOptionsForCometTest(testDumpPath1, false, "", ports[1].p2p, ports[1].rpc, 1, 3, ports, 1);
       std::string testDumpPath2 = createTestDumpPath("CometValidatorSetTest_2");
-      const Options options2 = getOptionsForCometTest(testDumpPath2, "", ports[2].p2p, ports[2].rpc, 2, 3, ports, 1);
+      const Options options2 = getOptionsForCometTest(testDumpPath2, false, "", ports[2].p2p, ports[2].rpc, 2, 3, ports, 1);
 
       // Create the three nodes
       Comet comet0(&cometListener0, "Comet0", options0);
@@ -2020,7 +2040,7 @@ namespace TComet {
 
       int p2p_port = SDKTestSuite::getTestPort();
       int rpc_port = SDKTestSuite::getTestPort();
-      const Options options = getOptionsForCometTest(testDumpPath, "", p2p_port, rpc_port);
+      const Options options = getOptionsForCometTest(testDumpPath, false, "", p2p_port, rpc_port);
 
       // Just use the dummy default listener
       CometListener cometListener;
@@ -2061,7 +2081,7 @@ namespace TComet {
 
       int p2p_port = SDKTestSuite::getTestPort();
       int rpc_port = SDKTestSuite::getTestPort();
-      const Options options = getOptionsForCometTest(testDumpPath, "", p2p_port, rpc_port);
+      const Options options = getOptionsForCometTest(testDumpPath, false, "", p2p_port, rpc_port);
 
       TestMachine cometListener(true);
       Comet comet(&cometListener, "", options);
@@ -2140,7 +2160,7 @@ namespace TComet {
       std::string testDumpPath = createTestDumpPath("CometSetprivTest");
       int p2p_port = SDKTestSuite::getTestPort();
       int rpc_port = SDKTestSuite::getTestPort();
-      const Options options = getOptionsForCometTest(testDumpPath, "", p2p_port, rpc_port);
+      const Options options = getOptionsForCometTest(testDumpPath, false, "", p2p_port, rpc_port);
       CometListener cometListener;
       Comet comet(&cometListener, "", options);
 

@@ -729,7 +729,6 @@ class CometImpl : public ABCIHandler, public Log::LogicalLocationProvider {
     CometListener* listener_; ///< Comet class application event listener/handler
     const std::string instanceIdStr_; ///< Identifier for logging
     const Options options_; ///< Copy of the supplied Options.
-    const bool stepMode_; ///< Set to 'true' if unit testing with cometbft in step mode (no empty blocks).
 
     std::unique_ptr<ABCIServer> abciServer_; ///< TCP server for cometbft ABCI connection
     std::optional<boost::process::child> process_; ///< boost::process that points to the internally-tracked async cometbft process
@@ -749,6 +748,7 @@ class CometImpl : public ABCIHandler, public Log::LogicalLocationProvider {
     std::atomic<int> infoCount_ = 0; ///< Simple counter for how many cometbft Info requests we got.
 
     std::atomic<int> rpcPort_ = 0; ///< RPC port that will be used by our cometbft instance.
+    std::atomic<int> p2pPort_ = 0; ///< P2P port that will be used by our cometbft instance (NOTE: value currently not used in Comet).
 
     std::mutex nodeIdMutex_; ///< mutex to protect reading/writing nodeId_.
     std::string nodeId_; ///< Cometbft node id or an empty string if not yet retrieved.
@@ -776,7 +776,7 @@ class CometImpl : public ABCIHandler, public Log::LogicalLocationProvider {
   public:
 
     std::string getLogicalLocation() const override { return instanceIdStr_; } ///< Log instance
-    CometImpl(CometListener* listener, std::string instanceIdStr, const Options& options, bool stepMode);
+    CometImpl(CometListener* listener, std::string instanceIdStr, const Options& options);
     virtual ~CometImpl();
     void setTransactionCacheSize(const uint64_t cacheSize);
     bool getStatus();
@@ -817,8 +817,8 @@ class CometImpl : public ABCIHandler, public Log::LogicalLocationProvider {
     virtual void verify_vote_extension(const cometbft::abci::v1::VerifyVoteExtensionRequest& req, cometbft::abci::v1::VerifyVoteExtensionResponse* res);
 };
 
-CometImpl::CometImpl(CometListener* listener, std::string instanceIdStr, const Options& options, bool stepMode)
-  : listener_(listener), instanceIdStr_(instanceIdStr), options_(options), stepMode_(stepMode), rpc_(instanceIdStr)
+CometImpl::CometImpl(CometListener* listener, std::string instanceIdStr, const Options& options)
+  : listener_(listener), instanceIdStr_(instanceIdStr), options_(options), rpc_(instanceIdStr)
 {
 }
 
@@ -1132,6 +1132,7 @@ void CometImpl::cleanup() {
   // Reset any state we might have as an ABCIHandler
   infoCount_ = 0; // needed for the TESTING_COMET -> TESTED_COMET state transition.
   rpcPort_ = 0;
+  p2pPort_ = 0;
   std::unique_lock<std::mutex> resetInfoLock(this->nodeIdMutex_);
   this->nodeId_ = ""; // only known after "comet/config/node_key.json" is set and "cometbft show-node-id" is run.
   resetInfoLock.unlock();
@@ -1374,72 +1375,99 @@ void CometImpl::workerLoopInner() {
       LOGDEBUG("Configuration option cometBFT: " + opt.dump());
     }
 
-    bool hasGenesis = opt.contains("genesis");
+    bool hasGenesis = opt.contains(COMET_OPTION_GENESIS_JSON);
     json genesisJSON = json::object();
-    if (hasGenesis) genesisJSON = opt["genesis"];
+    if (hasGenesis) genesisJSON = opt[COMET_OPTION_GENESIS_JSON];
 
-    bool hasPrivValidatorKey = opt.contains("privValidatorKey");
+    bool hasPrivValidatorKey = opt.contains(COMET_OPTION_PRIV_VALIDATOR_KEY_JSON);
     json privValidatorKeyJSON = json::object();
-    if (hasPrivValidatorKey) privValidatorKeyJSON = opt["privValidatorKey"];
+    if (hasPrivValidatorKey) privValidatorKeyJSON = opt[COMET_OPTION_PRIV_VALIDATOR_KEY_JSON];
 
-    bool hasNodeKey = opt.contains("nodeKey");
+    bool hasNodeKey = opt.contains(COMET_OPTION_NODE_KEY_JSON);
     json nodeKeyJSON = json::object();
-    if (hasNodeKey) nodeKeyJSON = opt["nodeKey"];
+    if (hasNodeKey) nodeKeyJSON = opt[COMET_OPTION_NODE_KEY_JSON];
 
-    bool hasP2PPort = opt.contains("p2p_port");
-    json p2pPortJSON = json::object();
-    if (hasP2PPort) p2pPortJSON = opt["p2p_port"];
+    bool hasConfigToml = opt.contains(COMET_OPTION_CONFIG_TOML);
+    json configTomlJSON = json::object();
+    if (hasConfigToml) configTomlJSON = opt[COMET_OPTION_CONFIG_TOML];
 
-    bool hasRPCPort = opt.contains("rpc_port");
-    json rpcPortJSON = json::object();
-    if (hasRPCPort) rpcPortJSON = opt["rpc_port"];
+    bool hasP2PPort = configTomlJSON.contains("p2p") &&
+                      configTomlJSON["p2p"].is_object() &&
+                      configTomlJSON["p2p"].contains("laddr") &&
+                      configTomlJSON["p2p"]["laddr"].is_string();
 
-    bool hasPeers = opt.contains("peers");
-    json peersJSON = json::object();
-    if (hasPeers) peersJSON = opt["peers"];
+    bool hasRPCPort = configTomlJSON.contains("rpc") &&
+                      configTomlJSON["rpc"].is_object() &&
+                      configTomlJSON["rpc"].contains("laddr") &&
+                      configTomlJSON["rpc"]["laddr"].is_string();
 
     // --------------------------------------------------------------------------------------
     // Sanity check configuration: a comet genesis file must be explicitly given.
 
     if (!hasGenesis) {
       // Cannot proceed with an empty comet genesis spec on options.json.
-      // E.g.: individual testcases or the test harness must fill in a valid
-      //   cometBFT genesis config.
       setErrorCode(CometError::CONFIG);
-      throw DynamicException("Configuration option cometBFT::genesis is empty.");
+      throw DynamicException("CometBFT config option " + COMET_OPTION_GENESIS_JSON + " is empty.");
     } else {
-      LOGINFO("CometBFT::genesis config found: " + genesisJSON.dump());
+      LOGINFO("CometBFT config option " + COMET_OPTION_GENESIS_JSON + ": " + genesisJSON.dump());
+    }
+
+    if (!hasPrivValidatorKey) {
+      LOGINFO("CometBFT config option " + COMET_OPTION_PRIV_VALIDATOR_KEY_JSON + " is empty.");
+    } else {
+      LOGINFO("CometBFT config option " + COMET_OPTION_PRIV_VALIDATOR_KEY_JSON + ": " + privValidatorKeyJSON.dump());
+    }
+
+    if (!hasNodeKey) {
+      LOGINFO("CometBFT config option " + COMET_OPTION_NODE_KEY_JSON + " is empty.");
+    } else {
+      LOGINFO("CometBFT config option " + COMET_OPTION_NODE_KEY_JSON + ": " + nodeKeyJSON.dump());
+    }
+
+    if (!hasConfigToml) {
+      LOGINFO("CometBFT config option " + COMET_OPTION_CONFIG_TOML + " is empty.");
+    } else {
+      LOGINFO("CometBFT config option " + COMET_OPTION_CONFIG_TOML + ": " + configTomlJSON.dump());
     }
 
     if (!hasP2PPort) {
       setErrorCode(CometError::CONFIG);
-      throw DynamicException("Configuration option cometBFT:: p2p_port is empty.");
+      throw DynamicException("CometBFT config option p2p::laddr is empty (or isn't a string).");
     } else {
-      LOGINFO("CometBFT::p2p_port config found: " + p2pPortJSON.get<std::string>());
+      std::string p2pLaddr = configTomlJSON["p2p"]["laddr"];
+      LOGINFO("CometBFT config option p2p::laddr found: " + p2pLaddr);
+      size_t lastColonPos = p2pLaddr.find_last_of(':');
+      if (lastColonPos == std::string::npos || lastColonPos + 1 >= p2pLaddr.size()) {
+        setErrorCode(CometError::CONFIG);
+        throw DynamicException("CometBFT config option p2p::laddr is invalid: can't find port number.");
+      }
+      std::string portStr = p2pLaddr.substr(lastColonPos + 1);
+      try {
+        p2pPort_ = std::stoi(portStr);
+      } catch (const std::exception& e) {
+        setErrorCode(CometError::CONFIG);
+        throw DynamicException("CometBFT config option p2p::laddr is invalid: port value is ivalid: " + portStr);
+      }
     }
 
     if (!hasRPCPort) {
       setErrorCode(CometError::CONFIG);
-      throw DynamicException("Configuration option cometBFT:: rpc_port is empty.");
+      throw DynamicException("CometBFT config option rpc::laddr is empty (or isn't a string).");
     } else {
-      LOGINFO("CometBFT::rpc_port config found: " + rpcPortJSON.get<std::string>());
-
-      // Save it so that we can reach the cometbft node via RPC to e.g. send transactions.
-      rpcPort_ = atoi(rpcPortJSON.get<std::string>().c_str());
-    }
-
-    if (!hasNodeKey) {
-      // This is allowed (some nodes will not care about what node ID they get), so just log it.
-      LOGINFO("Configuration option cometBFT::nodeKey is empty.");
-    } else {
-      LOGINFO("CometBFT::nodeKey config found: " + nodeKeyJSON.dump());
-    }
-
-    if (!hasPrivValidatorKey) {
-      // This is allowed (some nodes are not validators), so just log it.
-      LOGINFO("Configuration option cometBFT::privValidatorKey is empty.");
-    } else {
-      LOGINFO("CometBFT::privValidatorKey config found: " + privValidatorKeyJSON.dump());
+      std::string rpcLaddr = configTomlJSON["rpc"]["laddr"];
+      LOGINFO("CometBFT config option rpc::laddr found: " + rpcLaddr);
+      size_t lastColonPos = rpcLaddr.find_last_of(':');
+      if (lastColonPos == std::string::npos || lastColonPos + 1 >= rpcLaddr.size()) {
+        setErrorCode(CometError::CONFIG);
+        throw DynamicException("CometBFT config option rpc::laddr is invalid: can't find port number.");
+      }
+      std::string portStr = rpcLaddr.substr(lastColonPos + 1);
+      try {
+        rpcPort_ = std::stoi(portStr);
+      } catch (const std::exception& e) {
+        setErrorCode(CometError::CONFIG);
+        throw DynamicException("CometBFT config option rpc::laddr is invalid: port value is ivalid: " + portStr);
+      }
     }
 
     // --------------------------------------------------------------------------------------
@@ -1535,50 +1563,71 @@ void CometImpl::workerLoopInner() {
       throw DynamicException("Error parsing TOML file: " + std::string(err.description()));
     }
 
-    // Force all relevant option values into config.toml
+    // Set config.toml option values specified in "cometBFT": { "config.toml": { ... } }
+    using Level = std::tuple<toml::table*, json*, std::string>;
+    std::stack<Level> stack;
+    stack.push(Level{configToml.as_table(), &configTomlJSON, std::string("")});
+    while (!stack.empty()) {
+      auto [currentTable, currentJson, currentPrefix] = stack.top();
+      stack.pop();
+      for (const auto& [key, value] : currentJson->items()) {
+        std::string logKey = currentPrefix.empty() ? key : currentPrefix + "." + key;
+        if (value.is_object()) {
+          // nested table
+          if (!currentTable->contains(key)) {
+            currentTable->insert_or_assign(key, toml::table());
+          }
+          auto* nestedTable = currentTable->at(key).as_table();
+          if (!nestedTable) {
+            setErrorCode(CometError::CONFIG);
+            throw DynamicException("Failed to create or access nested config.toml table for config JSON key: " + logKey);
+          }
+          stack.push(Level(nestedTable, &value, logKey)); // push nested object onto the stack
+        } else {
+          std::string valueStr = value.dump();
+          std::string configType;
+          bool unsupportedType = false;
+          if (value.is_boolean()) {
+            configType = "boolean";
+            currentTable->insert_or_assign(key, toml::value(value.get<bool>()));
+          } else if (value.is_number()) {
+            configType = "number";
+            currentTable->insert_or_assign(key, toml::value(value.get<double>()));
+          } else if (value.is_string()) {
+            configType = "string";
+            currentTable->insert_or_assign(key, toml::value(value.get<std::string>()));
+          } else if (value.is_array()) {
+            // REVIEW: not sure if this needs to be supported
+            // Would be a for loop pushing any arrays or tables onto the stack?
+            configType = "array";
+            unsupportedType = true;
+          } else if (value.is_null()) {
+            configType = "null";
+            unsupportedType = true;
+          } else if (value.is_binary()) {
+            configType = "binary";
+            unsupportedType = true;
+          } else {
+            configType = "UNKNOWN!";
+            unsupportedType = true;
+          }
+          if (unsupportedType) {
+            setErrorCode(CometError::CONFIG);
+            throw DynamicException("Unsupported config JSON value type '" + configType + "' for key: " + logKey);
+          }
+          LOGINFO("Setting " + configType + " config: " + logKey + " = " + valueStr);
+        }
+      }
+    }
+
+    // Below are all config.toml option values that are always forced
     configToml.insert_or_assign("abci", "socket"); // gets overwritten by --abci, and this is the default value anyway
     configToml.insert_or_assign("proxy_app", "unix://" + cometUNIXSocketPath); // gets overwritten by --proxy_app
     configToml["storage"].as_table()->insert_or_assign("discard_abci_responses", toml::value(true));
-    std::string p2p_param = "tcp://0.0.0.0:" + p2pPortJSON.get<std::string>();
-    std::string rpc_param = "tcp://0.0.0.0:" + rpcPortJSON.get<std::string>();
-    configToml["p2p"].as_table()->insert_or_assign("laddr", p2p_param);
-    configToml["rpc"].as_table()->insert_or_assign("laddr", rpc_param);
-
-    // RPC options. Since the RPC port should be made accessible for local (loopback) connections only, it can
-    //   accept unsafe comands if we need it to.
-    // REVIEW: Maybe we should try and have the RPC endpoint be an unix:/// socket as well?
     configToml["rpc"].as_table()->insert_or_assign("max_body_bytes", COMET_RPC_MAX_BODY_BYTES);
+    // Since the RPC port should be made accessible for local (loopback) connections only, it can
+    // accept unsafe comands if we need it to.
     //configToml["rpc"].as_table()->insert_or_assign("unsafe", toml::value(true));
-
-    // FIXME/TODO: right now we are just testing, so these security params are relaxed to allow
-    //   testing on the same machine. these will have to be exposed as BDK options as well so
-    //   they can be toggled for testing.
-    configToml["p2p"].as_table()->insert_or_assign("allow_duplicate_ip", toml::value(true));
-    configToml["p2p"].as_table()->insert_or_assign("addr_book_strict", toml::value(false));
-
-    if (hasPeers) {
-      // persistent_peers is a single string with the following format:
-      // <ID>@<IP>:<PORT>
-      // BDK validators should specify as many nodes as possible as persistent peers.
-      // Additional methods for adding or discovering other validators and non-validators should also be available.
-      //  (e.g. seeds/PEX).
-      configToml["p2p"].as_table()->insert_or_assign("persistent_peers", peersJSON.get<std::string>());
-    }
-
-    // If running in stepMode (testing ONLY) set all the options required to make cometbft
-    // never produce a block unless at least one transaction is there to be included in one,
-    // and never generating null/timeout blocks.
-    if (stepMode_) {
-      LOGDEBUG("stepMode_ is set, setting step mode parameters for testing.");
-      configToml["consensus"].as_table()->insert_or_assign("create_empty_blocks", toml::value(false));
-      configToml["consensus"].as_table()->insert_or_assign("timeout_propose", "1s");
-      configToml["consensus"].as_table()->insert_or_assign("timeout_propose_delta", "0s");
-      configToml["consensus"].as_table()->insert_or_assign("timeout_prevote", "1s");
-      configToml["consensus"].as_table()->insert_or_assign("timeout_prevote_delta", "0s");
-      configToml["consensus"].as_table()->insert_or_assign("timeout_precommit", "1s");
-      configToml["consensus"].as_table()->insert_or_assign("timeout_precommit_delta", "0s");
-      configToml["consensus"].as_table()->insert_or_assign("timeout_commit", "0s");
-    }
 
     // Overwrite updated config.toml
     std::ofstream configTomlOutFile(cometConfigTomlPath);
@@ -2303,10 +2352,10 @@ void CometImpl::verify_vote_extension(const cometbft::abci::v1::VerifyVoteExtens
 // Comet class
 // ---------------------------------------------------------------------------------------
 
-Comet::Comet(CometListener* listener, std::string instanceIdStr, const Options& options, bool stepMode)
+Comet::Comet(CometListener* listener, std::string instanceIdStr, const Options& options)
   : instanceIdStr_(instanceIdStr)
 {
-  impl_ = std::make_unique<CometImpl>(listener, instanceIdStr, options, stepMode);
+  impl_ = std::make_unique<CometImpl>(listener, instanceIdStr, options);
 }
 
 Comet::~Comet() {
