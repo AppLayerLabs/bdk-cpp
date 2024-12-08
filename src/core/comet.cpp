@@ -513,8 +513,8 @@ void WebsocketRPCConnection<T>::rpcStopConnection() {
   // Then, we just wait some time (say, 1 second) for any pending responses to be returned by cometbft to
   // us (we are not holding rpcStateMutex_ here, so the read handler is free to repost itself).
   // Finally, we turn off the flag and allow other threads to resume posting RPCs.
-  // This should eliminate or at least greatly reduce the possibility of RPC responses that ready to be
-  // read but are then thrown away by rpcDoStop().
+  // This should eliminate or at least greatly reduce the probability that RPC responses that are ready to be
+  // read will be thrown away by rpcDoStop().
   std::unique_lock<std::mutex> stopLock(rpcStopMutex_);
   if (rpcStop_) {
     // Whoops, some other thread is also calling rpcStopConnection() for some reason.
@@ -2254,8 +2254,13 @@ void CometImpl::finalize_block(const cometbft::abci::v1::FinalizeBlockRequest& r
   std::string hashString(hashBytes.begin(), hashBytes.end());
   res->set_app_hash(hashString);
 
-  // TODO/REVIEW: Check if we need to expose more ExecTxResult fields to the application.
+  // Process all txs in the incoming block.
+  // NOTE: acquiring the txCache_ lock for the whole FinalizeBlock tx processing loop is
+  // better than acquiring it potentially thousands of times for all the transactions in a block.
+  // It's better to cause some contention than to just waste CPU time for virtually no benefit.
+  std::unique_lock<std::mutex> txCacheLock(txCacheMutex_);
   for (int32_t i = 0; i < req.txs().size(); ++i) {
+    // TODO/REVIEW: Check if we need to expose more ExecTxResult fields to the application.
     cometbft::abci::v1::ExecTxResult* tx_result = res->add_tx_results();
     CometExecTxResult& txRes = txResults[i];
     tx_result->set_code(txRes.code);
@@ -2266,9 +2271,6 @@ void CometImpl::finalize_block(const cometbft::abci::v1::FinalizeBlockRequest& r
     // If the transaction cache is enabled, we can fill in the result of each transaction
     // as their execution and inclusion in a block is definitive.
     if (txCacheSize_ > 0) {
-      // REVIEW: Should we instead acquire this mutex only once and block the
-      // tx cache for the whole transaction processing loop?
-      std::scoped_lock lock(txCacheMutex_);
       Hash txEthHash = Utils::sha3(allTxs[i]);
       CometTxStatus* txStatusPtr = nullptr;
       for (int j = 0; j < 2; ++j) {
@@ -2288,6 +2290,7 @@ void CometImpl::finalize_block(const cometbft::abci::v1::FinalizeBlockRequest& r
       //txStatus.txHash = ...
     }
   }
+  txCacheLock.unlock();
 
   // Relay validator update commands to cometbft
   for (const auto& validatorUpdate : validatorUpdates) {
