@@ -8,6 +8,7 @@ See the LICENSE.txt file in the project root for more information.
 #include "comet.h"
 
 #include "../utils/logger.h"
+#include "../utils/safehash.h"
 #include "../libs/toml.hpp"
 
 #include "../net/abci/abciserver.h"

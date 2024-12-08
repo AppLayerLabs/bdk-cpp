@@ -6,11 +6,10 @@ See the LICENSE.txt file in the project root for more information.
 */
 
 #include "../../src/libs/catch2/catch_amalgamated.hpp"
-#include "../../src/utils/db.h"
-#include "../../src/utils/strings.h"
 
-#include <filesystem>
-#include <string>
+#include "../../src/utils/db.h" // utils.h -> strings.h, libs/json.hpp -> (filesystem, string)
+
+#include "../../src/utils/strconv.h"
 
 using Catch::Matchers::Equals;
 
@@ -37,13 +36,13 @@ namespace TDB {
       REQUIRE(db.has(key, pfx));
 
       // Read
-      REQUIRE(Utils::bytesToString(db.get(key, pfx)) == value);
+      REQUIRE(StrConv::bytesToString(db.get(key, pfx)) == value);
 
       // Update
       std::string newValue = "f5ea6cbe8cddc3f73bc40e156ced5ef0f80d75bd6794ba18a457c46edaeee6a4";
       REQUIRE(db.put(key, newValue, pfx));
       REQUIRE(db.has(key, pfx));
-      REQUIRE(Utils::bytesToString(db.get(key, pfx)) == newValue);
+      REQUIRE(StrConv::bytesToString(db.get(key, pfx)) == newValue);
 
       // Delete
       REQUIRE(db.del(key, pfx));
@@ -115,9 +114,9 @@ namespace TDB {
 
     SECTION("Throws/Errors") {
       DB db("testDB");
-      REQUIRE(!db.has(Utils::stringToBytes("dummy")));
-      REQUIRE(db.get(Utils::stringToBytes("dummy")).empty());
-      REQUIRE(db.getBatch(Utils::stringToBytes("0001"), {Utils::stringToBytes(("dummy"))}).empty());
+      REQUIRE(!db.has(StrConv::stringToBytes("dummy")));
+      REQUIRE(db.get(StrConv::stringToBytes("dummy")).empty());
+      REQUIRE(db.getBatch(StrConv::stringToBytes("0001"), {StrConv::stringToBytes(("dummy"))}).empty());
       REQUIRE(db.close());
     }
 

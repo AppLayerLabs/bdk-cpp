@@ -64,6 +64,7 @@ class ERC721URIStorage : virtual public ERC721 {
 
     /**
      * Constructor to be used when creating a new contract.
+     * @param derivedTypeName The name of the derived type.
      * @param erc721_name The name of the ERC20 token.
      * @param erc721_symbol The symbol of the ERC20 token.
      * @param address The address where the contract will be deployed.
@@ -77,7 +78,7 @@ class ERC721URIStorage : virtual public ERC721 {
     );
 
     /// Solidity: function tokenURI(uint256 tokenId) public view virtual override returns (string memory)
-    std::string tokenURI(const uint256_t &tokenId) const override;
+    virtual std::string tokenURI(const uint256_t &tokenId) const override;
 
     /// Register contract class via ContractReflectionInterface.
     static void registerContract() {

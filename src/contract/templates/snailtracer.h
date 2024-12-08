@@ -152,7 +152,7 @@ class SnailTracer : public DynamicContract {
 
     /**
      * Calculate the cosine of an int value based on sine and Pythagorean identity.
-     * @param The value to calculate the cosine of.
+     * @param x The value to calculate the cosine of.
      * @return The cosine of the value.
      */
     int256_t cos(const int256_t& x);

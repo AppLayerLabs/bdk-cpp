@@ -8,12 +8,10 @@ See the LICENSE.txt file in the project root for more information.
 #ifndef DYNAMICCONTRACT_H
 #define DYNAMICCONTRACT_H
 
-#include "abi.h"
-#include "contract.h"
-#include "contracthost.h"
-#include "event.h"
-#include "../utils/safehash.h"
-#include "../utils/utils.h"
+#include "../utils/evmcconv.h" // getFunctor, getFunctionArgs
+
+#include "contracthost.h" // contractmanager.h -> contract.h, ...utils/utils.h,safehash.h
+#include "event.h" // abi.h
 
 /// Template for a smart contract. All contracts must inherit this class.
 class DynamicContract : public BaseContract {
@@ -205,14 +203,14 @@ class DynamicContract : public BaseContract {
       Functor functor = ABI::FunctorEncoder::encode<Args...>(funcSignature);
       auto registrationFunc = [this, instance, memFunc, funcSignature](const evmc_message &callInfo) {
         using DecayedArgsTuple = std::tuple<std::decay_t<Args>...>;
-        DecayedArgsTuple decodedData = ABI::Decoder::decodeData<std::decay_t<Args>...>(Utils::getFunctionArgs(callInfo));
+        DecayedArgsTuple decodedData = ABI::Decoder::decodeData<std::decay_t<Args>...>(EVMCConv::getFunctionArgs(callInfo));
         std::apply([instance, memFunc](auto&&... args) {
             (instance->*memFunc)(std::forward<decltype(args)>(args)...);
         }, decodedData);
       };
       auto registrationFuncEVM = [this, instance, memFunc, funcSignature](const evmc_message &callInfo) -> Bytes {
         using DecayedArgsTuple = std::tuple<std::decay_t<Args>...>;
-        DecayedArgsTuple decodedData = ABI::Decoder::decodeData<std::decay_t<Args>...>(Utils::getFunctionArgs(callInfo));
+        DecayedArgsTuple decodedData = ABI::Decoder::decodeData<std::decay_t<Args>...>(EVMCConv::getFunctionArgs(callInfo));
         if constexpr (std::is_same_v<R, void>) {
           std::apply([instance, memFunc](auto&&... args) {
               (instance->*memFunc)(std::forward<decltype(args)>(args)...);
@@ -257,7 +255,7 @@ class DynamicContract : public BaseContract {
       Functor functor = ABI::FunctorEncoder::encode<Args...>(funcSignature);
       auto registrationFunc = [this, instance, memFunc, funcSignature](const evmc_message &callInfo) -> Bytes {
         using DecayedArgsTuple = std::tuple<std::decay_t<Args>...>;
-        DecayedArgsTuple decodedData = ABI::Decoder::decodeData<std::decay_t<Args>...>(Utils::getFunctionArgs(callInfo));
+        DecayedArgsTuple decodedData = ABI::Decoder::decodeData<std::decay_t<Args>...>(EVMCConv::getFunctionArgs(callInfo));
         // Use std::apply to call the member function and encode its return value
         return std::apply([instance, memFunc](Args... args) -> Bytes {
           // Call the member function and return its encoded result
@@ -273,7 +271,7 @@ class DynamicContract : public BaseContract {
       };
       auto registrationFuncEVM =  [this, instance, memFunc, funcSignature](const evmc_message &callInfo) -> Bytes {
         using DecayedArgsTuple = std::tuple<std::decay_t<Args>...>;
-        DecayedArgsTuple decodedData = ABI::Decoder::decodeData<std::decay_t<Args>...>(Utils::getFunctionArgs(callInfo));
+        DecayedArgsTuple decodedData = ABI::Decoder::decodeData<std::decay_t<Args>...>(EVMCConv::getFunctionArgs(callInfo));
         if constexpr (std::is_same_v<R, void>) {
           // If the function's return type is void, call the member function and return an empty Bytes object
           std::apply([instance, memFunc](Args... args) {
@@ -342,7 +340,6 @@ class DynamicContract : public BaseContract {
   public:
     /**
      * Constructor for creating the contract from scratch.
-     * @param interface Reference to the contract manager interface.
      * @param contractName The name of the contract.
      * @param address The address where the contract will be deployed.
      * @param creator The address of the creator of the contract.
@@ -354,7 +351,6 @@ class DynamicContract : public BaseContract {
 
     /**
      * Constructor for loading the contract from the database.
-     * @param interface Reference to the contract manager interface.
      * @param address The address where the contract will be deployed.
      * @param db Reference to the database object.
      */
@@ -365,13 +361,14 @@ class DynamicContract : public BaseContract {
      * Automatically differs between payable and non-payable functions.
      * Used by State when calling `processNewBlock()/validateNewBlock()`.
      * @param callInfo Tuple of (from, to, gasLimit, gasPrice, value, data).
+     * @param host Pointer to the contract host.
      * @throw DynamicException if the functor is not found or the function throws an exception.
      */
     void ethCall(const evmc_message& callInfo, ContractHost* host) final {
       this->host_ = host;
       PointerNullifier nullifier(this->host_);
       try {
-        Functor funcName = Utils::getFunctor(callInfo);
+        Functor funcName = EVMCConv::getFunctor(callInfo);
         if (this->isPayableFunction(funcName)) {
           auto func = this->payableFunctions_.find(funcName);
           if (func == this->payableFunctions_.end()) throw DynamicException("Functor not found for payable function");
@@ -395,7 +392,7 @@ class DynamicContract : public BaseContract {
       this->host_ = host;
       PointerNullifier nullifier(this->host_);
       try {
-        Functor funcName = Utils::getFunctor(callInfo);
+        Functor funcName = EVMCConv::getFunctor(callInfo);
         if (this->isPayableFunction(funcName)) {
           auto func = this->evmFunctions_.find(funcName);
           if (func == this->evmFunctions_.end()) throw DynamicException("Functor not found for payable function");
@@ -418,6 +415,7 @@ class DynamicContract : public BaseContract {
     /**
      * Do a contract call to a view function.
      * @param data Tuple of (from, to, gasLimit, gasPrice, value, data).
+     * @param host Pointer to the contract host.
      * @return The result of the view function.
      * @throw DynamicException if the functor is not found or the function throws an exception.
      */
@@ -425,7 +423,7 @@ class DynamicContract : public BaseContract {
       this->host_ = host;
       PointerNullifier nullifier(this->host_);
       try {
-        Functor funcName = Utils::getFunctor(data);
+        Functor funcName = EVMCConv::getFunctor(data);
         auto func = this->viewFunctions_.find(funcName);
         if (func == this->viewFunctions_.end()) throw DynamicException("Functor not found");
         return func->second(data);
@@ -491,7 +489,6 @@ class DynamicContract : public BaseContract {
      * @tparam Args The argument types of the view function.
      * @param address The address of the contract to call.
      * @param func The view function to call.
-     * @param args The arguments to pass to the view function.
      * @return The result of the view function.
      */
     template <typename R, typename C>
@@ -581,6 +578,7 @@ class DynamicContract : public BaseContract {
      * @tparam R The return type of the function.
      * @tparam C The contract type.
      * @tparam Args The argument types of the function.
+     * @param contractHost Pointer to the contract host.
      * @param func The function to call.
      * @param args The arguments to pass to the function.
      * @return The result of the function.
@@ -606,6 +604,7 @@ class DynamicContract : public BaseContract {
      * @tparam R The return type of the function.
      * @tparam C The contract type.
      * @tparam Args The argument types of the function.
+     * @param contractHost Pointer to the contract host.
      * @param func The function to call.
      * @return The result of the function.
      */
@@ -627,15 +626,10 @@ class DynamicContract : public BaseContract {
      * Call the create function of a contract.
      * @tparam TContract The contract type.
      * @tparam Args The arguments of the contract constructor.
-     * @param gas The gas limit.
-     * @param gasPrice The gas price.
-     * @param value The caller value.
      * @param args The arguments to pass to the constructor.
      * @return The address of the created contract.
      */
-    template<typename TContract, typename... Args> Address callCreateContract(
-      Args&&... args
-    ) {
+    template<typename TContract, typename... Args> Address callCreateContract(Args&&... args) {
       if (this->host_ == nullptr) {
         throw DynamicException("Contracts going haywire! trying to create a contract without a host!");
       }

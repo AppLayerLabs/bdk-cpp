@@ -15,6 +15,8 @@ See the LICENSE.txt file in the project root for more information.
 // To decode the base64-encoded key strings
 #include "../libs/base64.hpp"
 
+#include "../../src/utils/uintconv.h"
+
 #include <sys/prctl.h> // For prctl and PR_SET_PDEATHSIG
 #include <signal.h>    // For SIGTERM
 
@@ -622,9 +624,13 @@ public:
   void updateAppHash() {
     // Changing apphash generates empty blocks, making stepMode_ significantly less useful.
     // So, only compute the apphash if the testcase asks for it (via enableApphash_).
+    // Don't use a proper hash here because that's just harder to debug/understand.
     appHash_.clear();
     if (enableAppHash_) {
-      auto arr = Utils::int64ToBytes(m_);
+      // int64ToBytes() is gone, so convert to use the uint version
+      int64_t i = m_;
+      uint64_t ui = static_cast<uint64_t>(i);
+      auto arr = UintConv::uint64ToBytes(ui);
       appHash_ = Bytes(arr.begin(), arr.end());
     }
   }

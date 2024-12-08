@@ -8,15 +8,7 @@ See the LICENSE.txt file in the project root for more information.
 #ifndef BLOCKCHAINWRAPPER_H
 #define BLOCKCHAINWRAPPER_H
 
-#include "../src/core/storage.h"
-#include "../src/core/state.h"
-#include "../src/core/comet.h"
-#include "../src/net/p2p/managernormal.h"
-#include "../src/net/http/httpserver.h"
-#include "../src/utils/options.h"
-#include "../src/utils/db.h"
-#include "../src/core/blockchain.h"
-#include "../src/utils/utils.h"
+#include "../src/core/blockchain.h" // net/http/httpserver.h, consensus.h -> state.h -> (rdpos.h -> net/p2p/managernormal.h), dump.h -> (storage.h -> utils/options.h), utils/db.h -> utils.h
 
 /**
  * Simple wrapper struct for management of all blockchain related objects.
@@ -168,7 +160,7 @@ inline TestBlockchainWrapper initialize(const std::vector<Hash>& validatorPrivKe
         2000,
         10000,
         1000,
-        4,
+        7,
         discoveryNodes,
         genesis,
         genesisTimestamp,
@@ -195,7 +187,7 @@ inline TestBlockchainWrapper initialize(const std::vector<Hash>& validatorPrivKe
       2000,
       10000,
       1000,
-      4,
+      7,
       discoveryNodes,
       genesis,
       genesisTimestamp,
@@ -282,7 +274,7 @@ inline FinalizedBlock createValidBlock(const std::vector<Hash>& validatorPrivKey
 
   // Check rdPoS mempool.
   auto rdPoSmempool = state.rdposGetMempool();
-  REQUIRE(state.rdposGetMempool().size() == 8);
+  REQUIRE(state.rdposGetMempool().size() == 14);
   for (const auto& tx : randomHashTxs) {
     REQUIRE(rdPoSmempool.contains(tx.hash()));
   }

@@ -6,22 +6,14 @@ See the LICENSE.txt file in the project root for more information.
 */
 
 #include "managernormal.h"
-#include "../core/rdpos.h"
+
 #include "../core/storage.h"
 #include "../core/state.h"
-#include "nodeconns.h"
 
 namespace P2P{
+  void ManagerNormal::start() { ManagerBase::start(); nodeConns_.start(); }
 
-  void ManagerNormal::start() {
-    ManagerBase::start();
-    nodeConns_.start();
-  }
-
-  void ManagerNormal::stop() {
-    nodeConns_.stop();
-    ManagerBase::stop();
-  }
+  void ManagerNormal::stop() { nodeConns_.stop(); ManagerBase::stop(); }
 
   void ManagerNormal::sendMessageToAll(const std::shared_ptr<const Message> message, const std::optional<NodeID>& originalSender) {
     std::unordered_set<NodeID, SafeHash> peerMap;

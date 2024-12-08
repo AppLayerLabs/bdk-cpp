@@ -37,6 +37,7 @@ RUN /sonarcloud.sh
 
 # Update running paths
 ENV PATH=/root/.sonar/build-wrapper-linux-x86:$PATH
+ENV PATH=/root/.sonar/sonar-scanner-6.2.1.4610-linux-x64/bin:$PATH
 ENV PATH=/root/.sonar/sonar-scanner-6.2.0.4584-linux-x64/bin:$PATH
 
 # Copy the entrypoint script

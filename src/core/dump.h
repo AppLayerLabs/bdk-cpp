@@ -8,15 +8,9 @@ See the LICENSE.txt file in the project root for more information.
 #ifndef DUMP_H
 #define DUMP_H
 
-#include <vector>
-#include <thread>
-#include <future>
-#include <chrono>
-#include <functional>
 #include <shared_mutex>
 
-#include "storage.h"
-#include "../utils/db.h"
+#include "storage.h" // utils/db.h, ... -> utils.h -> libs/json.hpp -> functional, vector
 
 /// Abstraction of a dumpable object (an object that can be dumped to the database).
 class Dumpable {
@@ -34,7 +28,7 @@ class DumpManager : public Log::LogicalLocationProvider {
     const Options& options_; ///< Reference to the options object.
     const Storage& storage_; ///< Reference to the storage object
     std::shared_mutex& stateMutex_; ///< Mutex for managing read/write access to the state object.
-    std::vector<Dumpable*> dumpables_; /// List of Dumpable objects.
+    std::vector<Dumpable*> dumpables_; ///< List of Dumpable objects.
 
     /**
      * Auxiliary function used by async calls that processes a little slice of dumps in a separate thread.
@@ -82,7 +76,7 @@ class DumpManager : public Log::LogicalLocationProvider {
     static std::pair<std::string, uint64_t> getBestStateDBPath(const Options& options) {
       std::filesystem::path stateDbRootFolder = options.getRootPath() + "/stateDb/";
       // Each state DB patch is named with the block height.
-      // Therefore, we need to list all the directories in the stateDbRootFolder and return 
+      // Therefore, we need to list all the directories in the stateDbRootFolder and return
       // the one with the highest block height using std::filesystem::directory_iterator.
       uint64_t bestHeight = 0;
       std::string bestPath;
@@ -108,11 +102,12 @@ class DumpManager : public Log::LogicalLocationProvider {
     }
 };
 
+/// Helper class for the database dumper's worker thread.
 class DumpWorker : public Log::LogicalLocationProvider {
   private:
     const Options& options_; ///< Reference to the Options singleton.
     const Storage& storage_; ///< Reference to the Storage object.
-    DumpManager& dumpManager_; /// Reference to the DumpManager object.
+    DumpManager& dumpManager_; ///< Reference to the DumpManager object.
     std::atomic<bool> stopWorker_ = false; ///< Flag for stopping the worker thread.
     std::future<bool> workerFuture_; ///< Future object for the worker thread, used to wait for the thread to finish.
     std::atomic<bool> canDump_ = false; ///< Flag for knowing if the worker is ready to dump.

@@ -1,47 +1,22 @@
+/*
+Copyright (c) [2023-2024] [AppLayer Developers]
+
+This software is distributed under the MIT License.
+See the LICENSE.txt file in the project root for more information.
+*/
+
 #include "methods.h"
 
 #include "blocktag.h"
-#include "variadicparser.h"
-#include "../../../core/storage.h"
-#include "../../../core/state.h"
+#include "variadicparser.h" // parser.h -> ranges, utils/utils.h -> libs/json.hpp
 
-#include <ranges>
+#include "../../../utils/evmcconv.h"
 
 static inline constexpr std::string_view FIXED_BASE_FEE_PER_GAS = "0x9502f900"; // Fixed to 2.5 GWei
 
 namespace jsonrpc {
 
-static std::optional<uint64_t> getBlockNumber(const Storage& storage, const Hash& hash) {
-  if (const auto block = storage.getBlock(hash); block != nullptr) return block->getNHeight();
-  return std::nullopt;
-}
-
-template<typename T, std::ranges::input_range R>
-requires std::convertible_to<std::ranges::range_value_t<R>, T>
-static std::vector<T> makeVector(R&& range) {
-  std::vector<T> res(std::ranges::size(range));
-  std::ranges::copy(std::forward<R>(range), res.begin());
-  return res;
-}
-
-static inline void forbidParams(const json& request) {
-  if (request.contains("params") && !request["params"].empty())
-    throw DynamicException("\"params\" are not required for method");
-}
-
-static inline void requiresIndexing(const Storage& storage, std::string_view method) {
-  if (storage.getIndexingMode() == IndexingMode::DISABLED) {
-    throw Error::methodNotAvailable(method);
-  }
-}
-
-static inline void requiresDebugIndexing(const Storage& storage, std::string_view method) {
-  if (storage.getIndexingMode() != IndexingMode::RPC_TRACE) {
-    throw Error::methodNotAvailable(method);
-  }
-}
-
-static json getBlockJson(const FinalizedBlock *block, bool includeTransactions) {
+json getBlockJson(const FinalizedBlock* block, bool includeTransactions) {
   json ret;
   if (block == nullptr) { ret = json::value_t::null; return ret; }
   ret["hash"] = block->getHash().hex(true);
@@ -94,7 +69,7 @@ static json getBlockJson(const FinalizedBlock *block, bool includeTransactions) 
   return ret;
 }
 
-static std::pair<Bytes, evmc_message> parseEvmcMessage(const json& request, const Storage& storage, bool recipientRequired) {
+std::pair<Bytes, evmc_message> parseEvmcMessage(const json& request, const Storage& storage, bool recipientRequired) {
   std::pair<Bytes, evmc_message> res{};
 
   Bytes& buffer = res.first;
@@ -120,7 +95,7 @@ static std::pair<Bytes, evmc_message> parseEvmcMessage(const json& request, cons
   parseIfExists<uint64_t>(txJson, "gasPrice"); // gas price ignored as chain is fixed at 1 GWEI
 
   msg.value = parseIfExists<uint64_t>(txJson, "value")
-    .transform([] (uint64_t val) { return Utils::uint256ToEvmcUint256(uint256_t(val)); })
+    .transform([] (uint64_t val) { return EVMCConv::uint256ToEvmcUint256(uint256_t(val)); })
     .value_or(evmc::uint256be{});
 
   buffer = parseIfExists<Bytes>(txJson, "data").value_or(Bytes{});
@@ -130,6 +105,10 @@ static std::pair<Bytes, evmc_message> parseEvmcMessage(const json& request, cons
 
   return res;
 }
+
+// ========================================================================
+//  METHODS START HERE
+// ========================================================================
 
 json web3_clientVersion(const json& request, const Options& options) {
   forbidParams(request);
@@ -157,9 +136,9 @@ json eth_protocolVersion(const json& request, const Options& options) {
   return options.getSDKVersion();
 }
 
-json net_peerCount(const json& request, const P2P::ManagerNormal& manager) {
+json net_peerCount(const json& request, const P2P::ManagerNormal& p2p) {
   forbidParams(request);
-  return Hex::fromBytes(Utils::uintToBytes(manager.getPeerCount()), true).forRPC();
+  return Hex::fromBytes(Utils::uintToBytes(p2p.getPeerCount()), true).forRPC();
 }
 
 json eth_getBlockByHash(const json& request, const Storage& storage) {
@@ -515,11 +494,11 @@ json txpool_content(const json& request, const State& state) {
     txJson["gasUsed"] = json::value_t::null;
     txJson["gasPrice"] = Hex::fromBytes(Utils::uintToBytes(tx.getMaxFeePerGas()),true).forRPC();
     txJson["getMaxFeePerGas"] = Hex::fromBytes(Utils::uintToBytes(tx.getMaxFeePerGas()),true).forRPC();
-    txJson["chainId"] = Hex::fromBytes(Utils::uintToBytes(tx.getChainId()),true).forRPC(); 
+    txJson["chainId"] = Hex::fromBytes(Utils::uintToBytes(tx.getChainId()),true).forRPC();
     txJson["input"] = Hex::fromBytes(tx.getData(), true).forRPC();
     txJson["nonce"] = Hex::fromBytes(Utils::uintToBytes(tx.getNonce()), true).forRPC();
     txJson["transactionIndex"] = json::value_t::null;
-    txJson["type"] = "0x2"; // Legacy Transactions ONLY. TODO: change this to 0x2 when we support EIP-1559
+    txJson["type"] = "0x2"; // Legacy Transactions ONLY
     txJson["v"] = Hex::fromBytes(Utils::uintToBytes(tx.getV()), true).forRPC();
     txJson["r"] = Hex::fromBytes(Utils::uintToBytes(tx.getR()), true).forRPC();
     txJson["s"] = Hex::fromBytes(Utils::uintToBytes(tx.getS()), true).forRPC();

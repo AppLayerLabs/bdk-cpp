@@ -8,18 +8,12 @@ See the LICENSE.txt file in the project root for more information.
 #ifndef SDKTESTSUITE_H
 #define SDKTESTSUITE_H
 
-#include "../src/core/storage.h"
-#include "../src/core/rdpos.h"
-#include "../src/core/state.h"
-#include "../src/net/p2p/managernormal.h"
-#include "../src/net/http/httpserver.h"
-#include "../src/utils/options.h"
-#include "../src/utils/db.h"
-#include "../src/core/blockchain.h"
-#include "../src/utils/utils.h"
-#include "contract/contracthost.h"
-#include "statetest.hpp"
+#include "../src/core/blockchain.h" // net/http/httpserver.h, consensus.h -> state.h -> rdpos.h -> net/p2p/managernormal.h, (utils/tx.h -> ecdsa.h -> utils.h -> libs/json.hpp -> tuple), (dump.h -> utils/db.h, storage.h -> options.h)
 
+#include "../src/utils/evmcconv.h"
+#include "../src/utils/uintconv.h"
+
+#include "statetest.hpp"
 
 /// Wrapper struct for accounts used within the SDKTestSuite.
 struct TestAccount {
@@ -399,7 +393,7 @@ class SDKTestSuite {
       callSender = from.address.toEvmcAddress();
       callInputData = data.data();
       callInputSize = data.size();
-      callValue = Utils::uint256ToEvmcUint256(value);
+      callValue = EVMCConv::uint256ToEvmcUint256(value);
       callCreate2Salt = {};
       callCodeAddress = {};
       auto usedGas = this->state_.estimateGas(callInfo);
@@ -577,7 +571,7 @@ class SDKTestSuite {
         ContractReflectionInterface::getFunctionName(func)
       );
       Bytes txData;
-      Utils::appendBytes(txData, Utils::uint32ToBytes(txFunctor.value));
+      Utils::appendBytes(txData, UintConv::uint32ToBytes(txFunctor.value));
       // Use the chain owner account if no account is provided
       TxBlock tx = this->createNewTx(
         ((!testAccount) ? this->getChainOwnerAccount() : testAccount),
@@ -620,7 +614,7 @@ class SDKTestSuite {
         ContractReflectionInterface::getFunctionName(func)
       );
       Bytes txData;
-      Utils::appendBytes(txData, Utils::uint32ToBytes(txFunctor.value));
+      Utils::appendBytes(txData, UintConv::uint32ToBytes(txFunctor.value));
       Utils::appendBytes(
         txData, ABI::Encoder::encodeData<Args...>(std::forward<decltype(args)>(args)...)
       );
@@ -836,7 +830,7 @@ class SDKTestSuite {
 
       auto functor = ABI::FunctorEncoder::encode<>(ContractReflectionInterface::getFunctionName(func));
       Bytes fullData;
-      Utils::appendBytes(fullData, Utils::uint32ToBytes(functor.value));
+      Utils::appendBytes(fullData, UintConv::uint32ToBytes(functor.value));
 
       callKind = EVMC_CALL;
       callFlags = 0;
@@ -846,7 +840,7 @@ class SDKTestSuite {
       callSender = this->getChainOwnerAccount().address.toEvmcAddress();
       callInputData = fullData.data();
       callInputSize = fullData.size();
-      callValue = Utils::uint256ToEvmcUint256(0);
+      callValue = EVMCConv::uint256ToEvmcUint256(0);
       callCreate2Salt = {};
       callCodeAddress = contractAddress.toEvmcAddress();
       return std::get<0>(ABI::Decoder::decodeData<ReturnType>(this->state_.ethCall(callData)));
@@ -883,7 +877,7 @@ class SDKTestSuite {
         callCodeAddress] = callData;
       auto functor = ABI::FunctorEncoder::encode<Args...>(ContractReflectionInterface::getFunctionName(func));
       Bytes fullData;
-      Utils::appendBytes(fullData, Utils::uint32ToBytes(functor.value));
+      Utils::appendBytes(fullData, UintConv::uint32ToBytes(functor.value));
       Utils::appendBytes(fullData, ABI::Encoder::encodeData<Args...>(std::forward<decltype(args)>(args)...));
 
       callKind = EVMC_CALL;
@@ -894,7 +888,7 @@ class SDKTestSuite {
       callSender = this->getChainOwnerAccount().address.toEvmcAddress();
       callInputData = fullData.data();
       callInputSize = fullData.size();
-      callValue = Utils::uint256ToEvmcUint256(0);
+      callValue = EVMCConv::uint256ToEvmcUint256(0);
       callCreate2Salt = {};
       callCodeAddress = {};
 

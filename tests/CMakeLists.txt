@@ -21,6 +21,8 @@ set (TESTS_SOURCES
   ${CMAKE_SOURCE_DIR}/tests/utils/utils.cpp
   ${CMAKE_SOURCE_DIR}/tests/utils/options.cpp
   ${CMAKE_SOURCE_DIR}/tests/utils/dynamicexception.cpp
+  ${CMAKE_SOURCE_DIR}/tests/utils/strconv.cpp
+  ${CMAKE_SOURCE_DIR}/tests/utils/uintconv.cpp
   ${CMAKE_SOURCE_DIR}/tests/contract/abi.cpp
   ${CMAKE_SOURCE_DIR}/tests/contract/erc20.cpp
   ${CMAKE_SOURCE_DIR}/tests/contract/erc20wrapper.cpp

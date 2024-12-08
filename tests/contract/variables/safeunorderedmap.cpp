@@ -6,10 +6,7 @@ See the LICENSE.txt file in the project root for more information.
 */
 
 #include "../../src/libs/catch2/catch_amalgamated.hpp"
-#include "../../src/contract/variables/safeunorderedmap.h"
-#include "../../src/utils/safehash.h"
-#include <iterator>
-#include <utility>
+#include "../../src/contract/variables/safeunorderedmap.h" // safehash.h
 
 namespace TSafeUnorderedMap {
   TEST_CASE("SafeUnorderedMap Class", "[contract][variables][safeunorderedmap]") {

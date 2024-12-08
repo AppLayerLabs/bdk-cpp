@@ -1,4 +1,14 @@
+/*
+Copyright (c) [2023-2024] [AppLayer Developers]
+
+This software is distributed under the MIT License.
+See the LICENSE.txt file in the project root for more information.
+*/
+
 #include "snailtracer.h"
+
+#include "../../utils/intconv.h"
+#include "../../utils/strconv.h"
 
 SnailTracer::SnailTracer(
   int256_t w, int256_t h, const Address& address, const Address& creator, const uint64_t& chainId
@@ -72,8 +82,8 @@ SnailTracer::SnailTracer(
   const Address& address,
   const DB& db
 ) : DynamicContract(address, db) {
-  this->width_ = Utils::bytesToInt256(db.get(std::string("width_"), this->getDBPrefix()));
-  this->height_ = Utils::bytesToInt256(db.get(std::string("height_"), this->getDBPrefix()));
+  this->width_ = IntConv::bytesToInt256(db.get(std::string("width_"), this->getDBPrefix()));
+  this->height_ = IntConv::bytesToInt256(db.get(std::string("height_"), this->getDBPrefix()));
   this->camera_ = std::get<0>(ABI::Decoder::decodeData<Ray>(db.get(std::string("camera_"), this->getDBPrefix())));
   this->deltaX_ = std::get<0>(ABI::Decoder::decodeData<Vector>(db.get(std::string("deltaX_"), this->getDBPrefix())));
   this->deltaY_ = std::get<0>(ABI::Decoder::decodeData<Vector>(db.get(std::string("deltaY_"), this->getDBPrefix())));
@@ -503,13 +513,13 @@ void SnailTracer::registerContractFunctions() {
 DBBatch SnailTracer::dump() const {
   DBBatch dbBatch = BaseContract::dump();
 
-  dbBatch.push_back(Utils::stringToBytes("width_"), Utils::int256ToBytes(width_.get()), this->getDBPrefix());
-  dbBatch.push_back(Utils::stringToBytes("height_"), Utils::int256ToBytes(height_.get()), this->getDBPrefix());
-  dbBatch.push_back(Utils::stringToBytes("camera_"), ABI::Encoder::encodeData<Ray>(camera_.raw()), this->getDBPrefix());
-  dbBatch.push_back(Utils::stringToBytes("deltaX_"), ABI::Encoder::encodeData<Vector>(deltaX_.raw()), this->getDBPrefix());
-  dbBatch.push_back(Utils::stringToBytes("deltaY_"), ABI::Encoder::encodeData<Vector>(deltaY_.raw()), this->getDBPrefix());
-  dbBatch.push_back(Utils::stringToBytes("spheres_"), ABI::Encoder::encodeData<std::vector<Sphere>>(spheres_.get()), this->getDBPrefix());
-  dbBatch.push_back(Utils::stringToBytes("triangles_"), ABI::Encoder::encodeData<std::vector<Triangle>>(triangles_.get()), this->getDBPrefix());
+  dbBatch.push_back(StrConv::stringToBytes("width_"), IntConv::int256ToBytes(width_.get()), this->getDBPrefix());
+  dbBatch.push_back(StrConv::stringToBytes("height_"), IntConv::int256ToBytes(height_.get()), this->getDBPrefix());
+  dbBatch.push_back(StrConv::stringToBytes("camera_"), ABI::Encoder::encodeData<Ray>(camera_.raw()), this->getDBPrefix());
+  dbBatch.push_back(StrConv::stringToBytes("deltaX_"), ABI::Encoder::encodeData<Vector>(deltaX_.raw()), this->getDBPrefix());
+  dbBatch.push_back(StrConv::stringToBytes("deltaY_"), ABI::Encoder::encodeData<Vector>(deltaY_.raw()), this->getDBPrefix());
+  dbBatch.push_back(StrConv::stringToBytes("spheres_"), ABI::Encoder::encodeData<std::vector<Sphere>>(spheres_.get()), this->getDBPrefix());
+  dbBatch.push_back(StrConv::stringToBytes("triangles_"), ABI::Encoder::encodeData<std::vector<Triangle>>(triangles_.get()), this->getDBPrefix());
 
   return dbBatch;
 }

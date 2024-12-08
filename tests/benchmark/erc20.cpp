@@ -5,10 +5,11 @@
 */
 
 #include "../src/libs/catch2/catch_amalgamated.hpp"
+
 #include "../src/contract/templates/erc20.h"
-#include "../src/contract/abi.h"
-#include "../src/utils/options.h"
-#include "../src/core/rdpos.h"
+
+#include "../src/utils/uintconv.h"
+
 #include "../sdktestsuite.hpp"
 
 namespace TERC20BENCHMARK {
@@ -49,7 +50,7 @@ namespace TERC20BENCHMARK {
 
 
       // Create the transaction for transfer
-      auto functor = Utils::uint32ToBytes(ABI::FunctorEncoder::encode<Address, uint256_t>("transfer").value);
+      auto functor = UintConv::uint32ToBytes(ABI::FunctorEncoder::encode<Address, uint256_t>("transfer").value);
       Bytes transferEncoded(functor.cbegin(), functor.cend());
       Utils::appendBytes(transferEncoded, ABI::Encoder::encodeData<Address, uint256_t>(to, uint256_t("100")));
       TxBlock transferTx = sdk.createNewTx(sdk.getChainOwnerAccount(), erc20Address, 0, transferEncoded);
@@ -76,7 +77,7 @@ namespace TERC20BENCHMARK {
 
       auto start = std::chrono::high_resolution_clock::now();
       for (uint64_t i = 0; i < iterations; i++) {
-        state.call(callInfo, txContext, CPP, randomnessHash, randomnessHash, randomnessHash, leftOverGas);
+        state.call(callInfo, txContext, ContractType::CPP, randomnessHash, randomnessHash, randomnessHash, leftOverGas);
       }
       auto end = std::chrono::high_resolution_clock::now();
 
@@ -111,7 +112,7 @@ namespace TERC20BENCHMARK {
       REQUIRE(sdk.callViewFunction(erc20Address, &ERC20::balanceOf, sdk.getChainOwnerAccount().address) == uint256_t("10000000000000000000000"));
 
       // Create the transaction for transfer
-      auto functor = Utils::uint32ToBytes(ABI::FunctorEncoder::encode<Address, uint256_t>("transfer").value);
+      auto functor = UintConv::uint32ToBytes(ABI::FunctorEncoder::encode<Address, uint256_t>("transfer").value);
       Bytes transferEncoded(functor.cbegin(), functor.cend());
       Utils::appendBytes(transferEncoded, ABI::Encoder::encodeData<Address, uint256_t>(to, uint256_t("100")));
       TxBlock transferTx = sdk.createNewTx(sdk.getChainOwnerAccount(), erc20Address, 0, transferEncoded);
@@ -138,7 +139,7 @@ namespace TERC20BENCHMARK {
 
       auto start = std::chrono::high_resolution_clock::now();
       for (uint64_t i = 0; i < iterations; i++) {
-        state.call(callInfo, txContext, EVM, randomnessHash, randomnessHash, randomnessHash, leftOverGas);
+        state.call(callInfo, txContext, ContractType::EVM, randomnessHash, randomnessHash, randomnessHash, leftOverGas);
       }
       auto end = std::chrono::high_resolution_clock::now();
 

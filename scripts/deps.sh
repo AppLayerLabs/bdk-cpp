@@ -6,9 +6,10 @@
 
 # Parse CLI args
 if [ "${1:-}" == "" ]; then
-  echo "Usage: $0 [--check|--install]"
+  echo "Usage: $0 [--check|--install|--cleanext]"
   echo "  --check: print installed dependencies and exit"
   echo "  --install: install missing dependencies"
+  echo "  --cleanext: clean external dependencies (for reinstalling)"
   exit
 fi
 
@@ -84,11 +85,12 @@ HAS_GRPC=$(check_exec grpc_cpp_plugin)
 HAS_COMETBFT=$(check_exec cometbft)
 
 # Check internal libraries
-# Necessary: libboost-all-dev, openssl/libssl-dev, libzstd-dev, libcrypto++-dev,
-#            libscrypt-dev, libc-ares-dev, libsecp256k1-dev
+# Necessary: libboost-all-dev, openssl/libssl-dev, libzstd-dev, liblz4-dev, libcrypto++-dev,
+#            libscrypt-dev, libgrpc-dev, libgrpc++-dev, libc-ares-dev, libsecp256k1-dev
 HAS_BOOST=$(check_libs "libboost_*.a")
 HAS_LIBSSL=$(check_lib "libssl.a")
 HAS_ZSTD=$(check_lib "libzstd.a")
+HAS_LZ4=$(check_lib "liblz4.a")
 HAS_LIBCRYPTOPP=$(check_lib "libcryptopp.a")
 HAS_LIBSCRYPT=$(check_lib "libscrypt.a")
 HAS_LIBCARES=$(check_lib "libcares_static.a") # Debian 13 and higher
@@ -130,6 +132,7 @@ if [ "${1:-}" == "--check" ]; then
   echo -n "boost: " && [ -n "$HAS_BOOST" ] && echo "$HAS_BOOST" || echo "not found"
   echo -n "libssl: " && [ -n "$HAS_LIBSSL" ] && echo "$HAS_LIBSSL" || echo "not found"
   echo -n "libzstd: " && [ -n "$HAS_ZSTD" ] && echo "$HAS_ZSTD" || echo "not found"
+  echo -n "liblz4: " && [ -n "$HAS_LZ4" ] && echo "$HAS_LZ4" || echo "not found"
   echo -n "libcryptopp: " && [ -n "$HAS_LIBCRYPTOPP" ] && echo "$HAS_LIBCRYPTOPP" || echo "not found"
   echo -n "libscrypt: " && [ -n "$HAS_LIBSCRYPT" ] && echo "$HAS_LIBSCRYPT" || echo "not found"
   echo -n "libcares: " && [ -n "$HAS_LIBCARES" ] && echo "$HAS_LIBCARES" || echo "not found"
@@ -162,11 +165,7 @@ elif [ "${1:-}" == "--install" ]; then
     echo "-- Checking internal dependencies..."
     PKGS=""
     if [ -z "$HAS_GIT" ]; then PKGS+="git "; fi
-    if [ -z "$HAS_WGET" ]; then PKGS+="wget "; fi
     if [ -z "$HAS_GCC" ] || [ -z "$HAS_GPP" ] || [ -z "$HAS_MAKE" ] || [ -z "$HAS_LD" ]; then PKGS+="build-essential "; fi
-    if [ -z "$HAS_AUTOCONF" ]; then PKGS+="autoconf "; fi
-    if [ -z "$HAS_LIBTOOL" ]; then PKGS+="libtool libtool-bin "; fi
-    if [ -z "$HAS_PKGCONFIG" ]; then PKGS+="pkg-config "; fi
     if [ -z "$HAS_CMAKE" ]; then PKGS+="cmake "; fi
     if [ -z "$HAS_TMUX" ]; then PKGS+="tmux "; fi
     if [ -z "$HAS_NINJA" ]; then PKGS+="ninja-build "; fi
@@ -176,6 +175,7 @@ elif [ "${1:-}" == "--install" ]; then
     if [ -z "$HAS_BOOST" ]; then PKGS+="libboost-all-dev "; fi
     if [ -z "$HAS_LIBSSL" ]; then PKGS+="libssl-dev "; fi
     if [ -z "$HAS_ZSTD" ]; then PKGS+="libzstd-dev "; fi
+    if [ -z "$HAS_LZ4" ]; then PKGS+="liblz4-dev "; fi
     if [ -z "$HAS_LIBCRYPTOPP" ]; then PKGS+="libcrypto++-dev "; fi
     if [ -z "$HAS_LIBSCRYPT" ]; then PKGS+="libscrypt-dev "; fi
     if [ -z "$HAS_LIBCARES" ]; then PKGS+="libc-ares-dev "; fi
@@ -225,9 +225,44 @@ elif [ "${1:-}" == "--install" ]; then
     cd speedb && mkdir build && cd build
     cmake -DCMAKE_INSTALL_PREFIX="/usr/local" -DCMAKE_BUILD_TYPE=Release \
       -DROCKSDB_BUILD_SHARED=OFF -DFAIL_ON_WARNINGS=OFF -DWITH_GFLAGS=OFF -DWITH_RUNTIME_DEBUG=OFF \
-      -DWITH_BENCHMARK_TOOLS=OFF -DWITH_CORE_TOOLS=OFF -DWITH_TOOLS=OFF -DWITH_TRACE_TOOLS=OFF ..
+      -DWITH_BENCHMARK_TOOLS=OFF -DWITH_CORE_TOOLS=OFF -DWITH_TOOLS=OFF -DWITH_TRACE_TOOLS=OFF \
+      -DWITH_LZ4=ON ..
     cmake --build . -- -j$(nproc) && cmake --install .
   fi
   echo "-- Dependencies installed"
+elif [ "${1:-}" == "--cleanext" ]; then
+  # Anti-anti-sudo prevention
+  if [ $(id -u) -ne 0 ]; then
+    echo "Please run this command as root."
+    exit
+  fi
+
+  # Uninstall any external dependencies (+ source code repos) found in the system
+  if [ -n "$HAS_ETHASH" ] || [ -n "$HAS_KECCAK" ]; then
+    echo "-- Uninstalling ethash..."
+    rm -r "/usr/local/src/ethash"
+    rm -r "/usr/local/include/ethash"
+    rm "/usr/local/lib/libethash.a"
+    rm "/usr/local/lib/libethash-global-context.a"
+    rm "/usr/local/lib/libkeccak.a"
+  fi
+  if [ -n "$HAS_EVMC_INSTRUCTIONS" ] || [ -n "$HAS_EVMC_LOADER" ] || [ -n "$HAS_EVMONE" ]; then
+    echo "-- Uninstalling evmone..."
+    rm -r "/usr/local/src/evmone"
+    rm -r "/usr/local/include/evmc"
+    rm -r "/usr/local/include/evmmax"
+    rm -r "/usr/local/include/evmone"
+    rm "/usr/local/lib/libevmc-instructions.a"
+    rm "/usr/local/lib/libevmc-loader.a"
+    rm "/usr/local/lib/libevmone.a"
+    rm "/usr/local/lib/libevmone-standalone.a"
+  fi
+  if [ -n "$HAS_SPEEDB" ]; then
+    echo "-- Uninstalling speedb..."
+    rm -r "/usr/local/src/speedb"
+    rm -r "/usr/local/include/rocksdb"
+    rm "/usr/local/lib/libspeedb.a"
+  fi
+  echo "-- External dependencies cleaned, please reinstall them later with --install"
 fi
 

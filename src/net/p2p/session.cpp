@@ -7,10 +7,10 @@ See the LICENSE.txt file in the project root for more information.
 
 #include "session.h"
 #include "managerbase.h"
-#include <functional>
+
+#include "../../utils/uintconv.h"
 
 namespace P2P {
-
   std::string Session::getLogicalLocation() const { return this->logSrc_; }
 
   Session::Session(tcp::socket &&socket,
@@ -140,7 +140,7 @@ namespace P2P {
 
   void Session::write_handshake() {
     this->outboundHandshake_[0] = (this->manager_.nodeType() == NodeType::NORMAL_NODE) ? 0x00 : 0x01;
-    auto serverPort = Utils::uint16ToBytes(this->manager_.serverPort());
+    auto serverPort = UintConv::uint16ToBytes(this->manager_.serverPort());
     this->outboundHandshake_[1] = serverPort[0];
     this->outboundHandshake_[2] = serverPort[1];
     net::async_write(this->socket_, net::buffer(this->outboundHandshake_, 3), net::bind_executor(
@@ -167,7 +167,7 @@ namespace P2P {
       return;
     }
     this->type_ = (!this->inboundHandshake_[0]) ? NodeType::NORMAL_NODE : NodeType::DISCOVERY_NODE;
-    this->serverPort_ = Utils::bytesToUint16(Utils::create_view_span(this->inboundHandshake_, 1, 2));
+    this->serverPort_ = UintConv::bytesToUint16(Utils::create_view_span(this->inboundHandshake_, 1, 2));
 
     // Ensure that the server does not inform us a port number that is actually different from the listen port number we
     //   actually connected to, which could cause problems, since we already registered this OUTBOUND Session to port_.
@@ -291,7 +291,7 @@ namespace P2P {
 
   void Session::on_read_header(boost::system::error_code ec, std::size_t) {
     if (ec) { this->handle_error(__func__, ec); return; }
-    uint64_t messageSize = Utils::bytesToUint64(this->inboundHeader_);
+    uint64_t messageSize = UintConv::bytesToUint64(this->inboundHeader_);
     if (messageSize > this->maxMessageSize_) {
       LOGWARNING("Peer " + toString(nodeId_) + " message too large: " + std::to_string(messageSize) +
                  ", max: " + std::to_string(this->maxMessageSize_) + ", closing session");
@@ -328,7 +328,7 @@ namespace P2P {
   void Session::do_write_header() {
     // Nothing to do, someone called us by mistake.
     if (this->outboundMessage_ == nullptr) return;
-    this->outboundHeader_ = Utils::uint64ToBytes(this->outboundMessage_->rawMessage_.size());
+    this->outboundHeader_ = UintConv::uint64ToBytes(this->outboundMessage_->rawMessage_.size());
     net::async_write(this->socket_, net::buffer(this->outboundHeader_), net::bind_executor(
       this->strand_, std::bind_front(
         &Session::on_write_header, shared_from_this()

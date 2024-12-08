@@ -8,18 +8,10 @@ See the LICENSE.txt file in the project root for more information.
 #ifndef CONTRACT_H
 #define CONTRACT_H
 
-#include <cstdint>
-#include <memory>
-#include <string>
-#include <tuple>
+#include "../core/dump.h" // core/storage.h, utils/db.h -> utils.h -> strings.h, libs/json.hpp -> cstdint, memory, string, tuple
 
-#include "../utils/db.h"
-#include "../utils/strings.h"
-#include "../utils/tx.h"
-#include "../utils/utils.h"
-#include "../utils/dynamicexception.h"
-#include "variables/safebase.h"
-#include "../core/dump.h"
+#include "../utils/uintconv.h"
+#include "../utils/strconv.h"
 
 // Forward declarations.
 class ContractHost;
@@ -99,10 +91,10 @@ class BaseContract : public ContractLocals, public Dumpable {
 
     DBBatch dump() const override {
       DBBatch batch;
-      batch.push_back(Utils::stringToBytes("contractName_"), Utils::stringToBytes(contractName_), this->getDBPrefix());
-      batch.push_back(Utils::stringToBytes("contractAddress_"), contractAddress_, this->getDBPrefix());
-      batch.push_back(Utils::stringToBytes("contractCreator_"), contractCreator_, this->getDBPrefix());
-      batch.push_back(Utils::stringToBytes("contractChainId_"), Utils::uint64ToBytes(contractChainId_), this->getDBPrefix());
+      batch.push_back(StrConv::stringToBytes("contractName_"), StrConv::stringToBytes(contractName_), this->getDBPrefix());
+      batch.push_back(StrConv::stringToBytes("contractAddress_"), contractAddress_, this->getDBPrefix());
+      batch.push_back(StrConv::stringToBytes("contractCreator_"), contractCreator_, this->getDBPrefix());
+      batch.push_back(StrConv::stringToBytes("contractChainId_"), UintConv::uint64ToBytes(contractChainId_), this->getDBPrefix());
       return batch;
     }
 
@@ -120,13 +112,13 @@ class BaseContract : public ContractLocals, public Dumpable {
        return prefix;
       }()),
       contractName_([&]() {
-       return Utils::bytesToString(db.get(std::string("contractName_"), dbPrefix_));
+       return StrConv::bytesToString(db.get(std::string("contractName_"), dbPrefix_));
       }()),
       contractCreator_([&]() {
        return Address(db.get(std::string("contractCreator_"), dbPrefix_));
       }()),
       contractChainId_([&]() {
-       return Utils::bytesToUint64(db.get(std::string("contractChainId_"), dbPrefix_));
+       return UintConv::bytesToUint64(db.get(std::string("contractChainId_"), dbPrefix_));
       }())
     {}
 
@@ -136,33 +128,30 @@ class BaseContract : public ContractLocals, public Dumpable {
      * Invoke a contract function using a tuple of (from, to, gasLimit, gasPrice,
      * value, data). Should be overriden by derived classes.
      * @param data The tuple of (from, to, gasLimit, gasPrice, value, data).
+     * @param host Pointer to the contract host.
      * @throw DynamicException if the derived class does not override this.
      */
-    virtual void ethCall(const evmc_message& data, ContractHost* host) {
-      throw DynamicException("Derived Class from Contract does not override ethCall()");
-    }
+    virtual void ethCall(const evmc_message& data, ContractHost* host);
 
     /**
      * Invoke a contract function and returns the ABI serialized output.
      * To be used by EVM -> CPP calls.
      * @param data The tuple of (from, to, gasLimit, gasPrice, value, data).
+     * @param host Pointer to the contract host.
      * @throw DynamicException if the derived class does not override this.
      * @returns The ABI serialized output.
      */
-    virtual Bytes evmEthCall(const evmc_message& data, ContractHost* host) {
-      throw DynamicException("Derived Class from Contract does not override ethCall()");
-    }
+    virtual Bytes evmEthCall(const evmc_message& data, ContractHost* host);
 
     /**
      * Do a contract call to a view function.
      * Should be overriden by derived classes.
      * @param data The tuple of (from, to, gasLimit, gasPrice, value, data).
+     * @param host Pointer to the contract host.
      * @return A string with the answer to the call.
      * @throw DynamicException if the derived class does not override this.
      */
-    virtual Bytes ethCallView(const evmc_message &data, ContractHost* host) const {
-      throw DynamicException("Derived Class from Contract does not override ethCallView()");
-    }
+    virtual Bytes ethCallView(const evmc_message &data, ContractHost* host) const;
 
     ///@{
     /** Getter. */

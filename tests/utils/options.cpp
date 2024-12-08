@@ -6,8 +6,8 @@ See the LICENSE.txt file in the project root for more information.
 */
 
 #include "../../src/libs/catch2/catch_amalgamated.hpp"
-#include "../../src/utils/options.h"
-#include <filesystem>
+
+#include "../../src/utils/options.h" // finalizedblock.h -> merkle.h -> tx.h -> ecdsa.h -> utils.h -> filesystem
 
 const std::vector<PrivKey> validatorPrivKeys_ {
   PrivKey(Hex::toBytes("0x0a0415d68a5ec2df57aab65efc2a7231b59b029bae7ff1bd2e40df9af96418c8")),

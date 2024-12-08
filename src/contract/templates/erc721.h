@@ -30,13 +30,13 @@ protected:
   SafeString symbol_;
 
   /// Solidity: mapping(uint256 tokenId => address owner) internal owners_;
-  SafeUnorderedMap<uint256_t, Address> owners_;
+  SafeUnorderedMap<uint64_t, Address> owners_;
 
   /// Solidity: mapping(address => uint256) internal balances_;
-  SafeUnorderedMap<Address, uint256_t> balances_;
+  SafeUnorderedMap<Address, uint64_t> balances_;
 
   /// Solidity: mapping(uint256 => address) internal tokenApp;
-  SafeUnorderedMap<uint256_t, Address> tokenApprovals_;
+  SafeUnorderedMap<uint64_t, Address> tokenApprovals_;
 
   /// Solidity: mapping(address => mapping(address => bool)) internal operatorAddressApprovals_;
   SafeUnorderedMap<Address, boost::unordered_flat_map<Address, bool, SafeHash>> operatorAddressApprovals_;
@@ -168,42 +168,36 @@ public:
 
   /**
    * Constructor for loading contract from DB.
-   * @param interface Reference to the contract manager interface.
    * @param address The address where the contract will be deployed.
    * @param db Reference to the database object.
    */
-  ERC721(const Address &address,
-         const DB& db);
+  ERC721(const Address &address, const DB& db);
 
   /**
    * Constructor to be used when creating a new contract.
    * @param erc721name The name of the ERC721 token.
    * @param erc721symbol The symbol of the ERC721 token.
-   * @param interface Reference to the contract manager interface.
    * @param address The address where the contract will be deployed.
    * @param creator The address of the creator of the contract.
    * @param chainId The chain where the contract wil be deployed.
-   * @param db Reference to the database object.
    */
   ERC721(const std::string &erc721name, const std::string &erc721symbol,
-         const Address &address,
-         const Address &creator, const uint64_t &chainId);
+    const Address &address, const Address &creator, const uint64_t &chainId
+  );
 
   /**
    * Constructor to be used when creating a new contract.
    * @param derivedTypeName The name of the derived type.
    * @param erc721name The name of the ERC721 token.
    * @param erc721symbol The symbol of the ERC721 token.
-   * @param interface Reference to the contract manager interface.
    * @param address The address where the contract will be deployed.
    * @param creator The address of the creator of the contract.
    * @param chainId The chain where the contract wil be deployed.
-   * @param db Reference to the database object.
    */
   ERC721(const std::string &derivedTypeName, const std::string &erc721name,
-         const std::string &erc721symbol,
-         const Address &address, const Address &creator,
-         const uint64_t &chainId);
+    const std::string &erc721symbol, const Address &address,
+    const Address &creator, const uint64_t &chainId
+  );
 
   /// Destructor.
   ~ERC721() override = default;

@@ -1,7 +1,16 @@
+/*
+Copyright (c) [2023-2024] [AppLayer Developers]
+
+This software is distributed under the MIT License.
+See the LICENSE.txt file in the project root for more information.
+*/
+
+#ifndef STATETEST_HPP
+#define STATETEST_HPP
+
 #include "../src/core/state.h"
+
 #include "../src/contract/contracthost.h"
-
-
 
 // TestState class
 // The only purpose of this class is to be able to allow
@@ -12,19 +21,21 @@
 class StateTest : public State {
   public:
     // StateTest has the same constructor as State
-    StateTest(const DB& db, Storage& storage, P2P::ManagerNormal& p2pManager, const uint64_t& snapshotHeight, const Options& options) :
-      State(db, storage, p2pManager, snapshotHeight, options) {};
+    StateTest(
+      const DB& db, Storage& storage, P2P::ManagerNormal& p2pManager,
+      const uint64_t& snapshotHeight, const Options& options
+    ) : State(db, storage, p2pManager, snapshotHeight, options) {};
 
-    /**
-     * Force a contract call, regardless of the current state.
-     */
-    inline void call(const evmc_message& callInfo,
-                const evmc_tx_context& txContext,
-                const ContractType& type,
-                const Hash& randomness,
-                const Hash& txHash,
-                const Hash& blockHash,
-                int64_t& leftOverGas) {
+    // Force a contract call regardless of the current state
+    inline void call(
+      const evmc_message& callInfo,
+      const evmc_tx_context& txContext,
+      const ContractType& type,
+      const Hash& randomness,
+      const Hash& txHash,
+      const Hash& blockHash,
+      int64_t& leftOverGas
+    ) {
       ContractHost host(
         this->vm_,
         this->dumpManager_,
@@ -42,3 +53,5 @@ class StateTest : public State {
       host.execute(callInfo, type);
     }
 };
+
+#endif // STATETEST_HPP

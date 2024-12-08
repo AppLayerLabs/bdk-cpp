@@ -26,7 +26,6 @@ class ThrowTestA : public DynamicContract {
 
     /**
     * Constructor.
-    * @param interface The interface to the contract manager.
     * @param address The address of the contract.
     * @param creator The address of the creator of the contract.
     * @param chainId The chain ID.
@@ -37,7 +36,6 @@ class ThrowTestA : public DynamicContract {
 
     /**
     * Constructor for contract loading.
-    * @param interface The interface to the contract manager.
     * @param address The address of the contract.
     * @param db The database to use.
     */

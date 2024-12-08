@@ -8,9 +8,7 @@ See the LICENSE.txt file in the project root for more information.
 #ifndef CONTRACTREFLECTIONINTERFACE_H
 #define CONTRACTREFLECTIONINTERFACE_H
 
-#include <unordered_set>
-#include "contract/abi.h"
-#include <boost/unordered/unordered_flat_map.hpp>
+#include "contract/abi.h" // string, libs/json.hpp -> boost/unordered/unordered_flat_map.hpp
 
 /**
  * Namespace for the reflection interface used for registering contract classes.

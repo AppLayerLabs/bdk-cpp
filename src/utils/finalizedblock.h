@@ -8,16 +8,7 @@ See the LICENSE.txt file in the project root for more information.
 #ifndef FINALIZEDBLOCK_H
 #define FINALIZEDBLOCK_H
 
-#include <future>
-#include <thread>
-
-#include "utils.h"
-#include "tx.h"
-#include "strings.h"
-#include "merkle.h"
-#include "ecdsa.h"
-
-#include "../bytes/join.h"
+#include "merkle.h" // tx.h -> ecdsa.h -> utils.h -> strings.h, (logger.h -> future), bytes/join.h
 
 /// Abstraction of a finalized block. Members are purposefully const due to the immutable nature of the structure.
 class FinalizedBlock {
@@ -137,7 +128,7 @@ class FinalizedBlock {
      */
     Bytes serializeBlock() const;
 
-    /*
+    /**
      * Create a new valid block given the arguments.
      * `std::move()` MUST be used when passing the txs and txValidators vectors.
      * The function will automatically derive the block randomness, validator merkle root,

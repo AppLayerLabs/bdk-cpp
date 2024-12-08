@@ -8,8 +8,7 @@ See the LICENSE.txt file in the project root for more information.
 #ifndef HTTPLISTENER_H
 #define HTTPLISTENER_H
 
-#include "httpparser.h"
-#include "httpsession.h"
+#include "httpsession.h" // httpparser.h
 
 /// Class for listening to, accepting and dispatching incoming connections/sessions.
 class HTTPListener : public std::enable_shared_from_this<HTTPListener> {

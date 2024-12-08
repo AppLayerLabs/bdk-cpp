@@ -8,25 +8,10 @@ See the LICENSE.txt file in the project root for more information.
 #ifndef EVENT_H
 #define EVENT_H
 
-#include <algorithm>
-#include <shared_mutex>
-#include <source_location>
-#include <string>
-
-#include "../libs/json.hpp"
-#include "../libs/zpp_bits.h"
-
-#include "../utils/db.h"
-#include "../utils/options.h"
-#include "../utils/strings.h"
-#include "../utils/utils.h"
-
-#include "abi.h"
-
 #include <boost/multi_index_container.hpp>
-#include <boost/multi_index/hashed_index.hpp>
-#include <boost/multi_index/ordered_index.hpp>
 #include <boost/multi_index/member.hpp>
+
+#include "abi.h" // utils.h -> (strings.h -> libs/zpp_bits.h), (libs/json.hpp -> algorithm, string)
 
 namespace bmi = boost::multi_index;
 
@@ -36,7 +21,7 @@ using json = nlohmann::ordered_json;
 class Event {
   friend struct event_indices;
   friend zpp::bits::access;
-  using serialize = zpp::bits::members<10>;
+  using serialize = zpp::bits::members<10>; ///< Typedef for the serialization struct.
 
   private:
     std::string name_;          ///< Event name.
@@ -76,9 +61,14 @@ class Event {
 
     /**
      * Constructor for C++ events.
-     * after creating a new Event so the rest of the data can be set.
+     * After creating a new Event so the rest of the data can be set.
      * @tparam Args The types of the event's arguments.
      * @param name The event's name.
+     * @param logIndex The log index of the event.
+     * @param txHash The hash of the transaction that emitted the event.
+     * @param txIndex The index of the transaction that emitted the event.
+     * @param blockHash The hash of the block that emitted the event.
+     * @param blockIndex The index of the block that emitted the event.
      * @param address The address that emitted the event.
      * @param params The event's arguments. (a tuple of N std::pair<T, bool> where T is the type and bool is whether it's indexed or not)
      * @param anonymous Whether the event is anonymous or not. Defaults to false.

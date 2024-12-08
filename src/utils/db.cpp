@@ -7,8 +7,11 @@ See the LICENSE.txt file in the project root for more information.
 
 #include "db.h"
 
-DB::DB(const std::filesystem::path& path) {
-  this->opts_.create_if_missing = true;
+#include "dynamicexception.h"
+
+DB::DB(const std::filesystem::path& path, bool compress) {
+  this->opts_.create_if_missing = true; // Create database folder in disk if it doesn't exist
+  if (compress) this->opts_.compression = rocksdb::kLZ4Compression; // Activate LZ4 compression for database entries if requested
   if (!std::filesystem::exists(path)) { // Ensure the database path can actually be found
     std::filesystem::create_directories(path);
   }
@@ -33,7 +36,7 @@ bool DB::putBatch(const DBBatch& batch) {
 
 std::vector<DBEntry> DB::getBatch(
   const Bytes& bytesPfx, const std::vector<Bytes>& keys
-  ) const {
+) const {
   std::lock_guard lock(this->batchLock_);
   std::vector<DBEntry> ret;
   std::unique_ptr<rocksdb::Iterator> it(this->db_->NewIterator(rocksdb::ReadOptions()));

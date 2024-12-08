@@ -1,3 +1,12 @@
+/*
+Copyright (c) [2023-2024] [AppLayer Developers]
+
+This software is distributed under the MIT License.
+See the LICENSE.txt file in the project root for more information.
+*/
+
+#include "../utils/strconv.h" //cArrayToBytes
+
 #include "contracthost.h"
 #include "dynamiccontract.h"
 
@@ -94,8 +103,7 @@ ContractHost::~ContractHost() {
   saveCallTrace();
 }
 
-Address ContractHost::deriveContractAddress(const uint64_t& nonce,
-                                            const Address& address) {
+Address ContractHost::deriveContractAddress(const uint64_t& nonce, const Address& address) {
   // Contract address is last 20 bytes of sha3
   // ( rlp ( tx from address + tx nonce ) )
   uint8_t rlpSize = 0xc0;
@@ -109,10 +117,9 @@ Address ContractHost::deriveContractAddress(const uint64_t& nonce,
   return Address(Utils::sha3(rlp).view(12));
 }
 
-Address ContractHost::deriveContractAddress(const Address& fromAddress,
-                                            const Hash& salt,
-                                            const bytes::View& code)
-{
+Address ContractHost::deriveContractAddress(
+  const Address& fromAddress, const Hash& salt, const bytes::View& code
+) {
   const auto code_hash = Utils::sha3(code);
   Bytes buffer(1 + sizeof(fromAddress) + sizeof(salt) + sizeof(code_hash));
   assert(std::size(buffer) == 85);
@@ -125,9 +132,9 @@ Address ContractHost::deriveContractAddress(const Address& fromAddress,
   return Address(Utils::sha3(buffer).view(12));
 }
 
-evmc::Result ContractHost::createEVMContract(const evmc_message& msg,
-                                             const Address& contractAddress,
-                                             const evmc_call_kind& kind) {
+evmc::Result ContractHost::createEVMContract(
+  const evmc_message& msg, const Address& contractAddress, const evmc_call_kind& kind
+) {
   assert (kind == evmc_call_kind::EVMC_CREATE || kind == evmc_call_kind::EVMC_CREATE2);
   // Create a new contract
   auto createMsg = msg;
@@ -150,7 +157,7 @@ evmc::Result ContractHost::createEVMContract(const evmc_message& msg,
     // Set the leftOverGas_ to the gas left after the execution
     throw DynamicException("Error when creating EVM contract, EVM status code: " +
                            std::string(evmc_status_code_to_string(result.status_code)) + " bytes: " +
-                           Hex::fromBytes(Utils::cArrayToBytes(result.output_data, result.output_size)).get());
+                           Hex::fromBytes(StrConv::cArrayToBytes(result.output_data, result.output_size)).get());
   }
   if (result.output_size > 50000) {
     throw DynamicException("ContractHost createEVMContract: contract code too large");
@@ -165,7 +172,6 @@ bool ContractHost::isTracingCalls() const noexcept {
   return bool(txHash_) && storage_.getIndexingMode() == IndexingMode::RPC_TRACE;
 }
 
-
 void ContractHost::traceCallStarted(const evmc_message& msg) noexcept {
   if (this->isTracingCalls()) {
     callTracer_.callStarted(trace::Call(msg));
@@ -179,9 +185,7 @@ void ContractHost::traceCallSucceeded(Bytes output, uint64_t gasUsed) noexcept {
 }
 
 void ContractHost::traceCallFinished(const evmc_result& res) noexcept {
-  if (!this->isTracingCalls() || !callTracer_.hasCalls()) {
-    return;
-  }
+  if (!this->isTracingCalls() || !callTracer_.hasCalls()) return;
 
   const uint64_t gasUsed = callTracer_.current().gas - res.gas_left;
   Bytes output = Utils::makeBytes(bytes::View(res.output_data, res.output_size));
@@ -210,8 +214,7 @@ void ContractHost::traceCallOutOfGas() noexcept {
 }
 
 void ContractHost::saveCallTrace() noexcept {
-  if (!this->isTracingCalls() || !callTracer_.hasCalls())
-    return;
+  if (!this->isTracingCalls() || !callTracer_.hasCalls()) return;
 
   if (!callTracer_.isFinished()) {
     LOGERROR(std::string("Attempt to persist unfinished call trace, hash: ") + txHash_.hex(true).get());
@@ -226,10 +229,7 @@ void ContractHost::saveCallTrace() noexcept {
 }
 
 void ContractHost::saveTxAdditionalData() noexcept {
-  if (!this->addTxData_.hash || this->storage_.getIndexingMode() == IndexingMode::DISABLED) {
-    return;
-  }
-
+  if (!this->addTxData_.hash || this->storage_.getIndexingMode() == IndexingMode::DISABLED) return;
   try {
     this->storage_.putTxAdditionalData(this->addTxData_);
   } catch (const std::exception& err) {
@@ -246,15 +246,13 @@ evmc::Result ContractHost::processBDKPrecompile(const evmc_message& msg) {
   try {
     this->leftoverGas_ = msg.gas;
     this->deduceGas(1000); // CPP contract call is 1000 gas
-    if (msg.input_size < 4) {
-      throw DynamicException("ContractHost processBDKPrecompile: invalid input size");
-    }
-    if (Utils::getFunctor(msg).value != 2865519127) {
+    if (msg.input_size < 4) throw DynamicException("ContractHost processBDKPrecompile: invalid input size");
+    if (EVMCConv::getFunctor(msg).value != 2865519127) {
       // we only have one function on the BDKD precompile
       // getRandom() == 0xaacc5a17 == 2865519127
       throw DynamicException("ContractHost processBDKPrecompile: invalid function selector");
     }
-    auto ret = Utils::uint256ToBytes(this->randomGen_.operator()());
+    auto ret = UintConv::uint256ToBytes(this->randomGen_.operator()());
     return evmc::Result(EVMC_SUCCESS, this->leftoverGas_, 0, ret.data(), ret.size());
   } catch (std::exception &e) {
     this->evmcThrows_.emplace_back(e.what());
@@ -266,7 +264,7 @@ evmc::Result ContractHost::processBDKPrecompile(const evmc_message& msg) {
 void ContractHost::execute(const evmc_message& msg, const ContractType& type) {
   const Address from(msg.sender);
   const Address to(msg.recipient);
-  const uint256_t value(Utils::evmcUint256ToUint256(msg.value));
+  const uint256_t value(EVMCConv::evmcUint256ToUint256(msg.value));
   const bool isContractCall = isCall(msg);
 
   if (isContractCall) {
@@ -321,7 +319,7 @@ void ContractHost::execute(const evmc_message& msg, const ContractType& type) {
           // Set the leftOverGas_ to the gas left after the execution
           throw DynamicException("Error when executing EVM contract, EVM status code: " +
                                  std::string(evmc_status_code_to_string(result.status_code)) + " bytes: " +
-                                 Hex::fromBytes(Utils::cArrayToBytes(result.output_data, result.output_size)).get());
+                                 Hex::fromBytes(StrConv::cArrayToBytes(result.output_data, result.output_size)).get());
         }
         break;
       }
@@ -336,7 +334,7 @@ void ContractHost::execute(const evmc_message& msg, const ContractType& type) {
       what += evmcError;
       what += " --- OTHER INFO: --- ";
     }
- 
+
     this->addTxData_.gasUsed = msg.gas - this->leftoverGas_;
     this->addTxData_.succeeded = false;
 
@@ -360,7 +358,7 @@ void ContractHost::execute(const evmc_message& msg, const ContractType& type) {
 
     this->addTxData_.gasUsed = msg.gas - this->leftoverGas_;
     this->addTxData_.succeeded = false;
-    
+
     if (isContractCall) {
       this->traceCallReverted(std::move(output), this->addTxData_.gasUsed);
     }
@@ -379,7 +377,7 @@ Bytes ContractHost::ethCallView(const evmc_message& msg, const ContractType& typ
   Bytes ret;
   //const Address from(tx.sender);
   const Address to(msg.recipient);
-  //const uint256_t value(Utils::evmcUint256ToUint256(tx.value));
+  //const uint256_t value(EVMCConv::evmcUint256ToUint256(tx.value));
   try {
     switch (type) {
     case ContractType::CPP: {
@@ -400,7 +398,7 @@ Bytes ContractHost::ethCallView(const evmc_message& msg, const ContractType& typ
         // Set the leftOverGas_ to the gas left after the execution
         throw DynamicException("Error when executing (view) EVM contract, EVM status code: " +
                                std::string(evmc_status_code_to_string(result.status_code)) + " bytes: " +
-                               Hex::fromBytes(Utils::cArrayToBytes(result.output_data, result.output_size)).get());
+                               Hex::fromBytes(StrConv::cArrayToBytes(result.output_data, result.output_size)).get());
       }
       ret = Bytes(result.output_data, result.output_data + result.output_size);
       break;
@@ -454,9 +452,9 @@ evmc::bytes32 ContractHost::get_storage(const evmc::address& addr,
 // on SET_STORAGE, we can return multiple types of evmc_storage_status
 // But we simply say that the storage was modified ;)
 // TODO: Make it EIP-2200 compliant
-evmc_storage_status ContractHost::set_storage(const evmc::address& addr,
-                                              const evmc::bytes32& key,
-                                              const evmc::bytes32& value) noexcept {
+evmc_storage_status ContractHost::set_storage(
+  const evmc::address& addr, const evmc::bytes32& key, const evmc::bytes32& value
+) noexcept {
   StorageKey storageKey(addr, key);
   try {
     Hash hashValue(value);
@@ -474,9 +472,7 @@ evmc_storage_status ContractHost::set_storage(const evmc::address& addr,
 evmc::uint256be ContractHost::get_balance(const evmc::address& addr) const noexcept {
   try {
     auto it = accounts_.find(addr);
-    if (it != accounts_.end()) {
-      return Utils::uint256ToEvmcUint256(it->second->balance);
-    }
+    if (it != accounts_.end()) return EVMCConv::uint256ToEvmcUint256(it->second->balance);
   } catch (const std::exception& e) {
     this->evmcThrows_.emplace_back(e.what());
     this->evmcThrow_ = true;
@@ -487,9 +483,7 @@ evmc::uint256be ContractHost::get_balance(const evmc::address& addr) const noexc
 size_t ContractHost::get_code_size(const evmc::address& addr) const noexcept {
   try {
     auto it = accounts_.find(addr);
-    if (it != accounts_.end()) {
-      return it->second->code.size();
-    }
+    if (it != accounts_.end()) return it->second->code.size();
   } catch (const std::exception& e) {
     this->evmcThrows_.emplace_back(e.what());
     this->evmcThrow_ = true;
@@ -545,7 +539,7 @@ evmc::Result ContractHost::callEVMCreate(const evmc_message& msg) {
     auto sender = Address(msg.sender);
     auto& nonce = this->getNonce(sender);
     auto contractAddress = this->deriveContractAddress(nonce, sender);
-    uint256_t value = Utils::evmcUint256ToUint256(msg.value);
+    uint256_t value = EVMCConv::evmcUint256ToUint256(msg.value);
 
     this->stack_.registerNonce(sender, nonce);
     ++nonce;
@@ -563,7 +557,7 @@ evmc::Result ContractHost::callEVMCreate(const evmc_message& msg) {
 evmc::Result ContractHost::callEVMCreate2(const evmc_message& msg) {
   try {
     Bytes code(msg.input_data, msg.input_data + msg.input_size);
-    uint256_t value = Utils::evmcUint256ToUint256(msg.value);
+    uint256_t value = EVMCConv::evmcUint256ToUint256(msg.value);
     auto salt = Hash(msg.create2_salt);
     auto sender = Address(msg.sender);
     auto contractAddress = this->deriveContractAddress(sender, salt, code);
@@ -585,18 +579,12 @@ evmc::Result ContractHost::callCPPContract(const evmc_message& msg) {
     this->leftoverGas_ = msg.gas;
     this->deduceGas(1000); // CPP contract call is 1000 gas
     auto& contract = contracts_[recipient];
-    if (contract == nullptr) {
-      throw DynamicException("ContractHost call: contract not found");
-    }
-    this->setContractVars(contract.get(),
-                          Address(msg.sender),
-                          Utils::evmcUint256ToUint256(msg.value));
+    if (contract == nullptr) throw DynamicException("ContractHost call: contract not found");
+    this->setContractVars(
+      contract.get(), Address(msg.sender), EVMCConv::evmcUint256ToUint256(msg.value)
+    );
     Bytes ret = contract->evmEthCall(msg, this);
-    return evmc::Result(EVMC_SUCCESS,
-                        this->leftoverGas_,
-                        0,
-                        ret.data(),
-                        ret.size());
+    return evmc::Result(EVMC_SUCCESS, this->leftoverGas_, 0, ret.data(), ret.size());
   } catch (std::exception& e) {
     this->evmcThrows_.emplace_back(e.what());
     this->evmcThrow_ = true;
@@ -607,42 +595,36 @@ evmc::Result ContractHost::callCPPContract(const evmc_message& msg) {
 evmc::Result ContractHost::callEVMContract(const evmc_message& msg) {
   Address recipient(msg.recipient);
   auto &recipientAccount = *accounts_[recipient];
-  evmc::Result result(evmc_execute(this->vm_,
-                                   &this->get_interface(),
-                                   this->to_context(),
-                                   evmc_revision::EVMC_LATEST_STABLE_REVISION,
-                                   &msg,
-                                   recipientAccount.code.data(),
-                                   recipientAccount.code.size()));  
-  // gas_left is not linked with leftoverGas_, we need to link it.
-  this->leftoverGas_ = result.gas_left;
-  // EVM contract call is 5000 gas
-  this->deduceGas(5000);
-  // We need to set the gas left to the leftoverGas_
-  result.gas_left = this->leftoverGas_;
+  evmc::Result result(evmc_execute(
+    this->vm_,
+    &this->get_interface(),
+    this->to_context(),
+    evmc_revision::EVMC_LATEST_STABLE_REVISION,
+    &msg,
+    recipientAccount.code.data(),
+    recipientAccount.code.size())
+  );
+  this->leftoverGas_ = result.gas_left; // gas_left is not linked with leftoverGas_, we need to link it.
+  this->deduceGas(5000); // EVM contract call is 5000 gas
+  result.gas_left = this->leftoverGas_; // We need to set the gas left to the leftoverGas_
   return result;
 }
 
 ContractType ContractHost::decodeContractCallType(const evmc_message& msg) const {
-  switch (msg.kind)
-  {
-  case evmc_call_kind::EVMC_CREATE: {
-    return ContractType::CREATE;
-  }
-  case evmc_call_kind::EVMC_CREATE2: {
-    return ContractType::CREATE2;
-  }
-  default:
-    if (msg.recipient == BDK_PRECOMPILE)
-      return ContractType::PRECOMPILED;
-    Address recipient(msg.recipient);
-    // we need to take a reference to the account, not a reference
-    // to the pointer
-    const auto& recipientAccount = *accounts_[recipient];
-    if (recipientAccount.contractType == ContractType::CPP)
-      return ContractType::CPP;
-    // else EVM call
-    return ContractType::EVM;
+  switch (msg.kind) {
+    case evmc_call_kind::EVMC_CREATE: {
+      return ContractType::CREATE;
+    }
+    case evmc_call_kind::EVMC_CREATE2: {
+      return ContractType::CREATE2;
+    }
+    default:
+      if (msg.recipient == BDK_PRECOMPILE) return ContractType::PRECOMPILED;
+      Address recipient(msg.recipient);
+      // we need to take a reference to the account, not a reference to the pointer
+      const auto& recipientAccount = *accounts_[recipient];
+      if (recipientAccount.contractType == ContractType::CPP) return ContractType::CPP;
+      return ContractType::EVM; // else EVM call
   }
 }
 
@@ -692,7 +674,7 @@ evmc_tx_context ContractHost::get_tx_context() const noexcept {
 
 evmc::bytes32 ContractHost::get_block_hash(int64_t number) const noexcept {
   try {
-    return Utils::uint256ToEvmcUint256(number);
+    return EVMCConv::uint256ToEvmcUint256(number);
   } catch (std::exception& e) {
     this->evmcThrows_.emplace_back(e.what());
     this->evmcThrow_ = true;

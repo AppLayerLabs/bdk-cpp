@@ -7,8 +7,6 @@ See the LICENSE.txt file in the project root for more information.
 
 #include "../../src/libs/catch2/catch_amalgamated.hpp"
 #include "../../src/contract/variables/safearray.h"
-#include <utility>
-#include <string>
 
 namespace TSafeArray {
   TEST_CASE("SafeArray Class", "[contract][variables][safearray]") {

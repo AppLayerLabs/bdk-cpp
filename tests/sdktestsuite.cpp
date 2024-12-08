@@ -5,14 +5,15 @@ This software is distributed under the MIT License.
 See the LICENSE.txt file in the project root for more information.
 */
 
-#include "sdktestsuite.hpp"
-
 #include "../../src/libs/catch2/catch_amalgamated.hpp"
+
 #include "../../src/contract/templates/erc20.h"
 #include "../../src/contract/templates/simplecontract.h"
 #include "../../src/contract/templates/testThrowVars.h"
-#include "../../src/utils/clargs.h"
-#include <tuple>
+
+#include "../../src/utils/clargs.h" // ProcessOptions
+
+#include "sdktestsuite.hpp"
 
 // Initialize static listen port generator parameters
 int SDKTestSuite::p2pListenPortMin_ = 20000;

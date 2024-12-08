@@ -10,13 +10,15 @@ See the LICENSE.txt file in the project root for more information.
 
 #include "utils/utils.h"
 
-// Forward declarations.
-
 namespace Faucet {
- /// Namespace for encoding JSON-RPC data.
- namespace JsonRPC::Encoding {
-   json dripToAddress();
- }
+  /// Namespace for encoding JSON-RPC data.
+  namespace JsonRPC::Encoding {
+    /**
+     * Encode a "dripToAddress" request.
+     * @return The formed request.
+     */
+    json dripToAddress();
+  }
 }
 
 #endif  // JSONRPC_ENCODING_H

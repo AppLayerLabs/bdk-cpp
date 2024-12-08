@@ -32,10 +32,10 @@ The project has a Dockerfile at the root of the repository that will build the p
   * [Docker for Windows](https://docs.docker.com/docker-for-windows/install/)
   * [Docker for Mac](https://docs.docker.com/docker-for-mac/install/)
   * [Docker for Linux](https://docs.docker.com/desktop/install/linux-install/)
-* Build the image locally with `docker build -t bdk-cpp-dev:latest .` (if using Linux or Mac, run as `sudo`)
+* Build the image locally with `docker build -t bdk-cpp-dev:latest .`
   * This will build the image and tag it as `bdk-cpp-dev:latest` - you can change the tag to whatever you want, but remember to change it on the next step
 * Run the container (you will be logged in as root):
-  * **For Linux/Mac**: `sudo docker run -it --name bdk-cpp -v $(pwd):/bdk-volume -p 8080-8099:8080-8099 -p 8110-8111:8110-8111 bdk-cpp-dev:latest`
+  * **For Linux/Mac**: `docker run -it --name bdk-cpp -v $(pwd):/bdk-volume -p 8080-8099:8080-8099 -p 8110-8111:8110-8111 bdk-cpp-dev:latest`
   * **For Windows**: `docker run -it --name bdk-cpp -v %cd%:/bdk-volume -p 8080-8099:8080-8099 -p 8110-8111:8110-8111 bdk-cpp-dev:latest`
 
 Remember that we are using our local repo as a volume, so every change in the local folder will be reflected to the container in real time, and vice-versa.
@@ -78,11 +78,11 @@ The versions of those dependencies should suffice out-of-the-box for at least th
 * **Fedora 40**
 * Any rolling release distro from around **May 2024** onwards (check their repos to be sure)
 
-There is a script called `scripts/deps.sh` which you can use to check if you have those dependencies installed (`deps.sh --check`), and install them in case you don't (`deps.sh --install`). The script expects dependencies to be installed either on `/usr` or `/usr/local`, giving preference to the latter if it finds anything there (so you can use a higher version of a dependency while still keeping your distro's default one).
+### Tips for dependencies
+
+There is a script called `scripts/deps.sh` which you can use to check if you have those dependencies installed (`deps.sh --check`), install them in case you don't (`deps.sh --install`), and clean up the external ones for reinstalling (`deps.sh --cleanext`). The script expects dependencies to be installed either on `/usr` or `/usr/local`, giving preference to the latter if it finds anything there (so you can use a higher version of a dependency while still keeping your distro's default one).
 
 **Please note that installing most dependencies through the script only works on APT-based distros** (Debian, Ubuntu and derivatives) - you can still check the dependencies on any distro and install the few ones labeled as "external" (those are fetched through `git`), but if you're on a distro with another package manager and/or a distro older than one of the minimum ones listed above, you're on your own.
-
-### GCC-specific tips
 
 For Debian specifically, you can (and should) use `update-alternatives` to register and set your GCC version to a more up-to-date build if required.
 
@@ -114,7 +114,7 @@ For a more detailed explanation of the project's structure, check the [docs](htt
   * Use `-DCMAKE_BUILD_TYPE={Debug,RelWithDebInfo,Release}` to set the respective debug/release builds (Debug by default)
   * Use `-DDEBUG=OFF` to build without debug flags (ON by default)
   * Use `-DUSE_LINT=ON` to run clang-tidy along the build (OFF by default, WILL TAKE SIGNIFICANTLY LONGER TO COMPILE)
-* Build the executable: `cmake --build . -- -j$(nproc)`
+* Build the executable: `cmake --build . -- -j$(nproc)` (adjust `-j$(nproc)` accordingly if needed)
   * If using the linter, pipe stderr to a file (e.g. `cmake --build . -- -j$(nproc) 2> log.txt`)
 
 ## Deploying
@@ -167,4 +167,3 @@ Nodes are all deployed on the same machine, under the following ports and tmux s
 | local_testnet_normal4    | Normal    | 8089     | 8098      | XXXX                                                               |
 | local_testnet_normal5    | Normal    | 8110     | 8099      | XXXX                                                               |
 | local_testnet_normal6    | Normal    | 8111     | 8100      | XXXX                                                               |
-

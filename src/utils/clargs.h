@@ -8,12 +8,9 @@ See the LICENSE.txt file in the project root for more information.
 #ifndef CLARGS_H
 #define CLARGS_H
 
-#include <boost/program_options.hpp>
-#include <boost/algorithm/string.hpp>
+#include <boost/program_options.hpp> // includes string internally (and probably algorithm somewhere due to std::transform)
 
-#include "src/net/p2p/managerbase.h"
-
-#include "src/utils/logger.h"
+#include "../net/p2p/managernormal.h"
 
 /// List of BDK programs that the argument parser is aware of.
 enum class BDKTool { FULL_NODE, DISCOVERY_NODE, UNIT_TEST_SUITE };
@@ -126,7 +123,7 @@ bool applyProcessOptions(ProcessOptions& opt) {
     return false;
   }
 
-  boost::to_upper(opt.logLevel);
+  std::transform(opt.logLevel.begin(), opt.logLevel.end(), opt.logLevel.begin(), ::toupper);
 
   if (opt.logLevel == "X") { opt.logLevel = "XTRACE"; }
   else if (opt.logLevel == "T") { opt.logLevel = "TRACE"; }

@@ -1,7 +1,13 @@
+/*
+Copyright (c) [2023-2024] [AppLayer Developers]
+
+This software is distributed under the MIT License.
+See the LICENSE.txt file in the project root for more information.
+*/
+
 #ifndef BYTES_RANGE_H
 #define BYTES_RANGE_H
 
-#include <cstdint>
 #include <ranges>
 
 using Byte = std::uint8_t;

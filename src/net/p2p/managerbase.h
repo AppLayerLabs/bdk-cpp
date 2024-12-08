@@ -8,43 +8,42 @@ See the LICENSE.txt file in the project root for more information.
 #ifndef P2P_MANAGER_BASE
 #define P2P_MANAGER_BASE
 
-#include "session.h"
-#include "encoding.h"
 #include "discovery.h"
-#include "../../utils/options.h"
-#include "../../libs/BS_thread_pool_light.hpp"
+#include "session.h" // encoding.h -> utils/options.h
 
+class DiscoveryWorker; // Forward declaration
+
+/// Namespace for P2P-related functionalities.
 namespace P2P {
-
   /**
    * Base manager class meant to be inherited by the respective managers for
    * both node types (Normal and Discovery).
    */
   class ManagerBase : public Log::LogicalLocationProvider {
     protected:
-
       /// Helper class that encapsulates our ASIO-based networking engine
       class Net : public Log::LogicalLocationProvider, public std::enable_shared_from_this<Net> {
-      private:
-        ManagerBase& manager_;
-        net::io_context io_context_; ///< io_context for the P2P engine
-        net::executor_work_guard<net::io_context::executor_type> work_guard_; ///< Work guard for the io_context
-        int netThreads_; ///< Size of thread pool
-        boost::asio::thread_pool threadPool_; ///< thread pool that runs the P2P engine
-        net::strand<net::io_context::executor_type> connectorStrand_; ///< strand for outbound connections
-        net::strand<net::io_context::executor_type> acceptorStrand_; ///< strand for inbound connections
-        net::ip::tcp::acceptor acceptor_; ///< listen socket
-        std::atomic<bool> stopped_ = false; ///< Set to true as soon as stop() starts
-        void handleOutbound(const boost::asio::ip::address &address, const unsigned short &port); ///< Complete TCP connection
-        void handleInbound(boost::system::error_code ec, net::ip::tcp::socket socket); ///< Complete TCP connection
-        void doAccept(); ///< Wait for the next inbound TCP connection request
-      public:
-        std::string getLogicalLocation() const override { return manager_.getLogicalLocation(); }
-        Net(ManagerBase& manager, int netThreads); ///< Start net engine with netThreads threads, can throw DynamicException
-        virtual ~Net(); ///< Stop net engine
-        void start(); ///< Initialize the engine
-        void stop(); ///< Stop the engine
-        void connect(const boost::asio::ip::address& address, uint16_t port); ///< Request connection to a peer
+        private:
+          ManagerBase& manager_; ///< Reference to the parent manager.
+          net::io_context io_context_; ///< io_context for the P2P engine
+          net::executor_work_guard<net::io_context::executor_type> work_guard_; ///< Work guard for the io_context
+          int netThreads_; ///< Size of thread pool
+          boost::asio::thread_pool threadPool_; ///< thread pool that runs the P2P engine
+          net::strand<net::io_context::executor_type> connectorStrand_; ///< strand for outbound connections
+          net::strand<net::io_context::executor_type> acceptorStrand_; ///< strand for inbound connections
+          net::ip::tcp::acceptor acceptor_; ///< listen socket
+          std::atomic<bool> stopped_ = false; ///< Set to true as soon as stop() starts
+          void handleOutbound(const boost::asio::ip::address &address, const unsigned short &port); ///< Complete TCP connection
+          void handleInbound(boost::system::error_code ec, net::ip::tcp::socket socket); ///< Complete TCP connection
+          void doAccept(); ///< Wait for the next inbound TCP connection request
+        public:
+          /// Override of Log::getLogicalLocation().
+          std::string getLogicalLocation() const override { return manager_.getLogicalLocation(); }
+          Net(ManagerBase& manager, int netThreads); ///< Start net engine with netThreads threads, can throw DynamicException
+          virtual ~Net(); ///< Stop net engine
+          void start(); ///< Initialize the engine
+          void stop(); ///< Stop the engine
+          void connect(const boost::asio::ip::address& address, uint16_t port); ///< Request connection to a peer
       };
 
       static std::atomic<int> instanceIdGen_; ///< Instance ID generator.
@@ -54,7 +53,7 @@ namespace P2P {
       const net::ip::address serverLocalAddress_; ///< The manager's local IP address.
       const unsigned short serverPort_; ///< The manager's port.
       const NodeType nodeType_; ///< The manager's node type.
-      const Options& options_; /// Reference to the options singleton.
+      const Options& options_; ///< Reference to the options singleton.
       const unsigned int minConnections_; ///< Minimum number of simultaneous connections. @see DiscoveryWorker
       const unsigned int maxConnections_; ///< Maximum number of simultaneous connections.
       std::atomic<bool> started_ = false; ///< Check if manager is in the start() state (stop() not called yet).
@@ -82,7 +81,7 @@ namespace P2P {
 
       /**
        * Answer a message to a given session.
-       * @param session The session to answer to.
+       * @param nodeId The ID of the node to answer to.
        * @param message The message to answer.
        */
       void answerSession(const NodeID &nodeId, const std::shared_ptr<const Message>& message);
@@ -92,7 +91,7 @@ namespace P2P {
       // the session itself being disconnected.
       /**
        * Handle a request from a session (meant to be overriden on child classes).
-       * @param session The session that sent the message.
+       * @param nodeId The ID of the node that sent the message.
        * @param message The message to handle.
        */
       virtual void handleRequest(const NodeID &nodeId, const std::shared_ptr<const Message>& message) {
@@ -101,7 +100,7 @@ namespace P2P {
 
       /**
        * Handle an answer from a session (meant to be overriden on child classes).
-       * @param session The session that sent the message.
+       * @param nodeId The ID of the node that sent the message.
        * @param message The message to handle.
        */
       virtual void handleAnswer(const NodeID &nodeId, const std::shared_ptr<const Message>& message) {
@@ -110,7 +109,7 @@ namespace P2P {
 
       /**
        * Called by a Session to notify handshake completion (successful peer connection).
-       * @param session The session that has completed the handshake.
+       * @param callerSession The session that has completed the handshake.
        * @return `true` if registration is successful (relevant for INBOUND connections only), `false` on registration error.
        */
       bool sessionHandshaked(const std::shared_ptr<Session>& callerSession);
@@ -124,7 +123,7 @@ namespace P2P {
 
       /**
        * Called by a Session object when it receives a Message.
-       * @param session The session to send an answer to.
+       * @param callerSession The session to send an answer to.
        * @param message The message to handle.
        */
       void incomingMessage(const Session& callerSession, const std::shared_ptr<const Message> message);
@@ -165,13 +164,22 @@ namespace P2P {
       /// Ensures the logging ID is not zero, which would generate instanceIdStr_ == "" (for production logs)
       static void setTesting();
 
+      /**
+       * Set the number of net threads used by the manager.
+       * @param netThreads The number of net threads to use.
+       */
       static void setNetThreads(int netThreads);
 
-      const Options& getOptions() const { return this->options_; } ///< Get a reference to the Options object given to the P2P engine.
+      /// Get a reference to the Options object given to the P2P engine.
+      const Options& getOptions() const { return this->options_; }
 
       virtual void start(); ///< Start P2P::Server and P2P::ClientFactory.
       virtual void stop(); ///< Stop the P2P::Server and P2P::ClientFactory.
 
+      /**
+       * Check if the manager is active.
+       * @return `true` if active, `false` otherwise.
+       */
       bool isActive() const;
 
       /// Start the discovery thread.

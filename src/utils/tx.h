@@ -8,11 +8,8 @@ See the LICENSE.txt file in the project root for more information.
 #ifndef TX_H
 #define TX_H
 
-#include "../bytes/view.h"
-
-#include "ecdsa.h"
-#include "strings.h"
-#include "utils.h"
+#include "ecdsa.h" // utils.h -> strings.h, (bytes/join.h -> bytes/view.h)
+#include "uintconv.h"
 
 /**
  * Abstraction of a block transaction.
@@ -68,11 +65,25 @@ class TxBlock {
     void serializeMaxPriorityFeePerGas(Bytes& ret, const uint64_t& reqBytes) const;
     void serializeMaxFeePerGas(Bytes& ret, const uint64_t& reqBytes) const;
     void serializeGasLimit(Bytes& ret, const uint64_t& reqBytes) const;
-    void serializeTo(Bytes& ret) const;
     void serializeValue(Bytes& ret, const uint64_t& reqBytes) const;
     void serializeData(Bytes& ret, const uint64_t& reqBytes) const;
-    void serializeVRS(Bytes& ret, const uint64_t& reqBytesR, const uint64_t& reqBytesS) const;
     ///@}
+
+    /**
+     * Serialize the specified tx element to a raw byte string.
+     * Used exclusively by rlpSerialize().
+     * @param ret The raw byte string to serialize to.
+     */
+    void serializeTo(Bytes& ret) const;
+
+    /**
+     * Serialize the specified tx element to a raw byte string.
+     * Used exclusively by rlpSerialize().
+     * @param ret The raw byte string to serialize to.
+     * @param reqBytesR The required number of bytes for the element.
+     * @param reqBytesS The required number of bytes for the element.
+     */
+    void serializeVRS(Bytes& ret, const uint64_t& reqBytesR, const uint64_t& reqBytesS) const;
 
   public:
     /**
@@ -205,11 +216,12 @@ class TxBlock {
     bool operator==(const TxBlock& tx) const { return this->hash() == tx.hash(); }
 };
 
+/// Helper struct for separating additional (not required for tracing) data from a transaction.
 struct TxAdditionalData {
-  Hash hash;
-  uint64_t gasUsed;
-  bool succeeded;
-  Address contractAddress;
+  Hash hash;  ///< The transaction's hash.
+  uint64_t gasUsed; ///< The cumulative gas used by the transaction.
+  bool succeeded; ///< Whether the transaction suceeded or not.
+  Address contractAddress;  ///< The address of the contract that made the transaction.
 };
 
 /**
@@ -248,9 +260,18 @@ class TxValidator {
      */
     void serializeData(Bytes& ret, const uint64_t& reqBytes) const;
     void serializeNHeight(Bytes& ret, const uint64_t& reqBytes) const;
-    void serializeVRS(Bytes& ret, const uint64_t& reqBytesV, const uint64_t& reqBytesR, const uint64_t& reqBytesS) const;
     void serializeChainId(Bytes& ret, const uint64_t& reqBytes) const;
     ///@}
+
+    /**
+     * Serialize the specified tx element to a raw byte string.
+     * Used exclusively by rlpSerialize().
+     * @param ret The raw byte string to serialize to.
+     * @param reqBytesV The required number of bytes for the element.
+     * @param reqBytesR The required number of bytes for the element.
+     * @param reqBytesS The required number of bytes for the element.
+     */
+    void serializeVRS(Bytes& ret, const uint64_t& reqBytesV, const uint64_t& reqBytesR, const uint64_t& reqBytesS) const;
 
   public:
     /**
@@ -292,7 +313,7 @@ class TxValidator {
     inline const Bytes& getData() const { return this->data_; }
     inline Functor getFunctor() const {
       Functor ret; if (this->data_.size() < 4) return ret;
-      ret.value = Utils::bytesToUint32(Utils::create_view_span(this->data_, 0, 4));
+      ret.value = UintConv::bytesToUint32(Utils::create_view_span(this->data_, 0, 4));
       return ret;
     }
     inline const uint64_t& getChainId() const { return this->chainId_; }

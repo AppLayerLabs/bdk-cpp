@@ -5,15 +5,9 @@ This software is distributed under the MIT License.
 See the LICENSE.txt file in the project root for more information.
 */
 
-#include "../../src/contract/abi.h"
 #include "../../src/libs/catch2/catch_amalgamated.hpp"
-#include "../../src/libs/json.hpp"
-#include "../../src/utils/strings.h"
-#include "../../src/utils/utils.h"
 
-#include <boost/filesystem.hpp>
-#include <fstream>
-#include <vector>
+#include "../../src/contract/abi.h" // utils.h -> strings.h, libs/json.hpp -> vector
 
 using Catch::Matchers::Equals;
 

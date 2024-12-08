@@ -7,21 +7,23 @@ See the LICENSE.txt file in the project root for more information.
 
 #include "erc721.h"
 
+#include "../../utils/strconv.h"
+
 ERC721::ERC721(const Address& address, const DB& db
 ) : DynamicContract(address, db), name_(this), symbol_(this),
   owners_(this), balances_(this), tokenApprovals_(this), operatorAddressApprovals_(this)
 {
-  this->name_ = Utils::bytesToString(db.get(std::string("name_"), this->getDBPrefix()));
-  this->symbol_ = Utils::bytesToString(db.get(std::string("symbol_"), this->getDBPrefix()));
+  this->name_ = StrConv::bytesToString(db.get(std::string("name_"), this->getDBPrefix()));
+  this->symbol_ = StrConv::bytesToString(db.get(std::string("symbol_"), this->getDBPrefix()));
   for (const auto& dbEntry : db.getBatch(this->getNewPrefix("owners_"))) {
     bytes::View valueView(dbEntry.value);
-    this->owners_[Utils::fromBigEndian<uint256_t>(dbEntry.key)] = Address(valueView.subspan(0, 20));
+    this->owners_[Utils::fromBigEndian<uint64_t>(dbEntry.key)] = Address(valueView.subspan(0, 20));
   }
   for (const auto& dbEntry : db.getBatch(this->getNewPrefix("balances_"))) {
-    this->balances_[Address(dbEntry.key)] = Utils::fromBigEndian<uint256_t>(dbEntry.value);
+    this->balances_[Address(dbEntry.key)] = Utils::fromBigEndian<uint64_t>(dbEntry.value);
   }
   for (const auto& dbEntry : db.getBatch(this->getNewPrefix("tokenApprovals_"))) {
-    this->tokenApprovals_[Utils::fromBigEndian<uint256_t>(dbEntry.key)] = Address(dbEntry.value);
+    this->tokenApprovals_[Utils::fromBigEndian<uint64_t>(dbEntry.key)] = Address(dbEntry.value);
   }
   for (const auto& dbEntry : db.getBatch(this->getNewPrefix("operatorAddressApprovals_"))) {
     bytes::View keyView(dbEntry.key);
@@ -108,13 +110,13 @@ void ERC721::registerContractFunctions() {
 }
 
 Address ERC721::ownerOf_(const uint256_t& tokenId) const {
-  auto it = this->owners_.find(tokenId);
+  auto it = this->owners_.find(static_cast<uint64_t>(tokenId));
   if (it == this->owners_.cend()) return Address();
   return it->second;
 }
 
 Address ERC721::getApproved_(const uint256_t& tokenId) const {
-  auto it = this->tokenApprovals_.find(tokenId);
+  auto it = this->tokenApprovals_.find(static_cast<uint64_t>(tokenId));
   if (it == this->tokenApprovals_.cend()) return Address();
   return it->second;
 }
@@ -125,13 +127,13 @@ Address ERC721::update_(const Address& to, const uint256_t& tokenId, const Addre
     this->checkAuthorized_(from, auth, tokenId);
   }
   if (from) {
-    this->tokenApprovals_[tokenId] = Address();
+    this->tokenApprovals_[static_cast<uint64_t>(tokenId)] = Address();
     this->balances_[from]--;
   }
   if (to) {
     this->balances_[to]++;
   }
-  this->owners_[tokenId] = to;
+  this->owners_[static_cast<uint64_t>(tokenId)] = to;
   return from;
 }
 
@@ -186,7 +188,7 @@ Address ERC721::approve_(const Address& to, const uint256_t& tokenId, const Addr
     throw DynamicException("ERC721::approve_: Not authorized");
   }
 
-  this->tokenApprovals_[tokenId] = to;
+  this->tokenApprovals_[static_cast<uint64_t>(tokenId)] = to;
 
   return owner;
 }
@@ -265,13 +267,13 @@ void ERC721::transferFrom(const Address& from, const Address& to, const uint256_
 
 DBBatch ERC721::dump() const {
   DBBatch dbBatch = BaseContract::dump();
-  boost::unordered_flat_map<std::string, bytes::View> data {
-      {"name_",  Utils::stringToBytes(name_.get())},
-      {"symbol_", Utils::stringToBytes(symbol_.get())}
+  boost::unordered_flat_map<std::string, Bytes> data {
+      {"name_",  StrConv::stringToBytes(name_.get())},
+      {"symbol_", StrConv::stringToBytes(symbol_.get())}
   };
 
   for (auto it = data.cbegin(); it != data.cend(); ++it) {
-    dbBatch.push_back(Utils::stringToBytes(it->first),
+    dbBatch.push_back(StrConv::stringToBytes(it->first),
                       it->second,
                       this->getDBPrefix());
   }

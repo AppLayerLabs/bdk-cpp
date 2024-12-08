@@ -8,18 +8,9 @@ See the LICENSE.txt file in the project root for more information.
 #ifndef BLOCKCHAIN_H
 #define BLOCKCHAIN_H
 
-#include "consensus.h"
-#include "storage.h"
-#include "state.h"
-#include "rdpos.h"
-#include "state.h"
-#include "comet.h"
-
-#include "../net/p2p/managerbase.h"
-#include "../net/p2p/nodeconns.h"
 #include "../net/http/httpserver.h"
-#include "../utils/options.h"
-#include "../utils/db.h"
+
+#include "consensus.h" // state.h -> rdpos.h -> (utils/tx.h -> ecdsa.h -> utils.h -> logger.h), (dump.h -> utils/db.h, storage.h -> options.h)
 
 /**
  * Helper class that syncs the node with other nodes in the network.
@@ -35,8 +26,9 @@ class Syncer : public Log::LogicalLocationProvider {
   public:
     /**
      * Constructor.
-     * @param nodeConns Reference to the NodeConns object.
-     * @param storage Reference to the blockchain storage.
+     * @param p2p Reference to the P2P::ManagerNormal object.
+     * @param storage Reference to the blockchain storage object.
+     * @param state Reference to the blockchain state object.
      */
     explicit Syncer(P2P::ManagerNormal& p2p, const Storage& storage, State& state) :
       p2p_(p2p), storage_(storage), state_(state) {}

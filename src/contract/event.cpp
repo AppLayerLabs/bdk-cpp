@@ -7,6 +7,8 @@ See the LICENSE.txt file in the project root for more information.
 
 #include "event.h"
 
+#include "../utils/uintconv.h"
+
 Event::Event(const std::string& jsonstr) {
   json obj = json::parse(jsonstr);
   this->name_ = obj["name"].get<std::string>();
@@ -45,13 +47,13 @@ json Event::serializeForRPC() const {
   json obj = {
     {"address", this->address_.hex(true).get()},
     {"blockHash", this->blockHash_.hex(true).get()},
-    {"blockNumber", Hex::fromBytes(Utils::uint64ToBytes(this->blockIndex_), true).get()},
+    {"blockNumber", Hex::fromBytes(UintConv::uint64ToBytes(this->blockIndex_), true).get()},
     {"data", Hex::fromBytes(this->data_, true).get()},
-    {"logIndex", Hex::fromBytes(Utils::uint64ToBytes(this->logIndex_), true).get()},
+    {"logIndex", Hex::fromBytes(UintConv::uint64ToBytes(this->logIndex_), true).get()},
     {"removed", false}, // We don't fake/alter events like Ethereum does
     {"topics", topicStr},
     {"transactionHash", this->txHash_.hex(true).get()},
-    {"transactionIndex", Hex::fromBytes(Utils::uint64ToBytes(this->txIndex_), true).get()}
+    {"transactionIndex", Hex::fromBytes(UintConv::uint64ToBytes(this->txIndex_), true).get()}
   };
   return obj;
 }

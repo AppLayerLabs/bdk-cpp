@@ -8,16 +8,16 @@ See the LICENSE.txt file in the project root for more information.
 #ifndef STRINGS_H
 #define STRINGS_H
 
-#include <string>
+#include <evmc/evmc.hpp> // evmc/hex.hpp -> string
 #include <openssl/rand.h>
-#include <span>
-#include <algorithm>
 
-#include <evmc/evmc.hpp>
+#include "../libs/zpp_bits.h" // algorithm
+
+#include "../bytes/initializer.h" // bytes/view.h -> bytes/range.h -> ranges -> span
+
+#include "dynamicexception.h" // TODO: see the size todo below
 #include "hex.h"
-#include "bytes/range.h"
-#include "bytes/initializer.h"
-#include "zpp_bits.h"
+#include "uintconv.h"
 
 // TODO: It is possible to implement **fast** operators for some types,
 // such as Address, Functor and Hash. Taking advantage that memory located within
@@ -38,52 +38,73 @@ See the LICENSE.txt file in the project root for more information.
  */
 template <unsigned N> class FixedBytes {
   private:
-    BytesArr<N> data_;
+    BytesArr<N> data_; ///< The underlying data.
 
     friend zpp::bits::access;
-    using serialize = zpp::bits::members<1>;
+    using serialize = zpp::bits::members<1>; ///< Typedef for the serialization struct.
 
   public:
+    /// Empty constructor.
     constexpr FixedBytes() : data_() {};
 
-    constexpr FixedBytes(std::initializer_list<Byte> initList) {
-      if (initList.size() != N)
-        throw DynamicException("Given initializer list of size " + std::to_string(initList.size()) + 
-          " is not suitable for initializing a FixedBytes<" + std::to_string(N) + ">");
+    // TODO: maybe rework the size checks here so we don't have to use exceptions?
 
-      std::ranges::copy(initList, data_.begin());
+    /// Constructor with initializer list.
+    constexpr FixedBytes(std::initializer_list<Byte> ilist) {
+      if (ilist.size() != N)
+        throw DynamicException("Given initializer list of size " + std::to_string(ilist.size()) +
+          " is not suitable for initializing a FixedBytes<" + std::to_string(N) + ">");
+      std::ranges::copy(ilist, data_.begin());
     }
 
+    /// Constructor with a bytes initializer.
     constexpr FixedBytes(const bytes::Initializer auto& initializer) { initializer.to(data_); }
 
+    /// Constructor with a bytes range.
     constexpr explicit FixedBytes(const bytes::Range auto& data) {
       if (const size_t size = std::ranges::size(data); size != N)
-        throw DynamicException("Given bytes range of size " + std::to_string(size) + 
+        throw DynamicException("Given bytes range of size " + std::to_string(size) +
           " is not suitable for initializing a FixedBytes<" + std::to_string(N) + ">");
-
       std::ranges::copy(data, data_.begin());
     }
 
+    /// Get a pointer to the beginning of the bytes string (non-const).
     constexpr auto begin() { return data_.begin(); }
 
+    /// Get a pointer to the beginning of the bytes string (const).
     constexpr auto begin() const { return data_.begin(); }
 
+    /// Get a const pointer to the beginning of the bytes string (const).
     constexpr auto cbegin() const { return data_.cbegin(); }
 
+    /// Get a pointer to the end of the bytes string (non-const).
     constexpr auto end() { return data_.end(); }
 
+    /// Get a pointer to the end of the bytes string (const).
     constexpr auto end() const { return data_.end(); }
 
+    /// Get a const pointer to the end of the bytes string (const).
     constexpr auto cend() const { return data_.cend(); }
 
+    /// Get a pointer to the bytes string's underlying data (non-const).
     constexpr Byte* data() { return data_.data(); }
 
+    /// Get a pointer to the bytes string's underlying data (const).
     constexpr const Byte* data() const { return data_.data(); }
 
+    /// Get the total size of the bytes string.
     constexpr size_t size() const { return data_.size(); }
 
+    /**
+     * Indexing operator (non-const).
+     * @param index The index to operate on.
+     */
     constexpr Byte& operator[](size_t index) { return data_[index]; }
 
+    /**
+     * Indexing operator (const).
+     * @param index The index to operate on.
+     */
     constexpr const Byte& operator[](size_t index) const { return data_[index]; }
 
     /**
@@ -168,7 +189,9 @@ class Hash : public FixedBytes<32> {
 
 /// Abstraction of a functor (the first 4 bytes of a function's keccak hash).
 struct Functor {
-  uint32_t value = 0;
+  uint32_t value = 0; ///< The value of the hash.
+
+  /// Equality operator.
   inline bool operator==(const Functor& other) const { return this->value == other.value; }
 };
 

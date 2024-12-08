@@ -5,14 +5,10 @@
 */
 
 #include "../../src/libs/catch2/catch_amalgamated.hpp"
-#include "../../src/contract/templates/erc721test.h"
-#include "../../src/contract/abi.h"
-#include "../../src/utils/db.h"
-#include "../../src/utils/options.h"
-#include "../../src/contract/contractmanager.h"
-#include "../../src/core/rdpos.h"
-#include "../sdktestsuite.hpp"
 
+#include "../../src/contract/templates/erc721test.h"
+
+#include "../sdktestsuite.hpp"
 
 namespace TERC721 {
   TEST_CASE("ERC721 Class", "[contract][erc721]") {

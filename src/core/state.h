@@ -8,18 +8,10 @@ See the LICENSE.txt file in the project root for more information.
 #ifndef STATE_H
 #define STATE_H
 
-#include <boost/unordered/unordered_flat_map.hpp>
-#include <evmc/evmc.hpp>
-
-#include "../utils/db.h"
-#include "../utils/logger.h"
-#include "../utils/utils.h"
 #include "../contract/contract.h"
-#include "../contract/contractmanager.h"
 
-#include "storage.h"
-#include "rdpos.h"
-#include "dump.h"
+#include "rdpos.h" // set, boost/unordered/unordered_flat_map.hpp
+#include "dump.h" // utils/db.h, storage.h -> utils/randomgen.h -> utils.h -> logger.h, (strings.h -> evmc/evmc.hpp), (libs/json.hpp -> boost/unordered/unordered_flat_map.hpp)
 
 // TODO: We could possibly change the bool functions into an enum function,
 // to be able to properly return each error case. We need this in order to slash invalid rdPoS blocks.
@@ -66,6 +58,7 @@ class State : public Dumpable, public Log::LogicalLocationProvider {
      * @param tx The transaction to process.
      * @param blockHash The hash of the block being processed.
      * @param txIndex The index of the transaction inside the block that is being processed.
+     * @param randomnessHash The hash of the previous block's randomness seed.
      */
     void processTransaction(const TxBlock& tx, const Hash& blockHash, const uint64_t& txIndex, const Hash& randomnessHash);
 
@@ -94,6 +87,7 @@ class State : public Dumpable, public Log::LogicalLocationProvider {
      * @param db Pointer to the database.
      * @param storage Pointer to the blockchain's storage.
      * @param p2pManager Pointer to the P2P connection manager.
+     * @param snapshotHeight The block height to start from.
      * @param options Pointer to the options singleton.
      * @throw DynamicException on any database size mismatch.
      */
@@ -118,8 +112,8 @@ class State : public Dumpable, public Log::LogicalLocationProvider {
     const uint32_t& rdposGetMinValidators() const { std::shared_lock lock(this->stateMutex_); return this->rdpos_.getMinValidators(); }
     void rdposClearMempool() { std::unique_lock lock(this->stateMutex_); return this->rdpos_.clearMempool(); }
     bool rdposValidateBlock(const FinalizedBlock& block) const { std::shared_lock lock(this->stateMutex_); return this->rdpos_.validateBlock(block); }
-    Hash rdposProcessBlock(const FinalizedBlock& block) { std::shared_lock lock(this->stateMutex_); return this->rdpos_.processBlock(block); }
-    TxStatus rdposAddValidatorTx(const TxValidator& tx) { std::shared_lock lock(this->stateMutex_); return this->rdpos_.addValidatorTx(tx); }
+    Hash rdposProcessBlock(const FinalizedBlock& block) { std::unique_lock lock(this->stateMutex_); return this->rdpos_.processBlock(block); }
+    TxStatus rdposAddValidatorTx(const TxValidator& tx) { std::unique_lock lock(this->stateMutex_); return this->rdpos_.addValidatorTx(tx); }
     void dumpStartWorker() { this->dumpWorker_.startWorker(); }
     void dumpStopWorker() { this->dumpWorker_.stopWorker(); }
     size_t getDumpManagerSize() const { std::shared_lock lock(this->stateMutex_); return this->dumpManager_.size(); }
@@ -258,6 +252,7 @@ class State : public Dumpable, public Log::LogicalLocationProvider {
 
     DBBatch dump() const final; ///< State dumping function.
 
+    /// Get the pending transactions from the mempool.
     auto getPendingTxs() const {
       std::shared_lock lock(this->stateMutex_);
       return this->mempool_;

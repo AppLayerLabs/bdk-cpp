@@ -8,15 +8,7 @@ See the LICENSE.txt file in the project root for more information.
 #ifndef MERKLE_H
 #define MERKLE_H
 
-#include <string>
-#include <vector>
-
-#include "safehash.h"
-#include "strings.h"
-#include "tx.h"
-#include "utils.h"
-
-#include "../bytes/join.h"
+#include "tx.h" // ecdsa.h -> utils.h -> strings.h, bytes/join.h
 
 /**
  * Custom implementation of a %Merkle tree.

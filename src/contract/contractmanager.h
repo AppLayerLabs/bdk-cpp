@@ -8,22 +8,11 @@ See the LICENSE.txt file in the project root for more information.
 #ifndef CONTRACTMANAGER_H
 #define CONTRACTMANAGER_H
 
-#include <memory>
-#include <shared_mutex>
-#include <boost/unordered/unordered_flat_map.hpp>
+#include "../utils/contractreflectioninterface.h" // contract/abi.h -> utils.h -> strings.h, libs/json.hpp -> boost/unordered/unordered_flat_map.hpp
 
-#include "abi.h"
-#include "contract.h"
-#include "event.h"
-#include "variables/safeunorderedmap.h"
+#include "contract.h" // core/dump.h -> utils/db.h
 
-#include "../utils/db.h"
-#include "../utils/options.h"
-#include "../utils/safehash.h"
-#include "../utils/strings.h"
-#include "../utils/tx.h"
-#include "../utils/utils.h"
-#include "../utils/contractreflectioninterface.h"
+#include "../utils/strconv.h"
 
 /**
  * Class that holds all current contract instances in the blockchain state.
@@ -68,6 +57,7 @@ class ContractManager : public BaseContract {
      * @tparam Is The indices of the tuple.
      * @param contract The contract to load.
      * @param contractAddress The address of the contract.
+     * @param db Reference to the database.
      * @return `true` if the contract exists in the database, `false` otherwise.
      */
     template <typename Tuple, std::size_t... Is>
@@ -80,13 +70,14 @@ class ContractManager : public BaseContract {
      * @tparam Tuple The tuple of contracts to load.
      * @param contract The contract to load.
      * @param contractAddress The address of the contract.
+     * @param db Reference to the database.
      * @return `true` if the contract exists in the database, `false` otherwise.
      */
     template <typename T>
     bool loadFromDBT(const auto& contract, const Address& contractAddress, const DB& db) {
       // Here we disable this template when T is a tuple
       static_assert(!Utils::is_tuple<T>::value, "Must not be a tuple");
-      if (Utils::bytesToString(contract.value) == Utils::getRealTypeName<T>()) {
+      if (StrConv::bytesToString(contract.value) == Utils::getRealTypeName<T>()) {
         this->contracts_.insert(std::make_pair(
           contractAddress, std::make_unique<T>(contractAddress, db)
         ));
@@ -100,6 +91,7 @@ class ContractManager : public BaseContract {
      * @tparam Tuple The tuple of contracts to load.
      * @param contract The contract to load.
      * @param contractAddress The address of the contract.
+     * @param db Reference to the database.
      * @return `true` if the contract exists in the database, `false` otherwise.
      */
     template <typename Tuple> requires Utils::is_tuple<Tuple>::value bool loadFromDB(
@@ -115,13 +107,14 @@ class ContractManager : public BaseContract {
      * Constructor. Automatically loads contracts from the database and deploys them.
      * @param db Reference to the database.
      * @param contracts Reference to the contracts map.
+     * @param manager Reference to the database dumping manager.
      * @param options Reference to the options singleton.
      * @throw DynamicException if contract address doesn't exist in the database.
      */
     ContractManager(const DB& db,
-                    boost::unordered_flat_map<Address, std::unique_ptr<BaseContract>, SafeHash>& contracts,
-                    DumpManager& manager,
-                    const Options& options);
+      boost::unordered_flat_map<Address, std::unique_ptr<BaseContract>, SafeHash>& contracts,
+      DumpManager& manager, const Options& options
+    );
 
     ~ContractManager() override; ///< Destructor. Automatically saves contracts to the database before wiping them.
 
@@ -130,6 +123,7 @@ class ContractManager : public BaseContract {
      * ContractManager processes things in a non-standard way
      * (you cannot use SafeVariables as contract creation actively writes to DB).
      * @param callInfo The call info to process.
+     * @param host Pointer to the contract host.
      * @throw DynamicException if the call is not valid.
      */
     void ethCall(const evmc_message& callInfo, ContractHost* host) override;
@@ -139,6 +133,7 @@ class ContractManager : public BaseContract {
      * ContractManager process things in a non-standard way
      * (you cannot use SafeVariables as contract creation actively writes to DB).
      * @param data The call info to process.
+     * @param host Pointer to the contract host.
      * @return A string with the requested info.
      * @throw DynamicException if the call is not valid.
      */

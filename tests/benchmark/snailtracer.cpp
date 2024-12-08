@@ -5,10 +5,11 @@
 */
 
 #include "../src/libs/catch2/catch_amalgamated.hpp"
+
 #include "../src/contract/templates/snailtracer.h"
-#include "../src/contract/abi.h"
-#include "../src/utils/options.h"
-#include "../src/core/rdpos.h"
+
+#include "../src/utils/uintconv.h"
+
 #include "../sdktestsuite.hpp"
 
 namespace TSNAILTRACERBENCHMARK {
@@ -31,7 +32,7 @@ namespace TSNAILTRACERBENCHMARK {
       // as the encoding is the same
 
       // Create the transaction for transfer
-      auto functor = Utils::uint32ToBytes(ABI::FunctorEncoder::encode("Benchmark").value);
+      auto functor = UintConv::uint32ToBytes(ABI::FunctorEncoder::encode("Benchmark").value);
       Bytes benchmarkEncoded(functor.cbegin(), functor.cend());
       //Utils::appendBytes(benchmarkEncoded, ABI::Encoder::encodeData<int256_t, int256_t>(1024, 768)); // TODO: this is a bug, the function does not take any params yet it is called with them just fine
       TxBlock benchmarkTx = sdk.createNewTx(sdk.getChainOwnerAccount(), snailtracerAddress, 0, benchmarkEncoded);
@@ -57,7 +58,7 @@ namespace TSNAILTRACERBENCHMARK {
       int64_t leftOverGas = std::numeric_limits<int64_t>::max();
 
       auto start = std::chrono::high_resolution_clock::now();
-      state.call(callInfo, txContext, CPP, randomnessHash, randomnessHash, randomnessHash, leftOverGas);
+      state.call(callInfo, txContext, ContractType::CPP, randomnessHash, randomnessHash, randomnessHash, leftOverGas);
       auto end = std::chrono::high_resolution_clock::now();
 
       long double durationInMicroseconds = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
@@ -76,7 +77,7 @@ namespace TSNAILTRACERBENCHMARK {
 
       auto snailtracerAddress = sdk.deployBytecode(snailTracerBytecode);
       // Create the transaction for transfer
-      auto functor = Utils::uint32ToBytes(ABI::FunctorEncoder::encode("Benchmark").value);
+      auto functor = UintConv::uint32ToBytes(ABI::FunctorEncoder::encode("Benchmark").value);
       Bytes benchmarkEncoded(functor.cbegin(), functor.cend());
       //Utils::appendBytes(benchmarkEncoded, ABI::Encoder::encodeData<int256_t, int256_t>(1024, 768)); // TODO: this is a bug, the function does not take any params yet it is called with them just fine
 
@@ -102,7 +103,7 @@ namespace TSNAILTRACERBENCHMARK {
       int64_t leftOverGas = std::numeric_limits<int64_t>::max();
 
       auto start = std::chrono::high_resolution_clock::now();
-      state.call(callInfo, txContext, EVM, randomnessHash, randomnessHash, randomnessHash, leftOverGas);
+      state.call(callInfo, txContext, ContractType::EVM, randomnessHash, randomnessHash, randomnessHash, leftOverGas);
       auto end = std::chrono::high_resolution_clock::now();
 
       long double durationInMicroseconds = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();

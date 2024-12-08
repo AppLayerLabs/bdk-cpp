@@ -8,15 +8,11 @@ See the LICENSE.txt file in the project root for more information.
 #ifndef CONTRACTFACTORY_H
 #define CONTRACTFACTORY_H
 
-#include "../utils/safehash.h"
-#include "../utils/strings.h"
-#include "../utils/utils.h"
-#include "../utils/contractreflectioninterface.h"
+// Leave it in to avoid "invalid use of incomplete type" warnings
+#include "contracthost.h" // utils/{contractreflectioninterface.h,safehash.h,string.h,utils.h}, contractmanager.h -> abi.h, contract.h
 
-#include "abi.h"
-#include "contract.h"
-#include "contracthost.h"
-#include "contractmanager.h"
+#include "../utils/evmcconv.h"
+#include "../utils/uintconv.h"
 
 /// Factory **namespace** that does the setup, creation and registration of contracts to the blockchain.
 /// As it is a namespace, it must take the required arguments (such as current contract list, etc.) as parameters.
@@ -36,7 +32,6 @@ See the LICENSE.txt file in the project root for more information.
  *     > createContractFuncs_;
  */
 namespace ContractFactory {
-
     /**
      * Helper function to create a new contract from a given call info.
      * @tparam TContract The contract type to create.
@@ -44,6 +39,7 @@ namespace ContractFactory {
      * @tparam Is The indices of the tuple.
      * @param creator The address of the contract creator.
      * @param derivedContractAddress The address of the contract to create.
+     * @param chainId The chain ID of the network the contract is in.
      * @param dataTlp The tuple of arguments to pass to the contract constructor.
      * @return A unique pointer to the newly created contract.
      * @throw DynamicException if any argument type mismatches.
@@ -76,6 +72,7 @@ namespace ContractFactory {
      * Helper function to create a new contract from a given call info.
      * @param creator The address of the contract creator.
      * @param derivedContractAddress The address of the contract to create.
+     * @param chainId The chain ID of the network the contract is in.
      * @param dataTpl The vector of arguments to pass to the contract constructor.
      * @throw DynamicException if the size of the vector does not match the number of arguments of the contract constructor.
      */
@@ -104,7 +101,7 @@ namespace ContractFactory {
       using ConstructorArguments = typename TContract::ConstructorArguments;
       using DecayedArguments = decltype(Utils::removeQualifiers<ConstructorArguments>());
       DecayedArguments arguments = std::apply([&callInfo](auto&&... args) {
-        return ABI::Decoder::decodeData<std::decay_t<decltype(args)>...>(Utils::getFunctionArgs(callInfo));
+        return ABI::Decoder::decodeData<std::decay_t<decltype(args)>...>(EVMCConv::getFunctionArgs(callInfo));
       }, DecayedArguments{});
       return arguments;
     }
@@ -112,13 +109,17 @@ namespace ContractFactory {
     /**
      * Create a new contract from a given call info.
      * @param callInfo The call info to process.
+     * @param derivedAddress The derived address of the contract.
+     * @param contracts List of contracts.
+     * @param chainId Chain ID of the network the contract will be in.
+     * @param host Pointer to the contract host.
      * @throw DynamicException if the call to the ethCall function fails, or if the contract does not exist.
      */
-    template <typename TContract> void createNewContract(const evmc_message& callInfo,
-                                                         const Address& derivedAddress,
-                                                         boost::unordered_flat_map<Address, std::unique_ptr<BaseContract>, SafeHash>& contracts,
-                                                         const uint64_t& chainId,
-                                                         ContractHost* host) {
+    template <typename TContract> void createNewContract(
+      const evmc_message& callInfo, const Address& derivedAddress,
+      boost::unordered_flat_map<Address, std::unique_ptr<BaseContract>, SafeHash>& contracts,
+      const uint64_t& chainId, ContractHost* host
+    ) {
       using ConstructorArguments = typename TContract::ConstructorArguments;
       auto decodedData = setupNewContractArgs<TContract>(callInfo);
       if (!ContractReflectionInterface::isContractFunctionsRegistered<TContract>()) {
@@ -135,22 +136,22 @@ namespace ContractFactory {
     }
 
     /**
-     * Adds contract create and validate functions to the respective maps
-     * @tparam Contract Contract type
-     * @param createFunc Function to create a new contract
+     * Adds contract create and validate functions to the respective maps.
+     * @tparam Contract Contract type.
+     * @param createFunc Function to create a new contract.
+     * @param createContractFuncs Function to create the functions of a new contract.
      */
-    template <typename Contract>
-    void addContractFuncs(const std::function<
-                       void(const evmc_message&,
-                            const Address&,
-                            boost::unordered_flat_map<Address, std::unique_ptr<BaseContract>, SafeHash>& contracts_,
-                            const uint64_t&,
-                            ContractHost* host)>& createFunc
-                      ,boost::unordered_flat_map<Functor,std::function<void(const evmc_message&,
-                                                                     const Address&,
-                                                                     boost::unordered_flat_map<Address, std::unique_ptr<BaseContract>, SafeHash>& contracts_,
-                                                                     const uint64_t&,
-                                                                     ContractHost*)>,SafeHash>& createContractFuncs
+    template <typename Contract> void addContractFuncs(
+      const std::function<void(
+        const evmc_message&, const Address&,
+        boost::unordered_flat_map<Address, std::unique_ptr<BaseContract>, SafeHash>& contracts_,
+        const uint64_t&, ContractHost* host
+      )>& createFunc,
+      boost::unordered_flat_map<Functor,std::function<void(
+        const evmc_message&, const Address&,
+        boost::unordered_flat_map<Address, std::unique_ptr<BaseContract>, SafeHash>& contracts_,
+        const uint64_t&, ContractHost*
+      )>,SafeHash>& createContractFuncs
     ) {
       std::string createSignature = "createNew" + Utils::getRealTypeName<Contract>() + "Contract(";
       // Append args
@@ -158,7 +159,7 @@ namespace ContractFactory {
       createSignature += ")";
       auto hash = Utils::sha3(Utils::create_view_span(createSignature));
       Functor functor;
-      functor.value = Utils::bytesToUint32(hash.view(0,4));
+      functor.value = UintConv::bytesToUint32(hash.view(0,4));
       createContractFuncs[functor] = createFunc;
     }
 

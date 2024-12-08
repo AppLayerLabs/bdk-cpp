@@ -6,13 +6,10 @@ See the LICENSE.txt file in the project root for more information.
 */
 
 #include "../../src/libs/catch2/catch_amalgamated.hpp"
-#include "../../src/core/storage.h"
-#include "../../src/utils/db.h"
-#include "../../src/utils/options.h"
-#include "../blockchainwrapper.hpp"
 
-#include <filesystem>
-#include <utility>
+#include "../../src/utils/uintconv.h"
+
+#include "../blockchainwrapper.hpp" // blockchain.h -> consensus.h -> state.h -> dump.h -> (storage.h -> utils/options.h), utils/db.h
 
 const std::vector<Hash> validatorPrivKeysStorage {
   Hash(Hex::toBytes("0x0a0415d68a5ec2df57aab65efc2a7231b59b029bae7ff1bd2e40df9af96418c8")),
@@ -40,11 +37,11 @@ TxBlock createRandomTx(const uint64_t& requiredChainId) {
   Address to(Utils::randBytes(20));
   Bytes data = Utils::randBytes(32);
   uint64_t chainId = requiredChainId;
-  uint256_t nonce = Utils::bytesToUint32(Utils::randBytes(4));
-  uint256_t value = Utils::bytesToUint64(Utils::randBytes(8));
-  uint256_t maxGasPerFee = Utils::bytesToUint32(Utils::randBytes(4));
-  uint256_t maxPriorityFeePerGas = Utils::bytesToUint32(Utils::randBytes(4));
-  uint256_t gasLimit = Utils::bytesToUint32(Utils::randBytes(4));
+  uint256_t nonce = UintConv::bytesToUint32(Utils::randBytes(4));
+  uint256_t value = UintConv::bytesToUint64(Utils::randBytes(8));
+  uint256_t maxGasPerFee = UintConv::bytesToUint32(Utils::randBytes(4));
+  uint256_t maxPriorityFeePerGas = UintConv::bytesToUint32(Utils::randBytes(4));
+  uint256_t gasLimit = UintConv::bytesToUint32(Utils::randBytes(4));
 
   return TxBlock(to, from, data, chainId, nonce, value, maxPriorityFeePerGas, maxGasPerFee, gasLimit, txPrivKey);
 }

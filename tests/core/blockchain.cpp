@@ -5,29 +5,34 @@ This software is distributed under the MIT License.
 See the LICENSE.txt file in the project root for more information.
 */
 
-#include "../../src/libs/catch2/catch_amalgamated.hpp"
-#include "../../src/core/blockchain.h"
-#include "../../src/net/p2p/managerdiscovery.h"
+// TODO: this is commented out on CMakeLists.txt, revise later
+
 #include <filesystem>
 
-/// Forward decleration from tests/net/http/httpjsonrpc.cpp
-/// For usage within sending transactions
+#include "../../src/libs/catch2/catch_amalgamated.hpp"
+
+#include "../../src/core/blockchain.h"
+
+#include "../../src/net/p2p/managerdiscovery.h"
+
+// Forward declaration from tests/net/http/httpjsonrpc.cpp, for usage within sending transactions
 std::string makeHTTPRequest(
-    const std::string& reqBody, const std::string& host, const std::string& port,
-    const std::string& target, const std::string& requestType, const std::string& contentType
+  const std::string& reqBody, const std::string& host, const std::string& port,
+  const std::string& target, const std::string& requestType, const std::string& contentType
 );
 
-
-void initialize(const std::string& blockchainPath,
-                const std::string& web3clientVersion,
-                const uint64_t& version,
-                const uint64_t& chainId,
-                const uint64_t& wsPort,
-                const uint64_t& httpPort,
-                const PrivKey& privKey,
-                const std::pair<std::string,uint64_t>& discoveryNodes,
-                std::unique_ptr<Blockchain>& blockchain,
-                bool clearFolder = true) {
+void initialize(
+  const std::string& blockchainPath,
+  const std::string& web3clientVersion,
+  const uint64_t& version,
+  const uint64_t& chainId,
+  const uint64_t& wsPort,
+  const uint64_t& httpPort,
+  const PrivKey& privKey,
+  const std::pair<std::string,uint64_t>& discoveryNodes,
+  std::unique_ptr<Blockchain>& blockchain,
+  bool clearFolder = true
+) {
   if (clearFolder) {
     if (std::filesystem::exists(blockchainPath)) {
       std::filesystem::remove_all(blockchainPath);
@@ -420,3 +425,4 @@ namespace TBlockchain {
     }
   }
 }
+
