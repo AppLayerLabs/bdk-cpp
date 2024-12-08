@@ -98,6 +98,7 @@ class WebsocketRPCConnection : public Log::LogicalLocationProvider {
     boost::asio::io_context rpcIoc_; ///< io_context for the websocket connection.
     boost::asio::strand<boost::asio::io_context::executor_type> rpcStrand_{rpcIoc_.get_executor()}; ///< Strand to serialize read/write operations.
     std::thread rpcThread_; ///< Thread for rpcIoc_.run() (async RPC responses read loop).
+    boost::beast::flat_buffer rpcReadBuffer_; ///< Buffer for reading all RPC responses (serialized/protected by rpcStrand_), retains size of largest message.
 
     std::mutex rpcAsyncSentMutex_; ///< mutex to protect rpcAsyncSent_.
     std::map<uint64_t, T> rpcAsyncSent_; ///< Map of JSON-RPC request id to application object that models the request.
@@ -123,7 +124,7 @@ class WebsocketRPCConnection : public Log::LogicalLocationProvider {
     /**
      * Handle a read message and schedule the next read task if no error.
      */
-    void rpcHandleAsyncRead(std::shared_ptr<boost::beast::flat_buffer> buffer, boost::system::error_code ec, std::size_t);
+    void rpcHandleAsyncRead(boost::system::error_code ec, std::size_t);
 
     /**
      * Cancel all rpcAsyncCall() JSON-RPC requests in flight by assigning them
@@ -259,17 +260,17 @@ void WebsocketRPCConnection<T>::rpcAsyncRead() {
     return;
   }
   // Post handler for the next read of a complete message (websocket/JSON-RPC).
-  auto buffer = std::make_shared<boost::beast::flat_buffer>();
-  rpcWs_->async_read(*buffer,
+  rpcWs_->async_read(
+    rpcReadBuffer_,
     boost::asio::bind_executor(
       rpcStrand_,
-      std::bind(&WebsocketRPCConnection::rpcHandleAsyncRead, this, buffer, std::placeholders::_1, std::placeholders::_2)
+      std::bind(&WebsocketRPCConnection::rpcHandleAsyncRead, this, std::placeholders::_1, std::placeholders::_2)
     )
   );
 }
 
 template <typename T>
-void WebsocketRPCConnection<T>::rpcHandleAsyncRead(std::shared_ptr<boost::beast::flat_buffer> buffer, boost::system::error_code ec, std::size_t) {
+void WebsocketRPCConnection<T>::rpcHandleAsyncRead(boost::system::error_code ec, std::size_t) {
   // If the handler knows it is cancelled, then just skip it
   if (ec == boost::asio::error::operation_aborted) {
     SLOGXTRACE("Read operation aborted; ignoring.");
@@ -289,9 +290,17 @@ void WebsocketRPCConnection<T>::rpcHandleAsyncRead(std::shared_ptr<boost::beast:
     // so we don't need to post a new read handler in any case.
     return;
   } else try {
-    auto responseStr = boost::beast::buffers_to_string(buffer->data());
-    buffer->consume(buffer->size());
-    auto jsonResponse = json::parse(responseStr);
+    // Get a const char* and size_t to the current first byte of the flat_buffer
+    // (fully reading and processing one RPC response at a time, so message is always at the start)
+    auto bufData = rpcReadBuffer_.data();
+    auto itBuf = boost::asio::buffer_sequence_begin(bufData);
+    const char* dataPtr = static_cast<const char*>(itBuf->data());
+    std::size_t dataSize = itBuf->size();
+    // Parse the JSON directly from the (const char*, size_t) memory area owned by rpcReadBuffer_
+    auto jsonResponse = json::parse(std::string_view(dataPtr, dataSize));
+    // Discard the data in rpcReadBuffer_ after use
+    rpcReadBuffer_.consume(dataSize);
+    // Process the JSON-RPC response
     if (jsonResponse.contains("id")) {
       uint64_t requestId = jsonResponse["id"];
       // If you have a response (rpcAsyncResponseMap_ entry) then you necessarily have a T in rpcAsyncSent_.
@@ -307,7 +316,7 @@ void WebsocketRPCConnection<T>::rpcHandleAsyncRead(std::shared_ptr<boost::beast:
         auto it = rpcAsyncSent_.find(requestId);
         if (it == rpcAsyncSent_.end()) {
           keepRequest = false;
-          SLOGDEBUG("RPC dropping orphan response to request ID = " + std::to_string(requestId) + " : " + responseStr);
+          SLOGDEBUG("RPC dropping orphan response to request ID = " + std::to_string(requestId) + " : " + jsonResponse.dump());
         }
       }
       // REVIEW: Protect against storing stale sync responses as well.
@@ -321,7 +330,7 @@ void WebsocketRPCConnection<T>::rpcHandleAsyncRead(std::shared_ptr<boost::beast:
       }
       // Continue to post next read handler
     } else {
-      SLOGDEBUG("RPC failed (bad JSON-RPC with no 'id'): " + responseStr);
+      SLOGDEBUG("RPC failed (bad JSON-RPC with no 'id'): " + jsonResponse.dump());
       rpcFailed_ = true;
       // Continue to post next read handler
       // A message format failure (which is unlikely) would not necessarily mean a failure of the connection itself
