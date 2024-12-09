@@ -731,9 +731,10 @@ class CometImpl : public ABCIHandler, public Log::LogicalLocationProvider {
     const Options options_; ///< Copy of the supplied Options.
 
     std::unique_ptr<ABCIServer> abciServer_; ///< TCP server for cometbft ABCI connection
-    std::optional<boost::process::child> process_; ///< boost::process that points to the internally-tracked async cometbft process
+
+    std::unique_ptr<boost::process::child> process_; ///< boost::process that points to the internally-tracked async cometbft process
     std::string processStdout_, processStderr_; ///< Buffers for saving the output of process_ (if not redirecting to the log file).
-    std::atomic<bool> processDone_; ///< Set to `true` when process_ (likely) exited.
+    std::shared_ptr<std::atomic<bool>> processDone_; ///< Set to `true` when process_ (likely) exited.
 
     std::mutex stateMutex_; //< Serializes start() and stop() calls
     std::future<void> loopFuture_; ///< Future object holding the consensus engine thread.
@@ -763,13 +764,20 @@ class CometImpl : public ABCIHandler, public Log::LogicalLocationProvider {
 
     WebsocketRPCConnection<CometRPCRequestType> rpc_; ///< Singleton websocket RPC connection to process_ (started/stopped as needed).
 
+    static void doStartCometBFT(
+      const std::vector<std::string>& cometArgs,
+      std::unique_ptr<boost::process::child>& process, std::shared_ptr<std::atomic<bool>> processDone,
+      std::string* processStdout = nullptr, std::string* processStderr = nullptr
+    ); ///< Start CometBFT utility function.
+    static void doStopCometBFT(std::unique_ptr<boost::process::child>& process); ///< Stop CometBFT utility function.
+
     void setState(const CometState& state); ///< Apply a state transition, possibly pausing at the new state.
     void setError(const std::string& errorStr); ///< Signal a fatal error condition.
     void setErrorCode(CometError errorCode); ///< Specify the error code when there's an error condition.
     void resetError(); ///< Reset internal error condition.
     void cleanup(); ///< Ensure Comet is in a cleaned up state (kill cometbft, close RPC connection, stop & delete ABCI server, etc.)
-    void startCometBFT(const std::vector<std::string>& cometArgs, bool saveOutput); ///< Launch the CometBFT process_ (at most one at a time).
-    void stopCometBFT(); ///< Terminate the CometBFT process_.
+    void startCometBFT(const std::vector<std::string>& cometArgs, bool saveOutput); ///< Start CometBFT process_.
+    void stopCometBFT(); ///< Stop CometBFT process_.
     void workerLoop(); ///< Worker loop responsible for establishing and managing a connection to cometbft.
     void workerLoopInner(); ///< Called by workerLoop().
 
@@ -789,6 +797,8 @@ class CometImpl : public ABCIHandler, public Log::LogicalLocationProvider {
     std::string getNodeID();
     bool start();
     bool stop();
+    static void runCometBFT(const std::vector<std::string>& cometArgs, std::string* outStdout = nullptr, std::string* outStderr = nullptr);
+    static void checkCometBFT();
     uint64_t sendTransaction(const Bytes& tx, std::shared_ptr<Hash>* ethHash);
     uint64_t checkTransaction(const std::string& txHash);
     bool checkTransactionInCache(const Hash& txEthHash, CometTxStatus& txStatus);
@@ -818,7 +828,8 @@ class CometImpl : public ABCIHandler, public Log::LogicalLocationProvider {
 };
 
 CometImpl::CometImpl(CometListener* listener, std::string instanceIdStr, const Options& options)
-  : listener_(listener), instanceIdStr_(instanceIdStr), options_(options), rpc_(instanceIdStr)
+  : listener_(listener), instanceIdStr_(instanceIdStr), options_(options), rpc_(instanceIdStr),
+    processDone_(std::make_shared<std::atomic<bool>>(false))
 {
 }
 
@@ -1014,7 +1025,7 @@ uint64_t CometImpl::checkTransaction(const std::string& txHash) {
 }
 
 bool CometImpl::rpcSyncCall(const std::string& method, const json& params, json& outResult) {
-  if (!process_.has_value()) {
+  if (!process_) {
     outResult = rpcMakeInternalError("Cometbft is not running.");
     return false;
   }
@@ -1022,7 +1033,7 @@ bool CometImpl::rpcSyncCall(const std::string& method, const json& params, json&
 }
 
 uint64_t CometImpl::rpcAsyncCall(const std::string& method, const json& params) {
-  if (!process_.has_value()) {
+  if (!process_) {
     return 0;
   }
   CometRPCRequestType requestData = DefaultAsyncRPCType{method, params};
@@ -1055,6 +1066,35 @@ bool CometImpl::stop() {
   resetError(); // stop() clears any error status
   setState(CometState::STOPPED);
   return true;
+}
+
+void CometImpl::runCometBFT(const std::vector<std::string>& cometArgs, std::string* outStdout, std::string* outStderr) {
+  std::unique_ptr<boost::process::child> process;
+  std::shared_ptr<std::atomic<bool>> processDone = std::make_shared<std::atomic<bool>>(false);
+  doStartCometBFT(cometArgs, process, processDone, outStdout, outStderr);
+  int runTries = 100; // Wait at most 10 seconds for cometbft to finish normally
+  while (!(*processDone) && --runTries > 0) {
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+  }
+  // Check timeout first
+  bool timedOut = !(*processDone);
+  // Ensure it is stopped
+  doStopCometBFT(process);
+  // If it timed out, report it
+  if (timedOut) {
+    throw DynamicException("runCometBFT() timed out while waiting for cometbft child process; terminated it.");
+  }
+}
+
+void CometImpl::checkCometBFT() {
+  std::string cometOut, cometErr;
+  // This throws an exception if it can't find cometbft, for example
+  runCometBFT({ "version" }, &cometOut, &cometErr);
+  // Right now we expect an exact cometbft version to pair with the Comet driver
+  const std::string expectedVersion = "1.0.0-rc1";
+  if (cometOut != expectedVersion) {
+    throw DynamicException("Expected version [" + expectedVersion + "] from cometbft, got [" + cometOut + "] instead");
+  }
 }
 
 void CometImpl::setState(const CometState& state) {
@@ -1138,33 +1178,51 @@ void CometImpl::cleanup() {
   resetInfoLock.unlock();
 }
 
-/**
- * Run the internally-tracked CometBFT instance if it is not already started.
- * @param cometArgs Arguments to pass to cometbft.
- * @param saveOutput If `true`, don't send stdout/stderr to the logfile and instead save to processStdout_ and processStderr_.
- */
 void CometImpl::startCometBFT(const std::vector<std::string>& cometArgs, bool saveOutput) {
-  if (process_.has_value()) {
+  try {
+    if (saveOutput) {
+      doStartCometBFT(cometArgs, process_, processDone_, &processStdout_, &processStderr_);
+    } else {
+      doStartCometBFT(cometArgs, process_, processDone_);
+    }
+  } catch (const std::exception& ex) {
+    // A non-recoverable error
+    // The ABCI server will be stopped/collected during stop()
     setErrorCode(CometError::FATAL);
-    throw DynamicException("Internal error: startCometBFT() called but there's already one process_ running.");
+    throw DynamicException("Exception in startCometBFT(): " + std::string(ex.what()));
+  }
+}
+
+void CometImpl::stopCometBFT() {
+  doStopCometBFT(process_);
+}
+
+void CometImpl::doStartCometBFT(
+  const std::vector<std::string>& cometArgs, std::unique_ptr<boost::process::child>& process,
+  std::shared_ptr<std::atomic<bool>> processDone, std::string* processStdout, std::string* processStderr
+) {
+  if (process) {
+    throw DynamicException("process is already running.");
   }
 
-  this->processStdout_ = "";
-  this->processStderr_ = "";
-  this->processDone_ = false;
+  if (processStdout) { *processStdout = ""; }
+  if (processStderr) { *processStderr = ""; }
+  if (processDone) { *processDone = false; }
 
   // execute either setpriv or cometbft directly
   boost::filesystem::path exec_path;
   std::vector<std::string> exec_args;
 
-  // Search for the cometbft executable in the system's PATH
-  boost::filesystem::path cometbft_exec_path = boost::process::search_path("cometbft");
+  // create a std::vector<boost::filesystem::path> that has the current directory ('.') prepended
+  // to the system PATH and use that to search for cometbft (will search current dir first).
+  // Note that boost::this_process::path() is the default second argument to boost::process::search_path
+  std::vector<boost::filesystem::path> searchPaths = boost::this_process::path();
+  searchPaths.insert(searchPaths.begin(), ".");
+
+  // Search for the cometbft executable in current directory and system PATH
+  boost::filesystem::path cometbft_exec_path = boost::process::search_path("cometbft", searchPaths);
   if (cometbft_exec_path.empty()) {
-    // This is a non-recoverable error
-    // The ABCI server will be stopped/collected during stop()
-    setErrorCode(CometError::FATAL);
-    throw DynamicException("cometbft executable not found in system PATH");
-    return;
+    throw DynamicException("cometbft executable not found in current directory or system PATH");
   }
 
   // Search for setpriv in the PATH
@@ -1172,7 +1230,7 @@ void CometImpl::startCometBFT(const std::vector<std::string>& cometArgs, bool sa
   if (setpriv_exec_path.empty()) {
     // setpriv not found, so just run cometbft directly, which is less good and requires the node
     // operator to run its own watchdog or handle dangling cometbft processes.
-    LOGWARNING("setpriv utility not found in system PATH (usually found at /usr/bin/setpriv). cometbft child process will not be automatically terminated if this BDK node process crashes.");
+    SLOGWARNING("setpriv utility not found in system PATH (usually found at /usr/bin/setpriv). cometbft child process will not be automatically terminated if this BDK node process crashes.");
     exec_path = cometbft_exec_path;
     exec_args = cometArgs;
   } else {
@@ -1182,7 +1240,7 @@ void CometImpl::startCometBFT(const std::vector<std::string>& cometArgs, bool sa
     //   that is passed as an arg to setpriv, along with the arguments to forward to cometbft.
     //   however, and that is the point of using setpriv, the resulting cometbft process will receive a SIGTERM
     //   if its parent process (this BDK node process) dies, so that we don't get a dangling cometbft in that case.
-    LOGDEBUG("Launching cometbft via setpriv --pdeathsig SIGTERM");
+    SLOGDEBUG("Launching cometbft via setpriv --pdeathsig SIGTERM");
     exec_path = setpriv_exec_path;
     exec_args = {
       "setpriv",
@@ -1196,85 +1254,85 @@ void CometImpl::startCometBFT(const std::vector<std::string>& cometArgs, bool sa
 
   std::string argsString;
   for (const auto& arg : exec_args) { argsString += arg + " "; }
-  LOGDEBUG("Launching " + exec_path.string() + " with arguments: " + argsString);
+  SLOGDEBUG("Launching " + exec_path.string() + " with arguments: " + argsString);
 
   // Launch the process
   auto bpout = std::make_shared<boost::process::ipstream>();
   auto bperr = std::make_shared<boost::process::ipstream>();
-  process_ = boost::process::child(
-    exec_path,
-    boost::process::args(exec_args),
-    boost::process::std_out > *bpout,
-    boost::process::std_err > *bperr
+  process = std::make_unique<boost::process::child>(
+      exec_path,
+      boost::process::args(exec_args),
+      boost::process::std_out > *bpout,
+      boost::process::std_err > *bperr
   );
-  std::string pidStr = std::to_string(process_->id());
-  LOGDEBUG("Launched cometbft with PID: " + pidStr);
+  std::string pidStr = std::to_string(process->id());
+  SLOGDEBUG("Launched cometbft with PID: " + pidStr);
 
   // Spawn two detached threads to pump stdout and stderr to bdk.log.
-  // They should go away naturally when process_ is terminated.
-  std::thread stdout_thread([saveOutput, bpout, pidStr, this]() {
+  // They should go away naturally when process is terminated.
+  std::thread stdout_thread([bpout, pidStr, processStdout, processDone]() {
     std::string line;
     while (*bpout && std::getline(*bpout, line) && !line.empty()) {
-      if (saveOutput) {
+      if (processStdout) {
         GLOGXTRACE("[cometbft stdout]: " + line);
-        this->processStdout_ += line + '\n';
+        *processStdout += line + '\n';
       } else {
         GLOGDEBUG("[cometbft stdout]: " + line);
       }
     }
-    // remove trailing \n so that e.g. the node id from cometbft show-node-id is exactly processStdout_ without a need to trim it.
-    if (!this->processStdout_.empty()) { this->processStdout_.pop_back(); }
+    // remove trailing \n so that e.g. the node id from cometbft show-node-id is exactly processStdout without a need to trim it.
+    if (processStdout) { if (!processStdout->empty()) { processStdout->pop_back(); } }
     GLOGDEBUG("cometbft stdout stream pump thread finished, cometbft pid = " + pidStr);
-    this->processDone_ = true; // if actually interested in reading processStderr_ you can just e.g. sleep(1s) first
+    if (processDone) { *processDone = true; } // if actually interested in reading processStderr_ you can just e.g. sleep(1s) first
   });
-  std::thread stderr_thread([saveOutput, bperr, pidStr, this]() {
+  std::thread stderr_thread([bperr, pidStr, processStderr]() {
     std::string line;
     while (*bperr && std::getline(*bperr, line) && !line.empty()) {
-      if (saveOutput) {
+      if (processStderr) {
         GLOGXTRACE("[cometbft stderr]: " + line);
-        this->processStderr_ += line + '\n';
+        *processStderr += line + '\n';
       } else {
         GLOGDEBUG("[cometbft stderr]: " + line);
       }
     }
-    if (!this->processStderr_.empty()) { this->processStderr_.pop_back(); }
+    if (processStderr) { if (!processStderr->empty()) { processStderr->pop_back(); } }
     GLOGDEBUG("cometbft stderr stream pump thread finished, cometbft pid = " + pidStr);
   });
   stdout_thread.detach();
   stderr_thread.detach();
 }
 
-void CometImpl::stopCometBFT() {
-  // if we have a process_ running then we will send SIGTERM to it and if needed SIGKILL
-  if (process_.has_value()) {
-    LOGDEBUG("Terminating CometBFT process");
+void CometImpl::doStopCometBFT(std::unique_ptr<boost::process::child>& process) {
+  // if process is running then we will send SIGTERM to it and if needed SIGKILL
+  if (process) {
+    SLOGDEBUG("Terminating CometBFT process");
     // terminate the process
-    pid_t pid = process_->id();
+    pid_t pid = process->id();
     try {
-      process_->terminate(); // SIGTERM (graceful termination, equivalent to terminal CTRL+C/SIGINT)
-      LOGDEBUG("Process with PID " + std::to_string(pid) + " terminated");
-      process_->wait();  // Ensure the process is fully terminated
-      LOGDEBUG("Process with PID " + std::to_string(pid) + " joined");
+      process->terminate(); // SIGTERM (graceful termination, equivalent to terminal CTRL+C/SIGINT)
+      SLOGDEBUG("Process with PID " + std::to_string(pid) + " terminated");
+      process->wait();  // Ensure the process is fully terminated
+      SLOGDEBUG("Process with PID " + std::to_string(pid) + " joined");
     } catch (const std::exception& ex) {
       // This is bad, and if it actually happens, we need to be able to do something else here to ensure the process disappears
       //   because we don't want a process using the data directory and using the socket ports.
-      LOGWARNING("Failed to terminate process: " + std::string(ex.what()));
+      SLOGWARNING("Failed to terminate process: " + std::string(ex.what()));
       // Fallback: Forcefully kill the process using kill -9
       try {
         std::string killCommand = "kill -9 " + std::to_string(pid);
-        LOGINFO("Attempting to force kill process with PID " + std::to_string(pid) + " using kill -9");
+        SLOGINFO("Attempting to force kill process with PID " + std::to_string(pid) + " using kill -9");
         int result = std::system(killCommand.c_str());
         if (result == 0) {
-          LOGINFO("Successfully killed process with PID " + std::to_string(pid) + " using kill -9");
+          SLOGINFO("Successfully killed process with PID " + std::to_string(pid) + " using kill -9");
         } else {
-          LOGWARNING("Failed to kill process with PID " + std::to_string(pid) + " using kill -9. Error code: " + std::to_string(result));
+          SLOGWARNING("Failed to kill process with PID " + std::to_string(pid) + " using kill -9. Error code: " + std::to_string(result));
         }
       } catch (const std::exception& ex2) {
-        LOGERROR("Failed to execute kill -9: " + std::string(ex2.what()));
+        SLOGERROR("Failed to execute kill -9: " + std::string(ex2.what()));
       }
     }
-    process_.reset(); // this signals that we are ready to call startCometBFT() again
-    LOGDEBUG("CometBFT process terminated");
+    process.reset(); // this signals that we are ready to call startCometBFT() again
+    SLOGDEBUG("CometBFT process terminated");
   }
 }
 
@@ -1487,7 +1545,7 @@ void CometImpl::workerLoopInner() {
       LOGDEBUG("Comet worker: creating comet directory");
 
       // run cometbft init cometPath to create the cometbft directory with default configs
-      Utils::execute("cometbft init --home " + cometPath);
+      runCometBFT({ "init", "--home=" + cometPath });
 
       // check it exists now, otherwise halt node
       if (!std::filesystem::exists(cometPath)) {
@@ -1663,37 +1721,23 @@ void CometImpl::workerLoopInner() {
 
     // Run cometbft show-node-id to figure out what the node ID is
     LOGDEBUG("Fetching own cometbft node-id...");
+
+    std::string showNodeIdStdout;
     try {
-      std::vector<std::string> cometArgs = {
-        "show-node-id",
-        "--home=" + cometPath
-      };
-      startCometBFT(cometArgs, true);
+      runCometBFT({ "show-node-id", "--home=" + cometPath }, &showNodeIdStdout);
     } catch (const std::exception& ex) {
       setErrorCode(CometError::RUN);
       throw DynamicException("Exception caught when trying to run cometbft show-node-id: " + std::string(ex.what()));
     }
 
-    // Loop until process exits or we time out here
-    int inspectTries = 50; //5s
-    while (!processDone_ && --inspectTries > 0) {
-      std::this_thread::sleep_for(std::chrono::milliseconds(100));
-    }
-    if (!processDone_) {
-      setErrorCode(CometError::RUN_TIMEOUT);
-      throw DynamicException("Timed out while waiting for run cometbft show-node-id.");
-    }
-
-    stopCometBFT();
-
-    if (processStdout_.size() != 40) {
+    if (showNodeIdStdout.size() != 40) {
       setErrorCode(CometError::FAIL);
-      throw DynamicException("Got a cometbft node-id of unexpected size (!= 40 hex chars): [" + processStdout_ + "]");
+      throw DynamicException("Got a cometbft node-id of unexpected size (!= 40 hex chars): [" + showNodeIdStdout + "]");
     }
 
-    LOGDEBUG("Got comet node ID: [" + processStdout_ + "]");
+    LOGDEBUG("Got comet node ID: [" + showNodeIdStdout + "]");
     std::unique_lock<std::mutex> lock(this->nodeIdMutex_);
-    this->nodeId_ = processStdout_;
+    this->nodeId_ = showNodeIdStdout;
     this->nodeIdMutex_.unlock();
 
     // Check if quitting
@@ -2429,3 +2473,10 @@ bool Comet::stop() {
   return impl_->stop();
 }
 
+void Comet::runCometBFT(const std::vector<std::string>& cometArgs, std::string* outStdout, std::string* outStderr) {
+  CometImpl::runCometBFT(cometArgs, outStdout, outStderr);
+}
+
+void Comet::checkCometBFT() {
+  CometImpl::checkCometBFT();
+}

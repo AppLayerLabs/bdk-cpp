@@ -105,43 +105,6 @@ std::string Utils::getSignalName(int signum) {
   return n;
 }
 
-int Utils::execute(const std::string& command, std::string* output) {
-  GLOGDEBUG("Running: " + command);
-  std::string outStr;
-  boost::process::ipstream pipe_stream;
-  boost::process::child c(command, boost::process::std_out > pipe_stream);
-  std::string line;
-  while (pipe_stream && std::getline(pipe_stream, line) && !line.empty()) {
-    if (line != "") line += "\n";
-    outStr += line;
-  }
-  if (!outStr.empty() && outStr.back() == '\n') outStr.pop_back();
-  c.wait();
-  int return_code = c.exit_code();
-  GLOGDEBUG("Output:\n" + outStr);
-  GLOGDEBUG("Return Code: " + std::to_string(return_code));
-  if (output != nullptr) {
-    (*output) = outStr;
-  }
-  return return_code;
-}
-
-std::string Utils::checkCometBFT() {
-  std::string output;
-  int return_code = Utils::execute("cometbft version", &output);
-  if (return_code != 0) {
-    return "Error: exec returned non-zero code: " + std::to_string(return_code);
-  }
-  if (output == "") {
-    return "Error: cometbft version failed to return a version string";
-  }
-  GLOGDEBUG("Detected CometBFT version: " + output);
-  if (output[0] == '0') {
-    return "Error: cometbft version is older than v1.0: " + output;
-  }
-  return "";
-}
-
 bytes::View Utils::create_view_span(const Bytes& vec, size_t start, size_t size) {
   if (start + size > vec.size()) throw DynamicException("Invalid range for span");
   return bytes::View(vec.data() + start, size);

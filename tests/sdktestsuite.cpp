@@ -13,6 +13,8 @@ See the LICENSE.txt file in the project root for more information.
 
 #include "../../src/utils/clargs.h" // ProcessOptions
 
+#include "../../src/core/comet.h"
+
 #include "sdktestsuite.hpp"
 
 // Initialize static listen port generator parameters
@@ -104,10 +106,7 @@ int main(int argc, char* argv[]) {
   if (!applyProcessOptions(opt)) return 1;
 
   // Check cometbft engine
-  std::string cometErr = Utils::checkCometBFT();
-  if (cometErr != "") {
-    GLOGFATALP_THROW("Error checking CometBFT executable (ensure it is in your PATH): " + cometErr);
-  }
+  Comet::checkCometBFT();
 
   // Avoid ManagerBase::instanceIdGen_ == 0, which produces log logical location string ""
   //   (for production nodes that only instantiate one ManagerBase, ever, and don't need

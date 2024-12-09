@@ -509,19 +509,6 @@ namespace Utils {
    * @return A string containing the signal name (or "Unknown signal") and number.
    */
   std::string getSignalName(int signum);
-
-  /**
-   * Synchronously run external process with debug logging.
-   * @param command Command-line to run.
-   * @return Return code.
-   */
-  int execute(const std::string& command, std::string* output = nullptr);
-
-  /**
-   * Check if cometbft executable can be found and is of a suitable version.
-   * @return Empty string if a suitable cometbft executable is found, or a string error message otherwise.
-   */
-  std::string checkCometBFT();
 };
 
 #endif  // UTILS_H

@@ -306,10 +306,10 @@ Options getOptionsForCometTest(
 
   // Sanity check arguments
   if (numKeys < 1 || numKeys > cometTestKeys.size() || keyNumber < 0 || keyNumber > numKeys - 1) {
-    throw new DynamicException("Invalid key arguments for getOptionsForCometTest().");
+    throw DynamicException("Invalid key arguments for getOptionsForCometTest().");
   }
   if (numKeys > 1 && ports.size() != numKeys) {
-    throw new DynamicException("Ports vector size must match numKeys when numKeys > 1.");
+    throw DynamicException("Ports vector size must match numKeys when numKeys > 1.");
   }
 
   // check if caller doesn't care which port cometbft uses for P2P and/or RPC

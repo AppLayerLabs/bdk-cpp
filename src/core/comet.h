@@ -286,6 +286,9 @@ class CometImpl;
  * The Comet class is instantiated by the BDK node to serve as an interface to CometBFT.
  * Most of its implementation details are private and contained in CometImpl, which is
  * declared and defined in comet.cpp, in order to keep this header short and simple.
+ *
+ * NOTE: Comet first searches for a cometbft executable in the current working directory;
+ * if it is not found, then it will search for it in the system PATH.
  */
 class Comet : public Log::LogicalLocationProvider {
   private:
@@ -459,6 +462,23 @@ class Comet : public Log::LogicalLocationProvider {
      * @return `true` if stopped, `false` if it was already stopped (need to call start() first).
      */
     bool stop();
+
+    /**
+     * Runs cometbft and returns stdout/stderr produced by it. Throws on any error.
+     * NOTE: This is a blocking call intended for running cometbft as a terminal tool
+     * (cometbft version, cometbft init, cometbft show-node-id, etc) and not as a server,
+     * so if cometbft doesn't return in a few seconds, it is killed and this errors out.
+     * @param cometArgs Arguments to pass on to cometbft.
+     * @param outStdout Outparam to set to all data sent to stdout (if not nullptr).
+     * @param outStderr Outparam to set to all data sent to stderr (if not nullptr).
+     */
+    static void runCometBFT(const std::vector<std::string>& cometArgs, std::string* outStdout = nullptr, std::string* outStderr = nullptr);
+
+    /**
+     * Check that cometbft can be found and has a version that is supported.
+     * Throws on any error -- if it doesn't throw an error, then the check passed.
+     */
+    static void checkCometBFT();
 
     /**
      * Return an instance (object) identifier for all LOGxxx() messages emitted this class.

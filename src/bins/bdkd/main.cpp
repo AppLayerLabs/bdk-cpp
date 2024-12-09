@@ -16,6 +16,8 @@ See the LICENSE.txt file in the project root for more information.
 
 #include "src/utils/logger.h"
 
+#include "src/core/comet.h"
+
 std::unique_ptr<Blockchain> blockchain = nullptr;
 
 std::condition_variable cv;
@@ -48,10 +50,7 @@ int main(int argc, char* argv[]) {
   if (!applyProcessOptions(opt)) return 1;
 
   // Check cometbft engine
-  std::string cometErr = Utils::checkCometBFT();
-  if (cometErr != "") {
-    GLOGFATALP_THROW("Error checking CometBFT executable (ensure it is in your PATH): " + cometErr);
-  }
+  Comet::checkCometBFT();
 
   // Start the blockchain syncing engine.
   Utils::safePrint("Main thread starting node...");
