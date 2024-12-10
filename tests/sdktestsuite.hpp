@@ -132,7 +132,8 @@ class SDKTestSuite {
     static SDKTestSuite createNewEnvironment(
       const std::string& sdkPath,
       const std::vector<TestAccount>& accounts = {},
-      const Options* const options = nullptr
+      const Options* const options = nullptr,
+      const IndexingMode indexingMode = IndexingMode::RPC_TRACE
     ) {
       if (std::filesystem::exists(sdkPath)) std::filesystem::remove_all(sdkPath);
 
@@ -179,7 +180,7 @@ class SDKTestSuite {
           genesisSigner,
           genesisBalances,
           genesisValidators,
-          IndexingMode::RPC_TRACE
+          indexingMode
         );
       } else {
         options_ = std::make_unique<Options>(*options);

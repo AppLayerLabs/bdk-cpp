@@ -47,7 +47,7 @@ namespace TERC721BENCHMARK {
       std::unique_ptr<Options> options = nullptr;
       Address to(Utils::randBytes(20));
 
-      SDKTestSuite sdk = SDKTestSuite::createNewEnvironment("testERC721CPPBenchmark");
+      SDKTestSuite sdk = SDKTestSuite::createNewEnvironment("testERC721CPPBenchmark", {}, nullptr, IndexingMode::DISABLED);
       auto erc721Address = sdk.deployContract<ERC721Test>(std::string("MintNFT"), std::string("MNFT"), std::numeric_limits<uint64_t>::max());
       // Now for the funny part, we are NOT a C++ contract, but we can
       // definitely take advantage of the templated ABI to interact with it
@@ -100,7 +100,7 @@ namespace TERC721BENCHMARK {
       std::unique_ptr<Options> options = nullptr;
       Address to(Utils::randBytes(20));
 
-      SDKTestSuite sdk = SDKTestSuite::createNewEnvironment("testERC721EVMBenchmark");
+      SDKTestSuite sdk = SDKTestSuite::createNewEnvironment("testERC721EVMBenchmark", {}, nullptr, IndexingMode::DISABLED);
       auto erc721Address = sdk.deployBytecode(erc721bytecode);
       // Now for the funny part, we are NOT a C++ contract, but we can
       // definitely take advantage of the templated ABI to interact with it

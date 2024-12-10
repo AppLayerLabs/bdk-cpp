@@ -35,7 +35,7 @@ namespace TERC20BENCHMARK {
       std::unique_ptr<Options> options = nullptr;
       Address to(Utils::randBytes(20));
 
-      SDKTestSuite sdk = SDKTestSuite::createNewEnvironment("testERC20CppBenchmark");
+      SDKTestSuite sdk = SDKTestSuite::createNewEnvironment("testERC20CppBenchmark", {}, nullptr, IndexingMode::DISABLED);
       // const TestAccount& from, const Address& to, const uint256_t& value, Bytes data = Bytes()
       auto erc20Address = sdk.deployContract<ERC20>(std::string("TestToken"), std::string("TST"), uint8_t(18), uint256_t("10000000000000000000000"));
       // Now for the funny part, we are NOT a C++ contract, but we can
@@ -101,7 +101,7 @@ namespace TERC20BENCHMARK {
       std::unique_ptr<Options> options = nullptr;
       Address to(Utils::randBytes(20));
 
-      auto sdk = SDKTestSuite::createNewEnvironment("testERC20EvmBenchmark");
+      auto sdk = SDKTestSuite::createNewEnvironment("testERC20EvmBenchmark", {}, nullptr, IndexingMode::DISABLED);
 
       auto erc20Address = sdk.deployBytecode(erc20bytecode);
 
