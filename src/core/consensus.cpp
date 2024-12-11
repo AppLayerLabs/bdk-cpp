@@ -55,7 +55,7 @@ void Consensus::pullerLoop() {
   std::unordered_map<P2P::NodeID, std::future<std::vector<TxBlock>>, SafeHash> txBlockRequests;
   std::unordered_map<P2P::NodeID, std::future<std::vector<TxValidator>>, SafeHash> txValidatorRequests;
   while (!this->stop_) {
-    std::this_thread::sleep_for(std::chrono::milliseconds(25));
+    std::this_thread::sleep_for(std::chrono::milliseconds(10));
     // First, lets get a list of all nodes we are connected to.
     auto nodes = this->p2p_.getSessionsIDs(P2P::NodeType::NORMAL_NODE);
     // Now, we remove from the requests map all nodes that are not connected anymore.
