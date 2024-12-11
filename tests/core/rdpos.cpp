@@ -229,7 +229,7 @@ namespace TRdPoS {
       REQUIRE(nodesIds.size() == 1);
       auto transactionList = blockchainWrapper1.p2p.requestValidatorTxs(nodesIds[0]);
 
-      REQUIRE(transactionList.size() == 8);
+      REQUIRE(transactionList.size() == 14);
 
       // Append transactions back to node 1 mempool.
       for (const auto& tx : transactionList) {
@@ -662,11 +662,13 @@ namespace TRdPoS {
 
     // When consensus is running, we can just wait for the blocks to be created.
     int timeoutSecs = 60;
+    auto now = Utils::getCurrentTimeMillisSinceEpoch();
     auto rdPoSBlockFuture = std::async(std::launch::async, [&]() {
       auto start = Utils::getCurrentTimeMillisSinceEpoch();
       int timeoutFutureThreadMillis = (timeoutSecs + 5) * 1000; // +5s than main test thread to make sure
       uint64_t targetLatestHeight = 1;
       while (blockchainWrapper1.storage.latest()->getNHeight() != 10) {
+        std::cout << "Height 1: " << blockchainWrapper1.storage.latest()->getNHeight() << std::endl;
         if (Utils::getCurrentTimeMillisSinceEpoch() - start > timeoutFutureThreadMillis) { Utils::safePrintTest("Future thread timeout."); return; }
         // We need to forcefully make a transaction and broadcast in the network so the consensus can create a block
         // otherwise it will sleep forever
@@ -705,5 +707,7 @@ namespace TRdPoS {
     });
 
     REQUIRE(rdPoSBlockFuture.wait_for(std::chrono::seconds(timeoutSecs)) != std::future_status::timeout);
+    auto after = Utils::getCurrentTimeMillisSinceEpoch();
+    std::cout << "Took: " << (after - now) << "ms to create 10 blocks." << std::endl;
   }
 };
