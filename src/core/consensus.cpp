@@ -172,15 +172,6 @@ void Consensus::pullerLoop() {
       }
     }
   }
-  // Make sure to exit all the futures otherwise we will have orphaned threads!
-  for (auto& [nodeId, future] : txBlockRequests) {
-    future.wait();
-    future.get();
-  }
-  for (auto& [nodeId, future] : txValidatorRequests) {
-    future.wait();
-    future.get();
-  }
 }
 
 
