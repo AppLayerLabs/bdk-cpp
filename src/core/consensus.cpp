@@ -75,7 +75,7 @@ void Consensus::pullerLoop() {
       }
     }
 
-    // Check if the latest block is older than 100ms. If yes, attempt to sync blocks.
+    // Check if the latest block is older than 500ms. If yes, attempt to sync blocks.
     {
       // Get the timestamp of the latest known block
       auto latestBlock = this->storage_.latest();
@@ -84,7 +84,7 @@ void Consensus::pullerLoop() {
       auto now = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
       // Compute the age of the block in milliseconds
       auto blockAge = now - lastBlockTimestamp;
-      if (blockAge > 100000) {
+      if (blockAge > 500000) {
         // We are considered "behind" and need to sync blocks.
         // Get connected nodes with their info
         auto connected = this->p2p_.getNodeConns().getConnected();
@@ -99,7 +99,7 @@ void Consensus::pullerLoop() {
           auto currentNHeight = latestBlock->getNHeight();
           // If we are not synced
           if (highestNode.second > currentNHeight) {
-            Utils::safePrint("Block is older than 100ms, attempting to sync blocks.");
+            Utils::safePrint("Block is older than 500ms, attempting to sync blocks.");
             Utils::safePrint("Highest node with height: " + std::to_string(highestNode.second));
             // For example:
             uint64_t blocksPerRequest = 100;
