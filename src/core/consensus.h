@@ -21,7 +21,6 @@ class Consensus : public Log::LogicalLocationProvider {
     const Options& options_; ///< Reference to the Options singleton.
 
     std::future<void> loopFuture_;  ///< Future object holding the thread for the consensus loop.
-    std::future<void> pullFuture_; ///< Future object to keep pulling transactions from nodes on the network.
     std::atomic<bool> stop_ = false; ///< Flag for stopping the consensus processing.
 
     /**
@@ -39,12 +38,6 @@ class Consensus : public Log::LogicalLocationProvider {
      * node wait until it receives a new block.
      */
     void doValidatorTx(const uint64_t& nHeight, const Validator& me);
-
-    /**
-     * Entry function for the puller thread (keeps requesting transactions from the network).
-     * @return `true` when done running.
-     */
-    void pullerLoop();
 
   public:
     /**
