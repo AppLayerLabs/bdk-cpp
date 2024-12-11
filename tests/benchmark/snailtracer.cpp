@@ -24,7 +24,7 @@ namespace TSNAILTRACERBENCHMARK {
       std::unique_ptr<Options> options = nullptr;
       Address to(Utils::randBytes(20));
 
-      SDKTestSuite sdk = SDKTestSuite::createNewEnvironment("testSnailTracerCppBenchmark", {}, nullptr, IndexingMode::DISABLED);
+      SDKTestSuite sdk = SDKTestSuite::createNewEnvironment("testSnailTracerCppBenchmark");
       // const TestAccount& from, const Address& to, const uint256_t& value, Bytes data = Bytes()
       auto snailtracerAddress = sdk.deployContract<SnailTracer>(int256_t(1024), int256_t(768));
       // Now for the funny part, we are NOT a C++ contract, but we can
@@ -73,7 +73,7 @@ namespace TSNAILTRACERBENCHMARK {
       std::unique_ptr<Options> options = nullptr;
       Address to(Utils::randBytes(20));
 
-      auto sdk = SDKTestSuite::createNewEnvironment("testSnailTracerEvmBenchmark", {}, nullptr, IndexingMode::DISABLED);
+      auto sdk = SDKTestSuite::createNewEnvironment("testSnailTracerEvmBenchmark");
 
       auto snailtracerAddress = sdk.deployBytecode(snailTracerBytecode);
       // Create the transaction for transfer
