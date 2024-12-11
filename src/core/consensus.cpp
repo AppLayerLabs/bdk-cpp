@@ -118,8 +118,12 @@ void Consensus::pullerLoop() {
             if (!result.empty()) {
               try {
                 for (auto & block : result) {
+                  if (block.getNHeight() != downloadNHeight) {
+                    this->p2p_.disconnectSession(highestNode.first);
+                    break;
+                  }
                   this->state_.tryProcessNextBlock(std::move(block));
-                  ++downloadNHeight;
+                  downloadNHeight++;
                 }
               } catch (std::exception &e) {
                 // We actually don't do anything here, because broadcast might have received a block
