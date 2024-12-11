@@ -98,8 +98,8 @@ namespace P2P {
 
   void NodeConns::loop() {
     while (!this->stop_) {
-      // work every 10ms
-      std::this_thread::sleep_for(std::chrono::milliseconds(10));
+      // work every 100ms
+      std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
       // push our own current node info to all our peers
       manager_.notifyAllInfo();
