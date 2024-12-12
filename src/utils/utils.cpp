@@ -10,6 +10,8 @@ See the LICENSE.txt file in the project root for more information.
 #include "dynamicexception.h"
 #include "uintconv.h"
 
+#include <openssl/sha.h>
+
 std::mutex log_lock;
 std::mutex debug_mutex;
 
@@ -94,6 +96,16 @@ json Utils::readConfigFile() {
   std::ifstream configFile("config.json");
   json config = json::parse(configFile);
   return config;
+}
+
+void Utils::sha256(const Bytes& input, Hash& output) {
+  SHA256(input.data(), input.size(), output.data());
+}
+
+Hash Utils::sha256(const Bytes& input) {
+  Hash hash;
+  SHA256(input.data(), input.size(), hash.data());
+  return hash;
 }
 
 std::string Utils::getSignalName(int signum) {

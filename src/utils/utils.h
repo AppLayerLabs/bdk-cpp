@@ -504,6 +504,20 @@ namespace Utils {
   }
 
   /**
+   * Compute a SHA256 of a byte array.
+   * @param input The input data.
+   * @param output The `Hash` object that gets assigned the SHA256 computer over the input data.
+   */
+  void sha256(const Bytes& input, Hash& output);
+
+  /**
+   * Compute a SHA256 of a byte array.
+   * @param input The input data.
+   * @return A `Hash` object with the SHA256 computer over the input data.
+   */
+  Hash sha256(const Bytes& input);
+
+  /**
    * Given an UNIX signal number, return the name followed by the number in parenthesis.
    * @param signum The signal number.
    * @return A string containing the signal name (or "Unknown signal") and number.

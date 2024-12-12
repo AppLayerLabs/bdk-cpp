@@ -52,9 +52,10 @@ class Hex {
      * Build a Hex object from a byte string (`\x12\x34` = "1234").
      * @param bytes The byte string.
      * @param strict (optional) If `true`, includes "0x". Defaults to `false`.
+     * @param upper (optional) If `true`, outputs `ABCDEF` instead of `abcdef`. Defaults to `false`.
      * @return The constructed Hex object.
      */
-    static Hex fromBytes(const bytes::View bytes, bool strict = false);
+    static Hex fromBytes(const bytes::View bytes, bool strict = false, bool upper = false);
 
     /**
      * Build a Hex object from a UTF-8 string ("example" = "6578616d706c65").

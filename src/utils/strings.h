@@ -110,8 +110,11 @@ template <unsigned N> class FixedBytes {
     /**
      * Getter for `data_`, but returns it as a hex string.
      * @param strict If `true`, returns the value with an appended "0x" prefix.
+     * @param upper If `true`, outputs `ABCDEF` instead of `abcdef`.
      */
-    inline Hex hex(bool strict = false) const { return Hex::fromBytes(this->view(), strict); }
+    inline Hex hex(bool strict = false, bool upper = false) const {
+      return Hex::fromBytes(this->view(), strict, upper);
+    }
 
     /**
      * Getter for `data_`, but returns it as a span of the data string.

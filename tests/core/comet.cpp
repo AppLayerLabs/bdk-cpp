@@ -1163,11 +1163,20 @@ namespace TComet {
       GLOGDEBUG("TEST: Checking that chain has not advanced past height 1 without a transaction");
       REQUIRE(cometListener.finalizedHeight == 1);
 
-      // Send a transaction to cause a block to be produced
-      GLOGDEBUG("TEST: Sending transaction");
-      std::vector<uint8_t> largeTransaction(txSize, txContentByte);
+      // Build a large transaction
+      Bytes largeTransaction(txSize, txContentByte);
       largeTransaction[0] = txBorderByte;
       largeTransaction[largeTransaction.size()-1] = txBorderByte;
+
+      // Utils::sha256() should match the expected CometBFT-produced transaction hash
+      // hex(false, true) returns a Hex object without "0x" and uppercase "ABCDEF" (char data)
+      // Hex::get() returns itself as a std::string
+      Hash sha256txHash;
+      Utils::sha256(largeTransaction, sha256txHash);
+      REQUIRE(sha256txHash.hex(false, true).get() == transactionHash);
+
+      // Send the transaction to cause a block to be produced
+      GLOGDEBUG("TEST: Sending transaction");
       uint64_t tId = comet.sendTransaction(largeTransaction);
       REQUIRE(tId > 0); // Ensure RPC was actually called
 

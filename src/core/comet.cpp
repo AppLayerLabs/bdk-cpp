@@ -395,10 +395,10 @@ bool WebsocketRPCConnection<T>::rpcDoStart(int rpcPort) {
   try {
     rpcFailed_ = false;
     rpcRunning_ = true; // Set this first to ensure rpcDoReset() in catch() below will work.
-    boost::asio::ip::tcp::endpoint endpoint(boost::asio::ip::make_address("127.0.0.1"), rpcServerPort_);
+    boost::asio::ip::tcp::endpoint endpoint(LOCALHOST, rpcServerPort_);
     rpcWs_ = std::make_unique<boost::beast::websocket::stream<boost::asio::ip::tcp::socket>>(rpcIoc_);
     rpcWs_->next_layer().connect(endpoint);
-    rpcWs_->handshake("127.0.0.1", "/websocket");
+    rpcWs_->handshake(endpoint.address().to_string(), "/websocket");
     rpcAsyncRead(); // Post the first async_read operation
     rpcThread_ = std::thread([this]() {
       try {

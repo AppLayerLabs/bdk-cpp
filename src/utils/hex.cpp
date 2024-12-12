@@ -46,10 +46,12 @@ bool Hex::isValid(const std::string_view hex, bool strict) {
   return true;
 }
 
-Hex Hex::fromBytes(const std::span<const uint8_t> bytes, bool strict) {
+Hex Hex::fromBytes(const std::span<const uint8_t> bytes, bool strict, bool upper) {
   auto beg = bytes.begin();
   auto end = bytes.end();
-  static const char* digits = "0123456789abcdef";
+  static const char* digits_lower = "0123456789abcdef";
+  static const char* digits_upper = "0123456789ABCDEF";
+  const char* digits = upper ? digits_upper : digits_lower;
   size_t off = strict ? 2 : 0;
   std::string hex(std::distance(beg, end) * 2 + off, '0');
   hex.replace(0, 2, "0x");
