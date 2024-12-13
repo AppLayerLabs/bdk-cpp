@@ -58,7 +58,8 @@ inline TestBlockchainWrapper initialize(const std::vector<Hash>& validatorPrivKe
                                  const PrivKey& validatorKey,
                                  const uint64_t& serverPort,
                                  bool clearDb,
-                                 const std::string& folderName) {
+                                 const std::string& folderName,
+                                 const IndexingMode indexMode = IndexingMode::RPC_TRACE) {
   if (clearDb) {
     if (std::filesystem::exists(folderName)) {
       std::filesystem::remove_all(folderName);
@@ -97,7 +98,7 @@ inline TestBlockchainWrapper initialize(const std::vector<Hash>& validatorPrivKe
         genesisPrivKey,
         genesisBalances,
         genesisValidators,
-        IndexingMode::RPC_TRACE
+        indexMode
       ));
   } else {
     return TestBlockchainWrapper(Options(
@@ -124,7 +125,7 @@ inline TestBlockchainWrapper initialize(const std::vector<Hash>& validatorPrivKe
       genesisBalances,
       genesisValidators,
       validatorKey,
-      IndexingMode::RPC
+      indexMode
     ));
   }
 }

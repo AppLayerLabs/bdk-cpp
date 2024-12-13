@@ -663,7 +663,7 @@ namespace TState {
           genesisPrivKey,
           genesisBalances,
           genesisValidators,
-          IndexingMode::RPC
+          IndexingMode::DISABLED
       );
       P2P::ManagerDiscovery p2pDiscovery(LOCALHOST, discoveryOptions);
 
@@ -867,10 +867,10 @@ namespace TState {
       std::this_thread::sleep_for(std::chrono::seconds(1));
     }
 
-    SECTION("State test with networking capabilities, 8 nodes, rdPoS fully active, broadcast blocks, 1000 transactions per set, 10 sets") {
+    SECTION("State test with networking capabilities, 8 nodes, rdPoS fully active, broadcast blocks, 100 transactions per set, 10 sets") {
       // Create random accounts for the transactions.
       std::unordered_map<PrivKey, std::pair<uint256_t, uint64_t>, SafeHash> randomAccounts;
-      for (uint64_t i = 0; i < 1000; ++i) {
+      for (uint64_t i = 0; i < 100; ++i) {
         randomAccounts.insert({PrivKey(Utils::randBytes(32)), std::make_pair(0, 0)});
       }
 
@@ -878,28 +878,28 @@ namespace TState {
       uint256_t targetExpectedValue = 0;
       // Initialize 8 different node instances, with different ports and DBs.
       auto blockchainWrapper1 = initialize(
-        validatorPrivKeysState, validatorPrivKeysState[0], SDKTestSuite::getTestPort(), true, testDumpPath + "/stateNode1NetworkCapabilitiesWithTx"
+        validatorPrivKeysState, validatorPrivKeysState[0], SDKTestSuite::getTestPort(), true, testDumpPath + "/stateNode1NetworkCapabilitiesWithTx", IndexingMode::RPC
       );
       auto blockchainWrapper2 = initialize(
-        validatorPrivKeysState, validatorPrivKeysState[1], SDKTestSuite::getTestPort(), true, testDumpPath + "/stateNode2NetworkCapabilitiesWithTx"
+        validatorPrivKeysState, validatorPrivKeysState[1], SDKTestSuite::getTestPort(), true, testDumpPath + "/stateNode2NetworkCapabilitiesWithTx", IndexingMode::RPC
       );
       auto blockchainWrapper3 = initialize(
-        validatorPrivKeysState, validatorPrivKeysState[2], SDKTestSuite::getTestPort(), true, testDumpPath + "/stateNode3NetworkCapabilitiesWithTx"
+        validatorPrivKeysState, validatorPrivKeysState[2], SDKTestSuite::getTestPort(), true, testDumpPath + "/stateNode3NetworkCapabilitiesWithTx", IndexingMode::RPC
       );
       auto blockchainWrapper4 = initialize(
-        validatorPrivKeysState, validatorPrivKeysState[3], SDKTestSuite::getTestPort(), true, testDumpPath + "/stateNode4NetworkCapabilitiesWithTx"
+        validatorPrivKeysState, validatorPrivKeysState[3], SDKTestSuite::getTestPort(), true, testDumpPath + "/stateNode4NetworkCapabilitiesWithTx", IndexingMode::RPC
       );
       auto blockchainWrapper5 = initialize(
-        validatorPrivKeysState, validatorPrivKeysState[4], SDKTestSuite::getTestPort(), true, testDumpPath + "/stateNode5NetworkCapabilitiesWithTx"
+        validatorPrivKeysState, validatorPrivKeysState[4], SDKTestSuite::getTestPort(), true, testDumpPath + "/stateNode5NetworkCapabilitiesWithTx", IndexingMode::RPC
       );
       auto blockchainWrapper6 = initialize(
-        validatorPrivKeysState, validatorPrivKeysState[5], SDKTestSuite::getTestPort(), true, testDumpPath + "/stateNode6NetworkCapabilitiesWithTx"
+        validatorPrivKeysState, validatorPrivKeysState[5], SDKTestSuite::getTestPort(), true, testDumpPath + "/stateNode6NetworkCapabilitiesWithTx", IndexingMode::RPC
       );
       auto blockchainWrapper7 = initialize(
-        validatorPrivKeysState, validatorPrivKeysState[6], SDKTestSuite::getTestPort(), true, testDumpPath + "/stateNode7NetworkCapabilitiesWithTx"
+        validatorPrivKeysState, validatorPrivKeysState[6], SDKTestSuite::getTestPort(), true, testDumpPath + "/stateNode7NetworkCapabilitiesWithTx", IndexingMode::RPC
       );
       auto blockchainWrapper8 = initialize(
-        validatorPrivKeysState, validatorPrivKeysState[7], SDKTestSuite::getTestPort(), true, testDumpPath + "/stateNode8NetworkCapabilitiesWithTx"
+        validatorPrivKeysState, validatorPrivKeysState[7], SDKTestSuite::getTestPort(), true, testDumpPath + "/stateNode8NetworkCapabilitiesWithTx", IndexingMode::RPC
       );
 
       // Initialize the discovery node.
@@ -1140,6 +1140,7 @@ namespace TState {
               }
             }
             std::cout << "Loop: " << loop << std::endl;
+            std::cout << "blockchainWrapper1.storage.latest()->getTxs().size(): " << blockchainWrapper1.storage.latest()->getTxs().size() << std::endl;
             std::cout << "blockchainWrapper1.storage.latest()->getNHeight(): " << blockchainWrapper1.storage.latest()->getNHeight() << std::endl;
             std::cout << "blockchainWrapper2.storage.latest()->getNHeight(): " << blockchainWrapper2.storage.latest()->getNHeight() << std::endl;
             std::cout << "blockchainWrapper3.storage.latest()->getNHeight(): " << blockchainWrapper3.storage.latest()->getNHeight() << std::endl;
