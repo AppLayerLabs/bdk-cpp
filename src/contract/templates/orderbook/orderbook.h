@@ -100,12 +100,20 @@ inline bool operator>(const StopOrder& lhs, const StopOrder& rhs) {
  * 4 - const uint256_t  - assetPrice  - The unit price of the asset the order has to offer in WEI of tokenB.
  * 5 - const OrderType  - type        - Whether the order originally is a market or limit.
  */
-using Order = std::tuple<const uint256_t,
-                         const uint64_t,
-                         const Address,
+
+// using Order = std::tuple<const uint256_t,
+//                          const uint64_t,
+//                          const Address,
+//                          uint256_t,
+//                          const uint256_t,
+//                          const OrderType>;
+
+using Order = std::tuple<uint256_t,
+                         uint64_t,
+                         Address,
                          uint256_t,
-                         const uint256_t,
-                         const OrderType>;
+                         uint256_t,
+                         OrderType>;
 
 /**
  * Lesser comparison operator.
