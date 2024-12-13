@@ -11,7 +11,7 @@ void Consensus::validatorLoop() {
   LOGINFO("Starting validator loop.");
   uint64_t loop = this->storage_.latest()->getNHeight() + 1;
   Validator me(Secp256k1::toAddress(Secp256k1::toUPub(this->options_.getValidatorPrivKey())));
-  while (!this->stop_) {
+  while (!this->stopConsensus_) {
     Utils::safePrint("Validator: " + me.hex(true).get() + " Loop: " + std::to_string(loop++));
     auto latestBlockHeight = this->storage_.latest()->getNHeight();
 
@@ -23,7 +23,7 @@ void Consensus::validatorLoop() {
       Utils::safePrint("Validator: " + me.hex(true).get() + " doValidatorBlock nHeight: " + std::to_string(latestBlockHeight + 1));
       this->doValidatorBlock();
     }
-    if (this->stop_) return;
+    if (this->stopConsensus_) return;
     if (!isBlockCreator) {
       // Check if we are a validator that has to create a transaction.
       uint64_t index = 1;
@@ -38,7 +38,7 @@ void Consensus::validatorLoop() {
 
     // Keep looping while we don't reach the latest block
     bool logged = false;
-    while (latestBlockHeight == this->storage_.latest()->getNHeight() && !this->stop_) {
+    while (latestBlockHeight == this->storage_.latest()->getNHeight() && !this->stopConsensus_) {
       if (!logged) {
         LOGDEBUG("Waiting for next block to be created.");
         Utils::safePrint("Validator: " + me.hex(true).get() + " Waiting for next block to be created.");
@@ -54,7 +54,7 @@ void Consensus::pullerLoop() {
   // List of all current existing requests towards other nodes. A list for TxBlock and a list for TxValidator.
   std::unordered_map<P2P::NodeID, std::future<std::vector<TxBlock>>, SafeHash> txBlockRequests;
   std::unordered_map<P2P::NodeID, std::future<std::vector<TxValidator>>, SafeHash> txValidatorRequests;
-  while (!this->stop_) {
+  while (!this->stopPuller_) {
     std::this_thread::sleep_for(std::chrono::milliseconds(25));
     // First, lets get a list of all nodes we are connected to.
     auto nodes = this->p2p_.getSessionsIDs(P2P::NodeType::NORMAL_NODE);
@@ -191,7 +191,7 @@ void Consensus::doValidatorBlock() {
   LOGDEBUG("Block creator: waiting for txs");
   uint64_t validatorMempoolSize = 0;
   std::unique_ptr<uint64_t> lastLog = nullptr;
-  while (validatorMempoolSize != this->state_.rdposGetMinValidators() * 2 && !this->stop_) {
+  while (validatorMempoolSize != this->state_.rdposGetMinValidators() * 2 && !this->stopConsensus_) {
     if (lastLog == nullptr || *lastLog != validatorMempoolSize) {
       lastLog = std::make_unique<uint64_t>(validatorMempoolSize);
       LOGDEBUG("Block creator has: " + std::to_string(validatorMempoolSize) + " transactions in mempool");
@@ -209,7 +209,7 @@ void Consensus::doValidatorBlock() {
       logged = true;
       LOGDEBUG("Waiting for at least one transaction in the mempool.");
     }
-    if (this->stop_) return;
+    if (this->stopConsensus_) return;
     std::this_thread::sleep_for(std::chrono::microseconds(10));
   }
 
@@ -217,7 +217,7 @@ void Consensus::doValidatorBlock() {
 
   // Create the block.
   LOGDEBUG("Ordering transactions and creating block");
-  if (this->stop_) return;
+  if (this->stopConsensus_) return;
   auto mempool = this->state_.rdposGetMempool();
   const auto randomList = this->state_.rdposGetRandomList();
 
@@ -227,7 +227,7 @@ void Consensus::doValidatorBlock() {
   uint64_t i = 1;
   while (randomHashTxs.size() != this->state_.rdposGetMinValidators()) {
     for (const auto& [txHash, tx] : mempool) {
-      if (this->stop_) return;
+      if (this->stopConsensus_) return;
       // 0xcfffe746 == 3489654598
       if (tx.getFrom() == randomList[i] && tx.getFunctor().value == 3489654598) {
         randomHashTxs.emplace_back(tx);
@@ -247,7 +247,7 @@ void Consensus::doValidatorBlock() {
       }
     }
   }
-  if (this->stop_) return;
+  if (this->stopConsensus_) return;
 
   // Create the block and append to all chains, we can use any storage for latest block.
   const std::shared_ptr<const FinalizedBlock> latestBlock = this->storage_.latest();
@@ -256,7 +256,7 @@ void Consensus::doValidatorBlock() {
   std::vector<TxValidator> validatorTxs;
   for (const auto& tx: randomHashTxs) validatorTxs.emplace_back(tx);
   for (const auto& tx: randomnessTxs) validatorTxs.emplace_back(tx);
-  if (this->stop_) return;
+  if (this->stopConsensus_) return;
 
   // Get a copy of the mempool and current timestamp
   auto chainTxs = this->state_.getMempool();
@@ -303,7 +303,7 @@ void Consensus::doValidatorBlock() {
     LOGERROR("Block is not valid!");
     throw DynamicException("Block is not valid!");
   }
-  if (this->stop_) return;
+  if (this->stopConsensus_) return;
   if (this->storage_.latest()->getHash() != latestBlockHash) {
     LOGERROR("Block is not valid!");
     throw DynamicException("Block is not valid!");
@@ -311,7 +311,7 @@ void Consensus::doValidatorBlock() {
 
   // Broadcast the block through P2P
   LOGDEBUG("Broadcasting block.");
-  if (this->stop_) return;
+  if (this->stopConsensus_) return;
   this->p2p_.getBroadcaster().broadcastBlock(this->storage_.latest());
   auto end = std::chrono::high_resolution_clock::now();
   long double duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
@@ -367,7 +367,7 @@ void Consensus::doValidatorTx(const uint64_t& nHeight, const Validator& me) {
   LOGDEBUG("Waiting for randomHash transactions to be broadcasted");
   uint64_t validatorMempoolSize = 0;
   std::unique_ptr<uint64_t> lastLog = nullptr;
-  while (validatorMempoolSize < this->state_.rdposGetMinValidators() && !this->stop_) {
+  while (validatorMempoolSize < this->state_.rdposGetMinValidators() && !this->stopConsensus_) {
     if (lastLog == nullptr || *lastLog != validatorMempoolSize) {
       lastLog = std::make_unique<uint64_t>(validatorMempoolSize);
       LOGDEBUG("Validator has: " + std::to_string(validatorMempoolSize) + " transactions in mempool");
@@ -393,11 +393,14 @@ void Consensus::start() {
 
 void Consensus::stop() {
   if (this->loopFuture_.valid()) {
-    this->stop_ = true;
+    Utils::safePrint("Stopping this->loopFuture_");
+    this->stopConsensus_ = true;
     this->loopFuture_.wait();
     this->loopFuture_.get();
   }
   if (this->pullFuture_.valid()) {
+    Utils::safePrint("Stopping this->pullFuture_");
+    this->stopPuller_ = true;
     this->pullFuture_.wait();
     this->pullFuture_.get();
   }

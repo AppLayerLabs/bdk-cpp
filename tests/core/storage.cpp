@@ -22,14 +22,6 @@ const std::vector<Hash> validatorPrivKeysStorage {
   Hash(Hex::toBytes("0x426dc06373b694d8804d634a0fd133be18e4e9bcbdde099fce0ccf3cb965492f"))
 };
 
-// Blockchain wrapper initializer for testing purposes.
-// Defined in rdpos.cpp
-TestBlockchainWrapper initialize(const std::vector<Hash>& validatorPrivKeys,
-                                 const PrivKey& validatorKey,
-                                 const uint64_t& serverPort,
-                                 bool clearDb,
-                                 const std::string& folderName);
-
 // Random transaction
 TxBlock createRandomTx(const uint64_t& requiredChainId) {
   PrivKey txPrivKey = PrivKey::random();

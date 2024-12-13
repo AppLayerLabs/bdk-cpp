@@ -123,6 +123,18 @@ namespace TP2P {
       auto node2SessionsIDs = blockchainWrapper2.p2p.getSessionsIDs();
       auto node3SessionsIDs = blockchainWrapper3.p2p.getSessionsIDs();
 
+      // After a while, the discovery thread should have found all the nodes and connected between each other.
+      auto discoveryFuture = std::async(std::launch::async, [&]() {
+        while (blockchainWrapper1.p2p.getSessionsIDs().size() != 2 ||
+               blockchainWrapper2.p2p.getSessionsIDs().size() != 2 ||
+               blockchainWrapper3.p2p.getSessionsIDs().size() != 2) {
+          std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        }
+      });
+
+      // Wait the discovery to take effect (5 seconds)
+      REQUIRE(discoveryFuture.wait_for(std::chrono::seconds(5)) != std::future_status::timeout);
+
       REQUIRE(node1SessionsIDs.size() == 2);
       REQUIRE(node2SessionsIDs.size() == 2);
       REQUIRE(node3SessionsIDs.size() == 2);

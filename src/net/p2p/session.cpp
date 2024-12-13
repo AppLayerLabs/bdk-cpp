@@ -451,13 +451,18 @@ namespace P2P {
     lock.unlock();
   }
 
-  void Session::write(const std::shared_ptr<const Message>& message) {
-    std::unique_lock lock(this->writeQueueMutex_);
-    if (this->outboundMessage_ == nullptr) {
-      this->outboundMessage_ = message;
-      net::post(this->strand_, std::bind_front(&Session::do_write_header, shared_from_this()));
+  bool Session::write(const std::shared_ptr<const Message>& message) {
+    if (this->doneHandshake_) {
+      std::unique_lock lock(this->writeQueueMutex_);
+      if (this->outboundMessage_ == nullptr) {
+        this->outboundMessage_ = message;
+        net::post(this->strand_, std::bind_front(&Session::do_write_header, shared_from_this()));
+      } else {
+        this->outboundMessages_.push_back(message);
+      }
+      return true;
     } else {
-      this->outboundMessages_.push_back(message);
+      return false;
     }
   }
 
