@@ -1123,6 +1123,7 @@ namespace TState {
         }
 
         /// Wait for the transactions to be confirmed.
+        uint64_t loop = 0;
         auto confirmFuture = std::async(std::launch::async, [&]() {
           while (true) {
             bool allConfirmed = true;
@@ -1138,6 +1139,16 @@ namespace TState {
                 allConfirmed = false;
               }
             }
+            std::cout << "Loop: " << loop << std::endl;
+            std::cout << "blockchainWrapper1.storage.latest()->getNHeight(): " << blockchainWrapper1.storage.latest()->getNHeight() << std::endl;
+            std::cout << "blockchainWrapper2.storage.latest()->getNHeight(): " << blockchainWrapper2.storage.latest()->getNHeight() << std::endl;
+            std::cout << "blockchainWrapper3.storage.latest()->getNHeight(): " << blockchainWrapper3.storage.latest()->getNHeight() << std::endl;
+            std::cout << "blockchainWrapper4.storage.latest()->getNHeight(): " << blockchainWrapper4.storage.latest()->getNHeight() << std::endl;
+            std::cout << "blockchainWrapper5.storage.latest()->getNHeight(): " << blockchainWrapper5.storage.latest()->getNHeight() << std::endl;
+            std::cout << "blockchainWrapper6.storage.latest()->getNHeight(): " << blockchainWrapper6.storage.latest()->getNHeight() << std::endl;
+            std::cout << "blockchainWrapper7.storage.latest()->getNHeight(): " << blockchainWrapper7.storage.latest()->getNHeight() << std::endl;
+            std::cout << "blockchainWrapper8.storage.latest()->getNHeight(): " << blockchainWrapper8.storage.latest()->getNHeight() << std::endl;
+            ++loop;
             if (allConfirmed) { break; }
             std::this_thread::sleep_for(std::chrono::milliseconds(250));
           }
