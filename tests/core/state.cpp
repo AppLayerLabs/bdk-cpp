@@ -1148,6 +1148,23 @@ namespace TState {
             std::cout << "blockchainWrapper6.storage.latest()->getNHeight(): " << blockchainWrapper6.storage.latest()->getNHeight() << std::endl;
             std::cout << "blockchainWrapper7.storage.latest()->getNHeight(): " << blockchainWrapper7.storage.latest()->getNHeight() << std::endl;
             std::cout << "blockchainWrapper8.storage.latest()->getNHeight(): " << blockchainWrapper8.storage.latest()->getNHeight() << std::endl;
+            std::cout << "blockchainWrapper1.p2p.getSessionsIDs().size(): " << blockchainWrapper1.p2p.getSessionsIDs().size() << std::endl;
+            std::cout << "blockchainWrapper2.p2p.getSessionsIDs().size(): " << blockchainWrapper2.p2p.getSessionsIDs().size() << std::endl;
+            std::cout << "blockchainWrapper3.p2p.getSessionsIDs().size(): " << blockchainWrapper3.p2p.getSessionsIDs().size() << std::endl;
+            std::cout << "blockchainWrapper4.p2p.getSessionsIDs().size(): " << blockchainWrapper4.p2p.getSessionsIDs().size() << std::endl;
+            std::cout << "blockchainWrapper5.p2p.getSessionsIDs().size(): " << blockchainWrapper5.p2p.getSessionsIDs().size() << std::endl;
+            std::cout << "blockchainWrapper6.p2p.getSessionsIDs().size(): " << blockchainWrapper6.p2p.getSessionsIDs().size() << std::endl;
+            std::cout << "blockchainWrapper7.p2p.getSessionsIDs().size(): " << blockchainWrapper7.p2p.getSessionsIDs().size() << std::endl;
+            std::cout << "blockchainWrapper8.p2p.getSessionsIDs().size(): " << blockchainWrapper8.p2p.getSessionsIDs().size() << std::endl;
+            std::cout << "blockchainWrapper1.state.getMempool().size() " << blockchainWrapper1.state.getMempool().size() << std::endl;
+            std::cout << "blockchainWrapper2.state.getMempool().size() " << blockchainWrapper2.state.getMempool().size() << std::endl;
+            std::cout << "blockchainWrapper3.state.getMempool().size() " << blockchainWrapper3.state.getMempool().size() << std::endl;
+            std::cout << "blockchainWrapper4.state.getMempool().size() " << blockchainWrapper4.state.getMempool().size() << std::endl;
+            std::cout << "blockchainWrapper5.state.getMempool().size() " << blockchainWrapper5.state.getMempool().size() << std::endl;
+            std::cout << "blockchainWrapper6.state.getMempool().size() " << blockchainWrapper6.state.getMempool().size() << std::endl;
+            std::cout << "blockchainWrapper7.state.getMempool().size() " << blockchainWrapper7.state.getMempool().size() << std::endl;
+            std::cout << "blockchainWrapper8.state.getMempool().size() " << blockchainWrapper8.state.getMempool().size() << std::endl;
+
             ++loop;
             if (allConfirmed) { break; }
             std::this_thread::sleep_for(std::chrono::milliseconds(250));
