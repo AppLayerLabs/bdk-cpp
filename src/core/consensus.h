@@ -22,7 +22,8 @@ class Consensus : public Log::LogicalLocationProvider {
 
     std::future<void> loopFuture_;  ///< Future object holding the thread for the consensus loop.
     std::future<void> pullFuture_; ///< Future object to keep pulling transactions from nodes on the network.
-    std::atomic<bool> stop_ = false; ///< Flag for stopping the consensus processing.
+    std::atomic<bool> stopConsensus_ = false; ///< Flag for stopping the consensus processing.
+    std::atomic<bool> stopPuller_ = false; ///< Flag for stopping the puller processing.
 
     /**
      * Create and broadcast a Validator block (called by validatorLoop()).

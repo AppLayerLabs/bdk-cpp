@@ -668,7 +668,6 @@ namespace TRdPoS {
       int timeoutFutureThreadMillis = (timeoutSecs + 5) * 1000; // +5s than main test thread to make sure
       uint64_t targetLatestHeight = 1;
       while (blockchainWrapper1.storage.latest()->getNHeight() != 10) {
-        std::cout << "Height 1: " << blockchainWrapper1.storage.latest()->getNHeight() << std::endl;
         if (Utils::getCurrentTimeMillisSinceEpoch() - start > timeoutFutureThreadMillis) { Utils::safePrintTest("Future thread timeout."); return; }
         // We need to forcefully make a transaction and broadcast in the network so the consensus can create a block
         // otherwise it will sleep forever

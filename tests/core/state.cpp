@@ -1024,7 +1024,6 @@ namespace TState {
       std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
       // Wait for nodes to connect.
-      std::cout << "Waiting for conns" << std::endl;
       auto connectionsFuture = std::async(std::launch::async, [&]() {
         while (p2pDiscovery.getSessionsIDs().size() != 8 ||
                blockchainWrapper1.p2p.getSessionsIDs().size() != 8 ||
@@ -1073,7 +1072,6 @@ namespace TState {
       REQUIRE(blockchainWrapper7.state.rdposGetIsValidator());
       REQUIRE(blockchainWrapper8.state.rdposGetIsValidator());
 
-      std::cout << "Starting consensus" << std::endl;
       blockchainWrapper1.consensus.start();
       blockchainWrapper2.consensus.start();
       blockchainWrapper3.consensus.start();
@@ -1082,7 +1080,6 @@ namespace TState {
       blockchainWrapper6.consensus.start();
       blockchainWrapper7.consensus.start();
       blockchainWrapper8.consensus.start();
-      std::cout << "Consensus started" << std::endl;
 
       // For this test we have to create 10x 100 transactions
       // But as the consensus worker is running, we dont actually need to create the blocks
@@ -1118,7 +1115,6 @@ namespace TState {
 
       /// For each set of transactions, broadcast them and wait for them to be confirmed
       for (const auto &txSet: txs) {
-        std::cout << "Broadcasting txs" << std::endl;
         for (const auto &tx: txSet) {
           auto txStatus = blockchainWrapper1.state.addTx(TxBlock(tx));
           REQUIRE(isTxStatusValid(txStatus));
@@ -1175,24 +1171,15 @@ namespace TState {
       }
 
       /// TODO: This is done for the same reason as stopDiscovery.
-      std::cout << "Stopping consensus for wrapper 1" << std::endl;
       blockchainWrapper1.consensus.stop();
-      std::cout << "Stopping consensus for wrapper 2" << std::endl;
       blockchainWrapper2.consensus.stop();
-      std::cout << "Stopping consensus for wrapper 3" << std::endl;
       blockchainWrapper3.consensus.stop();
-      std::cout << "Stopping consensus for wrapper 4" << std::endl;
       blockchainWrapper4.consensus.stop();
-      std::cout << "Stopping consensus for wrapper 5" << std::endl;
       blockchainWrapper5.consensus.stop();
-      std::cout << "Stopping consensus for wrapper 6" << std::endl;
       blockchainWrapper6.consensus.stop();
-      std::cout << "Stopping consensus for wrapper 7" << std::endl;
       blockchainWrapper7.consensus.stop();
-      std::cout << "Stopping consensus for wrapper 8" << std::endl;
       blockchainWrapper8.consensus.stop();
       // Sleep so it can conclude the last operations.
-      std::cout << "Everything should have succesfully stopped..." << std::endl;
       std::this_thread::sleep_for(std::chrono::seconds(1));
     }
 
