@@ -266,8 +266,14 @@ namespace P2P {
     }
     std::unique_lock lockRequests(this->requestsMutex_);
     requests_[message->id()] = std::make_shared<Request>(message->command(), message->id(), session->hostNodeId(), message);
-    session->write(message);
-    return requests_[message->id()];
+    bool written = session->write(message);
+    if (written) {
+      return requests_[message->id()];
+    } else {
+      // Delete the request if it was not written
+      requests_.erase(message->id());
+      return nullptr;
+    }
   }
 
   // ManagerBase::answerSession doesn't change sessions_ map, but we still need to

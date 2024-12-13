@@ -164,7 +164,7 @@ namespace P2P {
       void close() { close(""); }
 
       /// Writes a message to the socket.
-      void write(const std::shared_ptr<const Message>& message);
+      bool write(const std::shared_ptr<const Message>& message);
 
       /// ManagerBase notifies this session that it has been unregistered; returns whether this session was handshaked.
       bool notifyUnregistered();
