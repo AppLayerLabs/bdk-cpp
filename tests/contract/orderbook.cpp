@@ -139,6 +139,31 @@ namespace TORDERBOOK {
       REQUIRE(asks.size() == 0);
       REQUIRE(bids.size() == 0);
     }
+
+    SECTION("Orderbook delete bid limit order") {
+      SDKTestSuite sdk = SDKTestSuite::createNewEnvironment(testDumpPath + "/testOrderBookCreation");
+      Address owner = sdk.getChainOwnerAccount().address;
+      Address AAddr = sdk.deployContract<ERC20>(std::string("A_Token"), std::string("TKN_A"), uint8_t(18), uint256_t("2000000000000000000"));
+      Address BAddr = sdk.deployContract<ERC20>(std::string("B_Token"), std::string("TKN_B"), uint8_t(18), uint256_t("2000000000000000000"));
+      uint8_t decA = sdk.callViewFunction(AAddr, &ERC20::decimals);
+      uint8_t decB = sdk.callViewFunction(BAddr, &ERC20::decimals);
+      // create the contract
+      Address orderBook = sdk.deployContract<OrderBook>(AAddr, std::string("A_Token"), decA,
+                                                        BAddr, std::string("B_Token"), decB);
+      // approve orderbook to transfer the tokens
+      sdk.callFunction(BAddr, &ERC20::approve, orderBook, uint256_t("2000000000000000000"));
+      // add bid order
+      sdk.callFunction(orderBook, &OrderBook::addBidLimitOrder, uint256_t("100"), uint256_t("10"));
+      // get bids
+      auto bids = sdk.callViewFunction(orderBook, &OrderBook::getBids);
+      // verify the number of bid orders
+      REQUIRE(bids.size() == 2);
+      // get bid id
+      uint256_t id = std::get<0>(*(bids.cbegin()));
+      // delete bid order
+      sdk.callFunction(orderBook, &OrderBook::delBidLimitOrder, id);
+      // verify the number of bid orders
+      REQUIRE(sdk.callViewFunction(orderBook, &OrderBook::getBids).size() == 0);
+    }
   }
 }
-
