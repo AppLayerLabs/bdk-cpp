@@ -34,7 +34,7 @@ namespace Faucet {
       fail("HTTPListener", __func__, ec, "Failed to accept connection");
     } else {
       std::make_shared<HTTPSession>(
-        std::move(sock), this->docroot_, this->faucet_
+        std::move(sock), this->docroot_, this->faucet_, this->rpc_
       )->start(); // Create the http session and run it
     }
     this->do_accept(); // Accept another connection

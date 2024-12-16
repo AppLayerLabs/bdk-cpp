@@ -70,7 +70,7 @@ class ERC20 : public DynamicContract {
      * @param address The address where the contract will be deployed.
      * @param db Reference to the database object.
      */
-    ERC20(const Address& address, const DB& db);
+    //ERC20(const Address& address, const DB& db);
 
     /**
      * Constructor to be used when creating a new contract.
@@ -180,8 +180,8 @@ class ERC20 : public DynamicContract {
       ContractReflectionInterface::registerContractMethods<
         ERC20, const std::string &, const std::string &, const uint8_t &,
         const uint256_t &,
-        const Address &, const Address &, const uint64_t &,
-        DB&
+        const Address &, const Address &, const uint64_t &
+        //DB&
       >(
         std::vector<std::string>{"erc20name", "erc20symbol", "erc20decimals", "mintValue"},
         std::make_tuple("name", &ERC20::name, FunctionTypes::View, std::vector<std::string>{}),
@@ -197,7 +197,7 @@ class ERC20 : public DynamicContract {
     }
 
   /// Dump method
-  DBBatch dump() const override;
+  //DBBatch dump() const override;
 };
 
 #endif /// ERC20_H

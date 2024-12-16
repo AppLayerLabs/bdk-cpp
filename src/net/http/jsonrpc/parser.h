@@ -10,9 +10,12 @@ See the LICENSE.txt file in the project root for more information.
 
 #include <ranges>
 
-#include "../../../core/storage.h" // utils/safehash.h -> tx.h -> ecdsa.h -> utils.h
-
 #include "error.h"
+
+#include "../libs/json.hpp"
+using json = nlohmann::ordered_json;
+
+#include "../utils/strings.h"
 
 namespace jsonrpc {
   /**

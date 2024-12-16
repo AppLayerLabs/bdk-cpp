@@ -6,7 +6,7 @@ See the LICENSE.txt file in the project root for more information.
 */
 
 #include "erc20wrapper.h"
-
+/*
 ERC20Wrapper::ERC20Wrapper(const Address& contractAddress, const DB& db
 ) : DynamicContract(contractAddress, db), tokensAndBalances_(this)
 {
@@ -21,7 +21,7 @@ ERC20Wrapper::ERC20Wrapper(const Address& contractAddress, const DB& db
 
   this->tokensAndBalances_.enableRegister();
 }
-
+*/
 ERC20Wrapper::ERC20Wrapper(const Address& address, const Address& creator, const uint64_t& chainId
 ) : DynamicContract("ERC20Wrapper", address, creator, chainId), tokensAndBalances_(this)
 {
@@ -80,6 +80,7 @@ void ERC20Wrapper::registerContractFunctions() {
   this->registerMemberFunction("deposit", &ERC20Wrapper::deposit, FunctionTypes::NonPayable, this);
 }
 
+/*
 DBBatch ERC20Wrapper::dump() const {
   DBBatch dbBatch = BaseContract::dump();
   for (auto i = tokensAndBalances_.cbegin(); i != tokensAndBalances_.cend(); ++i) {
@@ -92,3 +93,4 @@ DBBatch ERC20Wrapper::dump() const {
   }
   return dbBatch;
 }
+*/

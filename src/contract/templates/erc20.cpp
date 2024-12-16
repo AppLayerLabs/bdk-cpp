@@ -10,6 +10,7 @@ See the LICENSE.txt file in the project root for more information.
 #include "../../utils/uintconv.h"
 #include "../../utils/strconv.h"
 
+/*
 ERC20::ERC20(const Address& address, const DB& db)
 : DynamicContract(address, db), name_(this), symbol_(this), decimals_(this),
   totalSupply_(this), balances_(this), allowed_(this)
@@ -44,6 +45,7 @@ ERC20::ERC20(const Address& address, const DB& db)
   this->balances_.enableRegister();
   this->allowed_.enableRegister();
 }
+*/
 
 ERC20::ERC20(
   const std::string& erc20name_, const std::string& erc20symbol_,
@@ -167,6 +169,7 @@ bool ERC20::transferFrom(
   return true;
 }
 
+/*
 DBBatch ERC20::dump() const
 {
   DBBatch dbBatch = BaseContract::dump();
@@ -193,4 +196,6 @@ DBBatch ERC20::dump() const
   }
   return dbBatch;
 }
+*/
+
 

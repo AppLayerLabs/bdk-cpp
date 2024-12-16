@@ -8,7 +8,6 @@ See the LICENSE.txt file in the project root for more information.
 #include <csignal>
 #include <condition_variable>
 
-#include "net/p2p/managerdiscovery.h"
 #include "utils/options.h"
 #include "iostream"
 #include "src/utils/clargs.h"
@@ -53,10 +52,12 @@ int main(int argc, char* argv[]) {
   std::string blockchainPath = std::filesystem::current_path().string() + "/" + opt.rootPath;
   GLOGINFO("Full rootPath: " + blockchainPath);
   const auto options = Options::fromFile(blockchainPath);
-  auto p2p = std::make_unique<P2P::ManagerDiscovery>(options.getP2PIp(), options);
-  p2p->start();
-  std::this_thread::sleep_for(std::chrono::milliseconds(100));
-  p2p->startDiscovery();
+
+  // FIXME: use cometbft seed nodes  
+  //auto p2p = std::make_unique<P2P::ManagerDiscovery>(options.getP2PIp(), options);
+  //p2p->start();
+  //std::this_thread::sleep_for(std::chrono::milliseconds(100));
+  //p2p->startDiscovery();
 
   // Main thread waits for a non-zero signal code to be raised and caught
   Utils::safePrint("Main thread waiting for interrupt signal...");
@@ -70,10 +71,12 @@ int main(int argc, char* argv[]) {
 
   // Shut down the node
   SLOGINFO("Received signal " + std::to_string(exitCode));
-  Utils::safePrint("Main thread stopping node...");
-  p2p->stopDiscovery();
-  Utils::safePrint("Main thread shutting down...");
-  p2p.reset();
+
+  // FIXME
+  //Utils::safePrint("Main thread stopping node...");
+  //p2p->stopDiscovery();
+  //Utils::safePrint("Main thread shutting down...");
+  //p2p.reset();
 
   // Return the signal code
   Utils::safePrint("Main thread exiting with code " + std::to_string(exitCode) + ".");

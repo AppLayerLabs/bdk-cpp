@@ -14,6 +14,10 @@ See the LICENSE.txt file in the project root for more information.
 
 #include "../utils/strconv.h"
 
+#include "../utils/safehash.h"
+
+#include "../utils/options.h"
+
 /**
  * Class that holds all current contract instances in the blockchain state.
  * Responsible for creating and deploying contracts in the chain.
@@ -60,10 +64,14 @@ class ContractManager : public BaseContract {
      * @param db Reference to the database.
      * @return `true` if the contract exists in the database, `false` otherwise.
      */
+    /*
+      no db
+
     template <typename Tuple, std::size_t... Is>
     bool loadFromDBHelper(const auto& contract, const Address& contractAddress, const DB& db, std::index_sequence<Is...>) {
       return (loadFromDBT<std::tuple_element_t<Is, Tuple>>(contract, contractAddress, db) || ...);
     }
+    */
 
     /**
      * Load all contracts from the database.
@@ -72,7 +80,7 @@ class ContractManager : public BaseContract {
      * @param contractAddress The address of the contract.
      * @param db Reference to the database.
      * @return `true` if the contract exists in the database, `false` otherwise.
-     */
+     *//*
     template <typename T>
     bool loadFromDBT(const auto& contract, const Address& contractAddress, const DB& db) {
       // Here we disable this template when T is a tuple
@@ -85,6 +93,7 @@ class ContractManager : public BaseContract {
       }
       return false;
     }
+*/
 
     /**
      * Load all contracts from the database using the helper function.
@@ -93,7 +102,7 @@ class ContractManager : public BaseContract {
      * @param contractAddress The address of the contract.
      * @param db Reference to the database.
      * @return `true` if the contract exists in the database, `false` otherwise.
-     */
+     *//*
     template <typename Tuple> requires Utils::is_tuple<Tuple>::value bool loadFromDB(
       const auto& contract, const Address& contractAddress, const DB& db
     ) {
@@ -101,6 +110,7 @@ class ContractManager : public BaseContract {
         contract, contractAddress, db, std::make_index_sequence<std::tuple_size<Tuple>::value>{}
       );
     }
+    */
 
   public:
     /**
@@ -111,9 +121,10 @@ class ContractManager : public BaseContract {
      * @param options Reference to the options singleton.
      * @throw DynamicException if contract address doesn't exist in the database.
      */
-    ContractManager(const DB& db,
+    ContractManager(//const DB& db,
       boost::unordered_flat_map<Address, std::unique_ptr<BaseContract>, SafeHash>& contracts,
-      DumpManager& manager, const Options& options
+      //DumpManager& manager, 
+      const Options& options
     );
 
     ~ContractManager() override; ///< Destructor. Automatically saves contracts to the database before wiping them.
@@ -140,7 +151,7 @@ class ContractManager : public BaseContract {
     Bytes ethCallView(const evmc_message& data, ContractHost* host) const override;
 
     /// Dump override
-    DBBatch dump() const override;
+    //DBBatch dump() const override;
 };
 
 #endif // CONTRACTMANAGER_H

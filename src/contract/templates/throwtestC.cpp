@@ -13,20 +13,20 @@ ThrowTestC::ThrowTestC(
 ) : DynamicContract("ThrowTestC", address, creator, chainId) {
   registerContractFunctions();
 }
-
+/*
 ThrowTestC::ThrowTestC(
   const Address& address,
   const DB& db
 ) : DynamicContract(address, db) {
   registerContractFunctions();
 }
-
+*/
 ThrowTestC::~ThrowTestC() { return; }
 
-DBBatch ThrowTestC::dump() const
-{
-  return BaseContract::dump();
-}
+//DBBatch ThrowTestC::dump() const
+//{
+//  return BaseContract::dump();
+//}
 
 uint8_t ThrowTestC::getNumC() const { return this->num_.get(); }
 

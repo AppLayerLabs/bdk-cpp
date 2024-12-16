@@ -7,162 +7,71 @@ See the LICENSE.txt file in the project root for more information.
 
 #include "blockchain.h"
 
-Blockchain::Blockchain(const std::string& blockchainPath) :
-  options_(Options::fromFile(blockchainPath)),
-  p2p_(options_.getP2PIp(), options_, storage_, state_),
-  db_(std::get<0>(DumpManager::getBestStateDBPath(options_))),
-  storage_(p2p_.getLogicalLocation(), options_),
-  state_(db_, storage_, p2p_, std::get<1>(DumpManager::getBestStateDBPath(options_)), options_),
-  http_(state_, storage_, p2p_, options_),
-  syncer_(p2p_, storage_, state_),
-  consensus_(state_, p2p_, storage_, options_)
+#include "../utils/logger.h"
 
-  // TODO: This integration will happen later.
-  //       For now, Comet will be only referenced in tests.
-  //comet_(p2p_.getLogicalLocation(), options_)
-{}
+Blockchain::Blockchain(const std::string& blockchainPath, std::string instanceId) :
+  instanceId_(instanceId),
+  options_(Options::fromFile(blockchainPath)),
+  comet_(this, instanceId, options_),
+  state_(*this), http_(options_.getHttpPort(), *this)
+{
+}
 
 void Blockchain::start() {
   // Initialize necessary modules
   LOGINFOP("Starting BDK Node...");
-  this->p2p_.start();
+
+  // FIXME/TODO: use cometbft seed-node/PEX to implement discoverynode
+  // just setting the relevant config.toml options via Options::cometBFT::config.toml::xxx
+
+  // FIXME/TODO: state saver
+  // must checkpoint the entire machine State to disk synchronously (blocking)
+  // every X blocks (you can't update the state while you are writing, you must
+  // acquire an exclusive lock over the entire State during checkpointing to disk).
+  // then, needs a synchronous loadCheckpoint("DB dir/name") function as well.
+  // each checkpoint must have its own disk location (instead of writing multiple
+  // checkpoints as entries inside the same database files/dir).
+  // two ways to do this:
+  // - fork the process to duplicate memory then write to disk in the fork
+  // - run a dedicated checkpointing node together with the validator node
+  // a regular node can just be a checkpointing node itself if it can afford
+  // to get a little behind the chain or, if it wants to pay for the memory
+  // cost, it can benefit from the process fork checkpointer.
+
+  this->comet_.start();
   this->http_.start();
-
-  // Connect to all seed nodes from the config and start the discoveryThread.
-  for (const auto& [ipAddress, port]: this->options_.getDiscoveryNodes()) {
-    this->p2p_.connectToServer(ipAddress, port); // TODO: optimize port (uint64_t implicit conversion to uint16_t)
-  }
-  std::this_thread::sleep_for(std::chrono::milliseconds(100));
-  this->p2p_.startDiscovery();
-  std::this_thread::sleep_for(std::chrono::milliseconds(100));
-
-  // TODO: Remove. This is not needed in halley branch; also, existing unit tests do their own syncing.
-  // Do initial sync
-  //this->syncer_.sync(100, 20000000); // up to 100 blocks per request, 20MB limit, default connection timeout & retry count
-
-  // After Syncing, start the DumpWorker.
-  this->state_.dumpStartWorker();
-
-  // if node is a Validator, start the consensus loop
-  this->consensus_.start();
-
-  // TODO: This integration will happen later.
-  //       For now, Comet will be only referenced in tests.
-  //// start the cometbft manager thread
-  //this->comet_.setPauseState();
-  //this->comet_.start();
 }
 
 void Blockchain::stop() {
-  // TODO: This integration will happen later.
-  //       For now, Comet will be only referenced in tests.
-  //this->comet_.stop();
-  this->consensus_.stop();
   this->http_.stop();
-  this->p2p_.stop();
+  this->comet_.stop();
 }
 
-bool Syncer::sync(uint64_t blocksPerRequest, uint64_t bytesPerRequestLimit, int waitForPeersSecs, int tries) {
-  // NOTE: This is a synchronous operation that's (currently) run during note boot only, in the caller (main) thread.
-  // TODO: Detect out-of-sync after the intial synchronization on node boot and resynchronize.
-
-  // Make sure we are requesting at least one block per request.
-  if (blocksPerRequest == 0) blocksPerRequest = 1;
-
-  // Synchronously get the first list of currently connected nodes and their current height
-  LOGINFOP("Syncing with other nodes in the network...");
-  this->p2p_.getNodeConns().forceRefresh();
-  std::pair<P2P::NodeID, uint64_t> highestNode = {P2P::NodeID(), 0};
-
-  // Loop downloading blocks until we are synchronized
-  while (true) {
-    if (!syncLoop(blocksPerRequest, bytesPerRequestLimit, waitForPeersSecs, tries, highestNode)) break;
-  }
-  this->synced_ = true;
-  LOGINFOP("Synced with the network; my latest block height: " + std::to_string(this->storage_.latest()->getNHeight()));
-  return true;
-}
-
-bool Syncer::syncLoop(
-  const uint64_t& blocksPerRequest, const uint64_t& bytesPerRequestLimit,
-  int& waitForPeersSecs, int& tries,
-  std::pair<P2P::NodeID, uint64_t>& highestNode
-) {
-  // P2P is running, so we are getting updated NodeInfos via NodeConns.
-  // Get the node with the highest block height available for download.
-  auto connected = this->p2p_.getNodeConns().getConnected();
-  if (connected.empty()) {
-    // No one to download blocks from.
-    // While we don't exhaust the waiting-for-a-connection timeout, sleep and try again later.
-    if (waitForPeersSecs-- > 0) {
-      LOGINFOP("Syncer waiting for peer connections (" + std::to_string(waitForPeersSecs) + "s left) ...");
-      std::this_thread::sleep_for(std::chrono::seconds(1));
-      return true;
-    }
-    // We have timed out waiting for peers, so synchronization is complete.
-    LOGINFOP("Syncer quitting due to no peer connections.");
-    return false;
-  }
-  for (auto& [nodeId, nodeInfo] : connected) {
-    if (nodeInfo.latestBlockHeight() > highestNode.second) highestNode = {nodeId, nodeInfo.latestBlockHeight()};
-  }
-  LOGINFOP("Latest known block height is " + std::to_string(highestNode.second));
-
-  auto currentNHeight = this->storage_.latest()->getNHeight();
-
-  // If synced, quit sync loop.
-  if (highestNode.second <= currentNHeight) return false;
-
-  auto downloadNHeight = currentNHeight + 1;
-  auto downloadNHeightEnd = downloadNHeight + blocksPerRequest - 1;
-
-  // NOTE: Possible optimizatons:
-  // - Parallel download of different blocks or block ranges from multiple nodes
-  // - Retry slow/failed downloads
-  // - Deprioritize download from slow/failed nodes
-
-  // Currently, fetch the next batch of block froms a node that is the best node (has the highest block height)
-  LOGINFOP("Requesting blocks [" + std::to_string(downloadNHeight) + ","
-    + std::to_string(downloadNHeightEnd) + "] (" + std::to_string(bytesPerRequestLimit)
-    + " bytes limit) from " + toString(highestNode.first)
-  );
-
-  // Request the next block we need from the chosen peer
-  std::vector<FinalizedBlock> result = this->p2p_.requestBlock(
-    highestNode.first, downloadNHeight, downloadNHeightEnd, bytesPerRequestLimit
-  );
-
-  // If the request failed, retry it (unless we set a finite number of tries and we've just run out of them)
-  if (result.empty()) {
-    bool shouldRetry = (tries > 0);
-    if (shouldRetry) {
-      tries--; LOGWARNINGP("Blocks request failed (" + std::to_string(tries) + " tries left)");
-    }
-    if (shouldRetry && tries == 0) return false;
-    LOGWARNINGP("Blocks request failed, restarting sync");
-    return true;
-  }
-
-  // Validate and connect the blocks
-  try {
-    for (auto& block : result) {
-      // Blocks in the response must be all a contiguous range
-      if (block.getNHeight() != downloadNHeight) throw DynamicException(
-        "Peer sent block with wrong height " + std::to_string(block.getNHeight()) + " instead of " + std::to_string(downloadNHeight)
-      );
-      // This call validates the block first (throws exception if the block invalid).
-      // Note that the "result" vector's element data is being consumed (moved) by this call.
-      this->state_.processNextBlock(std::move(block));
-      LOGINFOP("Processed block " + std::to_string(downloadNHeight) + " from " + toString(highestNode.first));
-      downloadNHeight++;
-    }
-  } catch (std::exception &e) {
-    LOGERROR("Invalid RequestBlock Answer from "
-      + toString(highestNode.first) + " , error: " + e.what() + " closing session."
-    );
-    this->p2p_.disconnectSession(highestNode.first);
-  }
-
-  return true;
-}
-
+json Blockchain::web3_clientVersion(const json& request) { return {}; }
+json Blockchain::web3_sha3(const json& request) { return {}; }
+json Blockchain::net_version(const json& request) { return {}; }
+json Blockchain::net_listening(const json& request) { return {}; }
+json Blockchain::eth_protocolVersion(const json& request) { return {}; }
+json Blockchain::net_peerCount(const json& request) { return {}; }
+json Blockchain::eth_getBlockByHash(const json& request){ return {}; }
+json Blockchain::eth_getBlockByNumber(const json& request) { return {}; }
+json Blockchain::eth_getBlockTransactionCountByHash(const json& request) { return {}; }
+json Blockchain::eth_getBlockTransactionCountByNumber(const json& request) { return {}; }
+json Blockchain::eth_chainId(const json& request) { return {}; }
+json Blockchain::eth_syncing(const json& request) { return {}; }
+json Blockchain::eth_coinbase(const json& request) { return {}; }
+json Blockchain::eth_blockNumber(const json& request) { return {}; }
+json Blockchain::eth_call(const json& request) { return {}; }
+json Blockchain::eth_estimateGas(const json& request) { return {}; }
+json Blockchain::eth_gasPrice(const json& request) { return {}; }
+json Blockchain::eth_feeHistory(const json& request) { return {}; }
+json Blockchain::eth_getLogs(const json& request) { return {}; }
+json Blockchain::eth_getBalance(const json& request) { return {}; }
+json Blockchain::eth_getTransactionCount(const json& request) { return {}; }
+json Blockchain::eth_getCode(const json& request) { return {}; }
+json Blockchain::eth_sendRawTransaction(const json& request) { return {}; }
+json Blockchain::eth_getTransactionByHash(const json& request) { return {}; }
+json Blockchain::eth_getTransactionByBlockHashAndIndex(const json& request){ return {}; }
+json Blockchain::eth_getTransactionByBlockNumberAndIndex(const json& request) { return {}; }
+json Blockchain::eth_getTransactionReceipt(const json& request) { return {}; }
+json Blockchain::eth_getUncleByBlockHashAndIndex() { return {}; }

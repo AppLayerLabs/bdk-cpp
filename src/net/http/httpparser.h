@@ -25,36 +25,23 @@ See the LICENSE.txt file in the project root for more information.
 #include <boost/beast/version.hpp>
 #include <boost/beast/websocket.hpp>
 
-// finalizedblock.h -> merkle.h -> tx.h -> ecdsa.h -> utils.h -> libs/json.hpp -> algorithm, memory, string, vector
-#include "../utils/options.h"
-
 namespace beast = boost::beast;         // from <boost/beast.hpp>
 namespace http = beast::http;           // from <boost/beast/http.hpp>
 namespace websocket = beast::websocket; // from <boost/beast/websocket.hpp>
 namespace net = boost::asio;            // from <boost/asio.hpp>
 using tcp = boost::asio::ip::tcp;       // from <boost/asio/ip/tcp.hpp>
 
-// It is preferable to use forward declarations here.
-// The parser functions never access any of these members, only passes them around.
-class State;
-class Storage;
-namespace P2P { class ManagerNormal; }
+#include "noderpcinterface.h"
+
+#include "../utils/strings.h"
 
 /**
  * Parse a JSON-RPC request into a JSON-RPC response, handling all requests and errors.
  * @param body The request string.
- * @param state Reference pointer to the blockchain's state.
- * @param storage Reference pointer to the blockchain's storage.
- * @param p2p Reference pointer to the P2P connection manager.
- * @param options Reference pointer to the options singleton.
  * @return The response string.
  */
 std::string parseJsonRpcRequest(
-  const std::string& body,
-  State& state,
-  const Storage& storage,
-  P2P::ManagerNormal& p2p,
-  const Options& options
+  const std::string& body, NodeRPCInterface& rpc
 );
 
 /**
@@ -64,16 +51,11 @@ std::string parseJsonRpcRequest(
  * @param docroot The root directory of the endpoint.
  * @param req The request to handle.
  * @param send TODO: we're missing details on this, Allocator, Body, the function itself and where it's used
- * @param state Reference pointer to the blockchain's state.
- * @param storage Reference pointer to the blockchain's storage.
- * @param p2p Reference pointer to the P2P connection manager.
- * @param options Reference pointer to the options singleton.
  */
 template<class Body, class Allocator, class Send> void handle_request(
   [[maybe_unused]] beast::string_view docroot,
   http::request<Body, http::basic_fields<Allocator>>&& req,
-  Send&& send, State& state, const Storage& storage,
-  P2P::ManagerNormal& p2p, const Options& options
+  Send&& send, NodeRPCInterface& rpc
 ) {
   // Returns a bad request response
   const auto bad_request = [&req](beast::string_view why){
@@ -132,9 +114,7 @@ template<class Body, class Allocator, class Send> void handle_request(
   }
 
   std::string request = req.body();
-  std::string answer = parseJsonRpcRequest(
-    request, state, storage, p2p, options
-  );
+  std::string answer = parseJsonRpcRequest(request, rpc);
 
   http::response<http::string_body> res{http::status::ok, req.version()};
   res.set(http::field::server, BOOST_BEAST_VERSION_STRING);

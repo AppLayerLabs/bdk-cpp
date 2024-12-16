@@ -39,7 +39,7 @@ class ThrowTestA : public DynamicContract {
     * @param address The address of the contract.
     * @param db The database to use.
     */
-    ThrowTestA(const Address& address, const DB& db);
+    //ThrowTestA(const Address& address, const DB& db);
 
     ~ThrowTestA() override; ///< Destructor.
 
@@ -63,7 +63,7 @@ class ThrowTestA : public DynamicContract {
     */
     static void registerContract() {
       ContractReflectionInterface::registerContractMethods<
-        ThrowTestA, const Address&, const Address&, const uint64_t&, DB&
+        ThrowTestA, const Address&, const Address&, const uint64_t&//, DB&
       >(
         std::vector<std::string>{},
         std::make_tuple("getNumA", &ThrowTestA::getNumA, FunctionTypes::View, std::vector<std::string>{}),
@@ -72,7 +72,7 @@ class ThrowTestA : public DynamicContract {
     }
 
     /// Dump method
-    DBBatch dump() const override;
+    //DBBatch dump() const override;
 };
 
 #endif  // THROWTESTA_H

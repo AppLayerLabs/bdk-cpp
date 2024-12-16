@@ -454,32 +454,55 @@ Options getOptionsForCometTest(
 
   defaultCometBFTOptions["genesis.json"]["app_hash"] = appHash;
 
+/*
+    Options(
+      const std::string& rootPath, 
+      const std::string& web3clientVersion,
+      const uint64_t& version, 
+      const uint64_t& chainID, 
+      const Address& chainOwner,
+      //const boost::asio::ip::address& p2pIp, const uint16_t& p2pPort,
+      const uint16_t& httpPort,
+      //const uint16_t& minDiscoveryConns, const uint16_t& minNormalConns,
+      //const uint16_t& maxDiscoveryConns, const uint16_t& maxNormalConns,
+      const uint64_t& eventBlockCap, 
+      const uint64_t& eventLogCap,
+      const uint64_t& stateDumpTrigger,
+      //const uint32_t& minValidators,
+      //const std::vector<std::pair<boost::asio::ip::address, uint64_t>>& discoveryNodes,
+      //const FinalizedBlock& genesisBlock, const uint64_t genesisTimestamp, const PrivKey& genesisSigner,
+      //const std::vector<std::pair<Address, uint256_t>>& genesisBalances,
+      //const std::vector<Address>& genesisValidators,
+      //const PrivKey& privKey,
+      IndexingMode indexingMode,
+      const json& cometBFT_
+    );
+
+*/
   // NOTE: most parameters are unused by the Comet class
-  PrivKey genesisPrivKey(Hex::toBytes("0xe89ef6409c467285bcae9f80ab1cfeb3487cfe61ab28fb7d36443e1daa0c2867"));
-  FinalizedBlock genesis = FinalizedBlock::createNewValidBlock({},{}, Hash(), 0, 0, genesisPrivKey);
   const Options options = Options(
     rootPath,
     "BDK/cpp/linux_x86-64/0.2.0",
     1,
     8080,
     Address(Hex::toBytes("0x00dead00665771855a34155f5e7405489df2c3c6")),
-    LOCALHOST,
-    12345,
+    //LOCALHOST,
+    //12345,
     9999,
-    11,
-    11,
-    200,
-    50,
+    //11,
+    //11,
+    //200,
+    //50,
     2000,
     10000,
     1000,
-    4,
-    {},
-    genesis,
-    0,
-    genesisPrivKey,
-    {},
-    {},
+    //4,
+    //{},
+    //genesis,
+    //0,
+    //genesisPrivKey,
+    //{},
+    //{},
     IndexingMode::RPC_TRACE,
     defaultCometBFTOptions
   );

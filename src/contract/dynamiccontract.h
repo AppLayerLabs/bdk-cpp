@@ -354,7 +354,7 @@ class DynamicContract : public BaseContract {
      * @param address The address where the contract will be deployed.
      * @param db Reference to the database object.
      */
-    DynamicContract(const Address& address, const DB& db) : BaseContract(address, db) {};
+//    DynamicContract(const Address& address, const DB& db) : BaseContract(address, db) {};
 
     /**
      * Invoke a contract function using a tuple of (from, to, gasLimit, gasPrice, value, data).

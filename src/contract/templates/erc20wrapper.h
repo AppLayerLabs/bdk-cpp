@@ -43,7 +43,7 @@ class ERC20Wrapper : public DynamicContract {
      * @param contractAddress The address where the contract will be deployed.
      * @param db Reference pointer to the database object.
      */
-    ERC20Wrapper(const Address& contractAddress, const DB& db);
+    //ERC20Wrapper(const Address& contractAddress, const DB& db);
 
     /**
      * Constructor for building a new contract from scratch.
@@ -58,7 +58,7 @@ class ERC20Wrapper : public DynamicContract {
     /// Register contract class via ContractReflectionInterface.
     static void registerContract() {
       ContractReflectionInterface::registerContractMethods<
-        ERC20Wrapper, const Address&, const Address&, const uint64_t&, DB&
+        ERC20Wrapper, const Address&, const Address&//, const uint64_t&, DB&
       >(
         std::vector<std::string>{},
         std::make_tuple("getContractBalance", &ERC20Wrapper::getContractBalance, FunctionTypes::View, std::vector<std::string>{"token"}),
@@ -117,7 +117,7 @@ class ERC20Wrapper : public DynamicContract {
     void deposit(const Address& token, const uint256_t& value);
 
     /// Dump method
-    DBBatch dump() const override;
+    //DBBatch dump() const override;
 };
 
 #endif // ERC20WRAPPER_H

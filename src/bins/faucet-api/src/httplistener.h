@@ -10,6 +10,7 @@ See the LICENSE.txt file in the project root for more information.
 
 #include "httpparser.h"
 #include "httpsession.h"
+#include "noderpcinterface.h"
 
 /// Namespace for faucet-related functionalities.
 namespace Faucet {
@@ -18,6 +19,7 @@ namespace Faucet {
   /// Class for listening to, accepting and dispatching incoming connections/sessions.
   class HTTPListener : public std::enable_shared_from_this<HTTPListener> {
   private:
+    NodeRPCInterface& rpc_;
     Manager& faucet_; ///< Reference to the faucet manager.
     net::io_context& ioc_; ///< Provides core I/O functionality.
     tcp::acceptor acc_; ///< Accepts incoming connections.
@@ -42,7 +44,7 @@ namespace Faucet {
      * @param faucet Reference to the faucet manager.
      */
     HTTPListener(
-      net::io_context& ioc, tcp::endpoint ep, const std::shared_ptr<const std::string>& docroot, Manager& faucet
+      net::io_context& ioc, tcp::endpoint ep, const std::shared_ptr<const std::string>& docroot, Manager& faucet, NodeRPCInterface& rpc_
     );
 
     void start(); ///< Start accepting incoming connections.

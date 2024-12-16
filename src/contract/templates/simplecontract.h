@@ -78,10 +78,10 @@ class SimpleContract : public DynamicContract {
      * @param address The address of the contract.
      * @param db The database to use.
      */
-    SimpleContract(
-      const Address& address,
-      const DB& db
-    );
+    //SimpleContract(
+    //  const Address& address,
+    //  const DB& db
+    //);
 
     ~SimpleContract() override; ///< Destructor.
 
@@ -150,7 +150,7 @@ class SimpleContract : public DynamicContract {
     static void registerContract() {
       ContractReflectionInterface::registerContractMethods<
         SimpleContract, const std::string&, const uint256_t&, const std::tuple<std::string, uint256_t>&,
-        const Address&, const Address&, const uint64_t&, const DB&
+        const Address&, const Address&, const uint64_t&//, const DB&
       >(
         std::vector<std::string>{"name_", "number_", "tuple_"},
         std::make_tuple("setName", &SimpleContract::setName, FunctionTypes::NonPayable, std::vector<std::string>{"argName"}),
@@ -182,7 +182,7 @@ class SimpleContract : public DynamicContract {
     }
 
     /// Dump method
-    DBBatch dump() const override;
+    //DBBatch dump() const override;
 };
 
 #endif // SIMPLECONTRACT_H

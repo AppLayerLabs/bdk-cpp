@@ -9,28 +9,35 @@ See the LICENSE.txt file in the project root for more information.
 #include "contractfactory.h"
 #include "customcontracts.h"
 
-#include "../core/rdpos.h"
 
 ContractManager::ContractManager(
-  const DB& db, boost::unordered_flat_map<Address, std::unique_ptr<BaseContract>, SafeHash>& contracts,
-  DumpManager& manager, const Options& options
+  //const DB& db, 
+  boost::unordered_flat_map<Address, std::unique_ptr<BaseContract>, SafeHash>& contracts,
+  //DumpManager& manager,
+  const Options& options
 ) : BaseContract("ContractManager", ProtocolContractAddresses.at("ContractManager"),
   options.getChainOwner(), options.getChainID()), contracts_(contracts)
 {
   ContractFactory::registerContracts<ContractTypes>();
   ContractFactory::addAllContractFuncs<ContractTypes>(this->createContractFuncs_);
+
+  // FIXME
   // Load Contracts from DB
-  for (const DBEntry& contract : db.getBatch(DBPrefix::contractManager)) {
-    Address address(contract.key);
-    if (!this->loadFromDB<ContractTypes>(contract, address, db)) {
-      throw DynamicException("Unknown contract: " + StrConv::bytesToString(contract.value));
-    }
-  }
-  manager.pushBack(this);
+  //for (const DBEntry& contract : db.getBatch(DBPrefix::contractManager)) {
+  //  Address address(contract.key);
+  //  if (!this->loadFromDB<ContractTypes>(contract, address, db)) {
+  //    throw DynamicException("Unknown contract: " + StrConv::bytesToString(contract.value));
+  //  }
+  //}
+
+  // no db
+  //manager.pushBack(this);
 }
+
 
 ContractManager::~ContractManager() {}
 
+/*
 DBBatch ContractManager::dump() const {
   DBBatch contractsBatch;
   for (const auto& [address, contract] : this->contracts_) {
@@ -44,6 +51,7 @@ DBBatch ContractManager::dump() const {
   }
   return contractsBatch;
 }
+*/
 
 std::vector<std::tuple<std::string, Address>> ContractManager::getDeployedContracts() const {
   std::vector<std::tuple<std::string, Address>> contracts;

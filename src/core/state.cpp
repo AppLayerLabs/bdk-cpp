@@ -13,65 +13,70 @@ See the LICENSE.txt file in the project root for more information.
 
 #include "../utils/uintconv.h"
 
-State::State(
-  const DB& db,
-  Storage& storage,
-  P2P::ManagerNormal& p2pManager,
-  const uint64_t& snapshotHeight,
-  const Options& options
-) : vm_(evmc_create_evmone()),
-  options_(options),
-  storage_(storage),
-  dumpManager_(storage_, options_, this->stateMutex_),
-  dumpWorker_(options_, storage_, dumpManager_),
-  p2pManager_(p2pManager),
-  rdpos_(db, dumpManager_, storage, p2pManager, options)
+#include "blockchain.h"
+
+State::State(Blockchain& blockchain) : blockchain_(blockchain), vm_(evmc_create_evmone())
 {
   std::unique_lock lock(this->stateMutex_);
-  if (auto accountsFromDB = db.getBatch(DBPrefix::nativeAccounts); accountsFromDB.empty()) {
-    if (snapshotHeight != 0) {
-      throw DynamicException("Snapshot height is higher than 0, but no accounts found in DB");
-    }
-    for (const auto& [addr, balance] : options_.getGenesisBalances()) {
-      this->accounts_[addr]->balance = balance;
-    }
+//  if (auto accountsFromDB = db.getBatch(DBPrefix::nativeAccounts); accountsFromDB.empty()) {
+    //if (snapshotHeight != 0) {
+    //  throw DynamicException("Snapshot height is higher than 0, but no accounts found in DB");
+    //}
+//    for (const auto& [addr, balance] : options_.getGenesisBalances()) {
+//      this->accounts_[addr]->balance = balance;
+//    }
     // Also append the ContractManager account
     auto& contractManagerAcc = *this->accounts_[ProtocolContractAddresses.at("ContractManager")];
     contractManagerAcc.nonce = 1;
     contractManagerAcc.contractType = ContractType::CPP;
-  } else {
-    for (const auto& dbEntry : accountsFromDB) {
-      this->accounts_.emplace(Address(dbEntry.key), dbEntry.value);
-    }
-  }
+  //}// else {
+  //  for (const auto& dbEntry : accountsFromDB) {
+  //    this->accounts_.emplace(Address(dbEntry.key), dbEntry.value);
+  //  }
+  //}
 
   // Load all the EVM Storage Slot/keys from the DB
-  for (const auto& dbEntry : db.getBatch(DBPrefix::vmStorage)) {
-    this->vmStorage_.emplace(StorageKey(dbEntry.key), dbEntry.value);
-  }
+  //for (const auto& dbEntry : db.getBatch(DBPrefix::vmStorage)) {
+  //  this->vmStorage_.emplace(StorageKey(dbEntry.key), dbEntry.value);
+  //}
 
-  auto latestBlock = this->storage_.latest();
+  //auto latestBlock = this->storage_.latest();
 
   // Insert the contract manager into the contracts_ map.
   this->contracts_[ProtocolContractAddresses.at("ContractManager")] = std::make_unique<ContractManager>(
-    db, this->contracts_, this->dumpManager_ ,this->options_
+    //db, this->contracts_, this->dumpManager_ ,this->options_
+    this->contracts_, blockchain_.opt()
   );
+
+  /*
+    // FIXME: new with Comet
+
   ContractGlobals::coinbase_ = Secp256k1::toAddress(latestBlock->getValidatorPubKey());
   ContractGlobals::blockHash_ = latestBlock->getHash();
   ContractGlobals::blockHeight_ = latestBlock->getNHeight();
   ContractGlobals::blockTimestamp_ = latestBlock->getTimestamp();
+  */
 
   // State sanity check, lets check if all found contracts in the accounts_ map really have code or are C++ contracts
   for (const auto& [addr, acc] : this->accounts_) contractSanityCheck(addr, *acc);
 
-  if (snapshotHeight > this->storage_.latest()->getNHeight()) {
-    LOGERROR("Snapshot height is higher than latest block, we can't load State! Crashing the program");
-    throw DynamicException("Snapshot height is higher than latest block, we can't load State!");
-  }
+// NOTE: State doesn't have an opinion on what is the "latest" block height anymore
+// the state has the height that represents the state it models, i.e. its height
+// it does not concern itself with what the chain of blocks is storing
+//
+//  if (snapshotHeight > this->storage_.latest()->getNHeight()) {
+//    LOGERROR("Snapshot height is higher than latest block, we can't load State! Crashing the program");
+//    throw DynamicException("Snapshot height is higher than latest block, we can't load State!");
+//  }
 
   // For each nHeight from snapshotHeight + 1 to latestBlock->getNHeight()
   // We need to process the block and update the state
   // We can't call processNextBlock here, as it will place the block again on the storage
+/*
+
+  NOTE: State does nothing but model a machine state
+  it doesn't replay blocks or anything
+
   Utils::safePrint("Loading state from snapshot height: " + std::to_string(snapshotHeight));
   Utils::safePrint("Got latest block height: " + std::to_string(latestBlock->getNHeight()));
   for (uint64_t nHeight = snapshotHeight + 1; nHeight <= latestBlock->getNHeight(); nHeight++) {
@@ -94,9 +99,12 @@ State::State(
     this->rdpos_.processBlock(*block);
   }
   this->dumpManager_.pushBack(this);
+  */
 }
 
-State::~State() { evmc_destroy(this->vm_); }
+State::~State() {
+  evmc_destroy(this->vm_);
+}
 
 void State::contractSanityCheck(const Address& addr, const Account& acc) {
   switch (acc.contractType) {
@@ -129,6 +137,10 @@ void State::contractSanityCheck(const Address& addr, const Account& acc) {
   }
 }
 
+
+/*
+    TODO: checkpointing State
+
 DBBatch State::dump() const {
   // DB is stored as following
   // Under the DBPrefix::nativeAccounts
@@ -145,13 +157,13 @@ DBBatch State::dump() const {
 
   return stateBatch;
 }
+*/
 
+/*
 TxStatus State::validateTransactionInternal(const TxBlock& tx) const {
-  /**
-   * Rules for a transaction to be accepted within the current state:
-   * Transaction value + txFee (gas * gasPrice) needs to be lower than account balance
-   * Transaction nonce must match account nonce
-   */
+   // Rules for a transaction to be accepted within the current state:
+   // Transaction value + txFee (gas * gasPrice) needs to be lower than account balance
+   // Transaction nonce must match account nonce
 
   // Verify if transaction already exists within the mempool, if on mempool, it has been validated previously.
   if (this->mempool_.contains(tx.hash())) {
@@ -251,30 +263,6 @@ void State::processTransaction(
   fromBalance -= (usedGas * tx.getMaxFeePerGas());
 }
 
-void State::refreshMempool(const FinalizedBlock& block) {
-  // No need to lock mutex as function caller (this->processNextBlock) already lock mutex.
-  // Remove all transactions within the block that exists on the unordered_map.
-  for (const auto& tx : block.getTxs()) {
-    const auto it = this->mempool_.find(tx.hash());
-    if (it != this->mempool_.end()) {
-      this->mempool_.erase(it);
-    }
-  }
-
-  // Copy mempool over
-  auto mempoolCopy = this->mempool_;
-  this->mempool_.clear();
-
-  // Verify if the transactions within the old mempool
-  // not added to the block are valid given the current state
-  for (const auto& [hash, tx] : mempoolCopy) {
-    // Calls internal function which doesn't lock mutex.
-    if (isTxStatusValid(this->validateTransactionInternal(tx))) {
-      this->mempool_.insert({hash, tx});
-    }
-  }
-}
-
 uint256_t State::getNativeBalance(const Address &addr) const {
   std::shared_lock lock(this->stateMutex_);
   auto it = this->accounts_.find(addr);
@@ -300,15 +288,15 @@ std::vector<TxBlock> State::getMempool() const {
 }
 
 BlockValidationStatus State::validateNextBlockInternal(const FinalizedBlock& block) const {
-  /**
-   * Rules for a block to be accepted within the current state
-   * Block nHeight must match latest nHeight + 1
-   * Block nPrevHash must match latest hash
-   * Block nTimestamp must be higher than latest block
-   * Block has valid rdPoS transaction and signature based on current state.
-   * All transactions within Block are valid (does not return false on validateTransaction)
-   * Block constructor already checks if merkle roots within a block are valid.
-   */
+   //*
+   //* Rules for a block to be accepted within the current state
+   //* Block nHeight must match latest nHeight + 1
+   //* Block nPrevHash must match latest hash
+   //* Block nTimestamp must be higher than latest block
+   //* Block has valid rdPoS transaction and signature based on current state.
+   //* All transactions within Block are valid (does not return false on validateTransaction)
+   //* Block constructor already checks if merkle roots within a block are valid.
+
   auto latestBlock = this->storage_.latest();
   if (block.getNHeight() != latestBlock->getNHeight() + 1) {
     LOGERROR("Block nHeight doesn't match, expected " + std::to_string(latestBlock->getNHeight() + 1)
@@ -422,13 +410,13 @@ bool State::isTxInMempool(const Hash& txHash) const {
   std::shared_lock lock(this->stateMutex_);
   return this->mempool_.contains(txHash);
 }
-
-std::unique_ptr<TxBlock> State::getTxFromMempool(const Hash &txHash) const {
-  std::shared_lock lock(this->stateMutex_);
-  auto it = this->mempool_.find(txHash);
-  if (it == this->mempool_.end()) return nullptr;
-  return std::make_unique<TxBlock>(it->second);
-}
+*/
+//std::unique_ptr<TxBlock> State::getTxFromMempool(const Hash &txHash) const {
+//  std::shared_lock lock(this->stateMutex_);
+//  auto it = this->mempool_.find(txHash);
+//  if (it == this->mempool_.end()) return nullptr;
+//  return std::make_unique<TxBlock>(it->second);
+//}
 
 void State::addBalance(const Address& addr) {
   std::unique_lock lock(this->stateMutex_);
@@ -455,7 +443,7 @@ Bytes State::ethCall(const evmc_message& callInfo) {
     txContext.block_timestamp = static_cast<int64_t>(ContractGlobals::getBlockTimestamp());
     txContext.block_gas_limit = 10000000;
     txContext.block_prev_randao = {};
-    txContext.chain_id = EVMCConv::uint256ToEvmcUint256(this->options_.getChainID());
+    txContext.chain_id = EVMCConv::uint256ToEvmcUint256(0); // FIXME: this->options_.getChainID()
     txContext.block_base_fee = {};
     txContext.blob_base_fee = {};
     txContext.blob_hashes = nullptr;
@@ -464,8 +452,8 @@ Bytes State::ethCall(const evmc_message& callInfo) {
     Hash randomSeed = Hash::random();
     return ContractHost(
       this->vm_,
-      this->dumpManager_,
-      this->storage_,
+      //this->dumpManager_,
+      //this->storage_,
       randomSeed,
       txContext,
       this->contracts_,
@@ -495,8 +483,8 @@ int64_t State::estimateGas(const evmc_message& callInfo) {
   Hash randomSeed = Hash::random();
   ContractHost(
     this->vm_,
-    this->dumpManager_,
-    this->storage_,
+    //this->dumpManager_,
+    //this->storage_,
     randomSeed,
     evmc_tx_context(),
     this->contracts_,

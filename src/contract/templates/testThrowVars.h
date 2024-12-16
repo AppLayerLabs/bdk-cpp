@@ -45,7 +45,7 @@ class TestThrowVars : public DynamicContract {
      * @param address The address of the contract.
      * @param db The database to use.
      */
-    TestThrowVars(const Address& address, const DB& db);
+    //TestThrowVars(const Address& address, const DB& db);
 
     ~TestThrowVars() override; ///< Destructor.
 
@@ -53,13 +53,13 @@ class TestThrowVars : public DynamicContract {
     static void registerContract() {
       ContractReflectionInterface::registerContractMethods<
         TestThrowVars, const std::string&, const std::string&, const std::string&,
-        const Address&, const Address&, const uint64_t&, DB&
+        const Address&, const Address&, const uint64_t&//, DB&
       >(
         std::vector<std::string>{"var1_", "var2_", "var3_"}
       );
     }
 
-    DBBatch dump() const override; ///< Dump method.
+    //DBBatch dump() const override; ///< Dump method.
 };
 
 #endif  // TESTTHROWVARS_H

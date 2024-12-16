@@ -18,6 +18,7 @@ RandomnessTest::RandomnessTest(const Address& address,
   this->randomValue_.enableRegister();
 }
 
+/*
 RandomnessTest::RandomnessTest(const Address& address, const DB& db)
   : DynamicContract(address, db) {
   this->randomValue_ = UintConv::bytesToUint256(db.get(std::string("randomValue_"), this->getDBPrefix()));
@@ -25,6 +26,7 @@ RandomnessTest::RandomnessTest(const Address& address, const DB& db)
   registerContractFunctions();
   this->randomValue_.enableRegister();
 }
+*/
 
 RandomnessTest::~RandomnessTest() {}
 
@@ -42,10 +44,11 @@ uint256_t RandomnessTest::setRandom() {
 uint256_t RandomnessTest::getRandom() const {
   return randomValue_.get();
 }
-
+/*
 DBBatch RandomnessTest::dump() const {
   DBBatch dbBatch = BaseContract::dump();
   dbBatch.push_back(StrConv::stringToBytes("randomValue_"), UintConv::uint256ToBytes(randomValue_.get()), this->getDBPrefix());
   return dbBatch;
 }
+*/
 

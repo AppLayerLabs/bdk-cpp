@@ -77,7 +77,7 @@ SnailTracer::SnailTracer(
   spheres_.enableRegister();
   triangles_.enableRegister();
 }
-
+/*
 SnailTracer::SnailTracer(
   const Address& address,
   const DB& db
@@ -106,6 +106,7 @@ SnailTracer::SnailTracer(
   spheres_.enableRegister();
   triangles_.enableRegister();
 }
+*/
 
 SnailTracer::~SnailTracer() {};
 
@@ -509,7 +510,7 @@ void SnailTracer::registerContractFunctions() {
   this->registerMemberFunction("refractive", &SnailTracer::refractive, FunctionTypes::NonPayable, this);
   this->registerMemberFunction("traceray", &SnailTracer::traceray, FunctionTypes::NonPayable, this);
 }
-
+/*
 DBBatch SnailTracer::dump() const {
   DBBatch dbBatch = BaseContract::dump();
 
@@ -524,3 +525,4 @@ DBBatch SnailTracer::dump() const {
   return dbBatch;
 }
 
+*/

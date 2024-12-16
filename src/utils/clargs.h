@@ -10,7 +10,9 @@ See the LICENSE.txt file in the project root for more information.
 
 #include <boost/program_options.hpp> // includes string internally (and probably algorithm somewhere due to std::transform)
 
-#include "../net/p2p/managernormal.h"
+#include <iostream>
+
+#include "logger.h"
 
 /// List of BDK programs that the argument parser is aware of.
 enum class BDKTool { FULL_NODE, DISCOVERY_NODE, UNIT_TEST_SUITE };
@@ -25,7 +27,7 @@ struct ProcessOptions {
   std::string logLevel;    ///< Desired log level name
   int logLineLimit = -1;   ///< Desired log line count limit for the rotating logger log file
   int logFileLimit = -1;   ///< Desired log file hard limit (erases older log files past this count)
-  int netThreads = -1;     ///< Desired IO thread count for P2P message processing
+  //int netThreads = -1;     ///< Desired IO thread count for P2P message processing
   std::string rootPath;    ///< Desired value for the rootPath BDK option
 };
 
@@ -51,8 +53,8 @@ ProcessOptions parseCommandLineArgs(int argc, char* argv[], [[maybe_unused]] BDK
       "Set the log line limit (# of lines per file); 0 = no limit");
     desc.add_options()("logfilelimit", boost::program_options::value<int>(),
       "Set the log file limit (# of files); 0 = no limit");
-    desc.add_options()("netthreads", boost::program_options::value<int>(),
-      "Set ManagerBase::netThreads_ (main IO thread count)");
+    //desc.add_options()("netthreads", boost::program_options::value<int>(),
+    //  "Set ManagerBase::netThreads_ (main IO thread count)");
 
     if (tool != BDKTool::UNIT_TEST_SUITE) {
       desc.add_options()("rootpath,r", boost::program_options::value<std::string>(),
@@ -88,13 +90,13 @@ ProcessOptions parseCommandLineArgs(int argc, char* argv[], [[maybe_unused]] BDK
       }
     }
 
-    if (vm.count("netthreads")) {
-      opt.netThreads = vm["netthreads"].as<int>();
-      if (opt.netThreads < 1) {
-        std::cerr << "ERROR: --netthreads must be >= 1\n";
-        return {};
-      }
-    }
+    //if (vm.count("netthreads")) {
+    //  opt.netThreads = vm["netthreads"].as<int>();
+    //  if (opt.netThreads < 1) {
+    //    std::cerr << "ERROR: --netthreads must be >= 1\n";
+    //    return {};
+    //  }
+    //}
 
     if (vm.count("rootpath")) {
       opt.rootPath = vm["rootpath"].as<std::string>();
@@ -162,10 +164,10 @@ bool applyProcessOptions(ProcessOptions& opt) {
     std::cout << "Log file limit set to " << opt.logFileLimit << std::endl;
   }
 
-  if (opt.netThreads >= 0) { // negative number signals unset; 0 is invalid, but somehow it was set to that value
-    P2P::ManagerBase::setNetThreads(opt.netThreads);
-    std::cout << "ManagerBase::netThreads_ set to " << opt.netThreads << std::endl;
-  }
+  //if (opt.netThreads >= 0) { // negative number signals unset; 0 is invalid, but somehow it was set to that value
+  //  P2P::ManagerBase::setNetThreads(opt.netThreads);
+  //  std::cout << "ManagerBase::netThreads_ set to " << opt.netThreads << std::endl;
+  //}
 
   if (opt.rootPath != "") {
     std::cout << "rootPath set to " << opt.rootPath << std::endl;

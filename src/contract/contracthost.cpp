@@ -43,13 +43,17 @@ ContractHost::~ContractHost() {
     for (auto& var : this->stack_.getUsedVars()) {
       var.get().commit();
     }
-    for (const auto& event : this->stack_.getEvents()) {
-      this->storage_.putEvent(event);
-    }
+
+    // FIXME: reimplement event db
+    //
+    //for (const auto& event : this->stack_.getEvents()) {
+    //  this->storage_.putEvent(event);
+    //}
+
     for (const auto& contractPair : this->stack_.getContracts()) {
       const auto& [address, contract] = contractPair;
       if (contract != nullptr) {
-        this->manager_.pushBack(dynamic_cast<Dumpable*>(contract));
+        //this->manager_.pushBack(dynamic_cast<Dumpable*>(contract));
       } else {
         // If the contract is nullptr, it means that it was a EVM contract, we need to link txHash and txIndex
         this->addTxData_.contractAddress = address;
@@ -169,7 +173,7 @@ evmc::Result ContractHost::createEVMContract(
 }
 
 bool ContractHost::isTracingCalls() const noexcept {
-  return bool(txHash_) && storage_.getIndexingMode() == IndexingMode::RPC_TRACE;
+  return bool(txHash_); // && storage_.getIndexingMode() == IndexingMode::RPC_TRACE; // FIXME: reintroduce Storage for all stuff that is not saving blocks on disk
 }
 
 void ContractHost::traceCallStarted(const evmc_message& msg) noexcept {
@@ -222,16 +226,16 @@ void ContractHost::saveCallTrace() noexcept {
   }
 
   try {
-    storage_.putCallTrace(txHash_, callTracer_.root());
+    //storage_.putCallTrace(txHash_, callTracer_.root());  // FIXME storage for non block stuff
   } catch (const std::exception& err) {
     LOGERROR(std::string("Fail to persist call trace: ") + err.what());
   }
 }
 
 void ContractHost::saveTxAdditionalData() noexcept {
-  if (!this->addTxData_.hash || this->storage_.getIndexingMode() == IndexingMode::DISABLED) return;
+  if (!this->addTxData_.hash /*|| this->storage_.getIndexingMode() == IndexingMode::DISABLED*/) return;// FIXME storage for non block stuff
   try {
-    this->storage_.putTxAdditionalData(this->addTxData_);
+    //this->storage_.putTxAdditionalData(this->addTxData_);// FIXME storage for non block stuff
   } catch (const std::exception& err) {
     LOGERROR(std::string("Fail to persist additional tx data: ") + err.what());
   }

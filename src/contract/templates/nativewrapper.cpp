@@ -7,11 +7,11 @@ See the LICENSE.txt file in the project root for more information.
 
 #include "nativewrapper.h"
 
-NativeWrapper::NativeWrapper(const Address& address, const DB& db
-) : ERC20(address, db)
-{
-  this->registerContractFunctions();
-}
+//NativeWrapper::NativeWrapper(const Address& address, const DB& db
+//) : ERC20(address, db)
+//{
+//  this->registerContractFunctions();
+//}
 
 NativeWrapper::NativeWrapper(
   const std::string &erc20_name, const std::string &erc20_symbol,
@@ -26,9 +26,9 @@ NativeWrapper::NativeWrapper(
 
 NativeWrapper::~NativeWrapper() = default;
 
-DBBatch NativeWrapper::dump() const {
-  return BaseContract::dump();
-}
+//DBBatch NativeWrapper::dump() const {
+//  return BaseContract::dump();
+//}
 
 void NativeWrapper::registerContractFunctions() {
   registerContract();

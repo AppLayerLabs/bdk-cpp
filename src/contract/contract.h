@@ -8,10 +8,10 @@ See the LICENSE.txt file in the project root for more information.
 #ifndef CONTRACT_H
 #define CONTRACT_H
 
-#include "../core/dump.h" // core/storage.h, utils/db.h -> utils.h -> strings.h, libs/json.hpp -> cstdint, memory, string, tuple
-
 #include "../utils/uintconv.h"
 #include "../utils/strconv.h"
+
+#include "../utils/strings.h"
 
 // Forward declarations.
 class ContractHost;
@@ -57,10 +57,10 @@ class ContractLocals : public ContractGlobals {
 };
 
 /// Base class for all contracts.
-class BaseContract : public ContractLocals, public Dumpable {
+class BaseContract : public ContractLocals {
   private:
     const Address contractAddress_;  ///< Address where the contract is deployed.
-    const Bytes dbPrefix_;     ///< Prefix for the contract DB.
+    //const Bytes dbPrefix_;     ///< Prefix for the contract DB.
     const std::string contractName_; ///< Name of the contract, used to identify the Contract Class.
     const Address contractCreator_;  ///< Address of the creator of the contract.
     const uint64_t contractChainId_; ///< Chain where the contract is deployed.
@@ -79,16 +79,17 @@ class BaseContract : public ContractLocals, public Dumpable {
      */
     BaseContract(const std::string& contractName, const Address& address,
       const Address& creator, const uint64_t& chainId
-    ) : contractAddress_(address),
+    ) : contractAddress_(address)/*,
         dbPrefix_([&]() {
               Bytes prefix = DBPrefix::contracts;
               prefix.reserve(prefix.size() + address.size());
               prefix.insert(prefix.end(), address.cbegin(), address.cend());
               return prefix;
-            }()),
+            }())*/,
         contractName_(contractName), contractCreator_(creator), contractChainId_(chainId) {
     }
 
+/*
     DBBatch dump() const override {
       DBBatch batch;
       batch.push_back(StrConv::stringToBytes("contractName_"), StrConv::stringToBytes(contractName_), this->getDBPrefix());
@@ -97,12 +98,16 @@ class BaseContract : public ContractLocals, public Dumpable {
       batch.push_back(StrConv::stringToBytes("contractChainId_"), UintConv::uint64ToBytes(contractChainId_), this->getDBPrefix());
       return batch;
     }
+    */
 
     /**
      * Constructor from load.
      * @param address The address where the contract will be deployed.
      * @param db Pointer to the DB instance.
      */
+    /*
+        No DB, no load
+
     BaseContract(const Address &address, const DB& db) :
       contractAddress_(address),
       dbPrefix_([&]() {
@@ -121,6 +126,7 @@ class BaseContract : public ContractLocals, public Dumpable {
        return UintConv::bytesToUint64(db.get(std::string("contractChainId_"), dbPrefix_));
       }())
     {}
+    */
 
     virtual ~BaseContract() = default;  ///< Destructor. All derived classes should override it in order to call DB functions.
 
@@ -159,7 +165,7 @@ class BaseContract : public ContractLocals, public Dumpable {
     inline const Address& getContractCreator() const { return this->contractCreator_; }
     inline const uint64_t& getContractChainId() const { return this->contractChainId_; }
     inline const std::string& getContractName() const { return this->contractName_; }
-    inline const Bytes& getDBPrefix() const { return this->dbPrefix_; }
+    //inline const Bytes& getDBPrefix() const { return this->dbPrefix_; }
     ///@}
 
     /**
@@ -167,12 +173,14 @@ class BaseContract : public ContractLocals, public Dumpable {
      * @param newPrefix The new prefix to append.
      * @return The new prefix.
      */
+    /*
     Bytes getNewPrefix(std::string_view newPrefix) const {
       Bytes prefix = this->dbPrefix_;
       prefix.reserve(prefix.size() + newPrefix.size());
       prefix.insert(prefix.end(), newPrefix.cbegin(), newPrefix.cend());
       return prefix;
     }
+    */
 
     Address getOrigin() const; ///< Get the origin of the transaction.
     uint64_t getNonce(const Address& address) const; ///< Get the nonce of an address.

@@ -12,9 +12,11 @@ See the LICENSE.txt file in the project root for more information.
 // contract.h -> core/{dump.h, storage.h -> calltracer.h}
 #include "contractmanager.h"
 #include "contractstack.h" // utils/{strings.h,safehash.h, bytes/join.h}
+#include "calltracer.h"
 
 #include "../utils/evmcconv.h"
 #include "../utils/uintconv.h"
+#include "../utils/randomgen.h"
 
 // TODO: EVMC Static Mode Handling
 // TODO: Contract creating other contracts (EVM Factories)
@@ -74,8 +76,8 @@ class ContractHost : public evmc::Host {
     };
 
     evmc_vm* vm_; ///< Pointer to the EVMC virtual machine.
-    DumpManager& manager_; ///< Reference to the database dumping manager.
-    Storage& storage_;  ///< Reference to the blockchain storage.
+    //DumpManager& manager_; ///< Reference to the database dumping manager.
+    //Storage& storage_;  ///< Reference to the blockchain storage.
     mutable ContractStack stack_; ///< Contract stack object (ephemeral).
     mutable RandomGen randomGen_; ///< Random generator for the contract.
     const evmc_tx_context& currentTxContext_; ///< Current transaction context. MUST be initialized within the constructor.
@@ -236,8 +238,8 @@ class ContractHost : public evmc::Host {
      */
     ContractHost(
       evmc_vm* vm,
-      DumpManager& manager,
-      Storage& storage,
+      //DumpManager& manager,
+      //Storage& storage,
       const Hash& randomnessSeed,
       const evmc_tx_context& currentTxContext,
       boost::unordered_flat_map<Address, std::unique_ptr<BaseContract>, SafeHash>& contracts,
@@ -248,8 +250,8 @@ class ContractHost : public evmc::Host {
       const Hash& blockHash,
       int64_t& txGasLimit
     ) : vm_(vm),
-        manager_(manager),
-        storage_(storage),
+        //manager_(manager),
+        //storage_(storage),
         randomGen_(randomnessSeed),
         currentTxContext_(currentTxContext),
         contracts_(contracts),

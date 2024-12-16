@@ -24,14 +24,17 @@ TestThrowVars::TestThrowVars(
   this->var3_.enableRegister();
 }
 
+/*
 TestThrowVars::TestThrowVars(const Address& address, const DB& db
-) : DynamicContract(address, db), var1_(this), var2_(this), var3_(this) {
+) : DynamicContract(address, db
+), var1_(this), var2_(this), var3_(this) {
   // Do nothing
 }
+*/
 
 TestThrowVars::~TestThrowVars() = default;
 
-DBBatch TestThrowVars::dump() const { return BaseContract::dump(); }
+//DBBatch TestThrowVars::dump() const { return BaseContract::dump(); }
 
 void TestThrowVars::registerContractFunctions() { registerContract(); }
 
