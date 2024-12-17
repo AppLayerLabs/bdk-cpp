@@ -70,13 +70,19 @@ template <int Size> struct SafeIntTester {
       SafeInt val(UnderlyingType(-42));
       SafeInt valOver(std::numeric_limits<UnderlyingType>::max());
       SafeInt valUnder(std::numeric_limits<UnderlyingType>::min());
-      bool hadOver = false;
-      bool hadUnder = false;
+      bool hadOver1 = false;
+      bool hadOver2 = false;
+      bool hadUnder1 = false;
+      bool hadUnder2 = false;
       // catch over/underflow
-      try { valOver = valOver + UnderlyingType(1); } catch (std::overflow_error& e) { hadOver = true; }
-      try { valUnder = valUnder + UnderlyingType(-1); } catch (std::underflow_error& e) { hadUnder = true; }
-      REQUIRE(hadOver);
-      REQUIRE(hadUnder);
+      try { valOver = valOver + UnderlyingType(1); } catch (std::overflow_error& e) { hadOver1 = true; }
+      try { valOver = valOver + valOver; } catch (std::overflow_error& e) { hadOver2 = true; }
+      try { valUnder = valUnder + UnderlyingType(-1); } catch (std::underflow_error& e) { hadUnder1 = true; }
+      try { valUnder = valUnder + valUnder; } catch (std::underflow_error& e) { hadUnder2 = true; }
+      REQUIRE(hadOver1);
+      REQUIRE(hadOver2);
+      REQUIRE(hadUnder1);
+      REQUIRE(hadUnder2);
       // operate with int
       val = val + UnderlyingType(5);
       val.revert();
@@ -98,13 +104,21 @@ template <int Size> struct SafeIntTester {
       SafeInt val(UnderlyingType(-42));
       SafeInt valOver(std::numeric_limits<UnderlyingType>::max());
       SafeInt valUnder(std::numeric_limits<UnderlyingType>::min());
-      bool hadOver = false;
-      bool hadUnder = false;
+      SafeInt valOverMinus(UnderlyingType(-1));
+      SafeInt valUnderMinus(UnderlyingType(1));
+      bool hadOver1 = false;
+      bool hadOver2 = false;
+      bool hadUnder1 = false;
+      bool hadUnder2 = false;
       // catch over/underflow
-      try { valOver = valOver - UnderlyingType(-1); } catch (std::overflow_error& e) { hadOver = true; }
-      try { valUnder = valUnder - UnderlyingType(1); } catch (std::underflow_error& e) { hadUnder = true; }
-      REQUIRE(hadOver);
-      REQUIRE(hadUnder);
+      try { valOver = valOver - UnderlyingType(-1); } catch (std::overflow_error& e) { hadOver1 = true; }
+      try { valOver = valOver - valOverMinus; } catch (std::overflow_error& e) { hadOver2 = true; }
+      try { valUnder = valUnder - UnderlyingType(1); } catch (std::underflow_error& e) { hadUnder1 = true; }
+      try { valUnder = valUnder - valUnderMinus; } catch (std::underflow_error& e) { hadUnder2 = true; }
+      REQUIRE(hadOver1);
+      REQUIRE(hadOver2);
+      REQUIRE(hadUnder1);
+      REQUIRE(hadUnder2);
       // operate with int
       val = val - UnderlyingType(5);
       val.revert();
@@ -130,16 +144,19 @@ template <int Size> struct SafeIntTester {
       SafeInt valUnder(std::numeric_limits<UnderlyingType>::min());
       bool hadZero1 = false;
       bool hadZero2 = false;
-      bool hadOver = false;
+      bool hadOver1 = false;
+      bool hadOver2 = false;
       bool hadUnder = false;
       // catch over/underflow and mul by zero
       try { valZero1 = valZero1 * UnderlyingType(0); } catch (std::domain_error& e) { hadZero1 = true; }
       try { valZero2 = valZero2 * UnderlyingType(10); } catch (std::domain_error& e) { hadZero2 = true; }
-      try { valOver = valOver * UnderlyingType(2); } catch (std::overflow_error& e) { hadOver = true; }
+      try { valOver = valOver * UnderlyingType(2); } catch (std::overflow_error& e) { hadOver1 = true; }
+      try { valOver = valOver * valOver; } catch (std::overflow_error& e) { hadOver2 = true; }
       try { valUnder = valUnder * UnderlyingType(2); } catch (std::underflow_error& e) { hadUnder = true; }
       REQUIRE(hadZero1);
       REQUIRE(hadZero2);
-      REQUIRE(hadOver);
+      REQUIRE(hadOver1);
+      REQUIRE(hadOver2);
       REQUIRE(hadUnder);
       // operate with int
       val = val * UnderlyingType(2);
@@ -162,14 +179,18 @@ template <int Size> struct SafeIntTester {
     SECTION(std::string("SafeInt_t<") + std::to_string(Size) + "> operator/") {
       SafeInt val(UnderlyingType(-42));
       SafeInt valZero(UnderlyingType(-42));
+      SafeInt valMinusOne(UnderlyingType(-1));
       SafeInt valOver(std::numeric_limits<UnderlyingType>::min());
       bool hadZero = false;
-      bool hadOver = false;
+      bool hadOver1 = false;
+      bool hadOver2 = false;
       // catch overflow and div by zero
       try { valZero = valZero / UnderlyingType(0); } catch (std::domain_error& e) { hadZero = true; }
-      try { valOver = valOver / UnderlyingType(-1); } catch (std::overflow_error& e) { hadOver = true; }
+      try { valOver = valOver / UnderlyingType(-1); } catch (std::overflow_error& e) { hadOver1 = true; }
+      try { valOver = valOver / valMinusOne; } catch (std::overflow_error& e) { hadOver2 = true; }
       REQUIRE(hadZero);
-      REQUIRE(hadOver);
+      REQUIRE(hadOver1);
+      REQUIRE(hadOver2);
       // operate with int
       val = val / UnderlyingType(2);
       val.revert();
@@ -423,13 +444,19 @@ template <int Size> struct SafeIntTester {
       SafeInt val(UnderlyingType(-42));
       SafeInt valOver(std::numeric_limits<UnderlyingType>::max());
       SafeInt valUnder(std::numeric_limits<UnderlyingType>::min());
-      bool hadOver = false;
-      bool hadUnder = false;
+      bool hadOver1 = false;
+      bool hadOver2 = false;
+      bool hadUnder1 = false;
+      bool hadUnder2 = false;
       // catch over/underflow
-      try { valOver += UnderlyingType(1); } catch (std::overflow_error& e) { hadOver = true; }
-      try { valUnder += UnderlyingType(-1); } catch (std::underflow_error& e) { hadUnder = true; }
-      REQUIRE(hadOver);
-      REQUIRE(hadUnder);
+      try { valOver += UnderlyingType(1); } catch (std::overflow_error& e) { hadOver1 = true; }
+      try { valOver += valOver; } catch (std::overflow_error& e) { hadOver2 = true; }
+      try { valUnder += UnderlyingType(-1); } catch (std::underflow_error& e) { hadUnder1 = true; }
+      try { valUnder += valUnder; } catch (std::underflow_error& e) { hadUnder2 = true; }
+      REQUIRE(hadOver1);
+      REQUIRE(hadOver2);
+      REQUIRE(hadUnder1);
+      REQUIRE(hadUnder2);
       // operate with int
       val = val += UnderlyingType(5);
       val.revert();
@@ -451,13 +478,21 @@ template <int Size> struct SafeIntTester {
       SafeInt val(UnderlyingType(-42));
       SafeInt valOver(std::numeric_limits<UnderlyingType>::max());
       SafeInt valUnder(std::numeric_limits<UnderlyingType>::min());
-      bool hadOver = false;
-      bool hadUnder = false;
+      SafeInt valOverMinus(UnderlyingType(-1));
+      SafeInt valUnderMinus(UnderlyingType(1));
+      bool hadOver1 = false;
+      bool hadOver2 = false;
+      bool hadUnder1 = false;
+      bool hadUnder2 = false;
       // catch over/underflow
-      try { valOver -= UnderlyingType(-1); } catch (std::overflow_error& e) { hadOver = true; }
-      try { valUnder -= UnderlyingType(1); } catch (std::underflow_error& e) { hadUnder = true; }
-      REQUIRE(hadOver);
-      REQUIRE(hadUnder);
+      try { valOver -= valOver - UnderlyingType(-1); } catch (std::overflow_error& e) { hadOver1 = true; }
+      try { valOver -= valOver - valOverMinus; } catch (std::overflow_error& e) { hadOver2 = true; }
+      try { valUnder -= valUnder - UnderlyingType(1); } catch (std::underflow_error& e) { hadUnder1 = true; }
+      try { valUnder -= valUnder - valUnderMinus; } catch (std::underflow_error& e) { hadUnder2 = true; }
+      REQUIRE(hadOver1);
+      REQUIRE(hadOver2);
+      REQUIRE(hadUnder1);
+      REQUIRE(hadUnder2);
       // operate with int
       val -= UnderlyingType(5);
       val.revert();
@@ -483,16 +518,19 @@ template <int Size> struct SafeIntTester {
       SafeInt valUnder(std::numeric_limits<UnderlyingType>::min());
       bool hadZero1 = false;
       bool hadZero2 = false;
-      bool hadOver = false;
+      bool hadOver1 = false;
+      bool hadOver2 = false;
       bool hadUnder = false;
       // catch over/underflow and mul by zero
       try { valZero1 *= UnderlyingType(0); } catch (std::domain_error& e) { hadZero1 = true; }
       try { valZero2 *= UnderlyingType(10); } catch (std::domain_error& e) { hadZero2 = true; }
-      try { valOver *= UnderlyingType(2); } catch (std::overflow_error& e) { hadOver = true; }
+      try { valOver *= UnderlyingType(2); } catch (std::overflow_error& e) { hadOver1 = true; }
+      try { valOver *= valOver; } catch (std::overflow_error& e) { hadOver2 = true; }
       try { valUnder *= UnderlyingType(2); } catch (std::underflow_error& e) { hadUnder = true; }
       REQUIRE(hadZero1);
       REQUIRE(hadZero2);
-      REQUIRE(hadOver);
+      REQUIRE(hadOver1);
+      REQUIRE(hadOver2);
       REQUIRE(hadUnder);
       // operate with int
       val *= UnderlyingType(2);
@@ -515,14 +553,18 @@ template <int Size> struct SafeIntTester {
     SECTION(std::string("SafeInt_t<") + std::to_string(Size) + "> operator/=") {
       SafeInt val(UnderlyingType(-42));
       SafeInt valZero(UnderlyingType(-42));
+      SafeInt valMinusOne(UnderlyingType(-1));
       SafeInt valOver(std::numeric_limits<UnderlyingType>::min());
       bool hadZero = false;
-      bool hadOver = false;
+      bool hadOver1 = false;
+      bool hadOver2 = false;
       // catch overflow and div by zero
       try { valZero /= UnderlyingType(0); } catch (std::domain_error& e) { hadZero = true; }
-      try { valOver /= UnderlyingType(-1); } catch (std::overflow_error& e) { hadOver = true; }
+      try { valOver /= UnderlyingType(-1); } catch (std::overflow_error& e) { hadOver1 = true; }
+      try { valOver /= valMinusOne; } catch (std::overflow_error& e) { hadOver2 = true; }
       REQUIRE(hadZero);
-      REQUIRE(hadOver);
+      REQUIRE(hadOver1);
+      REQUIRE(hadOver2);
       // operate with int
       val /= UnderlyingType(2);
       val.revert();

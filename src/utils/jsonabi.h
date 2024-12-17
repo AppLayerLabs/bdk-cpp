@@ -57,7 +57,7 @@ namespace JsonAbi {
 
   /**
    * Parse a given method output to a JSON object.
-   * @param outputDesc The output description of the method (std::pair<type,name>).
+   * @param outputDesc The output description of the method (std::string).
    *                   Be aware that tuple types are concatenated into the string itself.
    * @return A JSON object containing the outputs of the method.
    */

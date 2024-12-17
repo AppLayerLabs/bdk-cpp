@@ -156,16 +156,19 @@ template <int Size> struct SafeUintTester {
       SafeUint valUnder(1);
       bool hadZero1 = false;
       bool hadZero2 = false;
-      bool hadOver = false;
+      bool hadOver1 = false;
+      bool hadOver2 = false;
       bool hadUnder = false;
       // catch over/underflow and mul by zero
       try { valZero1 = valZero1 * UnderlyingType(0); } catch (std::domain_error& e) { hadZero1 = true; }
       try { valZero2 = valZero2 * UnderlyingType(10); } catch (std::domain_error& e) { hadZero2 = true; }
-      try { valOver = valOver * UnderlyingType(2); } catch (std::overflow_error& e) { hadOver = true; }
+      try { valOver = valOver * UnderlyingType(2); } catch (std::overflow_error& e) { hadOver1 = true; }
+      try { valOver = valOver * valOver; } catch (std::overflow_error& e) { hadOver2 = true; }
       try { valUnder = valUnder * int(-1); } catch (std::underflow_error& e) { hadUnder = true; }
       REQUIRE(hadZero1);
       REQUIRE(hadZero2);
-      REQUIRE(hadOver);
+      REQUIRE(hadOver1);
+      REQUIRE(hadOver2);
       REQUIRE(hadUnder);
       // operate with uint
       val = val * UnderlyingType(2);
@@ -651,16 +654,19 @@ template <int Size> struct SafeUintTester {
       SafeUint valUnder(1);
       bool hadZero1 = false;
       bool hadZero2 = false;
-      bool hadOver = false;
+      bool hadOver1 = false;
+      bool hadOver2 = false;
       bool hadUnder = false;
       // catch over/underflow and mul by zero
       try { valZero1 *= UnderlyingType(0); } catch (std::domain_error& e) { hadZero1 = true; }
       try { valZero2 *= UnderlyingType(10); } catch (std::domain_error& e) { hadZero2 = true; }
-      try { valOver *= UnderlyingType(2); } catch (std::overflow_error& e) { hadOver = true; }
-      try { valUnder = valUnder * int(-1); } catch (std::underflow_error& e) { hadUnder = true; }
+      try { valOver *= UnderlyingType(2); } catch (std::overflow_error& e) { hadOver1 = true; }
+      try { valOver *= valOver; } catch (std::overflow_error& e) { hadOver2 = true; }
+      try { valUnder *= int(-1); } catch (std::underflow_error& e) { hadUnder = true; }
       REQUIRE(hadZero1);
       REQUIRE(hadZero2);
-      REQUIRE(hadOver);
+      REQUIRE(hadOver1);
+      REQUIRE(hadOver2);
       REQUIRE(hadUnder);
       // operate with uint
       val *= UnderlyingType(2);

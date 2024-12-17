@@ -110,6 +110,12 @@ namespace THex {
       Hex hexStrict(hexStr, true);
       REQUIRE(hex.bytes() == Bytes{0x12, 0x34});
       REQUIRE(hexStrict.bytes() == Bytes{0x12, 0x34});
+      // Odd-numbered hex for coverage
+      std::string hexStrOdd = "0x123";
+      Hex hexOdd(hexStrOdd, false);
+      Hex hexStrictOdd(hexStrOdd, true);
+      REQUIRE(hexOdd.bytes() == Bytes{0x01, 0x23});
+      REQUIRE(hexStrictOdd.bytes() == Bytes{0x01, 0x23});
     }
 
     SECTION("Hex Get") {
@@ -152,8 +158,17 @@ namespace THex {
       REQUIRE_THAT(hexStrict.substr(4, 2), Equals("34"));
     }
 
-    // Cannot test string_view::substr with Catch2
-    // REQUIRE_THAT(hex.substr_view(0, 2), Equals("12")); throws template errors
+    // std::string() wrapper is required here because Catch2 can't discern overloaded types
+    SECTION("Hex Substr View") {
+      std::string hexStr = "0x1234";
+      Hex hex(hexStr, false);
+      Hex hexStrict(hexStr, true);
+      REQUIRE_THAT(std::string(hex.substr_view(0, 2)), Equals("12"));
+      REQUIRE_THAT(std::string(hex.substr_view(2, 2)), Equals("34"));
+      REQUIRE_THAT(std::string(hexStrict.substr_view(0, 2)), Equals("0x"));
+      REQUIRE_THAT(std::string(hexStrict.substr_view(2, 2)), Equals("12"));
+      REQUIRE_THAT(std::string(hexStrict.substr_view(4, 2)), Equals("34"));
+    }
 
     SECTION("Hex ToInt") {
       // Yes I know this is overkill (it could be more tho) but you can never be too sure lol
@@ -208,6 +223,18 @@ namespace THex {
       hexStrict += Hex(std::move(std::string("0x5678")), true);
       REQUIRE_THAT(hex.get(), Equals("12345678"));
       REQUIRE_THAT(hexStrict.get(), Equals("0x12345678"));
+    }
+
+    SECTION("Hex operator<<") {
+      std::string hexStr = "0x1234";
+      Hex hex(hexStr, false);
+      Hex hexStrict(hexStr, true);
+      std::stringstream ss;
+      std::stringstream ssStrict;
+      ss << hex;
+      ssStrict << hexStrict;
+      REQUIRE_THAT(ss.str(), Equals("1234"));
+      REQUIRE_THAT(ssStrict.str(), Equals("0x1234"));
     }
   }
 }

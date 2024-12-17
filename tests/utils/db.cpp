@@ -15,6 +15,22 @@ using Catch::Matchers::Equals;
 
 namespace TDB {
   TEST_CASE("DB Tests", "[utils][db]") {
+    SECTION("DBBatch Manipulation") {
+      DBBatch batch;
+      batch.push_back(StrConv::stringToBytes("aaaa"), StrConv::stringToBytes("1234"), StrConv::stringToBytes("0000"));
+      batch.push_back(DBEntry(Bytes{0xbb, 0xbb}, Bytes{0x56, 0x78}));
+      batch.delete_key(StrConv::stringToBytes("aaaa"), StrConv::stringToBytes("0000"));
+      batch.delete_key(Bytes{0xbb, 0xbb});
+      auto puts = batch.getPuts();
+      auto dels = batch.getDels();
+      REQUIRE(puts[0].key == StrConv::stringToBytes("0000aaaa"));
+      REQUIRE(puts[0].value == StrConv::stringToBytes("1234"));
+      REQUIRE(puts[1].key == Bytes{0xbb, 0xbb});
+      REQUIRE(puts[1].value == Bytes{0x56, 0x78});
+      REQUIRE(dels[0] == StrConv::stringToBytes("0000aaaa"));
+      REQUIRE(dels[1] == Bytes{0xbb, 0xbb});
+    }
+
     SECTION("Open and Close DB (w/ throw)") {
       bool catched = false;
       DB db("testDB");
