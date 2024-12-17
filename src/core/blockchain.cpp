@@ -47,6 +47,57 @@ void Blockchain::stop() {
   this->comet_.stop();
 }
 
+// ------------------------------------------------------------------
+// CometListener
+// ------------------------------------------------------------------
+
+void Blockchain::initChain(
+  const uint64_t genesisTime, const std::string& chainId, const Bytes& initialAppState, const uint64_t initialHeight,
+  const std::vector<CometValidatorUpdate>& initialValidators, Bytes& appHash
+) {
+}
+
+void Blockchain::checkTx(const Bytes& tx, int64_t& gasWanted, bool& accept)
+{
+}
+
+void Blockchain::incomingBlock(
+  const uint64_t height, const uint64_t syncingToHeight, const std::vector<Bytes>& txs, const Bytes& proposerAddr, const uint64_t timeNanos,
+  Bytes& appHash, std::vector<CometExecTxResult>& txResults, std::vector<CometValidatorUpdate>& validatorUpdates
+) {
+}
+
+void Blockchain::buildBlockProposal(const std::vector<Bytes>& txs, std::unordered_set<size_t>& delTxIds) {
+}
+
+void Blockchain::validateBlockProposal(const uint64_t height, const std::vector<Bytes>& txs, bool& accept) {
+}
+
+void Blockchain::getCurrentState(uint64_t& height, Bytes& appHash, std::string& appSemVer, uint64_t& appVersion) {
+}
+
+void Blockchain::getBlockRetainHeight(uint64_t& height) {
+}
+
+void Blockchain::currentCometBFTHeight(const uint64_t height) {
+}
+
+void Blockchain::sendTransactionResult(const uint64_t tId, const Bytes& tx, const bool success, const std::string& txHash, const json& response) {
+}
+
+void Blockchain::checkTransactionResult(const uint64_t tId, const std::string& txHash, const bool success, const json& response) {
+}
+
+void Blockchain::rpcAsyncCallResult(const uint64_t tId, const std::string& method, const json& params, const bool success, const json& response) {
+}
+
+void Blockchain::cometStateTransition(const CometState newState, const CometState oldState) {
+}
+
+// ------------------------------------------------------------------
+// NodeRPCInterface
+// ------------------------------------------------------------------
+
 json Blockchain::web3_clientVersion(const json& request) { return {}; }
 json Blockchain::web3_sha3(const json& request) { return {}; }
 json Blockchain::net_version(const json& request) { return {}; }

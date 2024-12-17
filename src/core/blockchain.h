@@ -20,6 +20,7 @@ See the LICENSE.txt file in the project root for more information.
  * This is the nexus object that brings together multiple blockchain node
  * components by composition. The lifetime of all components and the nexus
  * object are the same.
+ * All components must be thread-safe.
  *
  * NOTE: If you need a testing version of a blockchain node, you should derive it
  * from this class, instead of creating another separate class. All components
@@ -27,16 +28,41 @@ See the LICENSE.txt file in the project root for more information.
  * so you may need to create a custom one to wrap the component to be tested.
  */
 class Blockchain : public CometListener, public NodeRPCInterface, public Log::LogicalLocationProvider {
-  // protected is correct; don't change.
-  // all components must be ready for any kind of access/use pattern, as long
-  //   as the Blockchain object is still existing, of course.
-  protected:
+  protected: // protected is correct; don't change.
+    const std::string instanceId_; ///< Instance ID for logging.
     Options options_; ///< Options singleton.
     Comet comet_;     ///< CometBFT consensus engine driver.
     State state_;     ///< Blockchain state.
     HTTPServer http_; ///< HTTP server.
 
-    // TODO: CometListener
+  public:
+
+    // ------------------------------------------------------------------
+    // CometListener
+    // ------------------------------------------------------------------
+
+    virtual void initChain(
+      const uint64_t genesisTime, const std::string& chainId, const Bytes& initialAppState, const uint64_t initialHeight,
+      const std::vector<CometValidatorUpdate>& initialValidators, Bytes& appHash
+    ) override;
+    virtual void checkTx(const Bytes& tx, int64_t& gasWanted, bool& accept) override;
+    virtual void incomingBlock(
+      const uint64_t height, const uint64_t syncingToHeight, const std::vector<Bytes>& txs, const Bytes& proposerAddr, const uint64_t timeNanos,
+      Bytes& appHash, std::vector<CometExecTxResult>& txResults, std::vector<CometValidatorUpdate>& validatorUpdates
+    ) override;
+    virtual void buildBlockProposal(const std::vector<Bytes>& txs, std::unordered_set<size_t>& delTxIds) override;
+    virtual void validateBlockProposal(const uint64_t height, const std::vector<Bytes>& txs, bool& accept) override;
+    virtual void getCurrentState(uint64_t& height, Bytes& appHash, std::string& appSemVer, uint64_t& appVersion) override;
+    virtual void getBlockRetainHeight(uint64_t& height) override;
+    virtual void currentCometBFTHeight(const uint64_t height) override;
+    virtual void sendTransactionResult(const uint64_t tId, const Bytes& tx, const bool success, const std::string& txHash, const json& response) override;
+    virtual void checkTransactionResult(const uint64_t tId, const std::string& txHash, const bool success, const json& response) override;
+    virtual void rpcAsyncCallResult(const uint64_t tId, const std::string& method, const json& params, const bool success, const json& response) override;
+    virtual void cometStateTransition(const CometState newState, const CometState oldState) override;
+
+    // ------------------------------------------------------------------
+    // NodeRPCInterface
+    // ------------------------------------------------------------------
 
     virtual json web3_clientVersion(const json& request) override;
     virtual json web3_sha3(const json& request) override;
@@ -67,8 +93,6 @@ class Blockchain : public CometListener, public NodeRPCInterface, public Log::Lo
     virtual json eth_getTransactionReceipt(const json& request) override;
     virtual json eth_getUncleByBlockHashAndIndex() override;
 
-  public:
-    const std::string instanceId_;
     std::string getLogicalLocation() const override { return instanceId_; }
 
     /**
