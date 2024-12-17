@@ -723,6 +723,12 @@ using CometRPCRequestType = std::variant<TxSendType, TxCheckType, DefaultAsyncRP
  * codec used to exchange objects through the ABCI with a running cometbft instance.
  * CometImpl also manages configuring, launching, monitoring and terminating the cometbft
  * process, as well as interfacing with its RPC port which is not exposed to BDK users.
+ *
+ * NOTE/REVIEW: There are several ABCI call parameters that may show up in the Comet and
+ * CometListener API as they are needed, such as (next)validator hash, commit info, votes
+ * and vote extensions, validator-misbehavior-related info, etc. The idea is to extend
+ * these APIs based on need, so that if we have ABCI params that we can "hide" inside
+ * CometImpl (that is, completely deal with internally) then that is preferred.
  */
 class CometImpl : public ABCIHandler, public Log::LogicalLocationProvider {
   private:
@@ -2241,7 +2247,7 @@ void CometImpl::prepare_proposal(const cometbft::abci::v1::PrepareProposalReques
   std::unordered_set<size_t> delTxIds;
   std::vector<Bytes> allTxs;
   toBytesVector(req.txs(), allTxs);
-  listener_->buildBlockProposal(allTxs, delTxIds);
+  listener_->buildBlockProposal(req.height(), req.max_tx_bytes(), toNanosSinceEpoch(req.time()), allTxs, delTxIds);
   for (size_t i = 0; i < req.txs().size(); ++i) {
     if (delTxIds.find(i) == delTxIds.end()) {
       res->add_txs(req.txs()[i]);

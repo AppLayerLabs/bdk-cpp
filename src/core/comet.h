@@ -173,13 +173,21 @@ class CometListener {
 
     /**
      * Validator node that is the block proposer now needs to build a block.
+     * @param height The block number (chain height) of the block proposal that is being made.
+     * @param maxTxBytes Absolute maximum number of bytes for all transactions included in the block which must be
+     * respected by the sum of all transactions in `txs` minus transactions at the indices indicated by `delTxIds`.
+     * @param timeNanos Timestamp nanos since epoch that will be assigned to the block that is being built.
      * @param txs Transactions that cometbft took from the mempool and that it wants to include in the block proposal.
      * @param delTxIds Outparam to be set with the indices in `txs`  that are to be excluded from the block proposal.
      */
-    virtual void buildBlockProposal(const std::vector<Bytes>& txs, std::unordered_set<size_t>& delTxIds) {
-      // By default, just copy the recommended txs from the mempool into the proposal.
+    virtual void buildBlockProposal(
+      const uint64_t height, const uint64_t maxTxBytes, const uint64_t timeNanos,
+      const std::vector<Bytes>& txs, std::unordered_set<size_t>& delTxIds
+    ) {
+      // By default, this just copies the recommended `txs` from the mempool into the proposal.
       // This requires all block size and limit related params to be set in such a way that the
       // total byte size of txs in the request don't exceed the total byte size allowed for a block.
+      // To exclude certain transactions from `txs`, insert the indices to delete in `delTxIds`.
     }
 
     /**
