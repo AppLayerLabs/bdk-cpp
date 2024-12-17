@@ -50,7 +50,10 @@ class Blockchain : public CometListener, public NodeRPCInterface, public Log::Lo
       const uint64_t height, const uint64_t syncingToHeight, const std::vector<Bytes>& txs, const Bytes& proposerAddr, const uint64_t timeNanos,
       Bytes& appHash, std::vector<CometExecTxResult>& txResults, std::vector<CometValidatorUpdate>& validatorUpdates
     ) override;
-    virtual void buildBlockProposal(const std::vector<Bytes>& txs, std::unordered_set<size_t>& delTxIds) override;
+    virtual void buildBlockProposal(
+      const uint64_t height, const uint64_t maxTxBytes, const uint64_t timeNanos,
+      const std::vector<Bytes>& txs, std::unordered_set<size_t>& delTxIds
+    ) override;
     virtual void validateBlockProposal(const uint64_t height, const std::vector<Bytes>& txs, bool& accept) override;
     virtual void getCurrentState(uint64_t& height, Bytes& appHash, std::string& appSemVer, uint64_t& appVersion) override;
     virtual void getBlockRetainHeight(uint64_t& height) override;

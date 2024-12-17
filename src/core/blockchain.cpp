@@ -67,7 +67,10 @@ void Blockchain::incomingBlock(
 ) {
 }
 
-void Blockchain::buildBlockProposal(const std::vector<Bytes>& txs, std::unordered_set<size_t>& delTxIds) {
+void Blockchain::buildBlockProposal(
+  const uint64_t height, const uint64_t maxTxBytes, const uint64_t timeNanos,
+  const std::vector<Bytes>& txs, std::unordered_set<size_t>& delTxIds
+) {
 }
 
 void Blockchain::validateBlockProposal(const uint64_t height, const std::vector<Bytes>& txs, bool& accept) {
