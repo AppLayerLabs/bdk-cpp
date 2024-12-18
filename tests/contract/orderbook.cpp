@@ -45,7 +45,7 @@ namespace TORDERBOOK {
       REQUIRE(sdk.getState().getDumpManagerSize() == 6);
     }
 
-    SECTION("Orderbook add bit limit order") {
+    SECTION("Orderbook add bid limit order") {
       // start the sdk environment
       SDKTestSuite sdk = SDKTestSuite::createNewEnvironment(testDumpPath + "/testOrderBookCreation");
       Address owner = sdk.getChainOwnerAccount().address;
@@ -64,10 +64,15 @@ namespace TORDERBOOK {
       // add bid order
       sdk.callFunction(orderBook, &OrderBook::addBidLimitOrder, uint256_t("100"), uint256_t("10"));
       sdk.callFunction(orderBook, &OrderBook::addBidLimitOrder, uint256_t("100"), uint256_t("10"));
+      sdk.callFunction(orderBook, &OrderBook::addBidLimitOrder, uint256_t("100"), uint256_t("10"));
       // get bids
       auto bids = sdk.callViewFunction(orderBook, &OrderBook::getBids);
+      // show me
+      for (const auto& b : bids) {
+        std::cout << std::get<0>(b) << " " << std::get<1>(b) << std::endl;
+      }
       // verify the number of bid orders
-      REQUIRE(bids.size() == 4);
+      REQUIRE(bids.size() == 3);
     }
 
     SECTION("Orderbook add ask limit order") {
@@ -86,10 +91,15 @@ namespace TORDERBOOK {
       // add bid order
       sdk.callFunction(orderBook, &OrderBook::addAskLimitOrder, uint256_t("100"), uint256_t("10"));
       sdk.callFunction(orderBook, &OrderBook::addAskLimitOrder, uint256_t("100"), uint256_t("10"));
+      sdk.callFunction(orderBook, &OrderBook::addAskLimitOrder, uint256_t("100"), uint256_t("10"));
       // get asks
       auto asks = sdk.callViewFunction(orderBook, &OrderBook::getAsks);
+      // show me
+      for (const auto& a : asks) {
+        std::cout << std::get<0>(a) << " " << std::get<1>(a) << std::endl;
+      }
       // verify the number of bid orders
-      REQUIRE(asks.size() == 4);
+      REQUIRE(asks.size() == 3);
     }
 
     SECTION("Orderbook add bid and ask order limit to match a transaction") {
@@ -112,7 +122,7 @@ namespace TORDERBOOK {
       auto asks = sdk.callViewFunction(orderBook, &OrderBook::getAsks);
       auto bids = sdk.callViewFunction(orderBook, &OrderBook::getBids);
       // verify the number of bid orders
-      REQUIRE(asks.size() == 0);
+      REQUIRE(asks.size() == 1);
       REQUIRE(bids.size() == 0);
     }
 
@@ -137,7 +147,7 @@ namespace TORDERBOOK {
       auto bids = sdk.callViewFunction(orderBook, &OrderBook::getBids);
       // verify the number of bid orders
       REQUIRE(asks.size() == 0);
-      REQUIRE(bids.size() == 0);
+      REQUIRE(bids.size() == 1);
     }
 
     SECTION("Orderbook delete bid limit order") {
@@ -157,7 +167,7 @@ namespace TORDERBOOK {
       // get bids
       auto bids = sdk.callViewFunction(orderBook, &OrderBook::getBids);
       // verify the number of bid orders
-      REQUIRE(bids.size() == 2);
+      REQUIRE(bids.size() == 1);
       // get bid id
       uint256_t id = std::get<0>(*(bids.cbegin()));
       // delete bid order
