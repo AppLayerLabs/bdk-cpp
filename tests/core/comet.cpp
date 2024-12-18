@@ -320,17 +320,14 @@ Options getOptionsForCometTest(
     rpcPort = SDKTestSuite::getTestPort();
   }
 
-  // TODO:
-  // - generate other Options parameters to allow it to test a full Blockchain instance
-  //   that has a Comet instance, instead of just a standalone Comet instance
-
   // a default cometBFT options structure (validators and privValidatorKey to be filled in)
+  // NOTE: the "chain_id" key is missing from the cometbft "genesis.json" below, since that
+  //       value is overriden by the string value of the BDK "chainID" option (an uint64_t).
   json defaultCometBFTOptions = json::parse(R"(
     {
       "genesis.json":
       {
         "genesis_time": "2024-09-17T18:26:34.583377166Z",
-        "chain_id": "test-chain-Q1JYzM",
         "initial_height": "0",
         "consensus_params": {
           "block": {
