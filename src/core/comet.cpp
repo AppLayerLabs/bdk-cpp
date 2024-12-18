@@ -1466,7 +1466,7 @@ void CometImpl::workerLoopInner() {
                       configTomlJSON["rpc"]["laddr"].is_string();
 
     // --------------------------------------------------------------------------------------
-    // Sanity check configuration: a comet genesis file must be explicitly given.
+    // Sanity check configuration
 
     if (!hasGenesis) {
       // Cannot proceed with an empty comet genesis spec on options.json.
@@ -1533,6 +1533,36 @@ void CometImpl::workerLoopInner() {
         throw DynamicException("CometBFT config option rpc::laddr is invalid: port value is ivalid: " + portStr);
       }
     }
+
+    // --------------------------------------------------------------------------------------
+    // Read some BDK Options and force them over cometBFT options
+
+    // Options["chainID"] overwrites Options["cometBFT"]["genesis.json"]["chain_id"]
+    //
+    // The "genesis.json" key inside the "cometBFT" key in Options is used as the content to
+    //   write out as the entire config/genesis.json file for cometbft. In that JSON file, you
+    //   will see the a "chain_id" string-type key (the chain ID according to cometbft):
+    //
+    //   {
+    //     "chain_id" : "..."
+    //   }
+    //
+    // This key will ALWAYS be set to the string conversion of Options::getChainID(), that is
+    //   to the "chainID" option in our BDK Options object. It does not matter what the user
+    //   sets in "cometBFT": { "genesis.json" : { "chain_id" : "xxxxx" ...
+    //
+    std::string forceCometBFTChainId = std::to_string(options_.getChainID());
+    if (genesisJSON.contains("chain_id")) {
+      // Ideally, the "chain_id" key should not even be there.
+      if (genesisJSON["chain_id"].is_string()) {
+        std::string discardedCometChainId = genesisJSON["chain_id"];
+        LOGWARNING("CometBFT chain_id option is set to '" + discardedCometChainId + "'; will be overwritten by BDK chainID option.");
+      } else {
+        LOGWARNING("CometBFT chain_id option is set (to a non-string value); will be overwritten by BDK chainID option.");
+      }
+    }
+    genesisJSON["chain_id"] = forceCometBFTChainId;
+    LOGDEBUG("CometBFT chain_id set to '" + forceCometBFTChainId + "' (BDK chainID option).");
 
     // --------------------------------------------------------------------------------------
     // BDK root path must be set up before the Comet worker is started.

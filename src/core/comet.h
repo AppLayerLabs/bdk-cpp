@@ -306,7 +306,12 @@ class Comet : public Log::LogicalLocationProvider {
   public:
     /**
      * Constructor.
-     * NOTE: Comet only reads configuration options from the "cometBFT" key in Options.
+     * NOTE: Comet mostly reads configuration options from the "cometBFT" key in Options,
+     * with very few exceptions. The current exceptions are:
+     * - "chainID": this top-level options key has a JSON integer number value that should
+     *   fit in an uint64_t (which is how it is stored in Options); this value is read by
+     *   Comet, converted to a decimal string and assigned to the "chain_id" key inside
+     *   the "genesis.json" object ("cometBFT" -> "genesis.json" -> "chain_id").
      * These are the top-level keys found under the "cometBFT" key:
      * - "genesis.json": fully overwrites config/genesis.json
      * - "priv_validator_key.json": fully overwrites config/priv_validator_key.json
