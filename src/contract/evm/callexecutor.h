@@ -13,7 +13,7 @@ namespace evm {
 class CallExecutor : public evmc::Host {
 public:
   using VmStorage = boost::unordered_flat_map<StorageKey, Hash, SafeHash>;
-  using Accounts = boost::unordered_flat_map<Address, NonNullUniquePtr<Account>, SafeHash>;
+  using Accounts = boost::unordered_flat_map<Address, NonNullUniquePtr<Account>, SafeHash, SafeCompare>;
 
   CallExecutor(AnyCallHandler callHandler, evmc_vm* vm, VmStorage& vmStorage, Accounts& accounts, ContractStack& stack, const Hash& txHash, uint64_t txIndex, const Hash& blockHash, const evmc_tx_context& currentTxContext)
       : callHandler_(std::move(callHandler)), vm_(vm), vmStorage_(vmStorage), accounts_(accounts), stack_(stack), txHash_(txHash), txIndex_(txIndex), blockHash_(blockHash), currentTxContext_(currentTxContext) {}

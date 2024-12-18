@@ -39,7 +39,7 @@ private:
 
 class CallExecutor {
 public:
-  using Contracts = boost::unordered_flat_map<Address, std::unique_ptr<BaseContract>, SafeHash>&;
+  using Contracts = boost::unordered_flat_map<Address, std::unique_ptr<BaseContract>, SafeHash, SafeCompare>&;
 
   CallExecutor(ContractHost& host, Contracts& contracts)
     : host_(host), contracts_(contracts) {}

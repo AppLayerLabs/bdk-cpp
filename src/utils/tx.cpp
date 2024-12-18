@@ -489,6 +489,14 @@ evmc_message TxBlock::txToMessage() const {
   return msg;
 }
 
+EncodedMessageVariant TxBlock::toMessage(messages::Gas& gas) const {
+  if (this->to_ == Address()) {
+    return EncodedCreateMessage(this->from_, gas, this->value_, this->data_);
+  } else {
+    return EncodedCallMessage(this->from_, this->to_, gas, this->value_, this->data_);
+  }
+}
+
 TxValidator::TxValidator(const View<Bytes> bytes, const uint64_t&) {
   uint64_t index = 0;
 

@@ -318,39 +318,23 @@ class SDKTestSuite {
     TxBlock createNewTx(
       const TestAccount& from, const Address& to, const uint256_t& value, Bytes data = Bytes()
     ) {
-      evmc_message callInfo;
-      auto& [callKind,
-        callFlags,
-        callDepth,
-        callGas,
-        callRecipient,
-        callSender,
-        callInputData,
-        callInputSize,
-        callValue,
-        callCreate2Salt,
-        callCodeAddress] = callInfo;
+      
+      messages::Gas gas(1000000000);
 
-      callKind = (to == Address()) ? EVMC_CREATE : EVMC_CALL;
-      callFlags = 0;
-      callDepth = 1;
-      callGas = 1000000000;
-      callRecipient = bytes::cast<evmc_address>(to);
-      callSender = bytes::cast<evmc_address>(from.address);
-      callInputData = data.data();
-      callInputSize = data.size();
-      callValue = Utils::uint256ToEvmcUint256(value);
-      callCreate2Salt = {};
-      callCodeAddress = {};
-      auto usedGas = this->state_.estimateGas(callInfo);
-      usedGas += 10000; // Add some extra gas for the transaction itself
-      /// Estimate the gas to see how much gaslimit we should give to the tx itself
+      const uint64_t gasUsed = 10000 + std::invoke([&] () {
+        if (to) {
+          return this->state_.estimateGas(EncodedCallMessage(from.address, to, gas, value, data));
+        } else {
+          return this->state_.estimateGas(EncodedCreateMessage(from.address, gas, value, data));
+        }
+      });
+
       return TxBlock(to, from.address, data, this->options_.getChainID(),
         this->state_.getNativeNonce(from.address),
         value,
         1000000000,
         1000000000,
-        usedGas,
+        gasUsed,
         from.privKey
       );
     }
@@ -403,7 +387,7 @@ class SDKTestSuite {
      * @return Address of the deployed contract.
      */
     Address deployBytecode(const Bytes& bytecode) {
-      Address newContractAddress = ContractHost::deriveContractAddress(this->getNativeNonce(this->getChainOwnerAccount().address), this->getChainOwnerAccount().address);
+      Address newContractAddress = generateContractAddress(this->getNativeNonce(this->getChainOwnerAccount().address), this->getChainOwnerAccount().address);
       auto createTx = this->createNewTx(this->getChainOwnerAccount(), Address(), 0, bytecode);
       this->advanceChain(0, {createTx});
       return newContractAddress;
@@ -761,38 +745,19 @@ class SDKTestSuite {
       const Address& contractAddress, ReturnType(TContract::*func)() const
     ) {
       TContract::registerContract();
-      evmc_message callData;
-      auto& [callKind,
-        callFlags,
-        callDepth,
-        callGas,
-        callRecipient,
-        callSender,
-        callInputData,
-        callInputSize,
-        callValue,
-        callCreate2Salt,
-        callCodeAddress] = callData;
 
       auto functor = ABI::FunctorEncoder::encode<>(ContractReflectionInterface::getFunctionName(func));
       Bytes fullData;
       Utils::appendBytes(fullData, Utils::uint32ToBytes(functor.value));
 
-      callKind = EVMC_CALL;
-      callFlags = 0;
-      callDepth = 1;
-      callGas = 10000000;
-      callRecipient = bytes::cast<evmc_address>(contractAddress);
-      callSender = bytes::cast<evmc_address>(this->getChainOwnerAccount().address);
-      callInputData = fullData.data();
-      callInputSize = fullData.size();
-      callValue = Utils::uint256ToEvmcUint256(0);
-      callCreate2Salt = {};
-      callCodeAddress = bytes::cast<evmc_address>(contractAddress);
-      return std::get<0>(ABI::Decoder::decodeData<ReturnType>(this->state_.ethCall(callData)));
+      messages::Gas gas(10000000);
+      const Address from = this->getChainOwnerAccount().address;
+      EncodedStaticCallMessage msg(from, contractAddress, gas, fullData);
+
+      return std::get<0>(ABI::Decoder::decodeData<ReturnType>(this->state_.ethCall(msg)));
     }
 
-    /**
+      /**
      * Call a contract view function with args and return the result.
      * @tparam ReturnType Return type of the function.
      * @tparam TContract Contract type to call.
@@ -809,36 +774,16 @@ class SDKTestSuite {
       const Args&... args
       ) {
       TContract::registerContract();
-      evmc_message callData;
-      auto& [callKind,
-        callFlags,
-        callDepth,
-        callGas,
-        callRecipient,
-        callSender,
-        callInputData,
-        callInputSize,
-        callValue,
-        callCreate2Salt,
-        callCodeAddress] = callData;
       auto functor = ABI::FunctorEncoder::encode<Args...>(ContractReflectionInterface::getFunctionName(func));
       Bytes fullData;
       Utils::appendBytes(fullData, Utils::uint32ToBytes(functor.value));
       Utils::appendBytes(fullData, ABI::Encoder::encodeData<Args...>(std::forward<decltype(args)>(args)...));
 
-      callKind = EVMC_CALL;
-      callFlags = 0;
-      callDepth = 1;
-      callGas = 10000000;
-      callRecipient = bytes::cast<evmc_address>(contractAddress);
-      callSender = bytes::cast<evmc_address>(this->getChainOwnerAccount().address);
-      callInputData = fullData.data();
-      callInputSize = fullData.size();
-      callValue = Utils::uint256ToEvmcUint256(0);
-      callCreate2Salt = {};
-      callCodeAddress = {};
+      messages::Gas gas(10000000);
+      const Address from = this->getChainOwnerAccount().address;
+      EncodedStaticCallMessage msg(from, contractAddress, gas, fullData);
 
-      return std::get<0>(ABI::Decoder::decodeData<ReturnType>(this->state_.ethCall(callData)));
+      return std::get<0>(ABI::Decoder::decodeData<ReturnType>(this->state_.ethCall(msg)));
     }
 
 

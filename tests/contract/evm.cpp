@@ -199,7 +199,7 @@ namespace TEVM {
         REQUIRE (sdk.callViewFunction(erc20Address, &ERC20::balanceOf, sdk.getChainOwnerAccount().address) == uint256_t("10000000000000000000000"));
         REQUIRE (sdk.callViewFunction(erc20Address, &ERC20::balanceOf, erc20WrapperAddress) == uint256_t("0"));
 
-        auto deposit = sdk.callFunction(erc20WrapperAddress, &SolERC20Wrapper::deposit, erc20Address, uint256_t("10000000000000000000000")); // TODO: THIS ONE ACTUALLY
+        auto deposit = sdk.callFunction(erc20WrapperAddress, &SolERC20Wrapper::deposit, erc20Address, uint256_t("10000000000000000000000"));
         REQUIRE(sdk.callViewFunction(erc20WrapperAddress, &SolERC20Wrapper::balanceOf, sdk.getChainOwnerAccount().address, erc20Address) == uint256_t("10000000000000000000000"));
         REQUIRE(sdk.callViewFunction(erc20WrapperAddress, &SolERC20Wrapper::contractBalance, erc20Address) == uint256_t("10000000000000000000000"));
         REQUIRE(sdk.callViewFunction(erc20Address, &ERC20::balanceOf, sdk.getChainOwnerAccount().address) == uint256_t("0"));

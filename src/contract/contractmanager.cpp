@@ -16,7 +16,7 @@ See the LICENSE.txt file in the project root for more information.
 #include "../utils/dynamicexception.h"
 
 ContractManager::ContractManager(
-  const DB& db, boost::unordered_flat_map<Address, std::unique_ptr<BaseContract>, SafeHash>& contracts,
+  const DB& db, boost::unordered_flat_map<Address, std::unique_ptr<BaseContract>, SafeHash, SafeCompare>& contracts,
   DumpManager& manager, const Options& options
 ) : BaseContract("ContractManager", ProtocolContractAddresses.at("ContractManager"),
   options.getChainOwner(), options.getChainID()), contracts_(contracts)
@@ -80,7 +80,7 @@ void ContractManager::ethCall(const evmc_message& callInfo, ContractHost* host) 
     throw DynamicException("ContractManager: Invalid function call");
   }
   it->second(callInfo,
-             ContractHost::deriveContractAddress(this->host_->getNonce(caller), caller),
+            generateContractAddress(this->host_->context().getAccount(caller).nonce, caller),
              this->contracts_,
              this->getContractChainId(),
              this->host_);

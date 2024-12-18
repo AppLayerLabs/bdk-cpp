@@ -639,17 +639,7 @@ class DynamicContract : public BaseContract {
       if (this->host_ == nullptr) {
         throw DynamicException("Contracts going haywire! trying to create a contract without a host!");
       }
-      std::string createSignature = "createNew" + Utils::getRealTypeName<TContract>() + "Contract(";
-      // Append args
-      createSignature += ContractReflectionInterface::getConstructorArgumentTypesString<TContract>();
-      createSignature += ")";
-      Bytes fullData;
-      Utils::appendBytes(fullData, Utils::sha3(Utils::create_view_span(createSignature)));
-      fullData.resize(4); // We only need the first 4 bytes for the function signature
-      if constexpr (sizeof...(Args) > 0) {
-        Utils::appendBytes(fullData, ABI::Encoder::encodeData(std::forward<Args>(args)...));
-      }
-      return this->host_->callCreateContract<TContract>(this, fullData);
+      return this->host_->callCreateContract<TContract>(*this, std::forward<Args>(args)...);
     }
 
     /**
@@ -661,7 +651,7 @@ class DynamicContract : public BaseContract {
       if (this->host_ == nullptr) {
         throw DynamicException("Contracts going haywire! trying to get balance without a host!");
       }
-      return host_->getBalanceFromAddress(address);
+      return host_->context().getAccount(address).balance;
     }
 
     /**
@@ -673,7 +663,7 @@ class DynamicContract : public BaseContract {
       if (this->host_ == nullptr) {
         throw DynamicException("Contracts going haywire! trying to send tokens without a host!");
       }
-      host_->sendTokens(this, to, amount);
+      host_->context().transferBalance(this->getContractAddress(), to, amount);
     }
 
     /**

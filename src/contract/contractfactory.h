@@ -28,7 +28,7 @@ See the LICENSE.txt file in the project root for more information.
  *       std::function<
  *         void(const evmc_message&,
  *              const Address&,
- *              boost::unordered_flat_map<Address, std::unique_ptr<BaseContract>, SafeHash>& contracts_,
+ *              boost::unordered_flat_map<Address, std::unique_ptr<BaseContract>, SafeHash, SafeCompare>& contracts_,
  *              const uint64_t&,
  *              ContractHost*
  *              )>,
@@ -116,7 +116,7 @@ namespace ContractFactory {
      */
     template <typename TContract> void createNewContract(const evmc_message& callInfo,
                                                          const Address& derivedAddress,
-                                                         boost::unordered_flat_map<Address, std::unique_ptr<BaseContract>, SafeHash>& contracts,
+                                                         boost::unordered_flat_map<Address, std::unique_ptr<BaseContract>, SafeHash, SafeCompare>& contracts,
                                                          const uint64_t& chainId,
                                                          ContractHost* host) {
       using ConstructorArguments = typename TContract::ConstructorArguments;
@@ -130,8 +130,7 @@ namespace ContractFactory {
       auto contract = createContractWithTuple<TContract, ConstructorArguments>(
         Address(callInfo.sender), derivedAddress, chainId, decodedData
       );
-      host->registerNewCPPContract(derivedAddress, contract.get());
-      contracts.insert(std::make_pair(derivedAddress, std::move(contract)));
+      host->context().addContract(derivedAddress, std::move(contract));
     }
 
     /**
@@ -143,12 +142,12 @@ namespace ContractFactory {
     void addContractFuncs(const std::function<
                        void(const evmc_message&,
                             const Address&,
-                            boost::unordered_flat_map<Address, std::unique_ptr<BaseContract>, SafeHash>& contracts_,
+                            boost::unordered_flat_map<Address, std::unique_ptr<BaseContract>, SafeHash, SafeCompare>& contracts_,
                             const uint64_t&,
                             ContractHost* host)>& createFunc
                       ,boost::unordered_flat_map<Functor,std::function<void(const evmc_message&,
                                                                      const Address&,
-                                                                     boost::unordered_flat_map<Address, std::unique_ptr<BaseContract>, SafeHash>& contracts_,
+                                                                     boost::unordered_flat_map<Address, std::unique_ptr<BaseContract>, SafeHash, SafeCompare>& contracts_,
                                                                      const uint64_t&,
                                                                      ContractHost*)>,SafeHash>& createContractFuncs
     ) {
@@ -170,7 +169,7 @@ namespace ContractFactory {
       boost::unordered_flat_map<Functor, std::function<void(
         const evmc_message&,
         const Address&,
-        boost::unordered_flat_map<Address, std::unique_ptr<BaseContract>, SafeHash>& contracts_,
+        boost::unordered_flat_map<Address, std::unique_ptr<BaseContract>, SafeHash, SafeCompare>& contracts_,
         const uint64_t&,
         ContractHost*
       )>, SafeHash>& createContractFuncs,
@@ -179,7 +178,7 @@ namespace ContractFactory {
       ((addContractFuncs<std::tuple_element_t<Is, Tuple>>([](
         const evmc_message &callInfo,
         const Address &derivedAddress,
-        boost::unordered_flat_map<Address, std::unique_ptr<BaseContract>, SafeHash> &contracts,
+        boost::unordered_flat_map<Address, std::unique_ptr<BaseContract>, SafeHash, SafeCompare> &contracts,
         const uint64_t &chainId,
         ContractHost* host
       ) {
@@ -194,7 +193,7 @@ namespace ContractFactory {
     template <typename Tuple> requires Utils::is_tuple<Tuple>::value void addAllContractFuncs(
                                                                    boost::unordered_flat_map<Functor,std::function<void(const evmc_message&,
                                                                    const Address&,
-                                                                   boost::unordered_flat_map<Address, std::unique_ptr<BaseContract>, SafeHash>& contracts_,
+                                                                   boost::unordered_flat_map<Address, std::unique_ptr<BaseContract>, SafeHash, SafeCompare>& contracts_,
                                                                    const uint64_t&,
                                                                    ContractHost*)>,SafeHash>& createContractFuncs) {
       addAllContractFuncsHelper<Tuple>(createContractFuncs, std::make_index_sequence<std::tuple_size<Tuple>::value>{});

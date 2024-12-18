@@ -212,53 +212,45 @@ void State::processTransaction(
     throw DynamicException("Transaction nonce mismatch");
     return;
   }
+
+  messages::Gas gas(static_cast<uint64_t>(tx.getGasLimit()));
+
   try {
-    evmc_tx_context txContext;
-    txContext.tx_gas_price = Utils::uint256ToEvmcUint256(tx.getMaxFeePerGas());
-    txContext.tx_origin = bytes::cast<evmc_address>(tx.getFrom());
-    txContext.block_coinbase = bytes::cast<evmc_address>(ContractGlobals::getCoinbase());
-    txContext.block_number = ContractGlobals::getBlockHeight();
-    txContext.block_timestamp = ContractGlobals::getBlockTimestamp();
-    txContext.block_gas_limit = 10000000;
-    txContext.block_prev_randao = {};
-    txContext.chain_id = Utils::uint256ToEvmcUint256(this->options_.getChainID());
-    txContext.block_base_fee = {};
-    txContext.blob_base_fee = {};
-    txContext.blob_hashes = nullptr;
-    txContext.blob_hashes_count = 0;
-    Hash randomSeed(Utils::uint256ToBytes((static_cast<uint256_t>(randomnessHash) + txIndex)));
+    const Hash randomSeed(Utils::uint256ToBytes((static_cast<uint256_t>(randomnessHash) + txIndex)));
+
+    ExecutionContext context = ExecutionContext::Builder{}
+      .storage(this->vmStorage_)
+      .accounts(this->accounts_)
+      .contracts(this->contracts_)
+      .blockHash(blockHash)
+      .txHash(tx.hash())
+      .txOrigin(tx.getFrom())
+      .blockCoinbase(ContractGlobals::getCoinbase())
+      .txIndex(txIndex)
+      .blockNumber(ContractGlobals::getBlockHeight())
+      .blockTimestamp(ContractGlobals::getBlockTimestamp())
+      .blockGasLimit(10'000'000)
+      .txGasPrice(tx.getMaxFeePerGas())
+      .chainId(this->options_.getChainID())
+      .build();
+
     ContractHost host(
       this->vm_,
       this->dumpManager_,
       this->storage_,
       randomSeed,
-      txContext,
-      this->contracts_,
-      this->accounts_,
-      this->vmStorage_,
-      tx.hash(),
-      txIndex,
-      blockHash,
-      leftOverGas
-    );
+      context);
 
-    host.execute(tx.txToMessage(), accountTo.contractType);
+    std::visit([&host] (auto&& msg) {
+      host.execute(std::forward<decltype(msg)>(msg));
+    }, tx.toMessage(gas));
 
-    // if (tx.getTo() == Address()) {
-    //   CreateMessage msg{ tx.getTo(), tx.getFrom(), tx.getValue(), 0, tx.getData() };
-    //   host.execute(msg);
-    // } else {
-    //   host.execute(tx.txToMessage(), accountTo.contractType);
-    // }
-
-  } catch (std::exception& e) {
+  } catch (const std::exception& e) {
     LOGERRORP("Transaction: " + tx.hash().hex().get() + " failed to process, reason: " + e.what());
   }
-  // if (leftOverGas < 0) {
-  //   leftOverGas = 0; // We don't want to """refund""" gas due to negative gas
-  // }
+
   ++fromNonce;
-  auto usedGas = tx.getGasLimit() - leftOverGas;
+  auto usedGas = tx.getGasLimit() - gas.value();
   fromBalance -= (usedGas * tx.getMaxFeePerGas());
 }
 
@@ -446,84 +438,72 @@ void State::addBalance(const Address& addr) {
   this->accounts_[addr]->balance += uint256_t("1000000000000000000000");
 }
 
-Bytes State::ethCall(const evmc_message& callInfo) {
+Bytes State::ethCall(EncodedStaticCallMessage& msg) {
   // We actually need to lock uniquely here
   // As the contract host will modify (reverting in the end) the state.
   std::unique_lock lock(this->stateMutex_);
-  const auto recipient(callInfo.recipient);
-  const auto& accIt = this->accounts_.find(Address(recipient));
+  const auto& accIt = this->accounts_.find(msg.to());
   if (accIt == this->accounts_.end()) {
     return {};
   }
   const auto& acc = accIt->second;
   if (acc->isContract()) {
-    int64_t leftoverGas = callInfo.gas;
-    evmc_tx_context txContext;
-    txContext.tx_gas_price = {};
-    txContext.tx_origin = callInfo.sender;
-    txContext.block_coinbase = bytes::cast<evmc_address>(ContractGlobals::getCoinbase());
-    txContext.block_number = static_cast<int64_t>(ContractGlobals::getBlockHeight());
-    txContext.block_timestamp = static_cast<int64_t>(ContractGlobals::getBlockTimestamp());
-    txContext.block_gas_limit = 10000000;
-    txContext.block_prev_randao = {};
-    txContext.chain_id = Utils::uint256ToEvmcUint256(this->options_.getChainID());
-    txContext.block_base_fee = {};
-    txContext.blob_base_fee = {};
-    txContext.blob_hashes = nullptr;
-    txContext.blob_hashes_count = 0;
+    ExecutionContext context = ExecutionContext::Builder{}
+      .storage(this->vmStorage_)
+      .accounts(this->accounts_)
+      .contracts(this->contracts_)
+      .blockHash(Hash())
+      .txHash(Hash())
+      .txOrigin(msg.from())
+      .blockCoinbase(ContractGlobals::getCoinbase())
+      .txIndex(0)
+      .blockNumber(ContractGlobals::getBlockHeight())
+      .blockTimestamp(ContractGlobals::getBlockTimestamp())
+      .blockGasLimit(10'000'000)
+      .txGasPrice(0)
+      .chainId(this->options_.getChainID())
+      .build();
+
     // As we are simulating, the randomSeed can be anything
-    Hash randomSeed = bytes::random();
+    const Hash randomSeed = bytes::random();
+
     return ContractHost(
       this->vm_,
       this->dumpManager_,
       this->storage_,
       randomSeed,
-      txContext,
-      this->contracts_,
-      this->accounts_,
-      this->vmStorage_,
-      Hash(),
-      0,
-      Hash(),
-      leftoverGas
-    ).ethCallView(callInfo, acc->contractType);
+      context
+    ).execute(msg);
   } else {
     return {};
   }
 }
 
-int64_t State::estimateGas(const evmc_message& callInfo) {
+int64_t State::estimateGas(EncodedMessageVariant msg) {
   std::unique_lock lock(this->stateMutex_);
-  const Address to(callInfo.recipient);
-  // ContractHost simulate already do all necessary checks
-  // We just need to execute and get the leftOverGas
-  ContractType type = ContractType::NOT_A_CONTRACT;
-  if (auto accIt = this->accounts_.find(to); accIt != this->accounts_.end()) {
-    type = accIt->second->contractType;
-  }
 
-  int64_t leftoverGas = callInfo.gas;
-  Hash randomSeed = bytes::random();
-  ContractHost(
+  ExecutionContext context = ExecutionContext::Builder{}
+      .storage(this->vmStorage_)
+      .accounts(this->accounts_)
+      .contracts(this->contracts_)
+      .build();
+
+  const Hash randomSeed = bytes::random();
+
+  ContractHost host(
     this->vm_,
     this->dumpManager_,
     this->storage_,
     randomSeed,
-    evmc_tx_context(),
-    this->contracts_,
-    this->accounts_,
-    this->vmStorage_,
-    Hash(),
-    0,
-    Hash(),
-    leftoverGas
-  ).simulate(callInfo, type);
-  // return gasLeft.value();
-  auto used = callInfo.gas - leftoverGas;
-  if (used < 0) {
-    used = 0;
-  }
-  return used;
+    context
+  );
+
+  return std::visit([&host] (auto&& msg) {
+    const messages::Gas& gas = msg.gas();
+    const uint64_t initialGas = gas.value();
+    host.simulate(std::forward<decltype(msg)>(msg)); 
+    return initialGas - gas.value();
+  }, std::move(msg));
 }
 
 std::vector<std::pair<std::string, Address>> State::getCppContracts() const {

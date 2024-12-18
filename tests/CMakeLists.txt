@@ -34,6 +34,8 @@ set (TESTS_SOURCES
   ${CMAKE_SOURCE_DIR}/tests/contract/calltracer.cpp
   ${CMAKE_SOURCE_DIR}/tests/contract/createcontract.cpp
   ${CMAKE_SOURCE_DIR}/tests/contract/pebble.cpp
+  ${CMAKE_SOURCE_DIR}/tests/contract/messages/executioncontext.cpp
+  ${CMAKE_SOURCE_DIR}/tests/contract/messages/evmcontractexecutor.cpp
   ${CMAKE_SOURCE_DIR}/tests/contract/variables/safeuint_t.cpp
   ${CMAKE_SOURCE_DIR}/tests/contract/variables/safeint_t.cpp
   ${CMAKE_SOURCE_DIR}/tests/contract/variables/safestring.cpp

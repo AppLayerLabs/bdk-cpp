@@ -9,6 +9,7 @@ See the LICENSE.txt file in the project root for more information.
 #define TX_H
 
 #include "../bytes/view.h"
+#include "contract/messages/encodedmessages.h"
 
 #include "ecdsa.h"
 #include "strings.h"
@@ -164,6 +165,8 @@ class TxBlock {
      * @return The equivalent evmc_message object.
      */
     evmc_message txToMessage() const;
+
+    EncodedMessageVariant toMessage(messages::Gas& gas) const;
 
     /// Copy assignment operator.
     TxBlock& operator=(const TxBlock& other) {

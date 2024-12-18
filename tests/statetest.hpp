@@ -13,31 +13,4 @@ class StateTest : public State {
     // StateTest has the same constructor as State
     StateTest(const DB& db, Storage& storage, P2P::ManagerNormal& p2pManager, const uint64_t& snapshotHeight, const Options& options) :
       State(db, storage, p2pManager, snapshotHeight, options) {};
-
-    /**
-     * Force a contract call, regardless of the current state.
-     */
-    inline void call(const evmc_message& callInfo,
-                const evmc_tx_context& txContext,
-                const ContractType& type,
-                const Hash& randomness,
-                const Hash& txHash,
-                const Hash& blockHash,
-                int64_t& leftoverGas) {
-      ContractHost host(
-        this->vm_,
-        this->dumpManager_,
-        this->storage_,
-        randomness,
-        txContext,
-        this->contracts_,
-        this->accounts_,
-        this->vmStorage_,
-        txHash,
-        0,
-        blockHash,
-        leftoverGas
-      );
-      host.execute(callInfo, type);
-    }
 };

@@ -1,6 +1,7 @@
 #ifndef BDK_BYTES_CAST_H
 #define BDK_BYTES_CAST_H
 
+#include <algorithm>
 #include "range.h"
 
 namespace bytes {

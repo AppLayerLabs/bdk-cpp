@@ -564,6 +564,8 @@ namespace ABI {
       result.insert(result.end(), dynamicBytes.begin(), dynamicBytes.end());
       return result;
     }
+
+    Bytes encodeError(std::string_view reason);
   }; // namespace Encoder
 
   /**
@@ -989,6 +991,8 @@ namespace ABI {
         return ret;
       }
     }
+
+    std::string decodeError(View<Bytes> data);
 
     /// Specialization for tuples without args.
     template<typename T> struct decodeDataAsTuple {

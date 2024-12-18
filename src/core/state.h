@@ -38,9 +38,9 @@ class State : public Dumpable, public Log::LogicalLocationProvider {
     DumpWorker dumpWorker_; ///< Dump Manager object
     P2P::ManagerNormal& p2pManager_;  ///< Reference to the P2P connection manager.
     rdPoS rdpos_; ///< rdPoS object (consensus).
-    boost::unordered_flat_map<Address, std::unique_ptr<BaseContract>, SafeHash> contracts_; ///< Map with information about blockchain contracts (Address -> Contract).
+    boost::unordered_flat_map<Address, std::unique_ptr<BaseContract>, SafeHash, SafeCompare> contracts_; ///< Map with information about blockchain contracts (Address -> Contract).
     boost::unordered_flat_map<StorageKey, Hash, SafeHash, SafeCompare> vmStorage_; ///< Map with the storage of the EVM.
-    boost::unordered_flat_map<Address, NonNullUniquePtr<Account>, SafeHash> accounts_; ///< Map with information about blockchain accounts (Address -> Account).
+    boost::unordered_flat_map<Address, NonNullUniquePtr<Account>, SafeHash, SafeCompare> accounts_; ///< Map with information about blockchain accounts (Address -> Account).
     boost::unordered_flat_map<Hash, TxBlock, SafeHash> mempool_; ///< TxBlock mempool.
 
     /**
@@ -240,7 +240,7 @@ class State : public Dumpable, public Log::LogicalLocationProvider {
      * @param callInfo Tuple with info about the call (from, to, gasLimit, gasPrice, value, data).
      * @return The return of the called function as a data string.
      */
-    Bytes ethCall(const evmc_message& callInfo);
+    Bytes ethCall(EncodedStaticCallMessage& msg);
 
     /**
      * Estimate gas for callInfo in RPC.
@@ -248,7 +248,7 @@ class State : public Dumpable, public Log::LogicalLocationProvider {
      * @param callInfo Tuple with info about the call (from, to, gasLimit, gasPrice, value, data).
      * @return The used gas limit of the transaction.
      */
-    int64_t estimateGas(const evmc_message& callInfo);
+    int64_t estimateGas(EncodedMessageVariant msg);
 
     /// Get a list of the C++ contract addresses and names.
     std::vector<std::pair<std::string, Address>> getCppContracts() const;

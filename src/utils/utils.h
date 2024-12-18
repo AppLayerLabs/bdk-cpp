@@ -267,6 +267,14 @@ struct Account {
   Bytes code = Bytes();                        ///< Account code (if any)
   ContractType contractType = ContractType::NOT_A_CONTRACT; ///< Account contract type.
 
+  static Account makeCppContract(const uint256_t& balance = 0) {
+    Account account;
+    account.balance = balance;
+    account.nonce = 1;
+    account.contractType = ContractType::CPP;
+    return account;
+  }
+
   /// Default constructor.
   Account() = default;
 
@@ -345,7 +353,7 @@ template<typename T, bool Index> struct EventParam {
 /// Namespace for utility functions.
 namespace Utils {
 
-  template<class... Ts>
+  template<typename... Ts>
   struct Overloaded : Ts... { using Ts::operator()...; };
 
   std::string getTestDumpPath(); ///< Get the path to the test dump folder.
