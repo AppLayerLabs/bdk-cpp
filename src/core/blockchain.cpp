@@ -9,11 +9,25 @@ See the LICENSE.txt file in the project root for more information.
 
 #include "../utils/logger.h"
 
-Blockchain::Blockchain(const std::string& blockchainPath, std::string instanceId) :
-  instanceId_(instanceId),
-  options_(Options::fromFile(blockchainPath)),
-  comet_(this, instanceId, options_),
-  state_(*this), http_(options_.getHttpPort(), *this)
+#define NODE_DATABASE_DIRECTORY_SUFFIX "/db/"
+
+Blockchain::Blockchain(const std::string& blockchainPath, std::string instanceId)
+  : instanceId_(instanceId),
+    options_(Options::fromFile(blockchainPath)),
+    comet_(this, instanceId, options_),
+    state_(*this),
+    http_(options_.getHttpPort(), *this),
+    db_(options_.getRootPath() + NODE_DATABASE_DIRECTORY_SUFFIX)
+{
+}
+
+Blockchain::Blockchain(const Options& options, const std::string& blockchainPath, std::string instanceId)
+  : instanceId_(instanceId),
+    options_(options),
+    comet_(this, instanceId, options_),
+    state_(*this),
+    http_(options_.getHttpPort(), *this),
+    db_(options_.getRootPath() + NODE_DATABASE_DIRECTORY_SUFFIX)
 {
 }
 
