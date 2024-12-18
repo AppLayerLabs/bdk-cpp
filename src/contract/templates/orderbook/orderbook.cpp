@@ -17,7 +17,13 @@ OrderBook::OrderBook(const Address& addA, const std::string& tickerA, const uint
     tickerAssetA_(this),
     addressAssetB_(this),
     tickerAssetB_(this),
-    spread_(this)
+    spread_(this),
+    tickSize_(this),
+    lotSize_(this),
+    lastPrice_(this),
+    bids_(this),
+    asks_(this),
+    stops_(this)
 {
   // set
   this->nextOrderID_ = 0;
@@ -36,9 +42,12 @@ OrderBook::OrderBook(const Address& addA, const std::string& tickerA, const uint
   this->tickerAssetA_.commit();
   this->tickerAssetB_.commit();
   this->spread_.commit();
-  this->lastPrice_.commit();
   this->lotSize_.commit();
   this->tickSize_.commit();
+  this->lastPrice_.commit();
+  this->bids_.commit();
+  this->asks_.commit();
+  this->stops_.commit();
   // register functions
   this->registerContractFunctions();
   // enable register
@@ -48,9 +57,12 @@ OrderBook::OrderBook(const Address& addA, const std::string& tickerA, const uint
   this->tickerAssetA_.enableRegister();
   this->tickerAssetB_.enableRegister();
   this->spread_.enableRegister();
-  this->lastPrice_.enableRegister();
   this->lotSize_.enableRegister();
   this->tickSize_.enableRegister();
+  this->lastPrice_.enableRegister();
+  this->bids_.enableRegister();
+  this->asks_.enableRegister();
+  this->stops_.enableRegister();
 }
 
 OrderBook::OrderBook(
@@ -81,9 +93,12 @@ OrderBook::OrderBook(
   this->tickerAssetA_.commit();
   this->tickerAssetB_.commit();
   this->spread_.commit();
-  this->lastPrice_.commit();
   this->lotSize_.commit();
   this->tickSize_.commit();
+  this->lastPrice_.commit();
+  this->bids_.commit();
+  this->asks_.commit();
+  this->stops_.commit();
   // register functions
   this->registerContractFunctions();
   // enable register
@@ -93,9 +108,12 @@ OrderBook::OrderBook(
   this->tickerAssetA_.enableRegister();
   this->tickerAssetB_.enableRegister();
   this->spread_.enableRegister();
-  this->lastPrice_.enableRegister();
   this->lotSize_.enableRegister();
   this->tickSize_.enableRegister();
+  this->lastPrice_.enableRegister();
+  this->bids_.enableRegister();
+  this->asks_.enableRegister();
+  this->stops_.enableRegister();
 }
 
 inline uint256_t OrderBook::convertToken(const uint256_t& assetAmount,
@@ -145,6 +163,7 @@ Order* OrderBook::findMatchAskOrder(const Order& bidOrder)
   auto& askAssetPrice = std::get<4>(*askOrder);
   auto& bidAssetPrice = std::get<4>(bidOrder);
   auto& bidOrderType = std::get<5>(bidOrder);
+
   switch (bidOrderType) {
     // doesn't matter the price return the first ask order found
   case OrderType::MARKET: {
@@ -196,6 +215,7 @@ void OrderBook::evaluateBidOrder(Order& bidOrder)
 {
   Order *matchAskOrder;
   // get bid order attributes values
+  const auto& bidId = std::get<0>(bidOrder);
   const auto& bidOwner = std::get<2>(bidOrder);
   auto& bidAssetAmount = std::get<3>(bidOrder);
   auto& bidAssetPrice = std::get<4>(bidOrder);
@@ -300,8 +320,7 @@ void OrderBook::addBidLimitOrder(const uint256_t& assetAmount,
     throw std::runtime_error("OrderBook::addBidLimitOrder: INSUFFICIENT_BALANCE");
   }
   // transfer token amount to order book contract
-  // evaluate the bid limit order
-  // increment the order id
+  // evaluate the bid limit order and increment the next order id
   this->transferToContract(this->addressAssetB_.get(), tokenAmount);
   this->evaluateBidOrder(*(this->makeOrder(assetAmount,
                                            assetPrice,
@@ -322,10 +341,11 @@ void OrderBook::delBidLimitOrder(const uint256_t& id)
     if (bidOwner != this->getCaller()) {
       throw std::runtime_error("OrderBook::delBidLimitOrder: INVALID_OWNER");
     }
+    uint256_t tokenAmount = this->convertToken(bidAssetAmount, bidAssetPrice);
     this->callContractFunction(this->addressAssetB_.get(),
                                &ERC20::transfer,
                                bidOwner,
-                               this->convertToken(bidAssetAmount, bidAssetPrice));
+                               tokenAmount);
     return true;
   });
 }
@@ -346,8 +366,7 @@ void OrderBook::addAskLimitOrder(const uint256_t& assetAmount,
     throw std::runtime_error("OrderBook::addAskLimitOrder: INSUFFICIENT_BALANCE");
   }
   // transfer lot amount to order book contract
-  // evaluate the the nearly created ask limit order
-  // increment next order id
+  // evaluate the the nearly created ask limit order and increment next order id
   this->transferToContract(this->addressAssetA_.get(), lotAmount);
   this->evaluateAskOrder(*(this->makeOrder(assetAmount,
                                            assetPrice,
@@ -417,7 +436,9 @@ inline void OrderBook::updateLastPrice(const uint256_t &price)
 
 void OrderBook::updateSpreadAndMidPrice()
 {
-  if (this->bids_.empty() or this->asks_.empty()) return;
+  if (this->bids_.empty() or
+      this->asks_.empty())
+    return;
   uint256_t bidPrice = std::get<4>(*this->bids_.cbegin());
   uint256_t askPrice = std::get<4>(*this->asks_.cbegin());
   this->spread_ = (std::max(bidPrice, askPrice) -\
