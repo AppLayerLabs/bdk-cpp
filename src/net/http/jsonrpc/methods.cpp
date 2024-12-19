@@ -77,8 +77,11 @@ std::pair<Bytes, evmc_message> parseEvmcMessage(const json& request, const Stora
 
   const auto [txJson, optionalBlockNumber] = parseAllParams<json, std::optional<BlockTagOrNumber>>(request);
 
-  if (optionalBlockNumber.has_value() && !optionalBlockNumber->isLatest(storage))
-    throw Error(-32601, "Only latest block is supported");
+  // Metamask can't keep up with a fast enough moving blockchain
+  // Causing it to constantly fail with "only latest block is supported"
+  // as it requests information on the block it knows it was the latest (not the "latest" flag)
+  //if (optionalBlockNumber.has_value() && !optionalBlockNumber->isLatest(storage))
+  //  throw Error(-32601, "Only latest block is supported");
 
   msg.sender = parseIfExists<Address>(txJson, "from")
     .transform([] (const Address& addr) { return addr.toEvmcAddress(); })
