@@ -187,11 +187,11 @@ private:
    * Create a order.
    * @param assetAmount, the order asset amount.
    * @param assetPrice, the order asset prince.
-   * @return A pointer to the nearly created order.
+   * @return Order, the nearly created order.
    */
-  Order* makeOrder(const uint256_t& assetAmount,
-                   const uint256_t& assetPrice,
-                   const OrderType orderType);
+  Order makeOrder(const uint256_t& assetAmount,
+                  const uint256_t& assetPrice,
+                  const OrderType orderType);
 
   /**
    * Execute the order, i.e, transfer the token amount to the ask owner and
@@ -238,7 +238,7 @@ private:
    * the bid order list (passive order).
    * @param bidOrder, the bid order.
    */
-  void evaluateBidOrder(Order& bidOrder);
+  void evaluateBidOrder(Order&& bidOrder);
 
   /**
    * Evaluate the ask order, i.e, try to find the a matching bid order and
@@ -246,7 +246,7 @@ private:
    * the ask order list (passive order).
    * @param askOrder, the ask order.
    */
-  void evaluateAskOrder(Order& askOrder);
+  void evaluateAskOrder(Order&& askOrder);
 
   /**
    * Find a matching ask order for an arbitrary bid order.
