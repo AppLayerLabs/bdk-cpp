@@ -211,7 +211,7 @@ Order* OrderBook::findMatchBidOrder(const Order& askOrder)
   return nullptr;
 }
 
-void OrderBook::evaluateBidOrder(Order& bidOrder)
+void OrderBook::evaluateBidOrder(Order&& bidOrder)
 {
   Order *matchAskOrder;
   // get bid order attributes values
@@ -248,7 +248,7 @@ void OrderBook::evaluateBidOrder(Order& bidOrder)
   this->updateSpreadAndMidPrice();
 }
 
-void OrderBook::evaluateAskOrder(Order& askOrder)
+void OrderBook::evaluateAskOrder(Order&& askOrder)
 {
   Order *matchBidOrder;
   const auto& askOwner = std::get<2>(askOrder);
@@ -293,16 +293,16 @@ void OrderBook::transferToContract(const Address& assetAddress,
                              assetAmount);
 }
 
-Order* OrderBook::makeOrder(const uint256_t& assetAmount,
-                            const uint256_t& assetPrice,
-                            const OrderType orderType)
+Order OrderBook::makeOrder(const uint256_t& assetAmount,
+                           const uint256_t& assetPrice,
+                           const OrderType orderType)
 {
-  return (new Order(this->nextOrderID_.get(),
-                    this->getCurrentTimestamp(),
-                    this->getCaller(),
-                    assetAmount,
-                    assetPrice,
-                    orderType));
+  return Order(this->nextOrderID_.get(),
+               this->getCurrentTimestamp(),
+               this->getCaller(),
+               assetAmount,
+               assetPrice,
+               orderType);
 }
 
 void OrderBook::addBidLimitOrder(const uint256_t& assetAmount,
@@ -322,9 +322,9 @@ void OrderBook::addBidLimitOrder(const uint256_t& assetAmount,
   // transfer token amount to order book contract
   // evaluate the bid limit order and increment the next order id
   this->transferToContract(this->addressAssetB_.get(), tokenAmount);
-  this->evaluateBidOrder(*(this->makeOrder(assetAmount,
-                                           assetPrice,
-                                           OrderType::LIMIT)));
+  this->evaluateBidOrder(std::move(this->makeOrder(assetAmount,
+                                                   assetPrice,
+                                                   OrderType::LIMIT)));
   this->nextOrderID_++;
 }
 
@@ -368,9 +368,9 @@ void OrderBook::addAskLimitOrder(const uint256_t& assetAmount,
   // transfer lot amount to order book contract
   // evaluate the the nearly created ask limit order and increment next order id
   this->transferToContract(this->addressAssetA_.get(), lotAmount);
-  this->evaluateAskOrder(*(this->makeOrder(assetAmount,
-                                           assetPrice,
-                                           OrderType::LIMIT)));
+  this->evaluateAskOrder(std::move(this->makeOrder(assetAmount,
+                                                   assetPrice,
+                                                   OrderType::LIMIT)));
   this->nextOrderID_++;
 }
 
@@ -384,9 +384,9 @@ void OrderBook::delAskLimitOrder(const uint256_t& id)
     auto const& askOwner = std::get<2>(askOrder);
     auto const& askAssetAmount = std::get<3>(askOrder);
     if (askOwner != this->getCaller()) {
-      throw std::runtime_error("OrderBook::delBidLimitOrder: INVALID_OWNER");
+      throw std::runtime_error("OrderBook::delAskLimitOrder: INVALID_OWNER");
     }
-    this->callContractFunction(this->addressAssetB_.get(),
+    this->callContractFunction(this->addressAssetA_.get(),
                                &ERC20::transfer,
                                askOwner,
                                this->convertLot(askAssetAmount));
@@ -408,7 +408,9 @@ void OrderBook::addAskMarketOrder(const uint256_t& assetAmount)
     throw std::runtime_error("OrderBook::addAskMarketOrder: INSUFFICIENT_BALANCE");
   }
   this->transferToContract(this->addressAssetA_.get(), lotAmount);
-  this->evaluateAskOrder(*(this->makeOrder(assetAmount, 0, OrderType::MARKET)));
+  this->evaluateAskOrder(std::move(this->makeOrder(assetAmount,
+                                                   0,
+                                                   OrderType::MARKET)));
   this->nextOrderID_++;
 }
 
@@ -425,7 +427,7 @@ void OrderBook::addBidMarketOrder(const uint256_t& assetAmount)
   if (tickAmount > assetBalance) {
     throw std::runtime_error("OrderBook::addBidMarketOrder: INSUFFICIENT_BALANCE");
   }
-  this->evaluateBidOrder(*(this->makeOrder(assetAmount, 0, OrderType::MARKET)));
+  this->evaluateBidOrder(std::move(this->makeOrder(assetAmount, 0, OrderType::MARKET)));
   this->nextOrderID_++;
 }
 
