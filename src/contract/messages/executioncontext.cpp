@@ -73,6 +73,10 @@ void ExecutionContext::addAccount(View<Address> address, Account account) {
 }
 
 void ExecutionContext::addContract(View<Address> address, std::unique_ptr<BaseContract> contract) {
+  if (contract == nullptr) {
+    throw DynamicException("attempt to insert null contract");
+  }
+
   const auto [iterator, inserted] = contracts_.emplace(address, std::move(contract));
 
   if (!inserted) {
@@ -95,13 +99,6 @@ void ExecutionContext::notifyNewContract(View<Address> address, BaseContract* co
   transactions_.push(transactional::AnyTransactional(transactional::BasicTransactional(newContracts_, [] (auto& newContracts) {
     newContracts.pop_back();
   })));
-}
-
-void addContract(View<Address> address, BaseContract* contract) {
-  // TODO: ???
-  // TODO: take as std::unique_ptr and save the contract?
-  // TODO: analyse ContractHost and see what is done when a C++ contract is created
-  // TODO: remember that this function must also be called for EVM contracts (nullptr in this case)
 }
 
 void ExecutionContext::transferBalance(View<Address> fromAddress, View<Address> toAddress, const uint256_t& amount) {

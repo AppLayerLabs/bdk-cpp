@@ -2,8 +2,9 @@
 
 ContractHost::~ContractHost() {
   if (mustRevert_) {
-    for (auto& var : this->stack_.getUsedVars())
+    for (auto& var : this->stack_.getUsedVars()) {
       var.get().revert();
+    }
 
     context_.revert();
   } else {

@@ -71,7 +71,7 @@ struct MessageContractHelper<M> {
 };
 
 template<typename M>
-using MessageContract = MessageContractHelper<M>::Type;
+using MessageContract = std::remove_cvref_t<typename MessageContractHelper<M>::Type>;
 
 } // namespace traits
 

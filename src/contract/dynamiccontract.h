@@ -394,24 +394,20 @@ class DynamicContract : public BaseContract {
     Bytes evmEthCall(const evmc_message& callInfo, ContractHost* host) final {
       this->host_ = host;
       PointerNullifier nullifier(this->host_);
-      try {
-        Functor funcName = Utils::getFunctor(callInfo);
-        if (this->isPayableFunction(funcName)) {
-          auto func = this->evmFunctions_.find(funcName);
-          if (func == this->evmFunctions_.end()) throw DynamicException("Functor not found for payable function");
-          return func->second(callInfo);
-        } else {
-          // value is a uint8_t[32] C array, we need to check if it's zero in modern C++
-          if (!evmc::is_zero(callInfo.value)) {
-            // If the value is not zero, we need to throw an exception
-            throw DynamicException("Non-payable function called with value");
-          }
-          auto func = this->evmFunctions_.find(funcName);
-          if (func == this->evmFunctions_.end()) throw DynamicException("Functor not found for non-payable function");
-          return func->second(callInfo);
+      Functor funcName = Utils::getFunctor(callInfo);
+      if (this->isPayableFunction(funcName)) {
+        auto func = this->evmFunctions_.find(funcName);
+        if (func == this->evmFunctions_.end()) throw DynamicException("Functor not found for payable function");
+        return func->second(callInfo);
+      } else {
+        // value is a uint8_t[32] C array, we need to check if it's zero in modern C++
+        if (!evmc::is_zero(callInfo.value)) {
+          // If the value is not zero, we need to throw an exception
+          throw DynamicException("Non-payable function called with value");
         }
-      } catch (const std::exception& e) {
-        throw DynamicException(e.what());
+        auto func = this->evmFunctions_.find(funcName);
+        if (func == this->evmFunctions_.end()) throw DynamicException("Functor not found for non-payable function");
+        return func->second(callInfo);
       }
     }
 
@@ -424,14 +420,11 @@ class DynamicContract : public BaseContract {
     Bytes ethCallView(const evmc_message& data, ContractHost* host) const override {
       this->host_ = host;
       PointerNullifier nullifier(this->host_);
-      try {
-        Functor funcName = Utils::getFunctor(data);
-        auto func = this->viewFunctions_.find(funcName);
-        if (func == this->viewFunctions_.end()) throw DynamicException("Functor not found");
-        return func->second(data);
-      } catch (std::exception& e) {
-        throw DynamicException(e.what());
-      }
+      Functor funcName = Utils::getFunctor(data);
+      auto func = this->viewFunctions_.find(funcName);
+      if (func == this->viewFunctions_.end())
+        throw DynamicException("Functor not found");
+      return func->second(data);
     }
 
     /**
@@ -588,17 +581,14 @@ class DynamicContract : public BaseContract {
     template <typename R, typename C, typename... Args> R callContractFunction(
       ContractHost* contractHost, R (C::*func)(const Args&...), const Args&... args
     ) {
-      try {
-        // We don't want to ever overwrite the host_ pointer if it's already set (nested calls)
-        if (this->host_ == nullptr) {
-          this->host_ = contractHost;
-          PointerNullifier nullifier(this->host_);
-          return (static_cast<C*>(this)->*func)(args...);
-        }
-        return (static_cast<C*>(this)->*func)(args...);
-      } catch (const std::exception& e) {
-        throw DynamicException(e.what());
+      // We don't want to ever overwrite the host_ pointer if it's already set (nested calls)
+      PointerNullifier nullifier(this->host_);
+
+      if (this->host_ == nullptr) {
+        this->host_ = contractHost;
       }
+
+      return (static_cast<C*>(this)->*func)(args...);
     }
 
     /**

@@ -33,12 +33,18 @@ public:
 
 private:
   decltype(auto) callContract(concepts::PackedMessage auto&& msg) {
+    auto& contract = getContractAs<traits::MessageContract<decltype(msg)>>(msg.to());
+
     transactional::Group guard = {
-      transactional::checkpoint(msg.caller().caller_),
-      transactional::checkpoint(msg.caller().value_)
+      transactional::checkpoint(contract.caller_),
+      transactional::checkpoint(contract.value_)
     };
 
-    auto& contract = getContractAs<traits::MessageContract<decltype(msg)>>(msg.to());
+    const Address caller(msg.from());
+    const uint256_t value = messageValueOrZero(msg);
+
+    contract.caller_ = caller;
+    contract.value_ = value;
 
     return std::apply([&] (auto&&... args) {
       if constexpr (concepts::StaticCallMessage<decltype(msg)>) {
@@ -65,8 +71,15 @@ private:
     };
 
     auto& contract = context_.getContract(msg.to());
-    contract.caller_ = Address(msg.from());
-    contract.value_ = messageValueOrZero(msg);
+    transactional::Group guard = {
+      transactional::checkpoint(contract.caller_),
+      transactional::checkpoint(contract.value_)
+    };
+    Address caller(msg.from());
+    uint256_t value = messageValueOrZero(msg);
+
+    contract.caller_ = caller;
+    contract.value_ = value;
 
     return contract.evmEthCall(evmcMsg, &host_);
   }
@@ -113,8 +126,11 @@ private:
       transactional::checkpoint(contract.value_)
     };
 
-    contract.caller_ = Address(msg.from()); // TODO: these copies can be avoided
-    contract.value_ = 0;
+    Address caller(msg.from());
+    uint256_t value = 0;
+
+    contract.caller_ = caller;
+    contract.value_ = value; // TODO: value 0 ALWAYS?
 
     const Address contractAddress = generateContractAddress(context_.getAccount(msg.from()).nonce, msg.from());
     contract.ethCall(evmcMsg, &host_);
