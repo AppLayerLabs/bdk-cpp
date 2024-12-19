@@ -120,18 +120,11 @@ static void createContractImpl(auto& msg, ExecutionContext& context, View<Addres
 }
 
 Bytes EvmContractExecutor::execute(EncodedCallMessage& msg) {
-  auto checkpoint = context_.checkpoint();
   auto depthGuard = transactional::copy(depth_); // TODO: checkpoint (and deprecate copy)
   ++depth_;
 
-  if (msg.value() > 0) {
-    context_.transferBalance(msg.from(), msg.to(), msg.value());
-  }
-
   const Bytes output = executeEvmcMessage(this->vm_, &this->get_interface(), this->to_context(),
     makeEvmcMessage(msg, depth_), msg.gas(), context_.getAccount(msg.to()).code);
-
-  checkpoint.commit();
 
   return output;
 }
@@ -147,38 +140,26 @@ Bytes EvmContractExecutor::execute(EncodedStaticCallMessage& msg) {
 }
 
 Bytes EvmContractExecutor::execute(EncodedDelegateCallMessage& msg) {
-  auto checkpoint = context_.checkpoint();
   auto depthGuard = transactional::copy(depth_);
   ++depth_;
 
-  // TODO: is the value transfer correct for delegate calls?
-  if (msg.value() > 0) {
-    context_.transferBalance(msg.from(), msg.to(), msg.value());
-  }
-
   const Bytes output = executeEvmcMessage(this->vm_, &this->get_interface(), this->to_context(),
     makeEvmcMessage(msg, depth_), msg.gas(), context_.getAccount(msg.codeAddress()).code);
-
-  checkpoint.commit();
 
   return output;
 }
 
 Address EvmContractExecutor::execute(EncodedCreateMessage& msg) {
-  auto checkpoint = context_.checkpoint();
   auto depthGuard = transactional::copy(depth_);
   const Address contractAddress = generateContractAddress(context_.getAccount(msg.from()).nonce, msg.from());
   createContractImpl(msg, context_, contractAddress, vm_, *this, ++depth_);
-  checkpoint.commit();
   return contractAddress;
 }
 
 Address EvmContractExecutor::execute(EncodedSaltCreateMessage& msg) {
-  auto checkpoint = context_.checkpoint();
   auto depthGuard = transactional::copy(depth_);
   const Address contractAddress = generateContractAddress(msg.from(), msg.salt(), msg.code());
   createContractImpl(msg, context_, contractAddress, vm_, *this, ++depth_);
-  checkpoint.commit();
   return contractAddress;
 }
 

@@ -15,16 +15,43 @@ public:
 
   template<concepts::CallMessage M>
   decltype(auto) onMessage(M&& msg) {
+    using Result = traits::MessageResult<M>;
+
     const Account& account = context_.getAccount(messageCodeAddress(msg));
 
     if (!account.isContract()) {
       throw DynamicException("Not a contract address");
     }
 
+    auto checkpoint = context_.checkpoint();
+
+    if constexpr (concepts::HasValueField<M>) {
+      if (msg.value() > 0) {
+        context_.transferBalance(msg.from(), msg.to(), msg.value());
+      }
+    }
+
+    // TODO: to much code repetition, you can do better than this.
     if (account.contractType == ContractType::CPP) {
-      return cppExecutor_.execute(std::forward<M>(msg));
+      if constexpr (std::same_as<Result, void>) {
+        cppExecutor_.execute(std::forward<M>(msg));
+        checkpoint.commit();
+        return;
+      } else {
+        decltype(auto) result = cppExecutor_.execute(std::forward<M>(msg));
+        checkpoint.commit();
+        return result;
+      }
     } else {
-      return evmExecutor_.execute(std::forward<M>(msg));
+      if constexpr (std::same_as<Result, void>) {
+        evmExecutor_.execute(std::forward<M>(msg));
+        checkpoint.commit();
+        return;
+      } else {
+        decltype(auto) result = evmExecutor_.execute(std::forward<M>(msg));
+        checkpoint.commit();
+        return result;
+      }
     }
   }
 
