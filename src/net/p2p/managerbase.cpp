@@ -264,14 +264,16 @@ namespace P2P {
       LOGDEBUG("Peer " + toString(nodeId) + " is a discovery node, cannot send request");
       return nullptr;
     }
-    if (!session->write(message)) {
-      // If message was never sent, then no request has been made. Fail and return.
-      return nullptr;
-    }
-    // Message was sent, so create a pending request entry and insert it in the active bucket.
-    // If the active bucket is full, clear the old bucket and make it the new active bucket.
+    // Track the request
     auto request = std::make_shared<Request>(message->command(), message->id(), session->hostNodeId(), message);
     insertRequest(request);
+    // If message was never sent, then no request has been made. Fail and return.
+    if (!session->write(message)) {
+      // We know the latest insert went into the active bucket, so we can just remove it.
+      std::unique_lock lock(this->requestsMutex_);
+      requests_[activeRequests_].erase(message->id());
+      return nullptr;
+    }
     return request;
   }
 
@@ -731,16 +733,17 @@ namespace P2P {
     std::make_shared<Session>(std::move(socket), ConnectionType::INBOUND, *this)->run();
   }
 
-  void ManagerBase::insertRequest(const std::shared_ptr<Request>& request) {
+  void ManagerBase::insertRequest(std::shared_ptr<Request> request) {
     // The previous logic would silently overwrite the previous entry in case of an (improbable)
     // request ID collision; this logic is retained here, since lookups will be directed to the
     // active bucket first (so a colliding entry that is in the older bucket is shadowed anyway).
     std::unique_lock lock(this->requestsMutex_);
-    requests_[activeRequests_][request->id()] = request;
     if (requests_[activeRequests_].size() >= REQUEST_BUCKET_SIZE_LIMIT) {
       activeRequests_ = 1 - activeRequests_;
       requests_[activeRequests_].clear();
     }
+    // Make sure the latest insertion always ended up in what is the current active bucket
+    requests_[activeRequests_][request->id()] = std::move(request);
   }
 
   void ManagerBase::handleRequestAnswer(const NodeID& nodeId, const std::shared_ptr<const Message>& message) {

@@ -11,7 +11,7 @@ See the LICENSE.txt file in the project root for more information.
 /// Size of a sync-requests active bucket, in items (requests); there are two buckets.
 /// This needs to be large enough to hold the maximum number of requests that can be conceivable generated
 /// in the maximum time period that it takes to answer a request.
-#define REQUEST_BUCKET_SIZE_LIMIT 100000
+#define REQUEST_BUCKET_SIZE_LIMIT 100'000
 
 #include "discovery.h"
 #include "session.h" // encoding.h -> utils/options.h
@@ -147,7 +147,7 @@ namespace P2P {
        * Insert a new request into requests_.
        * @param request The newly created request to be tracked by requests_.
        */
-      void insertRequest(const std::shared_ptr<Request>& request);
+      void insertRequest(std::shared_ptr<Request> request);
 
       /**
        * Handles a message that is a generic answer to a synchronous generic remote request.
