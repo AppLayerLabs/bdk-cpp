@@ -20,6 +20,13 @@ namespace TFixedStr {
       REQUIRE(str2.asBytes() == Bytes(20, 0x00));
     }
 
+    SECTION("FixedBytes Initializer List Constructor") {
+      std::initializer_list<Byte> ilist = {0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a};
+      FixedBytes<10> str1(ilist);
+      REQUIRE(str1.asBytes() == Bytes({0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a}));
+      REQUIRE_THROWS(FixedBytes<20>(ilist));
+    }
+
     SECTION("FixedBytes Copy Bytes Constructor") {
       FixedBytes<10> str1(bytes::view("1234567890"));
       FixedBytes<10> str2(bytes::view("\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a"));

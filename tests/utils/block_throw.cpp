@@ -18,7 +18,7 @@ namespace TBlock {
         "0x9890a27da5231bd842529fa107a6e137e807fb8086f6c740d39a37681e1394317e2b38f540f3a9ed7f0b4f6835fc67613dcb52d2e8b3afa193840441902cc030f2febfaa0a1edd774318d1fe6e3bf1aec16082457f7a66f7fd4bef8ddded9b76d7b9da8a2d15d02eae1743ddcfb9e34fe0374ceaec6e96fb8489d16c6886441697610af9744109384ae774b20eb22cce3677a4c836f57ca30eafc308af2d04cf93ada88ad0fb6968ce6ea1556cc24af1234b8b2d93a0e37a417f53148662659ccdbaa2ed5233d712a2ea93ea0a08e360c72018fa10a8d7"
       ));
       REQUIRE(bytes.size() < 217);
-      REQUIRE_THROWS (FinalizedBlock::fromBytes(bytes, 8080));
+      REQUIRE_THROWS(FinalizedBlock::fromBytes(bytes, 8080));
     }
 
     SECTION("Block with invalid Validator tx height") {
@@ -45,7 +45,7 @@ namespace TBlock {
 
       Bytes bytes = Hex::toBytes(byteData);
 
-      REQUIRE_THROWS (FinalizedBlock::fromBytes(bytes, 8080));
+      REQUIRE_THROWS(FinalizedBlock::fromBytes(bytes, 8080));
     }
   }
 }

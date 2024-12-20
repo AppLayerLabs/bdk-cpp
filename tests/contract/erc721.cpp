@@ -12,12 +12,27 @@
 
 namespace TERC721 {
   TEST_CASE("ERC721 Class", "[contract][erc721]") {
-    SECTION("ERC721 Creation") {
-      SDKTestSuite sdk = SDKTestSuite::createNewEnvironment("testERC721Creation");
-      auto ERC721Address = sdk.deployContract<ERC721Test>(std::string("My Test NFT!"), std::string("NFT"), uint64_t(100));
+    SECTION("ERC721 Creation + Dump") {
+      Address ERC721Address;
+      std::unique_ptr<Options> options;
+      {
+        SDKTestSuite sdk = SDKTestSuite::createNewEnvironment("testERC721Creation");
+        ERC721Address = sdk.deployContract<ERC721Test>(std::string("My Test NFT!"), std::string("NFT"), uint64_t(100));
+        REQUIRE(sdk.callViewFunction(ERC721Address, &ERC721Test::name) == "My Test NFT!");
+        REQUIRE(sdk.callViewFunction(ERC721Address, &ERC721Test::symbol) == "NFT");
+        REQUIRE(sdk.callViewFunction(ERC721Address, &ERC721Test::maxTokens) == 100);
+        REQUIRE(sdk.callViewFunction(ERC721Address, &ERC721Test::tokenIdCounter) == 0);
+        // Dump to database
+        options = std::make_unique<Options>(sdk.getOptions());
+        sdk.getState().saveToDB();
+      }
+      // SDKTestSuite should automatically load the state from the DB if we construct it with an Options object
+      // (The createNewEnvironment DELETES the DB if any is found)
+      SDKTestSuite sdk(*options);
       REQUIRE(sdk.callViewFunction(ERC721Address, &ERC721Test::name) == "My Test NFT!");
       REQUIRE(sdk.callViewFunction(ERC721Address, &ERC721Test::symbol) == "NFT");
       REQUIRE(sdk.callViewFunction(ERC721Address, &ERC721Test::maxTokens) == 100);
+      REQUIRE(sdk.callViewFunction(ERC721Address, &ERC721Test::tokenIdCounter) == 0);
     }
 
     SECTION("ERC721 Mint 100 Token Same Address") {

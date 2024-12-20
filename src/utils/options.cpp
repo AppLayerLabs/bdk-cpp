@@ -23,13 +23,6 @@ IndexingMode::IndexingMode(std::string_view mode) {
   }
 }
 
-constexpr std::string_view IndexingMode::toString() const {
-  if (*this == DISABLED) return "DISABLED";
-  if (*this == RPC) return "RPC";
-  if (*this == RPC_TRACE) return "RPC_TRACE";
-  throw DynamicException("Unknown indexing mode");
-}
-
 Options::Options(
   const std::string& rootPath, const std::string& web3clientVersion,
   const uint64_t& version, const uint64_t& chainID, const Address& chainOwner,

@@ -58,14 +58,13 @@ void initialize(
   blockchain = std::make_unique<Blockchain>(blockchainPath);
 }
 
-
 namespace TBlockchain {
   TEST_CASE("Blockchain Class", "[core][blockchain]") {
     std::string testDumpPath = Utils::getTestDumpPath();
     SECTION("Initialize Blockchain Multiple Nodes") {
       std::shared_ptr<const Block> bestBlock;
       {
-        /// Initialize ManagerDiscovery
+        // Initialize ManagerDiscovery
         std::vector<std::pair<boost::asio::ip::address, uint64_t>> discoveryNodes;
         std::unique_ptr<Options> discoveryOptions = std::make_unique<Options>(
             testDumpPath + "/statedDiscoveryNodeNetworkCapabilitiesWithTxBlockBroadcast",
@@ -79,7 +78,7 @@ namespace TBlockchain {
         std::unique_ptr<P2P::ManagerDiscovery> p2pDiscovery = std::make_unique<P2P::ManagerDiscovery>(
             LOCALHOST, discoveryOptions);
 
-        /// Initialize multiple blockchain nodes.
+        // Initialize multiple blockchain nodes.
         std::unique_ptr<Blockchain> blockchain1;
         initialize("blockchainInitializeTestNode1", "BDK/cpp/linux_x86-64/0.2.0", 8080, 8080, 8080, 8101,
                    PrivKey(), {"127.0.0.1", 8100}, blockchain1);
@@ -96,7 +95,7 @@ namespace TBlockchain {
         initialize("blockchainInitializeTestNode4", "BDK/cpp/linux_x86-64/0.2.0", 8080, 8080, 8083, 8104,
                    PrivKey(), {"127.0.0.1", 8100}, blockchain4);
 
-        /// Start the blockchain nodes.
+        // Start the blockchain nodes.
         p2pDiscovery->start();
         p2pDiscovery->startDiscovery();
         blockchain1->start();
@@ -109,7 +108,7 @@ namespace TBlockchain {
         REQUIRE(!blockchain3->getOptions()->getIsValidator());
         REQUIRE(!blockchain4->getOptions()->getIsValidator());
 
-        /// Wait everyone to connect.
+        // Wait everyone to connect.
         auto connectFuture = std::async(std::launch::async, [&]() {
           while (blockchain1->getP2P()->getSessionsIDs().size() != 4 ||
                  blockchain2->getP2P()->getSessionsIDs().size() != 4 ||
@@ -131,7 +130,7 @@ namespace TBlockchain {
         REQUIRE(blockchain1->getStorage()->latest()->hash() == blockchain3->getStorage()->latest()->hash());
         REQUIRE(blockchain1->getStorage()->latest()->hash() == blockchain4->getStorage()->latest()->hash());
 
-        /// Stop the blockchain nodes.
+        // Stop the blockchain nodes.
         p2pDiscovery->stop();
         blockchain1->stop();
         blockchain2->stop();
@@ -153,7 +152,7 @@ namespace TBlockchain {
       uint256_t myBalance("1000000000000000000000");
       std::shared_ptr<const Block> bestBlock;
 
-      /// Create the discovery node.
+      // Create the discovery node.
       {
         std::vector<std::pair<boost::asio::ip::address, uint64_t>> discoveryNodes;
         std::unique_ptr<Options> discoveryOptions = std::make_unique<Options>(
@@ -168,7 +167,7 @@ namespace TBlockchain {
         std::unique_ptr<P2P::ManagerDiscovery> p2pDiscovery = std::make_unique<P2P::ManagerDiscovery>(
             LOCALHOST, discoveryOptions);
 
-        /// Create the validator nodes (5 in total)
+        // Create the validator nodes (5 in total)
         std::unique_ptr<Blockchain> blockchainValidator1;
         initialize("blockchainMove10BlocksTestValidator1", "BDK/cpp/linux_x86-64/0.2.0", 8080, 8080, 8080, 8101,
                    PrivKey(Hex::toBytes("0xba5e6e9dd9cbd263969b94ee385d885c2d303dfc181db2a09f6bf19a7ba26759")),
@@ -194,7 +193,7 @@ namespace TBlockchain {
                    PrivKey(Hex::toBytes("0x81f288dd776f4edfe256d34af1f7d719f511559f19115af3e3d692e741faadc6")),
                    {"127.0.0.1", 8100}, blockchainValidator5);
 
-        /// Create the normal nodes (6 in total)
+        // Create the normal nodes (6 in total)
         std::unique_ptr<Blockchain> blockchainNode1;
         initialize("blockchainMove10BlocksTestNode1", "BDK/cpp/linux_x86-64/0.2.0", 8080, 8080, 8085, 8106,
                    PrivKey(), {"127.0.0.1", 8100}, blockchainNode1);
@@ -219,20 +218,20 @@ namespace TBlockchain {
         initialize("blockchainMove10BlocksTestNode6", "BDK/cpp/linux_x86-64/0.2.0", 8080, 8080, 8090, 8111,
                    PrivKey(), {"127.0.0.1", 8100}, blockchainNode6);
 
-        /// Start the discovery node.
+        // Start the discovery node.
         p2pDiscovery->start();
         p2pDiscovery->startDiscovery();
 
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
-        /// Start the validator nodes.
+        // Start the validator nodes.
         blockchainValidator1->start();
         blockchainValidator2->start();
         blockchainValidator3->start();
         blockchainValidator4->start();
         blockchainValidator5->start();
 
-        /// Start all nodes
+        // Start all nodes
         blockchainNode1->start();
         blockchainNode2->start();
         blockchainNode3->start();
@@ -240,7 +239,7 @@ namespace TBlockchain {
         blockchainNode5->start();
         blockchainNode6->start();
 
-        /// Wait everyone to sync
+        // Wait everyone to sync
         auto syncFuture = std::async(std::launch::async, [&]() {
           while (!blockchainValidator1->isSynced() ||
                  !blockchainValidator2->isSynced() ||
@@ -274,8 +273,8 @@ namespace TBlockchain {
               privKey
           );
 
-          /// Commment this out and IT WILL NOT WORK.
-          /// Waiting for rdPoSWorker rework.
+          // Commment this out and IT WILL NOT WORK.
+          // Waiting for rdPoSWorker rework.
           auto rdPoSmempoolFuture = std::async(std::launch::async, [&]() {
             while (blockchainValidator1->getState().rdposGetMempool().size() != 8 ||
                    blockchainValidator2->getState().rdposGetMempool().size() != 8 ||
@@ -296,14 +295,14 @@ namespace TBlockchain {
 
           myBalance -= tx.getValue() + (tx.getMaxFeePerGas() * tx.getGasLimit());
           targetBalance += tx.getValue();
-          /// Send the transactions through HTTP
+          // Send the transactions through HTTP
           auto sendRawTxJson = json({
                                     {"jsonrpc", "2.0"},
                                     {"id", 1},
                                     {"method", "eth_sendRawTransaction"},
                                     {"params", json::array({Hex::fromBytes(tx.rlpSerialize(), true).forRPC()})}});
 
-          /// Send the transaction to the first validator.
+          // Send the transaction to the first validator.
           auto sendRawTxResponse = json::parse(makeHTTPRequest(sendRawTxJson.dump(),
                                                "127.0.0.1",
                                                std::to_string(8101),
@@ -314,7 +313,7 @@ namespace TBlockchain {
 
           REQUIRE(sendRawTxResponse["result"].get<std::string>() == tx.hash().hex(true).get());
 
-          /// Wait for the new best block to be broadcasted and accepted by all nodes
+          // Wait for the new best block to be broadcasted and accepted by all nodes
           ++blocks;
           auto blockFuture = std::async(std::launch::async, [&]() {
             while (blocks != blockchainNode1->getStorage()->latest()->getNHeight() ||
@@ -388,7 +387,7 @@ namespace TBlockchain {
 
           REQUIRE(wait != std::future_status::timeout);
 
-          /// Everyone should be on the same block
+          // Everyone should be on the same block
           REQUIRE(blockchainValidator1->getStorage()->latest()->getNHeight() == blocks);
           REQUIRE(blockchainValidator1->getStorage()->latest()->hash() == blockchainValidator2->getStorage()->latest()->hash());
           REQUIRE(blockchainValidator1->getStorage()->latest()->hash() == blockchainValidator3->getStorage()->latest()->hash());
@@ -402,7 +401,7 @@ namespace TBlockchain {
           REQUIRE(blockchainValidator1->getStorage()->latest()->hash() == blockchainNode6->getStorage()->latest()->hash());
         }
         bestBlock = blockchainValidator1->getStorage()->latest();
-        /// Stop the nodes
+        // Stop the nodes
         p2pDiscovery->stop();
         blockchainValidator1->stop();
         blockchainValidator2->stop();

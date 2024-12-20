@@ -83,225 +83,239 @@ struct UserWrapper {
 };
 
 namespace TCallTracer {
-
-TEST_CASE("CallTracer Tests", "[trace]") {
-  SECTION("EVM Single Call") {
-    SDKTestSuite sdk = SDKTestSuite::createNewEnvironment("TestTraceContracts");
-
-    const Address contractAddress = sdk.deployBytecode(testBytecode);
-
-    uint256_t res;
-
-    sdk.callViewFunction(contractAddress, &TestWrapper::sum);
-    REQUIRE(res == 0);
-
-    sdk.callFunction(contractAddress, &TestWrapper::add, uint256_t(33));
-
-    Hash txHash = getLatestTransactionHash(sdk.getStorage());
-    std::optional<trace::Call> callTrace = sdk.getStorage().getCallTrace(txHash);
-    REQUIRE(callTrace);
-
-    REQUIRE(callTrace->type == trace::Call::Type::CALL);
-    REQUIRE(callTrace->from == sdk.getOptions().getChainOwner());
-    REQUIRE(callTrace->to == contractAddress);
-    REQUIRE(callTrace->value == FixedBytes<32>());
-    // TODO: gas and gasUsed?
-    // TODO: what are these 4 bytes prefix?
-    REQUIRE(FixedBytes<32>(callTrace->input | std::views::drop(4)) == FixedBytes<32>(UintConv::uint256ToBytes(uint256_t(33))));
-
-    REQUIRE(callTrace->output == Bytes());
-    REQUIRE(callTrace->calls.empty());
-
-    res = sdk.callViewFunction(contractAddress, &TestWrapper::sum);
-    REQUIRE(res == 33);
-
-    sdk.callFunction(contractAddress, &TestWrapper::addAndReturn, uint256_t(66));
-
-    txHash = getLatestTransactionHash(sdk.getStorage());
-    callTrace = sdk.getStorage().getCallTrace(txHash);
-    REQUIRE(callTrace);
-
-    REQUIRE(callTrace->type == trace::Call::Type::CALL);
-    REQUIRE(callTrace->from == sdk.getOptions().getChainOwner());
-    REQUIRE(callTrace->to == contractAddress);
-    REQUIRE(callTrace->value == FixedBytes<32>());
-    // TODO: gas and gasUsed?
-    // TODO: what are these 4 bytes prefix?
-    REQUIRE(FixedBytes<32>(callTrace->input | std::views::drop(4)) == FixedBytes<32>(UintConv::uint256ToBytes(uint256_t(66))));
-
-    REQUIRE(callTrace->output == Utils::makeBytes(UintConv::uint256ToBytes(uint256_t(99))));
-    REQUIRE(callTrace->calls.empty());
-
-    res = sdk.callViewFunction(contractAddress, &TestWrapper::sum);
-    REQUIRE(res == 99);
-  }
-
-  SECTION("EVM Nested Calls") {
-    SDKTestSuite sdk = SDKTestSuite::createNewEnvironment("TestTraceContracts");
-    const Address testContractAddress = sdk.deployBytecode(testBytecode);
-    const Address testProxyContractAddress = sdk.deployBytecode(testProxyBytecode);
-
-    uint256_t res;
-
-    res = sdk.callViewFunction(testContractAddress, &TestWrapper::sum);
-    REQUIRE(res == 0);
-
-    sdk.callFunction(testContractAddress, &TestWrapper::add, uint256_t(45));
-
-    res = sdk.callViewFunction(testProxyContractAddress, &TestProxyWrapper::sumOf, testContractAddress);
-    REQUIRE(res == 45);
-
-    sdk.callFunction(testProxyContractAddress, &TestProxyWrapper::addToAndReturn, testContractAddress, uint256_t(55));
-
-    const Hash txHash = getLatestTransactionHash(sdk.getStorage());
-    std::optional<trace::Call> callTrace = sdk.getStorage().getCallTrace(txHash);
-    REQUIRE(callTrace);
-
-    REQUIRE(callTrace->type == trace::Call::Type::CALL);
-    REQUIRE(callTrace->from == sdk.getOptions().getChainOwner());
-    REQUIRE(callTrace->to == testProxyContractAddress);
-    REQUIRE(callTrace->value == FixedBytes<32>());
-    // TODO: gas and gasUsed
-    REQUIRE(Address(callTrace->input | std::views::drop(16) | std::views::take(20)) == testContractAddress);
-    REQUIRE(FixedBytes<32>(callTrace->input | std::views::drop(36)) == FixedBytes<32>(UintConv::uint256ToBytes(uint256_t(55))));
-
-    REQUIRE(callTrace->output == Utils::makeBytes(UintConv::uint256ToBytes(uint256_t(100))));
-    REQUIRE(callTrace->calls.size() == 1);
-
-    const trace::Call& nestedCall = callTrace->calls.front();
-
-    REQUIRE(nestedCall.type == trace::Call::Type::CALL);
-    REQUIRE(nestedCall.from == testProxyContractAddress);
-    REQUIRE(nestedCall.to == testContractAddress);
-    REQUIRE(nestedCall.value == FixedBytes<32>());
-    REQUIRE(FixedBytes<32>(nestedCall.input | std::views::drop(4)) == FixedBytes<32>(UintConv::uint256ToBytes(uint256_t(55))));
-
-    REQUIRE(nestedCall.output == Utils::makeBytes(UintConv::uint256ToBytes(uint256_t(100))));
-    REQUIRE(nestedCall.calls.empty());
-
-    res = sdk.callViewFunction(testContractAddress, &TestWrapper::sum);
-    REQUIRE(res == 100);
-  }
-
-  SECTION("Native Contracts") {
-    SDKTestSuite sdk = SDKTestSuite::createNewEnvironment("TestCallTracerOfErc20Wrapper");
-
-    const Address erc20 = sdk.deployContract<ERC20>(
-        std::string("TestToken"), std::string("TST"), uint8_t(18), uint256_t("1000000000000000000")
-    );
-
-    const Address erc20Wrapper = sdk.deployContract<ERC20Wrapper>();
-    const Address owner = sdk.getChainOwnerAccount().address;
-
-    for (const auto& [name, address] : sdk.getState().getCppContracts()) {
-      if (name == "ERC20")
-        REQUIRE(address == erc20);
-      else if (name == "ERC20Wrapper")
-        REQUIRE(address == erc20Wrapper);
+  TEST_CASE("CallTracer Tests", "[trace]") {
+    SECTION("Call Type Parsing") {
+      evmc_message msgCall;
+      evmc_message msgStaticCall;
+      evmc_message msgDelegateCall;
+      evmc_message msgInvalidCall;
+      msgCall.kind = EVMC_CALL;
+      msgStaticCall.kind = EVMC_CALL;
+      msgDelegateCall.kind = EVMC_DELEGATECALL;
+      msgInvalidCall.kind = evmc_call_kind(-1);
+      msgStaticCall.flags = EVMC_STATIC;
+      REQUIRE(trace::getCallType(msgCall) == trace::Call::Type::CALL);
+      REQUIRE(trace::getCallType(msgStaticCall) == trace::Call::Type::STATICCALL);
+      REQUIRE(trace::getCallType(msgDelegateCall) == trace::Call::Type::DELEGATECALL);
+      REQUIRE_THROWS(trace::getCallType(msgInvalidCall));
     }
 
-    const Hash approveTx = sdk.callFunction(erc20, &ERC20::approve, erc20Wrapper, uint256_t("500000000000000000"));
-    const Hash depositTx = sdk.callFunction(erc20Wrapper, &ERC20Wrapper::deposit, erc20, uint256_t("500000000000000000"));
+    SECTION("EVM Single Call") {
+      SDKTestSuite sdk = SDKTestSuite::createNewEnvironment("TestTraceContracts");
 
-    const auto approveCallTrace = sdk.getStorage().getCallTrace(approveTx);
-    const auto depositCallTrace = sdk.getStorage().getCallTrace(depositTx);
+      const Address contractAddress = sdk.deployBytecode(testBytecode);
 
-    REQUIRE(approveCallTrace);
-    REQUIRE(approveCallTrace->type == trace::Call::Type::CALL);
-    REQUIRE(approveCallTrace->status == trace::Status::SUCCEEDED);
-    REQUIRE(approveCallTrace->from == sdk.getOptions().getChainOwner());
-    REQUIRE(approveCallTrace->to == erc20);
-    REQUIRE(approveCallTrace->value == FixedBytes<32>());
-    REQUIRE(approveCallTrace->input == Hex::toBytes("0x095ea7b30000000000000000000000006d48fdfe009e309dd5c4e69dec87365bfa0c811900000000000000000000000000000000000000000000000006f05b59d3b20000"));
-    REQUIRE(approveCallTrace->output == Bytes());
-    REQUIRE(approveCallTrace->calls.empty());
+      uint256_t res;
 
-    REQUIRE(depositCallTrace);
-    REQUIRE(depositCallTrace->type == trace::Call::Type::CALL);
-    REQUIRE(depositCallTrace->status == trace::Status::SUCCEEDED);
-    REQUIRE(depositCallTrace->from == sdk.getOptions().getChainOwner());
-    REQUIRE(depositCallTrace->to == erc20Wrapper);
-    REQUIRE(depositCallTrace->value == FixedBytes<32>());
-    REQUIRE(depositCallTrace->input == Hex::toBytes("0x47e7ef240000000000000000000000005b41cef7f46a4a147e31150c3c5ffd077e54d0e100000000000000000000000000000000000000000000000006f05b59d3b20000"));
-    REQUIRE(depositCallTrace->output == Bytes());
-    REQUIRE(!depositCallTrace->calls.empty());
-    REQUIRE(depositCallTrace->calls[0].type == trace::Call::Type::CALL);
-    REQUIRE(depositCallTrace->calls[0].status == trace::Status::SUCCEEDED);
-    REQUIRE(depositCallTrace->calls[0].from == erc20Wrapper);
-    REQUIRE(depositCallTrace->calls[0].to == erc20);
-    REQUIRE(depositCallTrace->calls[0].value == FixedBytes<32>());
-    REQUIRE(depositCallTrace->calls[0].input == Hex::toBytes("0x23b872dd00000000000000000000000000dead00665771855a34155f5e7405489df2c3c60000000000000000000000006d48fdfe009e309dd5c4e69dec87365bfa0c811900000000000000000000000000000000000000000000000006f05b59d3b20000"));
-    REQUIRE(depositCallTrace->calls[0].output == Hex::toBytes("0x0000000000000000000000000000000000000000000000000000000000000001"));
-    REQUIRE(depositCallTrace->calls[0].calls.empty());
+      sdk.callViewFunction(contractAddress, &TestWrapper::sum);
+      REQUIRE(res == 0);
+
+      sdk.callFunction(contractAddress, &TestWrapper::add, uint256_t(33));
+
+      Hash txHash = getLatestTransactionHash(sdk.getStorage());
+      std::optional<trace::Call> callTrace = sdk.getStorage().getCallTrace(txHash);
+      REQUIRE(callTrace);
+
+      REQUIRE(callTrace->type == trace::Call::Type::CALL);
+      REQUIRE(callTrace->from == sdk.getOptions().getChainOwner());
+      REQUIRE(callTrace->to == contractAddress);
+      REQUIRE(callTrace->value == FixedBytes<32>());
+      // TODO: gas and gasUsed?
+      // TODO: what are these 4 bytes prefix?
+      REQUIRE(FixedBytes<32>(callTrace->input | std::views::drop(4)) == FixedBytes<32>(UintConv::uint256ToBytes(uint256_t(33))));
+
+      REQUIRE(callTrace->output == Bytes());
+      REQUIRE(callTrace->calls.empty());
+
+      res = sdk.callViewFunction(contractAddress, &TestWrapper::sum);
+      REQUIRE(res == 33);
+
+      sdk.callFunction(contractAddress, &TestWrapper::addAndReturn, uint256_t(66));
+
+      txHash = getLatestTransactionHash(sdk.getStorage());
+      callTrace = sdk.getStorage().getCallTrace(txHash);
+      REQUIRE(callTrace);
+
+      REQUIRE(callTrace->type == trace::Call::Type::CALL);
+      REQUIRE(callTrace->from == sdk.getOptions().getChainOwner());
+      REQUIRE(callTrace->to == contractAddress);
+      REQUIRE(callTrace->value == FixedBytes<32>());
+      // TODO: gas and gasUsed?
+      // TODO: what are these 4 bytes prefix?
+      REQUIRE(FixedBytes<32>(callTrace->input | std::views::drop(4)) == FixedBytes<32>(UintConv::uint256ToBytes(uint256_t(66))));
+
+      REQUIRE(callTrace->output == Utils::makeBytes(UintConv::uint256ToBytes(uint256_t(99))));
+      REQUIRE(callTrace->calls.empty());
+
+      res = sdk.callViewFunction(contractAddress, &TestWrapper::sum);
+      REQUIRE(res == 99);
+    }
+
+    SECTION("EVM Nested Calls") {
+      SDKTestSuite sdk = SDKTestSuite::createNewEnvironment("TestTraceContracts");
+      const Address testContractAddress = sdk.deployBytecode(testBytecode);
+      const Address testProxyContractAddress = sdk.deployBytecode(testProxyBytecode);
+
+      uint256_t res;
+
+      res = sdk.callViewFunction(testContractAddress, &TestWrapper::sum);
+      REQUIRE(res == 0);
+
+      sdk.callFunction(testContractAddress, &TestWrapper::add, uint256_t(45));
+
+      res = sdk.callViewFunction(testProxyContractAddress, &TestProxyWrapper::sumOf, testContractAddress);
+      REQUIRE(res == 45);
+
+      sdk.callFunction(testProxyContractAddress, &TestProxyWrapper::addToAndReturn, testContractAddress, uint256_t(55));
+
+      const Hash txHash = getLatestTransactionHash(sdk.getStorage());
+      std::optional<trace::Call> callTrace = sdk.getStorage().getCallTrace(txHash);
+      REQUIRE(callTrace);
+
+      REQUIRE(callTrace->type == trace::Call::Type::CALL);
+      REQUIRE(callTrace->from == sdk.getOptions().getChainOwner());
+      REQUIRE(callTrace->to == testProxyContractAddress);
+      REQUIRE(callTrace->value == FixedBytes<32>());
+      // TODO: gas and gasUsed
+      REQUIRE(Address(callTrace->input | std::views::drop(16) | std::views::take(20)) == testContractAddress);
+      REQUIRE(FixedBytes<32>(callTrace->input | std::views::drop(36)) == FixedBytes<32>(UintConv::uint256ToBytes(uint256_t(55))));
+
+      REQUIRE(callTrace->output == Utils::makeBytes(UintConv::uint256ToBytes(uint256_t(100))));
+      REQUIRE(callTrace->calls.size() == 1);
+
+      const trace::Call& nestedCall = callTrace->calls.front();
+
+      REQUIRE(nestedCall.type == trace::Call::Type::CALL);
+      REQUIRE(nestedCall.from == testProxyContractAddress);
+      REQUIRE(nestedCall.to == testContractAddress);
+      REQUIRE(nestedCall.value == FixedBytes<32>());
+      REQUIRE(FixedBytes<32>(nestedCall.input | std::views::drop(4)) == FixedBytes<32>(UintConv::uint256ToBytes(uint256_t(55))));
+
+      REQUIRE(nestedCall.output == Utils::makeBytes(UintConv::uint256ToBytes(uint256_t(100))));
+      REQUIRE(nestedCall.calls.empty());
+
+      res = sdk.callViewFunction(testContractAddress, &TestWrapper::sum);
+      REQUIRE(res == 100);
+    }
+
+    SECTION("Native Contracts") {
+      SDKTestSuite sdk = SDKTestSuite::createNewEnvironment("TestCallTracerOfErc20Wrapper");
+
+      const Address erc20 = sdk.deployContract<ERC20>(
+          std::string("TestToken"), std::string("TST"), uint8_t(18), uint256_t("1000000000000000000")
+      );
+
+      const Address erc20Wrapper = sdk.deployContract<ERC20Wrapper>();
+      const Address owner = sdk.getChainOwnerAccount().address;
+
+      for (const auto& [name, address] : sdk.getState().getCppContracts()) {
+        if (name == "ERC20")
+          REQUIRE(address == erc20);
+        else if (name == "ERC20Wrapper")
+          REQUIRE(address == erc20Wrapper);
+      }
+
+      const Hash approveTx = sdk.callFunction(erc20, &ERC20::approve, erc20Wrapper, uint256_t("500000000000000000"));
+      const Hash depositTx = sdk.callFunction(erc20Wrapper, &ERC20Wrapper::deposit, erc20, uint256_t("500000000000000000"));
+
+      const auto approveCallTrace = sdk.getStorage().getCallTrace(approveTx);
+      const auto depositCallTrace = sdk.getStorage().getCallTrace(depositTx);
+
+      REQUIRE(approveCallTrace);
+      REQUIRE(approveCallTrace->type == trace::Call::Type::CALL);
+      REQUIRE(approveCallTrace->status == trace::Status::SUCCEEDED);
+      REQUIRE(approveCallTrace->from == sdk.getOptions().getChainOwner());
+      REQUIRE(approveCallTrace->to == erc20);
+      REQUIRE(approveCallTrace->value == FixedBytes<32>());
+      REQUIRE(approveCallTrace->input == Hex::toBytes("0x095ea7b30000000000000000000000006d48fdfe009e309dd5c4e69dec87365bfa0c811900000000000000000000000000000000000000000000000006f05b59d3b20000"));
+      REQUIRE(approveCallTrace->output == Bytes());
+      REQUIRE(approveCallTrace->calls.empty());
+
+      REQUIRE(depositCallTrace);
+      REQUIRE(depositCallTrace->type == trace::Call::Type::CALL);
+      REQUIRE(depositCallTrace->status == trace::Status::SUCCEEDED);
+      REQUIRE(depositCallTrace->from == sdk.getOptions().getChainOwner());
+      REQUIRE(depositCallTrace->to == erc20Wrapper);
+      REQUIRE(depositCallTrace->value == FixedBytes<32>());
+      REQUIRE(depositCallTrace->input == Hex::toBytes("0x47e7ef240000000000000000000000005b41cef7f46a4a147e31150c3c5ffd077e54d0e100000000000000000000000000000000000000000000000006f05b59d3b20000"));
+      REQUIRE(depositCallTrace->output == Bytes());
+      REQUIRE(!depositCallTrace->calls.empty());
+      REQUIRE(depositCallTrace->calls[0].type == trace::Call::Type::CALL);
+      REQUIRE(depositCallTrace->calls[0].status == trace::Status::SUCCEEDED);
+      REQUIRE(depositCallTrace->calls[0].from == erc20Wrapper);
+      REQUIRE(depositCallTrace->calls[0].to == erc20);
+      REQUIRE(depositCallTrace->calls[0].value == FixedBytes<32>());
+      REQUIRE(depositCallTrace->calls[0].input == Hex::toBytes("0x23b872dd00000000000000000000000000dead00665771855a34155f5e7405489df2c3c60000000000000000000000006d48fdfe009e309dd5c4e69dec87365bfa0c811900000000000000000000000000000000000000000000000006f05b59d3b20000"));
+      REQUIRE(depositCallTrace->calls[0].output == Hex::toBytes("0x0000000000000000000000000000000000000000000000000000000000000001"));
+      REQUIRE(depositCallTrace->calls[0].calls.empty());
+    }
+
+    SECTION("Errors and payable functions") {
+      SDKTestSuite sdk = SDKTestSuite::createNewEnvironment("TestCallTracingErrosAndPays");
+
+      const Address bankAddress = sdk.deployBytecode(bankBytecode);
+      const Address userAddress = sdk.deployBytecode(userBytecode);
+
+      uint256_t res = sdk.callViewFunction(bankAddress, &BankWrapper::balance);
+      REQUIRE(res == 0);
+
+      const Hash depositTxHash = sdk.callFunction(bankAddress, &BankWrapper::deposit, uint256_t(500));
+      res = sdk.callViewFunction(bankAddress, &BankWrapper::balance);
+      REQUIRE(res == 500);
+
+      const Hash invalidWithdrawTxHash = sdk.callFunction(userAddress, &UserWrapper::tryWithdraw, bankAddress, uint256_t(501));
+      const Hash validWithdrawTxHash = sdk.callFunction(userAddress, &UserWrapper::tryWithdraw, bankAddress, uint256_t(300));
+      const Hash payTxHash = sdk.callFunction(bankAddress, &BankWrapper::pay, uint256_t(4568));
+
+      const auto errorCallTrace = sdk.getStorage().getCallTrace(invalidWithdrawTxHash);
+      const auto successCallTrace = sdk.getStorage().getCallTrace(validWithdrawTxHash);
+      const auto payCallTrace = sdk.getStorage().getCallTrace(payTxHash);
+
+      REQUIRE(errorCallTrace);
+      REQUIRE(errorCallTrace->type == trace::Call::Type::CALL);
+      REQUIRE(errorCallTrace->status == trace::Status::SUCCEEDED);
+      REQUIRE(errorCallTrace->from == sdk.getOptions().getChainOwner());
+      REQUIRE(errorCallTrace->to == userAddress);
+      REQUIRE(errorCallTrace->value == FixedBytes<32>());
+      REQUIRE(errorCallTrace->input == Hex::toBytes("0x7f3358bc0000000000000000000000005b41cef7f46a4a147e31150c3c5ffd077e54d0e100000000000000000000000000000000000000000000000000000000000001f5"));
+      REQUIRE(errorCallTrace->output == Bytes(32));
+      REQUIRE(!errorCallTrace->calls.empty());
+      REQUIRE(errorCallTrace->calls[0].type == trace::Call::Type::CALL);
+      REQUIRE(errorCallTrace->calls[0].status == trace::Status::EXECUTION_REVERTED);
+      REQUIRE(errorCallTrace->calls[0].from == userAddress);
+      REQUIRE(errorCallTrace->calls[0].to == bankAddress);
+      REQUIRE(errorCallTrace->calls[0].value == FixedBytes<32>());
+      REQUIRE(errorCallTrace->calls[0].input == Hex::toBytes("0x2e1a7d4d00000000000000000000000000000000000000000000000000000000000001f5"));
+      REQUIRE(errorCallTrace->calls[0].output == trace::encodeRevertReason("Insufficient funds"));
+      REQUIRE(errorCallTrace->calls[0].calls.empty());
+
+      REQUIRE(successCallTrace);
+      REQUIRE(successCallTrace->type == trace::Call::Type::CALL);
+      REQUIRE(successCallTrace->status == trace::Status::SUCCEEDED);
+      REQUIRE(successCallTrace->from == sdk.getOptions().getChainOwner());
+      REQUIRE(successCallTrace->to == userAddress);
+      REQUIRE(successCallTrace->value == FixedBytes<32>());
+      REQUIRE(successCallTrace->input == Hex::toBytes("0x7f3358bc0000000000000000000000005b41cef7f46a4a147e31150c3c5ffd077e54d0e1000000000000000000000000000000000000000000000000000000000000012c"));
+      REQUIRE(successCallTrace->output == Hex::toBytes("0x0000000000000000000000000000000000000000000000000000000000000001"));
+      REQUIRE(!successCallTrace->calls.empty());
+      REQUIRE(successCallTrace->calls[0].type == trace::Call::Type::CALL);
+      REQUIRE(successCallTrace->calls[0].status == trace::Status::SUCCEEDED);
+      REQUIRE(successCallTrace->calls[0].from == userAddress);
+      REQUIRE(successCallTrace->calls[0].to == bankAddress);
+      REQUIRE(successCallTrace->calls[0].value == FixedBytes<32>());
+      REQUIRE(successCallTrace->calls[0].input == Hex::toBytes("0x2e1a7d4d000000000000000000000000000000000000000000000000000000000000012c"));
+      REQUIRE(successCallTrace->calls[0].output == Bytes());
+      REQUIRE(successCallTrace->calls[0].calls.empty());
+
+      REQUIRE(payCallTrace);
+      REQUIRE(payCallTrace->type == trace::Call::Type::CALL);
+      REQUIRE(payCallTrace->status == trace::Status::SUCCEEDED);
+      REQUIRE(payCallTrace->from == sdk.getOptions().getChainOwner());
+      REQUIRE(payCallTrace->to == bankAddress);
+      REQUIRE(payCallTrace->value == FixedBytes<32>(UintConv::uint256ToBytes(uint256_t(4568))));
+      REQUIRE(payCallTrace->input == Hex::toBytes("0x1b9265b8"));
+      REQUIRE(payCallTrace->output == Bytes());
+      REQUIRE(payCallTrace->calls.empty());
+    }
   }
-
-  SECTION("Errors and payable functions") {
-    SDKTestSuite sdk = SDKTestSuite::createNewEnvironment("TestCallTracingErrosAndPays");
-
-    const Address bankAddress = sdk.deployBytecode(bankBytecode);
-    const Address userAddress = sdk.deployBytecode(userBytecode);
-
-    uint256_t res = sdk.callViewFunction(bankAddress, &BankWrapper::balance);
-    REQUIRE(res == 0);
-
-    const Hash depositTxHash = sdk.callFunction(bankAddress, &BankWrapper::deposit, uint256_t(500));
-    res = sdk.callViewFunction(bankAddress, &BankWrapper::balance);
-    REQUIRE(res == 500);
-
-    const Hash invalidWithdrawTxHash = sdk.callFunction(userAddress, &UserWrapper::tryWithdraw, bankAddress, uint256_t(501));
-    const Hash validWithdrawTxHash = sdk.callFunction(userAddress, &UserWrapper::tryWithdraw, bankAddress, uint256_t(300));
-    const Hash payTxHash = sdk.callFunction(bankAddress, &BankWrapper::pay, uint256_t(4568));
-
-    const auto errorCallTrace = sdk.getStorage().getCallTrace(invalidWithdrawTxHash);
-    const auto successCallTrace = sdk.getStorage().getCallTrace(validWithdrawTxHash);
-    const auto payCallTrace = sdk.getStorage().getCallTrace(payTxHash);
-
-    REQUIRE(errorCallTrace);
-    REQUIRE(errorCallTrace->type == trace::Call::Type::CALL);
-    REQUIRE(errorCallTrace->status == trace::Status::SUCCEEDED);
-    REQUIRE(errorCallTrace->from == sdk.getOptions().getChainOwner());
-    REQUIRE(errorCallTrace->to == userAddress);
-    REQUIRE(errorCallTrace->value == FixedBytes<32>());
-    REQUIRE(errorCallTrace->input == Hex::toBytes("0x7f3358bc0000000000000000000000005b41cef7f46a4a147e31150c3c5ffd077e54d0e100000000000000000000000000000000000000000000000000000000000001f5"));
-    REQUIRE(errorCallTrace->output == Bytes(32));
-    REQUIRE(!errorCallTrace->calls.empty());
-    REQUIRE(errorCallTrace->calls[0].type == trace::Call::Type::CALL);
-    REQUIRE(errorCallTrace->calls[0].status == trace::Status::EXECUTION_REVERTED);
-    REQUIRE(errorCallTrace->calls[0].from == userAddress);
-    REQUIRE(errorCallTrace->calls[0].to == bankAddress);
-    REQUIRE(errorCallTrace->calls[0].value == FixedBytes<32>());
-    REQUIRE(errorCallTrace->calls[0].input == Hex::toBytes("0x2e1a7d4d00000000000000000000000000000000000000000000000000000000000001f5"));
-    REQUIRE(errorCallTrace->calls[0].output == trace::encodeRevertReason("Insufficient funds"));
-    REQUIRE(errorCallTrace->calls[0].calls.empty());
-
-    REQUIRE(successCallTrace);
-    REQUIRE(successCallTrace->type == trace::Call::Type::CALL);
-    REQUIRE(successCallTrace->status == trace::Status::SUCCEEDED);
-    REQUIRE(successCallTrace->from == sdk.getOptions().getChainOwner());
-    REQUIRE(successCallTrace->to == userAddress);
-    REQUIRE(successCallTrace->value == FixedBytes<32>());
-    REQUIRE(successCallTrace->input == Hex::toBytes("0x7f3358bc0000000000000000000000005b41cef7f46a4a147e31150c3c5ffd077e54d0e1000000000000000000000000000000000000000000000000000000000000012c"));
-    REQUIRE(successCallTrace->output == Hex::toBytes("0x0000000000000000000000000000000000000000000000000000000000000001"));
-    REQUIRE(!successCallTrace->calls.empty());
-    REQUIRE(successCallTrace->calls[0].type == trace::Call::Type::CALL);
-    REQUIRE(successCallTrace->calls[0].status == trace::Status::SUCCEEDED);
-    REQUIRE(successCallTrace->calls[0].from == userAddress);
-    REQUIRE(successCallTrace->calls[0].to == bankAddress);
-    REQUIRE(successCallTrace->calls[0].value == FixedBytes<32>());
-    REQUIRE(successCallTrace->calls[0].input == Hex::toBytes("0x2e1a7d4d000000000000000000000000000000000000000000000000000000000000012c"));
-    REQUIRE(successCallTrace->calls[0].output == Bytes());
-    REQUIRE(successCallTrace->calls[0].calls.empty());
-
-    REQUIRE(payCallTrace);
-    REQUIRE(payCallTrace->type == trace::Call::Type::CALL);
-    REQUIRE(payCallTrace->status == trace::Status::SUCCEEDED);
-    REQUIRE(payCallTrace->from == sdk.getOptions().getChainOwner());
-    REQUIRE(payCallTrace->to == bankAddress);
-    REQUIRE(payCallTrace->value == FixedBytes<32>(UintConv::uint256ToBytes(uint256_t(4568))));
-    REQUIRE(payCallTrace->input == Hex::toBytes("0x1b9265b8"));
-    REQUIRE(payCallTrace->output == Bytes());
-    REQUIRE(payCallTrace->calls.empty());
-  }
-}
-
 } // namespace TCallTracer

@@ -88,12 +88,9 @@ FinalizedBlock createRandomBlock(uint64_t txCount, uint64_t validatorCount, uint
   std::vector<TxValidator> txValidators = randomnessResult.first;
 
   // Create a new block with the transactions.
-  FinalizedBlock finalBlock = FinalizedBlock::createNewValidBlock(std::move(txs),
-                                                                  std::move(txValidators),
-                                                                  prevHash,
-                                                                  timestamp,
-                                                                  nHeight,
-                                                                  blockValidatorPrivKey);
+  FinalizedBlock finalBlock = FinalizedBlock::createNewValidBlock(
+    std::move(txs), std::move(txValidators), prevHash, timestamp, nHeight, blockValidatorPrivKey
+  );
   REQUIRE(finalBlock.getBlockRandomness() == Hash(Utils::sha3(randomSeed)));
   return finalBlock;
 }
@@ -101,7 +98,6 @@ FinalizedBlock createRandomBlock(uint64_t txCount, uint64_t validatorCount, uint
 namespace TStorage {
   TEST_CASE("Storage Class", "[core][storage]") {
     SECTION("Simple Storage Startup") {
-
       auto blockchainWrapper = initialize(validatorPrivKeysStorage, PrivKey(), 8080, true, "StorageConstructor");
       // Chain should be filled with the genesis.
       REQUIRE(blockchainWrapper.storage.currentChainSize() == 1);
@@ -150,10 +146,10 @@ namespace TStorage {
           REQUIRE(block->getTxs().size() == blocks[i].getTxs().size());
           REQUIRE(block->getValidatorPubKey() == blocks[i].getValidatorPubKey());
         }
-        /// We actually need to dump the state otherwise it WILL try to process the added blocks
-        /// in the constructor of the State class.
-        /// Dumping the state will say to the State class that there is no missing blocks and it will
-        /// not try to process the blocks in the constructor.
+        // We actually need to dump the state otherwise it WILL try to process the added blocks
+        // in the constructor of the State class.
+        // Dumping the state will say to the State class that there is no missing blocks and it will
+        // not try to process the blocks in the constructor.
         blockchainWrapper.state.saveToDB();
       }
 
@@ -213,7 +209,7 @@ namespace TStorage {
           REQUIRE(block->getTxs().size() == requiredBlock.getTxs().size());
           REQUIRE(block->getValidatorPubKey() == requiredBlock.getValidatorPubKey());
         }
-        /// Same as before, we need to dump the state to avoid processing the blocks in the constructor.
+        // Same as before, we need to dump the state to avoid processing the blocks in the constructor.
         blockchainWrapper.state.saveToDB();
       }
       // Load DB again...

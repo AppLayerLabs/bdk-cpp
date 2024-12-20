@@ -46,7 +46,7 @@ namespace TP2P {
 
     SECTION("2 Node Network, Syncer") {
 
-      /// Make blockchainWrapper be 10 blocks ahead
+      // Make blockchainWrapper be 10 blocks ahead
       auto blockchainWrapper = initialize(validatorPrivKeysP2P, validatorPrivKeysP2P[0], SDKTestSuite::getTestPort(), true, testDumpPath + "/p2pSyncerNode1");
       for (uint64_t index = 0; index < 10; ++index) {
         std::vector<TxBlock> txs;
@@ -55,10 +55,10 @@ namespace TP2P {
       }
       REQUIRE(blockchainWrapper.storage.latest()->getNHeight() == 10);
 
-      /// Create a blockchaiNWrapper2 with zero blocks
+      // Create a blockchaiNWrapper2 with zero blocks
       auto blockchainWrapper2 = initialize(validatorPrivKeysP2P, PrivKey(), SDKTestSuite::getTestPort(), true, testDumpPath + "/p2pSyncerNode2");
 
-      /// Start the servers and connect them
+      // Start the servers and connect them
       blockchainWrapper.p2p.start();
       blockchainWrapper2.p2p.start();
       blockchainWrapper.p2p.connectToServer(LOCALHOST, blockchainWrapper2.p2p.serverPort());
@@ -72,7 +72,7 @@ namespace TP2P {
       REQUIRE(blockchainWrapper.p2p.getSessionsIDs().size() == 1);
       REQUIRE(blockchainWrapper2.p2p.getSessionsIDs().size() == 1);
 
-      /// Run blockchainWrapper2's Syncer
+      // Run blockchainWrapper2's Syncer
       // - At most "3" blocks per block range request answer
       // - Limit to "2000" bytes per block range request answer
       // - Don't wait for connections ("0")
@@ -260,11 +260,11 @@ namespace TP2P {
 
       auto blockchainWrapper2 = initialize(validatorPrivKeysP2P, PrivKey(), SDKTestSuite::getTestPort(), true, testDumpPath + "/p2pRequestInfoNode2");
 
-      /// Start the servers
+      // Start the servers
       blockchainWrapper1.p2p.start();
       blockchainWrapper2.p2p.start();
 
-      /// Connect to each other
+      // Connect to each other
       blockchainWrapper1.p2p.connectToServer(LOCALHOST, blockchainWrapper2.p2p.serverPort());
       auto futureConnect = std::async(std::launch::async, [&]() {
         while (blockchainWrapper1.p2p.getSessionsIDs().size() != 1 ||

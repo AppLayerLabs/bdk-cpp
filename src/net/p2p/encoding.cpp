@@ -21,27 +21,27 @@ namespace P2P {
     size_t index = 0;
     while (index < data.size()) {
       boost::asio::ip::address address;
-      if (data.size() - index < 2) { throw DynamicException("Invalid data size."); }
+      if (data.size() - index < 2) { throw DynamicException("Invalid data size (message too small)"); }
       auto nodeType = NodeType(UintConv::bytesToUint8(data.subspan(index, 1)));
       index += 1;
       uint8_t ipVersion = UintConv::bytesToUint8(data.subspan(index, 1));
       index += 1; // Move index to IP address
       if (ipVersion == 0) { // V4
-        if (data.size() - index < 4) { throw DynamicException("Invalid data size."); }
+        if (data.size() - index < 4) { throw DynamicException("Invalid data size (IPv4 too small)"); }
         BytesArr<4> ipBytes;
         std::copy(data.begin() + index, data.begin() + index + 4, ipBytes.begin());
         address = boost::asio::ip::address_v4(ipBytes);
         index += 4;
       } else if (ipVersion == 1) { // V6
-        if (data.size() - index < 16) { throw DynamicException("Invalid data size."); }
+        if (data.size() - index < 16) { throw DynamicException("Invalid data size (IPv6 too small)"); }
         BytesArr<16> ipBytes;
         std::copy(data.begin() + index, data.begin() + index + 16, ipBytes.begin());
         address = boost::asio::ip::address_v6(ipBytes);
         index += 16;
       } else {
-        throw DynamicException("Invalid ip version.");
+        throw DynamicException("Invalid IP version (not v4 or v6)");
       }
-      if (data.size() - index < 2) { throw DynamicException("Invalid data size."); }
+      if (data.size() - index < 2) { throw DynamicException("Invalid data size (missing port)"); }
       auto port = UintConv::bytesToUint16(data.subspan(index, 2));
       nodes.insert({NodeID(address, port), nodeType});
       index += 2;
@@ -98,10 +98,10 @@ namespace P2P {
     std::vector<FinalizedBlock> blocks;
     size_t index = 0;
     while (index < data.size()) {
-      if (data.size() - index < 8) { throw DynamicException("Invalid data size."); }
+      if (data.size() - index < 8) { throw DynamicException("Invalid data size (data too small)"); }
       uint64_t blockSize = UintConv::bytesToUint64(data.subspan(index, 8));
       index += 8;
-      if (data.size() - index < blockSize) { throw DynamicException("Invalid data size."); }
+      if (data.size() - index < blockSize) { throw DynamicException("Invalid data size (block too small)"); }
       bytes::View blockData = data.subspan(index, blockSize);
       index += blockSize;
       blocks.emplace_back(FinalizedBlock::fromBytes(blockData, requiredChainId));
@@ -129,10 +129,10 @@ namespace P2P {
     std::vector<TxType> txs;
     size_t index = 0;
     while (index < data.size()) {
-      if (data.size() - index < 4) { throw DynamicException("Invalid data size."); }
+      if (data.size() - index < 4) { throw DynamicException("Invalid data size (msg too small)"); }
       uint32_t txSize = UintConv::bytesToUint32(data.subspan(index, 4));
       index += 4;
-      if (data.size() - index < txSize) { throw DynamicException("Invalid data size."); }
+      if (data.size() - index < txSize) { throw DynamicException("Invalid data size (tx too small)"); }
       bytes::View txData = data.subspan(index, txSize);
       index += txSize;
       // Assuming requiredChainId is declared elsewhere

@@ -10,7 +10,7 @@ See the LICENSE.txt file in the project root for more information.
 #include "../utils/strconv.h"
 #include "../utils/uintconv.h"
 
-static bool topicsMatch(const Event& event, const std::vector<Hash>& topics) {
+bool Storage::topicsMatch(const Event& event, const std::vector<Hash>& topics) {
   if (topics.empty()) return true; // No topic filter applied
   const std::vector<Hash>& eventTopics = event.getTopics();
   if (eventTopics.size() < topics.size()) return false;
@@ -18,7 +18,7 @@ static bool topicsMatch(const Event& event, const std::vector<Hash>& topics) {
   return true;
 }
 
-static void storeBlock(DB& db, const FinalizedBlock& block, bool indexingEnabled) {
+void Storage::storeBlock(DB& db, const FinalizedBlock& block, bool indexingEnabled) {
   DBBatch batch;
   batch.push_back(block.getHash(), block.serializeBlock(), DBPrefix::blocks);
   batch.push_back(UintConv::uint64ToBytes(block.getNHeight()), block.getHash(), DBPrefix::heightToBlock);

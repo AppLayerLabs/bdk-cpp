@@ -44,10 +44,12 @@ set (TESTS_SOURCES
   ${CMAKE_SOURCE_DIR}/tests/core/state.cpp
   ${CMAKE_SOURCE_DIR}/tests/core/dumpmanager.cpp
   #${CMAKE_SOURCE_DIR}/tests/core/blockchain.cpp # TODO: Blockchain is failing due to rdPoSWorker.
-  ${CMAKE_SOURCE_DIR}/tests/net/p2p/p2p.cpp
+  ${CMAKE_SOURCE_DIR}/tests/net/p2p/encoding.cpp
   ${CMAKE_SOURCE_DIR}/tests/net/p2p/nodeinfo.cpp
-  ${CMAKE_SOURCE_DIR}/tests/net/http/httpjsonrpc.cpp
+  ${CMAKE_SOURCE_DIR}/tests/net/p2p/p2p.cpp
   ${CMAKE_SOURCE_DIR}/tests/net/http/error.cpp
+  ${CMAKE_SOURCE_DIR}/tests/net/http/httpjsonrpc.cpp
+  ${CMAKE_SOURCE_DIR}/tests/net/http/parser.cpp
   ${CMAKE_SOURCE_DIR}/tests/sdktestsuite.cpp
 )
 

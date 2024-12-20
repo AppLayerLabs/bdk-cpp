@@ -183,6 +183,22 @@ class Storage : public Log::LogicalLocationProvider {
      * @returns The indexing mode of the storage.
      */
     inline IndexingMode getIndexingMode() const { return options_.getIndexingMode(); }
+
+    /**
+     * Helper function for checking if an event has certain topics.
+     * @param event The event to check.
+     * @param topics A list of topics to check for.
+     * @return `true` if all topics match (or if no topics were provided), `false` otherwise.
+     */
+    static bool topicsMatch(const Event& event, const std::vector<Hash>& topics);
+
+    /**
+     * Helper function for storing a block in the database.
+     * @param db Reference to the database.
+     * @param block The block to store.
+     * @param indexingEnabled Whether the node has indexing enabled or not.
+     */
+    static void storeBlock(DB& db, const FinalizedBlock& block, bool indexingEnabled);
 };
 
 #endif  // STORAGE_H

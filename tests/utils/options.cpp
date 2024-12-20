@@ -21,10 +21,10 @@ const std::vector<PrivKey> validatorPrivKeys_ {
 };
 
 namespace TOptions {
-  TEST_CASE("Option Class", "[core][options]") {
+  TEST_CASE("Options Class", "[utils][options]") {
     std::string testDumpPath = Utils::getTestDumpPath();
     SECTION("Options from File (default)") {
-      if(std::filesystem::exists(testDumpPath + "/optionClassFromFileWithPrivKey")) {
+      if (std::filesystem::exists(testDumpPath + "/optionClassFromFileWithPrivKey")) {
         std::filesystem::remove_all(testDumpPath + "/optionClassFromFileWithPrivKey");
       }
       PrivKey genesisPrivKey(Hex::toBytes("0xe89ef6409c467285bcae9f80ab1cfeb3487cfe61ab28fb7d36443e1daa0c2867"));
@@ -52,7 +52,10 @@ namespace TOptions {
         10000,
         1000,
         4,
-        {},
+        {
+          {boost::asio::ip::address_v4::from_string("127.0.0.1"), uint64_t(8000)},
+          {boost::asio::ip::address_v4::from_string("127.0.0.1"), uint64_t(8001)}
+        },
         genesis,
         genesisTimestamp,
         genesisPrivKey,
@@ -88,7 +91,29 @@ namespace TOptions {
       REQUIRE(optionsFromFileWithPrivKey.getGenesisBlock() == optionsWithPrivKey.getGenesisBlock());
       REQUIRE(optionsFromFileWithPrivKey.getGenesisBalances() == optionsWithPrivKey.getGenesisBalances());
       REQUIRE(optionsFromFileWithPrivKey.getGenesisValidators() == optionsWithPrivKey.getGenesisValidators());
+    }
 
+    SECTION("IndexingMode Coverage") {
+      IndexingMode idx1(IndexingMode::DISABLED);
+      IndexingMode idx2(IndexingMode::RPC);
+      IndexingMode idx3(IndexingMode::RPC_TRACE);
+      IndexingMode idx1Str("DISABLED");
+      IndexingMode idx2Str("RPC");
+      IndexingMode idx3Str("RPC_TRACE");
+      std::string_view idx1View = idx1.toString();
+      std::string_view idx2View = idx2.toString();
+      std::string_view idx3View = idx3.toString();
+      REQUIRE(idx1 == IndexingMode::DISABLED);
+      REQUIRE(idx2 == IndexingMode::RPC);
+      REQUIRE(idx3 == IndexingMode::RPC_TRACE);
+      REQUIRE(idx1 == idx1Str);
+      REQUIRE(idx2 == idx2Str);
+      REQUIRE(idx3 == idx3Str);
+      REQUIRE(idx1View == "DISABLED");
+      REQUIRE(idx2View == "RPC");
+      REQUIRE(idx3View == "RPC_TRACE");
+      REQUIRE_THROWS(IndexingMode("unknown"));
     }
   }
 }
+
