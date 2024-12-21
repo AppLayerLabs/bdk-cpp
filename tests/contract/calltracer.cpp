@@ -98,7 +98,7 @@ TEST_CASE("CallTracer Tests", "[trace]") {
     std::optional<trace::Call> callTrace = sdk.getStorage().getCallTrace(txHash);
     REQUIRE(callTrace);
 
-    REQUIRE(callTrace->type == trace::Call::Type::CALL);
+    REQUIRE(callTrace->type == trace::CallType::CALL);
     REQUIRE(callTrace->from == sdk.getOptions().getChainOwner());
     REQUIRE(callTrace->to == contractAddress);
     REQUIRE(callTrace->value == FixedBytes<32>());
@@ -118,7 +118,7 @@ TEST_CASE("CallTracer Tests", "[trace]") {
     callTrace = sdk.getStorage().getCallTrace(txHash);
     REQUIRE(callTrace);
 
-    REQUIRE(callTrace->type == trace::Call::Type::CALL);
+    REQUIRE(callTrace->type == trace::CallType::CALL);
     REQUIRE(callTrace->from == sdk.getOptions().getChainOwner());
     REQUIRE(callTrace->to == contractAddress);
     REQUIRE(callTrace->value == FixedBytes<32>());
@@ -154,7 +154,7 @@ TEST_CASE("CallTracer Tests", "[trace]") {
     std::optional<trace::Call> callTrace = sdk.getStorage().getCallTrace(txHash);
     REQUIRE(callTrace);
 
-    REQUIRE(callTrace->type == trace::Call::Type::CALL);
+    REQUIRE(callTrace->type == trace::CallType::CALL);
     REQUIRE(callTrace->from == sdk.getOptions().getChainOwner());
     REQUIRE(callTrace->to == testProxyContractAddress);
     REQUIRE(callTrace->value == FixedBytes<32>());
@@ -167,7 +167,7 @@ TEST_CASE("CallTracer Tests", "[trace]") {
 
     const trace::Call& nestedCall = callTrace->calls.front();
 
-    REQUIRE(nestedCall.type == trace::Call::Type::CALL);
+    REQUIRE(nestedCall.type == trace::CallType::CALL);
     REQUIRE(nestedCall.from == testProxyContractAddress);
     REQUIRE(nestedCall.to == testContractAddress);
     REQUIRE(nestedCall.value == FixedBytes<32>());
@@ -204,8 +204,8 @@ TEST_CASE("CallTracer Tests", "[trace]") {
     const auto depositCallTrace = sdk.getStorage().getCallTrace(depositTx);
 
     REQUIRE(approveCallTrace);
-    REQUIRE(approveCallTrace->type == trace::Call::Type::CALL);
-    REQUIRE(approveCallTrace->status == trace::Status::SUCCEEDED);
+    REQUIRE(approveCallTrace->type == trace::CallType::CALL);
+    REQUIRE(approveCallTrace->status == trace::CallStatus::SUCCEEDED);
     REQUIRE(approveCallTrace->from == sdk.getOptions().getChainOwner());
     REQUIRE(approveCallTrace->to == erc20);
     REQUIRE(approveCallTrace->value == FixedBytes<32>());
@@ -214,16 +214,16 @@ TEST_CASE("CallTracer Tests", "[trace]") {
     REQUIRE(approveCallTrace->calls.empty());
 
     REQUIRE(depositCallTrace);
-    REQUIRE(depositCallTrace->type == trace::Call::Type::CALL);
-    REQUIRE(depositCallTrace->status == trace::Status::SUCCEEDED);
+    REQUIRE(depositCallTrace->type == trace::CallType::CALL);
+    REQUIRE(depositCallTrace->status == trace::CallStatus::SUCCEEDED);
     REQUIRE(depositCallTrace->from == sdk.getOptions().getChainOwner());
     REQUIRE(depositCallTrace->to == erc20Wrapper);
     REQUIRE(depositCallTrace->value == FixedBytes<32>());
     REQUIRE(depositCallTrace->input == Hex::toBytes("0x47e7ef240000000000000000000000005b41cef7f46a4a147e31150c3c5ffd077e54d0e100000000000000000000000000000000000000000000000006f05b59d3b20000"));
     REQUIRE(depositCallTrace->output == Bytes());
     REQUIRE(!depositCallTrace->calls.empty());
-    REQUIRE(depositCallTrace->calls[0].type == trace::Call::Type::CALL);
-    REQUIRE(depositCallTrace->calls[0].status == trace::Status::SUCCEEDED);
+    REQUIRE(depositCallTrace->calls[0].type == trace::CallType::CALL);
+    REQUIRE(depositCallTrace->calls[0].status == trace::CallStatus::SUCCEEDED);
     REQUIRE(depositCallTrace->calls[0].from == erc20Wrapper);
     REQUIRE(depositCallTrace->calls[0].to == erc20);
     REQUIRE(depositCallTrace->calls[0].value == FixedBytes<32>());
@@ -254,34 +254,34 @@ TEST_CASE("CallTracer Tests", "[trace]") {
     const auto payCallTrace = sdk.getStorage().getCallTrace(payTxHash);
 
     REQUIRE(errorCallTrace);
-    REQUIRE(errorCallTrace->type == trace::Call::Type::CALL);
-    REQUIRE(errorCallTrace->status == trace::Status::SUCCEEDED);
+    REQUIRE(errorCallTrace->type == trace::CallType::CALL);
+    REQUIRE(errorCallTrace->status == trace::CallStatus::SUCCEEDED);
     REQUIRE(errorCallTrace->from == sdk.getOptions().getChainOwner());
     REQUIRE(errorCallTrace->to == userAddress);
     REQUIRE(errorCallTrace->value == FixedBytes<32>());
     REQUIRE(errorCallTrace->input == Hex::toBytes("0x7f3358bc0000000000000000000000005b41cef7f46a4a147e31150c3c5ffd077e54d0e100000000000000000000000000000000000000000000000000000000000001f5"));
     REQUIRE(errorCallTrace->output == Bytes(32));
     REQUIRE(!errorCallTrace->calls.empty());
-    REQUIRE(errorCallTrace->calls[0].type == trace::Call::Type::CALL);
-    REQUIRE(errorCallTrace->calls[0].status == trace::Status::EXECUTION_REVERTED);
+    REQUIRE(errorCallTrace->calls[0].type == trace::CallType::CALL);
+    REQUIRE(errorCallTrace->calls[0].status == trace::CallStatus::EXECUTION_REVERTED);
     REQUIRE(errorCallTrace->calls[0].from == userAddress);
     REQUIRE(errorCallTrace->calls[0].to == bankAddress);
     REQUIRE(errorCallTrace->calls[0].value == FixedBytes<32>());
     REQUIRE(errorCallTrace->calls[0].input == Hex::toBytes("0x2e1a7d4d00000000000000000000000000000000000000000000000000000000000001f5"));
-    REQUIRE(errorCallTrace->calls[0].output == trace::encodeRevertReason("Insufficient funds"));
+    REQUIRE(errorCallTrace->calls[0].output == ABI::Encoder::encodeError("Insufficient funds"));
     REQUIRE(errorCallTrace->calls[0].calls.empty());
 
     REQUIRE(successCallTrace);
-    REQUIRE(successCallTrace->type == trace::Call::Type::CALL);
-    REQUIRE(successCallTrace->status == trace::Status::SUCCEEDED);
+    REQUIRE(successCallTrace->type == trace::CallType::CALL);
+    REQUIRE(successCallTrace->status == trace::CallStatus::SUCCEEDED);
     REQUIRE(successCallTrace->from == sdk.getOptions().getChainOwner());
     REQUIRE(successCallTrace->to == userAddress);
     REQUIRE(successCallTrace->value == FixedBytes<32>());
     REQUIRE(successCallTrace->input == Hex::toBytes("0x7f3358bc0000000000000000000000005b41cef7f46a4a147e31150c3c5ffd077e54d0e1000000000000000000000000000000000000000000000000000000000000012c"));
     REQUIRE(successCallTrace->output == Hex::toBytes("0x0000000000000000000000000000000000000000000000000000000000000001"));
     REQUIRE(!successCallTrace->calls.empty());
-    REQUIRE(successCallTrace->calls[0].type == trace::Call::Type::CALL);
-    REQUIRE(successCallTrace->calls[0].status == trace::Status::SUCCEEDED);
+    REQUIRE(successCallTrace->calls[0].type == trace::CallType::CALL);
+    REQUIRE(successCallTrace->calls[0].status == trace::CallStatus::SUCCEEDED);
     REQUIRE(successCallTrace->calls[0].from == userAddress);
     REQUIRE(successCallTrace->calls[0].to == bankAddress);
     REQUIRE(successCallTrace->calls[0].value == FixedBytes<32>());
@@ -290,8 +290,8 @@ TEST_CASE("CallTracer Tests", "[trace]") {
     REQUIRE(successCallTrace->calls[0].calls.empty());
 
     REQUIRE(payCallTrace);
-    REQUIRE(payCallTrace->type == trace::Call::Type::CALL);
-    REQUIRE(payCallTrace->status == trace::Status::SUCCEEDED);
+    REQUIRE(payCallTrace->type == trace::CallType::CALL);
+    REQUIRE(payCallTrace->status == trace::CallStatus::SUCCEEDED);
     REQUIRE(payCallTrace->from == sdk.getOptions().getChainOwner());
     REQUIRE(payCallTrace->to == bankAddress);
     REQUIRE(payCallTrace->value == FixedBytes<32>(Utils::uint256ToBytes(uint256_t(4568))));

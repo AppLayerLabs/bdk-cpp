@@ -2,6 +2,7 @@
 #define BDK_MESSAGES_COMMON_H
 
 #include "utils/utils.h"
+#include "utils/contractreflectioninterface.h"
 #include "concepts.h"
 
 Address generateContractAddress(uint64_t nonce, View<Address> address);
@@ -38,6 +39,24 @@ constexpr Hash messageSaltOrDefault(const auto& msg) {
   } else {
     return Hash{};
   }
+}
+
+Bytes messageInputEncoded(const concepts::EncodedMessage auto& msg) {
+  return Bytes(msg.input());
+}
+
+Bytes messageInputEncoded(const concepts::PackedMessage auto& msg) {
+  return std::apply([&] (const auto&... args) -> Bytes {
+    const std::string functionName = ContractReflectionInterface::getFunctionName(msg.method());
+    const BytesArr<4> encodedFunctor = Utils::uint32ToBytes(ABI::FunctorEncoder::encode<decltype(args)...>(functionName).value);
+
+    if constexpr (sizeof...(args) > 0) {
+      const Bytes encodedArgs = ABI::Encoder::encodeData<decltype(args)...>(args...);
+      return Utils::makeBytes(bytes::join(encodedFunctor, encodedArgs));
+    }
+
+    return Utils::makeBytes(encodedFunctor);
+  }, msg.args());
 }
 
 #endif // BDK_MESSAGES_COMMON_H

@@ -52,7 +52,7 @@ set(CONTRACT_SOURCES
   ${CMAKE_SOURCE_DIR}/src/contract/contracthost.cpp
   ${CMAKE_SOURCE_DIR}/src/contract/contractmanager.cpp
   ${CMAKE_SOURCE_DIR}/src/contract/dynamiccontract.cpp
-  ${CMAKE_SOURCE_DIR}/src/contract/calltracer.cpp
+  ${CMAKE_SOURCE_DIR}/src/contract/trace/calltrace.cpp
   ${CMAKE_SOURCE_DIR}/src/contract/event.cpp
   ${CMAKE_SOURCE_DIR}/src/contract/messages/common.cpp
   ${CMAKE_SOURCE_DIR}/src/contract/messages/executioncontext.cpp

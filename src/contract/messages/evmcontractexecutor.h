@@ -15,6 +15,11 @@ public:
     AnyEncodedMessageHandler messageHandler, ExecutionContext& context, evmc_vm *vm)
       : messageHandler_(messageHandler), context_(context), vm_(vm), transientStorage_(), depth_(0) {}
 
+  EvmContractExecutor(ExecutionContext& context, evmc_vm *vm)
+      : context_(context), vm_(vm), transientStorage_(), depth_(0) {}
+
+  void setMessageHandler(AnyEncodedMessageHandler messageHandler) { messageHandler_ = messageHandler; }
+
   Bytes execute(EncodedCallMessage& msg);
 
   Bytes execute(EncodedStaticCallMessage& msg);

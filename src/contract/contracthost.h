@@ -24,6 +24,7 @@
 #include "messages/executioncontext.h"
 #include "messages/messagedispatcher.h"
 #include "messages/packedmessages.h"
+#include "calltracer.h"
 
 // TODO: EVMC Static Mode Handling
 // TODO: Contract creating other contracts (EVM Factories)
@@ -54,7 +55,11 @@ using namespace evmc::literals;
 const auto ZERO_ADDRESS = 0x0000000000000000000000000000000000000000_address;
 const auto BDK_PRECOMPILE = 0x1000000000000000000000000000100000000001_address;
 
-using MessageHandler = MessageDispatcher;
+// std::unique_ptr<MessageHandler> makeMessageHandler(ContractHost& host, evmc_vm *vm, ExecutionContext& context, Storage& storage);
+
+using MessageHandler = std::variant<MessageDispatcher, CallTracer<MessageDispatcher>>;
+
+MessageHandler makeMessageHandler(ContractHost& host, ExecutionContext& context, evmc_vm *vm, Storage& storage);
 
 class ContractHost {
   private:
@@ -77,11 +82,12 @@ class ContractHost {
     randomGen_(randomnessSeed),
     stack_(),
     context_(context),
-    messageHandler_(
-      context_,
-      CppContractExecutor(context_, *this),
-      EvmContractExecutor(AnyEncodedMessageHandler::from(messageHandler_), context_, vm)
-    ) {}
+    messageHandler_(makeMessageHandler(*this, context, vm, storage)) {
+      std::visit(Utils::Overloaded{
+        [] (MessageDispatcher& handler) { handler.evmExecutor().setMessageHandler(AnyEncodedMessageHandler::from(handler)); },
+        [] (CallTracer<MessageDispatcher>& tracer) { tracer.getHandler().evmExecutor().setMessageHandler(AnyEncodedMessageHandler::from(tracer)); }
+      }, messageHandler_);
+    }
 
     // Rule of five, no copy/move allowed.
     ContractHost(const ContractHost&) = delete;
@@ -100,7 +106,7 @@ class ContractHost {
       try {
         mustRevert_ = false;
         msg.gas().use(21000);
-        return messageHandler_.onMessage(std::forward<decltype(msg)>(msg));
+        return dispatchMessage(std::forward<decltype(msg)>(msg));
       } catch (const std::exception& err) {
         mustRevert_ = true;
         throw err;
@@ -123,12 +129,12 @@ class ContractHost {
       PackedStaticCallMessage<decltype(func), const Args&...> msg(
         caller->getContractAddress(),
         targetAddr,
-        messageHandler_.cppExecutor().currentGas(),
+        this->getCurrentGas(),
         *caller,
         func,
         args...);
       
-      return messageHandler_.onMessage(std::move(msg));
+      return this->dispatchMessage(std::move(msg));
     }
 
     template <typename R, typename C, typename... Args>
@@ -136,17 +142,16 @@ class ContractHost {
       BaseContract* caller, const Address& targetAddr,
       const uint256_t& value,
       R(C::*func)(const Args&...), const Args&... args) {
-
       PackedCallMessage<decltype(func), const Args&...> msg(
         caller->getContractAddress(),
         targetAddr,
-        messageHandler_.cppExecutor().currentGas(),
+        this->getCurrentGas(),
         value,
         *caller,
         func,
         args...);
 
-      return messageHandler_.onMessage(std::move(msg));
+      return this->dispatchMessage(std::move(msg));
     }
 
     /**
@@ -160,16 +165,15 @@ class ContractHost {
     template<typename ContractType, typename... Args>
     Address callCreateContract(BaseContract& caller, Args&&... args) {
       const uint256_t value = 0;
-
       PackedCreateMessage<ContractType, Args...> msg(
         caller.getContractAddress(),
-        messageHandler_.cppExecutor().currentGas(),
+        this->getCurrentGas(),
         value,
         caller,
         std::forward<decltype(args)>(args)...
       );
 
-      return messageHandler_.onMessage(std::move(msg));
+      return this->dispatchMessage(std::move(msg));
     }
 
     /**
@@ -228,7 +232,19 @@ class ContractHost {
 
     uint256_t getRandomValue() const { return std::invoke(this->randomGen_); }
 
-    /// END OF CONTRACT INTERFACING FUNCTIONS
+private:
+  decltype(auto) dispatchMessage(auto&& msg) {
+    return std::visit([&msg] (auto& handler) {
+      return handler.onMessage(std::forward<decltype(msg)>(msg));
+    }, messageHandler_);
+  }
+
+  messages::Gas& getCurrentGas() {
+    return std::visit(Utils::Overloaded{
+      [] (MessageDispatcher& handler) -> messages::Gas& { return handler.cppExecutor().currentGas(); },
+      [] (CallTracer<MessageDispatcher>& tracer) -> messages::Gas& { return tracer.getHandler().cppExecutor().currentGas(); }
+    }, messageHandler_);
+  }
 };
 
 #endif // CONTRACT_HOST_H
