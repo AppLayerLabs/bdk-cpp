@@ -97,6 +97,18 @@ struct CometTxStatus {
 };
 
 /**
+ * A block output by the consensus engine.
+ * Depending on the context in which this struct is used, some fields may be unset.
+ * Transaction execution results should probably not be defined here, in any case.
+ */
+struct CometBlock {
+  uint64_t height = 0; ///< Block height (0 == unknown/unset).
+  uint64_t timeNanos = 0; ///< Block timestamp (nanos since epoch).
+  Bytes proposerAddr; ///< Address of the validator that was the block proposer.
+  std::vector<Bytes> txs; ///< All block transactions (in order).
+};
+
+/**
  * The Comet class notifies its user of events through the CometListener interface.
  * Users of the Comet class must implement a CometListener class and pass a pointer
  * to a CometListener object to Comet so that they can receive Comet events.
@@ -154,35 +166,29 @@ class CometListener {
 
     /**
      * Notification of a new finalized block added to the chain.
-     * @param height The block height of the new finalized block at the new head of the chain.
      * @param syncingToHeight If the blockchain is doing a replay, syncingToHeight > height, otherwise syncingToHeight == height.
-     * @param txs All transactions included in the block, which need to be processed into the application state.
-     * @param proposerAddr Address of the validator that proposed the block.
-     * @param timeNanos Block timestamp in nanoseconds since epoch.
+     * @param block Unique ptr to the incoming, finalized block (you can `std::move()` it to a member variable, for example).
      * @param appHash Outparam to be set with the hash of the application state after all `txs` are processed into it.
      * @param txResults Outparam to be filled in with the result of executing each transaction in the `txs` vector (indices must match).
      * @param validatorUpdates Outparam to be filled with the validator updates generated as a side-effect of applying this block to the app state.
      */
     virtual void incomingBlock(
-      const uint64_t height, const uint64_t syncingToHeight, const std::vector<Bytes>& txs, const Bytes& proposerAddr, const uint64_t timeNanos,
-      Bytes& appHash, std::vector<CometExecTxResult>& txResults, std::vector<CometValidatorUpdate>& validatorUpdates
+      const uint64_t syncingToHeight, std::unique_ptr<CometBlock> block, Bytes& appHash,
+      std::vector<CometExecTxResult>& txResults, std::vector<CometValidatorUpdate>& validatorUpdates
     ) {
       appHash.clear();
-      txResults.resize(txs.size());
+      txResults.resize(block->txs.size());
     }
 
     /**
      * Validator node that is the block proposer now needs to build a block.
-     * @param height The block number (chain height) of the block proposal that is being made.
      * @param maxTxBytes Absolute maximum number of bytes for all transactions included in the block which must be
      * respected by the sum of all transactions in `txs` minus transactions at the indices indicated by `delTxIds`.
-     * @param timeNanos Timestamp nanos since epoch that will be assigned to the block that is being built.
-     * @param txs Transactions that cometbft took from the mempool and that it wants to include in the block proposal.
+     * @param block The block being proposed (for reading; if you need to keep it, you must copy it explicitly).
      * @param delTxIds Outparam to be set with the indices in `txs`  that are to be excluded from the block proposal.
      */
     virtual void buildBlockProposal(
-      const uint64_t height, const uint64_t maxTxBytes, const uint64_t timeNanos,
-      const std::vector<Bytes>& txs, std::unordered_set<size_t>& delTxIds
+      const uint64_t maxTxBytes, const CometBlock& block, std::unordered_set<size_t>& delTxIds
     ) {
       // By default, this just copies the recommended `txs` from the mempool into the proposal.
       // This requires all block size and limit related params to be set in such a way that the
