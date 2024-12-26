@@ -12,7 +12,7 @@ SHELL ["/bin/bash", "-c"]
 RUN apt-get update && apt-get upgrade -y
 
 # Install Docker-specific dependencies
-RUN apt-get -y install nano vim unison curl jq unzip
+RUN apt-get -y install nano vim unison curl jq unzip wget
 RUN apt-get install -y python3 python3-pip python3-venv
 
 # Install gcovr from Github release (for SonarQube) because Python is stupid
