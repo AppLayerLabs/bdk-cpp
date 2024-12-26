@@ -16,15 +16,38 @@ DEXV2Pair::DEXV2Pair(const Address& address, const DB& db
   reserve0_(this), reserve1_(this), blockTimestampLast_(this),
   price0CumulativeLast_(this), price1CumulativeLast_(this), kLast_(this)
 {
-  this->factory_ = Address(db.get(std::string("factory_"), this->getDBPrefix()));
-  this->token0_ = Address(db.get(std::string("token0_"), this->getDBPrefix()));
-  this->token1_ = Address(db.get(std::string("token1_"), this->getDBPrefix()));
-  this->reserve0_ = UintConv::bytesToUint112(db.get(std::string("reserve0_"), this->getDBPrefix()));
-  this->reserve1_ = UintConv::bytesToUint112(db.get(std::string("reserve1_"), this->getDBPrefix()));
-  this->blockTimestampLast_ = UintConv::bytesToUint32(db.get(std::string("blockTimestampLast_"), this->getDBPrefix()));
-  this->price0CumulativeLast_ = UintConv::bytesToUint256(db.get(std::string("price0CumulativeLast_"), this->getDBPrefix()));
-  this->price1CumulativeLast_ = UintConv::bytesToUint256(db.get(std::string("price1CumulativeLast_"), this->getDBPrefix()));
-  this->kLast_ = UintConv::bytesToUint256(db.get(std::string("kLast_"), this->getDBPrefix()));
+  Hex prefix = Hex::fromBytes(this->getDBPrefix());
+  Utils::safePrintTest("Loading contract DEXV2Pair from DB with prefix: " + prefix.get());
+  auto factoryBytes = db.get(std::string("factory_"), this->getDBPrefix());
+  auto token0Bytes = db.get(std::string("token0_"), this->getDBPrefix());
+  auto token1Bytes = db.get(std::string("token1_"), this->getDBPrefix());
+  auto reserve0Bytes = db.get(std::string("reserve0_"), this->getDBPrefix());
+  auto reserve1Bytes = db.get(std::string("reserve1_"), this->getDBPrefix());
+  auto blockTimestampLastBytes = db.get(std::string("blockTimestampLast_"), this->getDBPrefix());
+  auto price0CumulativeLastBytes = db.get(std::string("price0CumulativeLast_"), this->getDBPrefix());
+  auto price1CumulativeLastBytes = db.get(std::string("price1CumulativeLast_"), this->getDBPrefix());
+  auto kLastBytes = db.get(std::string("kLast_"), this->getDBPrefix());
+
+  Utils::safePrintTest("Factory Bytes: " + Hex::fromBytes(factoryBytes).get());
+  Utils::safePrintTest("Token0 Bytes: " + Hex::fromBytes(token0Bytes).get());
+  Utils::safePrintTest("Token1 Bytes: " + Hex::fromBytes(token1Bytes).get());
+  Utils::safePrintTest("Reserve0 Bytes: " + Hex::fromBytes(reserve0Bytes).get());
+  Utils::safePrintTest("Reserve1 Bytes: " + Hex::fromBytes(reserve1Bytes).get());
+  Utils::safePrintTest("BlockTimestampLast Bytes: " + Hex::fromBytes(blockTimestampLastBytes).get());
+  Utils::safePrintTest("Price0CumulativeLast Bytes: " + Hex::fromBytes(price0CumulativeLastBytes).get());
+  Utils::safePrintTest("Price1CumulativeLast Bytes: " + Hex::fromBytes(price1CumulativeLastBytes).get());
+  Utils::safePrintTest("KLast Bytes: " + Hex::fromBytes(kLastBytes).get());
+
+
+  this->factory_ = Address(factoryBytes);
+  this->token0_ = Address(token0Bytes);
+  this->token1_ = Address(token1Bytes);
+  this->reserve0_ = UintConv::bytesToUint112(reserve0Bytes);
+  this->reserve1_ = UintConv::bytesToUint112(reserve1Bytes);
+  this->blockTimestampLast_ = UintConv::bytesToUint32(blockTimestampLastBytes);
+  this->price0CumulativeLast_ = UintConv::bytesToUint256(price0CumulativeLastBytes);
+  this->price1CumulativeLast_ = UintConv::bytesToUint256(price1CumulativeLastBytes);
+  this->kLast_ = UintConv::bytesToUint256(kLastBytes);
 
   this->factory_.commit();
   this->token0_.commit();
@@ -47,6 +70,17 @@ DEXV2Pair::DEXV2Pair(const Address& address, const DB& db
   this->price0CumulativeLast_.enableRegister();
   this->price1CumulativeLast_.enableRegister();
   this->kLast_.enableRegister();
+  Utils::safePrintTest("Loaded from DB DEXV2Pair contract");
+  Utils::safePrintTest("Factory: " + this->factory_.get().hex().get());
+  Utils::safePrintTest("Token0: " + this->token0_.get().hex().get());
+  Utils::safePrintTest("Token1: " + this->token1_.get().hex().get());
+  Utils::safePrintTest("Reserve0: " + this->reserve0_.get().str());
+  Utils::safePrintTest("Reserve1: " + this->reserve1_.get().str());
+  Utils::safePrintTest("BlockTimestampLast: " + std::to_string(this->blockTimestampLast_.get()));
+  Utils::safePrintTest("Price0CumulativeLast: " + this->price0CumulativeLast_.get().str());
+  Utils::safePrintTest("Price1CumulativeLast: " + this->price1CumulativeLast_.get().str());
+  Utils::safePrintTest("KLast: " + this->kLast_.get().str());
+
 }
 
 DEXV2Pair::DEXV2Pair(
@@ -85,6 +119,16 @@ DEXV2Pair::DEXV2Pair(
   this->price0CumulativeLast_.enableRegister();
   this->price1CumulativeLast_.enableRegister();
   this->kLast_.enableRegister();
+  Utils::safePrintTest("Creating new DEXV2Pair contract");
+  Utils::safePrintTest("Factory: " + this->factory_.get().hex().get());
+  Utils::safePrintTest("Token0: " + this->token0_.get().hex().get());
+  Utils::safePrintTest("Token1: " + this->token1_.get().hex().get());
+  Utils::safePrintTest("Reserve0: " + this->reserve0_.get().str());
+  Utils::safePrintTest("Reserve1: " + this->reserve1_.get().str());
+  Utils::safePrintTest("BlockTimestampLast: " + std::to_string(this->blockTimestampLast_.get()));
+  Utils::safePrintTest("Price0CumulativeLast: " + this->price0CumulativeLast_.get().str());
+  Utils::safePrintTest("Price1CumulativeLast: " + this->price1CumulativeLast_.get().str());
+  Utils::safePrintTest("KLast: " + this->kLast_.get().str());
 }
 
 DEXV2Pair::~DEXV2Pair() {};
@@ -278,6 +322,17 @@ DBBatch DEXV2Pair::dump() const {
   dbBatch.push_back(StrConv::stringToBytes("price0CumulativeLast_"), UintConv::uint256ToBytes(this->price0CumulativeLast_.get()), this->getDBPrefix());
   dbBatch.push_back(StrConv::stringToBytes("price1CumulativeLast_"), UintConv::uint256ToBytes(this->price1CumulativeLast_.get()), this->getDBPrefix());
   dbBatch.push_back(StrConv::stringToBytes("kLast_"), UintConv::uint256ToBytes(this->kLast_.get()), this->getDBPrefix());
+  Utils::safePrintTest("Dumping DEXV2Pair to DB");
+  const auto& puts = dbBatch.getPuts();
+  for (const auto& dbItem : puts) {
+    // Take of the prefix based on this->getDBPrefix().size() from the dbItem.key
+    Bytes prefixBytes(dbItem.key.begin(), dbItem.key.begin() + this->getDBPrefix().size());
+    Hex prefix = Hex::fromBytes(prefixBytes);
+    // Then take dbItem.key + this->getDBPrefix().size() to the end
+    std::string key(dbItem.key.begin() + this->getDBPrefix().size(), dbItem.key.end());
+    Hex value = Hex::fromBytes(dbItem.value);
+    Utils::safePrintTest("Dumping to DB with prefix : " + prefix.get() + " key: " + key + " value: " + value.get());
+  }
   return dbBatch;
 }
 
