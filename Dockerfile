@@ -5,6 +5,9 @@
 # Start from a base Debian image
 FROM debian:trixie
 
+# Set shell to Bash because Docker standards are stupid
+SHELL ["/bin/bash", "-c"]
+
 # Update the system
 RUN apt-get update && apt-get upgrade -y
 
