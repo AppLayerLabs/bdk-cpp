@@ -26,10 +26,12 @@ set (TESTS_SOURCES
   ${CMAKE_SOURCE_DIR}/tests/utils/dynamicexception.cpp
   ${CMAKE_SOURCE_DIR}/tests/utils/strconv.cpp
   ${CMAKE_SOURCE_DIR}/tests/utils/uintconv.cpp
+  ${CMAKE_SOURCE_DIR}/tests/utils/intconv.cpp
   ${CMAKE_SOURCE_DIR}/tests/contract/abi.cpp
+  ${CMAKE_SOURCE_DIR}/tests/contract/event.cpp
   ${CMAKE_SOURCE_DIR}/tests/contract/erc20.cpp
   ${CMAKE_SOURCE_DIR}/tests/contract/erc20wrapper.cpp
-  ${CMAKE_SOURCE_DIR}/tests/contract/erc721.cpp
+  ${CMAKE_SOURCE_DIR}/tests/contract/erc721test.cpp
   ${CMAKE_SOURCE_DIR}/tests/contract/nativewrapper.cpp
   ${CMAKE_SOURCE_DIR}/tests/contract/contractabigenerator.cpp
   ${CMAKE_SOURCE_DIR}/tests/contract/dexv2.cpp
@@ -39,6 +41,7 @@ set (TESTS_SOURCES
   ${CMAKE_SOURCE_DIR}/tests/contract/calltracer.cpp
   ${CMAKE_SOURCE_DIR}/tests/contract/createcontract.cpp
   ${CMAKE_SOURCE_DIR}/tests/contract/pebble.cpp
+  ${CMAKE_SOURCE_DIR}/tests/contract/throwtest.cpp
   ${CMAKE_SOURCE_DIR}/tests/core/rdpos.cpp
   ${CMAKE_SOURCE_DIR}/tests/core/storage.cpp
   ${CMAKE_SOURCE_DIR}/tests/core/state.cpp

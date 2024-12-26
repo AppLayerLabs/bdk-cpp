@@ -157,10 +157,26 @@ namespace THash {
       REQUIRE_THAT(hash.hex(), Equals("9be83ea08b549e7c77644c451b55a674bb12e4668d018183ff9723b1de493818"));
     }
 
+    SECTION("Hash evmc::bytes32 Constructor") {
+      evmc::bytes32 num;
+      Bytes b = Hex::toBytes("9be83ea08b549e7c77644c451b55a674bb12e4668d018183ff9723b1de493818");
+      for (int i = 0; i < 32; i++) num.bytes[i] = b[i];
+      Hash hash(num);
+      REQUIRE_THAT(hash.hex(), Equals("9be83ea08b549e7c77644c451b55a674bb12e4668d018183ff9723b1de493818"));
+    }
+
     SECTION("Hash toUint256") {
       uint256_t i = uint256_t("70518832285973061936518038480459635341011381946952877582230426678885538674712");
       Hash hash(i);
       REQUIRE(hash.toUint256() == i);
+    }
+
+    SECTION("Hash toEvmcBytes32") {
+      evmc::bytes32 num;
+      Bytes b = Hex::toBytes("9be83ea08b549e7c77644c451b55a674bb12e4668d018183ff9723b1de493818");
+      for (int i = 0; i < 32; i++) num.bytes[i] = b[i];
+      Hash hash(num);
+      REQUIRE(hash.toEvmcBytes32() == num);
     }
 
     SECTION("Hash random()") {
@@ -240,7 +256,7 @@ namespace TStorageKey {
       evmc::bytes32 slot1;
       evmc_bytes32 slot2;
       Address addr3(std::string("0x1234567890123456789012345678901234567890"), false);
-      Hash slot3(std::string_view("AAAABBBBCCCCDDDDEEEEFFFF00009999"));
+      Hash slot3(Hex::toBytes("aaaaaaaabbbbbbbbccccccccddddddddeeeeeeeeffffffff0000000099999999"));
 
       // TODO: replace this with one of the std::ranges alternatives after ContractHost refactor is merged:
       // std::ranges::fill(addr, 0xFF); // <--- preferred
@@ -259,7 +275,7 @@ namespace TStorageKey {
       REQUIRE_THAT(Hex::fromBytes(key2.asBytes()).get(), Equals("ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"));
       REQUIRE_THAT(Hex::fromBytes(key3.asBytes()).get(), Equals("ffffffffffffffffffffffffffffffffffffffffaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"));
       REQUIRE_THAT(Hex::fromBytes(key4.asBytes()).get(), Equals("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"));
-      REQUIRE_THAT(Hex::fromBytes(key5.asBytes()).get(), Equals("12345678901234567890123456789012345678904141414142424242434343434444444445454545464646463030303039393939"));
+      REQUIRE_THAT(Hex::fromBytes(key5.asBytes()).get(), Equals("1234567890123456789012345678901234567890aaaaaaaabbbbbbbbccccccccddddddddeeeeeeeeffffffff0000000099999999"));
     }
   }
 }

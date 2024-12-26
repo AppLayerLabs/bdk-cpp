@@ -10,13 +10,13 @@
 
 #include "../sdktestsuite.hpp"
 
-namespace TERC721 {
-  TEST_CASE("ERC721 Class", "[contract][erc721]") {
-    SECTION("ERC721 Creation + Dump") {
+namespace TERC721Test {
+  TEST_CASE("ERC721Test Class", "[contract][erc721test]") {
+    SECTION("ERC721Test Creation + Dump") {
       Address ERC721Address;
       std::unique_ptr<Options> options;
       {
-        SDKTestSuite sdk = SDKTestSuite::createNewEnvironment("testERC721Creation");
+        SDKTestSuite sdk = SDKTestSuite::createNewEnvironment("testERC721TestCreation");
         ERC721Address = sdk.deployContract<ERC721Test>(std::string("My Test NFT!"), std::string("NFT"), uint64_t(100));
         REQUIRE(sdk.callViewFunction(ERC721Address, &ERC721Test::name) == "My Test NFT!");
         REQUIRE(sdk.callViewFunction(ERC721Address, &ERC721Test::symbol) == "NFT");
@@ -26,6 +26,7 @@ namespace TERC721 {
         options = std::make_unique<Options>(sdk.getOptions());
         sdk.getState().saveToDB();
       }
+
       // SDKTestSuite should automatically load the state from the DB if we construct it with an Options object
       // (The createNewEnvironment DELETES the DB if any is found)
       SDKTestSuite sdk(*options);
@@ -35,8 +36,8 @@ namespace TERC721 {
       REQUIRE(sdk.callViewFunction(ERC721Address, &ERC721Test::tokenIdCounter) == 0);
     }
 
-    SECTION("ERC721 Mint 100 Token Same Address") {
-      SDKTestSuite sdk = SDKTestSuite::createNewEnvironment("testERC721Mint100TokenSameAddress");
+    SECTION("ERC721Test Mint 100 Token Same Address") {
+      SDKTestSuite sdk = SDKTestSuite::createNewEnvironment("testERC721TestMint100TokenSameAddress");
       auto ERC721Address = sdk.deployContract<ERC721Test>(std::string("My Test NFT!"), std::string("NFT"), uint64_t(100));
       for (uint64_t i = 0; i < 100; ++i) {
         sdk.callFunction(ERC721Address, &ERC721Test::mint, sdk.getChainOwnerAccount().address);
@@ -50,13 +51,13 @@ namespace TERC721 {
       REQUIRE(sdk.callViewFunction(ERC721Address, &ERC721Test::totalSupply) == 100);
     }
 
-    SECTION("ERC721 Mint 100 Different Addresses") {
+    SECTION("ERC721Test Mint 100 Different Addresses") {
       // Generate 100 different TestAccounts
       std::vector<TestAccount> accounts;
       for (int i = 0; i < 100; ++i) {
         accounts.emplace_back(TestAccount::newRandomAccount());
       }
-      SDKTestSuite sdk = SDKTestSuite::createNewEnvironment("testERC721Mint100DifferentAddresses", accounts);
+      SDKTestSuite sdk = SDKTestSuite::createNewEnvironment("testERC721TestMint100DifferentAddresses", accounts);
       auto ERC721Address = sdk.deployContract<ERC721Test>(std::string("My Test NFT!"), std::string("NFT"), uint64_t(100));
       for (int i = 0; i < 100; ++i) {
         sdk.callFunction(ERC721Address, &ERC721Test::mint, accounts[i].address);
@@ -69,13 +70,13 @@ namespace TERC721 {
       REQUIRE(sdk.callViewFunction(ERC721Address, &ERC721Test::totalSupply) == 100);
     }
 
-    SECTION("ERC721 Mint 100 Different Addresses reverse") {
+    SECTION("ERC721Test Mint 100 Different Addresses reverse") {
       // Same as before, but we mint from the test accounts list in reverse order
       std::vector<TestAccount> accounts;
       for (int i = 0; i < 100; ++i) {
         accounts.emplace_back(TestAccount::newRandomAccount());
       }
-      SDKTestSuite sdk = SDKTestSuite::createNewEnvironment("testERC721Mint100DifferentAddressesReverse", accounts);
+      SDKTestSuite sdk = SDKTestSuite::createNewEnvironment("testERC721TestMint100DifferentAddressesReverse", accounts);
       auto ERC721Address = sdk.deployContract<ERC721Test>(std::string("My Test NFT!"), std::string("NFT"), uint64_t(100));
       for (int i = 99; i >= 0; i--) {
         sdk.callFunction(ERC721Address, &ERC721Test::mint, accounts[i].address);
@@ -89,8 +90,8 @@ namespace TERC721 {
       REQUIRE(sdk.callViewFunction(ERC721Address, &ERC721Test::totalSupply) == 100);
     }
 
-    SECTION("ERC721 Mint 100 and Burn 100 Same Address") {
-      SDKTestSuite sdk = SDKTestSuite::createNewEnvironment("testERC721Mint100AndBurn100SameAddress");
+    SECTION("ERC721Test Mint 100 and Burn 100 Same Address") {
+      SDKTestSuite sdk = SDKTestSuite::createNewEnvironment("testERC721TestMint100AndBurn100SameAddress");
       auto ERC721Address = sdk.deployContract<ERC721Test>(std::string("My Test NFT!"), std::string("NFT"), uint64_t(100));
       for (uint64_t i = 0; i < 100; ++i) {
         sdk.callFunction(ERC721Address, &ERC721Test::mint, sdk.getChainOwnerAccount().address);
@@ -112,13 +113,13 @@ namespace TERC721 {
       REQUIRE(sdk.callViewFunction(ERC721Address, &ERC721Test::balanceOf, sdk.getChainOwnerAccount().address) == 0);
     }
 
-    SECTION("ERC721 Mint 100 Different Address Burn 100 Different Address") {
+    SECTION("ERC721Test Mint 100 Different Address Burn 100 Different Address") {
       // Generate 100 different TestAccounts
       std::vector<TestAccount> accounts;
       for (int i = 0; i < 100; ++i) {
         accounts.emplace_back(TestAccount::newRandomAccount());
       }
-      SDKTestSuite sdk = SDKTestSuite::createNewEnvironment("testERC721Mint100DifferentAddressBurn100DifferentAddress", accounts);
+      SDKTestSuite sdk = SDKTestSuite::createNewEnvironment("testERC721TestMint100DifferentAddressBurn100DifferentAddress", accounts);
       auto ERC721Address = sdk.deployContract<ERC721Test>(std::string("My Test NFT!"), std::string("NFT"), uint64_t(100));
       for (int i = 0; i < 100; ++i) {
         sdk.callFunction(ERC721Address, &ERC721Test::mint, accounts[i].address);
@@ -140,13 +141,13 @@ namespace TERC721 {
       }
     }
 
-    SECTION("ERC721 Mint 100 Different Address Burn With Allowance") {
+    SECTION("ERC721Test Mint 100 Different Address Burn With Allowance") {
       // Generate 100 different TestAccounts
       std::vector<TestAccount> accounts;
       for (int i = 0; i < 100; ++i) {
         accounts.emplace_back(TestAccount::newRandomAccount());
       }
-      SDKTestSuite sdk = SDKTestSuite::createNewEnvironment("testERC721Mint100DifferentAddressBurnWithAllowance", accounts);
+      SDKTestSuite sdk = SDKTestSuite::createNewEnvironment("testERC721TestMint100DifferentAddressBurnWithAllowance", accounts);
       auto ERC721Address = sdk.deployContract<ERC721Test>(std::string("My Test NFT!"), std::string("NFT"), uint64_t(100));
       for (int i = 0; i < 100; ++i) {
         sdk.callFunction(ERC721Address, &ERC721Test::mint, accounts[i].address);
@@ -188,14 +189,14 @@ namespace TERC721 {
       }
     }
 
-    SECTION("ERC721 transferFrom with allowance from 100 different accounts") {
+    SECTION("ERC721Test transferFrom with allowance from 100 different accounts") {
       // Generate 100 different TestAccounts
       std::vector<TestAccount> accounts;
       for (int i = 0; i < 100; ++i) {
         accounts.emplace_back(TestAccount::newRandomAccount());
       }
       TestAccount accountToSent = TestAccount::newRandomAccount();
-      SDKTestSuite sdk = SDKTestSuite::createNewEnvironment("testERC721Mint100DifferentAddressBurnWithAllowance", accounts);
+      SDKTestSuite sdk = SDKTestSuite::createNewEnvironment("testERC721TestMint100DifferentAddressBurnWithAllowance", accounts);
       auto ERC721Address = sdk.deployContract<ERC721Test>(std::string("My Test NFT!"), std::string("NFT"), uint64_t(100));
       for (int i = 0; i < 100; ++i) {
         sdk.callFunction(ERC721Address, &ERC721Test::mint, accounts[i].address);

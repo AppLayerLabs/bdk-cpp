@@ -28,7 +28,7 @@ namespace TRandomGen {
     }
 
     SECTION("RandomGen getSeed") {
-      Hash seed(std::string("\xa6\x2a\x86\x47\x2e\x5c\x22\x4a\xa0\xa7\x84\xec\xca\xf7\x94\xab\xb6\x03\x02\xe2\x07\x3d\x52\xae\x0d\x09\x5a\xc5\xd1\x6f\x03\xa6"));
+      Hash seed(Hex::toBytes("a62a86472e5c224aa0a784eccaf794abb60302e2073d52ae0d095ac5d16f03a6"));
       RandomGen generator(seed);
       REQUIRE(generator.getSeed() == seed);
       auto newSeed = generator();
@@ -49,7 +49,7 @@ namespace TRandomGen {
         "Ninth String", "Tenth String"
       };
 
-      Hash seed(std::string("\xa4\xdd\x40\x26\x1f\xba\xbe\x97\x7a\xb6\xff\x77\xa7\xea\x9f\x76\xcd\x3b\x28\x6a\xa6\x62\x90\xb0\xd6\x2b\xdf\x43\x03\xf4\x38\x2b"));
+      Hash seed(Hex::toBytes("a4dd40261fbabe977ab6ff77a7ea9f76cd3b286aa66290b0d62bdf4303f4382b"));
       RandomGen generator(seed);
       generator.shuffle(vector);
 

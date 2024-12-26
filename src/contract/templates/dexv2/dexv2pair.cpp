@@ -256,7 +256,12 @@ void DEXV2Pair::sync() {
 
 
 DBBatch DEXV2Pair::dump() const {
+  // We have to dump the tokens as well
   DBBatch dbBatch = BaseContract::dump();
+  DBBatch erc20Batch = ERC20::dump();
+  for (const auto& dbItem : erc20Batch.getPuts()) dbBatch.push_back(dbItem);
+  for (const auto& dbItem : erc20Batch.getDels()) dbBatch.delete_key(dbItem);
+
   dbBatch.push_back(StrConv::stringToBytes("factory_"), this->factory_.get().view(), this->getDBPrefix());
   dbBatch.push_back(StrConv::stringToBytes("token0_"), this->token0_.get().view(), this->getDBPrefix());
   dbBatch.push_back(StrConv::stringToBytes("token1_"), this->token1_.get().view(), this->getDBPrefix());

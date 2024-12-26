@@ -88,8 +88,8 @@ int256_t IntConv::bytesToInt256(const bytes::View b) {
 }
 
 int136_t IntConv::bytesToInt136(const bytes::View b) {
-  if (b.size() != 18) throw DynamicException(std::string(__func__)
-    + ": Invalid bytes size - expected 18, got " + std::to_string(b.size())
+  if (b.size() != 17) throw DynamicException(std::string(__func__)
+    + ": Invalid bytes size - expected 17, got " + std::to_string(b.size())
   );
   int136_t ret;
   boost::multiprecision::import_bits(ret, b.begin(), b.end(), 8);

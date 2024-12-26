@@ -174,12 +174,6 @@ class Hash : public FixedBytes<32> {
      */
     Hash(const evmc::bytes32& data);
 
-    /**
-     * Constructor using string_view.
-     * @param sv The string view to convert into a hash string.
-     */
-    Hash(const std::string_view sv);
-
     uint256_t toUint256() const;  ///< Convert the hash string back to an unsigned 256-bit number.
     evmc::bytes32 toEvmcBytes32() const;  ///< Convert the hash string back to an evmc::bytes32 pointer.
 

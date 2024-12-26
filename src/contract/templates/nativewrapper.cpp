@@ -27,7 +27,12 @@ NativeWrapper::NativeWrapper(
 NativeWrapper::~NativeWrapper() = default;
 
 DBBatch NativeWrapper::dump() const {
-  return BaseContract::dump();
+  // We need to dump all the data from the parent class as well
+  DBBatch batch = ERC20::dump();
+  DBBatch baseDump = BaseContract::dump();
+  for (const auto& dbItem : baseDump.getPuts()) batch.push_back(dbItem);
+  for (const auto& dbItem : baseDump.getDels()) batch.delete_key(dbItem);
+  return batch;
 }
 
 void NativeWrapper::registerContractFunctions() {

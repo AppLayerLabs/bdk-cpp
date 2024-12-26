@@ -115,7 +115,6 @@ namespace TCallTracer {
       Hash txHash = getLatestTransactionHash(sdk.getStorage());
       std::optional<trace::Call> callTrace = sdk.getStorage().getCallTrace(txHash);
       REQUIRE(callTrace);
-
       REQUIRE(callTrace->type == trace::Call::Type::CALL);
       REQUIRE(callTrace->from == sdk.getOptions().getChainOwner());
       REQUIRE(callTrace->to == contractAddress);
@@ -123,9 +122,17 @@ namespace TCallTracer {
       // TODO: gas and gasUsed?
       // TODO: what are these 4 bytes prefix?
       REQUIRE(FixedBytes<32>(callTrace->input | std::views::drop(4)) == FixedBytes<32>(UintConv::uint256ToBytes(uint256_t(33))));
-
       REQUIRE(callTrace->output == Bytes());
       REQUIRE(callTrace->calls.empty());
+
+      json callJson = callTrace->toJson();
+      REQUIRE(callJson["type"] == "CALL");
+      REQUIRE(callJson["from"] == "0x00dead00665771855a34155f5e7405489df2c3c6");
+      REQUIRE(callJson["to"] == "0x5b41cef7f46a4a147e31150c3c5ffd077e54d0e1");
+      REQUIRE(callJson["value"] == "0x0");
+      REQUIRE(callJson["gas"] == "0x8727");
+      REQUIRE(callJson["gasUsed"] == "0x6017");
+      REQUIRE(callJson["input"] == "0x1003e2d20000000000000000000000000000000000000000000000000000000000000021");
 
       res = sdk.callViewFunction(contractAddress, &TestWrapper::sum);
       REQUIRE(res == 33);
@@ -135,7 +142,6 @@ namespace TCallTracer {
       txHash = getLatestTransactionHash(sdk.getStorage());
       callTrace = sdk.getStorage().getCallTrace(txHash);
       REQUIRE(callTrace);
-
       REQUIRE(callTrace->type == trace::Call::Type::CALL);
       REQUIRE(callTrace->from == sdk.getOptions().getChainOwner());
       REQUIRE(callTrace->to == contractAddress);
@@ -143,9 +149,18 @@ namespace TCallTracer {
       // TODO: gas and gasUsed?
       // TODO: what are these 4 bytes prefix?
       REQUIRE(FixedBytes<32>(callTrace->input | std::views::drop(4)) == FixedBytes<32>(UintConv::uint256ToBytes(uint256_t(66))));
-
       REQUIRE(callTrace->output == Utils::makeBytes(UintConv::uint256ToBytes(uint256_t(99))));
       REQUIRE(callTrace->calls.empty());
+
+      json callJson2 = callTrace->toJson();
+      REQUIRE(callJson2["type"] == "CALL");
+      REQUIRE(callJson2["from"] == "0x00dead00665771855a34155f5e7405489df2c3c6");
+      REQUIRE(callJson2["to"] == "0x5b41cef7f46a4a147e31150c3c5ffd077e54d0e1");
+      REQUIRE(callJson2["value"] == "0x0");
+      REQUIRE(callJson2["gas"] == "0x88a5");
+      REQUIRE(callJson2["gasUsed"] == "0x6195");
+      REQUIRE(callJson2["input"] == "0x4fa522db0000000000000000000000000000000000000000000000000000000000000042");
+      REQUIRE(callJson2["output"] == "0x0000000000000000000000000000000000000000000000000000000000000063");
 
       res = sdk.callViewFunction(contractAddress, &TestWrapper::sum);
       REQUIRE(res == 99);
@@ -271,6 +286,10 @@ namespace TCallTracer {
       const auto successCallTrace = sdk.getStorage().getCallTrace(validWithdrawTxHash);
       const auto payCallTrace = sdk.getStorage().getCallTrace(payTxHash);
 
+      Bytes reasonInsufficientFunds = trace::encodeRevertReason("Insufficient funds");
+      REQUIRE(trace::decodeRevertReason(reasonInsufficientFunds) == "Insufficient funds");
+      REQUIRE_THROWS(trace::decodeRevertReason(Bytes{0x00, 0x01, 0x02, 0x03, 0x04})); // Data has to be exactly 100 bytes
+
       REQUIRE(errorCallTrace);
       REQUIRE(errorCallTrace->type == trace::Call::Type::CALL);
       REQUIRE(errorCallTrace->status == trace::Status::SUCCEEDED);
@@ -286,8 +305,30 @@ namespace TCallTracer {
       REQUIRE(errorCallTrace->calls[0].to == bankAddress);
       REQUIRE(errorCallTrace->calls[0].value == FixedBytes<32>());
       REQUIRE(errorCallTrace->calls[0].input == Hex::toBytes("0x2e1a7d4d00000000000000000000000000000000000000000000000000000000000001f5"));
-      REQUIRE(errorCallTrace->calls[0].output == trace::encodeRevertReason("Insufficient funds"));
+      REQUIRE(errorCallTrace->calls[0].output == reasonInsufficientFunds);
       REQUIRE(errorCallTrace->calls[0].calls.empty());
+
+      json errorJson = errorCallTrace->toJson();
+      REQUIRE(errorJson["type"] == "CALL");
+      REQUIRE(errorJson["from"] == "0x00dead00665771855a34155f5e7405489df2c3c6");
+      REQUIRE(errorJson["to"] == "0x6d48fdfe009e309dd5c4e69dec87365bfa0c8119");
+      REQUIRE(errorJson["value"] == "0x0");
+      REQUIRE(errorJson["gas"] == "0x958b");
+      REQUIRE(errorJson["gasUsed"] == "0x6e7b");
+      REQUIRE(errorJson["input"] == "0x7f3358bc0000000000000000000000005b41cef7f46a4a147e31150c3c5ffd077e54d0e100000000000000000000000000000000000000000000000000000000000001f5");
+      REQUIRE(errorJson.contains("calls"));
+      REQUIRE(!errorJson["calls"].empty());
+      json errorJsonCall = errorJson["calls"][0];
+      REQUIRE(errorJsonCall["type"] == "CALL");
+      REQUIRE(errorJsonCall["from"] == "0x6d48fdfe009e309dd5c4e69dec87365bfa0c8119");
+      REQUIRE(errorJsonCall["to"] == "0x5b41cef7f46a4a147e31150c3c5ffd077e54d0e1");
+      REQUIRE(errorJsonCall["value"] == "0x0");
+      REQUIRE(errorJsonCall["gas"] == "0x8f18");
+      REQUIRE(errorJsonCall["gasUsed"] == "0x16bb");
+      REQUIRE(errorJsonCall["input"] == "0x2e1a7d4d00000000000000000000000000000000000000000000000000000000000001f5");
+      REQUIRE(errorJsonCall["output"] == "0x08c379a000000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000012496e73756666696369656e742066756e64730000000000000000000000000000");
+      REQUIRE(errorJsonCall["error"] == "execution reverted");
+      REQUIRE(errorJsonCall["revertReason"] == "Insufficient funds");
 
       REQUIRE(successCallTrace);
       REQUIRE(successCallTrace->type == trace::Call::Type::CALL);

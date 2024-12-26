@@ -70,16 +70,15 @@ void ContractManager::ethCall(const evmc_message& callInfo, ContractHost* host) 
   PointerNullifier nullifier(this->host_);
   const Address caller(callInfo.sender);
   const Functor functor = EVMCConv::getFunctor(callInfo);
-  /// Call the function on this->createContractFuncs_
+  // Call the function on this->createContractFuncs_
   auto it = this->createContractFuncs_.find(functor);
   if (it == this->createContractFuncs_.end()) {
     throw DynamicException("ContractManager: Invalid function call");
   }
   it->second(callInfo,
-             ContractHost::deriveContractAddress(this->host_->getNonce(caller), caller),
-             this->contracts_,
-             this->getContractChainId(),
-             this->host_);
+    ContractHost::deriveContractAddress(this->host_->getNonce(caller), caller),
+    this->contracts_, this->getContractChainId(), this->host_
+  );
 }
 
 Bytes ContractManager::ethCallView(const evmc_message& callInfo, ContractHost* host) const {
