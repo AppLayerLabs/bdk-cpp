@@ -178,7 +178,7 @@ BytesArr<15> UintConv::uint120ToBytes(const uint120_t &i) {
 }
 
 BytesArr<14> UintConv::uint112ToBytes(const uint112_t &i) {
-  BytesArr<14> ret;
+  BytesArr<14> ret = {0};
   Bytes tmp;
   tmp.reserve(14);
   boost::multiprecision::export_bits(i, std::back_inserter(tmp), 8);
