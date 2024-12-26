@@ -15,10 +15,11 @@ RUN apt-get update && apt-get upgrade -y
 RUN apt-get -y install nano vim unison curl jq unzip
 RUN apt-get install -y python3 python3-pip python3-venv
 
-# Create venv and install gcovr (for SonarQube)
-RUN python3 -m venv /tmp/gcovr-venv
-RUN source /tmp/gcovr-venv/bin/activate
-RUN pip install gcovr
+# Install gcovr from Github release (for SonarQube) because Python is stupid
+RUN wget https://github.com/gcovr/gcovr/releases/download/8.2/gcovr-8.2-linux-x86_64
+RUN echo "87c093578f8ab8ae079e17e160f42f0f70a6f2fa553dcad380d3097943e68b07 gcovr-8.2-linux-x86_64" | sha256sum --status --check
+RUN chmod +x ./gcovr-8.2-linux-x86_64
+RUN mv ./gcovr-8.2-linux-x86_64 /usr/local/bin/gcovr
 
 # Copy the deps script to the container
 COPY scripts/deps.sh /
@@ -48,6 +49,7 @@ RUN /sonarcloud.sh
 ENV PATH=/root/.sonar/build-wrapper-linux-x86:$PATH
 ENV PATH=/root/.sonar/sonar-scanner-6.2.1.4610-linux-x64/bin:$PATH
 ENV PATH=/root/.sonar/sonar-scanner-6.2.0.4584-linux-x64/bin:$PATH
+ENV PATH=/usr/local/bin:$PATH
 
 # Copy the entrypoint script
 COPY docker/entrypoint.sh /entrypoint.sh
