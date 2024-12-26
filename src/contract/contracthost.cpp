@@ -35,4 +35,15 @@ ContractHost::~ContractHost() {
 
     context_.commit();
   }
+
+  std::visit(Utils::Overloaded{
+    [] (MessageDispatcher& handler) {},
+    [this] (CallTracer<MessageDispatcher>& tracer) {
+      if (tracer.hasCallTrace()) {
+        storage_.putCallTrace(Hash(context_.getTxHash()), tracer.getCallTrace()); // TODO: do not create a hash
+      }
+    }
+  }, messageHandler_);
+
+  // TODO: save transaction additional data
 }

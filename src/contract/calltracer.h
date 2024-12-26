@@ -40,7 +40,13 @@ public:
     try {
       if constexpr (not std::same_as<void, Result>) {
         Result result = handler_.onMessage(std::forward<Message>(msg));
-        callTrace.output = ABI::Encoder::encodeData<Result>(result);
+
+        if constexpr (concepts::PackedMessage<Message>) {
+          callTrace.output = ABI::Encoder::encodeData<Result>(result);
+        } else {
+          callTrace.output = result;
+        }
+
         return result;
       }
 

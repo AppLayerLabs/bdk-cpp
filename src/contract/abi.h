@@ -507,6 +507,15 @@ namespace ABI {
       }
     };
 
+    // Specialization for std::pair<T, U>
+    template<typename T, typename U>
+    struct TypeEncoder<std::pair<T, U>> {
+      static Bytes encode(const std::pair<T, U>& p) {
+        using Tuple = std::tuple<const T&, const U&>;
+        return TypeEncoder<Tuple>::encode(Tuple(p.first, p.second));
+      }
+    };
+
     // Specialization for std::vector<T>
     template <typename T>
     Bytes TypeEncoder<std::vector<T>>::encode(const std::vector<T>& v) {

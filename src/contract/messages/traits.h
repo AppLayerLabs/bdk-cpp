@@ -24,10 +24,10 @@ struct Methods<R (C::*)(Ts...) const> {
 };
 
 template<typename T>
-using MethodReturn = typename Methods<std::remove_cvref_t<T>>::Return;
+using MethodReturn = Methods<std::remove_cvref_t<T>>::Return;
 
 template<typename T>
-using MethodClass = typename Methods<std::remove_cvref_t<T>>::Class;
+using MethodClass = Methods<std::remove_cvref_t<T>>::Class;
 
 template<typename T>
 constexpr bool IsViewMethod = Methods<std::remove_cvref_t<T>>::IS_VIEW;
@@ -53,7 +53,7 @@ struct MessageResultHelper<M> {
 };
 
 template<typename T>
-using MessageResult = typename MessageResultHelper<T>::Type;
+using MessageResult = MessageResultHelper<T>::Type;
 
 template<typename M>
 struct MessageContractHelper;
@@ -67,7 +67,7 @@ struct MessageContractHelper<M> {
 template<concepts::CreateMessage M>
   requires (concepts::PackedMessage<M>)
 struct MessageContractHelper<M> {
-  using Type = typename std::remove_cvref_t<M>::ContractType;
+  using Type = std::remove_cvref_t<M>::ContractType;
 };
 
 template<typename M>
