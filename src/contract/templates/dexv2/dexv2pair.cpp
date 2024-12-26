@@ -192,6 +192,8 @@ void DEXV2Pair::initialize(const Address& token0, const Address& token1) {
   if (this->factory_ != this->getCaller()) throw DynamicException("DEXV2Pair: FORBIDDEN");
   this->token0_ = token0;
   this->token1_ = token1;
+  Utils::safePrintTest("Initialized DEXV2Pair contract with token0: " + token0.hex().get() + " and token1: " + token1.hex().get());
+  Utils::safePrintTest("Initialized Reserves 0: " + this->reserve0_.get().str() + " and Reserves 1: " + this->reserve1_.get().str());
 }
 
 std::pair<uint256_t, uint256_t> DEXV2Pair::getReservess() const {
@@ -313,6 +315,17 @@ DBBatch DEXV2Pair::dump() const {
   for (const auto& dbItem : erc20Batch.getPuts()) dbBatch.push_back(dbItem);
   for (const auto& dbItem : erc20Batch.getDels()) dbBatch.delete_key(dbItem);
 
+  Utils::safePrintTest("Dumping DEXV2Pair to DB");
+  Utils::safePrintTest("Factory: " + this->factory_.get().hex().get());
+  Utils::safePrintTest("Token0: " + this->token0_.get().hex().get());
+  Utils::safePrintTest("Token1: " + this->token1_.get().hex().get());
+  Utils::safePrintTest("Reserve0: " + this->reserve0_.get().str());
+  Utils::safePrintTest("Reserve1: " + this->reserve1_.get().str());
+  Utils::safePrintTest("BlockTimestampLast: " + std::to_string(this->blockTimestampLast_.get()));
+  Utils::safePrintTest("Price0CumulativeLast: " + this->price0CumulativeLast_.get().str());
+  Utils::safePrintTest("Price1CumulativeLast: " + this->price1CumulativeLast_.get().str());
+  Utils::safePrintTest("KLast: " + this->kLast_.get().str());
+
   dbBatch.push_back(StrConv::stringToBytes("factory_"), this->factory_.get().view(), this->getDBPrefix());
   dbBatch.push_back(StrConv::stringToBytes("token0_"), this->token0_.get().view(), this->getDBPrefix());
   dbBatch.push_back(StrConv::stringToBytes("token1_"), this->token1_.get().view(), this->getDBPrefix());
@@ -322,7 +335,6 @@ DBBatch DEXV2Pair::dump() const {
   dbBatch.push_back(StrConv::stringToBytes("price0CumulativeLast_"), UintConv::uint256ToBytes(this->price0CumulativeLast_.get()), this->getDBPrefix());
   dbBatch.push_back(StrConv::stringToBytes("price1CumulativeLast_"), UintConv::uint256ToBytes(this->price1CumulativeLast_.get()), this->getDBPrefix());
   dbBatch.push_back(StrConv::stringToBytes("kLast_"), UintConv::uint256ToBytes(this->kLast_.get()), this->getDBPrefix());
-  Utils::safePrintTest("Dumping DEXV2Pair to DB");
   const auto& puts = dbBatch.getPuts();
   for (const auto& dbItem : puts) {
     // Take of the prefix based on this->getDBPrefix().size() from the dbItem.key
