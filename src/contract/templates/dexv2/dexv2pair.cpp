@@ -316,6 +316,15 @@ DBBatch DEXV2Pair::dump() const {
   for (const auto& dbItem : erc20Batch.getDels()) dbBatch.delete_key(dbItem);
 
   Utils::safePrintTest("Dumping DEXV2Pair to DB");
+  uint112_t zeroUint = 0;
+  uint112_t oneUint = 1;
+  auto zeroUintBytes = UintConv::uint112ToBytes(zeroUint);
+  auto oneUintBytes = UintConv::uint112ToBytes(oneUint);
+  Utils::safePrintTest("Zero Uint: " + zeroUint.str());
+  Utils::safePrintTest("One Uint: " + oneUint.str());
+  Utils::safePrintTest("Zero Uint Bytes: " + Hex::fromBytes(zeroUintBytes).get());
+  Utils::safePrintTest("One Uint Bytes: " + Hex::fromBytes(oneUintBytes).get());
+
   Utils::safePrintTest("Factory: " + this->factory_.get().hex().get());
   Utils::safePrintTest("Token0: " + this->token0_.get().hex().get());
   Utils::safePrintTest("Token1: " + this->token1_.get().hex().get());
