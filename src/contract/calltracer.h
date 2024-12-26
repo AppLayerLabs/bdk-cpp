@@ -4,18 +4,10 @@
 #include "utils/utils.h"
 #include "contract/messages/concepts.h"
 #include "contract/messages/outofgas.h"
-#include "contract/trace/calltrace.h"
+#include "contract/trace/call.h"
 #include "contract/messages/traits.h"
 #include "contract/abi.h"
-
-template<std::invocable F>
-class Defer {
-public:
-  explicit constexpr Defer(F func) : func_(std::move(func)) {}
-  constexpr ~Defer() { std::invoke(func_); }
-private:
-  F func_;
-};
+#include "utils/finally.h"
 
 template<typename MessageHandler>
 class CallTracer {
@@ -32,7 +24,7 @@ public:
 
     callStack_.push(&callTrace);
 
-    Defer finally([this, &gas = msg.gas(), &callTrace] () {
+    Finally finally([this, &gas = msg.gas(), &callTrace] () {
       callTrace.gasUsed = callTrace.gas - gas.value();
       callStack_.pop();
     });
@@ -66,7 +58,7 @@ public:
   }
 
   decltype(auto) onMessage(concepts::CreateMessage auto&& msg) {
-    return handler_.onMessage(std::forward<decltype(msg)>(msg)); // TODO: are call messages really just forwarded?
+    return handler_.onMessage(std::forward<decltype(msg)>(msg));
   }
 
   const MessageHandler& getHandler() const { return handler_; }
