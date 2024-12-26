@@ -325,6 +325,15 @@ DBBatch DEXV2Pair::dump() const {
   Utils::safePrintTest("Zero Uint Bytes: " + Hex::fromBytes(zeroUintBytes).get());
   Utils::safePrintTest("One Uint Bytes: " + Hex::fromBytes(oneUintBytes).get());
 
+  Bytes zeroUintRawBytes;
+  zeroUintRawBytes.reserve(14);
+  Bytes oneUintRawBytes;
+  oneUintRawBytes.reserve(14);
+  boost::multiprecision::export_bits(zeroUint, std::back_inserter(zeroUintRawBytes), 8);
+  boost::multiprecision::export_bits(oneUint, std::back_inserter(oneUintRawBytes), 8);
+  Utils::safePrintTest("Zero Uint Raw Bytes: " + Hex::fromBytes(zeroUintRawBytes).get());
+  Utils::safePrintTest("One Uint Raw Bytes: " + Hex::fromBytes(oneUintRawBytes).get());
+
   Utils::safePrintTest("Factory: " + this->factory_.get().hex().get());
   Utils::safePrintTest("Token0: " + this->token0_.get().hex().get());
   Utils::safePrintTest("Token1: " + this->token1_.get().hex().get());
