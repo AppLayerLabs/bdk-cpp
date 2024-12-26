@@ -9,7 +9,13 @@ FROM debian:trixie
 RUN apt-get update && apt-get upgrade -y
 
 # Install Docker-specific dependencies
-RUN apt-get -y install nano vim unison curl jq unzip gcovr
+RUN apt-get -y install nano vim unison curl jq unzip
+RUN apt-get install -y python3 python3-pip python3-venv
+
+# Create venv and install gcovr (for SonarQube)
+RUN python3 -m venv /tmp/gcovr-venv
+RUN source /tmp/gcovr-venv/bin/activate
+RUN pip install gcovr
 
 # Copy the deps script to the container
 COPY scripts/deps.sh /
