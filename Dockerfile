@@ -15,7 +15,7 @@ WORKDIR /bdk-cpp
 COPY . /bdk-cpp
 
 # Install Docker-specific dependencies
-RUN apt-get -y install nano vim unison curl jq unzip gcovr
+RUN apt-get -y install nano vim unison curl jq unzip
 
 # Install dependencies
 RUN bash /bdk-cpp/scripts/deps.sh --install
