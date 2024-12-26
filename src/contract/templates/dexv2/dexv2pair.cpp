@@ -55,7 +55,14 @@ DEXV2Pair::DEXV2Pair(
   factory_(this), token0_(this), token1_(this), reserve0_(this), reserve1_(this),
   blockTimestampLast_(this), price0CumulativeLast_(this), price1CumulativeLast_(this), kLast_(this)
 {
+  // Explicitly initialize numbers to 0 to avoid junk values on DB load
   this->factory_ = creator;
+  this->reserve0_ = 0;
+  this->reserve1_ = 0;
+  this->blockTimestampLast_ = 0;
+  this->price0CumulativeLast_ = 0;
+  this->price1CumulativeLast_ = 0;
+  this->kLast_ = 0;
 
   this->factory_.commit();
   this->token0_.commit();
