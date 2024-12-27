@@ -58,10 +58,7 @@ jobs:
         run: ./scripts/auto.sh -s bdk exec 'rm coverage.xml || true'
       - name: Collect coverage into one XML report
         run: ./scripts/auto.sh -s bdk exec \
-             'gcovr -d \
-                    --gcov-ignore-errors=all \
-                    --gcov-ignore-parse-errors=all \
-                    --sonarqube -o coverage.xml'
+             'gcovr -d --gcov-ignore-parse-errors --sonarqube -o coverage.xml'
       - name: Run SonarQube Scanner
         run: ./scripts/auto.sh -s bdk exec \
              'env SONAR_TOKEN=${{ env.SONAR_TOKEN }}
