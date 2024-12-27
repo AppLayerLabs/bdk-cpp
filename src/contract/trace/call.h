@@ -13,20 +13,6 @@
 namespace trace {
 
 struct Call {
-  Call() = default;
-
-  explicit Call(const concepts::CallMessage auto& msg)
-    : type(getMessageCallType(msg)),
-      status(CallStatus::SUCCEEDED),
-      from(msg.from()),
-      to(msg.to()),
-      value(Utils::uint256ToBytes(messageValueOrZero(msg))),
-      gas(msg.gas().value()),
-      gasUsed(0),
-      input(messageInputEncoded(msg)),
-      output(),
-      calls() {}
-
   json toJson() const;
 
   using serialize = zpp::bits::members<10>;
