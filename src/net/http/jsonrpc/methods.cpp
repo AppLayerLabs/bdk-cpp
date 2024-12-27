@@ -77,8 +77,11 @@ std::pair<Bytes, evmc_message> parseEvmcMessage(const json& request, const Stora
 
   const auto [txJson, optionalBlockNumber] = parseAllParams<json, std::optional<BlockTagOrNumber>>(request);
 
-  if (optionalBlockNumber.has_value() && !optionalBlockNumber->isLatest(storage))
-    throw Error(-32601, "Only latest block is supported");
+  // Metamask can't keep up with a fast enough moving blockchain
+  // Causing it to constantly fail with "Only the latest block is supported"
+  // as it requests information on the block it knows it was the latest (not the "latest" flag)
+  //if (optionalBlockNumber.has_value() && !optionalBlockNumber->isLatest(storage))
+  //  throw Error(-32601, "Only the latest block is supported");
 
   msg.sender = parseIfExists<Address>(txJson, "from")
     .transform([] (const Address& addr) { return addr.toEvmcAddress(); })
@@ -286,8 +289,9 @@ json eth_getLogs(const json& request, const Storage& storage) {
 json eth_getBalance(const json& request, const Storage& storage, const State& state) {
   const auto [address, block] = parseAllParams<Address, BlockTagOrNumber>(request);
 
-  if (!block.isLatest(storage))
-    throw DynamicException("Only the latest block is supported");
+  // Same reasoning as on parseEvmcMessage (Metamask not keeping up)
+  // if (!block.isLatest(storage))
+  //  throw DynamicException("Only the latest block is supported");
 
   return Hex::fromBytes(Utils::uintToBytes(state.getNativeBalance(address)), true).forRPC();
 }
@@ -295,8 +299,9 @@ json eth_getBalance(const json& request, const Storage& storage, const State& st
 json eth_getTransactionCount(const json& request, const Storage& storage, const State& state) {
   const auto [address, block] = parseAllParams<Address, BlockTagOrNumber>(request);
 
-  if (!block.isLatest(storage))
-    throw DynamicException("Only the latest block is supported");
+  // Same reasoning as on parseEvmcMessage (Metamask not keeping up)
+  // if (!block.isLatest(storage))
+  //  throw DynamicException("Only the latest block is supported");
 
   return Hex::fromBytes(Utils::uintToBytes(state.getNativeNonce(address)), true).forRPC();
 }
@@ -304,8 +309,9 @@ json eth_getTransactionCount(const json& request, const Storage& storage, const 
 json eth_getCode(const json& request, const Storage& storage, const State& state) {
   const auto [address, block] = parseAllParams<Address, BlockTagOrNumber>(request);
 
-  if (!block.isLatest(storage))
-    throw DynamicException("Only the latest block is supported");
+  // Same reasoning as on parseEvmcMessage (Metamask not keeping up)
+  // if (!block.isLatest(storage))
+  //  throw DynamicException("Only the latest block is supported");
 
   return Hex::fromBytes(state.getContractCode(address), true).forRPC();
 }

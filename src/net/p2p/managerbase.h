@@ -8,6 +8,11 @@ See the LICENSE.txt file in the project root for more information.
 #ifndef P2P_MANAGER_BASE
 #define P2P_MANAGER_BASE
 
+/// Size of a sync-requests active bucket, in items (requests); there are two buckets.
+/// This needs to be large enough to hold the maximum number of requests that can be conceivable generated
+/// in the maximum time period that it takes to answer a request.
+#define REQUEST_BUCKET_SIZE_LIMIT 100'000
+
 #include "discovery.h"
 #include "session.h" // encoding.h -> utils/options.h
 
@@ -63,13 +68,9 @@ namespace P2P {
       DiscoveryWorker discoveryWorker_; ///< DiscoveryWorker object.
       const std::string instanceIdStr_; ///< Instance ID for LOGxxx().
       const NodeID nodeId_; ///< This ManagerBase's own NodeID.
-
-      /// List of currently active sessions.
-      boost::unordered_flat_map<NodeID, std::shared_ptr<Session>, SafeHash> sessions_;
-
-      // TODO: Somehow find a way to clean up requests_ after a certain time/being used.
-      /// List of currently active requests.
-      boost::unordered_flat_map<RequestID, std::shared_ptr<Request>, SafeHash> requests_;
+      boost::unordered_flat_map<NodeID, std::shared_ptr<Session>, SafeHash> sessions_; ///< List of currently active sessions.
+      std::array<boost::unordered_flat_map<RequestID, std::shared_ptr<Request>, SafeHash>, 2> requests_; ///< Request buckets.
+      uint64_t activeRequests_ = 0; ///< Index of the current (active) request bucket (either 0 or 1).
 
       /**
        * Send a Request to a given node.
@@ -141,6 +142,19 @@ namespace P2P {
        * @param socket TCP socket for the new Session to manage.
        */
       void trySpawnInboundSession(tcp::socket&& socket);
+
+      /**
+       * Insert a new request into requests_.
+       * @param request The newly created request to be tracked by requests_.
+       */
+      void insertRequest(std::shared_ptr<Request> request);
+
+      /**
+       * Handles a message that is a generic answer to a synchronous generic remote request.
+       * @param nodeId The node that is answering the request (so it can be disconnected on error).
+       * @param message The message that is supposed to be an answer to a request that is tracked in requests_.
+       */
+      void handleRequestAnswer(const NodeID& nodeId, const std::shared_ptr<const Message>& message);
 
     public:
       /**

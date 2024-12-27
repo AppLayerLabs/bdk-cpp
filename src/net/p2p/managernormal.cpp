@@ -221,85 +221,37 @@ namespace P2P{
   void ManagerNormal::handlePingAnswer(
     const NodeID &nodeId, const std::shared_ptr<const Message>& message
   ) {
-    std::unique_lock lock(this->requestsMutex_);
-    if (!requests_.contains(message->id())) {
-      lock.unlock(); // Unlock before doing anything else to avoid waiting for other locks.
-      LOGDEBUG("Answer to invalid request from " + toString(nodeId) +
-                         " , closing session.");
-      this->disconnectSession(nodeId);
-      return;
-    }
-    requests_[message->id()]->setAnswer(message);
+    handleRequestAnswer(nodeId, message);
   }
 
   void ManagerNormal::handleInfoAnswer(
     const NodeID &nodeId, const std::shared_ptr<const Message>& message
   ) {
-    std::unique_lock lock(this->requestsMutex_);
-    if (!requests_.contains(message->id())) {
-      lock.unlock(); // Unlock before calling logToDebug to avoid waiting for the lock in the logToDebug function.
-      LOGDEBUG("Answer to invalid request from " + toString(nodeId) +
-                         " , closing session.");
-      this->disconnectSession(nodeId);
-      return;
-    }
-    requests_[message->id()]->setAnswer(message);
+    handleRequestAnswer(nodeId, message);
   }
 
   void ManagerNormal::handleRequestNodesAnswer(
     const NodeID &nodeId, const std::shared_ptr<const Message>& message
   ) {
-    std::unique_lock lock(this->requestsMutex_);
-    if (!requests_.contains(message->id())) {
-      lock.unlock(); // Unlock before calling logToDebug to avoid waiting for the lock in the logToDebug function.
-      LOGDEBUG("Answer to invalid request from " + toString(nodeId) +
-                         " , closing session.");
-      this->disconnectSession(nodeId);
-      return;
-    }
-    requests_[message->id()]->setAnswer(message);
+    handleRequestAnswer(nodeId, message);
   }
 
   void ManagerNormal::handleTxValidatorAnswer(
     const NodeID &nodeId, const std::shared_ptr<const Message>& message
   ) {
-    std::unique_lock lock(this->requestsMutex_);
-    if (!requests_.contains(message->id())) {
-      lock.unlock(); // Unlock before calling logToDebug to avoid waiting for the lock in the logToDebug function.
-      LOGDEBUG("Answer to invalid request from " + toString(nodeId) +
-                         " , closing session.");
-      this->disconnectSession(nodeId);
-      return;
-    }
-    requests_[message->id()]->setAnswer(message);
+    handleRequestAnswer(nodeId, message);
   }
 
   void ManagerNormal::handleTxAnswer(
     const NodeID &nodeId, const std::shared_ptr<const Message>& message
   ) {
-    std::unique_lock lock(this->requestsMutex_);
-    if (!requests_.contains(message->id())) {
-      lock.unlock(); // Unlock before calling logToDebug to avoid waiting for the lock in the logToDebug function.
-      LOGDEBUG("Answer to invalid request from " + nodeId.first.to_string() + ":" +
-                         std::to_string(nodeId.second) + " , closing session.");
-      this->disconnectSession(nodeId);
-      return;
-    }
-    requests_[message->id()]->setAnswer(message);
+    handleRequestAnswer(nodeId, message);
   }
 
   void ManagerNormal::handleRequestBlockAnswer(
     const NodeID &nodeId, const std::shared_ptr<const Message>& message
   ) {
-    std::unique_lock lock(this->requestsMutex_);
-    if (!requests_.contains(message->id())) {
-      lock.unlock(); // Unlock before calling logToDebug to avoid waiting for the lock in the logToDebug function.
-      LOGDEBUG("Answer to invalid request from " + nodeId.first.to_string() + ":" +
-                         std::to_string(nodeId.second) + " , closing session.");
-      this->disconnectSession(nodeId);
-      return;
-    }
-    requests_[message->id()]->setAnswer(message);
+    handleRequestAnswer(nodeId, message);
   }
 
   void ManagerNormal::handleInfoNotification(
