@@ -199,11 +199,10 @@ class CometListener {
 
     /**
      * Validator node receives a block proposal from the block proposer, and must check if the proposal is a valid one.
-     * @param height The block height of the new block being proposed.
-     * @param txs All transactions included in the block, which need to be verified.
+     * @param block The block being proposed (for reading; if you need to keep it, you must copy it explicitly).
      * @param accept Outparam to be set to `true` if the proposed block is valid, `false` otherwise.
      */
-    virtual void validateBlockProposal(const uint64_t height, const std::vector<Bytes>& txs, bool& accept) {
+    virtual void validateBlockProposal(const CometBlock& block, bool& accept) {
       accept = true;
     }
 

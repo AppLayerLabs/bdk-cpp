@@ -2306,9 +2306,15 @@ void CometImpl::prepare_proposal(const cometbft::abci::v1::PrepareProposalReques
 
 void CometImpl::process_proposal(const cometbft::abci::v1::ProcessProposalRequest& req, cometbft::abci::v1::ProcessProposalResponse* res) {
   bool accept = false;
-  std::vector<Bytes> allTxs;
-  toBytesVector(req.txs(), allTxs);
-  listener_->validateBlockProposal(req.height(), allTxs, accept);
+
+  CometBlock block;
+  block.height = req.height();
+  block.timeNanos = toNanosSinceEpoch(req.time());
+  block.proposerAddr = toBytes(req.proposer_address());
+  toBytesVector(req.txs(), block.txs);
+
+  listener_->validateBlockProposal(block, accept);
+
   if (accept) {
     res->set_status(cometbft::abci::v1::PROCESS_PROPOSAL_STATUS_ACCEPT);
   } else {

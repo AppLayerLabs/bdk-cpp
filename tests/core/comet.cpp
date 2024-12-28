@@ -785,14 +785,13 @@ public:
 
   /**
    * PrepareProposal ABCI callback.
-   * @param height Height of the block being proposed.
-   * @param txs All transactions that are in the block that is being proposed, which need to be validated.
-   * @param accept Outparam that should be set to `true` if the proposed transaction set is valid, `false` otherwise.
+   * @param block The block being proposed (for reading; if you need to keep it, you must copy it explicitly).
+   * @param accept Outparam to be set to `true` if the proposed block is valid, `false` otherwise.
    */
-  void validateBlockProposal(const uint64_t height, const std::vector<Bytes>& txs, bool& accept) override {
-    GLOGDEBUG("TEST: TestMachine: validateBlockProposal(): height=" + std::to_string(height) + "; txs.size()="+std::to_string(txs.size()));
+  void validateBlockProposal(const CometBlock& block, bool& accept) override {
+    GLOGDEBUG("TEST: TestMachine: validateBlockProposal(): height=" + std::to_string(block.height) + "; txs.size()="+std::to_string(block.txs.size()));
     accept = true;
-    for (const Bytes& tx : txs) {
+    for (const Bytes& tx : block.txs) {
       bool tx_accept;
       int64_t gas_limit;
       checkTx(tx, gas_limit, tx_accept);
