@@ -2274,18 +2274,32 @@ void CometImpl::init_chain(const cometbft::abci::v1::InitChainRequest& req, come
 }
 
 void CometImpl::prepare_proposal(const cometbft::abci::v1::PrepareProposalRequest& req, cometbft::abci::v1::PrepareProposalResponse* res) {
+  const auto& reqTxs = req.txs();
+
   CometBlock block;
   block.height = req.height();
   block.timeNanos = toNanosSinceEpoch(req.time());
   block.proposerAddr = toBytes(req.proposer_address());
-  toBytesVector(req.txs(), block.txs);
+  toBytesVector(reqTxs, block.txs);
 
-  std::unordered_set<size_t> delTxIds;
+  std::vector<size_t> txIds; // Filled-in by the listener.
+  bool noChange = false;
 
-  listener_->buildBlockProposal(req.max_tx_bytes(), block, delTxIds);
-  for (size_t i = 0; i < req.txs().size(); ++i) {
-    if (delTxIds.find(i) == delTxIds.end()) {
-      res->add_txs(req.txs()[i]);
+  listener_->buildBlockProposal(req.max_tx_bytes(), block, noChange, txIds);
+
+  if (noChange) {
+    // If no changes needed, then just copy all proposed txs into the ABCI response,
+    // in the order that the CometBFT mempool has proposed to us.
+    for (size_t i = 0; i < req.txs().size(); ++i) {
+      res->add_txs(reqTxs[i]);
+    }
+  } else {
+    // If there are changes needed, the client code will tell us the sequence in
+    // which transactions have to be included in the block.
+    // Ommitted tx indices from the list of transactions in the request mean these
+    // transactions are not to be included at all in the block proposal).
+    for (size_t i = 0; i < txIds.size(); ++i) {
+      res->add_txs(reqTxs[txIds[i]]);
     }
   }
 }

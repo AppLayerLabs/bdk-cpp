@@ -185,15 +185,16 @@ class CometListener {
      * @param maxTxBytes Absolute maximum number of bytes for all transactions included in the block which must be
      * respected by the sum of all transactions in `txs` minus transactions at the indices indicated by `delTxIds`.
      * @param block The block being proposed (for reading; if you need to keep it, you must copy it explicitly).
-     * @param delTxIds Outparam to be set with the indices in `txs`  that are to be excluded from the block proposal.
+     * @param noChange Outparam; if set to `true`, will ignore `txIds` and just forward all transactions unmodified.
+     * @param txIds Outparam; empty vector to be set with the indices in `txs`  to be included in the block proposal, in order.
      */
     virtual void buildBlockProposal(
-      const uint64_t maxTxBytes, const CometBlock& block, std::unordered_set<size_t>& delTxIds
+      const uint64_t maxTxBytes, const CometBlock& block, bool& noChange, std::vector<size_t>& txIds
     ) {
-      // By default, this just copies the recommended `txs` from the mempool into the proposal.
       // This requires all block size and limit related params to be set in such a way that the
       // total byte size of txs in the request don't exceed the total byte size allowed for a block.
-      // To exclude certain transactions from `txs`, insert the indices to delete in `delTxIds`.
+      // By default, this just copies the recommended `txs` from the mempool into the proposal.
+      noChange = true;
     }
 
     /**
