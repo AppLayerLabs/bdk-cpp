@@ -14,7 +14,7 @@ See the LICENSE.txt file in the project root for more information.
 // ==========================================================================
 
 BytesArr<32> UintConv::uint256ToBytes(const uint256_t& i) {
-  BytesArr<32> ret;
+  BytesArr<32> ret = {0};
   Bytes tmp;
   tmp.reserve(32);
   ret.fill(0x00);
@@ -24,7 +24,7 @@ BytesArr<32> UintConv::uint256ToBytes(const uint256_t& i) {
 }
 
 BytesArr<31> UintConv::uint248ToBytes(const uint248_t &i) {
-  BytesArr<31> ret;
+  BytesArr<31> ret = {0};
   Bytes tmp;
   tmp.reserve(31);
   boost::multiprecision::export_bits(i, std::back_inserter(tmp), 8);
@@ -34,7 +34,7 @@ BytesArr<31> UintConv::uint248ToBytes(const uint248_t &i) {
 }
 
 BytesArr<30> UintConv::uint240ToBytes(const uint240_t &i) {
-  BytesArr<30> ret;
+  BytesArr<30> ret = {0};
   Bytes tmp;
   tmp.reserve(30);
   boost::multiprecision::export_bits(i, std::back_inserter(tmp), 8);
@@ -43,7 +43,7 @@ BytesArr<30> UintConv::uint240ToBytes(const uint240_t &i) {
 }
 
 BytesArr<29> UintConv::uint232ToBytes(const uint232_t &i) {
-  BytesArr<29> ret;
+  BytesArr<29> ret = {0};
   Bytes tmp;
   tmp.reserve(29);
   boost::multiprecision::export_bits(i, std::back_inserter(tmp), 8);
@@ -52,7 +52,7 @@ BytesArr<29> UintConv::uint232ToBytes(const uint232_t &i) {
 }
 
 BytesArr<28> UintConv::uint224ToBytes(const uint224_t &i) {
-  BytesArr<28> ret;
+  BytesArr<28> ret = {0};
   Bytes tmp;
   tmp.reserve(28);
   boost::multiprecision::export_bits(i, std::back_inserter(tmp), 8);
@@ -61,7 +61,7 @@ BytesArr<28> UintConv::uint224ToBytes(const uint224_t &i) {
 }
 
 BytesArr<27> UintConv::uint216ToBytes(const uint216_t &i) {
-  BytesArr<27> ret;
+  BytesArr<27> ret = {0};
   Bytes tmp;
   tmp.reserve(27);
   boost::multiprecision::export_bits(i, std::back_inserter(tmp), 8);
@@ -70,7 +70,7 @@ BytesArr<27> UintConv::uint216ToBytes(const uint216_t &i) {
 }
 
 BytesArr<26> UintConv::uint208ToBytes(const uint208_t &i) {
-  BytesArr<26> ret;
+  BytesArr<26> ret = {0};
   Bytes tmp;
   tmp.reserve(26);
   boost::multiprecision::export_bits(i, std::back_inserter(tmp), 8);
@@ -79,7 +79,7 @@ BytesArr<26> UintConv::uint208ToBytes(const uint208_t &i) {
 }
 
 BytesArr<25> UintConv::uint200ToBytes(const uint200_t &i) {
-  BytesArr<25> ret;
+  BytesArr<25> ret = {0};
   Bytes tmp;
   tmp.reserve(25);
   boost::multiprecision::export_bits(i, std::back_inserter(tmp), 8);
@@ -88,7 +88,7 @@ BytesArr<25> UintConv::uint200ToBytes(const uint200_t &i) {
 }
 
 BytesArr<24> UintConv::uint192ToBytes(const uint192_t &i) {
-  BytesArr<24> ret;
+  BytesArr<24> ret = {0};
   Bytes tmp;
   tmp.reserve(24);
   boost::multiprecision::export_bits(i, std::back_inserter(tmp), 8);
@@ -97,7 +97,7 @@ BytesArr<24> UintConv::uint192ToBytes(const uint192_t &i) {
 }
 
 BytesArr<23> UintConv::uint184ToBytes(const uint184_t &i) {
-  BytesArr<23> ret;
+  BytesArr<23> ret = {0};
   Bytes tmp;
   tmp.reserve(23);
   boost::multiprecision::export_bits(i, std::back_inserter(tmp), 8);
@@ -106,7 +106,7 @@ BytesArr<23> UintConv::uint184ToBytes(const uint184_t &i) {
 }
 
 BytesArr<22> UintConv::uint176ToBytes(const uint176_t &i) {
-  BytesArr<22> ret;
+  BytesArr<22> ret = {0};
   Bytes tmp;
   tmp.reserve(22);
   boost::multiprecision::export_bits(i, std::back_inserter(tmp), 8);
@@ -115,7 +115,7 @@ BytesArr<22> UintConv::uint176ToBytes(const uint176_t &i) {
 }
 
 BytesArr<21> UintConv::uint168ToBytes(const uint168_t &i) {
-  BytesArr<21> ret;
+  BytesArr<21> ret = {0};
   Bytes tmp;
   tmp.reserve(21);
   boost::multiprecision::export_bits(i, std::back_inserter(tmp), 8);
@@ -124,7 +124,7 @@ BytesArr<21> UintConv::uint168ToBytes(const uint168_t &i) {
 }
 
 BytesArr<20> UintConv::uint160ToBytes(const uint160_t &i) {
-  BytesArr<20> ret;
+  BytesArr<20> ret = {0};
   Bytes tmp;
   tmp.reserve(20);
   boost::multiprecision::export_bits(i, std::back_inserter(tmp), 8);
@@ -133,7 +133,7 @@ BytesArr<20> UintConv::uint160ToBytes(const uint160_t &i) {
 }
 
 BytesArr<19> UintConv::uint152ToBytes(const uint152_t &i) {
-  BytesArr<19> ret;
+  BytesArr<19> ret = {0};
   Bytes tmp;
   tmp.reserve(19);
   boost::multiprecision::export_bits(i, std::back_inserter(tmp), 8);
@@ -142,7 +142,7 @@ BytesArr<19> UintConv::uint152ToBytes(const uint152_t &i) {
 }
 
 BytesArr<18> UintConv::uint144ToBytes(const uint144_t &i) {
-  BytesArr<18> ret;
+  BytesArr<18> ret = {0};
   Bytes tmp;
   tmp.reserve(18);
   boost::multiprecision::export_bits(i, std::back_inserter(tmp), 8);
@@ -151,7 +151,7 @@ BytesArr<18> UintConv::uint144ToBytes(const uint144_t &i) {
 }
 
 BytesArr<17> UintConv::uint136ToBytes(const uint136_t &i) {
-  BytesArr<17> ret;
+  BytesArr<17> ret = {0};
   Bytes tmp;
   tmp.reserve(17);
   boost::multiprecision::export_bits(i, std::back_inserter(tmp), 8);
@@ -160,7 +160,7 @@ BytesArr<17> UintConv::uint136ToBytes(const uint136_t &i) {
 }
 
 BytesArr<16> UintConv::uint128ToBytes(const uint128_t &i) {
-  BytesArr<16> ret;
+  BytesArr<16> ret = {0};
   Bytes tmp;
   tmp.reserve(16);
   boost::multiprecision::export_bits(i, std::back_inserter(tmp), 8);
@@ -169,7 +169,7 @@ BytesArr<16> UintConv::uint128ToBytes(const uint128_t &i) {
 }
 
 BytesArr<15> UintConv::uint120ToBytes(const uint120_t &i) {
-  BytesArr<15> ret;
+  BytesArr<15> ret = {0};
   Bytes tmp;
   tmp.reserve(15);
   boost::multiprecision::export_bits(i, std::back_inserter(tmp), 8);
@@ -178,7 +178,7 @@ BytesArr<15> UintConv::uint120ToBytes(const uint120_t &i) {
 }
 
 BytesArr<14> UintConv::uint112ToBytes(const uint112_t &i) {
-  BytesArr<14> ret;
+  BytesArr<14> ret = {0};
   Bytes tmp;
   tmp.reserve(14);
   boost::multiprecision::export_bits(i, std::back_inserter(tmp), 8);
@@ -187,7 +187,7 @@ BytesArr<14> UintConv::uint112ToBytes(const uint112_t &i) {
 }
 
 BytesArr<13> UintConv::uint104ToBytes(const uint104_t &i) {
-  BytesArr<13> ret;
+  BytesArr<13> ret = {0};
   Bytes tmp;
   tmp.reserve(13);
   boost::multiprecision::export_bits(i, std::back_inserter(tmp), 8);
@@ -196,7 +196,7 @@ BytesArr<13> UintConv::uint104ToBytes(const uint104_t &i) {
 }
 
 BytesArr<12> UintConv::uint96ToBytes(const uint96_t &i) {
-  BytesArr<12> ret;
+  BytesArr<12> ret = {0};
   Bytes tmp;
   tmp.reserve(12);
   boost::multiprecision::export_bits(i, std::back_inserter(tmp), 8);
@@ -205,7 +205,7 @@ BytesArr<12> UintConv::uint96ToBytes(const uint96_t &i) {
 }
 
 BytesArr<11> UintConv::uint88ToBytes(const uint88_t &i) {
-  BytesArr<11> ret;
+  BytesArr<11> ret = {0};
   Bytes tmp;
   tmp.reserve(11);
   boost::multiprecision::export_bits(i, std::back_inserter(tmp), 8);
@@ -214,7 +214,7 @@ BytesArr<11> UintConv::uint88ToBytes(const uint88_t &i) {
 }
 
 BytesArr<10> UintConv::uint80ToBytes(const uint80_t &i) {
-  BytesArr<10> ret;
+  BytesArr<10> ret = {0};
   Bytes tmp;
   tmp.reserve(10);
   boost::multiprecision::export_bits(i, std::back_inserter(tmp), 8);
@@ -223,7 +223,7 @@ BytesArr<10> UintConv::uint80ToBytes(const uint80_t &i) {
 }
 
 BytesArr<9> UintConv::uint72ToBytes(const uint72_t &i) {
-  BytesArr<9> ret;
+  BytesArr<9> ret = {0};
   Bytes tmp;
   tmp.reserve(9);
   boost::multiprecision::export_bits(i, std::back_inserter(tmp), 8);
@@ -232,7 +232,7 @@ BytesArr<9> UintConv::uint72ToBytes(const uint72_t &i) {
 }
 
 BytesArr<7> UintConv::uint56ToBytes(const uint56_t &i) {
-  BytesArr<7> ret;
+  BytesArr<7> ret = {0};
   Bytes tmp;
   tmp.reserve(7);
   boost::multiprecision::export_bits(i, std::back_inserter(tmp), 8);
@@ -241,7 +241,7 @@ BytesArr<7> UintConv::uint56ToBytes(const uint56_t &i) {
 }
 
 BytesArr<6> UintConv::uint48ToBytes(const uint48_t &i) {
-  BytesArr<6> ret;
+  BytesArr<6> ret = {0};
   Bytes tmp;
   tmp.reserve(6);
   boost::multiprecision::export_bits(i, std::back_inserter(tmp), 8);
@@ -250,7 +250,7 @@ BytesArr<6> UintConv::uint48ToBytes(const uint48_t &i) {
 }
 
 BytesArr<5> UintConv::uint40ToBytes(const uint40_t &i) {
-  BytesArr<5> ret;
+  BytesArr<5> ret = {0};
   Bytes tmp;
   tmp.reserve(5);
   boost::multiprecision::export_bits(i, std::back_inserter(tmp), 8);
@@ -259,7 +259,7 @@ BytesArr<5> UintConv::uint40ToBytes(const uint40_t &i) {
 }
 
 BytesArr<3> UintConv::uint24ToBytes(const uint24_t &i) {
-  BytesArr<3> ret;
+  BytesArr<3> ret = {0};
   Bytes tmp;
   tmp.reserve(3);
   boost::multiprecision::export_bits(i, std::back_inserter(tmp), 8);
@@ -268,7 +268,7 @@ BytesArr<3> UintConv::uint24ToBytes(const uint24_t &i) {
 }
 
 BytesArr<8> UintConv::uint64ToBytes(const uint64_t& i) {
-  BytesArr<8> ret;
+  BytesArr<8> ret = {0};
   std::memcpy(&ret[0], &i, 8);
   #if __BYTE_ORDER == __LITTLE_ENDIAN
     std::reverse(ret.begin(), ret.end());
@@ -277,7 +277,7 @@ BytesArr<8> UintConv::uint64ToBytes(const uint64_t& i) {
 }
 
 BytesArr<4> UintConv::uint32ToBytes(const uint32_t& i) {
-  BytesArr<4> ret;
+  BytesArr<4> ret = {0};
   std::memcpy(&ret[0], &i, 4);
   #if __BYTE_ORDER == __LITTLE_ENDIAN
     std::reverse(ret.begin(), ret.end());
@@ -286,7 +286,7 @@ BytesArr<4> UintConv::uint32ToBytes(const uint32_t& i) {
 }
 
 BytesArr<2> UintConv::uint16ToBytes(const uint16_t& i) {
-  BytesArr<2> ret;
+  BytesArr<2> ret = {0};
   std::memcpy(&ret[0], &i, 2);
   #if __BYTE_ORDER == __LITTLE_ENDIAN
     std::reverse(ret.begin(), ret.end());
@@ -295,7 +295,7 @@ BytesArr<2> UintConv::uint16ToBytes(const uint16_t& i) {
 }
 
 BytesArr<1> UintConv::uint8ToBytes(const uint8_t& i) {
-  BytesArr<1> ret;
+  BytesArr<1> ret = {0};
   std::memcpy(&ret[0], &i, 1);
   return ret;
 }

@@ -474,10 +474,7 @@ evmc_message TxBlock::txToMessage() const {
   //   evmc_address code_address;
   // };
   evmc_message msg;
-  if (this->to_ == Address())
-    msg.kind = EVMC_CREATE;
-  else
-    msg.kind = EVMC_CALL;
+  msg.kind = (this->to_ == Address()) ? EVMC_CREATE : EVMC_CALL;
   msg.flags = 0;
   msg.depth = 1;
   msg.gas = static_cast<int64_t>(this->gasLimit_);

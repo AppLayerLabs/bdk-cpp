@@ -13,9 +13,31 @@ See the LICENSE.txt file in the project root for more information.
 
 namespace TPEBBLE {
   TEST_CASE("Pebble Class", "[contract][pebble]") {
-    SECTION("Pebble creation") {
-      SDKTestSuite sdk = SDKTestSuite::createNewEnvironment("testPebbleCreation");
-      Address pebbleAddr = sdk.deployContract<Pebble>(uint256_t(100000));
+    SECTION("Pebble creation + dump") {
+      Address pebbleAddr;
+      std::unique_ptr<Options> options;
+      {
+        SDKTestSuite sdk = SDKTestSuite::createNewEnvironment("testPebbleCreation");
+        pebbleAddr = sdk.deployContract<Pebble>(uint256_t(100000));
+        REQUIRE(sdk.callViewFunction(pebbleAddr, &Pebble::name) == "Pebble");
+        REQUIRE(sdk.callViewFunction(pebbleAddr, &Pebble::symbol) == "PBL");
+        REQUIRE(sdk.callViewFunction(pebbleAddr, &Pebble::totalSupply) == uint256_t(0));
+        REQUIRE(sdk.callViewFunction(pebbleAddr, &Pebble::maxSupply) == uint256_t(100000));
+        REQUIRE(sdk.callViewFunction(pebbleAddr, &Pebble::totalNormal) == uint64_t(0));
+        REQUIRE(sdk.callViewFunction(pebbleAddr, &Pebble::totalGold) == uint64_t(0));
+        REQUIRE(sdk.callViewFunction(pebbleAddr, &Pebble::totalDiamond) == uint64_t(0));
+        REQUIRE(sdk.callViewFunction(pebbleAddr, &Pebble::raritySeed) == uint256_t(1000000));
+        REQUIRE(sdk.callViewFunction(pebbleAddr, &Pebble::diamondRarity) == uint256_t(1));
+        REQUIRE(sdk.callViewFunction(pebbleAddr, &Pebble::goldRarity) == uint256_t(10));
+        REQUIRE(sdk.callViewFunction(pebbleAddr, &Pebble::getAuthorizer) == Address());
+        // Dump to database
+        options = std::make_unique<Options>(sdk.getOptions());
+        sdk.getState().saveToDB();
+      }
+
+      // SDKTestSuite should automatically load the state from the DB if we construct it with an Options object
+      // (The createNewEnvironment DELETES the DB if any is found)
+      SDKTestSuite sdk(*options);
       REQUIRE(sdk.callViewFunction(pebbleAddr, &Pebble::name) == "Pebble");
       REQUIRE(sdk.callViewFunction(pebbleAddr, &Pebble::symbol) == "PBL");
       REQUIRE(sdk.callViewFunction(pebbleAddr, &Pebble::totalSupply) == uint256_t(0));
@@ -28,6 +50,25 @@ namespace TPEBBLE {
       REQUIRE(sdk.callViewFunction(pebbleAddr, &Pebble::goldRarity) == uint256_t(10));
       REQUIRE(sdk.callViewFunction(pebbleAddr, &Pebble::getAuthorizer) == Address());
     }
+
+    SECTION("Pebble ownership transfer (Ownable coverage)") {
+      SDKTestSuite sdk = SDKTestSuite::createNewEnvironment("testPebbleOwnershipTransfer");
+      Address pebbleAddr = sdk.deployContract<Pebble>(uint256_t(100000));
+      REQUIRE_THROWS(sdk.callFunction(pebbleAddr, &Pebble::transferOwnership, Address())); // cannot transfer to zero address
+      REQUIRE(sdk.callViewFunction(pebbleAddr, &Pebble::owner) == Address("0x00dead00665771855a34155f5e7405489df2c3c6", false));
+      Address newOwner("0x1234567890123456789012345678901234567890", false);
+      sdk.callFunction(pebbleAddr, &Pebble::transferOwnership, newOwner);
+      REQUIRE(sdk.callViewFunction(pebbleAddr, &Pebble::owner) == newOwner);
+    }
+
+    SECTION("Pebble ownership renounce (Ownable coverage)") {
+      SDKTestSuite sdk = SDKTestSuite::createNewEnvironment("testPebbleOwnershipTransfer");
+      Address pebbleAddr = sdk.deployContract<Pebble>(uint256_t(100000));
+      REQUIRE(sdk.callViewFunction(pebbleAddr, &Pebble::owner) == Address("0x00dead00665771855a34155f5e7405489df2c3c6", false));
+      sdk.callFunction(pebbleAddr, &Pebble::renounceOwnership);
+      REQUIRE(sdk.callViewFunction(pebbleAddr, &Pebble::owner) == Address());
+    }
+
     SECTION("Pebble minting") {
       std::unique_ptr<Options> opts = nullptr;
       TestAccount authorizerAccount = TestAccount::newRandomAccount();

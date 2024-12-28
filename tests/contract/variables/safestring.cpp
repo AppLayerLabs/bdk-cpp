@@ -8,6 +8,8 @@ See the LICENSE.txt file in the project root for more information.
 #include "../../src/libs/catch2/catch_amalgamated.hpp"
 #include "../../src/contract/variables/safestring.h"
 
+using Catch::Matchers::Equals;
+
 namespace TSafeString {
   TEST_CASE("SafeString class", "[contract][variables][safestring]") {
     SECTION("SafeString constructor") {
@@ -1099,6 +1101,13 @@ namespace TSafeString {
       REQUIRE(strB >= cstrA);
       REQUIRE(!(strA1 >= cstrB));
       REQUIRE(!(strB <= cstrA));
+    }
+
+    SECTION("SafeString operator<<") {
+      SafeString str("ABCDE");
+      std::stringstream ss;
+      ss << str;
+      REQUIRE_THAT(ss.str(), Equals("ABCDE"));
     }
   }
 }

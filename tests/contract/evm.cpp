@@ -121,9 +121,9 @@ namespace TEVM {
         sdk.getState().saveToDB();
       }
 
-      /// SDKTestSuite should automatically load the state from the DB if we
-      /// Construct it with a options object
-      /// (The createNewEnvironment DELETES the DB if any is found)
+      // SDKTestSuite should automatically load the state from the DB if we
+      // Construct it with a options object
+      // (The createNewEnvironment DELETES the DB if any is found)
       SDKTestSuite sdk(*options);
 
       REQUIRE(sdk.callViewFunction(erc20Address, &ERC20::name) == "TestToken");

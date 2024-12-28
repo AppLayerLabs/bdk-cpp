@@ -13,10 +13,28 @@ See the LICENSE.txt file in the project root for more information.
 
 using Catch::Matchers::Equals;
 
-// TODO: missing tests for padLeft/padRight (no bytes) and cArrayToBytes
-
 namespace TUtils {
   TEST_CASE("StrConv Namespace", "[utils][strconv]") {
+    SECTION("padLeft Test") {
+      std::string input = "abcdef";
+      std::string output = StrConv::padLeft(input, 10, '0');
+      std::string output2 = StrConv::padLeft(input, 20, '1');
+      std::string expectedOutput = "0000abcdef";
+      std::string expectedOutput2 = "11111111111111abcdef";
+      REQUIRE(output == expectedOutput);
+      REQUIRE(output2 == expectedOutput2);
+    }
+
+    SECTION("padRight Test") {
+      std::string input = "abcdef";
+      std::string output = StrConv::padRight(input, 10, '0');
+      std::string output2 = StrConv::padRight(input, 20, '1');
+      std::string expectedOutput = "abcdef0000";
+      std::string expectedOutput2 = "abcdef11111111111111";
+      REQUIRE(output == expectedOutput);
+      REQUIRE(output2 == expectedOutput2);
+    }
+
     SECTION("padLeftBytes Test") {
       Bytes inputBytes = Hex::toBytes("0xabcdef");
       Bytes outputBytes = StrConv::padLeftBytes(inputBytes, 10, 0x00);

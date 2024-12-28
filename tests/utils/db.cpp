@@ -15,6 +15,22 @@ using Catch::Matchers::Equals;
 
 namespace TDB {
   TEST_CASE("DB Tests", "[utils][db]") {
+    SECTION("DBBatch Manipulation") {
+      DBBatch batch;
+      batch.push_back(StrConv::stringToBytes("aaaa"), StrConv::stringToBytes("1234"), StrConv::stringToBytes("0000"));
+      batch.push_back(DBEntry(Bytes{0xbb, 0xbb}, Bytes{0x56, 0x78}));
+      batch.delete_key(StrConv::stringToBytes("aaaa"), StrConv::stringToBytes("0000"));
+      batch.delete_key(Bytes{0xbb, 0xbb});
+      auto puts = batch.getPuts();
+      auto dels = batch.getDels();
+      REQUIRE(puts[0].key == StrConv::stringToBytes("0000aaaa"));
+      REQUIRE(puts[0].value == StrConv::stringToBytes("1234"));
+      REQUIRE(puts[1].key == Bytes{0xbb, 0xbb});
+      REQUIRE(puts[1].value == Bytes{0x56, 0x78});
+      REQUIRE(dels[0] == StrConv::stringToBytes("0000aaaa"));
+      REQUIRE(dels[1] == Bytes{0xbb, 0xbb});
+    }
+
     SECTION("Open and Close DB (w/ throw)") {
       bool catched = false;
       DB db("testDB");
@@ -55,33 +71,47 @@ namespace TDB {
     SECTION("Batched CRUD (Create + Read + Update + Delete)") {
       // Open
       DB db("testDB");
-      Bytes pfx = DBPrefix::blocks;
+      Bytes pfx = DBPrefix::blocks; // 0001
       DBBatch batchP;
       DBBatch batchD;
-      std::vector<Bytes> keys;
       for (int i = 0; i < 32; i++) {
         batchP.push_back(Hash::random().asBytes(), Hash::random().asBytes(), pfx);
         batchD.delete_key(batchP.getPuts()[i].key, pfx);
       }
+      std::vector<Bytes> keys; // Reference vector for read checks
+      for (const DBEntry& e : batchP.getPuts()) keys.push_back(e.key);
+      for (Bytes& k : keys) k.erase(k.begin(), k.begin() + 2); // Remove prefixes (2 bytes)
+      std::sort(keys.begin(), keys.end(), [&](Bytes a, Bytes b){ return a < b; }); // Sort the vector for querying key range
 
       // Create
       std::cout << "BatchPuts: " << batchP.getPuts().size() << std::endl;
-
       REQUIRE(db.putBatch(batchP));
       for (const DBEntry& entry : batchP.getPuts()) {
-        /// No need to pass prefix as entry.key already contains it
-        REQUIRE(db.has(entry.key));
+        REQUIRE(db.has(entry.key)); // No need to pass prefix as entry.key already contains it
       }
 
-      // Read
+      // Read (all)
       std::vector<DBEntry> getB = db.getBatch(pfx);
       REQUIRE(!getB.empty());
       for (const DBEntry& getE : getB) {
         for (const DBEntry& putE : batchP.getPuts()) {
-          if (getE.key == putE.key) {
-            REQUIRE(getE.value == putE.value);
-          }
+          if (getE.key == putE.key) REQUIRE(getE.value == putE.value);
         }
+      }
+
+      // Read (specific, for coverage)
+      std::vector<Bytes> keysToSearch = {keys[0], keys[8], keys[16], keys[24]};
+      std::vector<DBEntry> getBS = db.getBatch(pfx, keysToSearch);
+      REQUIRE(!getBS.empty());
+      REQUIRE(getBS.size() == 4);
+      for (const DBEntry& getES : getBS) {
+        REQUIRE(std::find(keys.begin(), keys.end(), getES.key) != keys.end());
+      }
+
+      // Read (getKeys, for coverage)
+      std::vector<Bytes> getBK = db.getKeys(pfx, keys[0], keys[7]);
+      for (const Bytes& b : getBK) {
+        REQUIRE(std::find(keys.begin(), keys.end(), b) != keys.end());
       }
 
       // Update
@@ -90,10 +120,9 @@ namespace TDB {
         newPutB.push_back(batchP.getPuts()[i].key, Hash::random().asBytes(), pfx);
       }
       REQUIRE(db.putBatch(newPutB));
-      /// No need to pass prefix as entry.key already contains it
+      // No need to pass prefix as entry.key already contains it
       for (const DBEntry& entry : newPutB.getPuts()) REQUIRE(db.has(entry.key));
       std::vector<DBEntry> newGetB = db.getBatch(pfx);
-
       REQUIRE(!newGetB.empty());
       for (const DBEntry& newGetE : newGetB) {
         for (const DBEntry& newPutE : newPutB.getPuts()) {
@@ -105,7 +134,7 @@ namespace TDB {
 
       // Delete
       REQUIRE(db.putBatch(batchD));
-      /// No need to pass prefix as key already contains it
+      // No need to pass prefix as key already contains it
       for (const Bytes& key : batchD.getDels()) REQUIRE(!db.has(key));
 
       // Close

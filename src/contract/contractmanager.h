@@ -27,16 +27,16 @@ class ContractManager : public BaseContract {
 
     /// Functions to create contracts.
     boost::unordered_flat_map<
-          Functor,
-          std::function<
-            void(const evmc_message&,
-                 const Address&,
-                 boost::unordered_flat_map<Address, std::unique_ptr<BaseContract>, SafeHash>& contracts_,
-                 const uint64_t&,
-                 ContractHost*
-                 )>,
-          SafeHash
-        > createContractFuncs_;
+      Functor,
+      std::function<void(
+        const evmc_message&,
+        const Address&,
+        boost::unordered_flat_map<Address, std::unique_ptr<BaseContract>, SafeHash>& contracts_,
+        const uint64_t&,
+        ContractHost*
+      )>,
+      SafeHash
+    > createContractFuncs_;
 
     /**
      * Get all deployed contracts.

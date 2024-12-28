@@ -128,7 +128,6 @@ namespace TDynamicException {
       }
     }
 
-
     SECTION("Exception with custom objects") {
       CustomObject obj(100);
       DynamicException exception("Encountered an issue with ", obj);

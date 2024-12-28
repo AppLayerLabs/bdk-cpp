@@ -22,7 +22,6 @@ namespace TBlock {
       uint64_t nHeight = 92137812;
       FinalizedBlock finalizedNewBlock = FinalizedBlock::createNewValidBlock({},{}, nPrevBlockHash, timestamp, nHeight, validatorPrivKey);
 
-
       // Checking within finalized block
       REQUIRE(finalizedNewBlock.getValidatorSig() == Signature(Hex::toBytes("18395ff0c8ee38a250b9e7aeb5733c437fed8d6ca2135fa634367bb288a3830a3c624e33401a1798ce09f049fb6507adc52b085d0a83dacc43adfa519c1228e701")));
       REQUIRE(Secp256k1::verifySig(finalizedNewBlock.getValidatorSig().r(), finalizedNewBlock.getValidatorSig().s(), finalizedNewBlock.getValidatorSig().v()));
@@ -62,9 +61,7 @@ namespace TBlock {
 
       // Compare transactions
       for (uint64_t i = 0; i < 10; i++) REQUIRE(finalizedNewBlock.getTxs()[i] == tx);
-
     }
-
 
     SECTION("Block creation with 64 TxBlock transactions and 16 TxValidator transactions") {
       // There is 16 TxValidator transactions, but only 8 of them are used for block randomness.
@@ -311,10 +308,12 @@ namespace TBlock {
           txValidatorPrivKey
         );
       }
+
       // We need to calculate the merkle root BEFORE creating the block
       // because we MOVE the transactions to the block.
       Hash txMerkleRoot = Merkle(txs).getRoot();
       Hash validatorMerkleRoot = Merkle(txValidators).getRoot();
+
       // Also make a copy of txValidators and txs for later comparison
       std::vector<TxValidator> txValidatorsCopy = txValidators;
       std::vector<TxBlock> txsCopy = txs;
@@ -332,10 +331,14 @@ namespace TBlock {
       REQUIRE(finalizedNewBlock.getTxValidators().size() == 256);
       REQUIRE(finalizedNewBlock.getTxs().size() == 40000);
 
-
       // Compare transactions
       for (uint64_t i = 0; i < 40000; ++i) REQUIRE(finalizedNewBlock.getTxs()[i] == txsCopy[i]);
       for (uint64_t i = 0; i < 256; ++i) REQUIRE(finalizedNewBlock.getTxValidators()[i] == txValidatorsCopy[i]);
+
+      // Deserialize again with threading (for coverage)
+      Bytes serializedNewBlock = finalizedNewBlock.serializeBlock();
+      FinalizedBlock finalizedNewBlock2 = FinalizedBlock::fromBytes(serializedNewBlock, 8080);
+      REQUIRE(finalizedNewBlock2 == finalizedNewBlock);
     }
   }
 }

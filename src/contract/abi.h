@@ -11,7 +11,7 @@ See the LICENSE.txt file in the project root for more information.
 #include "../utils/intconv.h"
 #include "../utils/uintconv.h"
 #include "../utils/strconv.h"
-#include "../utils/utils.h" // libs/json.hpp -> string
+#include "../utils/utils.h" // FunctionTypes, libs/json.hpp -> string
 
 /// Namespace for Solidity ABI-related operations.
 namespace ABI {

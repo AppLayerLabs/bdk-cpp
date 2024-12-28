@@ -132,7 +132,7 @@ DBBatch Pebble::dump() const {
   for (auto it = this->minters_.cbegin(); it != this->minters_.cend(); ++it) {
     batch.push_back(it->first.asBytes(), UintConv::uint8ToBytes(static_cast<uint8_t>(it->second)), this->getNewPrefix("minters_"));
   }
-  batch.push_back(StrConv::stringToBytes("authorized_"), this->authorizer_.get().asBytes(), this->getDBPrefix());
+  batch.push_back(StrConv::stringToBytes("authorizer_"), this->authorizer_.get().asBytes(), this->getDBPrefix());
   return batch;
 }
 

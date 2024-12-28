@@ -67,5 +67,38 @@ namespace TSimpleContract {
       REQUIRE(numberEvent.size() == 1);
       REQUIRE(tupleEvent.size() == 1);
     }
+
+    SECTION("SimpleContract setNamesAndNumbers and setNamesAndNumbersInTuple") {
+      SDKTestSuite sdk = SDKTestSuite::createNewEnvironment("testSimpleContractSetNamesAndNumbersInTuple");
+      Address simpleContract = sdk.deployContract<SimpleContract>(
+        std::string("TestName"), uint256_t(19283187581),
+        std::make_tuple(std::string("TupleName"), uint256_t(987654321))
+      );
+
+      std::string name = sdk.callViewFunction(simpleContract, &SimpleContract::getName);
+      uint256_t number = sdk.callViewFunction(simpleContract, &SimpleContract::getNumber);
+      std::tuple<std::string, uint256_t> tuple = sdk.callViewFunction(simpleContract, &SimpleContract::getTuple);
+      REQUIRE(name == "TestName");
+      REQUIRE(number == 19283187581);
+      REQUIRE(std::get<0>(tuple) == "TupleName");
+      REQUIRE(std::get<1>(tuple) == 987654321);
+
+      std::vector<std::string> names = {"111", "222", "333"};
+      std::vector<uint256_t> numbers = {400, 300, 200, 100};
+      Hash namesAndNumbersTx = sdk.callFunction(simpleContract, &SimpleContract::setNamesAndNumbers, names, numbers);
+      name = sdk.callViewFunction(simpleContract, &SimpleContract::getName);
+      number = sdk.callViewFunction(simpleContract, &SimpleContract::getNumber);
+      REQUIRE(name == "111222333");
+      REQUIRE(number == 1000);
+
+      std::vector<std::tuple<std::string, uint256_t>> list = {
+        {"555", 1000}, {"444", 500}, {"333", 250}, {"222", 150}, {"111", 100}
+      };
+      Hash namesAndNumbersInTupleTx = sdk.callFunction(simpleContract, &SimpleContract::setNamesAndNumbersInTuple, list);
+      name = sdk.callViewFunction(simpleContract, &SimpleContract::getName);
+      number = sdk.callViewFunction(simpleContract, &SimpleContract::getNumber);
+      REQUIRE(name == "555444333222111");
+      REQUIRE(number == 2000);
+    }
   }
 }

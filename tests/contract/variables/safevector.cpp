@@ -104,6 +104,9 @@ namespace TSafeVector {
       REQUIRE(vec[2] == "x");
       REQUIRE(vec[3] == "x");
       REQUIRE(vec[4] == "x");
+      // For coverage
+      const std::string str = vec[0];
+      REQUIRE(str == "x");
     }
 
     SECTION("SafeVector front and back") {

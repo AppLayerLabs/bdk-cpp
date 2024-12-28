@@ -13,8 +13,6 @@ See the LICENSE.txt file in the project root for more information.
 
 using Catch::Matchers::Equals;
 
-// TODO: theoretically missing int_t tests
-
 namespace TUtils {
   TEST_CASE("UintConv Namespace", "[utils][uintconv]") {
     SECTION("uint256ToBytes Test") {

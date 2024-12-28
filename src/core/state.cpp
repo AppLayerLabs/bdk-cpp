@@ -51,7 +51,6 @@ State::State(
   }
 
   auto latestBlock = this->storage_.latest();
-
   // Insert the contract manager into the contracts_ map.
   this->contracts_[ProtocolContractAddresses.at("ContractManager")] = std::make_unique<ContractManager>(
     db, this->contracts_, this->dumpManager_ ,this->options_

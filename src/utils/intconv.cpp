@@ -14,7 +14,7 @@ See the LICENSE.txt file in the project root for more information.
 // ==========================================================================
 
 BytesArr<32> IntConv::int256ToBytes(const int256_t& i) {
-  BytesArr<32> ret;
+  BytesArr<32> ret = {0};
   if (i < 0) {
     int256_t absValue = -i;
     Bytes tempBytes;
@@ -43,7 +43,7 @@ BytesArr<32> IntConv::int256ToBytes(const int256_t& i) {
 }
 
 BytesArr<17> IntConv::int136ToBytes(const int136_t &i) {
-  BytesArr<17> ret;
+  BytesArr<17> ret = {0};
   Bytes tmp;
   tmp.reserve(17);
   boost::multiprecision::export_bits(i, std::back_inserter(tmp), 8);
@@ -52,7 +52,7 @@ BytesArr<17> IntConv::int136ToBytes(const int136_t &i) {
 }
 
 BytesArr<8> IntConv::int64ToBytes(const int64_t& i) {
-  BytesArr<8> ret;
+  BytesArr<8> ret = {0};
   std::memcpy(&ret[0], &i, 8);
   #if __BYTE_ORDER == __LITTLE_ENDIAN
     std::reverse(ret.begin(), ret.end());
@@ -88,8 +88,8 @@ int256_t IntConv::bytesToInt256(const bytes::View b) {
 }
 
 int136_t IntConv::bytesToInt136(const bytes::View b) {
-  if (b.size() != 18) throw DynamicException(std::string(__func__)
-    + ": Invalid bytes size - expected 18, got " + std::to_string(b.size())
+  if (b.size() != 17) throw DynamicException(std::string(__func__)
+    + ": Invalid bytes size - expected 17, got " + std::to_string(b.size())
   );
   int136_t ret;
   boost::multiprecision::import_bits(ret, b.begin(), b.end(), 8);

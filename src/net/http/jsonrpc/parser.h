@@ -105,16 +105,19 @@ namespace jsonrpc {
   template<typename T> struct Parser<std::vector<T>> {
     /**
      * Parse the JSON data as one of the containers.
-     * @param data The JSON object to be parsed.
-     * @return The containter with the variant type.
+     * @param data The JSON object to be parsed. Can be either an array (e.g.
+     *             "[1,2,3]") or an object (e.g. "{{"a", 1}, {"b", 2}, {"c", 3}}").
+     *             Object keys are ignored altogether.
+     * @return The container with the variant type.
      */
     std::vector<T> operator()(const json& data) const {
       std::vector<T> res;
       if (data.is_array()) {
         res.reserve(data.size());
-        std::ranges::transform(data, std::back_inserter(res), [] (const json& elem) { return Parser<T>{}(elem); });
+        std::ranges::transform(data, std::back_inserter(res), [](const json& elem){ return Parser<T>{}(elem); });
       } else if (data.is_object()) {
-        res.emplace_back(Parser<T>{}(data));
+        res.reserve(data.size());
+        for (auto& el : data.items()) res.emplace_back(Parser<T>{}(el.value()));
       } else {
         throw Error::invalidType("array or object", data.type_name());
       }

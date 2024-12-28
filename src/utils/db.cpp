@@ -92,9 +92,7 @@ Bytes DB::getLastByPrefix(const Bytes& pfx) const {
   bool overflow;
   int i = static_cast<int>(nextPfx.size()) - 1;
   // increment the given prefix by 1
-  do {
-    overflow = (++nextPfx[i--]) == 0;
-  } while (overflow && i >= 0);
+  do { overflow = (++nextPfx[i--]) == 0; } while (overflow && i >= 0);
 
   if (overflow) [[unlikely]] {
     it->SeekToLast();
@@ -102,13 +100,10 @@ Bytes DB::getLastByPrefix(const Bytes& pfx) const {
     it->SeekForPrev(rocksdb::Slice(reinterpret_cast<const char*>(nextPfx.data()), nextPfx.size()));
   }
 
-  if (!it->Valid()) {
-    return {};
-  }
+  if (!it->Valid()) return {};
 
-  if (!it->key().starts_with(rocksdb::Slice(reinterpret_cast<const char*>(pfx.data()), pfx.size()))) {
-    return {};
-  }
+  if (!it->key().starts_with(rocksdb::Slice(reinterpret_cast<const char*>(pfx.data()), pfx.size()))) return {};
 
   return Bytes(it->value().data(), it->value().data() + it->value().size());
 }
+

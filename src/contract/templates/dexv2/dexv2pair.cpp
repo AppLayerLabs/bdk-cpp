@@ -55,7 +55,14 @@ DEXV2Pair::DEXV2Pair(
   factory_(this), token0_(this), token1_(this), reserve0_(this), reserve1_(this),
   blockTimestampLast_(this), price0CumulativeLast_(this), price1CumulativeLast_(this), kLast_(this)
 {
+  // Explicitly initialize numbers to 0 to avoid junk values on DB load
   this->factory_ = creator;
+  this->reserve0_ = 0;
+  this->reserve1_ = 0;
+  this->blockTimestampLast_ = 0;
+  this->price0CumulativeLast_ = 0;
+  this->price1CumulativeLast_ = 0;
+  this->kLast_ = 0;
 
   this->factory_.commit();
   this->token0_.commit();
@@ -256,7 +263,12 @@ void DEXV2Pair::sync() {
 
 
 DBBatch DEXV2Pair::dump() const {
+  // We have to dump the tokens as well
   DBBatch dbBatch = BaseContract::dump();
+  DBBatch erc20Batch = ERC20::dump();
+  for (const auto& dbItem : erc20Batch.getPuts()) dbBatch.push_back(dbItem);
+  for (const auto& dbItem : erc20Batch.getDels()) dbBatch.delete_key(dbItem);
+
   dbBatch.push_back(StrConv::stringToBytes("factory_"), this->factory_.get().view(), this->getDBPrefix());
   dbBatch.push_back(StrConv::stringToBytes("token0_"), this->token0_.get().view(), this->getDBPrefix());
   dbBatch.push_back(StrConv::stringToBytes("token1_"), this->token1_.get().view(), this->getDBPrefix());

@@ -11,25 +11,40 @@ See the LICENSE.txt file in the project root for more information.
 
 #include "../../src/utils/strconv.h"
 
-using Catch::Matchers::Equals;
-
 namespace TUtils {
   TEST_CASE("Utils Namespace", "[utils][utilsitself]") {
-    SECTION("Sha3 Test") {
+    SECTION("fail (HTTP Fail Message) + logToFile, for coverage)") {
+      boost::beast::error_code ec;
+      fail("Utils", "fail", ec, "testing fail log");
+      REQUIRE(!ec);
+      Utils::logToFile("testing log to file");
+    }
+
+    SECTION("sha3") {
       std::string sha3Input = "My SHA3 Input";
       auto sha3Output = Utils::sha3(StrConv::stringToBytes(sha3Input));
       Bytes sha3ExpectedOutput = Bytes{0x10, 0x11, 0x40, 0xd6, 0xe7, 0x50, 0x6f, 0x80, 0x4c, 0xf7, 0xb0, 0x37, 0x0f, 0xa9, 0x0b, 0x04, 0xc5, 0xe9, 0x37, 0x4d, 0xdb, 0x0c, 0x8c, 0xbe, 0x12, 0xaf, 0x15, 0x0c, 0x8f, 0xf3, 0xee, 0x36};
       REQUIRE(sha3Output == Hash(sha3ExpectedOutput));
     }
 
-    SECTION("randBytes Test") {
+    SECTION("randBytes") {
       Bytes randBytesOutput = Utils::randBytes(32);
       REQUIRE(randBytesOutput.size() == 32);
     }
 
-    SECTION("fromBigEndian Test") {
-      std::string_view inputBytes("\x10\x11\x40\xd6\xe7\x50\x6f\x80\x4c\xf7\xb0\x37\x0f\xa9\x0b\x04\xc5\xe9\x37\x4d\xdb\x0c\x8c\xbe\x12\xaf\x15\x0c\x8f\xf3\xee\x36");
+    SECTION("readConfigFile") {
+      json cfg = Utils::readConfigFile();
+      REQUIRE(cfg.dump() == "{\"rpcport\":8080,\"p2pport\":8081,\"seedNodes\":[\"127.0.0.1:8086\",\"127.0.0.1:8087\",\"127.0.0.1:8088\",\"127.0.0.1:8089\"]}");
+    }
 
+    SECTION("getSignalName") {
+      REQUIRE(Utils::getSignalName(0) == "Unknown signal (0)");
+      REQUIRE(Utils::getSignalName(1) == "SIGHUP (1)");
+      REQUIRE(Utils::getSignalName(2) == "SIGINT (2)");
+    }
+
+    SECTION("fromBigEndian") {
+      std::string_view inputBytes("\x10\x11\x40\xd6\xe7\x50\x6f\x80\x4c\xf7\xb0\x37\x0f\xa9\x0b\x04\xc5\xe9\x37\x4d\xdb\x0c\x8c\xbe\x12\xaf\x15\x0c\x8f\xf3\xee\x36");
       auto uint256Output = Utils::fromBigEndian<uint256_t>(inputBytes);
       auto uint64Ouput12To20 = Utils::fromBigEndian<uint64_t>(inputBytes.substr(12, 8));
       auto uint64Ouput20To28 = Utils::fromBigEndian<uint64_t>(inputBytes.substr(20, 8));
@@ -50,12 +65,23 @@ namespace TUtils {
       REQUIRE(uint160Output5To25 == uint160ExpectedOutput5To25);
     }
 
-    SECTION("appendBytes Test") {
+    SECTION("appendBytes") {
       Bytes int1 = Bytes{0x78, 0xF0, 0xB2, 0x91};
       Bytes int2 = Bytes{0xAC, 0x26, 0x0E, 0x43};
       Bytes res = Bytes{0x78, 0xF0, 0xB2, 0x91, 0xAC, 0x26, 0x0E, 0x43};
       Utils::appendBytes(int1, int2);
       REQUIRE(int1 == res);
+    }
+
+    SECTION("create_view_span") {
+      Bytes b{0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f};
+      std::string_view sv("abcdef");
+      bytes::View v1 = Utils::create_view_span(b, 0, 6);
+      bytes::View v2 = Utils::create_view_span(sv, 0, 6);
+      REQUIRE(Hex::fromBytes(v1).get() == "0a0b0c0d0e0f");
+      REQUIRE(Hex::fromBytes(v2).get() == "616263646566");
+      REQUIRE_THROWS(Utils::create_view_span(b, 0, 12));
+      REQUIRE_THROWS(Utils::create_view_span(sv, 0, 12));
     }
   }
 }
