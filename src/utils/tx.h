@@ -225,6 +225,8 @@ struct TxAdditionalData {
 };
 
 /**
+ * FIXME/TODO: remove TxValidator
+ *
  * Abstraction of a Validator transaction.
  * All transactions are final and defined as such during construction.
  */

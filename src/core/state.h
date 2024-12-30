@@ -17,38 +17,42 @@ See the LICENSE.txt file in the project root for more information.
 #include "../utils/safehash.h"
 
 class Blockchain;
+class FinalizedBlock;
 
 /// Abstraction of the blockchain's current state at the current block.
 class State : public Log::LogicalLocationProvider {
   protected: // TODO: those shouldn't be protected, plz refactor someday
     Blockchain& blockchain_; ///< Parent Blockchain object
+
+    // Machine state
     mutable std::shared_mutex stateMutex_; ///< Mutex for managing read/write access to the state object.
+    uint64_t height_; ///< This is the simulation timestamp the State machine is at.
+    uint64_t timeMicros_; ///< This is the wallclock timestamp the State machine is at, in microseconds since epoch.
     evmc_vm* vm_; ///< Pointer to the EVMC VM.
     boost::unordered_flat_map<Address, std::unique_ptr<BaseContract>, SafeHash> contracts_; ///< Map with information about blockchain contracts (Address -> Contract).
     boost::unordered_flat_map<StorageKey, Hash, SafeHash> vmStorage_; ///< Map with the storage of the EVM.
     boost::unordered_flat_map<Address, NonNullUniquePtr<Account>, SafeHash> accounts_; ///< Map with information about blockchain accounts (Address -> Account).
-    boost::unordered_flat_map<Hash, TxBlock, SafeHash> mempool_; ///< TxBlock mempool.
+
+    // The actual mempool is on the cometbft process
+    // REVIEW: We *might* want or need to maintain a cache of TxBlock objects that are created from the Bytes
+    //   raw transactions we send/receive to/from cometbft.
+    //boost::unordered_flat_map<Hash, TxBlock, SafeHash> mempool_; ///< TxBlock mempool.
 
     /**
-     * Verify if a transaction can be accepted within the current state.
-     * @param tx The transaction to check.
-     * @return An enum telling if the block is invalid or not.
+     * Doesn't acquire the state mutex.
      */
-    // FIXME: transaction validation
-    //TxStatus validateTransactionInternal(const TxBlock& tx) const;
+    bool validateTransactionInternal(const TxBlock& tx) const;
 
     /**
-     * Validate the next block given the current state and its transactions. Does NOT update the state.
-     * The block will be rejected if there are invalid transactions in it
-     * (e.g. invalid signature, insufficient balance, etc.).
-     * NOTE: This method does not perform synchronization.
-     * @param block The block to validate.
-     * @return A status code from BlockValidationStatus.
-     */
-    // FIXME: block validation
-    //BlockValidationStatus validateNextBlockInternal(const FinalizedBlock& block) const;
-
-    /**
+     * FIXME/TODO:
+     * - blockHash passed in will be just 0
+     * - randomnessHash passed in will be just 0 and we don't have actual support for secure
+     *   randomness. The correct solution is to just remove this from the protocol and
+     *   outsource randomness to oracles in the short term while we develop RDPOS. OR, we have
+     *   the block proposer just generate a random number, and if that's good enough for your
+     *   application, then you just use it. OR, we use CometBFT Vote Extensions to try and do
+     *   something slightly fancier (that is probably still not 100% secure).
+     *
      * Process a transaction within a block. Called by processNextBlock().
      * If the process fails, any state change that this transaction would cause has to be reverted.
      * @param tx The transaction to process.
@@ -56,8 +60,7 @@ class State : public Log::LogicalLocationProvider {
      * @param txIndex The index of the transaction inside the block that is being processed.
      * @param randomnessHash The hash of the previous block's randomness seed.
      */
-    // FIXME: execute a transaction
-    //void processTransaction(const TxBlock& tx, const Hash& blockHash, const uint64_t& txIndex, const Hash& randomnessHash);
+    void processTransaction(const TxBlock& tx, const uint64_t& txIndex, const Hash& blockHash, const Hash& randomnessHash);
 
     /**
      * Helper function that does a sanity check on all contracts in the accounts_ map.
@@ -78,103 +81,59 @@ class State : public Log::LogicalLocationProvider {
 
     ~State(); ///< Destructor.
 
-    std::string getLogicalLocation() const override { return ""; } // FIXME
+    std::string getLogicalLocation() const override;
 
     // ----------------------------------------------------------------------
     // STATE FUNCTIONS
     // ----------------------------------------------------------------------
 
+    uint64_t getHeight() const {
+      std::shared_lock<std::shared_mutex> lock(stateMutex_);
+      return height_;
+    }
+
+    uint64_t getTimeMicros() const {
+      std::shared_lock<std::shared_mutex> lock(stateMutex_);
+      return timeMicros_;
+    }
+
     /**
-     * Get the native balance of an account in the state.
+     * Get the native balance of an account in the current state.
      * @param addr The address of the account to check.
      * @return The native account balance of the given address.
      */
     uint256_t getNativeBalance(const Address& addr) const;
 
     /**
-     * Get the native nonce of an account in the state.
+     * Get the native nonce of an account in the current state.
      * @param addr The address of the account to check.
      * @return The native account nonce of the given address.
      */
     uint64_t getNativeNonce(const Address& addr) const;
 
     /**
-     * Get a copy of the mempool (as a vector).
-     * @return A vector with all transactions in the mempool.
-     */
-    // no need
-    //std::vector<TxBlock> getMempool() const;
-
-    /**
-     * Validate the next block given the current state and its transactions. Does NOT update the state.
+     * Validate the next block given the current state and its transactions.
      * The block will be rejected if there are invalid transactions in it
-     * (e.g. invalid signature, insufficient balance, etc.).
+     * (e.g. invalid signature, insufficient balance, etc.) or if its height
+     * is not exactly the current state machine's height plus one.
      * @param block The block to validate.
      * @return `true` if the block is validated successfully, `false` otherwise.
      */
-    // FIXME
-    //bool validateNextBlock(const FinalizedBlock& block) const;
+    bool validateNextBlock(const FinalizedBlock& block) const;
 
     /**
-     * Process the next block given current state from the network. DOES update the state.
-     * Appends block to Storage after processing.
+     * Apply a block to the current machine state (does NOT validate it first).
      * @param block The block to process.
-     * @throw DynamicException if block is invalid.
+     * @throw DynamicException on any error.
      */
-    // FIXME
-    //void processNextBlock(FinalizedBlock&& block);
-
-    /**
-     * Process the next block given current state from the network. DOES update the state.
-     * Appends block to Storage after processing.
-     * Does not throw an exception in case of block validation error.
-     * @param block The block to process.
-     * @return A status code from BlockValidationStatus.
-     */
-    // FIXME
-    //BlockValidationStatus tryProcessNextBlock(FinalizedBlock&& block);
+    void processBlock(const FinalizedBlock& block);
 
     /**
      * Verify if a transaction can be accepted within the current state.
-     * Calls validateTransactionInternal(), but locks the mutex in a shared manner.
      * @param tx The transaction to verify.
-     * @return An enum telling if the transaction is valid or not.
+     * @return `true` if the transaction is valid, `false` otherwise.
      */
-    // FIXME
-    //TxStatus validateTransaction(const TxBlock& tx) const;
-
-    /**
-     * REMOVE?
-     * 
-     * Add a transaction to the mempool, if valid.
-     * @param tx The transaction to add.
-     * @return An enum telling if the transaction is valid or not.
-     */
-    // FIXME
-    //TxStatus addTx(TxBlock&& tx);
-
-    /**
-     * REMOVE?
-     * 
-     * Check if a transaction is in the mempool.
-     * @param txHash The transaction hash to check.
-     * @return `true` if the transaction is in the mempool, `false` otherwise.
-     */
-    bool isTxInMempool(const Hash& txHash) const;
-
-    /**
-     * REMOVED
-     * Use Comet::txCache_ and/or Comet::checkTransaction() instead
-     *
-     * Get a transaction from the mempool.
-     * @param txHash The transaction Hash.
-     * @return A pointer to the transaction, or `nullptr` if not found.
-     * We cannot directly copy the transaction, since TxBlock doesn't have a
-     * default constructor, thus making it impossible to return
-     * an "empty" transaction if the hash is not found in the mempool,
-     * so we return a null pointer instead.
-     */
-    //std::unique_ptr<TxBlock> getTxFromMempool(const Hash& txHash) const;
+    bool validateTransaction(const TxBlock& tx) const;
 
     // TODO: remember this function is for testing purposes only,
     // it should probably be removed at some point before definitive release.
@@ -218,6 +177,8 @@ class State : public Log::LogicalLocationProvider {
      * @return The code section as a raw bytes string.
      */
     Bytes getContractCode(const Address& addr) const;
+
+    friend class Blockchain;
 };
 
 #endif // STATE_H

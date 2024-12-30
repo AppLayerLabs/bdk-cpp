@@ -27,6 +27,11 @@ See the LICENSE.txt file in the project root for more information.
   The cometbft genesis.json file should have "tendermint/PubKeyEd25519" as the only public key type,
   whose equivalent in ABCI parlance is the "ed25519" string below.
 
+  *****************************************************************************************************
+  FIXME: Change to the same curve that eth uses (secp256k1 / ECDSA) for validator and node keys, since
+         it is supported by CometBFT, actually.
+  *****************************************************************************************************
+
   Address
   Address is a type alias of a slice of bytes. The address is calculated by hashing the public key
   using sha256 and truncating it to only use the first 20 bytes of the slice.
@@ -2274,22 +2279,47 @@ void CometImpl::init_chain(const cometbft::abci::v1::InitChainRequest& req, come
 }
 
 void CometImpl::prepare_proposal(const cometbft::abci::v1::PrepareProposalRequest& req, cometbft::abci::v1::PrepareProposalResponse* res) {
-  std::unordered_set<size_t> delTxIds;
-  std::vector<Bytes> allTxs;
-  toBytesVector(req.txs(), allTxs);
-  listener_->buildBlockProposal(req.height(), req.max_tx_bytes(), toNanosSinceEpoch(req.time()), allTxs, delTxIds);
-  for (size_t i = 0; i < req.txs().size(); ++i) {
-    if (delTxIds.find(i) == delTxIds.end()) {
-      res->add_txs(req.txs()[i]);
+  const auto& reqTxs = req.txs();
+
+  CometBlock block;
+  block.height = req.height();
+  block.timeNanos = toNanosSinceEpoch(req.time());
+  block.proposerAddr = toBytes(req.proposer_address());
+  toBytesVector(reqTxs, block.txs);
+
+  std::vector<size_t> txIds; // Filled-in by the listener.
+  bool noChange = false;
+
+  listener_->buildBlockProposal(req.max_tx_bytes(), block, noChange, txIds);
+
+  if (noChange) {
+    // If no changes needed, then just copy all proposed txs into the ABCI response,
+    // in the order that the CometBFT mempool has proposed to us.
+    for (size_t i = 0; i < req.txs().size(); ++i) {
+      res->add_txs(reqTxs[i]);
+    }
+  } else {
+    // If there are changes needed, the client code will tell us the sequence in
+    // which transactions have to be included in the block.
+    // Ommitted tx indices from the list of transactions in the request mean these
+    // transactions are not to be included at all in the block proposal).
+    for (size_t i = 0; i < txIds.size(); ++i) {
+      res->add_txs(reqTxs[txIds[i]]);
     }
   }
 }
 
 void CometImpl::process_proposal(const cometbft::abci::v1::ProcessProposalRequest& req, cometbft::abci::v1::ProcessProposalResponse* res) {
   bool accept = false;
-  std::vector<Bytes> allTxs;
-  toBytesVector(req.txs(), allTxs);
-  listener_->validateBlockProposal(req.height(), allTxs, accept);
+
+  CometBlock block;
+  block.height = req.height();
+  block.timeNanos = toNanosSinceEpoch(req.time());
+  block.proposerAddr = toBytes(req.proposer_address());
+  toBytesVector(req.txs(), block.txs);
+
+  listener_->validateBlockProposal(block, accept);
+
   if (accept) {
     res->set_status(cometbft::abci::v1::PROCESS_PROPOSAL_STATUS_ACCEPT);
   } else {
@@ -2316,15 +2346,31 @@ void CometImpl::commit(const cometbft::abci::v1::CommitRequest& req, cometbft::a
 }
 
 void CometImpl::finalize_block(const cometbft::abci::v1::FinalizeBlockRequest& req, cometbft::abci::v1::FinalizeBlockResponse* res) {
+  std::unique_ptr<CometBlock> block = std::make_unique<CometBlock>();
+  block->height = req.height();
+  block->timeNanos = toNanosSinceEpoch(req.time());
+  block->proposerAddr = toBytes(req.proposer_address());
+  toBytesVector(req.txs(), block->txs);
+
+  // Since we are going to transfer ownership of `block` (and thus of `block.txs`) when the callback is
+  // called, unfortunately we need to compute the sha3 of every transaction before we lose them.
+  std::unique_lock<std::mutex> txCacheLock(txCacheMutex_);
+  std::vector<Hash> txEthHashes;
+  if (txCacheSize_ > 0) {
+    txEthHashes.reserve(block->txs.size());
+    for (int32_t i = 0; i < req.txs().size(); ++i) {
+      txEthHashes.emplace_back(Utils::sha3(block->txs[i]));
+    }
+  }
+  txCacheLock.unlock();
+
   Bytes hashBytes;
   std::vector<CometExecTxResult> txResults;
   std::vector<CometValidatorUpdate> validatorUpdates;
-  std::vector<Bytes> allTxs;
-  toBytesVector(req.txs(), allTxs);
-  listener_->incomingBlock(
-    req.height(), req.syncing_to_height(), allTxs, toBytes(req.proposer_address()), toNanosSinceEpoch(req.time()),
-    hashBytes, txResults, validatorUpdates
-  );
+
+  // Moving the std::unique_ptr<CometBlock> nulls the local "block" variable, effectively
+  // transferring ownership of the CometBlock object to the incomingBlock() impl.
+  listener_->incomingBlock(req.syncing_to_height(), std::move(block), hashBytes, txResults, validatorUpdates);
 
   // application must give us one txResult entry for every tx entry we have given it.
   if (txResults.size() != req.txs().size()) {
@@ -2334,11 +2380,14 @@ void CometImpl::finalize_block(const cometbft::abci::v1::FinalizeBlockRequest& r
   std::string hashString(hashBytes.begin(), hashBytes.end());
   res->set_app_hash(hashString);
 
-  // Process all txs in the incoming block.
   // NOTE: acquiring the txCache_ lock for the whole FinalizeBlock tx processing loop is
   // better than acquiring it potentially thousands of times for all the transactions in a block.
   // It's better to cause some contention than to just waste CPU time for virtually no benefit.
-  std::unique_lock<std::mutex> txCacheLock(txCacheMutex_);
+  txCacheLock.lock();
+  // Check the never-happens-but-possible corner case of the transaction cache being enabled
+  // after we decided to not fill in txEthHashes above (because it was disabled then).
+  bool hasTxEthHashes = txEthHashes.size() > 0;
+  // Process all txs in the incoming block.
   for (int32_t i = 0; i < req.txs().size(); ++i) {
     // TODO/REVIEW: Check if we need to expose more ExecTxResult fields to the application.
     cometbft::abci::v1::ExecTxResult* tx_result = res->add_tx_results();
@@ -2350,8 +2399,8 @@ void CometImpl::finalize_block(const cometbft::abci::v1::FinalizeBlockRequest& r
 
     // If the transaction cache is enabled, we can fill in the result of each transaction
     // as their execution and inclusion in a block is definitive.
-    if (txCacheSize_ > 0) {
-      Hash txEthHash = Utils::sha3(allTxs[i]);
+    if (txCacheSize_ > 0 && hasTxEthHashes) {
+      Hash& txEthHash = txEthHashes[i];
       CometTxStatus* txStatusPtr = nullptr;
       for (int j = 0; j < 2; ++j) {
         auto& bucket = txCache_[(txCacheBucket_ + j) % 2];

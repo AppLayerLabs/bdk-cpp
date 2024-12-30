@@ -9,9 +9,10 @@ See the LICENSE.txt file in the project root for more information.
 #define BLOCKCHAIN_H
 
 #include "../utils/options.h"
-#include "../utils/db.h"
+//#include "../utils/db.h"
 #include "comet.h"
 #include "state.h"
+#include "storage.h"
 #include "../net/http/httpserver.h"
 #include "../net/http/noderpcinterface.h"
 
@@ -53,11 +54,18 @@ See the LICENSE.txt file in the project root for more information.
 class Blockchain : public CometListener, public NodeRPCInterface, public Log::LogicalLocationProvider {
   protected: // protected is correct; don't change.
     const std::string instanceId_; ///< Instance ID for logging.
+
     Options options_; ///< Options singleton.
     Comet comet_;     ///< CometBFT consensus engine driver.
     State state_;     ///< Blockchain state.
+    Storage storage_; ///< Persistent store front-end.
     HTTPServer http_; ///< HTTP server.
-    const DB db_;     ///< Durable data store.
+
+    // REVIEW: Do we need this if we have storage_ already? storage_ should be the front-end to all our persistent storage needs.
+    // Shouldn't we just have just one database directory with everything in it?
+    //const DB db_;     ///< Durable data store.
+
+    std::vector<CometValidatorUpdate> validators_; ///< Up-to-date CometBFT validator set.
 
   public:
 
@@ -71,14 +79,13 @@ class Blockchain : public CometListener, public NodeRPCInterface, public Log::Lo
     ) override;
     virtual void checkTx(const Bytes& tx, int64_t& gasWanted, bool& accept) override;
     virtual void incomingBlock(
-      const uint64_t height, const uint64_t syncingToHeight, const std::vector<Bytes>& txs, const Bytes& proposerAddr, const uint64_t timeNanos,
-      Bytes& appHash, std::vector<CometExecTxResult>& txResults, std::vector<CometValidatorUpdate>& validatorUpdates
+      const uint64_t syncingToHeight, std::unique_ptr<CometBlock> block, Bytes& appHash,
+      std::vector<CometExecTxResult>& txResults, std::vector<CometValidatorUpdate>& validatorUpdates
     ) override;
     virtual void buildBlockProposal(
-      const uint64_t height, const uint64_t maxTxBytes, const uint64_t timeNanos,
-      const std::vector<Bytes>& txs, std::unordered_set<size_t>& delTxIds
+      const uint64_t maxTxBytes, const CometBlock& block, bool& noChange, std::vector<size_t>& txIds
     ) override;
-    virtual void validateBlockProposal(const uint64_t height, const std::vector<Bytes>& txs, bool& accept) override;
+    virtual void validateBlockProposal(const CometBlock& block, bool& accept) override;
     virtual void getCurrentState(uint64_t& height, Bytes& appHash, std::string& appSemVer, uint64_t& appVersion) override;
     virtual void getBlockRetainHeight(uint64_t& height) override;
     virtual void currentCometBFTHeight(const uint64_t height) override;
@@ -148,8 +155,9 @@ class Blockchain : public CometListener, public NodeRPCInterface, public Log::Lo
     Options& opt() { return this->options_; }
     Comet& comet() { return this->comet_; }
     State& state() { return this->state_; }
+    Storage& storage() { return this->storage_; }
     HTTPServer& http() { return this->http_; }
-    const DB& db() { return this->db_; }
+    //const DB& db() { return this->db_; }
     ///@}
 };
 

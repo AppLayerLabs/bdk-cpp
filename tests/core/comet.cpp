@@ -730,12 +730,12 @@ public:
    * @param appHash Outparam that needs to be filled with the new state hash of the application, if any.
    */
   void incomingBlock(
-    const uint64_t height, const uint64_t syncingToHeight, const std::vector<Bytes>& txs, const Bytes& proposerAddr,
-    const uint64_t timeNanos, Bytes& appHash, std::vector<CometExecTxResult>& txResults, std::vector<CometValidatorUpdate>& validatorUpdates
+    const uint64_t syncingToHeight, std::unique_ptr<CometBlock> block, Bytes& appHash,
+    std::vector<CometExecTxResult>& txResults, std::vector<CometValidatorUpdate>& validatorUpdates
   ) override
   {
-    GLOGDEBUG("TEST: TestMachine: incomingBlock(): height=" + std::to_string(height) + "; syncingToheight="+std::to_string(syncingToHeight) + "; txs.size()="+std::to_string(txs.size()));
-    incomingHeight_ = height;
+    GLOGDEBUG("TEST: TestMachine: incomingBlock(): height=" + std::to_string(block->height) + "; syncingToheight="+std::to_string(syncingToHeight) + "; txs.size()="+std::to_string(block->txs.size()));
+    incomingHeight_ = block->height;
     incomingSyncingToHeight_ = syncingToHeight;
     if (requiredSyncingToHeight_ != 0) {
       if (syncingToHeight != requiredSyncingToHeight_) {
@@ -750,14 +750,14 @@ public:
     //  been synchronized correctly via getCurrentState(). Whatever we report as the current height via
     //  getCurrentState() should be respected by cometbft so it doesn't give us a block that doesn't
     //  respect that current state, ever.
-    if (height != h_ + 1) {
-      GLOGFATAL_THROW("incomingBlock with out-of-sync height " + std::to_string(height) + "; app current height = " + std::to_string(h_));
+    if (block->height != h_ + 1) {
+      GLOGFATAL_THROW("incomingBlock with out-of-sync height " + std::to_string(block->height) + "; app current height = " + std::to_string(h_));
     }
 
     // We need to process each transaction
     try {
-      GLOGTRACE("incomingBlock: transaction count: " + std::to_string(txs.size()));
-      for (const Bytes& tx : txs) {
+      GLOGTRACE("incomingBlock: transaction count: " + std::to_string(block->txs.size()));
+      for (const Bytes& tx : block->txs) {
         // Default tx result execution object:
         // code: 0 (success)
         // data: [] (zero bytes return value)
@@ -796,7 +796,7 @@ public:
         txResults.push_back(txRes);
       }
       // If all transactions are processed successfully, advance the height
-      h_ = height;
+      h_ = block->height;
       GLOGXTRACE("TestMachine: incomingBlock updated h_ == " + std::to_string(h_));
       // recompute the app_hash and return it
       updateAppHash();
@@ -808,14 +808,13 @@ public:
 
   /**
    * PrepareProposal ABCI callback.
-   * @param height Height of the block being proposed.
-   * @param txs All transactions that are in the block that is being proposed, which need to be validated.
-   * @param accept Outparam that should be set to `true` if the proposed transaction set is valid, `false` otherwise.
+   * @param block The block being proposed (for reading; if you need to keep it, you must copy it explicitly).
+   * @param accept Outparam to be set to `true` if the proposed block is valid, `false` otherwise.
    */
-  void validateBlockProposal(const uint64_t height, const std::vector<Bytes>& txs, bool& accept) override {
-    GLOGDEBUG("TEST: TestMachine: validateBlockProposal(): height=" + std::to_string(height) + "; txs.size()="+std::to_string(txs.size()));
+  void validateBlockProposal(const CometBlock& block, bool& accept) override {
+    GLOGDEBUG("TEST: TestMachine: validateBlockProposal(): height=" + std::to_string(block.height) + "; txs.size()="+std::to_string(block.txs.size()));
     accept = true;
-    for (const Bytes& tx : txs) {
+    for (const Bytes& tx : block.txs) {
       bool tx_accept;
       int64_t gas_limit;
       checkTx(tx, gas_limit, tx_accept);
@@ -882,14 +881,14 @@ namespace TComet {
           gotInitChain = true;
         }
         virtual void incomingBlock(
-          const uint64_t height, const uint64_t syncingToHeight, const std::vector<Bytes>& txs, const Bytes& proposerAddr,
-          const uint64_t timeNanos, Bytes& appHash, std::vector<CometExecTxResult>& txResults, std::vector<CometValidatorUpdate>& validatorUpdates
+          const uint64_t syncingToHeight, std::unique_ptr<CometBlock> block, Bytes& appHash,
+          std::vector<CometExecTxResult>& txResults, std::vector<CometValidatorUpdate>& validatorUpdates
         ) override
         {
-          GLOGDEBUG("TestCometListener: got incomingBlock " + std::to_string(height));
-          finalizedHeight = height;
+          GLOGDEBUG("TestCometListener: got incomingBlock " + std::to_string(block->height));
+          finalizedHeight = block->height;
           appHash.clear();
-          txResults.resize(txs.size());
+          txResults.resize(block->txs.size());
         }
       };
       TestCometListener cometListener;
@@ -1016,14 +1015,14 @@ namespace TComet {
           gotInitChain = true;
         }
         virtual void incomingBlock(
-          const uint64_t height, const uint64_t syncingToHeight, const std::vector<Bytes>& txs, const Bytes& proposerAddr,
-          const uint64_t timeNanos, Bytes& appHash, std::vector<CometExecTxResult>& txResults, std::vector<CometValidatorUpdate>& validatorUpdates
+          const uint64_t syncingToHeight, std::unique_ptr<CometBlock> block, Bytes& appHash,
+          std::vector<CometExecTxResult>& txResults, std::vector<CometValidatorUpdate>& validatorUpdates
         ) override
         {
-          GLOGDEBUG("TestCometListener: got incomingBlock " + std::to_string(height));
-          finalizedHeight = height;
+          GLOGDEBUG("TestCometListener: got incomingBlock " + std::to_string(block->height));
+          finalizedHeight = block->height;
           appHash.clear();
-          txResults.resize(txs.size());
+          txResults.resize(block->txs.size());
         }
       };
 
@@ -1101,29 +1100,29 @@ namespace TComet {
           gotInitChain = true;
         }
         virtual void incomingBlock(
-          const uint64_t height, const uint64_t syncingToHeight, const std::vector<Bytes>& txs, const Bytes& proposerAddr,
-          const uint64_t timeNanos, Bytes& appHash, std::vector<CometExecTxResult>& txResults, std::vector<CometValidatorUpdate>& validatorUpdates
+          const uint64_t syncingToHeight, std::unique_ptr<CometBlock> block, Bytes& appHash,
+          std::vector<CometExecTxResult>& txResults, std::vector<CometValidatorUpdate>& validatorUpdates
         ) override
         {
-          GLOGDEBUG("TestCometListener: got incomingBlock " + std::to_string(height));
-          if (txs.size() != 0) {
-            REQUIRE(txs.size() == 1);
-            REQUIRE(txs[0].size() == txSize);
-            REQUIRE(txs[0][0] == txBorderByte);
+          GLOGDEBUG("TestCometListener: got incomingBlock " + std::to_string(block->height));
+          if (block->txs.size() != 0) {
+            REQUIRE(block->txs.size() == 1);
+            REQUIRE(block->txs[0].size() == txSize);
+            REQUIRE(block->txs[0][0] == txBorderByte);
             bool err = false;
-            for (int i = 1; i < txs[0].size() - 1; ++i) {
-              if (txs[0][i] != txContentByte) {
+            for (int i = 1; i < block->txs[0].size() - 1; ++i) {
+              if (block->txs[0][i] != txContentByte) {
                 err = true;
                 break;
               }
             }
             REQUIRE(err == false);
-            REQUIRE(txs[0][txs[0].size()-1] == txBorderByte);
+            REQUIRE(block->txs[0][block->txs[0].size()-1] == txBorderByte);
             ++txCount;
           }
-          finalizedHeight = height;
+          finalizedHeight = block->height;
           appHash.clear();
-          txResults.resize(txs.size());
+          txResults.resize(block->txs.size());
         }
         virtual void sendTransactionResult(const uint64_t tId, const Bytes& tx, const bool success, const std::string& txHash, const json& response) override {
           GLOGDEBUG("TestCometListener: got sendTransactionResult: " + response.dump() + ", txHash: " + txHash + ", success: " + std::to_string(success));
@@ -1966,16 +1965,16 @@ namespace TComet {
           REQUIRE(foundKey1);
         }
         virtual void incomingBlock(
-          const uint64_t height, const uint64_t syncingToHeight, const std::vector<Bytes>& txs, const Bytes& proposerAddr,
-          const uint64_t timeNanos, Bytes& appHash, std::vector<CometExecTxResult>& txResults, std::vector<CometValidatorUpdate>& validatorUpdates
+          const uint64_t syncingToHeight, std::unique_ptr<CometBlock> block, Bytes& appHash,
+          std::vector<CometExecTxResult>& txResults, std::vector<CometValidatorUpdate>& validatorUpdates
         ) override
         {
-          GLOGDEBUG("TestCometListener: got incomingBlock " + std::to_string(height));
-          finalizedHeight_ = height;
+          GLOGDEBUG("TestCometListener: got incomingBlock " + std::to_string(block->height));
+          finalizedHeight_ = block->height;
           appHash.clear();
 
           // At height == 2, we add node 2, so now the validator set has nodes 0, 1, and 2
-          if (height == 2) {
+          if (block->height == 2) {
             CometValidatorUpdate update;
             update.publicKey = base64::decode_into<Bytes>(cometTestKeys[2].pub_key);
             REQUIRE(update.publicKey.size() == 32);
@@ -1984,7 +1983,7 @@ namespace TComet {
           }
 
           // At height == 5, we remove node 0, so now the validator set has nodes 1 and 2 only
-          if (height == 5) {
+          if (block->height == 5) {
             CometValidatorUpdate update;
             update.publicKey = base64::decode_into<Bytes>(cometTestKeys[0].pub_key);
             REQUIRE(update.publicKey.size() == 32);

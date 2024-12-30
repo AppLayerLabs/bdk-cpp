@@ -10,7 +10,7 @@ See the LICENSE.txt file in the project root for more information.
 #include "../../src/contract/templates/simplecontract.h"
 
 #include "../sdktestsuite.hpp"
-/*
+
 
   // FIXME/TODO: reimplement basic SDKTestSuite functionality with Comet
   //             so that this testcase compiles and works unmodified:
@@ -77,4 +77,3 @@ namespace TSimpleContract {
     }
   }
 }
-*/
