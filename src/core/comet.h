@@ -97,27 +97,22 @@ struct CometTxStatus {
 };
 
 /**
- * A collection of information related to a block.
+ * A block output by the consensus engine.
+ * NOTE: the "hash" param value provided via incomingBlock(CometBlock block) IS the actual, final block hash,
+ * since CometBFT (at least in v1.0 / ABCI 2.0) seems to write the appHash we compute during incomingBlock()
+ * (that is, FinalizeBlock) in the header of the NEXT block. If you do getBlock() on the same block, you will
+ * see the exact same hash under block_id.hash in the JSON response, and the app_hash in the JSON response
+ * will be the appHash of the *previous* block, not the appHash you set in the incomingBlock() callback for
+ * that block height. In other words, the state root (app_hash, same thing) of a block in CometBFT is NOT
+ * included in the block whose processing results in that state root. Instead, app_hash is the state root
+ * as it was *before* the block in question was processed (REVIEW: unless this is somehow wrong).
  */
 struct CometBlock {
   uint64_t height = 0; ///< Block height (0 == unknown/unset).
   uint64_t timeNanos = 0; ///< Block timestamp (nanos since epoch).
   Bytes proposerAddr; ///< Address of the validator that was the block proposer.
   std::vector<Bytes> txs; ///< All block transactions (in order).
-
-
-  // --- this is NOT TRUE
-  // --- we cannot get rid of BDK::FinalizedBlock, that's where the eth stuff
-  //     will be. sha3 hash caching
-  // TODO: Here we would have an eth-compatible merkle root computed over `txs` and
-  //       whatever else we can derive from the base block data that comes from
-  //       cometbft. Cometbft gives us a data_hash that is a merkle root, but it's
-  //       fundamentaly different from what eth uses.
-  // Actually, we need to handle the demand for:
-  // - transactions root, but also
-  // - state root (is provided to comet by our machine -- this is the ABCI appHash)
-  // - receipts root --> we probably need to handle this as well, this is
-  //   derived from the vector of CometExecTxResult, but maybe also other things.
+  Bytes hash; ///< [OPTIONAL] the "hash" param, when one is provided by the specific ABCI request.
 };
 
 /**
@@ -147,6 +142,14 @@ struct CometBlock {
  *               FinalizeBlock now include the altered validator set.
  *
  * From: https://docs.cometbft.com/v1.0/spec/abci/abci++_methods#finalizeblock
+ *
+ * NOTE: Methods that return cometbft RPC results, such as sendTransactionResult(),
+ * getBlockResult(), etc. are primarily intended to return the full JSON-RPC response.
+ * These methods may return other fields derived from the JSON-RPC response (like
+ * Hash& txHash, const uint64_t blockHeight, Bytes& tx, etc.) but those are merely
+ * for convenience (for example, Bytes& tx is known at sendTransaction() time, and
+ * the driver just conveniently reminds the client via sendTransactionResponse(),
+ * saving a potential Base64-decode of the tx out of the RPC /tx response).
  */
 class CometListener {
   public:
@@ -254,38 +257,50 @@ class CometListener {
     /**
      * Notification of completing a Comet::sendTransaction() RPC request.
      * @param tId The sendTransaction() request ticket ID.
-     * @param tx Transaction that was previously sent via `Comet::sendTransaction()`.
      * @param success `true` if sendTransaction() succeeded, `false` if the transaction failed to send.
-     * @param txHash Transaction hash as CometBFT sees it (SHA256: https://docs.cometbft.com/main/spec/core/encoding).
      * @param response The full JSON-RPC response returned by cometbft.
+     * @param txHash Transaction hash as CometBFT sees it (SHA256: https://docs.cometbft.com/main/spec/core/encoding).
+     * @param tx Transaction that was previously sent via `Comet::sendTransaction()`.
      */
     virtual void sendTransactionResult(
-      const uint64_t tId, const Bytes& tx, const bool success, const std::string& txHash, const json& response
+      const uint64_t tId, const bool success, const json& response, const std::string& txHash,  const Bytes& tx
     ) {
     }
 
     /**
      * Notification of completing a Comet::checkTransaction(txHash) RPC request.
      * @param tId The checkTransaction() request ticket ID.
-     * @param txHash The transaction hash that was checked.
      * @param success Whether the transaction check ('tx' JSON-RPC method call) was successful or not.
      * @param response The full JSON-RPC response returned by cometbft.
+     * @param txHash The transaction hash that was checked.
      */
     virtual void checkTransactionResult(
-      const uint64_t tId, const std::string& txHash, const bool success, const json& response
+      const uint64_t tId, const bool success, const json& response, const std::string& txHash
+    ) {
+    }
+
+    /**
+     * Notification of completing a Comet::checkTransaction(txHash) RPC request.
+     * @param tId The getBlock() request ticket ID.
+     * @param success Whether the get block ('block' JSON-RPC method call) was successful or not.
+     * @param response The full JSON-RPC response returned by cometbft.
+     * @param blockHeight The height of the block that was retrieved.
+     */
+    virtual void getBlockResult(
+      const uint64_t tId, const bool success, const json& response, const uint64_t blockHeight
     ) {
     }
 
     /**
      * Notification of completing an asynchronous Comet::rpcAsyncCall() RPC request.
      * @param tId The checkTransaction() request ticket ID.
-     * @param method Method name for the RPC.
-     * @param params Parameters for the RPC.
      * @param success Whether the RPC was successful or not.
      * @param response The full JSON-RPC response returned by cometbft.
+     * @param method Method name for the RPC.
+     * @param params Parameters for the RPC.
      */
     virtual void rpcAsyncCallResult(
-      const uint64_t tId, const std::string& method, const json& params, const bool success, const json& response
+      const uint64_t tId, const bool success, const json& response, const std::string& method, const json& params
     ) {
     }
 
@@ -315,6 +330,9 @@ class CometImpl;
  *
  * NOTE: Comet first searches for a cometbft executable in the current working directory;
  * if it is not found, then it will search for it in the system PATH.
+ *
+ * NOTE: Comet neither writes to disk nor maintains an object cache in RAM. Caching and
+ * permanent storage should be done by the client.
  */
 class Comet : public Log::LogicalLocationProvider {
   private:
@@ -368,7 +386,7 @@ class Comet : public Log::LogicalLocationProvider {
      * status (submitted, included in a block at some height, etc).
      * @param cacheSize New cache capacity, in transaction count (if zero, disable the cache).
      */
-    void setTransactionCacheSize(const uint64_t cacheSize);
+    //void setTransactionCacheSize(const uint64_t cacheSize);
 
     /**
      * Get the global status of the Comet worker.
@@ -441,7 +459,7 @@ class Comet : public Log::LogicalLocationProvider {
      * transaction was not sent because there's already an entry for the transaction in the cache and
      * its height is not CometTxStatusHeight::REJECTED (which allows for the transaction to be resent).
      */
-    uint64_t sendTransaction(const Bytes& tx, std::shared_ptr<Hash>* ethHash = nullptr);
+    uint64_t sendTransaction(const Bytes& tx /*, std::shared_ptr<Hash>* ethHash = nullptr*/);
 
     /**
      * Enqueue a request to check the status of a transaction given its hash (CometBFT hash, i.e. SHA256).
@@ -452,6 +470,13 @@ class Comet : public Log::LogicalLocationProvider {
     uint64_t checkTransaction(const std::string& txHash);
 
     /**
+     * Enqueue a request to search the CometBFT data store for a block, given its height.
+     * @param height The block height.
+     * @return The ticket number for the block request, or 0 on error (RPC call not made).
+     */
+    uint64_t getBlock(const uint64_t height);
+
+    /**
      * Check the status of a transaction given its eth hash.
      * This will query the internal tx cache (which is also updated when FinalizedBlock is processed),
      * instead of the cometbft RPC /tx endpoint and so returns the result immediately instead of via
@@ -460,7 +485,7 @@ class Comet : public Log::LogicalLocationProvider {
      * @param txStatus Outparam to be filled with the current status of the transaction if it is found.
      * @return `true` if a CometTxStatus for the tx was found, `false` otherwise (txStatus is unmodified).
      */
-    bool checkTransactionInCache(const Hash& txEthHash, CometTxStatus& txStatus);
+    //bool checkTransactionInCache(const Hash& txEthHash, CometTxStatus& txStatus);
 
     /**
      * Make a JSON-RPC call to the RPC endpoint. The Comet engine must be in a state that has cometbft
