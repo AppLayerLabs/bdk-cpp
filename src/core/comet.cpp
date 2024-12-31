@@ -27,14 +27,7 @@ See the LICENSE.txt file in the project root for more information.
   The cometbft genesis.json file should have "tendermint/PubKeyEd25519" as the only public key type,
   whose equivalent in ABCI parlance is the "ed25519" string below.
 
-<<<<<<< HEAD
-  *****************************************************************************************************
-  FIXME: Change to the same curve that eth uses (secp256k1 / ECDSA) for validator and node keys, since
-         it is supported by CometBFT, actually.
-  *****************************************************************************************************
-=======
   (NOTE: secp256k1 and BLS keys are supported if there's a reason to use either.)
->>>>>>> origin/halley
 
   Address
   Address is a type alias of a slice of bytes. The address is calculated by hashing the public key
@@ -2326,10 +2319,7 @@ void CometImpl::prepare_proposal(const cometbft::abci::v1::PrepareProposalReques
   block.height = req.height();
   block.timeNanos = toNanosSinceEpoch(req.time());
   block.proposerAddr = toBytes(req.proposer_address());
-<<<<<<< HEAD
-=======
   //NOTE: There is no block.hash value to set here
->>>>>>> origin/halley
   toBytesVector(reqTxs, block.txs);
 
   std::vector<size_t> txIds; // Filled-in by the listener.
@@ -2361,10 +2351,7 @@ void CometImpl::process_proposal(const cometbft::abci::v1::ProcessProposalReques
   block.height = req.height();
   block.timeNanos = toNanosSinceEpoch(req.time());
   block.proposerAddr = toBytes(req.proposer_address());
-<<<<<<< HEAD
-=======
   block.hash = toBytes(req.hash());
->>>>>>> origin/halley
   toBytesVector(req.txs(), block.txs);
 
   listener_->validateBlockProposal(block, accept);
@@ -2399,14 +2386,9 @@ void CometImpl::finalize_block(const cometbft::abci::v1::FinalizeBlockRequest& r
   block->height = req.height();
   block->timeNanos = toNanosSinceEpoch(req.time());
   block->proposerAddr = toBytes(req.proposer_address());
-<<<<<<< HEAD
-  toBytesVector(req.txs(), block->txs);
-
-=======
   block->hash = toBytes(req.hash());
   toBytesVector(req.txs(), block->txs);
 /*
->>>>>>> origin/halley
   // Since we are going to transfer ownership of `block` (and thus of `block.txs`) when the callback is
   // called, unfortunately we need to compute the sha3 of every transaction before we lose them.
   std::unique_lock<std::mutex> txCacheLock(txCacheMutex_);
@@ -2418,11 +2400,7 @@ void CometImpl::finalize_block(const cometbft::abci::v1::FinalizeBlockRequest& r
     }
   }
   txCacheLock.unlock();
-<<<<<<< HEAD
-
-=======
 */
->>>>>>> origin/halley
   Bytes hashBytes;
   std::vector<CometExecTxResult> txResults;
   std::vector<CometValidatorUpdate> validatorUpdates;
@@ -2442,17 +2420,10 @@ void CometImpl::finalize_block(const cometbft::abci::v1::FinalizeBlockRequest& r
   // NOTE: acquiring the txCache_ lock for the whole FinalizeBlock tx processing loop is
   // better than acquiring it potentially thousands of times for all the transactions in a block.
   // It's better to cause some contention than to just waste CPU time for virtually no benefit.
-<<<<<<< HEAD
-  txCacheLock.lock();
-  // Check the never-happens-but-possible corner case of the transaction cache being enabled
-  // after we decided to not fill in txEthHashes above (because it was disabled then).
-  bool hasTxEthHashes = txEthHashes.size() > 0;
-=======
   //txCacheLock.lock();
   // Check the never-happens-but-possible corner case of the transaction cache being enabled
   // after we decided to not fill in txEthHashes above (because it was disabled then).
   //bool hasTxEthHashes = txEthHashes.size() > 0;
->>>>>>> origin/halley
   // Process all txs in the incoming block.
   for (int32_t i = 0; i < req.txs().size(); ++i) {
     // TODO/REVIEW: Check if we need to expose more ExecTxResult fields to the application.

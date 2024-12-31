@@ -185,13 +185,13 @@ void Blockchain::currentCometBFTHeight(const uint64_t height) {
   //       it must either be exactly height, or if < height, we'll need to ask for blocks to be replayed
 }
 
-void Blockchain::sendTransactionResult(const uint64_t tId, const Bytes& tx, const bool success, const std::string& txHash, const json& response) {
+void Blockchain::sendTransactionResult(const uint64_t tId, const bool success, const json& response, const std::string& txHash, const Bytes& tx) {
 }
 
-void Blockchain::checkTransactionResult(const uint64_t tId, const std::string& txHash, const bool success, const json& response) {
+void Blockchain::checkTransactionResult(const uint64_t tId, const bool success, const json& response, const std::string& txHash) {
 }
 
-void Blockchain::rpcAsyncCallResult(const uint64_t tId, const std::string& method, const json& params, const bool success, const json& response) {
+void Blockchain::rpcAsyncCallResult(const uint64_t tId, const bool success, const json& response, const std::string& method, const json& params) {
 }
 
 void Blockchain::cometStateTransition(const CometState newState, const CometState oldState) {

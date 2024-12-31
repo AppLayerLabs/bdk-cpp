@@ -201,14 +201,13 @@ void SDKTestSuite::advanceChain(std::vector<TxBlock>&& txs) {
     // Serialize it
     Bytes txBytes = tx.rlpSerialize();
     // Send it.
-    // Comet::SendTransaction() will compute the sha3 anyway because it
-    // will be stored in a transaction cache indexed by sha3.
-    std::shared_ptr<Hash> ethHash = std::make_shared<Hash>();
-    uint64_t tId = comet_.sendTransaction(txBytes, &ethHash);
+    //std::shared_ptr<Hash> ethHash = std::make_shared<Hash>();
+    uint64_t tId = comet_.sendTransaction(txBytes/*, &ethHash*/);
     // Take the sha3 of the serialized tx and add it to the set of
     // expected transactions.
+    Hash txHash = Utils::sha3(txBytes);
     lock.lock();
-    advanceChainPendingTxs_.insert(*ethHash);
+    advanceChainPendingTxs_.insert(txHash);
     lock.unlock();
   }
 
@@ -463,16 +462,16 @@ void SDKTestSuite::currentCometBFTHeight(const uint64_t height) {
   Blockchain::currentCometBFTHeight(height);
 }
 
-void SDKTestSuite::sendTransactionResult(const uint64_t tId, const Bytes& tx, const bool success, const std::string& txHash, const json& response) {
-  Blockchain::sendTransactionResult(tId, tx, success, txHash, response);
+void SDKTestSuite::sendTransactionResult(const uint64_t tId, const bool success, const json& response, const std::string& txHash, const Bytes& tx) {
+  Blockchain::sendTransactionResult(tId, success, response, txHash, tx);
 }
 
-void SDKTestSuite::checkTransactionResult(const uint64_t tId, const std::string& txHash, const bool success, const json& response) {
-  Blockchain::checkTransactionResult(tId, txHash, success, response);
+void SDKTestSuite::checkTransactionResult(const uint64_t tId, const bool success, const json& response, const std::string& txHash) {
+  Blockchain::checkTransactionResult(tId, success, response, txHash);
 }
 
-void SDKTestSuite::rpcAsyncCallResult(const uint64_t tId, const std::string& method, const json& params, const bool success, const json& response) {
-  Blockchain::rpcAsyncCallResult(tId, method, params, success, response);
+void SDKTestSuite::rpcAsyncCallResult(const uint64_t tId, const bool success, const json& response, const std::string& method, const json& params) {
+  Blockchain::rpcAsyncCallResult(tId, success, response, method, params);
 }
 
 void SDKTestSuite::cometStateTransition(const CometState newState, const CometState oldState) {
