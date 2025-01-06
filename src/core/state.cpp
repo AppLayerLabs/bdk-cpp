@@ -396,7 +396,7 @@ Bytes State::ethCall(const evmc_message& callInfo) {
     txContext.block_timestamp = static_cast<int64_t>(ContractGlobals::getBlockTimestamp());
     txContext.block_gas_limit = 10000000;
     txContext.block_prev_randao = {};
-    txContext.chain_id = EVMCConv::uint256ToEvmcUint256(0); // FIXME: this->options_.getChainID()
+    txContext.chain_id = EVMCConv::uint256ToEvmcUint256(blockchain_.opt().getChainID());
     txContext.block_base_fee = {};
     txContext.blob_base_fee = {};
     txContext.blob_hashes = nullptr;
@@ -406,7 +406,7 @@ Bytes State::ethCall(const evmc_message& callInfo) {
     return ContractHost(
       this->vm_,
       //this->dumpManager_,
-      //this->storage_,
+      this->blockchain_.storage(),
       randomSeed,
       txContext,
       this->contracts_,
@@ -437,7 +437,7 @@ int64_t State::estimateGas(const evmc_message& callInfo) {
   ContractHost(
     this->vm_,
     //this->dumpManager_,
-    //this->storage_,
+    blockchain_.storage(),
     randomSeed,
     evmc_tx_context(),
     this->contracts_,
@@ -603,7 +603,7 @@ bool State::validateNextBlock(const FinalizedBlock& block) const {
   return true;
 }
 
-void State::processBlock(const FinalizedBlock& block) {
+void State::processBlock(const FinalizedBlock& block, std::vector<bool>& succeeded, std::vector<uint64_t>& gasUsed) {
   std::unique_lock lock(this->stateMutex_);
 
   // NOTE:Block validation has to be done separately by the caller
@@ -613,6 +613,16 @@ void State::processBlock(const FinalizedBlock& block) {
   //if (vStatus != BlockValidationStatus::valid) {
   //  return vStatus;
   //}
+
+  // Although block validation should have already been done, ensure
+  // that the block height is the expected one.
+  if (block.getNHeight() != height_ + 1) {
+    throw DynamicException(
+      "State::processBlock(): current height is " +
+      std::to_string(height_) + " and block height is " +
+      std::to_string(block.getNHeight())
+    );
+  }
 
   // Update contract globals based on (now) latest block
   // FIXME/TODO: coinbase and blockhash are not being currently set
@@ -627,9 +637,16 @@ void State::processBlock(const FinalizedBlock& block) {
   // Process transactions of the block within the current state
   uint64_t txIndex = 0;
   for (auto const& tx : block.getTxs()) {
-    this->processTransaction(tx, txIndex, blockHash, randomHash);
+    bool txSucceeded;
+    uint64_t txGasUsed;
+    this->processTransaction(tx, txIndex, blockHash, randomHash, txSucceeded, txGasUsed);
+    succeeded.push_back(txSucceeded);
+    gasUsed.push_back(txGasUsed);
     txIndex++;
   }
+
+  // Update the state height after processing
+  height_ = block.getNHeight();
 
   // Not needed
   // Process rdPoS State
@@ -657,7 +674,8 @@ void State::processBlock(const FinalizedBlock& block) {
 }
 
 void State::processTransaction(
-  const TxBlock& tx, const uint64_t& txIndex, const Hash& blockHash, const Hash& randomnessHash
+  const TxBlock& tx, const uint64_t& txIndex, const Hash& blockHash, const Hash& randomnessHash,
+  bool& succeeded, uint64_t& gasUsed
 ) {
   // NOTE: Caller must have stateMutex_ locked.
 
@@ -701,7 +719,7 @@ void State::processTransaction(
     ContractHost host(
       this->vm_,
       //this->dumpManager_,
-      //this->storage_,
+      blockchain_.storage(),
       randomSeed,
       txContext,
       this->contracts_,
@@ -714,6 +732,11 @@ void State::processTransaction(
     );
 
     host.execute(tx.txToMessage(), accountTo.contractType);
+
+    const auto& addTxData = host.getAddTxData();
+    succeeded = addTxData.succeeded;
+    gasUsed = addTxData.gasUsed;
+
   } catch (std::exception& e) {
     LOGERRORP("Transaction: " + tx.hash().hex().get() + " failed to process, reason: " + e.what());
   }

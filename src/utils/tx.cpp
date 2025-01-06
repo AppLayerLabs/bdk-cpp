@@ -10,6 +10,21 @@ See the LICENSE.txt file in the project root for more information.
 #include "dynamicexception.h"
 #include "evmcconv.h"
 
+/**
+ * FIXME:
+ *
+ * TxBlock ctor should NOT validate the signature, as the TxBlock object
+ * should be primarily understood as the deserialized form of a transaction
+ * as a byte stream/array.
+ *
+ * If we write the original byte stream of a TxBlock in a certain store and
+ * in that store we know all transactions already had their signatures verified,
+ * then reverifying the signature on reconstructing the TxBlock object is pointless.
+ *
+ * Instead, signature verification sould be done in a TxBlock::verifySig() method.
+ * If necessary, add a boolean field to track whether the signature was verified already.
+ */
+
 TxBlock::TxBlock(const bytes::View bytes, const uint64_t&) {
   uint64_t index = 0;
   bytes::View txData = bytes.subspan(1);

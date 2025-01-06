@@ -21,7 +21,7 @@ class FinalizedBlock;
 
 /// Abstraction of the blockchain's current state at the current block.
 class State : public Log::LogicalLocationProvider {
-  protected: // TODO: those shouldn't be protected, plz refactor someday
+  private:
     Blockchain& blockchain_; ///< Parent Blockchain object
 
     // Machine state
@@ -59,8 +59,13 @@ class State : public Log::LogicalLocationProvider {
      * @param blockHash The hash of the block being processed.
      * @param txIndex The index of the transaction inside the block that is being processed.
      * @param randomnessHash The hash of the previous block's randomness seed.
+     * @param succeeded `true` if the transaction succeeded. `false` if it reverted.
+     * @param gasUsed Amount of gas used by the transaction.
      */
-    void processTransaction(const TxBlock& tx, const uint64_t& txIndex, const Hash& blockHash, const Hash& randomnessHash);
+    void processTransaction(
+      const TxBlock& tx, const uint64_t& txIndex, const Hash& blockHash, const Hash& randomnessHash,
+      bool& succeeded, uint64_t& gasUsed
+    );
 
     /**
      * Helper function that does a sanity check on all contracts in the accounts_ map.
@@ -124,9 +129,11 @@ class State : public Log::LogicalLocationProvider {
     /**
      * Apply a block to the current machine state (does NOT validate it first).
      * @param block The block to process.
+     * @param succeeded Empty outparam vector of tx execution success status.
+     * @param gasUsed Empty outparam vector of tx execution gas used.
      * @throw DynamicException on any error.
      */
-    void processBlock(const FinalizedBlock& block);
+    void processBlock(const FinalizedBlock& block, std::vector<bool>& succeeded, std::vector<uint64_t>& gasUsed);
 
     /**
      * Verify if a transaction can be accepted within the current state.

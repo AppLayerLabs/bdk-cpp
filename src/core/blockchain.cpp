@@ -54,7 +54,16 @@ void Blockchain::start() {
   // to get a little behind the chain or, if it wants to pay for the memory
   // cost, it can benefit from the process fork checkpointer.
 
+  // Wait for Comet to be in RUNNING state, since that is required
+  // for e.g. Comet::sendTransaction() to succeed.
+  this->comet_.setPauseState(CometState::RUNNING);
   this->comet_.start();
+  std::string cometErr = this->comet_.waitPauseState(10000);
+  if (cometErr != "") {
+    throw DynamicException("Error while waiting for CometBFT: " + cometErr);
+  }
+  this->comet_.setPauseState();
+
   this->http_.start();
 }
 
@@ -84,7 +93,14 @@ void Blockchain::initChain(
   //   comet genesis state.
   // TODO: replace this with a call to a private initState() function (Blockchain is friend of State).
   std::unique_lock<std::shared_mutex> lock(state_.stateMutex_);
-  state_.height_ = initialHeight;
+
+  // Unfortunately, CometBFT set the state height counter to the height for which you
+  // are waiting a block for. The default initial height is 1, not 0 (0 is invalid in
+  // cometBFT). However, we do use height 0 to mean the state is at genesis and waiting
+  // for the first actual block (with height 1), so we need to fix this on our side.
+  state_.height_ = initialHeight - 1;
+
+  LOGDEBUG("Blockchain::initChain(): Height = " + std::to_string(initialHeight));
   state_.timeMicros_ = genesisTime * 1'000'000; // genesisTime is in seconds, so convert to microseconds
   // TODO: If we have support for initialAppState, apply it here, or load it from a BDK side channel
   //   like a genesis State dump/snapshot.
@@ -124,7 +140,31 @@ void Blockchain::incomingBlock(
       // REVIEW: in fact, we shouldn't even need to verify the block at this point?
       LOGFATALP_THROW("Invalid block.");
     } else {
-      state_.processBlock(finBlock);
+      // Update the sha3 --> sha256 txhash interop map
+      // FIXME/TODO: we will need a strategy to be able to clean up tx hash mappings
+      //  for old blocks, such as adding a bucket ID prefix to each key, then looking
+      //  up a hash multiple times in all buckets.
+      for (uint32_t i = 0; i < block->txs.size(); ++i) {
+        Hash txHashSha3 = Utils::sha3(block->txs[i]);
+        Hash txHashSha256 = Utils::sha256(block->txs[i]);
+        storage_.putTxMap(txHashSha3, txHashSha256);
+      }
+      // Advance machine state
+      std::vector<bool> succeeded;
+      std::vector<uint64_t> gasUsed;
+      state_.processBlock(finBlock, succeeded, gasUsed);
+
+      // Fill in the txResults that get sent to cometbft for storage
+      for (uint32_t i = 0; i < block->txs.size(); ++i) {
+        CometExecTxResult txRes;
+        txRes.code = succeeded[i] ? 0 : 1;
+        txRes.gasUsed = gasUsed[i];
+        txRes.gasWanted = static_cast<uint64_t>(finBlock.getTxs()[i].getGasLimit());
+        //txRes.output = Bytes... FIXME: transaction execution result/return arbitrary bytes
+        //in ContractHost::execute() there's an "output" var generated in the EVM code branch,
+        //  but not in the CPP contract case branch
+        txResults.emplace_back(txRes);
+      }
     }
   } catch (const std::exception& ex) {
     // We need to fail the blockchain node (fatal)

@@ -135,7 +135,7 @@ Options::Options(
   //minValidators_(minValidators),
   //discoveryNodes_(discoveryNodes),
 
-  // FIXME restate setting the coinbase_ value to a parameter
+  // FIXME reinstate setting the coinbase_ value to a parameter
   //coinbase_(Secp256k1::toAddress(Secp256k1::toUPub(privKey))),
 
   //isValidator_(true), genesisBlock_(genesisBlock), genesisBalances_(genesisBalances), genesisValidators_(genesisValidators),

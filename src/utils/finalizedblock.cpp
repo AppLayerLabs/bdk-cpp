@@ -192,7 +192,7 @@ FinalizedBlock FinalizedBlock::fromCometBlock(const CometBlock& block) {
 
   uint64_t blockSize = 1; // FIXME
 
-  Hash hash; // FIXME -- header hash
+  Hash hash(block.hash);
   std::vector<TxValidator> txValidators;
 
   return {

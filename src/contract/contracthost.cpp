@@ -7,6 +7,8 @@ See the LICENSE.txt file in the project root for more information.
 
 #include "../utils/strconv.h" //cArrayToBytes
 
+#include "../core/storage.h"
+
 #include "contracthost.h"
 #include "dynamiccontract.h"
 
@@ -44,11 +46,9 @@ ContractHost::~ContractHost() {
       var.get().commit();
     }
 
-    // FIXME: reimplement event db
-    //
-    //for (const auto& event : this->stack_.getEvents()) {
-    //  this->storage_.putEvent(event);
-    //}
+    for (const auto& event : this->stack_.getEvents()) {
+      this->storage_.putEvent(event);
+    }
 
     for (const auto& contractPair : this->stack_.getContracts()) {
       const auto& [address, contract] = contractPair;
@@ -173,7 +173,7 @@ evmc::Result ContractHost::createEVMContract(
 }
 
 bool ContractHost::isTracingCalls() const noexcept {
-  return bool(txHash_); // && storage_.getIndexingMode() == IndexingMode::RPC_TRACE; // FIXME: reintroduce Storage for all stuff that is not saving blocks on disk
+  return bool(txHash_) && storage_.getIndexingMode() == IndexingMode::RPC_TRACE;
 }
 
 void ContractHost::traceCallStarted(const evmc_message& msg) noexcept {
@@ -226,16 +226,16 @@ void ContractHost::saveCallTrace() noexcept {
   }
 
   try {
-    //storage_.putCallTrace(txHash_, callTracer_.root());  // FIXME storage for non block stuff
+    storage_.putCallTrace(txHash_, callTracer_.root());
   } catch (const std::exception& err) {
     LOGERROR(std::string("Fail to persist call trace: ") + err.what());
   }
 }
 
 void ContractHost::saveTxAdditionalData() noexcept {
-  if (!this->addTxData_.hash /*|| this->storage_.getIndexingMode() == IndexingMode::DISABLED*/) return;// FIXME storage for non block stuff
+  if (!this->addTxData_.hash || this->storage_.getIndexingMode() == IndexingMode::DISABLED) return;
   try {
-    //this->storage_.putTxAdditionalData(this->addTxData_);// FIXME storage for non block stuff
+    this->storage_.putTxAdditionalData(this->addTxData_);
   } catch (const std::exception& err) {
     LOGERROR(std::string("Fail to persist additional tx data: ") + err.what());
   }

@@ -93,9 +93,22 @@ class SDKTestSuite : public Blockchain {
     }
 
     /// Construct a test Blockchain.
-    explicit SDKTestSuite(const Options& options, const std::string instanceId = "")
+    explicit SDKTestSuite(
+      const Options& options,
+      const std::string instanceId = "",
+      const std::vector<TestAccount>& accounts = {}
+    )
       : Blockchain(options, options.getRootPath(), instanceId)
     {
+      // We need to give some tokens to the chainOwner and to all the
+      //  `accounts` that were passed in so they can pay for test contract
+      //  deployment, etc.
+      state_.addBalance(options_.getChainOwner());
+      for (const TestAccount& account : accounts) {
+        state_.addBalance(account.address);
+      }
+      // SimpleContract doesn't call start(), so we must start.
+      start();
     }
 
     /// Destructor. Ensure the Blockchain is stopped before it is destroyed.
@@ -115,19 +128,22 @@ class SDKTestSuite : public Blockchain {
     /// Estimate gas.
     int64_t estimateGas(const evmc_message& callInfo);
 
+    // FIXME/TODO:
+    // We probably don't want to return CometBlock here (FinalizedBlock?), and
+    // we do want to ask storage_ for it, which will either get
+    // it from a RAM block cache on itself or from cometbft RPC
     /**
      * Get a block by its hash.
      * @param hash Hash of the block to get.
      * @return A pointer to the block, or nullptr if not found.
      */
-    const std::shared_ptr<const CometBlock> getBlock(const Hash& hash) const;
-
+    //const std::shared_ptr<const CometBlock> getBlock(const Hash& hash) const;
     /**
      * Get a block by its height.
      * @param height Height of the block to get.
      * @return A pointer to the block, or nullptr if not found.
      */
-    const std::shared_ptr<const CometBlock> getBlock(const uint64_t height) const;
+    //const std::shared_ptr<const CometBlock> getBlock(const uint64_t height) const;
 
     /**
      * Initialize all components of a full blockchain node.
@@ -630,9 +646,8 @@ class SDKTestSuite : public Blockchain {
      * @param txHash The hash of the transaction to look for events.
      */
     std::vector<Event> getEvents(const Hash& txHash) {
-      //auto tx = this->storage_.getTx(txHash);
-      //return this->storage_.getEvents(std::get<3>(tx), std::get<2>(tx));
-      return {}; // FIXME
+      auto tx = this->storage_.getTx(txHash);
+      return this->storage_.getEvents(std::get<3>(tx), std::get<2>(tx));
     }
 
     /**
@@ -652,7 +667,6 @@ class SDKTestSuite : public Blockchain {
       void(TContract::*func)(const EventParam<Args, Flags>&...),
       bool anonymous = false
     )  {
-      /*
       // Get all the events emitted by the transaction.
       auto eventSignature = ABI::EventEncoder::encodeSignature<Args...>(
         ContractReflectionInterface::getFunctionName(func)
@@ -661,7 +675,7 @@ class SDKTestSuite : public Blockchain {
       if (!anonymous) topicsToFilter.push_back(eventSignature);
       std::vector<Event> filteredEvents;
       // Specifically filter events from the most recent 2000 blocks
-      uint64_t lastBlock = this->storage_.latest()->getNHeight();
+      uint64_t lastBlock = this->state_.getHeight();
       uint64_t firstBlock = (lastBlock - 2000 >= 0) ? lastBlock - 2000 : 0;
       auto allEvents = this->getEvents(firstBlock, lastBlock, address, {});
 
@@ -679,10 +693,7 @@ class SDKTestSuite : public Blockchain {
         }
       }
       return filteredEvents;
-      */
-      return {}; // FIXME
     }
-
 
     /**
      * Get events emitted by a given address.
@@ -703,7 +714,6 @@ class SDKTestSuite : public Blockchain {
       const std::tuple<EventParam<Args, Flags>...>& args,
       bool anonymous = false
     ) {
-      /*
       // Get all the events emitted by the transaction.
       auto eventSignature = ABI::EventEncoder::encodeSignature<Args...>(
         ContractReflectionInterface::getFunctionName(func)
@@ -718,7 +728,7 @@ class SDKTestSuite : public Blockchain {
 
       // Filter the events by the topics, from the most recent 2000 blocks
       std::vector<Event> filteredEvents;
-      uint64_t lastBlock = this->storage_.latest()->getNHeight();
+      uint64_t lastBlock = this->state_.getHeight();
       uint64_t firstBlock = (lastBlock > 2000) ? lastBlock - 2000 : 0;
       auto allEvents = this->getEvents(firstBlock, lastBlock, address, {});
       for (const auto& event : allEvents) {
@@ -734,8 +744,6 @@ class SDKTestSuite : public Blockchain {
         }
       }
       return filteredEvents;
-      */
-      return {}; // FIXME
     }
 
     // Forward declaration for the extractor
@@ -763,7 +771,6 @@ class SDKTestSuite : public Blockchain {
       auto eventSignature = ABI::EventEncoder::encodeSignature<Args...>(
           ContractReflectionInterface::getFunctionName(func)
       );
-      /*
       std::vector<Hash> topicsToFilter;
       static_assert(ABI::always_false<TupleType>, "");
       if (!anonymous) topicsToFilter.push_back(eventSignature);
@@ -796,13 +803,7 @@ class SDKTestSuite : public Blockchain {
       }
 
       return tuples;
-      */
-
-      // FIXME
-      std::vector<TupleType> tuples;
-      return tuples;
     }
-
 
     /**
      * Get events emitted by a given confirmed transaction.
@@ -821,7 +822,6 @@ class SDKTestSuite : public Blockchain {
       void(TContract::*func)(const EventParam<Args, Flags>&...),
       bool anonymous = false
     ) {
-      /*
       // Get all the events emitted by the transaction.
       auto eventSignature = ABI::EventEncoder::encodeSignature<Args...>(
         ContractReflectionInterface::getFunctionName(func)
@@ -845,8 +845,6 @@ class SDKTestSuite : public Blockchain {
         }
       }
       return filteredEvents;
-      */
-      return {}; // FIXME
     }
 
     /**
@@ -868,7 +866,6 @@ class SDKTestSuite : public Blockchain {
       const std::tuple<EventParam<Args, Flags>...>& args,
       bool anonymous = false
     ) {
-    /*
       // Get all the events emitted by the transaction.
       auto eventSignature = ABI::EventEncoder::encodeSignature<Args...>(
         ContractReflectionInterface::getFunctionName(func)
@@ -897,8 +894,6 @@ class SDKTestSuite : public Blockchain {
         }
       }
       return filteredEvents;
-    */
-      return {}; // FIXME
     }
 
     // ------------------------------------------------------------------

@@ -34,15 +34,33 @@ class Storage : public Log::LogicalLocationProvider {
   private:
     Blockchain& blockchain_; ///< Our parent object through which we reach the other components
 
-    // Not retaining any block-related data or metadata for now
-    //std::atomic<std::shared_ptr<const FinalizedBlock>> latest_; ///< Pointer to the latest block in the blockchain.
-    //DB blocksDb_;  ///< Database object that contains all the blockchain blocks
+    // NOTE: Initial Comet/BDK code integration strategy:
+    //
+    //       At first, we will simply not store any contract or chain data
+    //       at all, and instead of asking the DB, we just make an RPC call
+    //       to cometbft, get a Comet object, then construct a BDK object
+    //       like TxBlock or FinalizedBlock dynamically to satisfy the caller.
+    //       This must be enough for the contract tests to pass, and then
+    //       we move on from that baseline state to figure out what exactly
+    //       to cache, what the BDK-side objects should look like exactly, etc.
 
-    // FIXME/TODO: given the comment below for the eventsdb ("should be removed")
-    //   maybe what we need is a generic "nodeDb_" that stores everything? or at
-    //   least it's all under the same speedb instance / data directory.
-    //   Why would we ever need more than one database instance / directory?
-    DB blocksDb_;  ///< We need to keep this because the callTrace feature is being stored here
+    // NOTE: Ideally, we don't keep a block store, but we may
+    //       have to retain a pointer to a latest ETH block *header*,
+    //       not the full block data.
+    //       FinalizedBlock contains ALL the transactions, so storing FinalizedBlock
+    //       objects is in fact storing the entire block.
+    //       We do NOT want to do that; we want the blocks of transactions to be
+    //       stored in the CometBFT side ONLY.
+    //       FinalizedBlock should only contain metadata. If we want the "actual block",
+    //       that is, the actual transactions, we should query CometBFT instead.
+    //
+    // TODO: Remove the vector<TxBlock> field from FinalizedBlock; retrieve
+    //       transactions from CometBFT or cache them in RAM as they are pulled
+    //       from CometBFT.
+    //
+    //std::atomic<std::shared_ptr<const FinalizedBlock>> latest_; ///< Pointer to the latest block in the blockchain.
+
+    DB blocksDb_;  ///< Database object that contains all the blockchain blocks
     DB eventsDb_; ///< DB exclusive to events (should be removed in future)
 
     // Get it via blockchain_.opt() instead
@@ -70,6 +88,21 @@ class Storage : public Log::LogicalLocationProvider {
     ~Storage() = default; ///< Destructor.
 
     std::string getLogicalLocation() const override;
+
+    /**
+     * Store a sha3 -> sha256 txHash mapping.
+     * @param txHashSha3 Key.
+     * @param txHashSha256 Value.
+     */
+    void putTxMap(Hash txHashSha3, Hash txHashSha256);
+
+    /**
+     * Load a sha3 -> sha256 txHash mapping.
+     * @param txHashSha3 Key.
+     * @param txHashSha256 Value (outparam).
+     * @return `true` if mapping found, `false` otherwise (txHashSha256 is unset).
+     */
+    bool getTxMap(Hash txHashSha3, Hash& txHashSha256) const;
 
     /// Wrapper for `pushBackInternal()`. Use this as it properly locks `chainLock_`.
     //void pushBlock(FinalizedBlock block);
@@ -116,9 +149,12 @@ class Storage : public Log::LogicalLocationProvider {
      * @return A tuple with the found transaction, block hash, index and height.
      * @throw DynamicException on hash mismatch.
      */
-    //std::tuple<
-    //  const std::shared_ptr<const TxBlock>, const Hash, const uint64_t, const uint64_t
-    //> getTx(const Hash& tx) const;
+    // FIXME: remove the Hash (get<1>) param as it seems to be unused; it would require
+    //        a second separate RPC call to fetch.
+    //        right now, Hash is being set to 0x0000..0000
+    std::tuple<
+      const std::shared_ptr<const TxBlock>, const Hash, const uint64_t, const uint64_t
+    > getTx(const Hash& tx) const;
 
     /**
      * Get a transaction from a block with a specific index.
@@ -157,14 +193,14 @@ class Storage : public Log::LogicalLocationProvider {
      * Stores additional transaction data
      * @param txData The additional transaction data
      */
-    //void putTxAdditionalData(const TxAdditionalData& txData);
+    void putTxAdditionalData(const TxAdditionalData& txData);
 
     /**
      * Retrieve the stored additional transaction data.
      * @param txHash The target transaction hash.
      * @return The transaction data if existent, or an empty optional otherwise.
      */
-    //std::optional<TxAdditionalData> getTxAdditionalData(const Hash& txHash) const;
+    std::optional<TxAdditionalData> getTxAdditionalData(const Hash& txHash) const;
 
     /**
      * Store a transaction call trace.

@@ -120,7 +120,7 @@ int main(int argc, char* argv[]) {
 // ----------------------------------------------------------------------
 
 /**
- * TODO:
+ * TODO (review tests):
  *
  * The assumption behind deployContract(), and probably other bits of unit testing functionality,
  * no longer holds, as cometbft does not really give us an "advanceChain()" RPC call -- there's no
@@ -134,10 +134,6 @@ int main(int argc, char* argv[]) {
  * using advancechain to test revert means instead looking at a call transaction and cheching its
  * status afterwards, ultimately (can also run the tx blob and metadata(sig, gas payer balance + gas limit) past
  * basic transaction checking first etc).
- *
- * TODO:
- * - advanceChain (new one w/ cometbft)
- * - last thing, re-add storage_ + events and reimplement SDKTestSuite get-event methods
  */
 
 // Getter for `chainOwnerAccount_`.
@@ -148,22 +144,19 @@ TestAccount SDKTestSuite::getChainOwnerAccount() const {
 // Get the native balance of a given address.
 const uint256_t SDKTestSuite::getNativeBalance(const Address& address) const {
   return this->state_.getNativeBalance(address);
-  //return 1000000000; // FIXME/TODO state_ query
 }
 
 // Get the nonce of a given address.
 const uint64_t SDKTestSuite::getNativeNonce(const Address& address) const {
   return this->state_.getNativeNonce(address);
-  //return 0; // FIXME/TODO state_ query
 }
 
 int64_t SDKTestSuite::estimateGas(const evmc_message& callInfo) {
   return this->state_.estimateGas(callInfo);
-  //return 0; // FIXME/TODO state_ query
 }
 
 // Get a block by its hash.
-const std::shared_ptr<const CometBlock> SDKTestSuite::getBlock(const Hash& hash) const {
+//const std::shared_ptr<const CometBlock> SDKTestSuite::getBlock(const Hash& hash) const {
 
   // easiest implementation:
   // - fetch block from cometbft store via RPC
@@ -176,14 +169,14 @@ const std::shared_ptr<const CometBlock> SDKTestSuite::getBlock(const Hash& hash)
   // CometBlock object itself).
 
   //return this->storage_.getBlock(hash);
-  return {}; // FIXME/TODO: since it's for testing, this will first get this with a blocking RPC call to cometbft to fetch the block, later, can be cached locally as well
-}
+ // return {}; // FIXME/TODO: since it's for testing, this will first get this with a blocking RPC call to cometbft to fetch the block, later, can be cached locally as well
+//}
 
 // Get a block by its height.
-const std::shared_ptr<const CometBlock> SDKTestSuite::getBlock(const uint64_t height) const {
+//const std::shared_ptr<const CometBlock> SDKTestSuite::getBlock(const uint64_t height) const {
   //return this->storage_.getBlock(height);
-  return {}; // FIXME/TODO: since it's for testing, this will first get this with a blocking RPC call to cometbft to fetch the block, later, can be cached locally as well
-}
+//  return {}; // FIXME/TODO: since it's for testing, this will first get this with a blocking RPC call to cometbft to fetch the block, later, can be cached locally as well
+//}
 
 // Compatibility method for tests that want to advance a cometbft blockchain.
 void SDKTestSuite::advanceChain(std::vector<TxBlock>&& txs) {
@@ -260,7 +253,7 @@ SDKTestSuite SDKTestSuite::createNewEnvironment(
     // Use a default cometbft genesis and validator private key for testing
     json defaultCometBFTOptions = json::parse(R"(
       {
-        "genesis":
+        "genesis.json":
         {
           "genesis_time": "2024-09-17T18:26:34.583377166Z",
           "chain_id": "",
@@ -301,7 +294,7 @@ SDKTestSuite SDKTestSuite::createNewEnvironment(
           "app_hash": ""
         },
 
-        "privValidatorKey":
+        "priv_validator_key.json":
         {
           "address": "4C1C6CF20843997082D7F7EF302A05DD6A757B99",
           "pub_key": {
@@ -312,9 +305,30 @@ SDKTestSuite SDKTestSuite::createNewEnvironment(
             "type": "tendermint/PrivKeyEd25519",
             "value": "u754POzgx4Tc4JBZvVbt4MVk+EhN0GePq1RcMmXj7BJz2WvHBuWYnPbdGGc1m2hpvRSUvrC0SNuyb5ruiU5KEg=="
           }
-        }
+        },
+
+        "node_key.json": {
+          "priv_key": {
+            "type": "tendermint/PrivKeyEd25519",
+            "value": "DJZS1+kjt1kICsxkgfKuFaBW3OYeefr75gpy1jeTZfsd6MIwWjUKJClUnfC7XZCUApoZ4GpksvGyku5aXdQeAg=="
+          }
+        },
+
+        "config.toml": {}
       }
     )");
+
+    // P2P/RPC parameters are required, generate them
+    int p2pPort = SDKTestSuite::getTestPort();
+    int rpcPort = SDKTestSuite::getTestPort();
+    defaultCometBFTOptions["config.toml"]["p2p"] = {
+      {"laddr", "tcp://0.0.0.0:" + std::to_string(p2pPort)},
+      {"allow_duplicate_ip", true},
+      {"addr_book_strict", false}
+    };
+    defaultCometBFTOptions["config.toml"]["rpc"] = {
+      {"laddr", "tcp://0.0.0.0:" + std::to_string(rpcPort)},
+    };
 
     // The Chain ID parameter is actually controlled by the Options object, and it is an uint64_t.
     // CometBFT expects a string for it, so we simply set it to the decimal string conversion of
@@ -351,7 +365,9 @@ SDKTestSuite SDKTestSuite::createNewEnvironment(
   } else {
     options_ = std::make_unique<Options>(*options);
   }
-  return SDKTestSuite(*options_, instanceId);
+
+  // Defer initial testing deposits to the SDKTestSuite ctor
+  return SDKTestSuite(*options_, instanceId, accounts);
 }
 
 // Create a new TxBlock object based on the provided account and given the current state (for nonce).

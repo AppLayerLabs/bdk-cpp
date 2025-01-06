@@ -12,6 +12,8 @@ See the LICENSE.txt file in the project root for more information.
 
 #include "blockchain.h"
 
+#include "../libs/base64.hpp"
+
 static bool topicsMatch(const Event& event, const std::vector<Hash>& topics) {
   if (topics.empty()) return true; // No topic filter applied
   const std::vector<Hash>& eventTopics = event.getTopics();
@@ -54,6 +56,17 @@ std::string Storage::getLogicalLocation() const {
 
 IndexingMode Storage::getIndexingMode() const {
   return blockchain_.opt().getIndexingMode();
+}
+
+void Storage::putTxMap(Hash txHashSha3, Hash txHashSha256) {
+  blocksDb_.put(txHashSha3.asBytes(), txHashSha256.asBytes(), DBPrefix::txSha3ToSha256);
+}
+
+bool Storage::getTxMap(Hash txHashSha3, Hash& txHashSha256) const {
+  const Bytes hashData = blocksDb_.get(txHashSha3, DBPrefix::txSha3ToSha256);
+  if (hashData.empty()) return false;
+  txHashSha256 = Hash(hashData);
+  return true;
 }
 
 /*
@@ -154,10 +167,12 @@ uint64_t Storage::currentChainSize() const {
 }
 
 bool Storage::txExists(const Hash& tx) const { return blocksDb_.has(tx, DBPrefix::txToBlock); }
+*/
 
 std::tuple<
   const std::shared_ptr<const TxBlock>, const Hash, const uint64_t, const uint64_t
 > Storage::getTx(const Hash& tx) const {
+  /*
   const Bytes txData = blocksDb_.get(tx, DBPrefix::txToBlock);
   if (txData.empty()) return std::make_tuple(nullptr, Hash(), 0u, 0u);
 
@@ -171,8 +186,74 @@ std::tuple<
     std::make_shared<const TxBlock>(getTxFromBlockWithIndex(blockData, blockIndex)),
     blockHash, blockIndex, blockHeight
   );
+  */
+
+  // First thing we would do is check a TxBlock object cached in RAM (or the
+  //  TxBlock plus all the other elements in the tuple that we are fetching).
+  //
+  // FIXME: we NEED this RAM cache because the transaction indexer at the cometbft
+  //  end lags a bit -- the transaction simply isn't there for a while AFTER the block
+  //  is delivered, so we need to cache this on our end in RAM anyway.
+  //  (use the txCache that was in the Comet driver, move it to the Storage class
+  //   and use it to cache TxBlock objects instead of raw tx bytes).
+  //  the disk retrieval works fine for older data that has been flushed from the
+  //  RAM cache already.
+  //
+  // Right now we don't have this cache so we just hit cometbft:
+
+  // HACK: sleep a bit so cometbft has time to index the transaction
+  // FIXME: take this out when the first test is passing
+  //        then add the txCache to Storage
+  std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+
+  // Translate `tx` (BDK sha3 hash) to a CometBFT sha256 hash
+  Hash txSha256;
+  if (getTxMap(tx, txSha256)) {
+
+    // Get the data via a sync (blocking) RPC request to cometbft
+    Bytes hx = Hex::toBytes(txSha256.hex());
+    std::string encodedHexBytes = base64::encode_into<std::string>(hx.begin(), hx.end());
+    json params = { {"hash", encodedHexBytes} };
+    json ret;
+    if (
+        blockchain_.comet().rpcSyncCall("tx", params, ret) &&
+        ret.is_object() && ret.contains("result") && ret["result"].is_object()
+       )
+    {
+      // Validate returned JSON
+      const auto& result = ret["result"];
+      if (
+          result.contains("tx") && result["tx"].is_string() &&
+          result.contains("height") && result["height"].is_string() &&
+          result.contains("index") && result["index"].is_string()
+         )
+      {
+        // Base64-decode the tx string data into a Bytes
+        Bytes txBytes = base64::decode_into<Bytes>(result["tx"].get<std::string>());
+
+        // Decode de Bytes into a TxBlock
+        uint64_t chainId = blockchain_.opt().getChainID();
+        std::shared_ptr<const TxBlock> txBlock = std::make_shared<TxBlock>(txBytes, chainId);
+
+        // Block height and index of tx within block
+        uint64_t blockHeight = std::stoull(result["height"].get<std::string>());
+        uint64_t blockIndex = std::stoull(result["index"].get<std::string>());
+
+        // REVIEW: For some reason we need to fill in the hash of the
+        //   block as well, but that would be another lookup for the hash
+        //   of the block at a given block height.
+        //   (This value seems unused and we should remove it anyways).
+        Hash blockHash;
+
+        // Assemble return value
+        return std::make_tuple(txBlock, blockHash, blockIndex, blockHeight);
+      }
+    }
+  }
+  return std::make_tuple(nullptr, Hash(), 0u, 0u);
 }
 
+/*
 std::tuple<
   const std::shared_ptr<const TxBlock>, const Hash, const uint64_t, const uint64_t
 > Storage::getTxByBlockHashAndIndex(const Hash& blockHash, const uint64_t blockIndex) const {
@@ -200,6 +281,7 @@ std::tuple<
     Hash(blockHash), blockIndex, blockHeight
   );
 }
+*/
 
 void Storage::putTxAdditionalData(const TxAdditionalData& txData) {
   Bytes serialized;
@@ -217,7 +299,7 @@ std::optional<TxAdditionalData> Storage::getTxAdditionalData(const Hash& txHash)
   in(txData).or_throw();
   return txData;
 }
-*/
+
 
 void Storage::putCallTrace(const Hash& txHash, const trace::Call& callTrace) {
   Bytes serial;
