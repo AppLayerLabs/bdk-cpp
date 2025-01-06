@@ -52,6 +52,10 @@ struct View<Bytes> : std::span<const Byte> {
   template<bytes::DataIterator I, std::sized_sentinel_for<I> S>
   constexpr View(I begin, S end) : span(begin, end) {}
 
+  constexpr auto cbegin() const { return begin(); }
+
+  constexpr auto cend() const { return end(); }
+
   explicit operator Bytes() const {
     return Bytes(begin(), end());
   }

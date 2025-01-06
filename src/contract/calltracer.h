@@ -81,9 +81,9 @@ public:
     return handler_.onMessage(std::forward<decltype(msg)>(msg));
   }
 
-  const MessageHandler& getHandler() const { return handler_; }
+  const MessageHandler& handler() const { return handler_; }
 
-  MessageHandler& getHandler() { return handler_; }
+  MessageHandler& handler() { return handler_; }
 
   bool hasCallTrace() const { return rootCall_ != nullptr; }
 

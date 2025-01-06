@@ -34,7 +34,17 @@ class RandomGen {
      * Constructor.
      * @param seed A random seed for initialization.
      */
-    explicit RandomGen(const Hash& seed) : seed_(seed) {};
+    explicit RandomGen(const Hash& seed) : seed_(seed) {}
+
+    ~RandomGen() = default;
+
+    RandomGen(const RandomGen&);
+
+    RandomGen(RandomGen&& other) noexcept : seed_(other.seed_) {}
+
+    RandomGen& operator=(const RandomGen&);
+
+    RandomGen& operator=(RandomGen&&) noexcept;
 
     /// Getter for `seed_`.
     inline const Hash& getSeed() const { std::lock_guard lock(seedLock_); return this->seed_; }

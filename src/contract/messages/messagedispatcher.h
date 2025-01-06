@@ -2,22 +2,30 @@
 #define BDK_MESSAGES_MESSAGEDISPATCHER_H
 
 #include "common.h"
+#include "bytes/hex.h"
 #include "utils/utils.h"
 #include "concepts.h"
 #include "executioncontext.h"
 #include "evmcontractexecutor.h"
 #include "cppcontractexecutor.h"
+#include "precompiledcontractexecutor.h"
 
 class MessageDispatcher {
 public:
-  MessageDispatcher(ExecutionContext& context, CppContractExecutor cppExecutor, EvmContractExecutor evmExecutor)
-    : context_(context), cppExecutor_(std::move(cppExecutor)), evmExecutor_(std::move(evmExecutor)) {}
+  MessageDispatcher(ExecutionContext& context, CppContractExecutor cppExecutor, EvmContractExecutor evmExecutor, PrecompiledContractExecutor precompiledExecutor)
+    : context_(context), cppExecutor_(std::move(cppExecutor)), evmExecutor_(std::move(evmExecutor)), precompiledExecutor_(std::move(precompiledExecutor)) {}
 
   template<concepts::CallMessage M>
   decltype(auto) onMessage(M&& msg) {
     using Result = traits::MessageResult<M>;
 
-    const Account& account = context_.getAccount(messageCodeAddress(msg));
+    View<Address> codeAddress = messageCodeAddress(msg);
+
+    if (isPrecompiled(codeAddress)) {
+      return precompiledExecutor_.execute(std::forward<M>(msg));
+    }
+
+    const Account& account = context_.getAccount(codeAddress);
 
     if (!account.isContract()) {
       throw DynamicException("Not a contract address");
@@ -72,10 +80,18 @@ public:
 
   EvmContractExecutor& evmExecutor() { return evmExecutor_; }
 
+  PrecompiledContractExecutor& precompiledExecutor() { return precompiledExecutor_; }
+
 private:
+  bool isPrecompiled(View<Address> address) const {
+    constexpr Address randomGeneratorAddress = bytes::hex("0x1000000000000000000000000000100000000001");
+    return address == randomGeneratorAddress;
+  }
+
   ExecutionContext& context_;
   CppContractExecutor cppExecutor_;
   EvmContractExecutor evmExecutor_;
+  PrecompiledContractExecutor precompiledExecutor_;
 };
 
 #endif // BDK_MESSAGES_MESSAGEDISPATCHER_H

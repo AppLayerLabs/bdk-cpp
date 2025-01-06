@@ -1,13 +1,24 @@
 #include "contracthost.h"
 
-MessageHandler makeMessageHandler(ContractHost& host, ExecutionContext& context, evmc_vm *vm, Storage& storage) {
-  MessageDispatcher dispatcher(context, CppContractExecutor(context, host), EvmContractExecutor(context, vm));
+MessageHandler makeMessageHandler(ContractHost& host, ExecutionContext& context, evmc_vm *vm, Storage& storage, const Hash& randomSeed) {
+  MessageDispatcher dispatcher(context, CppContractExecutor(context, host), EvmContractExecutor(context, vm), PrecompiledContractExecutor(RandomGen(randomSeed)));
 
   if (context.getTxHash() && storage.getIndexingMode() == IndexingMode::RPC_TRACE) {
     return CallTracer(std::move(dispatcher));
   }
 
   return dispatcher;
+}
+
+uint256_t ContractHost::getRandomValue() {
+  return std::visit(Utils::Overloaded{
+    [] (MessageDispatcher& handler) {
+      return std::invoke(handler.precompiledExecutor().randomGenerator());
+    },
+    [] (CallTracer<MessageDispatcher>& tracer) {
+      return std::invoke(tracer.handler().precompiledExecutor().randomGenerator());
+    }
+  }, messageHandler_);
 }
 
 ContractHost::~ContractHost() {

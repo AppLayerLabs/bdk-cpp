@@ -57,6 +57,7 @@ set(CONTRACT_SOURCES
   ${CMAKE_SOURCE_DIR}/src/contract/messages/common.cpp
   ${CMAKE_SOURCE_DIR}/src/contract/messages/executioncontext.cpp
   ${CMAKE_SOURCE_DIR}/src/contract/messages/evmcontractexecutor.cpp
+  ${CMAKE_SOURCE_DIR}/src/contract/messages/precompiledcontractexecutor.cpp
   ${CMAKE_SOURCE_DIR}/src/contract/templates/ownable.cpp
   ${CMAKE_SOURCE_DIR}/src/contract/templates/erc20.cpp
   ${CMAKE_SOURCE_DIR}/src/contract/templates/erc721.cpp

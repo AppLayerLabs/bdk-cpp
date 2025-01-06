@@ -59,14 +59,13 @@ const auto BDK_PRECOMPILE = 0x1000000000000000000000000000100000000001_address;
 
 using MessageHandler = std::variant<MessageDispatcher, CallTracer<MessageDispatcher>>;
 
-MessageHandler makeMessageHandler(ContractHost& host, ExecutionContext& context, evmc_vm *vm, Storage& storage);
+MessageHandler makeMessageHandler(ContractHost& host, ExecutionContext& context, evmc_vm *vm, Storage& storage, const Hash& randomSeed);
 
 class ContractHost {
   private:
     DumpManager& manager_;
     Storage& storage_;
     mutable ContractStack stack_;
-    mutable RandomGen randomGen_; // Random generator for the contract.
     bool mustRevert_ = true; // We always assume that we must revert until proven otherwise.
     ExecutionContext& context_;
     MessageHandler messageHandler_;
@@ -79,13 +78,12 @@ class ContractHost {
                  ExecutionContext& context) :
     manager_(manager),
     storage_(storage),
-    randomGen_(randomnessSeed),
     stack_(),
     context_(context),
-    messageHandler_(makeMessageHandler(*this, context, vm, storage)) {
+    messageHandler_(makeMessageHandler(*this, context, vm, storage, randomnessSeed)) {
       std::visit(Utils::Overloaded{
         [] (MessageDispatcher& handler) { handler.evmExecutor().setMessageHandler(AnyEncodedMessageHandler::from(handler)); },
-        [] (CallTracer<MessageDispatcher>& tracer) { tracer.getHandler().evmExecutor().setMessageHandler(AnyEncodedMessageHandler::from(tracer)); }
+        [] (CallTracer<MessageDispatcher>& tracer) { tracer.handler().evmExecutor().setMessageHandler(AnyEncodedMessageHandler::from(tracer)); }
       }, messageHandler_);
     }
 
@@ -230,7 +228,7 @@ class ContractHost {
 
     void registerVariableUse(SafeBase& var) { stack_.registerVariableUse(var); }
 
-    uint256_t getRandomValue() const { return std::invoke(this->randomGen_); }
+    uint256_t getRandomValue();
 
 private:
   decltype(auto) dispatchMessage(auto&& msg) {
@@ -242,7 +240,7 @@ private:
   messages::Gas& getCurrentGas() {
     return std::visit(Utils::Overloaded{
       [] (MessageDispatcher& handler) -> messages::Gas& { return handler.cppExecutor().currentGas(); },
-      [] (CallTracer<MessageDispatcher>& tracer) -> messages::Gas& { return tracer.getHandler().cppExecutor().currentGas(); }
+      [] (CallTracer<MessageDispatcher>& tracer) -> messages::Gas& { return tracer.handler().cppExecutor().currentGas(); }
     }, messageHandler_);
   }
 };

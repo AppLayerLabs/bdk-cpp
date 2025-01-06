@@ -1,5 +1,6 @@
 #include "evmcontractexecutor.h"
 #include "bytes/cast.h"
+#include "bytes/hex.h"
 #include "common.h"
 #include "outofgas.h"
 
@@ -56,7 +57,7 @@ constexpr evmc_message makeEvmcMessage(const M& msg, uint64_t depth) {
     .input_size = msg.input().size(),
     .value = Utils::uint256ToEvmcUint256(messageValueOrZero(msg)),
     .create2_salt = evmc_bytes32{},
-    .code_address = evmc_address{} // TODO: CALL CODE?
+    .code_address = bytes::cast<evmc_address>(messageCodeAddress(msg))
   };
 }
 
@@ -116,7 +117,6 @@ static void createContractImpl(auto& msg, ExecutionContext& context, View<Addres
 
   context.addAccount(contractAddress, std::move(newAccount));
   context.notifyNewContract(contractAddress, nullptr);
-  context.incrementNonce(msg.from());
 }
 
 Bytes EvmContractExecutor::execute(EncodedCallMessage& msg) {
@@ -153,6 +153,7 @@ Address EvmContractExecutor::execute(EncodedCreateMessage& msg) {
   auto depthGuard = transactional::copy(depth_);
   const Address contractAddress = generateContractAddress(context_.getAccount(msg.from()).nonce, msg.from());
   createContractImpl(msg, context_, contractAddress, vm_, *this, ++depth_);
+  context_.incrementNonce(msg.from());
   return contractAddress;
 }
 
