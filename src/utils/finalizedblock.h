@@ -27,6 +27,11 @@ See the LICENSE.txt file in the project root for more information.
 
 class CometBlock;
 
+// REVIEW/TODO: We may want to create a class to represent a standard ETH1
+//       block header, that can be predictably hashed with sha3(), and that is
+//       deterministically derived from a FinalizedBlock, which in turn is
+//       always derived from a CometBlock.
+
 /// Abstraction of a finalized block. Members are purposefully const due to the immutable nature of the structure.
 class FinalizedBlock {
   private:
@@ -67,7 +72,12 @@ class FinalizedBlock {
     // actually translates those to TxBlock objects (i.e. deserializes them).
     const std::vector<TxBlock> txs_;              ///< List of block transactions.
 
-    // We have to compute this ourselves (app side)
+    // This comes via the ABCI, also in CometBlock
+    // This is actually being set to the CometBFT block hash, which IS
+    // delivered via the FinalizeBlock ABCI callback.
+    // If we want to get a per-block hash that is computed on our side, then that
+    // hash can only be the hash computed over the Eth1 block header structure
+    // we'd be emulating for each CometBlock.
     const Hash hash_;                             ///< Cached hash of the block.
 
     // This can be fetched via RPC, or guessed based on the size of txs + expected header size

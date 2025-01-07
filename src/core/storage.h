@@ -18,6 +18,11 @@ See the LICENSE.txt file in the project root for more information.
 
 class Blockchain;
 
+/// A <TxBlock, blockHash, blockIndex, blockHeight> tuple.
+using StorageGetTxResultType = std::tuple<
+  std::shared_ptr<TxBlock>, Hash, uint64_t, uint64_t
+>;
+
 /**
  * The Storage component keeps any bdkd-side persistent data that is globally relevant
  * for the blockchain that this node is tracking (i.e., for a given Options::rootPath).
@@ -76,6 +81,11 @@ class Storage : public Log::LogicalLocationProvider {
      */
     //TxBlock getTxFromBlockWithIndex(bytes::View blockData, uint64_t txIndex) const;
 
+    std::atomic<uint64_t> txCacheSize_ = 1000000; ///< Transaction cache size in maximum entries per bucket (0 to disable).
+    mutable std::mutex txCacheMutex_; ///< Mutex to protect cache access.
+    std::array<std::unordered_map<Hash, StorageGetTxResultType, SafeHash>, 2> txCache_; ///< Transaction cache as two rotating buckets.
+    uint64_t txCacheBucket_ = 0; ///< Active txCache_ bucket.
+
   public:
     /**
      * Constructor. Automatically loads the chain from the database
@@ -88,6 +98,17 @@ class Storage : public Log::LogicalLocationProvider {
     ~Storage() = default; ///< Destructor.
 
     std::string getLogicalLocation() const override;
+
+    /**
+     * Set the size of the GetTx() cache.
+     * If you set it to 0, you turn off the cache.
+     * NOTE: CometBFT has a lag between finalizing a block and indexing transactions,
+     * so if you turn off the cache, you need to take that into consideration when
+     * using methods like Storage::getTx() which will hit cometbft with a 'tx' RPC
+     * call and possibly fail because the transaction hasn't been indexed yet.
+     * @param cacheSize Maximum size in entries for each bucket (two rotating buckets).
+     */
+    void setGetTxCacheSize(const uint64_t cacheSize);
 
     /**
      * Store a sha3 -> sha256 txHash mapping.
@@ -144,6 +165,13 @@ class Storage : public Log::LogicalLocationProvider {
     //bool txExists(const Hash& tx) const;
 
     /**
+     * Store a getTx(txHash) result in the getTx() cache.
+     * @param tx The transaction hash (key) to store in the cache.
+     * @param val The transaction data (value) to store in the cache.
+     */
+    void putTx(const Hash& tx, const StorageGetTxResultType& val);
+
+    /**
      * Get a transaction from the chain using a given hash.
      * @param tx The transaction hash to get.
      * @return A tuple with the found transaction, block hash, index and height.
@@ -152,9 +180,7 @@ class Storage : public Log::LogicalLocationProvider {
     // FIXME: remove the Hash (get<1>) param as it seems to be unused; it would require
     //        a second separate RPC call to fetch.
     //        right now, Hash is being set to 0x0000..0000
-    std::tuple<
-      const std::shared_ptr<const TxBlock>, const Hash, const uint64_t, const uint64_t
-    > getTx(const Hash& tx) const;
+    StorageGetTxResultType getTx(const Hash& tx) const;
 
     /**
      * Get a transaction from a block with a specific index.

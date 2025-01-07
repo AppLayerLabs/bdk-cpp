@@ -270,6 +270,9 @@ Bytes FinalizedBlock::serializeHeader() const {
   // FIXME/TODO
   // If this is ever needed, what it actually means is you'd get
   // the bytes of the header from cometbft via RPC
+  // OR,
+  // maybe, what we mean here is the deterministic, standard ETH1 header
+  // that we would emulate on top of the CometBFT block header.
 
   return Utils::makeBytes(bytes::join(
     prevBlockHash_, blockRandomness_, validatorMerkleRoot_, txMerkleRoot_,

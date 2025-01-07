@@ -624,14 +624,21 @@ void State::processBlock(const FinalizedBlock& block, std::vector<bool>& succeed
     );
   }
 
-  // Update contract globals based on (now) latest block
-  // FIXME/TODO: coinbase and blockhash are not being currently set
-  //const Hash blockHash = block.getHash();
+  // FIXME/TODO: Whoops! We have a problem with the coinbase = validator-address idea.
+  //   Validator keys are ed25519 now, while the account structure of the
+  //   Eth-compatible machine is using secp256k1. You can't "pay" the validator key
+  //   directly.
   //ContractGlobals::coinbase_ = Secp256k1::toAddress(block.getValidatorPubKey());
-  Hash blockHash; // 0
+
+  // TODO: randomHash should probably be taken out entirely
   Hash randomHash; // 0
+
+  const Hash blockHash = block.getHash();
+  const uint64_t blockHeight = block.getNHeight();
+
+  // Update contract globals based on (now) latest block
   ContractGlobals::blockHash_ = blockHash;
-  ContractGlobals::blockHeight_ = block.getNHeight();
+  ContractGlobals::blockHeight_ = blockHeight;
   ContractGlobals::blockTimestamp_ = block.getTimestamp();
 
   // Process transactions of the block within the current state
@@ -640,8 +647,22 @@ void State::processBlock(const FinalizedBlock& block, std::vector<bool>& succeed
     bool txSucceeded;
     uint64_t txGasUsed;
     this->processTransaction(tx, txIndex, blockHash, randomHash, txSucceeded, txGasUsed);
+
     succeeded.push_back(txSucceeded);
     gasUsed.push_back(txGasUsed);
+
+    // Add the transaction to the RAM getTx() cache in Storage.
+    // Storage will check this cache before hitting cometbft with an RPC request.
+    blockchain_.storage().putTx(
+      tx.hash(),
+      std::make_tuple(
+        std::make_shared<TxBlock>(tx),
+        blockHash,
+        txIndex,
+        blockHeight
+      )
+    );
+
     txIndex++;
   }
 

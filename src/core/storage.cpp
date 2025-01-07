@@ -58,6 +58,16 @@ IndexingMode Storage::getIndexingMode() const {
   return blockchain_.opt().getIndexingMode();
 }
 
+void Storage::setGetTxCacheSize(const uint64_t cacheSize) {
+  txCacheSize_ = cacheSize;
+  if (txCacheSize_ == 0) {
+    std::scoped_lock lock(txCacheMutex_);
+    txCache_[0].clear();
+    txCache_[1].clear();
+    txCacheBucket_ = 0;
+  }
+}
+
 void Storage::putTxMap(Hash txHashSha3, Hash txHashSha256) {
   blocksDb_.put(txHashSha3.asBytes(), txHashSha256.asBytes(), DBPrefix::txSha3ToSha256);
 }
@@ -169,9 +179,19 @@ uint64_t Storage::currentChainSize() const {
 bool Storage::txExists(const Hash& tx) const { return blocksDb_.has(tx, DBPrefix::txToBlock); }
 */
 
-std::tuple<
-  const std::shared_ptr<const TxBlock>, const Hash, const uint64_t, const uint64_t
-> Storage::getTx(const Hash& tx) const {
+void Storage::putTx(const Hash& tx, const StorageGetTxResultType& val) {
+  std::scoped_lock lock(txCacheMutex_);
+
+  auto& activeBucket = txCache_[txCacheBucket_];
+  activeBucket[tx] = val;
+
+  if (activeBucket.size() >= txCacheSize_) {
+    txCacheBucket_ = 1 - txCacheBucket_;
+    txCache_[txCacheBucket_].clear();
+  }
+}
+
+StorageGetTxResultType Storage::getTx(const Hash& tx) const {
   /*
   const Bytes txData = blocksDb_.get(tx, DBPrefix::txToBlock);
   if (txData.empty()) return std::make_tuple(nullptr, Hash(), 0u, 0u);
@@ -198,13 +218,24 @@ std::tuple<
   //   and use it to cache TxBlock objects instead of raw tx bytes).
   //  the disk retrieval works fine for older data that has been flushed from the
   //  RAM cache already.
-  //
-  // Right now we don't have this cache so we just hit cometbft:
 
+  std::unique_lock<std::mutex> lock(txCacheMutex_);
+  for (int i = 0; i < 2; ++i) {
+    auto& bucket = txCache_[(txCacheBucket_ + i) % 2];
+    auto it = bucket.find(tx);
+    if (it != bucket.end()) {
+      LOGTRACE("Storage::getTx(" + tx.hex().get() + "): cache hit");
+      return it->second;
+    }
+  }
+  lock.unlock();
+  LOGTRACE("Storage::getTx(" + tx.hex().get() + "): cache miss");
+
+  // Right now we don't have this cache so we just hit cometbft:
   // HACK: sleep a bit so cometbft has time to index the transaction
   // FIXME: take this out when the first test is passing
   //        then add the txCache to Storage
-  std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+  //std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 
   // Translate `tx` (BDK sha3 hash) to a CometBFT sha256 hash
   Hash txSha256;
@@ -215,41 +246,54 @@ std::tuple<
     std::string encodedHexBytes = base64::encode_into<std::string>(hx.begin(), hx.end());
     json params = { {"hash", encodedHexBytes} };
     json ret;
-    if (
-        blockchain_.comet().rpcSyncCall("tx", params, ret) &&
-        ret.is_object() && ret.contains("result") && ret["result"].is_object()
-       )
-    {
-      // Validate returned JSON
-      const auto& result = ret["result"];
-      if (
-          result.contains("tx") && result["tx"].is_string() &&
-          result.contains("height") && result["height"].is_string() &&
-          result.contains("index") && result["index"].is_string()
-         )
-      {
-        // Base64-decode the tx string data into a Bytes
-        Bytes txBytes = base64::decode_into<Bytes>(result["tx"].get<std::string>());
+    if (blockchain_.comet().rpcSyncCall("tx", params, ret)) {
+      if (ret.is_object() && ret.contains("result") && ret["result"].is_object()) {
+        // Validate returned JSON
+        const auto& result = ret["result"];
+        if (
+            result.contains("tx") && result["tx"].is_string() &&
+            result.contains("height") && result["height"].is_string() &&
+            result.contains("index") && result["index"].is_number_integer()
+          )
+        {
+          // Base64-decode the tx string data into a Bytes
+          Bytes txBytes = base64::decode_into<Bytes>(result["tx"].get<std::string>());
 
-        // Decode de Bytes into a TxBlock
-        uint64_t chainId = blockchain_.opt().getChainID();
-        std::shared_ptr<const TxBlock> txBlock = std::make_shared<TxBlock>(txBytes, chainId);
+          // Decode Bytes into a TxBlock
+          uint64_t chainId = blockchain_.opt().getChainID();
+          std::shared_ptr<TxBlock> txBlock = std::make_shared<TxBlock>(txBytes, chainId);
 
-        // Block height and index of tx within block
-        uint64_t blockHeight = std::stoull(result["height"].get<std::string>());
-        uint64_t blockIndex = std::stoull(result["index"].get<std::string>());
+          // Block height and index of tx within block
+          uint64_t blockHeight = std::stoull(result["height"].get<std::string>());
+          uint64_t blockIndex = result["index"].get<int>();
 
-        // REVIEW: For some reason we need to fill in the hash of the
-        //   block as well, but that would be another lookup for the hash
-        //   of the block at a given block height.
-        //   (This value seems unused and we should remove it anyways).
-        Hash blockHash;
+          // REVIEW: For some reason we need to fill in the hash of the
+          //   block as well, but that would be another lookup for the hash
+          //   of the block at a given block height.
+          //   (This value seems unused and we should remove it anyways).
+          Hash blockHash;
 
-        // Assemble return value
-        return std::make_tuple(txBlock, blockHash, blockIndex, blockHeight);
+          LOGTRACE(
+            "getTx(" + tx.hex().get() + "): blockIndex=" +
+            std::to_string(blockIndex) + " blockHeight=" +
+            std::to_string(blockHeight)
+          );
+
+          // Assemble return value
+          return std::make_tuple(txBlock, blockHash, blockIndex, blockHeight);
+        } else {
+         LOGTRACE("getTx(): bad tx call result: " + result.dump());
+        }
+      } else {
+        LOGTRACE("getTx(): bad rpcSyncCall result: " + ret.dump());
       }
+    } else {
+      LOGTRACE("getTx(): rpcSyncCall('tx') failed");
     }
+  } else {
+    LOGTRACE("getTx(): cannot find tx sha256");
   }
+  LOGTRACE("getTx(" + tx.hex().get() + ") FAIL!");
   return std::make_tuple(nullptr, Hash(), 0u, 0u);
 }
 
@@ -320,6 +364,12 @@ std::optional<trace::Call> Storage::getCallTrace(const Hash& txHash) const {
 }
 
 void Storage::putEvent(const Event& event) {
+  //LOGDEBUG("Storage::putEvent("
+  //  + std::to_string(event.getBlockIndex()) + ","
+  //  + std::to_string(event.getTxIndex()) + ","
+  //  + std::to_string(event.getLogIndex()) + ","
+  //  + Hex::fromBytes(event.getAddress()).get()
+  //);
   const Bytes key = Utils::makeBytes(bytes::join(
     UintConv::uint64ToBytes(event.getBlockIndex()),
     UintConv::uint64ToBytes(event.getTxIndex()),
@@ -330,6 +380,17 @@ void Storage::putEvent(const Event& event) {
 }
 
 std::vector<Event> Storage::getEvents(uint64_t fromBlock, uint64_t toBlock, const Address& address, const std::vector<Hash>& topics) const {
+  //std::string topicsStr;
+  //for (const Hash& topic : topics) {
+  //  topicsStr += topic.hex().get() + ", ";
+  //}
+  //LOGDEBUG("Storage::getEvents("
+  //  + std::to_string(fromBlock) + ","
+  //  + std::to_string(toBlock) + ","
+  //  + Hex::fromBytes(address).get() + ","
+  //  + topicsStr
+  //);
+
   if (toBlock < fromBlock) std::swap(fromBlock, toBlock);
 
   if (uint64_t count = toBlock - fromBlock + 1; count > blockchain_.opt().getEventBlockCap()) {
@@ -361,6 +422,11 @@ std::vector<Event> Storage::getEvents(uint64_t fromBlock, uint64_t toBlock, cons
 }
 
 std::vector<Event> Storage::getEvents(uint64_t blockIndex, uint64_t txIndex) const {
+  //LOGDEBUG("Storage::getEvents("
+  //  + std::to_string(blockIndex) + ","
+  //  + std::to_string(txIndex)
+  //);
+
   std::vector<Event> events;
   for (
     Bytes fetchBytes = Utils::makeBytes(bytes::join(
