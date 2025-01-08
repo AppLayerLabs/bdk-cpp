@@ -12,7 +12,7 @@ namespace concepts {
 template<typename M>
 concept Message = requires (M m) {
   { m.from() } -> std::convertible_to<View<Address>>;
-  { m.gas() } -> std::convertible_to<messages::Gas&>;
+  { m.gas() } -> std::convertible_to<Gas&>;
 };
 
 /**

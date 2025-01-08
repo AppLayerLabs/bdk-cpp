@@ -5,6 +5,7 @@
 #include "traits.h"
 #include "bytes/cast.h"
 #include "utils/contractreflectioninterface.h"
+#include "contract/costs.h"
 
 struct ContractHost;
 
@@ -29,10 +30,11 @@ public:
     }
   }
 
-  messages::Gas& currentGas() { return *currentGas_; }
+  Gas& currentGas() { return *currentGas_; }
 
 private:
   decltype(auto) callContract(concepts::PackedMessage auto&& msg) {
+    msg.gas().use(CPP_CONTRACT_CALL_COST);
     auto& contract = getContractAs<traits::MessageContract<decltype(msg)>>(msg.to());
 
     transactional::Group guard = {
@@ -56,11 +58,17 @@ private:
   }
 
   decltype(auto) callContract(concepts::EncodedMessage auto&& msg) {
+    if (msg.to() == ProtocolContractAddresses.at("ContractManager")) [[unlikely]] {
+      msg.gas().use(CPP_CONTRACT_CREATION_COST);
+    } else [[likely]] {
+      msg.gas().use(CPP_CONTRACT_CALL_COST);
+    }
+
     const evmc_message evmcMsg{
       .kind = EVMC_CALL,
       .flags = (concepts::StaticCallMessage<decltype(msg)> ? EVMC_STATIC : evmc_flags(0)),
       .depth = 0,
-      .gas = msg.gas().value(),
+      .gas = int64_t(msg.gas()),
       .recipient = bytes::cast<evmc_address>(msg.to()),
       .sender = bytes::cast<evmc_address>(msg.from()),
       .input_data = msg.input().data(),
@@ -85,6 +93,8 @@ private:
   }
 
   Address createContract(concepts::CreateMessage auto&& msg) {
+    msg.gas().use(CPP_CONTRACT_CREATION_COST);
+
     using ContractType = traits::MessageContract<decltype(msg)>;
 
     const std::string createSignature = "createNew"
@@ -109,7 +119,7 @@ private:
       .kind = EVMC_CREATE,
       .flags = 0,
       .depth = 1,
-      .gas = msg.gas().value(),
+      .gas = int64_t(msg.gas()),
       .recipient = bytes::cast<evmc_address>(to),
       .sender = bytes::cast<evmc_address>(msg.from()),
       .input_data = fullData.data(),
@@ -152,7 +162,7 @@ private:
 
   ExecutionContext& context_;
   ContractHost& host_;
-  messages::Gas *currentGas_ = nullptr;
+  Gas *currentGas_ = nullptr;
 };
 
 #endif // BDK_MESSAGES_CPPCONTRACTEXECUTOR_H

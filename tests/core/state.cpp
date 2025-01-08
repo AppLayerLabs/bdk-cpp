@@ -1507,7 +1507,7 @@ namespace TState {
 
 
         const Address from{};
-        messages::Gas gas(10000000);
+        Gas gas(10'000'000);
         const Bytes data = buildMessageData(getBalanceMeFunctor, getBalanceMeEncoder);
         EncodedStaticCallMessage msg(from, ERC20ContractAddress, gas, data);
 

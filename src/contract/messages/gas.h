@@ -3,15 +3,11 @@
 
 #include "outofgas.h"
 
-namespace messages {
-
 class Gas {
 public:
-  constexpr explicit Gas(uint64_t value = 0) : value_(value) {}
+  constexpr explicit Gas(uint256_t value = 0) : value_(value) {}
 
-  constexpr uint64_t value() const { return value_; }
-
-  constexpr void use(uint64_t amount) {
+  constexpr void use(const uint256_t& amount) {
     if (amount > value_) {
       value_ = 0;
       throw OutOfGas();
@@ -20,14 +16,18 @@ public:
     value_ -= amount;
   }
 
-  constexpr void refund(uint64_t amount) {
+  constexpr void refund(const uint256_t& amount) {
     value_ += amount;
   }
 
-private:
-  uint64_t value_;
-};
+  template<typename T>
+    requires std::constructible_from<T, uint256_t>
+  explicit constexpr operator T() const {
+    return static_cast<T>(value_);
+  }
 
-} // namespace messages
+private:
+  uint256_t value_;
+};
 
 #endif // BDK_MESSAGES_GAS_H

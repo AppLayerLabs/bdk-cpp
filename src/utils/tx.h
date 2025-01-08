@@ -166,7 +166,7 @@ class TxBlock {
      */
     evmc_message txToMessage() const;
 
-    EncodedMessageVariant toMessage(messages::Gas& gas) const;
+    EncodedMessageVariant toMessage(Gas& gas) const;
 
     /// Copy assignment operator.
     TxBlock& operator=(const TxBlock& other) {

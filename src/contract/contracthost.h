@@ -25,6 +25,7 @@
 #include "messages/messagedispatcher.h"
 #include "messages/packedmessages.h"
 #include "calltracer.h"
+#include "costs.h"
 
 // TODO: EVMC Static Mode Handling
 // TODO: Contract creating other contracts (EVM Factories)
@@ -103,7 +104,7 @@ class ContractHost {
     decltype(auto) execute(concepts::Message auto&& msg) {
       try {
         mustRevert_ = false;
-        msg.gas().use(21000);
+        msg.gas().use(CONTRACT_EXECUTION_COST);
         return dispatchMessage(std::forward<decltype(msg)>(msg));
       } catch (const std::exception& err) {
         mustRevert_ = true;
@@ -237,10 +238,10 @@ private:
     }, messageHandler_);
   }
 
-  messages::Gas& getCurrentGas() {
+  Gas& getCurrentGas() {
     return std::visit(Utils::Overloaded{
-      [] (MessageDispatcher& handler) -> messages::Gas& { return handler.cppExecutor().currentGas(); },
-      [] (CallTracer<MessageDispatcher>& tracer) -> messages::Gas& { return tracer.handler().cppExecutor().currentGas(); }
+      [] (MessageDispatcher& handler) -> Gas& { return handler.cppExecutor().currentGas(); },
+      [] (CallTracer<MessageDispatcher>& tracer) -> Gas& { return tracer.handler().cppExecutor().currentGas(); }
     }, messageHandler_);
   }
 };

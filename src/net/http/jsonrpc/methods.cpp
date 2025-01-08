@@ -95,8 +95,8 @@ static json getBlockJson(const FinalizedBlock *block, bool includeTransactions) 
   return ret;
 }
 
-static std::tuple<Address, Address, messages::Gas, uint256_t, Bytes> parseMessage(const json& request, const Storage& storage, bool recipientRequired) {
-  std::tuple<Address, Address, messages::Gas, uint256_t, Bytes> result;
+static std::tuple<Address, Address, Gas, uint256_t, Bytes> parseMessage(const json& request, const Storage& storage, bool recipientRequired) {
+  std::tuple<Address, Address, Gas, uint256_t, Bytes> result;
 
   auto& [from, to, gas, value, data] = result;
 
@@ -112,7 +112,7 @@ static std::tuple<Address, Address, messages::Gas, uint256_t, Bytes> parseMessag
     ? parse<Address>(txJson.at("to"))
     : parseIfExists<Address>(txJson, "to").value_or(Address{});
 
-  gas = messages::Gas(parseIfExists<uint64_t>(txJson, "gas").value_or(10000000));
+  gas = Gas(parseIfExists<uint64_t>(txJson, "gas").value_or(10'000'000));
 
   value = uint256_t(parseIfExists<uint64_t>(txJson, "value").value_or(0));
 

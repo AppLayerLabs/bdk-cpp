@@ -5,6 +5,7 @@
 #include "traits.h"
 #include "contract/messages/encodedmessages.h"
 #include "contract/abi.h"
+#include "contract/costs.h"
 
 class PrecompiledContractExecutor {
 public:
@@ -14,10 +15,11 @@ public:
 
   template<concepts::CallMessage Message, typename Result = traits::MessageResult<Message>>
   Result execute(Message&& msg) {
-
     if constexpr (concepts::DelegateCallMessage<decltype(msg)>) {
       throw DynamicException("Delegate calls not allowed for precompiled contracts");
     }
+
+    msg.gas().use(CPP_CONTRACT_CALL_COST);
 
     const Bytes input = messageInputEncoded(msg);
     EncodedStaticCallMessage encodedMessage(msg.from(), msg.to(), msg.gas(), input);

@@ -319,9 +319,9 @@ class SDKTestSuite {
       const TestAccount& from, const Address& to, const uint256_t& value, Bytes data = Bytes()
     ) {
       
-      messages::Gas gas(1000000000);
+      Gas gas(1'000'000'000);
 
-      const uint64_t gasUsed = 10000 + std::invoke([&] () {
+      const uint64_t gasUsed = 10'000 + std::invoke([&] () {
         if (to) {
           return this->state_.estimateGas(EncodedCallMessage(from.address, to, gas, value, data));
         } else {
@@ -750,7 +750,7 @@ class SDKTestSuite {
       Bytes fullData;
       Utils::appendBytes(fullData, Utils::uint32ToBytes(functor.value));
 
-      messages::Gas gas(10000000);
+      Gas gas(10'000'000);
       const Address from = this->getChainOwnerAccount().address;
       EncodedStaticCallMessage msg(from, contractAddress, gas, fullData);
 
@@ -779,7 +779,7 @@ class SDKTestSuite {
       Utils::appendBytes(fullData, Utils::uint32ToBytes(functor.value));
       Utils::appendBytes(fullData, ABI::Encoder::encodeData<Args...>(std::forward<decltype(args)>(args)...));
 
-      messages::Gas gas(10000000);
+      Gas gas(10'000'000);
       const Address from = this->getChainOwnerAccount().address;
       EncodedStaticCallMessage msg(from, contractAddress, gas, fullData);
 

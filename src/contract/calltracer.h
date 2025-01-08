@@ -22,19 +22,18 @@ public:
       ? *(rootCall_ = std::make_unique<trace::Call>())
       : callStack_.top()->calls.emplace_back();
 
-    messages::Gas& gas = msg.gas();
+    Gas& gas = msg.gas();
     
     callTrace.type = trace::getMessageCallType(msg);
     callTrace.status = trace::CallStatus::SUCCEEDED;
     callTrace.from = Address(msg.from());
     callTrace.to = Address(msg.to());
     callTrace.value = FixedBytes<32>(Utils::uint256ToBytes(messageValueOrZero(msg)));
-    callTrace.gas = msg.gas().value();
+    callTrace.gas = uint64_t(gas);
 
     try {
       callTrace.input = messageInputEncoded(msg);
     } catch (const std::exception& ignored) {}
-
 
     callStack_.push(&callTrace);
 
@@ -48,7 +47,7 @@ public:
           callTrace.output = result;
         }
 
-        callTrace.gasUsed = callTrace.gas - gas.value();
+        callTrace.gasUsed = callTrace.gas - uint64_t(gas);
         callStack_.pop();
 
         return result;
@@ -57,7 +56,7 @@ public:
       handler_.onMessage(std::forward<Message>(msg));
     } catch (const OutOfGas& outOfGas) {
       callTrace.status = trace::CallStatus::OUT_OF_GAS;
-      callTrace.gasUsed = callTrace.gas - gas.value();
+      callTrace.gasUsed = callTrace.gas - uint64_t(gas);
       callStack_.pop();
 
       throw outOfGas;
@@ -70,7 +69,7 @@ public:
         } catch (const std::exception& ignored) {}
       }
 
-      callTrace.gasUsed = callTrace.gas - gas.value();
+      callTrace.gasUsed = callTrace.gas - uint64_t(gas);
       callStack_.pop();
 
       throw error;

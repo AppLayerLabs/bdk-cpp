@@ -213,7 +213,7 @@ void State::processTransaction(
     return;
   }
 
-  messages::Gas gas(static_cast<uint64_t>(tx.getGasLimit()));
+  Gas gas(uint64_t(tx.getGasLimit()));
 
   try {
     const Hash randomSeed(Utils::uint256ToBytes((static_cast<uint256_t>(randomnessHash) + txIndex)));
@@ -250,7 +250,7 @@ void State::processTransaction(
   }
 
   ++fromNonce;
-  auto usedGas = tx.getGasLimit() - gas.value();
+  auto usedGas = tx.getGasLimit() - uint256_t(gas);
   fromBalance -= (usedGas * tx.getMaxFeePerGas());
 }
 
@@ -499,10 +499,10 @@ int64_t State::estimateGas(EncodedMessageVariant msg) {
   );
 
   return std::visit([&host] (auto&& msg) {
-    const messages::Gas& gas = msg.gas();
-    const uint64_t initialGas = gas.value();
+    const Gas& gas = msg.gas();
+    const int64_t initialGas(gas);
     host.simulate(std::forward<decltype(msg)>(msg)); 
-    return initialGas - gas.value();
+    return initialGas - int64_t(gas);
   }, std::move(msg));
 }
 

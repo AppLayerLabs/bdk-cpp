@@ -3,6 +3,7 @@
 #include "bytes/hex.h"
 #include "common.h"
 #include "outofgas.h"
+#include "contract/costs.h"
 
 constexpr decltype(auto) getAndThen(auto&& map, const auto& key, auto&& andThen, auto&& orElse) {
   const auto it = map.find(key);
@@ -50,7 +51,7 @@ constexpr evmc_message makeEvmcMessage(const M& msg, uint64_t depth) {
     .kind = getEvmcKind(msg),
     .flags = getEvmcFlags(msg),
     .depth = depth,
-    .gas = msg.gas().value(),
+    .gas = int64_t(msg.gas()),
     .recipient = bytes::cast<evmc_address>(messageRecipientOrDefault(msg)),
     .sender = bytes::cast<evmc_address>(msg.from()),
     .input_data = msg.input().data(),
@@ -67,7 +68,7 @@ constexpr evmc_message makeEvmcMessage(const M& msg, uint64_t depth, View<Addres
     .kind = getEvmcKind(msg),
     .flags = 0,
     .depth = depth,
-    .gas = msg.gas().value(),
+    .gas = int64_t(msg.gas()),
     .recipient = bytes::cast<evmc_address>(contractAddress),
     .sender = bytes::cast<evmc_address>(msg.from()),
     .input_data = nullptr,
@@ -78,7 +79,7 @@ constexpr evmc_message makeEvmcMessage(const M& msg, uint64_t depth, View<Addres
   };
 }
 
-static Bytes executeEvmcMessage(evmc_vm* vm, const evmc_host_interface* host, evmc_host_context* context, const evmc_message& msg, messages::Gas& gas, View<Bytes> code) {
+static Bytes executeEvmcMessage(evmc_vm* vm, const evmc_host_interface* host, evmc_host_context* context, const evmc_message& msg, Gas& gas, View<Bytes> code) {
   evmc::Result result(::evmc_execute(
     vm,
     host,
@@ -88,7 +89,7 @@ static Bytes executeEvmcMessage(evmc_vm* vm, const evmc_host_interface* host, ev
     code.data(),
     code.size()));
 
-  gas = messages::Gas(result.gas_left);
+  gas = Gas(result.gas_left);
 
   if (result.status_code == EVMC_SUCCESS) {
     return Bytes(result.output_data, result.output_data + result.output_size);
@@ -110,7 +111,7 @@ static void createContractImpl(auto& msg, ExecutionContext& context, View<Addres
     makeEvmcMessage(msg, depth, contractAddress), msg.gas(), msg.code());
 
   Account newAccount;
-  newAccount.nonce = 1; // TODO: starting as 1?
+  newAccount.nonce = 1;
   newAccount.codeHash = Utils::sha3(code);
   newAccount.code = std::move(code);
   newAccount.contractType = ContractType::EVM;
@@ -120,6 +121,7 @@ static void createContractImpl(auto& msg, ExecutionContext& context, View<Addres
 }
 
 Bytes EvmContractExecutor::execute(EncodedCallMessage& msg) {
+  msg.gas().use(EVM_CONTRACT_CALL_COST);
   auto depthGuard = transactional::copy(depth_); // TODO: checkpoint (and deprecate copy)
   ++depth_;
 
@@ -130,6 +132,7 @@ Bytes EvmContractExecutor::execute(EncodedCallMessage& msg) {
 }
 
 Bytes EvmContractExecutor::execute(EncodedStaticCallMessage& msg) {
+  msg.gas().use(EVM_CONTRACT_CALL_COST);
   View<Bytes> code = context_.getAccount(msg.to()).code;
 
   auto depthGuard = transactional::copy(depth_);
@@ -140,6 +143,7 @@ Bytes EvmContractExecutor::execute(EncodedStaticCallMessage& msg) {
 }
 
 Bytes EvmContractExecutor::execute(EncodedDelegateCallMessage& msg) {
+  msg.gas().use(EVM_CONTRACT_CALL_COST);
   auto depthGuard = transactional::copy(depth_);
   ++depth_;
 
@@ -150,6 +154,7 @@ Bytes EvmContractExecutor::execute(EncodedDelegateCallMessage& msg) {
 }
 
 Address EvmContractExecutor::execute(EncodedCreateMessage& msg) {
+  msg.gas().use(EVM_CONTRACT_CREATION_COST);
   auto depthGuard = transactional::copy(depth_);
   const Address contractAddress = generateContractAddress(context_.getAccount(msg.from()).nonce, msg.from());
   createContractImpl(msg, context_, contractAddress, vm_, *this, ++depth_);
@@ -158,6 +163,7 @@ Address EvmContractExecutor::execute(EncodedCreateMessage& msg) {
 }
 
 Address EvmContractExecutor::execute(EncodedSaltCreateMessage& msg) {
+  msg.gas().use(EVM_CONTRACT_CREATION_COST);
   auto depthGuard = transactional::copy(depth_);
   const Address contractAddress = generateContractAddress(msg.from(), msg.salt(), msg.code());
   createContractImpl(msg, context_, contractAddress, vm_, *this, ++depth_);
@@ -288,7 +294,7 @@ void EvmContractExecutor::set_transient_storage(const evmc::address &addr, const
 }
 
 evmc::Result EvmContractExecutor::call(const evmc_message& msg) noexcept {
-  messages::Gas gas(msg.gas);
+  Gas gas(msg.gas);
   const uint256_t value = Utils::evmcUint256ToUint256(msg.value);
 
   const auto process = [&] (auto& msg) {
@@ -296,9 +302,9 @@ evmc::Result EvmContractExecutor::call(const evmc_message& msg) noexcept {
       const auto output = messageHandler_.onMessage(msg);
 
       if constexpr (concepts::CreateMessage<decltype(msg)>) {
-        return evmc::Result(EVMC_SUCCESS, gas.value(), 0, bytes::cast<evmc_address>(output));
+        return evmc::Result(EVMC_SUCCESS, int64_t(gas), 0, bytes::cast<evmc_address>(output));
       } else {
-        return evmc::Result(EVMC_SUCCESS, gas.value(), 0, output.data(), output.size());
+        return evmc::Result(EVMC_SUCCESS, int64_t(gas), 0, output.data(), output.size());
       }
     } catch (const OutOfGas&) { // TODO: ExecutionReverted exception is important
       return evmc::Result(EVMC_OUT_OF_GAS);
@@ -309,15 +315,11 @@ evmc::Result EvmContractExecutor::call(const evmc_message& msg) noexcept {
         output = ABI::Encoder::encodeError(err.what()); // TODO: this may throw...
       }
 
-      return evmc::Result(EVMC_REVERT, gas.value(), 0, output.data(), output.size());
+      return evmc::Result(EVMC_REVERT, int64_t(gas), 0, output.data(), output.size());
     }
   };
 
   if (msg.kind == EVMC_DELEGATECALL) {
-    std::cout << "from: " << Hex::fromBytes(msg.sender, true) << "\n";
-    std::cout << "to: " << Hex::fromBytes(msg.recipient, true) << "\n";
-    std::cout << "code address: " << Hex::fromBytes(msg.code_address, true) << "\n";
-
     EncodedDelegateCallMessage encodedMessage(msg.sender, msg.recipient, gas, value, View<Bytes>(msg.input_data, msg.input_size), msg.code_address);
     return process(encodedMessage);
   } else if (msg.kind == EVMC_CALL && msg.flags == EVMC_STATIC) {

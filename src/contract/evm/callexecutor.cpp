@@ -45,7 +45,7 @@ Bytes CallExecutor::executeCall(kind::Any callKind, Gas& gas, const Message& msg
     .kind = getCallKind(callKind),
     .flags = getCallFlags(callKind),
     .depth = msg.depth,
-    .gas = gas.value(),
+    .gas = int64_t(gas),
     .recipient = bytes::cast<evmc_address>(msg.to),
     .sender = bytes::cast<evmc_address>(msg.from),
     .input_data = msg.input.data(),
@@ -241,8 +241,8 @@ evmc::Result CallExecutor::call(const evmc_message& msg) noexcept {
   }
 
   return std::visit(Utils::Overloaded{
-    [&] (Bytes output) { return evmc::Result(status, gas.value(), 0, output.data(), output.size()); },
-    [&] (const Address& createAddress) { return evmc::Result(status, gas.value(), 0, createAddress.toEvmcAddress()); },
+    [&] (Bytes output) { return evmc::Result(status, int64_t(gas), 0, output.data(), output.size()); },
+    [&] (const Address& createAddress) { return evmc::Result(status, int64_t(gas), 0, createAddress.toEvmcAddress()); },
   }, std::move(result));
 }
 

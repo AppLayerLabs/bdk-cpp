@@ -489,7 +489,7 @@ evmc_message TxBlock::txToMessage() const {
   return msg;
 }
 
-EncodedMessageVariant TxBlock::toMessage(messages::Gas& gas) const {
+EncodedMessageVariant TxBlock::toMessage(Gas& gas) const {
   if (this->to_ == Address()) {
     return EncodedCreateMessage(this->from_, gas, this->value_, this->data_);
   } else {

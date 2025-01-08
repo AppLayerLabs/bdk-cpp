@@ -48,12 +48,12 @@ private:
 
 class GasField {
 public:
-  explicit constexpr GasField(messages::Gas& gas) : gas_(gas) {}
-  constexpr messages::Gas& gas() { return gas_; }
-  constexpr const messages::Gas& gas() const { return gas_; }
+  explicit constexpr GasField(Gas& gas) : gas_(gas) {}
+  constexpr Gas& gas() { return gas_; }
+  constexpr const Gas& gas() const { return gas_; }
 
 private:
-  messages::Gas& gas_;
+  Gas& gas_;
 };
 
 class ValueField {
