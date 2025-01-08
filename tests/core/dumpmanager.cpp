@@ -26,19 +26,23 @@ namespace TDumpManager {
     SECTION("DumpManager Test With DumpWorker") {
       Hash bestBlockHash = Hash();
       {
-        auto blockchainWrapper = initialize(validatorPrivKeysState,
-                               validatorPrivKeysState[0],
-                               8080,
-                               true,
-                               testDumpPath + "/dumpManagerSimpleTests");
+        auto blockchainWrapper = initialize(
+          validatorPrivKeysState,
+          validatorPrivKeysState[0],
+          8080,
+          true,
+          testDumpPath + "/dumpManagerSimpleTests"
+        );
         // start the dump worker
         blockchainWrapper.state.dumpStartWorker();
         // create 1001 blocks
         for (uint64_t i = 0; i < 1001; ++i) {
           GLOGTRACE("Creating block: " + std::to_string(i));
-          auto block = createValidBlock(validatorPrivKeysState,
-                                        blockchainWrapper.state,
-                                        blockchainWrapper.storage);
+          auto block = createValidBlock(
+            validatorPrivKeysState,
+            blockchainWrapper.state,
+            blockchainWrapper.storage
+          );
           REQUIRE(blockchainWrapper.state.tryProcessNextBlock(std::move(block)) == BlockValidationStatus::valid);
         }
         // stop the dump worker
@@ -47,15 +51,15 @@ namespace TDumpManager {
         REQUIRE(std::filesystem::exists(testDumpPath + "/dumpManagerSimpleTests"  + "/stateDb"));
         bestBlockHash = blockchainWrapper.storage.latest()->getHash();
       }
-      auto blockchainWrapper = initialize(validatorPrivKeysState,
-                             validatorPrivKeysState[0],
-                             8080,
-                             false,
-                             testDumpPath + "/dumpManagerSimpleTests");
-
-
+      auto blockchainWrapper = initialize(
+        validatorPrivKeysState,
+        validatorPrivKeysState[0],
+        8080,
+        false,
+        testDumpPath + "/dumpManagerSimpleTests"
+      );
       REQUIRE(bestBlockHash == blockchainWrapper.storage.latest()->getHash());
-
     }
   }
 }
+

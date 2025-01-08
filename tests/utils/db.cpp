@@ -108,11 +108,25 @@ namespace TDB {
         REQUIRE(std::find(keys.begin(), keys.end(), getES.key) != keys.end());
       }
 
-      // Read (getKeys, for coverage)
+      // Read (getKeys without limits, for coverage)
+      std::vector<Bytes> getBKAll = db.getKeys(pfx);
+      for (const Bytes& b : getBKAll) {
+        REQUIRE(std::find(keys.begin(), keys.end(), b) != keys.end());
+      }
+
+      // Read (getKeys with limits, for coverage)
       std::vector<Bytes> getBK = db.getKeys(pfx, keys[0], keys[7]);
       for (const Bytes& b : getBK) {
         REQUIRE(std::find(keys.begin(), keys.end(), b) != keys.end());
       }
+
+      // Read (getLastByPrefix, for coverage)
+      Bytes getLast = db.getLastByPrefix(pfx);
+      bool found = false;
+      for (const DBEntry& getE : getB) {
+        if (getE.value == getLast) found = true;
+      }
+      REQUIRE(found);
 
       // Update
       DBBatch newPutB;

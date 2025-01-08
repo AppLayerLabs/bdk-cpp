@@ -69,6 +69,7 @@ namespace TSafeBytes {
       for (std::size_t i = 0; i < vec.size(); i++) REQUIRE(vec[i] == 0xFF);
       // assign with iterators
       vec2.assign(vec.cbegin(), vec.cend() - 2);
+      vec2.assign(vec.cbegin(), vec.cend() - 2); // extra call for coverage (copy != nullptr)
       vec2.revert();
       REQUIRE(vec2.empty());
       vec2.assign(vec.cbegin(), vec.cend() - 2);
@@ -77,6 +78,7 @@ namespace TSafeBytes {
       for (std::size_t i = 0; i < vec2.size(); i++) REQUIRE(vec2[i] == 0xFF);
       // assign with ilist
       vec3.assign(ilist);
+      vec3.assign(ilist); // extra call for coverage (copy != nullptr)
       vec3.revert();
       REQUIRE(vec3.empty());
       vec3.assign(ilist);
@@ -102,6 +104,13 @@ namespace TSafeBytes {
       REQUIRE(vec.at(2) == 0xFF);
       REQUIRE(vec.at(3) == 0xFF);
       REQUIRE(vec.at(4) == 0xFF);
+      // For coverage (copy != nullptr)
+      vec.assign(5, 0xFF);
+      REQUIRE(vec.at(0) == 0xFF);
+      REQUIRE(vec.at(1) == 0xFF);
+      REQUIRE(vec.at(2) == 0xFF);
+      REQUIRE(vec.at(3) == 0xFF);
+      REQUIRE(vec.at(4) == 0xFF);
     }
 
     SECTION("SafeBytes operator[]") {
@@ -115,6 +124,13 @@ namespace TSafeBytes {
       REQUIRE(vec[4] == 0x05);
       for (std::size_t i = 0; i < vec.size(); i++) vec[i] = 0xFF;
       vec.commit();
+      REQUIRE(vec[0] == 0xFF);
+      REQUIRE(vec[1] == 0xFF);
+      REQUIRE(vec[2] == 0xFF);
+      REQUIRE(vec[3] == 0xFF);
+      REQUIRE(vec[4] == 0xFF);
+      // For coverage (copy != nullptr)
+      vec.assign(5, 0xFF);
       REQUIRE(vec[0] == 0xFF);
       REQUIRE(vec[1] == 0xFF);
       REQUIRE(vec[2] == 0xFF);
@@ -136,6 +152,10 @@ namespace TSafeBytes {
       vec.back() = 0xFF;
       vec.commit();
       REQUIRE(vec.back() == 0xFF);
+      // For coverage (copy != nullptr)
+      vec.assign(5, 0xAA);
+      REQUIRE(vec.front() == 0xAA);
+      REQUIRE(vec.back() == 0xAA);
     }
 
     // TODO: missing tests for cbegin, cend, crbegin and crend - check SafeUnorderedMap for more info
@@ -151,6 +171,11 @@ namespace TSafeBytes {
       REQUIRE(vec[2] == 0x03);
       vec.clear();
       vec.commit();
+      REQUIRE(vec.empty());
+      REQUIRE(vec.size() == 0);
+      // For coverage (copy != nullptr)
+      vec.assign(5, 0xFF);
+      vec.clear();
       REQUIRE(vec.empty());
       REQUIRE(vec.size() == 0);
     }
@@ -215,6 +240,30 @@ namespace TSafeBytes {
       REQUIRE(*(vec.cend() - 3) == 0xA0);
       REQUIRE(*(vec.cend() - 2) == 0xB0);
       REQUIRE(*(vec.cend() - 1) == 0xC0);
+      // For coverage (undo != nullptr)
+      vec.clear();
+      vec.assign(1, 0x02);
+      vec.commit();
+      vec.insert(vec.cbegin(), 0x01);
+      uint8_t mv = 0x00;
+      vec.insert(vec.cbegin(), std::move(mv));
+      vec.insert(vec.cend(), 1, 0x03);
+      std::vector<uint8_t> vecIt({0x04,0x05,0x06});
+      vec.insert(vec.cend(), vecIt.cbegin(), vecIt.cend());
+      std::initializer_list<uint8_t> ilistCov {0x07, 0x08, 0x09};
+      vec.insert(vec.cend(), ilistCov);
+      // For coverage (copy != nullptr)
+      vec.clear();
+      vec.commit();
+      vec.assign(1, 0x02);
+      vec.insert(vec.cbegin(), 0x01);
+      uint8_t mv2 = 0x00;
+      vec.insert(vec.cbegin(), std::move(mv2));
+      vec.insert(vec.cend(), 1, 0x03);
+      std::vector<uint8_t> vecIt2({0x04,0x05,0x06});
+      vec.insert(vec.cend(), vecIt2.cbegin(), vecIt2.cend());
+      std::initializer_list<uint8_t> ilistCov2 {0x07, 0x08, 0x09};
+      vec.insert(vec.cend(), ilistCov2);
     }
 
     SECTION("SafeBytes emplace") {
@@ -228,6 +277,13 @@ namespace TSafeBytes {
       vec.commit();
       REQUIRE(vec.size() == 6);
       REQUIRE(*(vec.cbegin()) == 0x00);
+      // For coverage (undo != nullptr)
+      SafeBytes vec2({0x01,0x02,0x03,0x04,0x05});
+      vec2.emplace(vec2.cbegin(), 0xFF);
+      vec2.emplace(vec2.cend(), 0xFF);
+      // For coverage (copy != nullptr)
+      vec2.clear();
+      vec2.emplace(vec2.cbegin(), 0xFF);
     }
 
     SECTION("SafeBytes erase") {
@@ -255,6 +311,16 @@ namespace TSafeBytes {
       REQUIRE(vec.size() == 2);
       REQUIRE(vec[0] == 0x01);
       REQUIRE(vec[1] == 0x05);
+      // For coverage (undo != nullptr)
+      SafeBytes vec2({0x00,0x01,0x02,0x03,0x04,0x05});
+      vec2.erase(vec2.cbegin());
+      vec2.erase(vec2.cbegin());
+      vec2.erase(vec2.cbegin(), vec2.cend());
+      // For coverage (copy != nullptr)
+      vec2.commit();
+      vec2.assign(5, 0xFF);
+      vec2.erase(vec2.cbegin());
+      vec2.erase(vec2.cbegin(), vec2.cend());
     }
 
     SECTION("SafeBytes push_back, emplace_back and pop_back") {
@@ -289,6 +355,22 @@ namespace TSafeBytes {
       for (int i = 0; i < 5; i++) vec.pop_back();
       vec.commit();
       REQUIRE((vec.size() == 1 && vec.back() == 0x01)); // vec = {0x01}
+      // For coverage (undo != nullptr)
+      SafeBytes vec2({0x01, 0x02, 0x03});
+      vec2.push_back(0x00);
+      vec2.push_back(0xAA);
+      uint8_t mv = 0xBB;
+      vec2.push_back(std::move(mv));
+      vec2.emplace_back(0xCC);
+      vec2.pop_back();
+      // For coverage (copy != nullptr)
+      vec2.clear();
+      vec2.push_back(0x00);
+      vec2.push_back(0xAA);
+      uint8_t mv3 = 0xBB;
+      vec2.push_back(std::move(mv2));
+      vec2.emplace_back(0xCC);
+      vec2.pop_back();
     }
 
     SECTION("SafeBytes resize") {
@@ -383,6 +465,21 @@ namespace TSafeBytes {
       vec.resize(0, 0xFF);
       vec.commit();
       REQUIRE(vec.empty());
+      // For coverage (undo != nullptr)
+      vec.resize(2);
+      vec.resize(5);
+      vec.resize(1);
+      // For coverage (copy != nullptr)
+      vec.clear();
+      vec.resize(10);
+      // Same but it's the other overload
+      vec.clear();
+      vec.commit();
+      vec.resize(2, 0x00);
+      vec.resize(5, 0x01);
+      vec.resize(1, 0x02);
+      vec.clear();
+      vec.resize(10, 0x03);
     }
   }
 }

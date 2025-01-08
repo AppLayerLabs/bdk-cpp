@@ -67,6 +67,10 @@ namespace TERC20 {
       Hash approveTx = sdk.callFunction(erc20, &ERC20::approve, to, uint256_t("500000000000000000"));
       allowance = sdk.callViewFunction(erc20, &ERC20::allowance, owner, to);
       REQUIRE(allowance == uint256_t("500000000000000000")); // "to" can now spend 0.5 TST
+
+      // Search for a non-existing spender (for coverage)
+      Address ghost("0x1234567890123456789012345678901234567890", false);
+      REQUIRE(sdk.callViewFunction(erc20, &ERC20::allowance, owner, ghost) == uint256_t(0));
     }
 
     SECTION("ERC20 transferFrom()") {

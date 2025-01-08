@@ -49,6 +49,9 @@ namespace TERC721Test {
       }
       REQUIRE(sdk.callViewFunction(ERC721Address, &ERC721Test::balanceOf, sdk.getChainOwnerAccount().address) == 100);
       REQUIRE(sdk.callViewFunction(ERC721Address, &ERC721Test::totalSupply) == 100);
+
+      // Try minting a 101th time (for coverage)
+      REQUIRE_THROWS(sdk.callFunction(ERC721Address, &ERC721Test::mint, sdk.getChainOwnerAccount().address));
     }
 
     SECTION("ERC721Test Mint 100 Different Addresses") {

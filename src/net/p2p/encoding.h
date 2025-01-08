@@ -556,9 +556,10 @@ namespace P2P {
    */
   class Message {
     private:
-      /// The internal message data to be read/written, stored as bytes.
-      /// Sessions has directly access to it
-      /// As it can use the vector for its buffer.
+      /**
+       * The internal message data to be read/written, stored as bytes.
+       * Sessions has directly access to it as it can use the vector for its buffer.
+       */
       Bytes rawMessage_;
 
       /// Assignment operator.

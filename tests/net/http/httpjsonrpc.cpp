@@ -177,6 +177,7 @@ namespace THTTPJsonRPC{
 
       blockchainWrapper.http.start();
       std::this_thread::sleep_for(std::chrono::milliseconds(100));
+      blockchainWrapper.http.start(); // Attempt to start again, for coverage (runFuture is valid)
 
       json web3_clientVersionResponse = requestMethod("web3_clientVersion", json::array());
 

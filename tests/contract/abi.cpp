@@ -16,8 +16,7 @@ TEST_CASE("ABI Namespace", "[contract][abi]") {
   // This should cover all types for functor, including nested.
   SECTION("Encode Functor for FunnsiesFunc(std::tuple<std::vector<std::tuple<uint256_t, uint256_t, uint256_t, uint256_t>>, std::string, uint256_t, std::vector<std::tuple<std::string, std::tuple<uint256_t, uint256_t>, std::string>>> arg)")
   {
-    struct Test
-    {
+    struct Test {
       void FunnsiesFunc(const std::tuple<
                                 std::vector<
                                   std::tuple<uint256_t, uint256_t, uint256_t, uint256_t>>,
@@ -1314,25 +1313,42 @@ TEST_CASE("ABI Namespace", "[contract][abi]") {
         "00000000000000000000000000000000000000000000000000016201a9fce5dd"
       );
 
-    auto decodedData = ABI::Decoder::decodeData<std::vector<uint256_t>>(ABI);
-    std::vector<uint256_t> decodedVector = std::get<0>(decodedData);
+      auto decodedData = ABI::Decoder::decodeData<std::vector<uint256_t>>(ABI);
+      std::vector<uint256_t> decodedVector = std::get<0>(decodedData);
 
-    REQUIRE(decodedVector[0] == uint256_t(2312415123141231511));
-    REQUIRE(decodedVector[1] == uint256_t(2734526262645));
-    REQUIRE(decodedVector[2] == uint256_t(389234263123421));
-  }
+      REQUIRE(decodedVector[0] == uint256_t(2312415123141231511));
+      REQUIRE(decodedVector[1] == uint256_t(2734526262645));
+      REQUIRE(decodedVector[2] == uint256_t(389234263123421));
+
+      // For coverage
+      Bytes ABIWrongSize = Hex::toBytes("0x"
+        "0000000000000000000000000000000000000000000000000000000000000020"
+        "0000000000000000000000000000000000000000000000000000000000000003"
+        "0000000000000000000000000000000000000000000000002017594d84130397"
+        "0000000000000000000000000000000000000000000000000000027cae776d75"
+        "00000000000000000000000000000000000000000000000000016201a9fce5" // missing last "dd"
+      );
+
+      REQUIRE_THROWS(ABI::Decoder::decodeData<std::vector<uint256_t>>(ABIWrongSize));
+    }
 
     SECTION("Decode Int256") {
       Bytes ABI = Hex::toBytes("0x"
         "fffffffffffffffffdaf1854f62f44391b682b86c9106cac85300e6931c0f52e"
       );
 
-    auto decodedData = ABI::Decoder::decodeData<int256_t>(ABI);
-    int256_t decodedInt = std::get<0>(decodedData);
+      auto decodedData = ABI::Decoder::decodeData<int256_t>(ABI);
+      int256_t decodedInt = std::get<0>(decodedData);
 
-    REQUIRE(decodedInt == int256_t("-56789012345678901234567890123456789012345678901234567890"));
+      REQUIRE(decodedInt == int256_t("-56789012345678901234567890123456789012345678901234567890"));
 
-  }
+      // For coverage
+      Bytes ABIWrongSize = Hex::toBytes("0x"
+        "fffffffffffffffffdaf1854f62f44391b682b86c9106cac85300e6931c0f5" // missing last "2e"
+      );
+
+      REQUIRE_THROWS(ABI::Decoder::decodeData<int256_t>(ABIWrongSize));
+    }
 
     SECTION("Decode Int256 (Array)") {
       Bytes ABI = Hex::toBytes("0x"
