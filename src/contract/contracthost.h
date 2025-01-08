@@ -44,6 +44,7 @@ See the LICENSE.txt file in the project root for more information.
 using namespace evmc::literals;
 const auto ZERO_ADDRESS = 0x0000000000000000000000000000000000000000_address;
 const auto BDK_PRECOMPILE = 0x1000000000000000000000000000100000000001_address;
+const auto ECRECOVER_PRECOMPILE = 0x0000000000000000000000000000000000000001_address;
 
 /// Abstraction for a contract host.
 class ContractHost : public evmc::Host {
@@ -151,6 +152,13 @@ class ContractHost : public evmc::Host {
      * @return The result of the call.
      */
     evmc::Result processBDKPrecompile(const evmc_message& msg);
+
+    /**
+     * Process a call to EC RECOVER precompile.
+     * @param msg The call message to process.
+     * @return The result of the call.
+     */
+    evmc::Result processEcRecoverPrecompile(const evmc_message& msg);
 
     /**
      * Process an EVM CREATE call.

@@ -14,6 +14,29 @@ static inline bool isCall(const evmc_message& msg) {
   return msg.kind == EVMC_CALL || msg.kind == EVMC_DELEGATECALL;
 }
 
+static Address ecrecover(const Hash& hash, uint8_t v, const Hash& r, const Hash& s) {
+  if (v == 27) {
+    v = 0;
+  } else if (v == 28) {
+    v = 1;
+  } else {
+    return Address{};
+  }
+
+  Signature sig;
+  auto it = std::copy(r.begin(), r.end(), sig.begin());
+  it = std::copy(s.begin(), s.end(), it);
+  *it = v;
+
+  auto pubkey = Secp256k1::recover(sig, hash);
+
+  if (!pubkey) {
+    return Address{};
+  }
+
+  return Secp256k1::toAddress(pubkey);
+}
+
 void ContractHost::transfer(const Address& from, const Address& to, const uint256_t& value) {
   // the from account **Must exist** on the unordered_map.
   // unordered_map references to values are valid **until** you insert a new element
@@ -243,6 +266,11 @@ evmc::Result ContractHost::processBDKPrecompile(const evmc_message& msg) {
    *    function getRandom() external view returns (uint256);
    *  }
    */
+  
+  if (msg.recipient == ECRECOVER_PRECOMPILE) {
+    return this->processEcRecoverPrecompile(msg);
+  }
+
   try {
     this->leftoverGas_ = msg.gas;
     this->deduceGas(1000); // CPP contract call is 1000 gas
@@ -258,6 +286,21 @@ evmc::Result ContractHost::processBDKPrecompile(const evmc_message& msg) {
     this->evmcThrows_.emplace_back(e.what());
     this->evmcThrow_ = true;
   }
+  return evmc::Result(EVMC_PRECOMPILE_FAILURE, this->leftoverGas_, 0, nullptr, 0);
+}
+
+evmc::Result ContractHost::processEcRecoverPrecompile(const evmc_message& msg) {
+  try {
+    this->deduceGas(3000); // The cost for a ecrecover call: https://www.evm.codes/precompiled
+    const auto [hash, v, r, s] = ABI::Decoder::decodeData<Hash, uint8_t, Hash, Hash>(bytes::View(msg.input_data, msg.input_size));
+    const Address result = ecrecover(hash, v, r, s);
+    const Bytes resultEncoded = ABI::Encoder::encodeData(result);
+    return evmc::Result{EVMC_SUCCESS, this->leftoverGas_, 0, resultEncoded.data(), resultEncoded.size()};
+  } catch (const std::exception& e) {
+    this->evmcThrows_.emplace_back(e.what());
+    this->evmcThrow_ = true;
+  }
+
   return evmc::Result(EVMC_PRECOMPILE_FAILURE, this->leftoverGas_, 0, nullptr, 0);
 }
 
@@ -619,7 +662,14 @@ ContractType ContractHost::decodeContractCallType(const evmc_message& msg) const
       return ContractType::CREATE2;
     }
     default:
-      if (msg.recipient == BDK_PRECOMPILE) return ContractType::PRECOMPILED;
+      if (msg.recipient == BDK_PRECOMPILE) {
+        return ContractType::PRECOMPILED;
+      }
+
+      if (msg.recipient == ECRECOVER_PRECOMPILE) {
+        return ContractType::PRECOMPILED;
+      }
+
       Address recipient(msg.recipient);
       // we need to take a reference to the account, not a reference to the pointer
       const auto& recipientAccount = *accounts_[recipient];

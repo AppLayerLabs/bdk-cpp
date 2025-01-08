@@ -9,6 +9,7 @@ See the LICENSE.txt file in the project root for more information.
 #define DYNAMIC_EXCEPTION_H
 
 #include <chrono> // ctime
+#include <iomanip>
 #include <sstream> // ostringstream
 
 /// Abstraction of a custom exception class for dynamic message building and timestamping.
