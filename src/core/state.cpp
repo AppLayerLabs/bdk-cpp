@@ -506,9 +506,13 @@ int64_t State::estimateGas(const evmc_message& callInfo) {
     Hash(),
     leftOverGas
   ).simulate(callInfo, type);
-  auto left = callInfo.gas - leftOverGas;
+  int64_t left = callInfo.gas - leftOverGas;
   if (left < 0) {
     left = 0;
+  } else {
+    // Increase the estimated amount by 15%, users don't like rejected transactions due to out of gas!
+    int64_t onePercent = left/100;
+    left += (onePercent * 15);
   }
   return left;
 }
