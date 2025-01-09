@@ -119,6 +119,8 @@ void ERC20::registerContractFunctions() {
 void ERC20::mintValue_(const Address& address, const uint256_t& value) {
   balances_[address] += value;
   totalSupply_ += value;
+  // TODO: Allow contract events during constructor, mintValue_ is called during constructor.
+  // this->Transfer(Address(), address, value);
 }
 
 void ERC20::burnValue_(const Address& address, const uint256_t& value) {
@@ -142,11 +144,13 @@ uint256_t ERC20::balanceOf(const Address& owner) const {
 bool ERC20::transfer(const Address &to, const uint256_t &value) {
   this->balances_[this->getCaller()] -= value;
   this->balances_[to] += value;
+  this->Transfer(this->getCaller(), to, value);
   return true;
 }
 
 bool ERC20::approve(const Address &spender, const uint256_t &value) {
   this->allowed_[this->getCaller()][spender] = value;
+  this->Approval(this->getCaller(), spender, value);
   return true;
 }
 
@@ -164,6 +168,7 @@ bool ERC20::transferFrom(
   this->allowed_[from][this->getCaller()] -= value;
   this->balances_[from] -= value;
   this->balances_[to] += value;
+  this->Transfer(from, to, value);
   return true;
 }
 
