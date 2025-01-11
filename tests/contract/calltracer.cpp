@@ -130,7 +130,7 @@ namespace TCallTracer {
       REQUIRE(callJson["from"] == "0x00dead00665771855a34155f5e7405489df2c3c6");
       REQUIRE(callJson["to"] == "0x5b41cef7f46a4a147e31150c3c5ffd077e54d0e1");
       REQUIRE(callJson["value"] == "0x0");
-      REQUIRE(callJson["gas"] == "0x8727");
+      REQUIRE(callJson["gas"] == "0x9582");
       REQUIRE(callJson["gasUsed"] == "0x6017");
       REQUIRE(callJson["input"] == "0x1003e2d20000000000000000000000000000000000000000000000000000000000000021");
 
@@ -157,7 +157,7 @@ namespace TCallTracer {
       REQUIRE(callJson2["from"] == "0x00dead00665771855a34155f5e7405489df2c3c6");
       REQUIRE(callJson2["to"] == "0x5b41cef7f46a4a147e31150c3c5ffd077e54d0e1");
       REQUIRE(callJson2["value"] == "0x0");
-      REQUIRE(callJson2["gas"] == "0x88a5");
+      REQUIRE(callJson2["gas"] == "0x973c");
       REQUIRE(callJson2["gasUsed"] == "0x6195");
       REQUIRE(callJson2["input"] == "0x4fa522db0000000000000000000000000000000000000000000000000000000000000042");
       REQUIRE(callJson2["output"] == "0x0000000000000000000000000000000000000000000000000000000000000063");
@@ -313,7 +313,7 @@ namespace TCallTracer {
       REQUIRE(errorJson["from"] == "0x00dead00665771855a34155f5e7405489df2c3c6");
       REQUIRE(errorJson["to"] == "0x6d48fdfe009e309dd5c4e69dec87365bfa0c8119");
       REQUIRE(errorJson["value"] == "0x0");
-      REQUIRE(errorJson["gas"] == "0x958b");
+      REQUIRE(errorJson["gas"] == "0xa611");
       REQUIRE(errorJson["gasUsed"] == "0x6e7b");
       REQUIRE(errorJson["input"] == "0x7f3358bc0000000000000000000000005b41cef7f46a4a147e31150c3c5ffd077e54d0e100000000000000000000000000000000000000000000000000000000000001f5");
       REQUIRE(errorJson.contains("calls"));
@@ -323,7 +323,7 @@ namespace TCallTracer {
       REQUIRE(errorJsonCall["from"] == "0x6d48fdfe009e309dd5c4e69dec87365bfa0c8119");
       REQUIRE(errorJsonCall["to"] == "0x5b41cef7f46a4a147e31150c3c5ffd077e54d0e1");
       REQUIRE(errorJsonCall["value"] == "0x0");
-      REQUIRE(errorJsonCall["gas"] == "0x8f18");
+      REQUIRE(errorJsonCall["gas"] == "0x9f5c");
       REQUIRE(errorJsonCall["gasUsed"] == "0x16bb");
       REQUIRE(errorJsonCall["input"] == "0x2e1a7d4d00000000000000000000000000000000000000000000000000000000000001f5");
       REQUIRE(errorJsonCall["output"] == "0x08c379a000000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000012496e73756666696369656e742066756e64730000000000000000000000000000");
