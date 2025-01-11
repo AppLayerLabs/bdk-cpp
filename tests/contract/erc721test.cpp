@@ -40,7 +40,12 @@ namespace TERC721Test {
       SDKTestSuite sdk = SDKTestSuite::createNewEnvironment("testERC721TestMint100TokenSameAddress");
       auto ERC721Address = sdk.deployContract<ERC721Test>(std::string("My Test NFT!"), std::string("NFT"), uint64_t(100));
       for (uint64_t i = 0; i < 100; ++i) {
-        sdk.callFunction(ERC721Address, &ERC721Test::mint, sdk.getChainOwnerAccount().address);
+        auto mintTx = sdk.callFunction(ERC721Address, &ERC721Test::mint, sdk.getChainOwnerAccount().address);
+        auto mintEvents = sdk.getEventsEmittedByTx(mintTx, &ERC721Test::Transfer);
+        REQUIRE(mintEvents.size() == 1);
+        REQUIRE(std::get<0>(ABI::Decoder::decodeData<Address>(mintEvents[0].getTopics()[1].asBytes())) == Address());
+        REQUIRE(std::get<0>(ABI::Decoder::decodeData<Address>(mintEvents[0].getTopics()[2].asBytes())) == sdk.getChainOwnerAccount().address);
+        REQUIRE(std::get<0>(ABI::Decoder::decodeData<uint256_t>(mintEvents[0].getTopics()[3].asBytes())) == uint256_t(i));
       }
       // Check if token Id 0...99 is minted and owned by the chain owner
       for (uint64_t i = 0; i < 100; ++i) {
@@ -63,7 +68,12 @@ namespace TERC721Test {
       SDKTestSuite sdk = SDKTestSuite::createNewEnvironment("testERC721TestMint100DifferentAddresses", accounts);
       auto ERC721Address = sdk.deployContract<ERC721Test>(std::string("My Test NFT!"), std::string("NFT"), uint64_t(100));
       for (int i = 0; i < 100; ++i) {
-        sdk.callFunction(ERC721Address, &ERC721Test::mint, accounts[i].address);
+        auto mintTx = sdk.callFunction(ERC721Address, &ERC721Test::mint, accounts[i].address);
+        auto mintEvents = sdk.getEventsEmittedByTx(mintTx, &ERC721Test::Transfer);
+        REQUIRE(mintEvents.size() == 1);
+        REQUIRE(std::get<0>(ABI::Decoder::decodeData<Address>(mintEvents[0].getTopics()[1].asBytes())) == Address());
+        REQUIRE(std::get<0>(ABI::Decoder::decodeData<Address>(mintEvents[0].getTopics()[2].asBytes())) == accounts[i].address);
+        REQUIRE(std::get<0>(ABI::Decoder::decodeData<uint256_t>(mintEvents[0].getTopics()[3].asBytes())) == uint256_t(i));
       }
       // Check if token Id 0...99 is minted and owned by each respective account
       for (int i = 0; i < 100; ++i) {
@@ -82,7 +92,12 @@ namespace TERC721Test {
       SDKTestSuite sdk = SDKTestSuite::createNewEnvironment("testERC721TestMint100DifferentAddressesReverse", accounts);
       auto ERC721Address = sdk.deployContract<ERC721Test>(std::string("My Test NFT!"), std::string("NFT"), uint64_t(100));
       for (int i = 99; i >= 0; i--) {
-        sdk.callFunction(ERC721Address, &ERC721Test::mint, accounts[i].address);
+        auto mintTx = sdk.callFunction(ERC721Address, &ERC721Test::mint, accounts[i].address);
+        auto mintEvents = sdk.getEventsEmittedByTx(mintTx, &ERC721Test::Transfer);
+        REQUIRE(mintEvents.size() == 1);
+        REQUIRE(std::get<0>(ABI::Decoder::decodeData<Address>(mintEvents[0].getTopics()[1].asBytes())) == Address());
+        REQUIRE(std::get<0>(ABI::Decoder::decodeData<Address>(mintEvents[0].getTopics()[2].asBytes())) == accounts[i].address);
+        REQUIRE(std::get<0>(ABI::Decoder::decodeData<uint256_t>(mintEvents[0].getTopics()[3].asBytes())) == uint256_t(99 - i));
       }
       // Check if token Id 0...99 is minted and owned by each respective account
       uint64_t tokenId = 0;
@@ -97,7 +112,12 @@ namespace TERC721Test {
       SDKTestSuite sdk = SDKTestSuite::createNewEnvironment("testERC721TestMint100AndBurn100SameAddress");
       auto ERC721Address = sdk.deployContract<ERC721Test>(std::string("My Test NFT!"), std::string("NFT"), uint64_t(100));
       for (uint64_t i = 0; i < 100; ++i) {
-        sdk.callFunction(ERC721Address, &ERC721Test::mint, sdk.getChainOwnerAccount().address);
+        auto mintTx = sdk.callFunction(ERC721Address, &ERC721Test::mint, sdk.getChainOwnerAccount().address);
+        auto mintEvents = sdk.getEventsEmittedByTx(mintTx, &ERC721Test::Transfer);
+        REQUIRE(mintEvents.size() == 1);
+        REQUIRE(std::get<0>(ABI::Decoder::decodeData<Address>(mintEvents[0].getTopics()[1].asBytes())) == Address());
+        REQUIRE(std::get<0>(ABI::Decoder::decodeData<Address>(mintEvents[0].getTopics()[2].asBytes())) == sdk.getChainOwnerAccount().address);
+        REQUIRE(std::get<0>(ABI::Decoder::decodeData<uint256_t>(mintEvents[0].getTopics()[3].asBytes())) == uint256_t(i));
       }
       // Check if token Id 0...99 is minted and owned by the chain owner
       for (uint64_t i = 0; i < 100; ++i) {
@@ -106,7 +126,12 @@ namespace TERC721Test {
       }
       REQUIRE(sdk.callViewFunction(ERC721Address, &ERC721Test::totalSupply) == 100);
       for (uint64_t i = 0; i < 100; ++i) {
-        sdk.callFunction(ERC721Address, &ERC721Test::burn, uint256_t(i));
+        auto burnTx = sdk.callFunction(ERC721Address, &ERC721Test::burn, uint256_t(i));
+        auto burnEvents = sdk.getEventsEmittedByTx(burnTx, &ERC721Test::Transfer);
+        REQUIRE(burnEvents.size() == 1);
+        REQUIRE(std::get<0>(ABI::Decoder::decodeData<Address>(burnEvents[0].getTopics()[1].asBytes())) == sdk.getChainOwnerAccount().address);
+        REQUIRE(std::get<0>(ABI::Decoder::decodeData<Address>(burnEvents[0].getTopics()[2].asBytes())) == Address());
+        REQUIRE(std::get<0>(ABI::Decoder::decodeData<uint256_t>(burnEvents[0].getTopics()[3].asBytes())) == uint256_t(i));
       }
       REQUIRE(sdk.callViewFunction(ERC721Address, &ERC721Test::totalSupply) == 0);
       // Make sure that ownerOf throws (token does not exist)
@@ -125,7 +150,12 @@ namespace TERC721Test {
       SDKTestSuite sdk = SDKTestSuite::createNewEnvironment("testERC721TestMint100DifferentAddressBurn100DifferentAddress", accounts);
       auto ERC721Address = sdk.deployContract<ERC721Test>(std::string("My Test NFT!"), std::string("NFT"), uint64_t(100));
       for (int i = 0; i < 100; ++i) {
-        sdk.callFunction(ERC721Address, &ERC721Test::mint, accounts[i].address);
+        auto mintTx = sdk.callFunction(ERC721Address, &ERC721Test::mint, accounts[i].address);
+        auto mintEvents = sdk.getEventsEmittedByTx(mintTx, &ERC721Test::Transfer);
+        REQUIRE(mintEvents.size() == 1);
+        REQUIRE(std::get<0>(ABI::Decoder::decodeData<Address>(mintEvents[0].getTopics()[1].asBytes())) == Address());
+        REQUIRE(std::get<0>(ABI::Decoder::decodeData<Address>(mintEvents[0].getTopics()[2].asBytes())) == accounts[i].address);
+        REQUIRE(std::get<0>(ABI::Decoder::decodeData<uint256_t>(mintEvents[0].getTopics()[3].asBytes())) == uint256_t(i));
       }
       // Check if token Id 0...99 is minted and owned by each respective account
       for (int i = 0; i < 100; ++i) {
@@ -134,7 +164,12 @@ namespace TERC721Test {
       }
       REQUIRE(sdk.callViewFunction(ERC721Address, &ERC721Test::totalSupply) == 100);
       for (int i = 0; i < 100; ++i) {
-        sdk.callFunction(ERC721Address, accounts[i], &ERC721Test::burn, uint256_t(i));
+        auto burnTx = sdk.callFunction(ERC721Address, accounts[i], &ERC721Test::burn, uint256_t(i));
+        auto burnEvents = sdk.getEventsEmittedByTx(burnTx, &ERC721Test::Transfer);
+        REQUIRE(burnEvents.size() == 1);
+        REQUIRE(std::get<0>(ABI::Decoder::decodeData<Address>(burnEvents[0].getTopics()[1].asBytes())) == accounts[i].address);
+        REQUIRE(std::get<0>(ABI::Decoder::decodeData<Address>(burnEvents[0].getTopics()[2].asBytes())) == Address());
+        REQUIRE(std::get<0>(ABI::Decoder::decodeData<uint256_t>(burnEvents[0].getTopics()[3].asBytes())) == uint256_t(i));
       }
       REQUIRE(sdk.callViewFunction(ERC721Address, &ERC721Test::totalSupply) == 0);
       // Make sure that ownerOf throws (token does not exist)
@@ -153,7 +188,12 @@ namespace TERC721Test {
       SDKTestSuite sdk = SDKTestSuite::createNewEnvironment("testERC721TestMint100DifferentAddressBurnWithAllowance", accounts);
       auto ERC721Address = sdk.deployContract<ERC721Test>(std::string("My Test NFT!"), std::string("NFT"), uint64_t(100));
       for (int i = 0; i < 100; ++i) {
-        sdk.callFunction(ERC721Address, &ERC721Test::mint, accounts[i].address);
+        auto mintTx = sdk.callFunction(ERC721Address, &ERC721Test::mint, accounts[i].address);
+        auto mintEvents = sdk.getEventsEmittedByTx(mintTx, &ERC721Test::Transfer);
+        REQUIRE(mintEvents.size() == 1);
+        REQUIRE(std::get<0>(ABI::Decoder::decodeData<Address>(mintEvents[0].getTopics()[1].asBytes())) == Address());
+        REQUIRE(std::get<0>(ABI::Decoder::decodeData<Address>(mintEvents[0].getTopics()[2].asBytes())) == accounts[i].address);
+        REQUIRE(std::get<0>(ABI::Decoder::decodeData<uint256_t>(mintEvents[0].getTopics()[3].asBytes())) == uint256_t(i));
       }
       // Check if token Id 0...99 is minted and owned by each respective account
       for (int i = 0; i < 100; ++i) {
@@ -171,14 +211,24 @@ namespace TERC721Test {
         REQUIRE_THROWS(sdk.callFunction(ERC721Address, &ERC721Test::approve, sdk.getChainOwnerAccount().address, uint256_t(i)));
       }
       for (int i = 0; i < 100; ++i) {
-        sdk.callFunction(ERC721Address, accounts[i], &ERC721Test::approve, sdk.getChainOwnerAccount().address, uint256_t(i));
+        auto approveTx = sdk.callFunction(ERC721Address, accounts[i], &ERC721Test::approve, sdk.getChainOwnerAccount().address, uint256_t(i));
+        auto approveEvents = sdk.getEventsEmittedByTx(approveTx, &ERC721Test::Approval);
+        REQUIRE(approveEvents.size() == 1);
+        REQUIRE(std::get<0>(ABI::Decoder::decodeData<Address>(approveEvents[0].getTopics()[1].asBytes())) == accounts[i].address);
+        REQUIRE(std::get<0>(ABI::Decoder::decodeData<Address>(approveEvents[0].getTopics()[2].asBytes())) == sdk.getChainOwnerAccount().address);
+        REQUIRE(std::get<0>(ABI::Decoder::decodeData<uint256_t>(approveEvents[0].getTopics()[3].asBytes())) == uint256_t(i));
       }
       // Check allowance
       for (int i = 0; i < 100; ++i) {
         REQUIRE(sdk.callViewFunction(ERC721Address, &ERC721Test::getApproved, uint256_t(i)) == sdk.getChainOwnerAccount().address);
       }
       for (int i = 0; i < 100; ++i) {
-        sdk.callFunction(ERC721Address, &ERC721Test::burn, uint256_t(i));
+        auto burnTx = sdk.callFunction(ERC721Address, &ERC721Test::burn, uint256_t(i));
+        auto burnEvents = sdk.getEventsEmittedByTx(burnTx, &ERC721Test::Transfer);
+        REQUIRE(burnEvents.size() == 1);
+        REQUIRE(std::get<0>(ABI::Decoder::decodeData<Address>(burnEvents[0].getTopics()[1].asBytes())) == accounts[i].address);
+        REQUIRE(std::get<0>(ABI::Decoder::decodeData<Address>(burnEvents[0].getTopics()[2].asBytes())) == Address());
+        REQUIRE(std::get<0>(ABI::Decoder::decodeData<uint256_t>(burnEvents[0].getTopics()[3].asBytes())) == uint256_t(i));
       }
       REQUIRE(sdk.callViewFunction(ERC721Address, &ERC721Test::totalSupply) == 0);
       // Make sure that ownerOf throws (token does not exist)
@@ -202,7 +252,12 @@ namespace TERC721Test {
       SDKTestSuite sdk = SDKTestSuite::createNewEnvironment("testERC721TestMint100DifferentAddressBurnWithAllowance", accounts);
       auto ERC721Address = sdk.deployContract<ERC721Test>(std::string("My Test NFT!"), std::string("NFT"), uint64_t(100));
       for (int i = 0; i < 100; ++i) {
-        sdk.callFunction(ERC721Address, &ERC721Test::mint, accounts[i].address);
+        auto mintTx = sdk.callFunction(ERC721Address, &ERC721Test::mint, accounts[i].address);
+        auto mintEvents = sdk.getEventsEmittedByTx(mintTx, &ERC721Test::Transfer);
+        REQUIRE(mintEvents.size() == 1);
+        REQUIRE(std::get<0>(ABI::Decoder::decodeData<Address>(mintEvents[0].getTopics()[1].asBytes())) == Address());
+        REQUIRE(std::get<0>(ABI::Decoder::decodeData<Address>(mintEvents[0].getTopics()[2].asBytes())) == accounts[i].address);
+        REQUIRE(std::get<0>(ABI::Decoder::decodeData<uint256_t>(mintEvents[0].getTopics()[3].asBytes())) == uint256_t(i));
       }
       // Check if token Id 0...99 is minted and owned by each respective account
       for (int i = 0; i < 100; ++i) {
@@ -217,7 +272,12 @@ namespace TERC721Test {
       }
       // Give allowance
       for (int i = 0; i < 100; ++i) {
-        sdk.callFunction(ERC721Address, accounts[i], &ERC721Test::approve, sdk.getChainOwnerAccount().address, uint256_t(i));
+        auto approveTx = sdk.callFunction(ERC721Address, accounts[i], &ERC721Test::approve, sdk.getChainOwnerAccount().address, uint256_t(i));
+        auto approveEvents = sdk.getEventsEmittedByTx(approveTx, &ERC721Test::Approval);
+        REQUIRE(approveEvents.size() == 1);
+        REQUIRE(std::get<0>(ABI::Decoder::decodeData<Address>(approveEvents[0].getTopics()[1].asBytes())) == accounts[i].address);
+        REQUIRE(std::get<0>(ABI::Decoder::decodeData<Address>(approveEvents[0].getTopics()[2].asBytes())) == sdk.getChainOwnerAccount().address);
+        REQUIRE(std::get<0>(ABI::Decoder::decodeData<uint256_t>(approveEvents[0].getTopics()[3].asBytes())) == uint256_t(i));
       }
       // Check allowance
       for (int i = 0; i < 100; ++i) {
@@ -225,7 +285,12 @@ namespace TERC721Test {
       }
       // Transfer from
       for (int i = 0; i < 100; ++i) {
-        sdk.callFunction(ERC721Address, &ERC721Test::transferFrom, accounts[i].address, accountToSent.address, uint256_t(i));
+        auto transferTx = sdk.callFunction(ERC721Address, &ERC721Test::transferFrom, accounts[i].address, accountToSent.address, uint256_t(i));
+        auto transferEvents = sdk.getEventsEmittedByTx(transferTx, &ERC721Test::Transfer);
+        REQUIRE(transferEvents.size() == 1);
+        REQUIRE(std::get<0>(ABI::Decoder::decodeData<Address>(transferEvents[0].getTopics()[1].asBytes())) == accounts[i].address);
+        REQUIRE(std::get<0>(ABI::Decoder::decodeData<Address>(transferEvents[0].getTopics()[2].asBytes())) == accountToSent.address);
+        REQUIRE(std::get<0>(ABI::Decoder::decodeData<uint256_t>(transferEvents[0].getTopics()[3].asBytes())) == uint256_t(i));
       }
       // Check if token id 0...99 is owned by accountToSent
       for (int i = 0; i < 100; ++i) {

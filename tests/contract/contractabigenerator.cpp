@@ -25,7 +25,7 @@ TEST_CASE("ContractABIGenerator helper", "[contract][contractabigenerator]") {
     json j;
     std::ifstream i("ABI/ERC20.json");
     i >> j;
-    REQUIRE(j.size() == 9);
+    REQUIRE(j.size() == 11);
 
     auto findTransferFrom = std::find(j.begin(), j.end(), EXPECTED::ERC20::transferFrom);
     REQUIRE(findTransferFrom != j.end());

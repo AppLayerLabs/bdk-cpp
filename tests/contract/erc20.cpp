@@ -49,6 +49,11 @@ namespace TERC20 {
       balanceTo = sdk.callViewFunction(erc20, &ERC20::balanceOf, to);
       REQUIRE(balanceMe == uint256_t("500000000000000000"));
       REQUIRE(balanceTo == uint256_t("500000000000000000"));
+      auto transferEvents = sdk.getEventsEmittedByTx(transferTx, &ERC20::Transfer);
+      REQUIRE(transferEvents.size() == 1);
+      REQUIRE(std::get<0>(ABI::Decoder::decodeData<Address>(transferEvents[0].getTopics()[1].asBytes())) == owner);
+      REQUIRE(std::get<0>(ABI::Decoder::decodeData<Address>(transferEvents[0].getTopics()[2].asBytes())) == to);
+      REQUIRE(std::get<0>(ABI::Decoder::decodeData<uint256_t>(transferEvents[0].getData())) == uint256_t("500000000000000000"));
 
       // "owner" doesn't have enough balance, this should throw and balances should stay intact
       REQUIRE_THROWS(sdk.callFunction(erc20, &ERC20::transfer, to, uint256_t("1000000000000000000")));
@@ -67,6 +72,12 @@ namespace TERC20 {
       Hash approveTx = sdk.callFunction(erc20, &ERC20::approve, to, uint256_t("500000000000000000"));
       allowance = sdk.callViewFunction(erc20, &ERC20::allowance, owner, to);
       REQUIRE(allowance == uint256_t("500000000000000000")); // "to" can now spend 0.5 TST
+
+      auto approveEvents = sdk.getEventsEmittedByTx(approveTx, &ERC20::Approval);
+      REQUIRE(approveEvents.size() == 1);
+      REQUIRE(std::get<0>(ABI::Decoder::decodeData<Address>(approveEvents[0].getTopics()[1].asBytes())) == owner);
+      REQUIRE(std::get<0>(ABI::Decoder::decodeData<Address>(approveEvents[0].getTopics()[2].asBytes())) == to);
+      REQUIRE(std::get<0>(ABI::Decoder::decodeData<uint256_t>(approveEvents[0].getData())) == uint256_t("500000000000000000"));
 
       // Search for a non-existing spender (for coverage)
       Address ghost("0x1234567890123456789012345678901234567890", false);
@@ -98,6 +109,11 @@ namespace TERC20 {
       balanceTo = sdk.callViewFunction(erc20, &ERC20::balanceOf, to);
       REQUIRE(balanceMe == uint256_t("500000000000000000"));
       REQUIRE(balanceTo == uint256_t("500000000000000000"));
+      auto transferEvents = sdk.getEventsEmittedByTx(transferTx, &ERC20::Transfer);
+      REQUIRE(transferEvents.size() == 1);
+      REQUIRE(std::get<0>(ABI::Decoder::decodeData<Address>(transferEvents[0].getTopics()[1].asBytes())) == owner);
+      REQUIRE(std::get<0>(ABI::Decoder::decodeData<Address>(transferEvents[0].getTopics()[2].asBytes())) == to);
+      REQUIRE(std::get<0>(ABI::Decoder::decodeData<uint256_t>(transferEvents[0].getData())) == uint256_t("500000000000000000"));
 
       // "owner" doesn't have enough balance, this should throw and balances should stay intact
       REQUIRE_THROWS(sdk.callFunction(erc20, &ERC20::transferFrom, owner, to, uint256_t("1000000000000000000")));

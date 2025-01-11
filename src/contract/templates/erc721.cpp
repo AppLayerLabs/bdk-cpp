@@ -134,6 +134,7 @@ Address ERC721::update_(const Address& to, const uint256_t& tokenId, const Addre
     this->balances_[to]++;
   }
   this->owners_[static_cast<uint64_t>(tokenId)] = to;
+  this->Transfer(from, to, tokenId);
   return from;
 }
 
@@ -189,6 +190,7 @@ Address ERC721::approve_(const Address& to, const uint256_t& tokenId, const Addr
   }
 
   this->tokenApprovals_[static_cast<uint64_t>(tokenId)] = to;
+  this->Approval(owner, to, tokenId);
 
   return owner;
 }
@@ -237,6 +239,7 @@ void ERC721::setApprovalForAll_(const Address& owner, const Address& operatorAdd
     throw DynamicException("ERC721::setApprovalForAll_: zero address");
   }
   this->operatorAddressApprovals_[owner][operatorAddress] = approved;
+  this->ApprovalForAll(owner, operatorAddress, approved);
 }
 
 void ERC721::requireMinted_(const uint256_t& tokenId) const {
