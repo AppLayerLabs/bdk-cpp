@@ -783,7 +783,14 @@ class SDKTestSuite {
       callValue = EVMCConv::uint256ToEvmcUint256(0);
       callCreate2Salt = {};
       callCodeAddress = contractAddress.toEvmcAddress();
-      return std::get<0>(ABI::Decoder::decodeData<ReturnType>(this->state_.ethCall(callData)));
+
+      // If function is void do not return any data
+      if constexpr (std::is_same_v<ReturnType, void>) {
+        this->state_.ethCall(callData);
+        return;
+      } else {
+        return std::get<0>(ABI::Decoder::decodeData<ReturnType>(this->state_.ethCall(callData)));
+      }
     }
 
     /**
@@ -832,7 +839,13 @@ class SDKTestSuite {
       callCreate2Salt = {};
       callCodeAddress = {};
 
-      return std::get<0>(ABI::Decoder::decodeData<ReturnType>(this->state_.ethCall(callData)));
+      // If function is void do not return any data
+      if constexpr (std::is_same_v<ReturnType, void>) {
+        this->state_.ethCall(callData);
+        return;
+      } else {
+        return std::get<0>(ABI::Decoder::decodeData<ReturnType>(this->state_.ethCall(callData)));
+      }
     }
 
 

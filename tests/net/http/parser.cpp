@@ -14,7 +14,7 @@ namespace THTTPJSONRPCParser {
     SECTION("Parser operator()") {
       Hash h = Hash::random();
       std::vector<uint64_t> v = {10, 20, 30, 40, 50};
-      
+
       // Parser regex REQUIRES hex prefix (0x)
       json jsonHash = h.hex(true).get();
       json jsonAdd = Address("0x0000111122223333444455556666777788889999", false).hex(true).get();
@@ -23,6 +23,8 @@ namespace THTTPJSONRPCParser {
       json jsonFloat = 13.37f;
       json jsonUint = uint64_t(3926591489);
       json jsonUintStr = "0xea0b0801";
+      json jsonOptional = nullptr;
+      json jsonVariant = uint64_t(12345);
       json jsonBlockTagLatest = "latest";
       json jsonBlockTagEarliest = "earliest";
       json jsonBlockTagPending = "pending";
@@ -37,6 +39,8 @@ namespace THTTPJSONRPCParser {
       float resFloat = jsonrpc::parse<float>(jsonFloat);
       uint64_t resUint = jsonrpc::parse<uint64_t>(jsonUint);
       uint64_t resUintStr = jsonrpc::parse<uint64_t>(jsonUintStr);
+      std::optional<uint64_t> resOptional = jsonrpc::parse<std::optional<uint64_t>>(jsonOptional);
+      std::variant<uint64_t, bool> resVariant = jsonrpc::parse<std::variant<uint64_t, bool>>(jsonVariant);
       jsonrpc::BlockTag resBlockTagLatest = jsonrpc::parse<jsonrpc::BlockTag>(jsonBlockTagLatest);
       jsonrpc::BlockTag resBlockTagEarliest = jsonrpc::parse<jsonrpc::BlockTag>(jsonBlockTagEarliest);
       jsonrpc::BlockTag resBlockTagPending = jsonrpc::parse<jsonrpc::BlockTag>(jsonBlockTagPending);
@@ -50,6 +54,8 @@ namespace THTTPJSONRPCParser {
       REQUIRE(resFloat == 13.37f);
       REQUIRE(resUint == uint64_t(3926591489));
       REQUIRE(resUintStr == uint64_t(3926591489));
+      REQUIRE(resOptional == std::nullopt);
+      REQUIRE(std::get<uint64_t>(resVariant) == 12345);
       REQUIRE(resBlockTagLatest == jsonrpc::BlockTag::LATEST);
       REQUIRE(resBlockTagEarliest == jsonrpc::BlockTag::EARLIEST);
       REQUIRE(resBlockTagPending == jsonrpc::BlockTag::PENDING);

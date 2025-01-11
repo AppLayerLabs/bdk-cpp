@@ -129,7 +129,7 @@ Bytes Hex::bytes() const {
 Hex& Hex::operator+=(const std::string& hex) {
   bool strict = (hex[0] == '0' && (hex[1] == 'x' || hex[1] == 'X'));
   if (Hex::isValid(hex, strict)) {
-    this->hex_ += (strict) ? hex.substr(2) : hex;
+    this->hex_ += strict ? hex.substr(2) : hex;
     if (this->hex_[1] == 'X') this->hex_[1] = 'x';  // Always fix "0X" back to "0x"
   } else {
     throw DynamicException("Invalid Hex concat operation");

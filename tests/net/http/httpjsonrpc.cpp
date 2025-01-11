@@ -106,7 +106,7 @@ template <typename T> json requestMethod(std::string method, T params) {
   );
 }
 
-namespace THTTPJsonRPC{
+namespace THTTPJsonRPC {
   TEST_CASE("HTTPJsonRPC Tests", "[net][http][jsonrpc]") {
     SECTION("checkJsonRPCSpec") {
       json ok = {{"jsonrpc", "2.0"}, {"method", "myMethod"}, {"params", json::array()}};

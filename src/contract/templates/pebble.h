@@ -121,7 +121,7 @@ class Pebble : public virtual ERC721URIStorage, public virtual Ownable {
      * Check if contract caller is the authorizer.
      * @throw DynamicException if caller is not the authorizer.
      */
-    void onlyAuthorizer() const;
+    void onlyAuthorizer();
 
     /**
      * Change the authorizer address.

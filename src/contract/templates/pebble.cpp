@@ -254,7 +254,7 @@ std::string Pebble::rarityToString(const Rarity& rarity) const {
   return ret;
 }
 
-void Pebble::onlyAuthorizer() const {
+void Pebble::onlyAuthorizer() {
   if (this->getCaller() != this->authorizer_) {
     throw DynamicException("Pebble: caller is not the authorizer");
   }

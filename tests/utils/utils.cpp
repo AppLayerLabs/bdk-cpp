@@ -20,6 +20,29 @@ namespace TUtils {
       Utils::logToFile("testing log to file");
     }
 
+    SECTION("Account struct") {
+      // Copy constructor
+      Account a(uint256_t(1000), uint64_t(0));
+      REQUIRE(a.balance == uint256_t(1000));
+      REQUIRE(a.nonce == uint64_t(0));
+      // Move constructor
+      uint256_t bal = 2000;
+      uint64_t nonce = 1;
+      Account b(std::move(bal), std::move(nonce));
+      REQUIRE(b.balance == 2000);
+      REQUIRE(b.nonce == 1);
+      // Deserialize constructor
+      Bytes ser = a.serialize();
+      Account c(ser);
+      REQUIRE(c.balance == 1000);
+      REQUIRE(c.nonce == 0);
+      // For coverage
+      ser[72] = 0xFF; // Invalid contract type
+      REQUIRE_THROWS(Account(ser));
+      ser.pop_back(); // Invalid bytes size (one less)
+      REQUIRE_THROWS(Account(ser));
+    }
+
     SECTION("sha3") {
       std::string sha3Input = "My SHA3 Input";
       auto sha3Output = Utils::sha3(StrConv::stringToBytes(sha3Input));
@@ -82,6 +105,21 @@ namespace TUtils {
       REQUIRE(Hex::fromBytes(v2).get() == "616263646566");
       REQUIRE_THROWS(Utils::create_view_span(b, 0, 12));
       REQUIRE_THROWS(Utils::create_view_span(sv, 0, 12));
+    }
+
+    SECTION("readConfigFile") {
+      if (std::filesystem::exists("config.json")) {
+        std::filesystem::remove("config.json");
+      }
+      json j = Utils::readConfigFile(); // Creating from scratch
+      json j2 = Utils::readConfigFile(); // Loading from default
+      REQUIRE(j == j2);
+      REQUIRE(j["rpcport"] == 8080);
+      REQUIRE(j["p2pport"] == 8081);
+      REQUIRE(j["seedNodes"][0] == "127.0.0.1:8086");
+      REQUIRE(j["seedNodes"][1] == "127.0.0.1:8087");
+      REQUIRE(j["seedNodes"][2] == "127.0.0.1:8088");
+      REQUIRE(j["seedNodes"][3] == "127.0.0.1:8089");
     }
   }
 }

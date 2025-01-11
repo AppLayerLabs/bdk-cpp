@@ -121,6 +121,17 @@ namespace TRdPoS {
       REQUIRE(blockchainWrapper.state.rdposGetBestRandomSeed() == expectedRandomnessFromBestBlock);
       REQUIRE(blockchainWrapper.state.rdposGetRandomList() == expectedRandomList);
     }
+
+    SECTION("rdPoS validateBlock Errors (Coverage)") {
+      PrivKey validatorKey = PrivKey();
+      auto blockchainWrapper = initialize(validatorPrivKeysRdpos, validatorKey, SDKTestSuite::getTestPort(), true, testDumpPath + "/rdPoSValidateBlockCoverage");
+
+      // Wrong signature (not randomList_[0])
+      FinalizedBlock b1(Signature(), UPubKey(), Hash::random(), Hash::random(), Hash::random(), Hash::random(), 0, 0, {}, {}, Hash::random(), 1);
+      REQUIRE_FALSE(blockchainWrapper.state.rdposValidateBlock(b1));
+
+      // TODO: this should be covered further, but faking block contents is too much hassle as it is (same goes for addValidatorTx and maybe getTxValidatorFunction which is not exposed by State)
+    }
   }
 
   TEST_CASE("rdPoS Class With Network Functionality", "[core][rdpos][net]") {
