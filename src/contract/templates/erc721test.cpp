@@ -73,7 +73,7 @@ void ERC721Test::mint(const Address& to) {
 }
 
 void ERC721Test::burn(const uint256_t& tokenId) {
-  this->update_(Address(), tokenId, this->getCaller());
+  this->burn_(tokenId);
   --totalSupply_;
 }
 

@@ -110,7 +110,7 @@ class SDKTestSuite {
     explicit SDKTestSuite(const Options& options) :
       options_(options),
       db_(std::get<0>(DumpManager::getBestStateDBPath(this->options_))),
-      storage_(p2p_.getLogicalLocation(),options_),
+      storage_(p2p_.getLogicalLocation(), options_),
       state_(db_, storage_, p2p_, std::get<1>(DumpManager::getBestStateDBPath(this->options_)), options_),
       p2p_(LOCALHOST, options_, storage_, state_),
       http_(state_, storage_, p2p_, options_)

@@ -10,6 +10,7 @@ set (TESTS_SOURCES
   ""
   ${CMAKE_SOURCE_DIR}/tests/utils/block.cpp
   ${CMAKE_SOURCE_DIR}/tests/utils/block_throw.cpp
+  ${CMAKE_SOURCE_DIR}/tests/utils/clargs.cpp
   ${CMAKE_SOURCE_DIR}/tests/utils/db.cpp
   ${CMAKE_SOURCE_DIR}/tests/utils/ecdsa.cpp
   ${CMAKE_SOURCE_DIR}/tests/utils/evmcconv.cpp

@@ -36,6 +36,51 @@ namespace TERC721Test {
       REQUIRE(sdk.callViewFunction(ERC721Address, &ERC721Test::tokenIdCounter) == 0);
     }
 
+    SECTION("ERC721Test 1 Token (Mint + Dump + Burn + Transfer)") {
+      Address ERC721Address;
+      std::unique_ptr<Options> options;
+      {
+        SDKTestSuite sdk = SDKTestSuite::createNewEnvironment("testERC721TestOneToken");
+        ERC721Address = sdk.deployContract<ERC721Test>(std::string("My Test NFT!"), std::string("NFT"), uint64_t(100));
+        // Mint exactly one token for the chain owner
+        auto mintTx = sdk.callFunction(ERC721Address, &ERC721Test::mint, sdk.getChainOwnerAccount().address);
+        auto mintEvents = sdk.getEventsEmittedByTx(mintTx, &ERC721Test::Transfer);
+        REQUIRE(mintEvents.size() == 1);
+        REQUIRE(std::get<0>(ABI::Decoder::decodeData<Address>(mintEvents[0].getTopics()[1].asBytes())) == Address());
+        REQUIRE(std::get<0>(ABI::Decoder::decodeData<Address>(mintEvents[0].getTopics()[2].asBytes())) == sdk.getChainOwnerAccount().address);
+        REQUIRE(std::get<0>(ABI::Decoder::decodeData<uint256_t>(mintEvents[0].getTopics()[3].asBytes())) == uint256_t(0));
+        // Confirm that token is minted and owned by the chain owner
+        auto owner = sdk.callViewFunction(ERC721Address, &ERC721Test::ownerOf, uint256_t(0));
+        REQUIRE(owner == sdk.getChainOwnerAccount().address);
+        // Dump to database
+        options = std::make_unique<Options>(sdk.getOptions());
+        sdk.getState().saveToDB();
+      }
+
+      // SDKTestSuite should automatically load the state from the DB if we construct it with an Options object
+      // (The createNewEnvironment DELETES the DB if any is found)
+      SDKTestSuite sdk(*options);
+      auto owner = sdk.callViewFunction(ERC721Address, &ERC721Test::ownerOf, uint256_t(0));
+      REQUIRE(owner == sdk.getChainOwnerAccount().address);
+      REQUIRE(sdk.callViewFunction(ERC721Address, &ERC721Test::balanceOf, sdk.getChainOwnerAccount().address) == 1);
+      REQUIRE(sdk.callViewFunction(ERC721Address, &ERC721Test::totalSupply) == 1);
+
+      // For coverage
+      // Try minting to zero address
+      REQUIRE_THROWS(sdk.callFunction(ERC721Address, &ERC721Test::mint, Address()));
+
+      // Try transferring to zero address and from wrong owner
+      Address add1("0x1234567890123456789012345678901234567890", false);
+      Address add2("0x0987654321098765432109876543210987654321", false);
+      REQUIRE_THROWS(sdk.callFunction(ERC721Address, &ERC721Test::transferFrom, sdk.getChainOwnerAccount().address, Address(), uint256_t(0)));
+      REQUIRE_THROWS(sdk.callFunction(ERC721Address, &ERC721Test::transferFrom, add1, add2, uint256_t(0)));
+
+      // Burn the token and try to burn it again then transfer it
+      REQUIRE_NOTHROW(sdk.callFunction(ERC721Address, &ERC721Test::burn, uint256_t(0)));
+      REQUIRE_THROWS(sdk.callFunction(ERC721Address, &ERC721Test::burn, uint256_t(0))); // Already burnt
+      REQUIRE_THROWS(sdk.callFunction(ERC721Address, &ERC721Test::transferFrom, sdk.getChainOwnerAccount().address, add1, uint256_t(0)));
+    }
+
     SECTION("ERC721Test Mint 100 Token Same Address") {
       SDKTestSuite sdk = SDKTestSuite::createNewEnvironment("testERC721TestMint100TokenSameAddress");
       auto ERC721Address = sdk.deployContract<ERC721Test>(std::string("My Test NFT!"), std::string("NFT"), uint64_t(100));

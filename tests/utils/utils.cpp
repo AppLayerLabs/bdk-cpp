@@ -43,6 +43,13 @@ namespace TUtils {
       REQUIRE_THROWS(Account(ser));
     }
 
+    SECTION("safePrint") {
+      Utils::safePrint("Fail!");
+      Log::logToCout = true;
+      Utils::safePrint("Win!");
+      Log::logToCout = false; // Other tests litter terminal output with extra info if we forget to do this
+    }
+
     SECTION("sha3") {
       std::string sha3Input = "My SHA3 Input";
       auto sha3Output = Utils::sha3(StrConv::stringToBytes(sha3Input));

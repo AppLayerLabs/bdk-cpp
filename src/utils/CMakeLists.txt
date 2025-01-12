@@ -1,4 +1,5 @@
 set(UTILS_HEADERS
+  ${CMAKE_SOURCE_DIR}/src/utils/clargs.h
   ${CMAKE_SOURCE_DIR}/src/utils/db.h
   ${CMAKE_SOURCE_DIR}/src/utils/utils.h
   ${CMAKE_SOURCE_DIR}/src/utils/strings.h
@@ -21,6 +22,7 @@ set(UTILS_HEADERS
 )
 
 set(UTILS_SOURCES
+  ${CMAKE_SOURCE_DIR}/src/utils/clargs.cpp
   ${CMAKE_SOURCE_DIR}/src/utils/db.cpp
   ${CMAKE_SOURCE_DIR}/src/utils/utils.cpp
   ${CMAKE_SOURCE_DIR}/src/utils/strings.cpp

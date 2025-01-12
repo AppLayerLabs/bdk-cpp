@@ -16,59 +16,111 @@ using Catch::Matchers::Equals;
 namespace TUtils {
   TEST_CASE("StrConv Namespace", "[utils][strconv]") {
     SECTION("padLeft Test") {
-      std::string input = "abcdef";
-      std::string output = StrConv::padLeft(input, 10, '0');
-      std::string output2 = StrConv::padLeft(input, 20, '1');
-      std::string expectedOutput = "0000abcdef";
-      std::string expectedOutput2 = "11111111111111abcdef";
-      REQUIRE(output == expectedOutput);
-      REQUIRE(output2 == expectedOutput2);
+      std::string in = "abcdef";
+      std::string out = StrConv::padLeft(in, 10, '0');
+      std::string out2 = StrConv::padLeft(in, 20, '1');
+      std::string expOut = "0000abcdef";
+      std::string expOut2 = "11111111111111abcdef";
+      REQUIRE(out == expOut);
+      REQUIRE(out2 == expOut2);
+      // Check 0x (for coverage)
+      in = "0xabcdef";
+      out = StrConv::padLeft(in, 10, '0');
+      out2 = StrConv::padLeft(in, 20, '1');
+      expOut = "0x0000abcdef";
+      expOut2 = "0x11111111111111abcdef";
+      REQUIRE(out == expOut);
+      REQUIRE(out2 == expOut2);
+      // Check 0X (for coverage)
+      in = "0Xabcdef";
+      out = StrConv::padLeft(in, 10, '0');
+      out2 = StrConv::padLeft(in, 20, '1');
+      expOut = "0x0000abcdef";
+      expOut2 = "0x11111111111111abcdef";
+      REQUIRE(out == expOut);
+      REQUIRE(out2 == expOut2);
+      // Check no padding (for coverage)
+      in = "abcdef";
+      out = StrConv::padLeft(in, 4, '0');
+      expOut = "abcdef";
+      REQUIRE(out == expOut);
     }
 
     SECTION("padRight Test") {
-      std::string input = "abcdef";
-      std::string output = StrConv::padRight(input, 10, '0');
-      std::string output2 = StrConv::padRight(input, 20, '1');
-      std::string expectedOutput = "abcdef0000";
-      std::string expectedOutput2 = "abcdef11111111111111";
-      REQUIRE(output == expectedOutput);
-      REQUIRE(output2 == expectedOutput2);
+      std::string in = "abcdef";
+      std::string out = StrConv::padRight(in, 10, '0');
+      std::string out2 = StrConv::padRight(in, 20, '1');
+      std::string expOut = "abcdef0000";
+      std::string expOut2 = "abcdef11111111111111";
+      REQUIRE(out == expOut);
+      REQUIRE(out2 == expOut2);
+      // Check 0x (for coverage)
+      in = "0xabcdef";
+      out = StrConv::padRight(in, 10, '0');
+      out2 = StrConv::padRight(in, 20, '1');
+      expOut = "0xabcdef0000";
+      expOut2 = "0xabcdef11111111111111";
+      REQUIRE(out == expOut);
+      REQUIRE(out2 == expOut2);
+      // Check 0X (for coverage)
+      in = "0Xabcdef";
+      out = StrConv::padRight(in, 10, '0');
+      out2 = StrConv::padRight(in, 20, '1');
+      expOut = "0xabcdef0000";
+      expOut2 = "0xabcdef11111111111111";
+      REQUIRE(out == expOut);
+      REQUIRE(out2 == expOut2);
+      // Check no padding (for coverage)
+      in = "abcdef";
+      out = StrConv::padRight(in, 4, '0');
+      expOut = "abcdef";
+      REQUIRE(out == expOut);
     }
 
     SECTION("padLeftBytes Test") {
-      Bytes inputBytes = Hex::toBytes("0xabcdef");
-      Bytes outputBytes = StrConv::padLeftBytes(inputBytes, 10, 0x00);
-      Bytes outputBytes2 = StrConv::padLeftBytes(inputBytes, 20, 0x11);
-      Bytes expectedOutputBytes = Hex::toBytes("0x00000000000000abcdef");
-      Bytes expectedOutputBytes2 = Hex::toBytes("0x1111111111111111111111111111111111abcdef");
-      REQUIRE(outputBytes == expectedOutputBytes);
-      REQUIRE(outputBytes2 == expectedOutputBytes2);
+      Bytes in = Hex::toBytes("0xabcdef");
+      Bytes out = StrConv::padLeftBytes(in, 10, 0x00);
+      Bytes out2 = StrConv::padLeftBytes(in, 20, 0x11);
+      Bytes expOut = Hex::toBytes("0x00000000000000abcdef");
+      Bytes expOut2 = Hex::toBytes("0x1111111111111111111111111111111111abcdef");
+      REQUIRE(out == expOut);
+      REQUIRE(out2 == expOut2);
+      // Check no padding (for coverage)
+      in = Hex::toBytes("0xabcdef");
+      out = StrConv::padLeftBytes(in, 2, 0x00);
+      expOut = Hex::toBytes("0xabcdef");
+      REQUIRE(out == expOut);
     }
 
     SECTION("padRightBytes Test") {
-      Bytes inputBytes = Hex::toBytes("0xabcdef");
-      Bytes outputBytes = StrConv::padRightBytes(inputBytes, 10, 0x00);
-      Bytes outputBytes2 = StrConv::padRightBytes(inputBytes, 20, 0x11);
-      Bytes expectedOutputBytes = Hex::toBytes("0xabcdef00000000000000");
-      Bytes expectedOutputBytes2 = Hex::toBytes("0xabcdef1111111111111111111111111111111111");
-      REQUIRE(outputBytes == expectedOutputBytes);
-      REQUIRE(outputBytes2 == expectedOutputBytes2);
+      Bytes in = Hex::toBytes("0xabcdef");
+      Bytes out = StrConv::padRightBytes(in, 10, 0x00);
+      Bytes out2 = StrConv::padRightBytes(in, 20, 0x11);
+      Bytes expOut = Hex::toBytes("0xabcdef00000000000000");
+      Bytes expOut2 = Hex::toBytes("0xabcdef1111111111111111111111111111111111");
+      REQUIRE(out == expOut);
+      REQUIRE(out2 == expOut2);
+      // Check no padding (for coverage)
+      in = Hex::toBytes("0xabcdef");
+      out = StrConv::padRightBytes(in, 2, 0x00);
+      expOut = Hex::toBytes("0xabcdef");
+      REQUIRE(out == expOut);
     }
 
     SECTION("toLower Test") {
-      std::string inputStr = "ABCDEF";
-      std::string outputStr = inputStr;
-      StrConv::toLower(outputStr);
-      std::string expectedOutputStr = "abcdef";
-      REQUIRE_THAT(outputStr, Equals(expectedOutputStr));
+      std::string in = "ABCDEF";
+      std::string out = in;
+      StrConv::toLower(out);
+      std::string expOut = "abcdef";
+      REQUIRE_THAT(out, Equals(expOut));
     }
 
     SECTION("toUpper Test") {
-      std::string inputStr = "abcdef";
-      std::string outputStr = inputStr;
-      StrConv::toUpper(outputStr);
-      std::string expectedOutputStr = "ABCDEF";
-      REQUIRE_THAT(outputStr, Equals(expectedOutputStr));
+      std::string in = "abcdef";
+      std::string out = in;
+      StrConv::toUpper(out);
+      std::string expOut = "ABCDEF";
+      REQUIRE_THAT(out, Equals(expOut));
     }
 
     SECTION("bytesToString Test") {
