@@ -25,11 +25,7 @@ public:
       return precompiledExecutor_.execute(std::forward<M>(msg));
     }
 
-    const Account& account = context_.getAccount(codeAddress);
-
-    if (!account.isContract()) {
-      throw DynamicException("Not a contract address");
-    }
+    auto account = context_.getAccount(codeAddress);
 
     auto checkpoint = context_.checkpoint();
 
@@ -39,8 +35,14 @@ public:
       }
     }
 
+    if constexpr (concepts::EncodedMessage<M>) {
+      if (msg.input().size() == 0) {
+        return Bytes();
+      }
+    }
+
     // TODO: to much code repetition, you can do better than this.
-    if (account.contractType == ContractType::CPP) {
+    if (account.getContractType() == ContractType::CPP) {
       if constexpr (std::same_as<Result, void>) {
         cppExecutor_.execute(std::forward<M>(msg));
         checkpoint.commit();
@@ -50,7 +52,7 @@ public:
         checkpoint.commit();
         return result;
       }
-    } else {
+    } else if (account.getContractType() == ContractType::EVM) {
       if constexpr (std::same_as<Result, void>) {
         evmExecutor_.execute(std::forward<M>(msg));
         checkpoint.commit();
@@ -60,11 +62,15 @@ public:
         checkpoint.commit();
         return result;
       }
+    } else {
+      throw DynamicException("Attempt to invoke account that is not a contract");
     }
   }
 
   template<concepts::CreateMessage M>
   Address onMessage(M&& msg) {
+    auto checkpoint = context_.checkpoint();
+
     const Address result = std::invoke([&] () {
       if constexpr (concepts::EncodedMessage<M>) {
         return evmExecutor_.execute(std::forward<M>(msg));
@@ -73,6 +79,7 @@ public:
       }
     });
 
+    checkpoint.commit();
     return result;
   }
 

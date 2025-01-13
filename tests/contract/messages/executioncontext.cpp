@@ -9,6 +9,14 @@ See the LICENSE.txt file in the project root for more information.
 #include "bytes/hex.h"
 #include "contract/messages/executioncontext.h"
 
+static inline void addAccount(ExecutionContext& context, View<Address> address, const Account& account) {
+  auto pointer = context.getAccount(address);
+  pointer.setBalance(account.balance);
+  pointer.setNonce(account.nonce);
+  pointer.setCode(account.code);
+  pointer.setContractType(account.contractType);
+}
+
 TEST_CASE("Execution Context Test Cases", "[executioncontext]") {
   SECTION("Building correctly") {
     ExecutionContext::Accounts accounts;
@@ -65,9 +73,8 @@ TEST_CASE("Execution Context Test Cases", "[executioncontext]") {
     REQUIRE(context.retrieve(accountAddress1, slot1) == data);
     REQUIRE(context.retrieve(accountAddress1, slot2) == Hash());
     REQUIRE(context.retrieve(accountAddress2, slot1) == Hash());
-    REQUIRE(context.getAccount(accountAddress1).balance == 1000);
-    REQUIRE(context.getAccount(accountAddress2).balance == 666);
-    REQUIRE_THROWS(context.getAccount(blockCoinbase));
+    REQUIRE(context.getAccount(accountAddress1).getBalance() == 1000);
+    REQUIRE(context.getAccount(accountAddress2).getBalance() == 666);
   }
 
   SECTION("Checkpoint revert to accounts") {
@@ -100,51 +107,51 @@ TEST_CASE("Execution Context Test Cases", "[executioncontext]") {
       .accounts(accounts)
       .build();
 
-    context.addAccount(addresses[1], accountsArr[1]);
-    context.addAccount(addresses[2], accountsArr[2]);
+    addAccount(context, addresses[1], accountsArr[1]);
+    addAccount(context, addresses[2], accountsArr[2]);
 
-    REQUIRE(context.getAccount(addresses[0]).balance == accountsArr[0].balance);
-    REQUIRE(context.getAccount(addresses[1]).balance == accountsArr[1].balance);
-    REQUIRE(context.getAccount(addresses[2]).balance == accountsArr[2].balance);
+    REQUIRE(context.getAccount(addresses[0]).getBalance() == accountsArr[0].balance);
+    REQUIRE(context.getAccount(addresses[1]).getBalance() == accountsArr[1].balance);
+    REQUIRE(context.getAccount(addresses[2]).getBalance() == accountsArr[2].balance);
 
     auto checkpoint = context.checkpoint();
 
-    context.addAccount(addresses[3], accountsArr[3]);
-    context.addAccount(addresses[4], accountsArr[4]);
+    addAccount(context, addresses[3], accountsArr[3]);
+    addAccount(context, addresses[4], accountsArr[4]);
 
-    REQUIRE(context.getAccount(addresses[0]).balance == accountsArr[0].balance);
-    REQUIRE(context.getAccount(addresses[1]).balance == accountsArr[1].balance);
-    REQUIRE(context.getAccount(addresses[2]).balance == accountsArr[2].balance);
-    REQUIRE(context.getAccount(addresses[3]).balance == accountsArr[3].balance);
-    REQUIRE(context.getAccount(addresses[4]).balance == accountsArr[4].balance);
+    REQUIRE(context.getAccount(addresses[0]).getBalance() == accountsArr[0].balance);
+    REQUIRE(context.getAccount(addresses[1]).getBalance() == accountsArr[1].balance);
+    REQUIRE(context.getAccount(addresses[2]).getBalance() == accountsArr[2].balance);
+    REQUIRE(context.getAccount(addresses[3]).getBalance() == accountsArr[3].balance);
+    REQUIRE(context.getAccount(addresses[4]).getBalance() == accountsArr[4].balance);
 
     context.transferBalance(addresses[0], addresses[1], 100);
-    REQUIRE(context.getAccount(addresses[0]).balance == accountsArr[0].balance - 100);
-    REQUIRE(context.getAccount(addresses[1]).balance == accountsArr[1].balance + 100);
+    REQUIRE(context.getAccount(addresses[0]).getBalance() == accountsArr[0].balance - 100);
+    REQUIRE(context.getAccount(addresses[1]).getBalance() == accountsArr[1].balance + 100);
     REQUIRE_THROWS(context.transferBalance(addresses[0], addresses[1], 101));
 
     checkpoint.revert();
 
-    REQUIRE(context.getAccount(addresses[0]).balance == accountsArr[0].balance);
-    REQUIRE(context.getAccount(addresses[1]).balance == accountsArr[1].balance);
-    REQUIRE(context.getAccount(addresses[2]).balance == accountsArr[2].balance);
-    REQUIRE_THROWS(context.getAccount(addresses[3]));
-    REQUIRE_THROWS(context.getAccount(addresses[4]));
+    REQUIRE(context.getAccount(addresses[0]).getBalance() == accountsArr[0].balance);
+    REQUIRE(context.getAccount(addresses[1]).getBalance() == accountsArr[1].balance);
+    REQUIRE(context.getAccount(addresses[2]).getBalance() == accountsArr[2].balance);
+    REQUIRE(context.getAccount(addresses[3]).getBalance() == uint256_t(0));
+    REQUIRE(context.getAccount(addresses[4]).getBalance() == uint256_t(0));
 
     {
       auto checkpoint2 = context.checkpoint();
 
-      context.addAccount(addresses[5], accountsArr[5]);
-      context.addAccount(addresses[6], accountsArr[6]);
+      addAccount(context, addresses[5], accountsArr[5]);
+      addAccount(context, addresses[6], accountsArr[6]);
       context.transferBalance(addresses[1], addresses[2], 50);
 
       checkpoint2.commit();
     }
 
-    REQUIRE(context.getAccount(addresses[1]).balance == accountsArr[1].balance - 50);
-    REQUIRE(context.getAccount(addresses[2]).balance == accountsArr[2].balance + 50);
-    REQUIRE(context.getAccount(addresses[5]).balance == accountsArr[5].balance);
-    REQUIRE(context.getAccount(addresses[6]).balance == accountsArr[6].balance);
+    REQUIRE(context.getAccount(addresses[1]).getBalance() == accountsArr[1].balance - 50);
+    REQUIRE(context.getAccount(addresses[2]).getBalance() == accountsArr[2].balance + 50);
+    REQUIRE(context.getAccount(addresses[5]).getBalance() == accountsArr[5].balance);
+    REQUIRE(context.getAccount(addresses[6]).getBalance() == accountsArr[6].balance);
   }
 
   SECTION("Nested: revert, revert, revert") {

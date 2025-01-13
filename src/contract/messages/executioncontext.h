@@ -20,6 +20,8 @@ public:
 
   class Builder;
 
+  class AccountPointer;
+
   ExecutionContext(
     Accounts& accounts, Storage& storage, Contracts& contracts,
     int64_t blockGasLimit,  int64_t blockNumber, int64_t blockTimestamp, int64_t txIndex,
@@ -73,7 +75,7 @@ public:
 
   bool accountExists(View<Address> accountAddress) const;
 
-  const Account& getAccount(View<Address> accountAddress) const;
+  AccountPointer getAccount(View<Address> accountAddress);
 
   BaseContract& getContract(View<Address> contractAddress);
 
@@ -83,15 +85,11 @@ public:
 
   const auto& getNewContracts() const { return newContracts_; }
 
-  void addAccount(View<Address> address, Account account);
-
   void addContract(View<Address> address, std::unique_ptr<BaseContract> contract);
 
   void notifyNewContract(View<Address> address, BaseContract* contract);
 
   void transferBalance(View<Address> fromAddress, View<Address> toAddress, const uint256_t& amount);
-
-  void incrementNonce(View<Address> accountAddress);
 
   void store(View<Address> addr, View<Hash> slot, View<Hash> data);
 
@@ -123,6 +121,33 @@ private:
   std::vector<Event> events_;
   std::vector<std::pair<Address, BaseContract*>> newContracts_;
   std::stack<transactional::AnyTransactional> transactions_;
+};
+
+class ExecutionContext::AccountPointer {
+public:
+  AccountPointer(Account& account, std::stack<transactional::AnyTransactional>& transactions);
+
+  const uint256_t& getBalance() const;
+
+  uint64_t getNonce() const;
+
+  View<Hash> getCodeHash() const;
+
+  View<Bytes> getCode() const;
+
+  ContractType getContractType() const;
+
+  void setBalance(const uint256_t& amount);
+
+  void setNonce(uint64_t nonce);
+
+  void setCode(Bytes code);
+
+  void setContractType(ContractType type);
+
+private:
+  Account& account_;
+  std::stack<transactional::AnyTransactional>& transactions_;
 };
 
 class ExecutionContext::Checkpoint {

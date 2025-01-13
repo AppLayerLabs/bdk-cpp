@@ -110,13 +110,11 @@ static void createContractImpl(auto& msg, ExecutionContext& context, View<Addres
   Bytes code = executeEvmcMessage(vm, &evmc::Host::get_interface(), host.to_context(),
     makeEvmcMessage(msg, depth, contractAddress), msg.gas(), msg.code());
 
-  Account newAccount;
-  newAccount.nonce = 1;
-  newAccount.codeHash = Utils::sha3(code);
-  newAccount.code = std::move(code);
-  newAccount.contractType = ContractType::EVM;
-
-  context.addAccount(contractAddress, std::move(newAccount));
+  auto account = context.getAccount(contractAddress);
+  account.setNonce(1);
+  account.setCode(std::move(code));
+  account.setContractType(ContractType::EVM);
+  account.setBalance(account.getBalance() + msg.value());
   context.notifyNewContract(contractAddress, nullptr);
 }
 
@@ -126,14 +124,14 @@ Bytes EvmContractExecutor::execute(EncodedCallMessage& msg) {
   ++depth_;
 
   const Bytes output = executeEvmcMessage(this->vm_, &this->get_interface(), this->to_context(),
-    makeEvmcMessage(msg, depth_), msg.gas(), context_.getAccount(msg.to()).code);
+    makeEvmcMessage(msg, depth_), msg.gas(), context_.getAccount(msg.to()).getCode());
 
   return output;
 }
 
 Bytes EvmContractExecutor::execute(EncodedStaticCallMessage& msg) {
   msg.gas().use(EVM_CONTRACT_CALL_COST);
-  View<Bytes> code = context_.getAccount(msg.to()).code;
+  View<Bytes> code = context_.getAccount(msg.to()).getCode();
 
   auto depthGuard = transactional::copy(depth_);
   ++depth_;
@@ -148,7 +146,7 @@ Bytes EvmContractExecutor::execute(EncodedDelegateCallMessage& msg) {
   ++depth_;
 
   const Bytes output = executeEvmcMessage(this->vm_, &this->get_interface(), this->to_context(),
-    makeEvmcMessage(msg, depth_), msg.gas(), context_.getAccount(msg.codeAddress()).code);
+    makeEvmcMessage(msg, depth_), msg.gas(), context_.getAccount(msg.codeAddress()).getCode());
 
   return output;
 }
@@ -156,9 +154,10 @@ Bytes EvmContractExecutor::execute(EncodedDelegateCallMessage& msg) {
 Address EvmContractExecutor::execute(EncodedCreateMessage& msg) {
   msg.gas().use(EVM_CONTRACT_CREATION_COST);
   auto depthGuard = transactional::copy(depth_);
-  const Address contractAddress = generateContractAddress(context_.getAccount(msg.from()).nonce, msg.from());
+  auto account = context_.getAccount(msg.from());
+  const Address contractAddress = generateContractAddress(account.getNonce(), msg.from());
   createContractImpl(msg, context_, contractAddress, vm_, *this, ++depth_);
-  context_.incrementNonce(msg.from());
+  account.setNonce(account.getNonce() + 1);
   return contractAddress;
 }
 
@@ -185,7 +184,7 @@ evmc_storage_status EvmContractExecutor::set_storage(const evmc::address& addr, 
 
 evmc::uint256be EvmContractExecutor::get_balance(const evmc::address& addr) const noexcept {
   try {
-    return Utils::uint256ToEvmcUint256(context_.getAccount(addr).balance);
+    return Utils::uint256ToEvmcUint256(context_.getAccount(addr).getBalance());
   } catch (const std::exception&) {
     return evmc::uint256be{};
   }
@@ -193,7 +192,7 @@ evmc::uint256be EvmContractExecutor::get_balance(const evmc::address& addr) cons
 
 size_t EvmContractExecutor::get_code_size(const evmc::address& addr) const noexcept {
   try {
-    return context_.getAccount(addr).code.size();
+    return context_.getAccount(addr).getCode().size();
   } catch (const std::exception&) {
     return 0;
   }
@@ -201,7 +200,7 @@ size_t EvmContractExecutor::get_code_size(const evmc::address& addr) const noexc
 
 evmc::bytes32 EvmContractExecutor::get_code_hash(const evmc::address& addr) const noexcept {
   try {
-    return bytes::cast<evmc::bytes32>(context_.getAccount(addr).codeHash);
+    return bytes::cast<evmc::bytes32>(context_.getAccount(addr).getCodeHash());
   } catch (const std::exception&) {
     return evmc::bytes32{};
   }
@@ -210,7 +209,7 @@ evmc::bytes32 EvmContractExecutor::get_code_hash(const evmc::address& addr) cons
 size_t EvmContractExecutor::copy_code(const evmc::address& addr, size_t code_offset, uint8_t* buffer_data, size_t buffer_size) const noexcept {
 
   try {
-    View<Bytes> code = context_.getAccount(addr).code;
+    View<Bytes> code = context_.getAccount(addr).getCode();
 
     if (code_offset < code.size()) {
       const auto n = std::min(buffer_size, code.size() - code_offset);

@@ -142,9 +142,10 @@ private:
     contract.caller_ = caller;
     contract.value_ = value; // TODO: value 0 ALWAYS?
 
-    const Address contractAddress = generateContractAddress(context_.getAccount(msg.from()).nonce, msg.from());
+    auto account = context_.getAccount(msg.from());
+    const Address contractAddress = generateContractAddress(account.getNonce(), msg.from());
     contract.ethCall(evmcMsg, &host_);
-    context_.incrementNonce(msg.from());
+    account.setNonce(account.getNonce() + 1);
 
     return contractAddress;
   }

@@ -17,7 +17,6 @@ public:
   decltype(auto) onMessage(Message&& msg) {
     using Result = traits::MessageResult<Message>;
 
-
     trace::Call& callTrace = callStack_.empty()
       ? *(rootCall_ = std::make_unique<trace::Call>())
       : callStack_.top()->calls.emplace_back();

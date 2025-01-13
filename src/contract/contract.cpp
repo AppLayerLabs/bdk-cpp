@@ -24,5 +24,5 @@ uint64_t BaseContract::getNonce(const Address& address) const {
   if (this->host_ == nullptr) {
     throw DynamicException("Contracts going haywire! trying to get nonce without a host!");
   }
-  return this->host_->context().getAccount(address).nonce;
+  return this->host_->context().getAccount(address).getNonce();
 }

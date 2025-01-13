@@ -641,7 +641,7 @@ class DynamicContract : public BaseContract {
       if (this->host_ == nullptr) {
         throw DynamicException("Contracts going haywire! trying to get balance without a host!");
       }
-      return host_->context().getAccount(address).balance;
+      return host_->context().getAccount(address).getBalance();
     }
 
     /**

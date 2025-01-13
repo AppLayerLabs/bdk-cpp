@@ -80,7 +80,7 @@ void ContractManager::ethCall(const evmc_message& callInfo, ContractHost* host) 
     throw DynamicException("ContractManager: Invalid function call");
   }
   it->second(callInfo,
-            generateContractAddress(this->host_->context().getAccount(caller).nonce, caller),
+            generateContractAddress(this->host_->context().getAccount(caller).getNonce(), caller),
              this->contracts_,
              this->getContractChainId(),
              this->host_);
