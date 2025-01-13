@@ -10,6 +10,8 @@ See the LICENSE.txt file in the project root for more information.
 #include "../../src/utils/clargs.h" // ProcessOptions
 #include "../../src/core/comet.h"
 
+#include "../../src/contract/contracthost.h" // ContractHost::deriveContractAddress()
+
 #include "sdktestsuite.hpp"
 
 // ----------------------------------------------------------------------
@@ -409,6 +411,13 @@ TxBlock SDKTestSuite::createNewTx(
     usedGas,
     from.privKey
   );
+}
+
+Address SDKTestSuite::deployBytecode(const Bytes& bytecode) {
+  Address newContractAddress = ContractHost::deriveContractAddress(this->getNativeNonce(this->getChainOwnerAccount().address), this->getChainOwnerAccount().address);
+  auto createTx = this->createNewTx(this->getChainOwnerAccount(), Address(), 0, bytecode);
+  this->advanceChain({createTx});
+  return newContractAddress;
 }
 
 // ------------------------------------------------------------------

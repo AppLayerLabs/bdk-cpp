@@ -72,6 +72,10 @@ void Blockchain::stop() {
   this->comet_.stop();
 }
 
+std::shared_ptr<const FinalizedBlock> Blockchain::latest() const {
+  return latest_.load();
+}
+
 // ------------------------------------------------------------------
 // CometListener
 // ------------------------------------------------------------------
@@ -135,6 +139,7 @@ void Blockchain::incomingBlock(
 ) {
   try {
     FinalizedBlock finBlock = FinalizedBlock::fromCometBlock(*block);
+    latest_.store(std::make_shared<const FinalizedBlock>(finBlock));
     if (!state_.validateNextBlock(finBlock)) {
       // Should never happen.
       // REVIEW: in fact, we shouldn't even need to verify the block at this point?

@@ -67,6 +67,11 @@ class Blockchain : public CometListener, public NodeRPCInterface, public Log::Lo
 
     std::vector<CometValidatorUpdate> validators_; ///< Up-to-date CometBFT validator set.
 
+    // We have to keep the latest fully deserialized block at the very least because our
+    // current contract test suite makes heavy use of a latest FinalizedBlock that has
+    // TxBlock objects in it, etc.
+    std::atomic<std::shared_ptr<const FinalizedBlock>> latest_; ///< Pointer to the latest block in the blockchain.
+
   public:
 
     // ------------------------------------------------------------------
@@ -149,6 +154,8 @@ class Blockchain : public CometListener, public NodeRPCInterface, public Log::Lo
     void start(); ///< Start the blockchain node.
 
     void stop(); ///< Stop the blockchain node.
+
+    std::shared_ptr<const FinalizedBlock> latest() const; ///< Get latest finalized block.
 
     ///@{
     /** Getter. */

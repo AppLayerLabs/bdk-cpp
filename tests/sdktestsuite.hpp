@@ -65,6 +65,13 @@ class SDKTestSuite : public Blockchain {
 
   public:
 
+    // long-name getters (expected by existing test code)
+    Options& getOptions() { return this->options_; }
+    Comet& getComet() { return this->comet_; }
+    State& getState() { return this->state_; }
+    Storage& getStorage() { return this->storage_; }
+    HTTPServer& getHttp() { return this->http_; }
+
     /// Get next P2P listen port to use in unit tests.
     static int getTestPort() {
       int tries = 1000;
@@ -181,6 +188,14 @@ class SDKTestSuite : public Blockchain {
     TxBlock createNewTx(
       const TestAccount& from, const Address& to, const uint256_t& value, Bytes data = Bytes()
     );
+
+    /**
+     * Create a transaction to deploy a given EVM bytecode and advance the chain with it.
+     * Always use the chain owner account to deploy contracts.
+     * @param bytecode EVM bytecode to deploy.
+     * @return Address of the deployed contract.
+     */
+    Address deployBytecode(const Bytes& bytecode);
 
     /**
      * Create a transaction to deploy a new contract and advance the chain with it.

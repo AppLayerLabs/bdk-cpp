@@ -62,7 +62,13 @@ class Storage : public Log::LogicalLocationProvider {
     // TODO: Remove the vector<TxBlock> field from FinalizedBlock; retrieve
     //       transactions from CometBFT or cache them in RAM as they are pulled
     //       from CometBFT.
+    //       OR:
+    //       Create different top-level classes to model our various needs
+    //       w.r.t. block/tx data.
     //
+    // We have to keep this at the very least because our current contract test
+    // suite makes heavy use of a latest FinalizedBlock that has TxBlock objects
+    // --> moved to Blockchain, which actually generates a FinalizedBlock object
     //std::atomic<std::shared_ptr<const FinalizedBlock>> latest_; ///< Pointer to the latest block in the blockchain.
 
     DB blocksDb_;  ///< Database object that contains all the blockchain blocks
