@@ -185,7 +185,7 @@ FinalizedBlock FinalizedBlock::fromCometBlock(const CometBlock& block) {
   // Same merkle root value as before cometbft integration
   auto txMerkleRoot = Merkle(txs).getRoot();
 
-  uint64_t timestamp = block.timeNanos * 1000; // FinalizedBlock uses microseconds
+  uint64_t timestamp = block.timeNanos / 1000; // FinalizedBlock uses microseconds
   uint64_t nHeight = block.height;
 
   UPubKey validatorPubKey;
