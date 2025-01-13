@@ -74,12 +74,12 @@ struct CometValidatorUpdate {
 /**
  * Special values for CometTxStatus::height that signal different reasons for a transaction not being included in a block yet.
  */
-enum CometTxStatusHeight : int64_t {
-  NONE       = -9, ///< A state that is never set on the object.
-  SUBMITTING = -3, ///< Sent the transaction to the cometbft RPC port.
-  REJECTED   = -2, ///< cometbft rejected the transaction or it never reached it due to some local communication error.
-  SUBMITTED  = -1  ///< cometbft acknowledged and accepted it.
-};
+//enum CometTxStatusHeight : int64_t {
+//  NONE       = -9, ///< A state that is never set on the object.
+//  SUBMITTING = -3, ///< Sent the transaction to the cometbft RPC port.
+//  REJECTED   = -2, ///< cometbft rejected the transaction or it never reached it due to some local communication error.
+//  SUBMITTED  = -1  ///< cometbft acknowledged and accepted it.
+//};
 
 /**
  * The current status of a transaction in the network.
@@ -89,12 +89,12 @@ enum CometTxStatusHeight : int64_t {
  * cometbft RPC server that can be queried to figure it out, but you'll need cometbft transaction hashes, i.e.
  * SHA256 to locate it).
  */
-struct CometTxStatus {
-  int64_t           height; ///< Height of the block in which this transaction was included (< 0 if not included in any block).
-  int32_t           index; ///< Index of the transaction in the block in which it was included (valid only if height >= 0).
-  std::string       cometTxHash; ///< cometbft tx hash (i.e. SHA256) if known.
-  CometExecTxResult result; ///< Transaction execution result (valid only if height >= 0).
-};
+//struct CometTxStatus {
+//  int64_t           height; ///< Height of the block in which this transaction was included (< 0 if not included in any block).
+//  int32_t           index; ///< Index of the transaction in the block in which it was included (valid only if height >= 0).
+//  std::string       cometTxHash; ///< cometbft tx hash (i.e. SHA256) if known.
+//  CometExecTxResult result; ///< Transaction execution result (valid only if height >= 0).
+//};
 
 /**
  * A block output by the consensus engine.
