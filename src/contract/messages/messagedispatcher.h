@@ -37,6 +37,7 @@ public:
 
     if constexpr (concepts::EncodedMessage<M>) {
       if (msg.input().size() == 0) {
+        checkpoint.commit();
         return Bytes();
       }
     }
