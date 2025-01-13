@@ -55,11 +55,11 @@ namespace DBPrefix {
   const Bytes rdPoS =              { 0x00, 0x05 }; ///< "rdPoS" = "0005"
   const Bytes contracts =          { 0x00, 0x06 }; ///< "contracts" = "0006"
   const Bytes contractManager =    { 0x00, 0x07 }; ///< "contractManager" = "0007"
-  const Bytes events =             { 0x00, 0x08 }; ///< "events" = "0008"
+  const Bytes events =             { 0x00, 0x08 }; ///< (stored in eventsDb) "events" = "0008"
   const Bytes vmStorage =          { 0x00, 0x09 }; ///< "vmStorage" = "0009"
   const Bytes txToAdditionalData = { 0x00, 0x0A }; ///< "txToAdditionalData" = "000A"
   const Bytes txToCallTrace =      { 0x00, 0x0B }; ///< "txToCallTrace" = "000B"
-  const Bytes txSha3ToSha256 =     { 0x00, 0x0C }; ///< given the sha3 of a transaction, get its sha256 hash
+  const Bytes txSha3ToSha256 =     { 0x00, 0x0C }; ///< (stored in txMapDb) given the sha3 of a transaction, get its sha256 hash
 };
 
 /// Struct for a database connection/endpoint.

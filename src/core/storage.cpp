@@ -46,7 +46,8 @@ static void storeBlock(DB& db, const FinalizedBlock& block, bool indexingEnabled
 Storage::Storage(Blockchain& blockchain)
   : blockchain_(blockchain),
     blocksDb_(blockchain_.opt().getRootPath() + "/blocksDb/"), // Uncompressed
-    eventsDb_(blockchain_.opt().getRootPath() + "/eventsDb/", true) // Compressed
+    eventsDb_(blockchain_.opt().getRootPath() + "/eventsDb/", true), // Compressed
+    txMapDb_(blockchain_.opt().getRootPath() + "/txMapDb/") // Uncompressed
 {
 }
 
@@ -69,11 +70,11 @@ void Storage::setGetTxCacheSize(const uint64_t cacheSize) {
 }
 
 void Storage::putTxMap(Hash txHashSha3, Hash txHashSha256) {
-  blocksDb_.put(txHashSha3.asBytes(), txHashSha256.asBytes(), DBPrefix::txSha3ToSha256);
+  txMapDb_.put(txHashSha3.asBytes(), txHashSha256.asBytes(), DBPrefix::txSha3ToSha256);
 }
 
 bool Storage::getTxMap(Hash txHashSha3, Hash& txHashSha256) const {
-  const Bytes hashData = blocksDb_.get(txHashSha3, DBPrefix::txSha3ToSha256);
+  const Bytes hashData = txMapDb_.get(txHashSha3, DBPrefix::txSha3ToSha256);
   if (hashData.empty()) return false;
   txHashSha256 = Hash(hashData);
   return true;

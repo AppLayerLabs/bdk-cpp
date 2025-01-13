@@ -74,6 +74,16 @@ class Storage : public Log::LogicalLocationProvider {
     DB blocksDb_;  ///< Database object that contains all the blockchain blocks
     DB eventsDb_; ///< DB exclusive to events (should be removed in future)
 
+    // For now, all of the sha3 to sha256 tx hashes are being saved on disk
+    //   and never being purged -- the only way to purge them is to stop
+    //   the node and delete the database, which will forget about all of the
+    //   mappings.
+    // The permanent solution to this is to change the transaction hashing
+    //   function of CometBFT from sha256 to sha3, either by forking cometbft
+    //   or waiting until e.g. cometbft supports setting the hash function as
+    //   a config option.
+    DB txMapDb_; ///< DB that maps sha3->sha256 txhashes
+
     // Get it via blockchain_.opt() instead
     //const Options& options_;  ///< Reference to the options singleton.
 
