@@ -47,7 +47,7 @@ check_libs() {
 
 # Versions for external dependencies - update numbers here if required
 GRPC_VERSION="1.67.0"
-COMETBFT_VERSION="1.0.0-rc1"
+COMETBFT_VERSION="1.0.0"
 ETHASH_VERSION="1.0.1"
 EVMONE_VERSION="0.11.0"
 SPEEDB_VERSION="2.8.0"

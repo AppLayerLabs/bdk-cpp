@@ -310,7 +310,7 @@ void WebsocketRPCConnection<T>::rpcHandleAsyncRead(boost::system::error_code ec,
       // So if we just got a response that doesn't have a matching rpcAsyncSent_, when we just DROP it:
       // it means the user already collected another response in its place -- probably a
       // rpcMakeInternalError("RPC_CONNECTION_CLOSED").
-      // (could be a stale response from a previous connection cycle, for  example, since we
+      // (could be a stale response from a previous connection cycle, for example, since we
       // aren't currently preventing that)
       bool keepRequest = true;
       if (requestId % 2 == 0) {
@@ -1132,7 +1132,7 @@ void CometImpl::checkCometBFT() {
   // This throws an exception if it can't find cometbft, for example
   runCometBFT({ "version" }, &cometOut, &cometErr);
   // Right now we expect an exact cometbft version to pair with the Comet driver
-  const std::string expectedVersion = "1.0.0-rc1";
+  const std::string expectedVersion = "1.0.0";
   if (cometOut != expectedVersion) {
     throw DynamicException("Expected version [" + expectedVersion + "] from cometbft, got [" + cometOut + "] instead");
   }
