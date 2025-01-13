@@ -15,73 +15,59 @@ public:
   MessageDispatcher(ExecutionContext& context, CppContractExecutor cppExecutor, EvmContractExecutor evmExecutor, PrecompiledContractExecutor precompiledExecutor)
     : context_(context), cppExecutor_(std::move(cppExecutor)), evmExecutor_(std::move(evmExecutor)), precompiledExecutor_(std::move(precompiledExecutor)) {}
 
-  template<concepts::CallMessage M>
-  decltype(auto) onMessage(M&& msg) {
-    using Result = traits::MessageResult<M>;
-
-    View<Address> codeAddress = messageCodeAddress(msg);
-
-    if (isPrecompiled(codeAddress)) {
-      return precompiledExecutor_.execute(std::forward<M>(msg));
-    }
-
-    auto account = context_.getAccount(codeAddress);
-
+  template<concepts::Message M, typename R = traits::MessageResult<M>>
+  R onMessage(M&& msg) {
     auto checkpoint = context_.checkpoint();
 
-    if constexpr (concepts::HasValueField<M>) {
-      if (msg.value() > 0) {
-        context_.transferBalance(msg.from(), msg.to(), msg.value());
-      }
+    if constexpr (std::same_as<R, void>) {
+      dispatchMessage(std::forward<M>(msg));
+      checkpoint.commit();
+    } else {
+      R result = dispatchMessage(std::forward<M>(msg));
+      checkpoint.commit();
+      return result;
     }
+  }
 
-    if constexpr (concepts::EncodedMessage<M>) {
-      if (msg.input().size() == 0) {
-        checkpoint.commit();
+  Address dispatchMessage(concepts::CreateMessage auto&& msg) requires concepts::EncodedMessage<decltype(msg)> {
+    return evmExecutor_.execute(std::forward<decltype(msg)>(msg));
+  }
+
+  Address dispatchMessage(concepts::CreateMessage auto&& msg) requires concepts::PackedMessage<decltype(msg)> {
+    return cppExecutor_.execute(std::forward<decltype(msg)>(msg));
+  }
+
+  decltype(auto) dispatchMessage(concepts::CallMessage auto&& msg) {
+    transferFunds(msg);
+
+    if constexpr (concepts::EncodedMessage<decltype(msg)>) {
+      if (isPayment(msg)) {
         return Bytes();
       }
     }
 
-    // TODO: to much code repetition, you can do better than this.
-    if (account.getContractType() == ContractType::CPP) {
-      if constexpr (std::same_as<Result, void>) {
-        cppExecutor_.execute(std::forward<M>(msg));
-        checkpoint.commit();
-        return;
-      } else {
-        decltype(auto) result = cppExecutor_.execute(std::forward<M>(msg));
-        checkpoint.commit();
-        return result;
-      }
-    } else if (account.getContractType() == ContractType::EVM) {
-      if constexpr (std::same_as<Result, void>) {
-        evmExecutor_.execute(std::forward<M>(msg));
-        checkpoint.commit();
-        return;
-      } else {
-        decltype(auto) result = evmExecutor_.execute(std::forward<M>(msg));
-        checkpoint.commit();
-        return result;
-      }
-    } else {
-      throw DynamicException("Attempt to invoke account that is not a contract");
+    if (isPrecompiled(msg.to())) {
+      return precompiledExecutor_.execute(std::forward<decltype(msg)>(msg));
+    }
+
+    auto account = context_.getAccount(messageCodeAddress(msg));
+
+    switch (account.getContractType()) {
+      case ContractType::CPP:
+        return dispatchCall(cppExecutor_, std::forward<decltype(msg)>(msg));
+        break;
+
+      case ContractType::EVM:
+      return dispatchCall(evmExecutor_, std::forward<decltype(msg)>(msg));
+        break;
+
+      default:
+        throw DynamicException("Attempt to invoke non-contract or inexistent address");
     }
   }
 
-  template<concepts::CreateMessage M>
-  Address onMessage(M&& msg) {
-    auto checkpoint = context_.checkpoint();
-
-    const Address result = std::invoke([&] () {
-      if constexpr (concepts::EncodedMessage<M>) {
-        return evmExecutor_.execute(std::forward<M>(msg));
-      } else {
-        return cppExecutor_.execute(std::forward<M>(msg));
-      }
-    });
-
-    checkpoint.commit();
-    return result;
+  decltype(auto) dispatchCall(auto& executor, auto&& msg) {
+    return executor.execute(std::forward<decltype(msg)>(msg));
   }
 
   CppContractExecutor& cppExecutor() { return cppExecutor_; }
@@ -91,6 +77,22 @@ public:
   PrecompiledContractExecutor& precompiledExecutor() { return precompiledExecutor_; }
 
 private:
+  void transferFunds(const concepts::Message auto& msg) {
+    const uint256_t value = messageValueOrZero(msg);
+
+    if (value > 0) {
+      context_.transferBalance(msg.from(), msg.to(), value);
+    }
+  }
+
+  bool isPayment(const concepts::EncodedMessage auto& msg) {
+    return msg.input().size() == 0;
+  }
+
+  bool isPayment(const concepts::PackedMessage auto& msg) {
+    return false;
+  }
+
   bool isPrecompiled(View<Address> address) const {
     constexpr Address randomGeneratorAddress = bytes::hex("0x1000000000000000000000000000100000000001");
     return address == randomGeneratorAddress;
