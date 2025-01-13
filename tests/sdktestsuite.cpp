@@ -337,17 +337,17 @@ SDKTestSuite SDKTestSuite::createNewEnvironment(
     // overriden by a value from Options. In general we don't want duplication.
     defaultCometBFTOptions["genesis"]["chain_id"] = std::to_string(DEFAULT_UINT64_TEST_CHAIN_ID);
 
+    // advanceChain() is slow now because it needs to wait for CometBFT to actually
+    // produce blocks, so we need to speed it up.
+    // The definitive solution to advanceChain() being slow would be creating a mock
+    // of the CometBFT consensus engine, but that may or may not be a good idea.
+    //
+    // Don't wait to see if we can get more than 2/3 votes for each block.
+    defaultCometBFTOptions["config.toml"]["consensus"] = { {"timeout_commit", "0s"} };
+
     // Genesis block and validators is entirely on the comet side (comet genesis file)
 
     // Discovery nodes will be implemented using cometbft seed-nodes
-
-    // TODO: accounts, contracts, etc. is to be injected directly into the State here since
-    //       the State IS genesis state by definition while we don't do load/save from disk.
-    //       AND, when we DO implement load/save, then in that case the genesis-seeded State
-    //       is just dropped in favor of whatever is in the file you loaded, so it never hurts
-    //       to init State to whatever the production node or testcase thinks genesis state is.
-    // NOTE: Now that SDKTestSuite is a subclass of Blockchain, so we would be modifying
-    //       its state_, db_, etc. before returning it from this static factory method.
 
     options_ = std::make_unique<Options>(
       sdkPath,
