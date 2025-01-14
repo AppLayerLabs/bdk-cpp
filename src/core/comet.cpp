@@ -107,9 +107,10 @@ class WebsocketRPCConnection : public Log::LogicalLocationProvider {
     std::map<uint64_t, T> rpcAsyncSent_; ///< Map of JSON-RPC request id to application object that models the request.
     std::mutex rpcAsyncResponseMapMutex_; ///< Mutex to protect all access to rpcAsyncResponseMap_.
     std::unordered_map<uint64_t, json> rpcAsyncResponseMap_; ///< Map of request ID to response object, if any received, for rpc async calls
+    std::condition_variable rpcAsyncResponseCv_; ///< Condition variable to notify client of incoming async response.
 
-    std::mutex rpcSyncResponseMapMutex_; ///< Mutex to protect all access to rpcAsyncResponseMap_.
-    std::unordered_map<uint64_t, json> rpcSyncResponseMap_; ///< Map of request ID to response object, if any received, for rpc sync calls
+    std::mutex rpcSyncResponseMapMutex_; ///< Mutex to protect all access to rpcSyncResponseMap_.
+    std::unordered_map<uint64_t, std::promise<json>> rpcSyncResponseMap_; ///< Map of request ID to promise of response object for rpc sync calls.
 
     /**
      * Helper to set a JSON-RPC response to the correct map.
@@ -197,21 +198,13 @@ class WebsocketRPCConnection : public Log::LogicalLocationProvider {
     bool rpcCheckConnection();
 
     /**
-     * Pops the response to a specific sync request by requestId, if already available.
-     * NOTE: The T& outRequestData outparam is missing because this is only used in rpcSyncCall().
-     * @param requestId ID of the request.
-     * @param outResult Outparam set to the json response to the request.
-     * @return `true` if there was a response to read, `false` otherwise (outResult is unset).
-     */
-    bool rpcGetSyncResponse(const uint64_t requestId, json& outResult);
-
-    /**
      * Pops a response to an async request, if any is available.
      * @param outResult Outparam set to the json response to the request.
      * @param outRequestData Outparam set to the client request data object passed into the original RPC call request.
+     * @param waitMillis Time to wait for one async response, in milliseconds (default: 0).
      * @return ID of the request, or 0 if there weren't any responses stored (outparams are unmodified).
      */
-    uint64_t rpcGetNextAsyncResponse(json& outResponse, T& outRequestData);
+    uint64_t rpcGetNextAsyncResponse(json& outResponse, T& outRequestData, uint64_t waitMillis = 0);
 
     /**
      * Make an asynchronous (non-blocking) JSON-RPC call.
@@ -223,7 +216,7 @@ class WebsocketRPCConnection : public Log::LogicalLocationProvider {
      * @param params Parameters to pass to the RPC method.
      * @param requestData Application data that is needed to generate the json rpc request call and that
      * the application may want to return to its own client layer in its own RPC call-result callback.
-     * @return The requestId (can be passed to rpcGetSyncResponse() later) if successful, or 0 on error.
+     * @return The requestId if successful, or 0 on error.
      */
     uint64_t rpcAsyncCall(const std::string& method, const json& params, const T& requestData);
 
@@ -242,11 +235,22 @@ class WebsocketRPCConnection : public Log::LogicalLocationProvider {
 template <typename T>
 void WebsocketRPCConnection<T>::rpcSetResponse(const uint64_t requestId, const json& response) {
   if (requestId % 2 == 0) {
-    std::scoped_lock lock(rpcAsyncResponseMapMutex_);
-    rpcAsyncResponseMap_[requestId] = response;
+    {
+      std::scoped_lock lock(rpcAsyncResponseMapMutex_);
+      rpcAsyncResponseMap_[requestId] = response;
+    }
+    rpcAsyncResponseCv_.notify_one();
   } else {
     std::scoped_lock lock(rpcSyncResponseMapMutex_);
-    rpcSyncResponseMap_[requestId] = response;
+    auto it = rpcSyncResponseMap_.find(requestId);
+    if (it != rpcSyncResponseMap_.end()) {
+      it->second.set_value(response);
+      rpcSyncResponseMap_.erase(it);
+    } else {
+      // Every request that we know is a sync request must have a promise.
+      // If no promise is found, which should never happen, just log it and discard.
+      SLOGWARNING("WebsocketRPCConnection::rpcSetResponse(): got an unexpected response: " + response.dump());
+    }
   }
 }
 
@@ -377,10 +381,13 @@ void WebsocketRPCConnection<T>::rpcCancelAllAsyncRequests(const std::string& err
   // via some rpcGetXX() method.
   sentLock.unlock();
   // Manufacture erroneous JSON-RPC responses for all requests that were pending
-  std::scoped_lock reqLock(rpcAsyncResponseMapMutex_);
-  for (uint64_t requestId : requestIds) {
-    rpcAsyncResponseMap_[requestId] = rpcClosedResponse;
+  {
+    std::scoped_lock reqLock(rpcAsyncResponseMapMutex_);
+    for (uint64_t requestId : requestIds) {
+      rpcAsyncResponseMap_[requestId] = rpcClosedResponse;
+    }
   }
+  rpcAsyncResponseCv_.notify_one();
 }
 
 template <typename T>
@@ -550,25 +557,22 @@ bool WebsocketRPCConnection<T>::rpcCheckConnection() {
 }
 
 template <typename T>
-bool WebsocketRPCConnection<T>::rpcGetSyncResponse(const uint64_t requestId, json& outResult) {
-  std::scoped_lock lock(rpcSyncResponseMapMutex_);
-  auto it = rpcSyncResponseMap_.find(requestId);
-  if (it != rpcSyncResponseMap_.end()) {
-    outResult = it->second;
-    rpcSyncResponseMap_.erase(it);
-    return true;
-  }
-  return false;
-}
-
-template <typename T>
-uint64_t WebsocketRPCConnection<T>::rpcGetNextAsyncResponse(json& outResponse, T& outRequestData) {
+uint64_t WebsocketRPCConnection<T>::rpcGetNextAsyncResponse(json& outResponse, T& outRequestData, uint64_t waitMillis) {
   // Get next element and return it, if any
   uint64_t requestId;
   {
-    std::scoped_lock lock(rpcAsyncResponseMapMutex_);
+    std::unique_lock<std::mutex> lock(rpcAsyncResponseMapMutex_);
     if (rpcAsyncResponseMap_.empty()) {
-      return 0;
+      if (waitMillis == 0)
+        return 0;
+      rpcAsyncResponseCv_.wait_for(
+        lock,
+        std::chrono::milliseconds(waitMillis),
+        [this]() -> bool { return !rpcAsyncResponseMap_.empty(); }
+      );
+      if (rpcAsyncResponseMap_.empty()) {
+        return 0;
+      }
     }
     auto it = rpcAsyncResponseMap_.begin();
     requestId = it->first;
@@ -668,21 +672,42 @@ bool WebsocketRPCConnection<T>::rpcSyncCall(const std::string& method, const jso
   if (requestId == 0) {
     return false;
   }
-  while (true) {
-    // If the connection fails or closes for whatever reason, just fail the sync call since, upon stop,
-    // rpcCancelAllAsyncRequests() -- as the name implies -- doesn't do anything for sync calls (and stop
-    // isn't even called here on failure).
-    // This acquires the state mutex so you can't be already holding it here.
-    if (!rpcCheckConnection()) {
+
+  // Create the sync response slot (promise) and get the wait object for it (future)
+  std::promise<json> promise;
+  auto future = promise.get_future();
+  {
+    std::lock_guard<std::mutex> lock(rpcSyncResponseMapMutex_);
+    rpcSyncResponseMap_.emplace(requestId, std::move(promise));
+  }
+
+  // If the connection fails or closes for whatever reason, just fail the sync call since, upon stop,
+  // rpcCancelAllAsyncRequests() -- as the name implies -- doesn't do anything for sync calls (and stop
+  // isn't even called here on failure).
+  // NOTE: rpcCheckConnection() acquires the state mutex so you can't be already holding it here.
+  // Also, since it is conceivable that the RPC connection is power-cycled (thus making our promise
+  // unfulfillable) and we miss that here, we will also just wait for a maximum amount of time.
+  int timeoutSeconds = 10;
+  while (rpcCheckConnection()) {
+    // Wait for a response for 1 second, which should be more than enough for all requests.
+    // If an answer hasn't arrived, wake up and re-check the RPC connection.
+    try {
+      if (future.wait_for(std::chrono::seconds(1)) == std::future_status::ready) {
+        outResult = future.get();
+        return true;
+      }
+    } catch (const std::exception& ex) {
+      outResult = rpcMakeInternalError("rpcSyncCall(): exception in future: " + std::string(ex.what()));
       return false;
     }
-    // Poll for the response in the sync responses map
-    if (rpcGetSyncResponse(requestId, outResult)) {
-      return !outResult.contains("error");
+    if (--timeoutSeconds <= 0) {
+      outResult = rpcMakeInternalError("rpcSyncCall(): timed out (10s)");
+      std::lock_guard<std::mutex> lock(rpcSyncResponseMapMutex_);
+      rpcSyncResponseMap_.erase(requestId);
+      return false;
     }
-    // Yes, it's slow, because you shouldn't use rpcSyncCall() unless it's for some kind of probing or testing.
-    std::this_thread::sleep_for(std::chrono::milliseconds(1));
   }
+  return false;
 }
 
 // ---------------------------------------------------------------------------------------
@@ -803,7 +828,7 @@ class CometImpl : public ABCIHandler, public Log::LogicalLocationProvider {
     std::string getLogicalLocation() const override { return instanceIdStr_; } ///< Log instance
     CometImpl(CometListener* listener, std::string instanceIdStr, const Options& options);
     virtual ~CometImpl();
-    void setTransactionCacheSize(const uint64_t cacheSize);
+    //void setTransactionCacheSize(const uint64_t cacheSize);
     bool getStatus();
     const std::string& getErrorStr();
     CometError getErrorCode();
@@ -2102,9 +2127,10 @@ void CometImpl::workerLoopInner() {
       while (!stop_) {
 
         // Fetch an async-call RPC response (any one)
-        requestId = rpc_.rpcGetNextAsyncResponse(requestResponseJson, requestData);
+        // This request waits up to 100ms (in a condition variable, i.e. thread is in wait mode)
+        requestId = rpc_.rpcGetNextAsyncResponse(requestResponseJson, requestData, 100);
         if (requestId == 0) {
-          break; // Done pumping out all pending responses, so wait a bit, check quit flag, ...
+          break; // Done pumping out all pending responses, so go check the quit flag, ...
         }
         bool requestSuccess = ! requestResponseJson.contains("error");
 
@@ -2169,13 +2195,7 @@ void CometImpl::workerLoopInner() {
         }, requestData);
       }
 
-      // --------------------------------------------------------------------------------
-      // Wait a bit before we check everything again
-      // --------------------------------------------------------------------------------
-
       if (stop_) break;
-
-      std::this_thread::sleep_for(std::chrono::milliseconds(10));
     }
 
     // --------------------------------------------------------------------------------------
