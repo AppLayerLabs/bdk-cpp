@@ -280,7 +280,7 @@ class CometListener {
     }
 
     /**
-     * Notification of completing a Comet::checkTransaction(txHash) RPC request.
+     * Notification of completing a Comet::getBlock(height) RPC request.
      * @param tId The getBlock() request ticket ID.
      * @param success Whether the get block ('block' JSON-RPC method call) was successful or not.
      * @param response The full JSON-RPC response returned by cometbft.

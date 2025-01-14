@@ -83,7 +83,10 @@ json call(const json& request, NodeRPCInterface& rpc) noexcept {
       {"eth_getTransactionByBlockHashAndIndex", [](NodeRPCInterface& obj, const json& req) { return obj.eth_getTransactionByBlockHashAndIndex(req); }},
       {"eth_getTransactionByBlockNumberAndIndex", [](NodeRPCInterface& obj, const json& req) { return obj.eth_getTransactionByBlockNumberAndIndex(req); }},
       {"eth_getTransactionReceipt", [](NodeRPCInterface& obj, const json& req) { return obj.eth_getTransactionReceipt(req); }},
-      {"eth_getUncleByBlockHashAndIndex", [](NodeRPCInterface& obj, const json&) { return obj.eth_getUncleByBlockHashAndIndex(); }}
+      {"eth_getUncleByBlockHashAndIndex", [](NodeRPCInterface& obj, const json& req) { return obj.eth_getUncleByBlockHashAndIndex(req); }},
+      {"debug_traceBlockByNumber", [](NodeRPCInterface& obj, const json& req) { return obj.debug_traceBlockByNumber(req); }},
+      {"debug_traceTransaction", [](NodeRPCInterface& obj, const json& req) { return obj.eth_getUncleByBlockHashAndIndex(req); }},
+      {"txpool_content", [](NodeRPCInterface& obj, const json& req) { return obj.txpool_content(req); }}
     };
 
     // Look up the method in the map

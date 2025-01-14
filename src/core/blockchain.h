@@ -28,13 +28,14 @@ See the LICENSE.txt file in the project root for more information.
  * (State, ...) are allowed to expect a mutable Blockchain& in their constructor,
  * so you may need to create a custom one to wrap the component to be tested.
  *
- * NOTE: Each Blockchain instance has one file-backed, durable store (db_) to
- * implement internal features as needed. However, the db_ should not store:
+ * NOTE: Each Blockchain instance can have one or more file-backed DBs, which
+ * will all be managed by storage_ (Storage class) to implement internal
+ * features as needed. However, these should not store:
  * (i) any data that the consensus engine (cometbft) already stores and
  * that we have no reason to duplicate, such as blocks (OK to cache in RAM),
  * (ii) State (consistent contract checkpoints/snapshots at some execution
- * height) as those should be serialized/deserialized from/to flat files and
- * not a database,
+ * height) as those should be serialized/deserialized from/to their own
+ * file-backed data structures (flat files or the dump-to-fresh-speedb system)
  * (iii) the list of contract types/templates that exist, since that pertains
  * to the binary itself, and should be built statically in RAM on startup (const)
  * (it is OK-ish to store, in db_, the range of block heights for which a
@@ -58,18 +59,21 @@ class Blockchain : public CometListener, public NodeRPCInterface, public Log::Lo
     Options options_; ///< Options singleton.
     Comet comet_;     ///< CometBFT consensus engine driver.
     State state_;     ///< Blockchain state.
-    Storage storage_; ///< Persistent store front-end.
+    Storage storage_; ///< BDK persistent store front-end.
     HTTPServer http_; ///< HTTP server.
-
-    // REVIEW: Do we need this if we have storage_ already? storage_ should be the front-end to all our persistent storage needs.
-    // Shouldn't we just have just one database directory with everything in it?
-    //const DB db_;     ///< Durable data store.
 
     std::vector<CometValidatorUpdate> validators_; ///< Up-to-date CometBFT validator set.
 
     // We have to keep the latest fully deserialized block at the very least because our
     // current contract test suite makes heavy use of a latest FinalizedBlock that has
     // TxBlock objects in it, etc.
+    // TODO/REVIEW: Do we really want to keep a deque of a thousand FinalizedBlock in RAM?
+    //              What if blocks are close to 100MB each?
+    //              We could have the deque limited by total byte size and have that as a
+    //              BDK config, but that would not ensure we have at least N blocks cached
+    //              if we would use them for e.g. feeHistory.
+    //              The upside is that we'd have some cached responses for getBlock()
+    // TODO: cache the hash and height of latest_ at least for getBlock()
     std::atomic<std::shared_ptr<const FinalizedBlock>> latest_; ///< Pointer to the latest block in the blockchain.
 
   public:
@@ -130,7 +134,10 @@ class Blockchain : public CometListener, public NodeRPCInterface, public Log::Lo
     virtual json eth_getTransactionByBlockHashAndIndex(const json& request) override;
     virtual json eth_getTransactionByBlockNumberAndIndex(const json& request) override;
     virtual json eth_getTransactionReceipt(const json& request) override;
-    virtual json eth_getUncleByBlockHashAndIndex() override;
+    virtual json eth_getUncleByBlockHashAndIndex(const json& request) override;
+    virtual json debug_traceBlockByNumber(const json& request) override;
+    virtual json debug_traceTransaction(const json& request) override;
+    virtual json txpool_content(const json& request) override;
 
     std::string getLogicalLocation() const override { return instanceId_; }
 
@@ -157,6 +164,22 @@ class Blockchain : public CometListener, public NodeRPCInterface, public Log::Lo
 
     std::shared_ptr<const FinalizedBlock> latest() const; ///< Get latest finalized block.
 
+    uint64_t getLatestHeight() const; ///< Get the height of the lastest finalized block or 0.
+
+    /**
+     * Get a block from the chain using a given hash.
+     * @param hash The block hash to get.
+     * @return A pointer to the found block, or `nullptr` if block is not found.
+     */
+    std::shared_ptr<const FinalizedBlock> getBlock(const Hash& hash);
+
+    /**
+     * Get a block from the chain using a given height.
+     * @param height The block height to get.
+     * @return A pointer to the found block, or `nullptr` if block is not found.
+     */
+    std::shared_ptr<const FinalizedBlock> getBlock(uint64_t height);
+
     ///@{
     /** Getter. */
     Options& opt() { return this->options_; }
@@ -164,7 +187,6 @@ class Blockchain : public CometListener, public NodeRPCInterface, public Log::Lo
     State& state() { return this->state_; }
     Storage& storage() { return this->storage_; }
     HTTPServer& http() { return this->http_; }
-    //const DB& db() { return this->db_; }
     ///@}
 };
 

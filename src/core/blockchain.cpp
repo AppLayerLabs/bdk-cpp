@@ -8,8 +8,25 @@ See the LICENSE.txt file in the project root for more information.
 #include "blockchain.h"
 
 #include "../utils/logger.h"
+#include "../utils/evmcconv.h"
 
-#define NODE_DATABASE_DIRECTORY_SUFFIX "/db/"
+// FIXME: move parsing code out of net/...
+#include "../net/http/jsonrpc/variadicparser.h"
+#include "../net/http/jsonrpc/blocktag.h"
+using namespace jsonrpc;
+
+//#define NODE_DATABASE_DIRECTORY_SUFFIX "/db/"
+
+// ------------------------------------------------------------------
+// Constants
+// ------------------------------------------------------------------
+
+// Fixed to 2.5 GWei
+static inline constexpr std::string_view FIXED_BASE_FEE_PER_GAS = "0x9502f900";
+
+// ------------------------------------------------------------------
+// Blockchain
+// ------------------------------------------------------------------
 
 Blockchain::Blockchain(const std::string& blockchainPath, std::string instanceId)
   : instanceId_(instanceId),
@@ -74,6 +91,22 @@ void Blockchain::stop() {
 
 std::shared_ptr<const FinalizedBlock> Blockchain::latest() const {
   return latest_.load();
+}
+
+uint64_t Blockchain::getLatestHeight() const {
+  auto latestPtr = latest_.load();
+  if (!latestPtr) { return 0; }
+  return latestPtr->getNHeight();
+}
+
+std::shared_ptr<const FinalizedBlock> Blockchain::getBlock(const Hash& hash) {
+  // FIXME/TODO
+  return {};
+}
+
+std::shared_ptr<const FinalizedBlock> Blockchain::getBlock(uint64_t height) {
+  // FIXME/TODO
+  return {};
 }
 
 // ------------------------------------------------------------------
@@ -247,31 +280,431 @@ void Blockchain::cometStateTransition(const CometState newState, const CometStat
 // NodeRPCInterface
 // ------------------------------------------------------------------
 
-json Blockchain::web3_clientVersion(const json& request) { return {}; }
-json Blockchain::web3_sha3(const json& request) { return {}; }
-json Blockchain::net_version(const json& request) { return {}; }
-json Blockchain::net_listening(const json& request) { return {}; }
-json Blockchain::eth_protocolVersion(const json& request) { return {}; }
-json Blockchain::net_peerCount(const json& request) { return {}; }
+static inline void forbidParams(const json& request) {
+  if (request.contains("params") && !request["params"].empty())
+    throw DynamicException("\"params\" are not required for method");
+}
+
+static std::pair<Bytes, evmc_message> parseEvmcMessage(const json& request, const uint64_t latestHeight, bool recipientRequired) {
+  std::pair<Bytes, evmc_message> res{};
+
+  Bytes& buffer = res.first;
+  evmc_message& msg = res.second;
+
+  const auto [txJson, optionalBlockNumber] = parseAllParams<json, std::optional<BlockTagOrNumber>>(request);
+
+  if (optionalBlockNumber.has_value() && !optionalBlockNumber->isLatest(latestHeight))
+    throw Error(-32601, "Only latest block is supported");
+
+  msg.sender = parseIfExists<Address>(txJson, "from")
+    .transform([] (const Address& addr) { return addr.toEvmcAddress(); })
+    .value_or(evmc::address{});
+
+  if (recipientRequired)
+    msg.recipient = parse<Address>(txJson.at("to")).toEvmcAddress();
+  else
+    msg.recipient = parseIfExists<Address>(txJson, "to")
+      .transform([] (const Address& addr) { return addr.toEvmcAddress(); })
+      .value_or(evmc::address{});
+
+  msg.gas = parseIfExists<uint64_t>(txJson, "gas").value_or(10000000);
+  parseIfExists<uint64_t>(txJson, "gasPrice"); // gas price ignored as chain is fixed at 1 GWEI
+
+  msg.value = parseIfExists<uint64_t>(txJson, "value")
+    .transform([] (uint64_t val) { return EVMCConv::uint256ToEvmcUint256(uint256_t(val)); })
+    .value_or(evmc::uint256be{});
+
+  buffer = parseIfExists<Bytes>(txJson, "data").value_or(Bytes{});
+
+  msg.input_size = buffer.size();
+  msg.input_data = buffer.empty() ? nullptr : buffer.data();
+
+  return res;
+}
+
+/*
+
+  inline this functionality with a synchronous comet getblock
+  in the lambda instead
+
+static std::optional<uint64_t> Blockchain::getBlockNumber(const Hash& hash) {
+  if (const auto block = storage.getBlock(hash); block != nullptr) return block->getNHeight();
+  return std::nullopt;
+}
+*/
+
+template<typename T, std::ranges::input_range R>
+requires std::convertible_to<std::ranges::range_value_t<R>, T>
+static std::vector<T> makeVector(R&& range) {
+  std::vector<T> res(std::ranges::size(range));
+  std::ranges::copy(std::forward<R>(range), res.begin());
+  return res;
+}
+
+static json getBlockJson(const FinalizedBlock *block, bool includeTransactions) {
+  json ret;
+  if (block == nullptr) { ret = json::value_t::null; return ret; }
+  ret["hash"] = block->getHash().hex(true);
+  ret["parentHash"] = block->getPrevBlockHash().hex(true);
+  ret["sha3Uncles"] = Hash().hex(true); // Uncles do not exist.
+  ret["miner"] = Secp256k1::toAddress(block->getValidatorPubKey()).hex(true);
+  ret["stateRoot"] = Hash().hex(true); // No State root.
+  ret["transactionsRoot"] = block->getTxMerkleRoot().hex(true);
+  ret["receiptsRoot"] = Hash().hex(true); // No receiptsRoot.
+  ret["logsBloom"] = Hash().hex(true); // No logsBloom.
+  ret["difficulty"] = "0x1";
+  ret["number"] = Hex::fromBytes(Utils::uintToBytes(block->getNHeight()),true).forRPC();
+  ret["gasLimit"] = Hex::fromBytes(Utils::uintToBytes(std::numeric_limits<uint64_t>::max()),true).forRPC();
+  ret["gasUsed"] = Hex::fromBytes(Utils::uintToBytes(uint64_t(1000000000)),true).forRPC(); // Arbitrary number
+  ret["timestamp"] = Hex::fromBytes(Utils::uintToBytes((block->getTimestamp()/1000000)),true).forRPC(); // Block tim
+  ret["extraData"] = "0x0000000000000000000000000000000000000000000000000000000000000000";
+  ret["mixHash"] = Hash().hex(true); // No mixHash.
+  ret["nonce"] = "0x0000000000000000";
+  ret["totalDifficulty"] = "0x1";
+  ret["baseFeePerGas"] = FIXED_BASE_FEE_PER_GAS;
+  ret["withdrawRoot"] = Hash().hex(true); // No withdrawRoot.
+  // TODO: to get a block you have to serialize it entirely, this can be expensive.
+  ret["size"] = Hex::fromBytes(Utils::uintToBytes(block->serializeBlock().size()),true).forRPC();
+  ret["transactions"] = json::array();
+  uint64_t txIndex = 0;
+  for (const auto& tx : block->getTxs()) {
+    if (!includeTransactions) { // Only include the transaction hashes.
+      ret["transactions"].push_back(tx.hash().hex(true));
+    } else { // Include the transactions as a whole.
+      json txJson = json::object();
+      txJson["blockHash"] = block->getHash().hex(true);
+      txJson["blockNumber"] = Hex::fromBytes(Utils::uintToBytes(block->getNHeight()),true).forRPC();
+      txJson["from"] = tx.getFrom().hex(true);
+      txJson["gas"] = Hex::fromBytes(Utils::uintToBytes(tx.getGasLimit()),true).forRPC();
+      txJson["gasPrice"] = Hex::fromBytes(Utils::uintToBytes(tx.getMaxFeePerGas()),true).forRPC();
+      txJson["hash"] = tx.hash().hex(true);
+      txJson["input"] = Hex::fromBytes(tx.getData(), true);
+      txJson["nonce"] = Hex::fromBytes(Utils::uintToBytes(tx.getNonce()),true).forRPC();
+      txJson["to"] = tx.getTo().hex(true);
+      txJson["transactionIndex"] = Hex::fromBytes(Utils::uintToBytes(txIndex++),true).forRPC();
+      txJson["value"] = Hex::fromBytes(Utils::uintToBytes(tx.getValue()),true).forRPC();
+      txJson["v"] = Hex::fromBytes(Utils::uintToBytes(tx.getV()),true).forRPC();
+      txJson["r"] = Hex::fromBytes(Utils::uintToBytes(tx.getR()),true).forRPC();
+      txJson["s"] = Hex::fromBytes(Utils::uintToBytes(tx.getS()),true).forRPC();
+      ret["transactions"].emplace_back(std::move(txJson));
+    }
+  }
+  ret["withdrawls"] = json::array();
+  ret["uncles"] = json::array();
+  return ret;
+}
+
+static inline void requiresIndexing(const Storage& storage, std::string_view method) {
+  if (storage.getIndexingMode() == IndexingMode::DISABLED) {
+    throw Error::methodNotAvailable(method);
+  }
+}
+
+static inline void requiresDebugIndexing(const Storage& storage, std::string_view method) {
+  if (storage.getIndexingMode() != IndexingMode::RPC_TRACE) {
+    throw Error::methodNotAvailable(method);
+  }
+}
+
+// --------------------------------------------------------------------------
+
+json Blockchain::web3_clientVersion(const json& request) {
+  forbidParams(request);
+  return options_.getWeb3ClientVersion();
+}
+
+json Blockchain::web3_sha3(const json& request) {
+  const auto [data] = parseAllParams<Bytes>(request);
+  return Utils::sha3(data).hex(true);
+}
+
+json Blockchain::net_version(const json& request) {
+  forbidParams(request);
+  return std::to_string(options_.getChainID());
+}
+
+json Blockchain::net_listening(const json& request) {
+  forbidParams(request);
+  return true;
+}
+
+json Blockchain::eth_protocolVersion(const json& request) {
+  forbidParams(request);
+  json ret;
+  return options_.getSDKVersion();
+}
+
+json Blockchain::net_peerCount(const json& request) {
+  forbidParams(request);
+  json ret;
+  uint64_t peerCount = 0;
+  if (comet_.rpcSyncCall("net_info", json::object(), ret)) {
+    if (ret.is_object() && ret.contains("result") && ret["result"].is_object()) {
+      const auto& result = ret["result"];
+      if (result.contains("n_peers") && result["n_peers"].is_string()) {
+        try {
+          peerCount = static_cast<uint64_t>(std::stoull(result["n_peers"].get<std::string>()));
+        } catch (const std::exception& ex) {
+          LOGDEBUG("ERROR: net_peerCount(): " + std::string(ex.what()));
+        }
+      }
+    }
+  }
+  return Hex::fromBytes(Utils::uintToBytes(peerCount), true).forRPC();
+}
+
 json Blockchain::eth_getBlockByHash(const json& request){ return {}; }
 json Blockchain::eth_getBlockByNumber(const json& request) { return {}; }
 json Blockchain::eth_getBlockTransactionCountByHash(const json& request) { return {}; }
 json Blockchain::eth_getBlockTransactionCountByNumber(const json& request) { return {}; }
-json Blockchain::eth_chainId(const json& request) { return {}; }
-json Blockchain::eth_syncing(const json& request) { return {}; }
-json Blockchain::eth_coinbase(const json& request) { return {}; }
-json Blockchain::eth_blockNumber(const json& request) { return {}; }
+
+json Blockchain::eth_chainId(const json& request) {
+  forbidParams(request);
+  return Hex::fromBytes(Utils::uintToBytes(options_.getChainID()), true).forRPC();
+}
+
+json Blockchain::eth_syncing(const json& request) {
+  forbidParams(request);
+  json ret;
+  bool syncing = false;
+  if (comet_.rpcSyncCall("status", json::object(), ret) &&
+      ret.is_object() && ret.contains("result") && ret["result"].is_object())
+  {
+    const auto& result = ret["result"];
+    if (result.contains("sync_info") && result["sync_info"].is_object()) {
+      const auto& syncInfo = result["sync_info"];
+      if (syncInfo.contains("catching_up") && syncInfo["catching_up"].is_boolean()) {
+        syncing = syncInfo["catching_up"].get<bool>();
+      }
+    }
+  }
+  return syncing;
+}
+
+json Blockchain::eth_coinbase(const json& request) {
+  forbidParams(request);
+  return options_.getCoinbase().hex(true);
+}
+
+json Blockchain::eth_blockNumber(const json& request) {
+  forbidParams(request);
+  uint64_t blockNumber = getLatestHeight();
+  return Hex::fromBytes(Utils::uintToBytes(blockNumber), true).forRPC();
+}
+
 json Blockchain::eth_call(const json& request) { return {}; }
 json Blockchain::eth_estimateGas(const json& request) { return {}; }
-json Blockchain::eth_gasPrice(const json& request) { return {}; }
-json Blockchain::eth_feeHistory(const json& request) { return {}; }
-json Blockchain::eth_getLogs(const json& request) { return {}; }
-json Blockchain::eth_getBalance(const json& request) { return {}; }
-json Blockchain::eth_getTransactionCount(const json& request) { return {}; }
-json Blockchain::eth_getCode(const json& request) { return {}; }
+
+json Blockchain::eth_gasPrice(const json& request) {
+  forbidParams(request);
+  return FIXED_BASE_FEE_PER_GAS;
+}
+
+json Blockchain::eth_feeHistory(const json& request) {
+  // FIXME/TODO
+  // We should probably just have this computed and saved in RAM as we
+  // process incoming blocks.
+  return {};
+}
+
+json Blockchain::eth_getLogs(const json& request) {
+  const auto [logsObj] = parseAllParams<json>(request);
+  const auto getBlockByHash = [this] (const Hash& hash) {
+    //return getBlockNumber(storage, hash);
+    // FIXME/TODO:
+    // - replace this parsing with whatever we are doing
+    // - we should probably cache at least the block-hash --> block-height mapping
+    json params;
+    params["hash"] = hash.hex().get(); // FIXME: to string, review
+    json ret;
+    if (!comet_.rpcSyncCall("block_by_hash", params, ret)) {
+      return std::optional<uint64_t>{};
+    }
+    if (!ret.is_object() || !ret.contains("result") || !ret["result"].is_object()) {
+      return std::optional<uint64_t>{};
+    }
+    const auto& result = ret["result"];
+    if (!result.contains("block") || !result["block"].is_object()) {
+      return std::optional<uint64_t>{};
+    }
+    const auto& block = result["block"];
+    if (!block.contains("header") || !block["header"].is_object()) {
+      return std::optional<uint64_t>{};
+    }
+    const auto& header = block["header"];
+    if (!header.contains("height") || !header["height"].is_string()) {
+      return std::optional<uint64_t>{};
+    }
+    std::string heightStr = header["height"].get<std::string>();
+    uint64_t height = 0;
+    try {
+      height = std::stoull(heightStr);
+    } catch (const std::exception&) {
+      return std::optional<uint64_t>{};
+    }
+    return std::optional<uint64_t>{height};
+  };
+
+  uint64_t latestHeight = getLatestHeight();
+
+  const std::optional<Hash> blockHash = parseIfExists<Hash>(logsObj, "blockHash");
+
+  const uint64_t fromBlock = parseIfExists<BlockTagOrNumber>(logsObj, "fromBlock")
+    .transform([latestHeight](const BlockTagOrNumber& b) { return b.number(latestHeight); })
+    .or_else([&blockHash, &getBlockByHash]() { return blockHash.and_then(getBlockByHash); })
+    .value_or(ContractGlobals::getBlockHeight());
+
+  const uint64_t toBlock = parseIfExists<BlockTagOrNumber>(logsObj, "toBlock")
+    .transform([latestHeight](const BlockTagOrNumber& b) { return b.number(latestHeight); })
+    .or_else([&blockHash, &getBlockByHash]() { return blockHash.and_then(getBlockByHash); })
+    .value_or(ContractGlobals::getBlockHeight());
+
+  const std::optional<Address> address = parseIfExists<Address>(logsObj, "address");
+
+  const std::vector<Hash> topics = parseArrayIfExists<Hash>(logsObj, "topics")
+    .transform([](auto&& arr) { return makeVector<Hash>(std::forward<decltype(arr)>(arr)); })
+    .value_or(std::vector<Hash>{});
+
+  json result = json::array();
+
+  for (const auto& event : storage_.getEvents(fromBlock, toBlock, address.value_or(Address{}), topics))
+    result.push_back(event.serializeForRPC());
+
+  return result;
+}
+
+json Blockchain::eth_getBalance(const json& request) {
+  const auto [address, block] = parseAllParams<Address, BlockTagOrNumber>(request);
+
+  if (!block.isLatest(getLatestHeight()))
+    throw DynamicException("Only the latest block is supported");
+
+  return Hex::fromBytes(Utils::uintToBytes(state_.getNativeBalance(address)), true).forRPC();
+}
+
+json Blockchain::eth_getTransactionCount(const json& request) {
+  const auto [address, block] = parseAllParams<Address, BlockTagOrNumber>(request);
+
+  if (!block.isLatest(getLatestHeight()))
+    throw DynamicException("Only the latest block is supported");
+
+  return Hex::fromBytes(Utils::uintToBytes(state_.getNativeNonce(address)), true).forRPC();
+}
+
+json Blockchain::eth_getCode(const json& request) {
+  const auto [address, block] = parseAllParams<Address, BlockTagOrNumber>(request);
+
+  if (!block.isLatest(getLatestHeight()))
+    throw DynamicException("Only the latest block is supported");
+
+  return Hex::fromBytes(state_.getContractCode(address), true).forRPC();
+}
+
 json Blockchain::eth_sendRawTransaction(const json& request) { return {}; }
 json Blockchain::eth_getTransactionByHash(const json& request) { return {}; }
 json Blockchain::eth_getTransactionByBlockHashAndIndex(const json& request){ return {}; }
 json Blockchain::eth_getTransactionByBlockNumberAndIndex(const json& request) { return {}; }
 json Blockchain::eth_getTransactionReceipt(const json& request) { return {}; }
-json Blockchain::eth_getUncleByBlockHashAndIndex() { return {}; }
+
+json Blockchain::eth_getUncleByBlockHashAndIndex(const json& request) {
+  return json::value_t::null;
+}
+
+json Blockchain::txpool_content(const json& request) {
+  forbidParams(request);
+  json result;
+  result["queued"] = json::array();
+  json& pending = result["pending"];
+
+  pending = json::array();
+/*
+  FIXME/TODO
+  - We can build something here that would be useful during development
+  or testing, but if an application wants to detect the actual entire mempool
+  in production (with potentially millions of transactions) then they should
+  probably *be* a node instead.
+  - CometBFT RPC: num_unconfirmed_txs, unconfirmed_txs
+  - we could also implement our own custom mempool later, meaning we would
+  already have the data to answer this in this same process.
+  - ADR 102 (RPC Companion) also potentially relevant for this (& other ETH RPC
+  method implementation decisions)
+
+  for (const auto& [hash, tx] : state.getPendingTxs()) {
+    json accountJson;
+    json& txJson = accountJson[tx.getFrom().hex(true)][tx.getNonce().str()];
+    txJson["blockHash"] = json::value_t::null;
+    txJson["blockNumber"] = json::value_t::null;
+    txJson["from"] = tx.getFrom().hex(true);
+    txJson["to"] = tx.getTo().hex(true);
+    txJson["gasUsed"] = json::value_t::null;
+    txJson["gasPrice"] = Hex::fromBytes(Utils::uintToBytes(tx.getMaxFeePerGas()),true).forRPC();
+    txJson["getMaxFeePerGas"] = Hex::fromBytes(Utils::uintToBytes(tx.getMaxFeePerGas()),true).forRPC();
+    txJson["chainId"] = Hex::fromBytes(Utils::uintToBytes(tx.getChainId()),true).forRPC();
+    txJson["input"] = Hex::fromBytes(tx.getData(), true).forRPC();
+    txJson["nonce"] = Hex::fromBytes(Utils::uintToBytes(tx.getNonce()), true).forRPC();
+    txJson["transactionIndex"] = json::value_t::null;
+    txJson["type"] = "0x2"; // Legacy Transactions ONLY. TODO: change this to 0x2 when we support EIP-1559
+    txJson["v"] = Hex::fromBytes(Utils::uintToBytes(tx.getV()), true).forRPC();
+    txJson["r"] = Hex::fromBytes(Utils::uintToBytes(tx.getR()), true).forRPC();
+    txJson["s"] = Hex::fromBytes(Utils::uintToBytes(tx.getS()), true).forRPC();
+    pending.push_back(std::move(accountJson));
+  }
+*/
+  return result;
+}
+
+json Blockchain::debug_traceBlockByNumber(const json& request) {
+  requiresDebugIndexing(storage_, "debug_traceBlockByNumber");
+
+  json res = json::array();
+  auto [blockNumber, traceJson] = parseAllParams<uint64_t, json>(request);
+
+  if (!traceJson.contains("tracer"))
+    throw Error(-32000, "trace type missing");
+
+  if (traceJson["tracer"] != "callTracer")
+    throw Error(-32000, std::string("trace mode \"") + traceJson["tracer"].get<std::string>() + "\" not supported");
+
+  const auto block = getBlock(blockNumber);
+
+  if (!block)
+    throw Error(-32000, std::string("block ") + std::to_string(blockNumber) + " not found");
+
+  for (const auto& tx : block->getTxs()) {
+    json txTrace;
+
+    auto callTrace = storage_.getCallTrace(tx.hash());
+
+    if (!callTrace)
+      continue;
+
+    txTrace["txHash"] = tx.hash().hex(true);
+    txTrace["result"] = callTrace->toJson();
+
+    res.push_back(std::move(txTrace));
+  }
+
+  return res;
+}
+
+json Blockchain::debug_traceTransaction(const json& request) {
+  requiresDebugIndexing(storage_, "debug_traceTransaction");
+
+  json res;
+  auto [txHash, traceJson] = parseAllParams<Hash, json>(request);
+
+  if (!traceJson.contains("tracer"))
+    throw Error(-32000, "trace mode missing");
+
+  if (traceJson["tracer"] != "callTracer")
+    throw Error(-32000, std::string("trace mode \"") + traceJson["tracer"].get<std::string>() + "\" not supported");
+
+  std::optional<trace::Call> callTrace = storage_.getCallTrace(txHash);
+
+  if (!callTrace)
+    return json::value_t::null;
+
+  res = callTrace->toJson();
+
+  return res;
+}

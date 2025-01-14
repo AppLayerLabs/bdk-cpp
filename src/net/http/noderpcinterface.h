@@ -39,7 +39,10 @@ public:
   virtual json eth_getTransactionByBlockHashAndIndex(const json& request)= 0;
   virtual json eth_getTransactionByBlockNumberAndIndex(const json& request) = 0;
   virtual json eth_getTransactionReceipt(const json& request) = 0;
-  virtual json eth_getUncleByBlockHashAndIndex() = 0;
+  virtual json eth_getUncleByBlockHashAndIndex(const json& request) = 0;
+  virtual json debug_traceBlockByNumber(const json& request) = 0;
+  virtual json debug_traceTransaction(const json& request) = 0;
+  virtual json txpool_content(const json& request) = 0;
 };
 
 #endif
