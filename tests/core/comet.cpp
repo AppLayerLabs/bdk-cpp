@@ -2055,6 +2055,10 @@ namespace TComet {
 
       GLOGDEBUG("TEST: Constructing three Comet instances");
 
+      // IMPORTANT: Catch2 REQUIRE() isn't thread-safe!
+      // Need to sync all the CometListener callbacks doing REQUIRE()s,
+      static std::mutex requireMutex;
+
       // Listener that tracks the validator set
       class TestCometListener : public CometListener {
       public:
@@ -2067,17 +2071,23 @@ namespace TComet {
           appHash.clear();
           GLOGDEBUG("TestCometListener: got initChain");
           // the genesis state has nodes 0 and 1 as validators only
-          REQUIRE(initialValidators.size() == 2);
-          REQUIRE(initialValidators[0].publicKey.size() == 32);
-          REQUIRE(initialValidators[1].publicKey.size() == 32);
+          {
+            std::scoped_lock lock(requireMutex);
+            REQUIRE(initialValidators.size() == 2);
+            REQUIRE(initialValidators[0].publicKey.size() == 32);
+            REQUIRE(initialValidators[1].publicKey.size() == 32);
+          }
           std::string vs0 = base64::encode_into<std::string>(initialValidators[0].publicKey.begin(), initialValidators[0].publicKey.end());
           std::string vs1 = base64::encode_into<std::string>(initialValidators[1].publicKey.begin(), initialValidators[1].publicKey.end());
           // for some reason they can be flipped around (we can't use the order in the vector, although we should be able to get them in order...)
           // so we have to search the validator keys in the whole vector
           bool foundKey0 = vs0 == cometTestKeys[0].pub_key || vs1 == cometTestKeys[0].pub_key;
           bool foundKey1 = vs0 == cometTestKeys[1].pub_key || vs1 == cometTestKeys[1].pub_key;
-          REQUIRE(foundKey0);
-          REQUIRE(foundKey1);
+          {
+            std::scoped_lock lock(requireMutex);
+            REQUIRE(foundKey0);
+            REQUIRE(foundKey1);
+          }
         }
         virtual void incomingBlock(
           const uint64_t syncingToHeight, std::unique_ptr<CometBlock> block, Bytes& appHash,
@@ -2092,7 +2102,10 @@ namespace TComet {
           if (block->height == 2) {
             CometValidatorUpdate update;
             update.publicKey = base64::decode_into<Bytes>(cometTestKeys[2].pub_key);
-            REQUIRE(update.publicKey.size() == 32);
+            {
+              std::scoped_lock lock(requireMutex);
+              REQUIRE(update.publicKey.size() == 32);
+            }
             update.power = 10;
             validatorUpdates.push_back(update);
           }
@@ -2101,7 +2114,10 @@ namespace TComet {
           if (block->height == 5) {
             CometValidatorUpdate update;
             update.publicKey = base64::decode_into<Bytes>(cometTestKeys[0].pub_key);
-            REQUIRE(update.publicKey.size() == 32);
+            {
+              std::scoped_lock lock(requireMutex);
+              REQUIRE(update.publicKey.size() == 32);
+            }
             update.power = 0;
             validatorUpdates.push_back(update);
           }
