@@ -1446,7 +1446,7 @@ namespace TState {
               0,
               1000000000,
               1000000000,
-              21000,
+              71000,
               ownerPrivKey
           );
           creationHash = createNewERC2OTx.hash();
