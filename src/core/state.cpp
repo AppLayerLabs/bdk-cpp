@@ -214,6 +214,7 @@ void State::processTransaction(
   }
 
   Gas gas(uint64_t(tx.getGasLimit()));
+  TxAdditionalData txData{.hash = tx.hash()};
 
   try {
     const Hash randomSeed(Utils::uint256ToBytes((static_cast<uint256_t>(randomnessHash) + txIndex)));
@@ -241,17 +242,28 @@ void State::processTransaction(
       randomSeed,
       context);
 
-    std::visit([&host] (auto&& msg) {
-      host.execute(std::forward<decltype(msg)>(msg));
+    std::visit([&] (auto&& msg) {
+      if constexpr (concepts::CreateMessage<decltype(msg)>) {
+        txData.contractAddress = host.execute(std::forward<decltype(msg)>(msg));
+      } else {
+        host.execute(std::forward<decltype(msg)>(msg));
+      }
     }, tx.toMessage(gas));
 
+    txData.succeeded = true;
   } catch (const std::exception& e) {
+    txData.succeeded = false;
     LOGERRORP("Transaction: " + tx.hash().hex().get() + " failed to process, reason: " + e.what());
   }
 
   ++fromNonce;
-  auto usedGas = tx.getGasLimit() - uint256_t(gas);
-  fromBalance -= (usedGas * tx.getMaxFeePerGas());
+  txData.gasUsed = uint64_t(tx.getGasLimit() - uint256_t(gas));
+
+  if (storage_.getIndexingMode() != IndexingMode::DISABLED) {
+    storage_.putTxAdditionalData(txData);
+  }
+
+  fromBalance -= (txData.gasUsed * tx.getMaxFeePerGas());
 }
 
 void State::refreshMempool(const FinalizedBlock& block) {
