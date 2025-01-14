@@ -694,7 +694,7 @@ bool WebsocketRPCConnection<T>::rpcSyncCall(const std::string& method, const jso
     try {
       if (future.wait_for(std::chrono::seconds(1)) == std::future_status::ready) {
         outResult = future.get();
-        return true;
+        return !outResult.contains("error");
       }
     } catch (const std::exception& ex) {
       outResult = rpcMakeInternalError("rpcSyncCall(): exception in future: " + std::string(ex.what()));
