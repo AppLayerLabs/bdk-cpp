@@ -2,6 +2,7 @@
 #define CONTRACT_CALLTRACER_H
 
 #include "utils/utils.h"
+#include "utils/options.h"
 #include "contract/messages/concepts.h"
 #include "contract/messages/outofgas.h"
 #include "contract/trace/call.h"
@@ -11,11 +12,16 @@
 template<typename MessageHandler>
 class CallTracer {
 public:
-  explicit CallTracer(MessageHandler handler) : handler_(std::move(handler)), rootCall_(), callStack_() {}
+  CallTracer(MessageHandler handler, IndexingMode indexingMode) 
+    : handler_(std::move(handler)), rootCall_(), callStack_(), indexingMode_(indexingMode) {}
 
   template<concepts::CallMessage Message>
   decltype(auto) onMessage(Message&& msg) {
     using Result = traits::MessageResult<Message>;
+
+    if (indexingMode_ != IndexingMode::RPC_TRACE) {
+      return handler_.onMessage(std::forward<Message>(msg));
+    }
 
     trace::Call& callTrace = callStack_.empty()
       ? *(rootCall_ = std::make_unique<trace::Call>())
@@ -91,6 +97,7 @@ private:
   MessageHandler handler_;
   std::unique_ptr<trace::Call> rootCall_;
   std::stack<trace::Call*> callStack_;
+  IndexingMode indexingMode_;
 };
 
 #endif // CONTRACT_CALLTRACER_H

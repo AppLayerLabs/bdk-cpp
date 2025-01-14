@@ -51,17 +51,6 @@
  * Any CPP Contract: 50000
  */
 
-// Address for static BDKD precompile contracts.
-using namespace evmc::literals;
-const auto ZERO_ADDRESS = 0x0000000000000000000000000000000000000000_address;
-const auto BDK_PRECOMPILE = 0x1000000000000000000000000000100000000001_address;
-
-// std::unique_ptr<MessageHandler> makeMessageHandler(ContractHost& host, evmc_vm *vm, ExecutionContext& context, Storage& storage);
-
-using MessageHandler = std::variant<MessageDispatcher, CallTracer<MessageDispatcher>>;
-
-MessageHandler makeMessageHandler(ContractHost& host, ExecutionContext& context, evmc_vm *vm, Storage& storage, const Hash& randomSeed);
-
 class ContractHost {
   private:
     DumpManager& manager_;
@@ -69,7 +58,7 @@ class ContractHost {
     mutable ContractStack stack_;
     bool mustRevert_ = true; // We always assume that we must revert until proven otherwise.
     ExecutionContext& context_;
-    MessageHandler messageHandler_;
+    CallTracer<MessageDispatcher> messageHandler_;
 
   public:
     ContractHost(evmc_vm* vm,
@@ -81,11 +70,8 @@ class ContractHost {
     storage_(storage),
     stack_(),
     context_(context),
-    messageHandler_(makeMessageHandler(*this, context, vm, storage, randomnessSeed)) {
-      std::visit(Utils::Overloaded{
-        [] (MessageDispatcher& handler) { handler.evmExecutor().setMessageHandler(AnyEncodedMessageHandler::from(handler)); },
-        [] (CallTracer<MessageDispatcher>& tracer) { tracer.handler().evmExecutor().setMessageHandler(AnyEncodedMessageHandler::from(tracer)); }
-      }, messageHandler_);
+    messageHandler_(MessageDispatcher(context_, CppContractExecutor(context_, *this), EvmContractExecutor(context_, vm), PrecompiledContractExecutor(RandomGen(randomnessSeed))), storage.getIndexingMode()) {
+      messageHandler_.handler().evmExecutor().setMessageHandler(AnyEncodedMessageHandler::from(messageHandler_)); // TODO: is this really required?
     }
 
     // Rule of five, no copy/move allowed.
@@ -233,16 +219,11 @@ class ContractHost {
 
 private:
   decltype(auto) dispatchMessage(auto&& msg) {
-    return std::visit([&msg] (auto& handler) {
-      return handler.onMessage(std::forward<decltype(msg)>(msg));
-    }, messageHandler_);
+    return messageHandler_.onMessage(std::forward<decltype(msg)>(msg));
   }
 
   Gas& getCurrentGas() {
-    return std::visit(Utils::Overloaded{
-      [] (MessageDispatcher& handler) -> Gas& { return handler.cppExecutor().currentGas(); },
-      [] (CallTracer<MessageDispatcher>& tracer) -> Gas& { return tracer.handler().cppExecutor().currentGas(); }
-    }, messageHandler_);
+    return messageHandler_.handler().cppExecutor().currentGas();
   }
 };
 
