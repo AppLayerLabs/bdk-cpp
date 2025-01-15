@@ -44,7 +44,7 @@ template<typename MessageHandler>
 AnyEncodedMessageHandler makeEncodedMessageHandler(MessageHandler& handler) {
   AnyEncodedMessageHandler res;
 
-  static const auto lambda = [] (void *obj, auto& msg) { return static_cast<MessageHandler*>(obj)->onMessage(msg); }; // TODO: the static may be removed
+  const auto lambda = [] (void *obj, auto& msg) { return static_cast<MessageHandler*>(obj)->onMessage(msg); };
 
   res.handler_ = &handler;
   res.onCreate_ = static_cast<Address(*)(void*, EncodedCreateMessage&)>(lambda);

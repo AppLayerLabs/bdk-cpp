@@ -35,7 +35,7 @@ constexpr evmc_call_kind getEvmcKind(const M& msg) {
     return EVMC_CALL;
   }
 
-  // TODO: CALL CODE!
+  std::unreachable();
 }
 
 template<concepts::Message M>
@@ -52,7 +52,7 @@ constexpr evmc_message makeEvmcMessage(const M& msg, uint64_t depth) {
   return evmc_message{
     .kind = getEvmcKind(msg),
     .flags = getEvmcFlags(msg),
-    .depth = depth,
+    .depth = int32_t(depth),
     .gas = int64_t(msg.gas()),
     .recipient = bytes::cast<evmc_address>(messageRecipientOrDefault(msg)),
     .sender = bytes::cast<evmc_address>(msg.from()),
@@ -69,7 +69,7 @@ constexpr evmc_message makeEvmcMessage(const M& msg, uint64_t depth, View<Addres
   return evmc_message{
     .kind = getEvmcKind(msg),
     .flags = 0,
-    .depth = depth,
+    .depth = int32_t(depth),
     .gas = int64_t(msg.gas()),
     .recipient = bytes::cast<evmc_address>(contractAddress),
     .sender = bytes::cast<evmc_address>(msg.from()),
@@ -77,7 +77,7 @@ constexpr evmc_message makeEvmcMessage(const M& msg, uint64_t depth, View<Addres
     .input_size = 0,
     .value = EVMCConv::uint256ToEvmcUint256(messageValueOrZero(msg)),
     .create2_salt = bytes::cast<evmc_bytes32>(messageSaltOrDefault(msg)),
-    .code_address = evmc_address{} // TODO: CALL CODE?
+    .code_address = evmc_address{}
   };
 }
 
@@ -220,7 +220,9 @@ size_t EvmContractExecutor::copy_code(const evmc::address& addr, size_t code_off
       return n;
     }
 
-  } catch (const std::exception&) {}
+  } catch (const std::exception&) {
+    // TODO: makes sense to just ignore?
+  }
 
   return 0;
 }
@@ -335,10 +337,7 @@ evmc::Result EvmContractExecutor::call(const evmc_message& msg) noexcept {
   } else if (msg.kind == EVMC_CREATE2) {
     EncodedSaltCreateMessage encodedMessage(msg.sender, gas, value, View<Bytes>(msg.input_data, msg.input_size), msg.create2_salt);
     return process(encodedMessage);
-  } else if (msg.kind == EVMC_CALLCODE) {
-    return evmc::Result{}; // TODO: CALL CODE!!!
   }
 
-  // TODO: proper error result with proper reason (encoded)
-  return evmc::Result{};
+  std::unreachable();
 }

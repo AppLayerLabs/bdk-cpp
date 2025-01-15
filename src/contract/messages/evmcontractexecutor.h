@@ -29,34 +29,17 @@ public:
   template<concepts::PackedMessage M>
     requires concepts::CallMessage<M>
   auto execute(M&& msg) -> traits::MessageResult<M> {
-    // TODO: can this apply be a free common function for encoding not encoded messages?
-    // TODO: what about the whole process of converting a packed msg to a encoded msg?
-    const Bytes encodedInput = std::apply([&] <typename... Args> (const Args&... args) {
-      const std::string functionName = ContractReflectionInterface::getFunctionName(msg.method());
-
-      if (functionName.empty()) {
-        throw DynamicException("EVM contract function name is empty (contract not registered?)");
-      }
-
-      Bytes res = Utils::makeBytes(UintConv::uint32ToBytes(ABI::FunctorEncoder::encode<Args...>(functionName).value));
-
-      if constexpr (sizeof...(Args) > 0) {
-        Utils::appendBytes(res, ABI::Encoder::encodeData<Args...>(args...));
-      }
-
-      return res;
-    }, msg.args());
-
+    const Bytes input = messageInputEncoded(msg);
     Bytes output;
 
     if constexpr (concepts::StaticCallMessage<M>) {
-      EncodedStaticCallMessage encodedMessage(msg.from(), msg.to(), msg.gas(), encodedInput);
+      EncodedStaticCallMessage encodedMessage(msg.from(), msg.to(), msg.gas(), input);
       output = this->execute(encodedMessage);
     } else if constexpr (concepts::DelegateCallMessage<M>) {
-      EncodedDelegateCallMessage encodedMessage(msg.from(), msg.to(), msg.gas(), msg.value(), encodedInput, msg.codeAddress());
+      EncodedDelegateCallMessage encodedMessage(msg.from(), msg.to(), msg.gas(), msg.value(), input, msg.codeAddress());
       output = this->execute(encodedMessage);
     } else {
-      EncodedCallMessage encodedMessage(msg.from(), msg.to(), msg.gas(), msg.value(), encodedInput);
+      EncodedCallMessage encodedMessage(msg.from(), msg.to(), msg.gas(), msg.value(), input);
       output = this->execute(encodedMessage);
     }
 

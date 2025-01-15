@@ -85,11 +85,11 @@ private:
     }
   }
 
-  bool isPayment(const concepts::EncodedMessage auto& msg) {
+  bool isPayment(const concepts::EncodedMessage auto& msg) const {
     return msg.input().size() == 0;
   }
 
-  bool isPayment(const concepts::PackedMessage auto& msg) {
+  bool isPayment(const concepts::PackedMessage auto& msg) const {
     return false;
   }
 

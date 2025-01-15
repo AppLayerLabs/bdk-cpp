@@ -48,6 +48,11 @@ Bytes messageInputEncoded(const concepts::EncodedMessage auto& msg) {
 Bytes messageInputEncoded(const concepts::PackedMessage auto& msg) {
   return std::apply([&] (const auto&... args) -> Bytes {
     const std::string functionName = ContractReflectionInterface::getFunctionName(msg.method());
+
+    if (functionName.empty()) {
+      throw DynamicException("Contract fuction not found (contract not registered?)");
+    }
+
     const BytesArr<4> encodedFunctor = UintConv::uint32ToBytes(ABI::FunctorEncoder::encode<decltype(args)...>(std::string(functionName)).value);
 
     if constexpr (sizeof...(args) > 0) {
