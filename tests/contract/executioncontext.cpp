@@ -7,7 +7,7 @@ See the LICENSE.txt file in the project root for more information.
 
 #include "catch2/catch_amalgamated.hpp"
 #include "bytes/hex.h"
-#include "contract/messages/executioncontext.h"
+#include "contract/executioncontext.h"
 
 static inline void addAccount(ExecutionContext& context, View<Address> address, const Account& account) {
   auto pointer = context.getAccount(address);

@@ -1,7 +1,7 @@
 #ifndef BDK_CONTRACT_TRACE_CALLTYPE_H
 #define BDK_CONTRACT_TRACE_CALLTYPE_H
 
-#include "contract/messages/concepts.h"
+#include "contract/concepts.h"
 
 namespace trace {
 

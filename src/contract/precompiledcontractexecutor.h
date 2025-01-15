@@ -3,7 +3,7 @@
 
 #include "utils/randomgen.h"
 #include "traits.h"
-#include "contract/messages/encodedmessages.h"
+#include "contract/encodedmessages.h"
 #include "contract/abi.h"
 #include "contract/costs.h"
 

@@ -10,10 +10,10 @@ See the LICENSE.txt file in the project root for more information.
 
 #include "utils/utils.h"
 #include "utils/options.h"
-#include "contract/messages/concepts.h"
-#include "contract/messages/outofgas.h"
+#include "contract/concepts.h"
+#include "contract/outofgas.h"
 #include "contract/trace/call.h"
-#include "contract/messages/traits.h"
+#include "contract/traits.h"
 #include "contract/abi.h"
 
 template<typename MessageHandler>

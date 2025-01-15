@@ -1,8 +1,8 @@
 #ifndef BDK_PACKEDMESSAGES_H
 #define BDK_PACKEDMESSAGES_H
 
-#include "contract/messages/concepts.h"
-#include "contract/messages/basemessage.h"
+#include "contract/concepts.h"
+#include "contract/basemessage.h"
 
 template<typename M, typename... Args>
 struct PackedCallMessage : BaseMessage<

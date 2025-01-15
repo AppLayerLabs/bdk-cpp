@@ -10,7 +10,7 @@ See the LICENSE.txt file in the project root for more information.
 
 #include "ecdsa.h" // utils.h -> strings.h, (bytes/join.h -> bytes/view.h)
 #include "uintconv.h"
-#include "contract/messages/encodedmessages.h"
+#include "contract/encodedmessages.h"
 
 /**
  * Abstraction of a block transaction.

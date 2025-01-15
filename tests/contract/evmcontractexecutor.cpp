@@ -7,7 +7,7 @@ See the LICENSE.txt file in the project root for more information.
 
 #include "evmone/evmone.h"
 #include "catch2/catch_amalgamated.hpp"
-#include "contract/messages/evmcontractexecutor.h"
+#include "contract/evmcontractexecutor.h"
 #include "bytes/random.h"
 #include "bytes/hex.h"
 #include "bytes/cast.h"

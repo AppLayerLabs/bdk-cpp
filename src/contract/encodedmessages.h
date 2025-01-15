@@ -1,8 +1,8 @@
 #ifndef BDK_ENCODEDMESSAGES_H
 #define BDK_ENCODEDMESSAGES_H
 
-#include "contract/messages/concepts.h"
-#include "contract/messages/basemessage.h"
+#include "contract/concepts.h"
+#include "contract/basemessage.h"
 
 struct EncodedCallMessage : BaseMessage<FromField, ToField, GasField, ValueField, InputField> {
   using BaseMessage::BaseMessage;

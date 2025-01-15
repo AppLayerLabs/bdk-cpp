@@ -42,8 +42,8 @@ set (TESTS_SOURCES
   ${CMAKE_SOURCE_DIR}/tests/contract/calltracer.cpp
   ${CMAKE_SOURCE_DIR}/tests/contract/createcontract.cpp
   ${CMAKE_SOURCE_DIR}/tests/contract/pebble.cpp
-  ${CMAKE_SOURCE_DIR}/tests/contract/messages/executioncontext.cpp
-  ${CMAKE_SOURCE_DIR}/tests/contract/messages/evmcontractexecutor.cpp
+  ${CMAKE_SOURCE_DIR}/tests/contract/executioncontext.cpp
+  ${CMAKE_SOURCE_DIR}/tests/contract/evmcontractexecutor.cpp
   ${CMAKE_SOURCE_DIR}/tests/contract/throwtest.cpp
   ${CMAKE_SOURCE_DIR}/tests/core/rdpos.cpp
   ${CMAKE_SOURCE_DIR}/tests/core/storage.cpp
