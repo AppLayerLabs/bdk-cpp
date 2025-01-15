@@ -40,20 +40,4 @@ private:
   Bytes (*onDelegateCall_)(void*, EncodedDelegateCallMessage&);
 };
 
-template<typename MessageHandler>
-AnyEncodedMessageHandler makeEncodedMessageHandler(MessageHandler& handler) {
-  AnyEncodedMessageHandler res;
-
-  const auto lambda = [] (void *obj, auto& msg) { return static_cast<MessageHandler*>(obj)->onMessage(msg); };
-
-  res.handler_ = &handler;
-  res.onCreate_ = static_cast<Address(*)(void*, EncodedCreateMessage&)>(lambda);
-  res.onSaltCreate_ = static_cast<Address(*)(void*, EncodedSaltCreateMessage&)>(lambda);
-  res.onCall_ = static_cast<Bytes(*)(void*, EncodedCallMessage&)>(lambda);
-  res.onStaticCall_ = static_cast<Bytes(*)(void*, EncodedStaticCallMessage&)>(lambda);
-  res.onDelegateCall_ = static_cast<Bytes(*)(void*, EncodedDelegateCallMessage&)>(lambda);
-
-  return res;
-}
-
 #endif // BDK_MESSAGES_ANYENCODEDMESSAGEHANDLER_H
