@@ -1,23 +1,28 @@
+/*
+Copyright (c) [2023-2024] [AppLayer Developers]
+
+This software is distributed under the MIT License.
+See the LICENSE.txt file in the project root for more information.
+*/
+
 #ifndef ERC721_TEST
 #define ERC721_TEST
 
+#include "erc721.h" // ERC721Test derives from base ERC721
 
-// ERC721Test derives from base ERC721
-#include "erc721.h"
-
-
-/*
- * ERC721Test testing class
- * This is a class to test the capabilities of the ERC721 template contract
- * The ERC721 contract is based on the OpenZeppelin ERC721 implementation
- * As the ERC721 (OpenZeppelin) contract does not have a public function for minting and burning the tokens
+/**
+ * ERC721Test testing class.
+ * This is a class to test the capabilities of the ERC721 template contract.
+ * The ERC721 contract is based on the OpenZeppelin ERC721 implementation.
+ * As the ERC721 (OpenZeppelin) contract does not have a public function for minting and burning the tokens,
  * this wrapper class is used to make that functions available.
- * The mint function will use a internal counter to generate the token id
- * Anyone can mint a token and there is a limit of X tokens defined in the constructor
- * The burn function will use the token id to burn the token, the sender of the burn transaction MUST be the owner of the token
- * OR an approved operator for the token (All these cases are included in the tests) (the ERC721::_update function is used to check ownership and allowance)
+ * The mint function will use a internal counter to generate the token ID.
+ * Anyone can mint a token and there is a limit of X tokens defined in the constructor.
+ * The burn function will use the token id to burn the token,
+ * the sender of the burn transaction MUST be the owner of the token OR
+ * an approved operator for the token (All these cases are included in the tests)
+ * (the ERC721::_update function is used to check ownership and allowance).
  */
-
 class ERC721Test : public ERC721 {
   private:
     SafeUint64_t tokenIdCounter_; ///< TokenId Counter for the public mint() functions.
@@ -30,12 +35,10 @@ class ERC721Test : public ERC721 {
      * ConstructorArguments is a tuple of the contract constructor arguments in
      * the order they appear in the constructor.
      */
-    using ConstructorArguments =
-       std::tuple<const std::string &, const std::string &, const uint64_t&>;
+    using ConstructorArguments = std::tuple<const std::string &, const std::string &, const uint64_t&>;
 
     /**
      * Constructor for loading contract from DB.
-     * @param interface Reference to the contract manager interface.
      * @param address The address where the contract will be deployed.
      * @param db Reference to the database object.
      */
@@ -73,19 +76,13 @@ class ERC721Test : public ERC721 {
     void burn(const uint256_t& tokenId);
 
     /// Getter for the tokenIdCounter_
-    uint64_t tokenIdCounter() const {
-      return tokenIdCounter_.get();
-    }
+    uint64_t tokenIdCounter() const { return tokenIdCounter_.get(); }
 
     /// Getter for the maxTokens_
-    uint64_t maxTokens() const {
-      return maxTokens_.get();
-    }
+    uint64_t maxTokens() const { return maxTokens_.get(); }
 
     /// Getter for the totalSupply_
-    uint64_t totalSupply() const {
-      return totalSupply_.get();
-    }
+    uint64_t totalSupply() const { return totalSupply_.get(); }
 
     /// Register contract class via ContractReflectionInterface.
     static void registerContract() {
@@ -106,10 +103,5 @@ class ERC721Test : public ERC721 {
     /// Dump method
     DBBatch dump() const override;
 };
-
-
-
-
-
 
 #endif // ERC721_TEST

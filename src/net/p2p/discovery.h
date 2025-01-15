@@ -8,10 +8,9 @@ See the LICENSE.txt file in the project root for more information.
 #ifndef DISCOVERYWORKER_H
 #define DISCOVERYWORKER_H
 
-#include <atomic>
-#include <future>
 #include <unordered_set>
-#include "session.h"
+
+#include "session.h" // encoding.h -> utils.h -> logger.h -> future
 
 namespace P2P {
   // Forward declarations.

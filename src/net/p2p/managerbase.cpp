@@ -264,10 +264,17 @@ namespace P2P {
       LOGDEBUG("Peer " + toString(nodeId) + " is a discovery node, cannot send request");
       return nullptr;
     }
-    std::unique_lock lockRequests(this->requestsMutex_);
-    requests_[message->id()] = std::make_shared<Request>(message->command(), message->id(), session->hostNodeId(), message);
-    session->write(message);
-    return requests_[message->id()];
+    // Track the request
+    auto request = std::make_shared<Request>(message->command(), message->id(), session->hostNodeId(), message);
+    insertRequest(request);
+    // If message was never sent, then no request has been made. Fail and return.
+    if (!session->write(message)) {
+      // We know the latest insert went into the active bucket, so we can just remove it.
+      std::unique_lock lock(this->requestsMutex_);
+      requests_[activeRequests_].erase(message->id());
+      return nullptr;
+    }
+    return request;
   }
 
   // ManagerBase::answerSession doesn't change sessions_ map, but we still need to
@@ -413,6 +420,13 @@ namespace P2P {
     //   objects and the entire Boost ASIO engine are fully gone.
 
     LOGDEBUG("Net engine destroyed");
+
+    // We don't need the requests_ cache anymore so free up that memory.
+    std::unique_lock lockRequests(this->requestsMutex_);
+    requests_[0].clear();
+    requests_[1].clear();
+    activeRequests_ = 0;
+    lockRequests.unlock();
   }
 
   bool ManagerBase::isActive() const {
@@ -717,5 +731,42 @@ namespace P2P {
     // Start and run a session.
     // It is probably better to have asio::post inside the sessions mutex to sync with ManagerBase::stop().
     std::make_shared<Session>(std::move(socket), ConnectionType::INBOUND, *this)->run();
+  }
+
+  void ManagerBase::insertRequest(std::shared_ptr<Request> request) {
+    // The previous logic would silently overwrite the previous entry in case of an (improbable)
+    // request ID collision; this logic is retained here, since lookups will be directed to the
+    // active bucket first (so a colliding entry that is in the older bucket is shadowed anyway).
+    std::unique_lock lock(this->requestsMutex_);
+    if (requests_[activeRequests_].size() >= REQUEST_BUCKET_SIZE_LIMIT) {
+      activeRequests_ = 1 - activeRequests_;
+      requests_[activeRequests_].clear();
+    }
+    // Make sure the latest insertion always ended up in what is the current active bucket
+    requests_[activeRequests_][request->id()] = std::move(request);
+  }
+
+  void ManagerBase::handleRequestAnswer(const NodeID& nodeId, const std::shared_ptr<const Message>& message) {
+    RequestID requestId = message->id();
+    std::unique_lock lock(this->requestsMutex_);
+    // Search for the request in both buckets, starting with the active bucket.
+    // If found, set its answer and return.
+    for (int i = 0; i < 2; ++i) {
+      auto& bucket = requests_[(activeRequests_ + i) % 2];
+      auto it = bucket.find(requestId);
+      if (it != bucket.end()) {
+        std::shared_ptr<Request>& req = it->second;
+        req->setAnswer(message);
+        return;
+      }
+    }
+    // Receiving an answer for a request ID that can't be found locally is always an error.
+    // This could legitimately happen if the request storage is too small for actual request traffic,
+    // so make sure request storage is oversized at all times by a factor of at least 10.
+    // If there is a need to optimize memory usage, buckets can be instead allocated dynamically as
+    // they are needed (e.g. in a deque) and an expiration timestamp can be associated with each bucket.
+    lock.unlock(); // Unlock before calling logToDebug to avoid waiting for the lock in the logToDebug function.
+    LOGERROR("Answer to invalid request from " + toString(nodeId) + " closing session.");
+    this->disconnectSession(nodeId);
   }
 }

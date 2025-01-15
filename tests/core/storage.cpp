@@ -6,14 +6,11 @@ See the LICENSE.txt file in the project root for more information.
 */
 
 #include "../../src/libs/catch2/catch_amalgamated.hpp"
-#include "../../src/core/storage.h"
-#include "../../src/utils/db.h"
-#include "../../src/utils/options.h"
-#include "../blockchainwrapper.hpp"
-#include "bytes/random.h"
 
-#include <filesystem>
-#include <utility>
+#include "../../src/utils/uintconv.h"
+
+#include "../blockchainwrapper.hpp" // blockchain.h -> consensus.h -> state.h -> dump.h -> (storage.h -> utils/options.h), utils/db.h
+#include "bytes/random.h"
 
 const std::vector<Hash> validatorPrivKeysStorage {
   Hash(Hex::toBytes("0x0a0415d68a5ec2df57aab65efc2a7231b59b029bae7ff1bd2e40df9af96418c8")),
@@ -26,14 +23,6 @@ const std::vector<Hash> validatorPrivKeysStorage {
   Hash(Hex::toBytes("0x426dc06373b694d8804d634a0fd133be18e4e9bcbdde099fce0ccf3cb965492f"))
 };
 
-// Blockchain wrapper initializer for testing purposes.
-// Defined in rdpos.cpp
-TestBlockchainWrapper initialize(const std::vector<Hash>& validatorPrivKeys,
-                                 const PrivKey& validatorKey,
-                                 const uint64_t& serverPort,
-                                 bool clearDb,
-                                 const std::string& folderName);
-
 // Random transaction
 TxBlock createRandomTx(const uint64_t& requiredChainId) {
   PrivKey txPrivKey = bytes::random();
@@ -41,11 +30,11 @@ TxBlock createRandomTx(const uint64_t& requiredChainId) {
   Address to(Utils::randBytes(20));
   Bytes data = Utils::randBytes(32);
   uint64_t chainId = requiredChainId;
-  uint256_t nonce = Utils::bytesToUint32(Utils::randBytes(4));
-  uint256_t value = Utils::bytesToUint64(Utils::randBytes(8));
-  uint256_t maxGasPerFee = Utils::bytesToUint32(Utils::randBytes(4));
-  uint256_t maxPriorityFeePerGas = Utils::bytesToUint32(Utils::randBytes(4));
-  uint256_t gasLimit = Utils::bytesToUint32(Utils::randBytes(4));
+  uint256_t nonce = UintConv::bytesToUint32(Utils::randBytes(4));
+  uint256_t value = UintConv::bytesToUint64(Utils::randBytes(8));
+  uint256_t maxGasPerFee = UintConv::bytesToUint32(Utils::randBytes(4));
+  uint256_t maxPriorityFeePerGas = UintConv::bytesToUint32(Utils::randBytes(4));
+  uint256_t gasLimit = UintConv::bytesToUint32(Utils::randBytes(4));
 
   return TxBlock(to, from, data, chainId, nonce, value, maxPriorityFeePerGas, maxGasPerFee, gasLimit, txPrivKey);
 }
@@ -100,12 +89,9 @@ FinalizedBlock createRandomBlock(uint64_t txCount, uint64_t validatorCount, uint
   std::vector<TxValidator> txValidators = randomnessResult.first;
 
   // Create a new block with the transactions.
-  FinalizedBlock finalBlock = FinalizedBlock::createNewValidBlock(std::move(txs),
-                                                                  std::move(txValidators),
-                                                                  prevHash,
-                                                                  timestamp,
-                                                                  nHeight,
-                                                                  blockValidatorPrivKey);
+  FinalizedBlock finalBlock = FinalizedBlock::createNewValidBlock(
+    std::move(txs), std::move(txValidators), prevHash, timestamp, nHeight, blockValidatorPrivKey
+  );
   REQUIRE(finalBlock.getBlockRandomness() == Hash(Utils::sha3(randomSeed)));
   return finalBlock;
 }
@@ -113,7 +99,6 @@ FinalizedBlock createRandomBlock(uint64_t txCount, uint64_t validatorCount, uint
 namespace TStorage {
   TEST_CASE("Storage Class", "[core][storage]") {
     SECTION("Simple Storage Startup") {
-
       auto blockchainWrapper = initialize(validatorPrivKeysStorage, PrivKey(), 8080, true, "StorageConstructor");
       // Chain should be filled with the genesis.
       REQUIRE(blockchainWrapper.storage.currentChainSize() == 1);
@@ -129,6 +114,54 @@ namespace TStorage {
       REQUIRE(genesis->getTxs().size() == 0);
       REQUIRE(genesis->getValidatorPubKey() == UPubKey(Hex::toBytes("04eb4c1da10ca5f1e52d1cba87f627931b5a980dba6d910d6aa756db62fc71ea78db1a18a2c364fb348bb28e0b0a3c6563a0522626eecfe32cdab30746365f5747")));
       REQUIRE(Secp256k1::toAddress(genesis->getValidatorPubKey()) == Address(Hex::toBytes("0x00dead00665771855a34155f5e7405489df2c3c6")));
+    }
+
+    SECTION("Storage topicsMatch") {
+      Hash txHash = Hash::random();
+      Hash blockHash = Hash::random();
+      std::vector<Hash> topics = {Hash::random(), Hash::random(), Hash::random(), Hash::random(), Hash::random()};
+      Address add("0x1234567890123456789012345678901234567890", false);
+      Bytes data{0xDE, 0xAD, 0xBE, 0xEF};
+      Event e("myEvent", 0, txHash, 1, blockHash, 2, add, data, topics, false);
+      REQUIRE(Storage::topicsMatch(e, topics));
+
+      // For coverage
+      REQUIRE(Storage::topicsMatch(e, {})); // Empty topics
+      topics.push_back(Hash::random());
+      REQUIRE_FALSE(Storage::topicsMatch(e, topics)); // Event has fewer topics than required
+      topics.pop_back();
+      topics[0] = Hash::random();
+      REQUIRE_FALSE(Storage::topicsMatch(e, topics)); // Event has wrong topics
+    }
+
+    SECTION("Storage getEvents") {
+      auto blockchainWrapper = initialize(validatorPrivKeysStorage, PrivKey(), 8080, true, "StorageGetEvents");
+      Address add("0x1234567890123456789012345678901234567890", false);
+      Bytes data{0xDE, 0xAD, 0xBE, 0xEF};
+      std::vector<std::vector<Hash>> topics;
+      std::vector<Event> events;
+      for (int i = 0; i < 5; i++) {
+        topics.push_back({Hash::random(), Hash::random(), Hash::random()});
+        events.push_back(Event(
+          "event" + std::to_string(i), 0, Hash::random(), 0, Hash::random(), i, add, data, topics[i], false
+        ));
+        blockchainWrapper.storage.putEvent(events[i]);
+      }
+
+      REQUIRE_THROWS(blockchainWrapper.storage.getEvents(1000000, 0, add, {})); // Querying too many blocks
+      std::vector<Event> got = blockchainWrapper.storage.getEvents(0, 3, add, {});
+      for (int i = 0; i < 3; i++) {
+        REQUIRE(got[i].getName() == events[i].getName());
+        REQUIRE(got[i].getLogIndex() == events[i].getLogIndex());
+        REQUIRE(got[i].getTxHash() == events[i].getTxHash());
+        REQUIRE(got[i].getTxIndex() == events[i].getTxIndex());
+        REQUIRE(got[i].getBlockHash() == events[i].getBlockHash());
+        REQUIRE(got[i].getBlockIndex() == events[i].getBlockIndex());
+        REQUIRE(got[i].getAddress() == events[i].getAddress());
+        REQUIRE(got[i].getData() == events[i].getData());
+        REQUIRE(got[i].getTopics() == topics[i]);
+        REQUIRE(got[i].isAnonymous() == events[i].isAnonymous());
+      }
     }
 
     SECTION("10 Blocks forward with destructor test") {
@@ -162,10 +195,10 @@ namespace TStorage {
           REQUIRE(block->getTxs().size() == blocks[i].getTxs().size());
           REQUIRE(block->getValidatorPubKey() == blocks[i].getValidatorPubKey());
         }
-        /// We actually need to dump the state otherwise it WILL try to process the added blocks
-        /// in the constructor of the State class.
-        /// Dumping the state will say to the State class that there is no missing blocks and it will
-        /// not try to process the blocks in the constructor.
+        // We actually need to dump the state otherwise it WILL try to process the added blocks
+        // in the constructor of the State class.
+        // Dumping the state will say to the State class that there is no missing blocks and it will
+        // not try to process the blocks in the constructor.
         blockchainWrapper.state.saveToDB();
       }
 
@@ -225,7 +258,7 @@ namespace TStorage {
           REQUIRE(block->getTxs().size() == requiredBlock.getTxs().size());
           REQUIRE(block->getValidatorPubKey() == requiredBlock.getValidatorPubKey());
         }
-        /// Same as before, we need to dump the state to avoid processing the blocks in the constructor.
+        // Same as before, we need to dump the state to avoid processing the blocks in the constructor.
         blockchainWrapper.state.saveToDB();
       }
       // Load DB again...

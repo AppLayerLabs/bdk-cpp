@@ -8,13 +8,9 @@ See the LICENSE.txt file in the project root for more information.
 #ifndef P2P_ENCODING_H
 #define P2P_ENCODING_H
 
-#include <future>
-#include <optional>
-
-#include "../../utils/utils.h"
-#include "../../utils/safehash.h"
-#include "../../utils/tx.h"
-#include "../../utils/finalizedblock.h"
+#include "../../utils/utils.h" // logger.h -> future
+#include "../../utils/safehash.h" // tx.h -> ecdsa.h -> utils.h -> libs/json.hpp -> boost/unordered/unordered_flat_map.hpp
+#include "../../utils/finalizedblock.h" // merkle.h -> tx.h
 #include "../../utils/options.h"
 
 namespace P2P {
@@ -233,7 +229,8 @@ namespace P2P {
         return *this;
       }
 
-      /// Getter functions
+      ///@{
+      /** Getter functions */
       const uint64_t& nodeVersion() const { return this->nodeVersion_; }
       const uint64_t& currentNodeTimestamp() const { return this->currentNodeTimestamp_; }
       const uint64_t& currentTimestamp() const { return this->currentTimestamp_; }
@@ -241,6 +238,7 @@ namespace P2P {
       const uint64_t& latestBlockHeight() const { return this->latestBlockHeight_; }
       const Hash& latestBlockHash() const { return this->latestBlockHash_; }
       const std::vector<NodeID>& peers() const { return this->peers_; }
+      ///@}
   };
 
   /// Helper class used to create requests.
@@ -558,9 +556,10 @@ namespace P2P {
    */
   class Message {
     private:
-      /// The internal message data to be read/written, stored as bytes.
-      /// Sessions has directly access to it
-      /// As it can use the vector for its buffer.
+      /**
+       * The internal message data to be read/written, stored as bytes.
+       * Sessions has directly access to it as it can use the vector for its buffer.
+       */
       Bytes rawMessage_;
 
       /// Assignment operator.
@@ -649,6 +648,63 @@ namespace P2P {
       /// Setter for `answer_`. Also sets `isAnswered_` to `true`.
       void setAnswer(const std::shared_ptr<const Message> answer) { answer_.set_value(answer); isAnswered_ = true; };
   };
+
+  // ------------------------------------------------------------------------------------------------------------------
+  // Serialization/deserialization helpers.
+  // These are shared between messages of various types that share the same encoding and decoding patterns.
+  // ------------------------------------------------------------------------------------------------------------------
+
+  /**
+   * Helper function for getting nodes from a raw bytes string.
+   * @param data The raw bytes string to parse.
+   * @return A map of the nodes and their respective IDs.
+   * @throw DynamicException if data size or IP version is invalid.
+   */
+  boost::unordered_flat_map<NodeID, NodeType, SafeHash> nodesFromMessage(bytes::View data);
+
+  /**
+   * Helper function for converting nodes to a message. Conversion is done in-place.
+   * @param message The message buffer.
+   * @param nodes A map of the nodes and their respective IDs.
+   */
+  void nodesToMessage(Bytes& message, const boost::unordered_flat_map<NodeID, NodeType, SafeHash>& nodes);
+
+  /**
+   * Helper function for getting node information from a raw bytes string.
+   * @param data The raw bytes string to parse.
+   * @return A struct with the node's information.
+   */
+  NodeInfo nodeInfoFromMessage(const bytes::View& data);
+
+  /**
+   * Helper function for converting node information to a message. Conversion is done in-place.
+   * @param message The message buffer.
+   * @param latestBlock A pointer to the node's latest block.
+   * @param nodes A map of the nodes connected to this node and their respective IDs.
+   * @param options Reference to the Options singleton.
+   */
+  void nodeInfoToMessage(
+    Bytes& message,
+    const std::shared_ptr<const FinalizedBlock>& latestBlock,
+    const boost::unordered_flat_map<NodeID, NodeType, SafeHash>& nodes,
+    const Options& options
+  );
+
+  /**
+   * Helper function for getting block data from a raw bytes string.
+   * @param data The raw bytes string to parse.
+   * @param requiredChainId The chain ID of the block.
+   * @return A list of blocks.
+   * @throw DynamicException if data size is invalid.
+   */
+  std::vector<FinalizedBlock> blocksFromMessage(const bytes::View& data, const uint64_t& requiredChainId);
+
+  /**
+   * Helper function for converting block data to a message. Conversion is done in-place.
+   * @param message The message buffer.
+   * @param blocks A list of pointers to blocks.
+   */
+  void blocksToMessage(Bytes& message, const std::vector<std::shared_ptr<const FinalizedBlock>>& blocks);
 };
 
 inline std::string toString(const P2P::NodeID& nodeId) {

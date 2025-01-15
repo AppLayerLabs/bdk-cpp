@@ -5,42 +5,23 @@
 # Start from a base Debian image
 FROM debian:trixie
 
+# Set shell to Bash because Docker standards are stupid
+SHELL ["/bin/bash", "-c"]
+
 # Update the system
 RUN apt-get update && apt-get upgrade -y
-
-# Install dependencies
-RUN apt-get install -y \
-    build-essential \
-    cmake \
-    tmux \
-    clang-tidy \
-    autoconf \
-    libtool \
-    pkg-config \
-    libabsl-dev \
-    libboost-all-dev \
-    libc-ares-dev \
-    libcrypto++-dev \
-    libgrpc-dev \
-    libgrpc++-dev \
-    librocksdb-dev \
-    libscrypt-dev \
-    libsnappy-dev \
-    libssl-dev \
-    zlib1g-dev \
-    openssl \
-    protobuf-compiler \
-    protobuf-compiler-grpc \
-    nano \
-    vim \
-    unison \
-    git
 
 # Set the working directory in the Docker container
 WORKDIR /bdk-cpp
 
 # Copy the local folder to the container
 COPY . /bdk-cpp
+
+# Install Docker-specific dependencies
+RUN apt-get -y install nano vim unison curl jq unzip
+
+# Install dependencies
+RUN bash /bdk-cpp/scripts/deps.sh --install
 
 # Create the synchronized directory
 RUN mkdir /bdk-volume

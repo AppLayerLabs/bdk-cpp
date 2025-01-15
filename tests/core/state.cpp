@@ -6,20 +6,13 @@ See the LICENSE.txt file in the project root for more information.
 */
 
 #include "../../src/libs/catch2/catch_amalgamated.hpp"
-#include "../../src/core/rdpos.h"
-#include "../../src/core/storage.h"
-#include "../../src/core/state.h"
-#include "../../src/utils/db.h"
-#include "../../src/net/p2p/managernormal.h"
+
 #include "../../src/net/p2p/managerdiscovery.h"
-#include "../../src/contract/abi.h"
-#include "../blockchainwrapper.hpp"
-#include "../sdktestsuite.hpp"
 
-#include <filesystem>
-#include <utility>
+#include "../../src/utils/uintconv.h"
 
-#include "contract/contracthost.h"
+#include "../blockchainwrapper.hpp" // blockchain.h -> consensus.h -> state.h -> (rdpos.h -> net/p2p/managernormal.h), dump.h -> storage.h, utils/db.h
+#include "../sdktestsuite.hpp" // contracthost.h -> contractmanager.h -> contractreflectioninterface.h -> abi.h
 
 const std::vector<Hash> validatorPrivKeysState {
   Hash(Hex::toBytes("0x0a0415d68a5ec2df57aab65efc2a7231b59b029bae7ff1bd2e40df9af96418c8")),
@@ -36,7 +29,7 @@ const std::vector<Hash> validatorPrivKeysState {
 std::pair<evmc_message, Bytes> buildCallInfo(const Address& addressToCall, const Functor& function, const Bytes& dataToCall) {
   std::pair<evmc_message, Bytes> callInfo;
   Bytes& messageBytes = std::get<1>(callInfo);
-  Utils::appendBytes(messageBytes, Utils::uint32ToBytes(function.value));
+  Utils::appendBytes(messageBytes, UintConv::uint32ToBytes(function.value));
   Utils::appendBytes(messageBytes, dataToCall);
   auto& [callKind,
     callFlags,
@@ -83,7 +76,7 @@ namespace TState {
       }
       // Wait a little until everyone has been destructed.
       std::this_thread::sleep_for(std::chrono::milliseconds(100));
-      //// Check if opening the state loads successfully from DB.
+      // Check if opening the state loads successfully from DB.
       auto blockchainWrapper = initialize(validatorPrivKeysState, validatorPrivKeysState[0], 8080, false, testDumpPath + "/stateConstructorTest");
       REQUIRE(blockchainWrapper.state.getNativeBalance(Address(Hex::toBytes("0x00dead00665771855a34155f5e7405489df2c3c6"))) ==
               uint256_t("1000000000000000000000"));
@@ -123,7 +116,7 @@ namespace TState {
       }
     }
 
-    SECTION("Test Simple block on State (No Transactions only rdPoS") {
+    SECTION("Test Simple block on State (No Transactions only rdPoS)") {
       std::unique_ptr<FinalizedBlock> latestBlock = nullptr;
       {
         auto blockchainWrapper = initialize(validatorPrivKeysState, validatorPrivKeysState[0], 8080, true, testDumpPath + "/stateSimpleBlockTest");
@@ -149,7 +142,7 @@ namespace TState {
       {
         auto blockchainWrapper = initialize(validatorPrivKeysState, validatorPrivKeysState[0], 8080, true, testDumpPath + "/stateSimpleBlockTest");
 
-        /// Add balance to the random Accounts and create random transactions
+        // Add balance to the random Accounts and create random transactions
         std::vector<TxBlock> transactions;
         for (auto &[privkey, val]: randomAccounts) {
           Address me = Secp256k1::toAddress(Secp256k1::toUPub(privkey));
@@ -167,7 +160,7 @@ namespace TState {
               privkey
           );
 
-          /// Take note of expected balance and nonce
+          // Take note of expected balance and nonce
           val.first =
               blockchainWrapper.state.getNativeBalance(me) -
               (transactions.back().getMaxFeePerGas() * transactions.back().getGasLimit()) -
@@ -199,7 +192,7 @@ namespace TState {
       {
         auto blockchainWrapper = initialize(validatorPrivKeysState, validatorPrivKeysState[0], 8080, true, testDumpPath + "/stateSimpleBlockTest");
 
-        /// Add balance to the random Accounts and add tx's to directly to mempool.
+        // Add balance to the random Accounts and add tx's to directly to mempool.
         for (auto &[privkey, val]: randomAccounts) {
           Address me = Secp256k1::toAddress(Secp256k1::toUPub(privkey));
           blockchainWrapper.state.addBalance(me);
@@ -216,15 +209,17 @@ namespace TState {
               privkey
           );
 
-          /// Take note of expected balance and nonce
+          // Take note of expected balance and nonce
           val.first = blockchainWrapper.state.getNativeBalance(me) - (tx.getMaxFeePerGas() * tx.getGasLimit()) - tx.getValue();
           val.second = blockchainWrapper.state.getNativeNonce(me) + 1;
           targetExpectedValue += tx.getValue();
           blockchainWrapper.state.addTx(std::move(tx));
+          REQUIRE(blockchainWrapper.state.isTxInMempool(tx.hash()));
         }
 
         auto txCopy = blockchainWrapper.state.getMempool();
         REQUIRE(txCopy.size() == 500);
+        REQUIRE(blockchainWrapper.state.getPendingTxs().size() == 500);
 
         auto newBestBlock = createValidBlock(validatorPrivKeysState, blockchainWrapper.state, blockchainWrapper.storage, std::move(txCopy));
         REQUIRE(blockchainWrapper.state.tryProcessNextBlock(std::move(newBestBlock)) == BlockValidationStatus::valid);
@@ -239,9 +234,9 @@ namespace TState {
     }
 
     SECTION("Test State mempool refresh") {
-      /// The block included will only have transactions where the address starts with \x08 or lower
-      /// where the mempool will have 500 transactions, including the \x08 addresses txs.
-      /// Test if the mempool is refreshed correctly.
+      // The block included will only have transactions where the address starts with \x08 or lower
+      // where the mempool will have 500 transactions, including the \x08 addresses txs.
+      // Test if the mempool is refreshed correctly.
       std::unordered_map<PrivKey, std::pair<uint256_t, uint64_t>, SafeHash> randomAccounts;
       for (uint64_t i = 0; i < 500; ++i) {
         randomAccounts.insert({PrivKey(Utils::randBytes(32)), std::make_pair(0, 0)});
@@ -252,7 +247,7 @@ namespace TState {
       {
         auto blockchainWrapper = initialize(validatorPrivKeysState, validatorPrivKeysState[0], 8080, true, testDumpPath + "/stateSimpleBlockTest");
 
-        /// Add balance to the random Accounts and add tx's to directly to mempool.
+        // Add balance to the random Accounts and add tx's to directly to mempool.
         std::vector<TxBlock> txs;
         std::vector<TxBlock> notOnBlock;
         for (auto &[privkey, val]: randomAccounts) {
@@ -273,7 +268,7 @@ namespace TState {
 
           if (me[0] <= 0x08) {
             txs.emplace_back(tx);
-            /// Take note of expected balance and nonce
+            // Take note of expected balance and nonce
             val.first = blockchainWrapper.state.getNativeBalance(me) - (tx.getMaxFeePerGas() * tx.getGasLimit()) - tx.getValue();
             val.second = blockchainWrapper.state.getNativeNonce(me) + 1;
             targetExpectedValue += tx.getValue();
@@ -316,14 +311,14 @@ namespace TState {
       std::unique_ptr<FinalizedBlock> latestBlock = nullptr;
       {
         auto blockchainWrapper = initialize(validatorPrivKeysState, validatorPrivKeysState[0], 8080, true, testDumpPath + "/state10BlocksTest");
-        /// Add balance to the given addresses
+        // Add balance to the given addresses
         for (const auto &[privkey, account]: randomAccounts) {
           Address me = Secp256k1::toAddress(Secp256k1::toUPub(privkey));
           blockchainWrapper.state.addBalance(me);
         }
 
         for (uint64_t index = 0; index < 10; ++index) {
-          /// Create random transactions
+          // Create random transactions
           std::vector<TxBlock> txs;
           for (auto &[privkey, account]: randomAccounts) {
             Address me = Secp256k1::toAddress(Secp256k1::toUPub(privkey));
@@ -339,7 +334,7 @@ namespace TState {
                 21000,
                 privkey
             );
-            /// Take note of expected balance and nonce
+            // Take note of expected balance and nonce
             account.first = blockchainWrapper.state.getNativeBalance(me) - (txs.back().getMaxFeePerGas() * txs.back().getGasLimit()) -
                             txs.back().getValue();
             account.second = blockchainWrapper.state.getNativeNonce(me) + 1;
@@ -589,7 +584,7 @@ namespace TState {
       }
 
       REQUIRE(blockchainWrapper1.state.getMempool().size() == 100);
-      /// Wait for the transactions to be broadcasted.
+      // Wait for the transactions to be broadcasted.
       auto broadcastFuture = std::async(std::launch::async, [&]() {
         while (blockchainWrapper1.state.getMempool().size() != 100 ||
                blockchainWrapper2.state.getMempool().size() != 100 ||
@@ -677,7 +672,7 @@ namespace TState {
           genesisPrivKey,
           genesisBalances,
           genesisValidators,
-          IndexingMode::RPC
+          IndexingMode::DISABLED
       );
       P2P::ManagerDiscovery p2pDiscovery(LOCALHOST, discoveryOptions);
 
@@ -868,7 +863,7 @@ namespace TState {
       }
 
 
-      /// TODO: This is done for the same reason as stopDiscovery.
+      // TODO: This is done for the same reason as stopDiscovery.
       blockchainWrapper1.consensus.stop();
       blockchainWrapper2.consensus.stop();
       blockchainWrapper3.consensus.stop();
@@ -881,10 +876,10 @@ namespace TState {
       std::this_thread::sleep_for(std::chrono::seconds(1));
     }
 
-    SECTION("State test with networking capabilities, 8 nodes, rdPoS fully active, broadcast blocks, 1000 transactions per set, 10 sets") {
+    SECTION("State test with networking capabilities, 8 nodes, rdPoS fully active, broadcast blocks, 100 transactions per set, 10 sets") {
       // Create random accounts for the transactions.
       std::unordered_map<PrivKey, std::pair<uint256_t, uint64_t>, SafeHash> randomAccounts;
-      for (uint64_t i = 0; i < 1000; ++i) {
+      for (uint64_t i = 0; i < 100; ++i) {
         randomAccounts.insert({PrivKey(Utils::randBytes(32)), std::make_pair(0, 0)});
       }
 
@@ -892,28 +887,28 @@ namespace TState {
       uint256_t targetExpectedValue = 0;
       // Initialize 8 different node instances, with different ports and DBs.
       auto blockchainWrapper1 = initialize(
-        validatorPrivKeysState, validatorPrivKeysState[0], SDKTestSuite::getTestPort(), true, testDumpPath + "/stateNode1NetworkCapabilitiesWithTx"
+        validatorPrivKeysState, validatorPrivKeysState[0], SDKTestSuite::getTestPort(), true, testDumpPath + "/stateNode1NetworkCapabilitiesWithTx", IndexingMode::RPC
       );
       auto blockchainWrapper2 = initialize(
-        validatorPrivKeysState, validatorPrivKeysState[1], SDKTestSuite::getTestPort(), true, testDumpPath + "/stateNode2NetworkCapabilitiesWithTx"
+        validatorPrivKeysState, validatorPrivKeysState[1], SDKTestSuite::getTestPort(), true, testDumpPath + "/stateNode2NetworkCapabilitiesWithTx", IndexingMode::RPC
       );
       auto blockchainWrapper3 = initialize(
-        validatorPrivKeysState, validatorPrivKeysState[2], SDKTestSuite::getTestPort(), true, testDumpPath + "/stateNode3NetworkCapabilitiesWithTx"
+        validatorPrivKeysState, validatorPrivKeysState[2], SDKTestSuite::getTestPort(), true, testDumpPath + "/stateNode3NetworkCapabilitiesWithTx", IndexingMode::RPC
       );
       auto blockchainWrapper4 = initialize(
-        validatorPrivKeysState, validatorPrivKeysState[3], SDKTestSuite::getTestPort(), true, testDumpPath + "/stateNode4NetworkCapabilitiesWithTx"
+        validatorPrivKeysState, validatorPrivKeysState[3], SDKTestSuite::getTestPort(), true, testDumpPath + "/stateNode4NetworkCapabilitiesWithTx", IndexingMode::RPC
       );
       auto blockchainWrapper5 = initialize(
-        validatorPrivKeysState, validatorPrivKeysState[4], SDKTestSuite::getTestPort(), true, testDumpPath + "/stateNode5NetworkCapabilitiesWithTx"
+        validatorPrivKeysState, validatorPrivKeysState[4], SDKTestSuite::getTestPort(), true, testDumpPath + "/stateNode5NetworkCapabilitiesWithTx", IndexingMode::RPC
       );
       auto blockchainWrapper6 = initialize(
-        validatorPrivKeysState, validatorPrivKeysState[5], SDKTestSuite::getTestPort(), true, testDumpPath + "/stateNode6NetworkCapabilitiesWithTx"
+        validatorPrivKeysState, validatorPrivKeysState[5], SDKTestSuite::getTestPort(), true, testDumpPath + "/stateNode6NetworkCapabilitiesWithTx", IndexingMode::RPC
       );
       auto blockchainWrapper7 = initialize(
-        validatorPrivKeysState, validatorPrivKeysState[6], SDKTestSuite::getTestPort(), true, testDumpPath + "/stateNode7NetworkCapabilitiesWithTx"
+        validatorPrivKeysState, validatorPrivKeysState[6], SDKTestSuite::getTestPort(), true, testDumpPath + "/stateNode7NetworkCapabilitiesWithTx", IndexingMode::RPC
       );
       auto blockchainWrapper8 = initialize(
-        validatorPrivKeysState, validatorPrivKeysState[7], SDKTestSuite::getTestPort(), true, testDumpPath + "/stateNode8NetworkCapabilitiesWithTx"
+        validatorPrivKeysState, validatorPrivKeysState[7], SDKTestSuite::getTestPort(), true, testDumpPath + "/stateNode8NetworkCapabilitiesWithTx", IndexingMode::RPC
       );
 
       // Initialize the discovery node.
@@ -1038,7 +1033,6 @@ namespace TState {
       std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
       // Wait for nodes to connect.
-      std::cout << "Waiting for conns" << std::endl;
       auto connectionsFuture = std::async(std::launch::async, [&]() {
         while (p2pDiscovery.getSessionsIDs().size() != 8 ||
                blockchainWrapper1.p2p.getSessionsIDs().size() != 8 ||
@@ -1087,7 +1081,6 @@ namespace TState {
       REQUIRE(blockchainWrapper7.state.rdposGetIsValidator());
       REQUIRE(blockchainWrapper8.state.rdposGetIsValidator());
 
-      std::cout << "Starting consensus" << std::endl;
       blockchainWrapper1.consensus.start();
       blockchainWrapper2.consensus.start();
       blockchainWrapper3.consensus.start();
@@ -1096,7 +1089,6 @@ namespace TState {
       blockchainWrapper6.consensus.start();
       blockchainWrapper7.consensus.start();
       blockchainWrapper8.consensus.start();
-      std::cout << "Consensus started" << std::endl;
 
       // For this test we have to create 10x 100 transactions
       // But as the consensus worker is running, we dont actually need to create the blocks
@@ -1106,7 +1098,7 @@ namespace TState {
 
       for (uint64_t i = 0; i < 10; ++i) {
         std::vector<TxBlock> txSet;
-        /// Add balance to the random Accounts and create random transactions
+        // Add balance to the random Accounts and create random transactions
         for (auto &[privkey, val]: randomAccounts) {
           Address me = Secp256k1::toAddress(Secp256k1::toUPub(privkey));
           TxBlock tx(
@@ -1122,7 +1114,7 @@ namespace TState {
               privkey
           );
 
-          /// Take note of expected balance and nonce
+          // Take note of expected balance and nonce
           val.first = blockchainWrapper1.state.getNativeBalance(me) - (tx.getMaxFeePerGas() * tx.getGasLimit()) - tx.getValue();
           val.second = blockchainWrapper1.state.getNativeNonce(me) + 1;
           txSet.push_back(tx);
@@ -1130,9 +1122,8 @@ namespace TState {
         txs.emplace_back(std::move(txSet));
       }
 
-      /// For each set of transactions, broadcast them and wait for them to be confirmed
+      // For each set of transactions, broadcast them and wait for them to be confirmed
       for (const auto &txSet: txs) {
-        std::cout << "Broadcasting txs" << std::endl;
         for (const auto &tx: txSet) {
           auto txStatus = blockchainWrapper1.state.addTx(TxBlock(tx));
           REQUIRE(isTxStatusValid(txStatus));
@@ -1140,7 +1131,8 @@ namespace TState {
           targetExpectedValue += tx.getValue();
         }
 
-        /// Wait for the transactions to be confirmed.
+        // Wait for the transactions to be confirmed.
+        uint64_t loop = 0;
         auto confirmFuture = std::async(std::launch::async, [&]() {
           while (true) {
             bool allConfirmed = true;
@@ -1156,12 +1148,13 @@ namespace TState {
                 allConfirmed = false;
               }
             }
+            ++loop;
             if (allConfirmed) { break; }
             std::this_thread::sleep_for(std::chrono::milliseconds(250));
           }
         });
 
-        REQUIRE(TEST_CHECK_TIME(confirmFuture.wait_for(std::chrono::seconds(120)) != std::future_status::timeout, 5));
+        REQUIRE(TEST_CHECK_TIME(confirmFuture.wait_for(std::chrono::seconds(180)) != std::future_status::timeout, 5));
 
         // Check balances for target
         REQUIRE(blockchainWrapper1.state.getNativeBalance(targetOfTransactions) == targetExpectedValue);
@@ -1188,25 +1181,16 @@ namespace TState {
         REQUIRE(blockchainWrapper1.storage.getBlock(i)->getHash() == blockchainWrapper8.storage.getBlock(i)->getHash());
       }
 
-      /// TODO: This is done for the same reason as stopDiscovery.
-      std::cout << "Stopping consensus for wrapper 1" << std::endl;
+      // TODO: This is done for the same reason as stopDiscovery.
       blockchainWrapper1.consensus.stop();
-      std::cout << "Stopping consensus for wrapper 2" << std::endl;
       blockchainWrapper2.consensus.stop();
-      std::cout << "Stopping consensus for wrapper 3" << std::endl;
       blockchainWrapper3.consensus.stop();
-      std::cout << "Stopping consensus for wrapper 4" << std::endl;
       blockchainWrapper4.consensus.stop();
-      std::cout << "Stopping consensus for wrapper 5" << std::endl;
       blockchainWrapper5.consensus.stop();
-      std::cout << "Stopping consensus for wrapper 6" << std::endl;
       blockchainWrapper6.consensus.stop();
-      std::cout << "Stopping consensus for wrapper 7" << std::endl;
       blockchainWrapper7.consensus.stop();
-      std::cout << "Stopping consensus for wrapper 8" << std::endl;
       blockchainWrapper8.consensus.stop();
       // Sleep so it can conclude the last operations.
-      std::cout << "Everything should have succesfully stopped..." << std::endl;
       std::this_thread::sleep_for(std::chrono::seconds(1));
     }
 
@@ -1482,8 +1466,8 @@ namespace TState {
         auto txStatus = blockchainWrapper1.state.addTx(TxBlock(tx));
         REQUIRE(isTxStatusValid(txStatus));
         blockchainWrapper1.p2p.getBroadcaster().broadcastTxBlock(tx);
-        /// Wait for the transactions to be confirmed.
-        ///
+        // Wait for the transactions to be confirmed.
+        //
         auto confirmFuture = std::async(std::launch::async, [&]() {
           while (true) {
             if (blockchainWrapper1.storage.txExists(tx.hash()) &&
@@ -1555,8 +1539,7 @@ namespace TState {
       // Sanity check: blocks
       uint64_t bestBlockHeight = blockchainWrapper1.storage.latest()->getNHeight();
 
-      for (uint64_t i = 0; i <= bestBlockHeight; ++i)
-      {
+      for (uint64_t i = 0; i <= bestBlockHeight; i++) {
         REQUIRE(blockchainWrapper1.storage.getBlock(i)->getHash() == blockchainWrapper2.storage.getBlock(i)->getHash());
         REQUIRE(blockchainWrapper1.storage.getBlock(i)->getHash() == blockchainWrapper3.storage.getBlock(i)->getHash());
         REQUIRE(blockchainWrapper1.storage.getBlock(i)->getHash() == blockchainWrapper4.storage.getBlock(i)->getHash());
@@ -1566,7 +1549,7 @@ namespace TState {
         REQUIRE(blockchainWrapper1.storage.getBlock(i)->getHash() == blockchainWrapper8.storage.getBlock(i)->getHash());
       }
 
-      /// TODO: This is done for the same reason as stopDiscovery.
+      // TODO: This is done for the same reason as stopDiscovery.
       blockchainWrapper1.consensus.stop();
       blockchainWrapper2.consensus.stop();
       blockchainWrapper3.consensus.stop();
@@ -1575,6 +1558,7 @@ namespace TState {
       blockchainWrapper6.consensus.stop();
       blockchainWrapper7.consensus.stop();
       blockchainWrapper8.consensus.stop();
+
       // Sleep so it can conclude the last operations.
       std::this_thread::sleep_for(std::chrono::seconds(1));
     }

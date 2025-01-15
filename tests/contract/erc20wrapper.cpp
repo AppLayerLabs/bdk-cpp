@@ -6,25 +6,17 @@ See the LICENSE.txt file in the project root for more information.
 */
 
 #include "../../src/libs/catch2/catch_amalgamated.hpp"
-#include "../../src/contract/templates/erc20.h"
-#include "../../src/contract/templates/erc20wrapper.h"
-#include "../../src/contract/abi.h"
-#include "../../src/utils/db.h"
-#include "../../src/utils/options.h"
-#include "../../src/contract/contractmanager.h"
-#include "../../src/core/rdpos.h"
+
+#include "../../src/contract/templates/erc20wrapper.h" // erc20.h
 
 #include "../sdktestsuite.hpp"
-
-#include <filesystem>
-#include <string>
 
 // TODO: test events if/when implemented
 
 namespace TERC20Wrapper {
   TEST_CASE("ERC20Wrapper Class", "[contract][erc20wrapper]") {
     SECTION("ERC20Wrapper creation") {
-      SDKTestSuite sdk = SDKTestSuite::createNewEnvironment("testERC20Creation");
+      SDKTestSuite sdk = SDKTestSuite::createNewEnvironment("testERC20WrapperCreation");
       Address erc20 = sdk.deployContract<ERC20>(
         std::string("TestToken"), std::string("TST"), uint8_t(18), uint256_t("1000000000000000000")
       );
@@ -37,7 +29,8 @@ namespace TERC20Wrapper {
     }
 
     SECTION("ERC20Wrapper deposit() and withdraw()") {
-      SDKTestSuite sdk = SDKTestSuite::createNewEnvironment("testERC20DepositAndWithdraw");
+      TestAccount randomAcc = TestAccount::newRandomAccount();
+      SDKTestSuite sdk = SDKTestSuite::createNewEnvironment("testERC20WrapperDepositAndWithdraw", {randomAcc});
       Address erc20 = sdk.deployContract<ERC20>(
         std::string("TestToken"), std::string("TST"), uint8_t(18), uint256_t("1000000000000000000")
       );
@@ -78,10 +71,22 @@ namespace TERC20Wrapper {
       REQUIRE(contractBal == uint256_t("250000000000000000"));
       REQUIRE(erc20Bal == uint256_t("750000000000000000"));
       REQUIRE(wrapperBal == uint256_t("250000000000000000"));
+
+      // For coverage
+      Address randomToken(Utils::randBytes(20));
+      Address randomUser(Utils::randBytes(20));
+      REQUIRE(sdk.callViewFunction(erc20Wrapper, &ERC20Wrapper::getUserBalance, erc20, randomUser) == 0);
+      // Token not found
+      REQUIRE_THROWS(sdk.callFunction(erc20Wrapper, &ERC20Wrapper::withdraw, randomToken, uint256_t("250000000000000000")));
+      // User not found
+      REQUIRE_THROWS(sdk.callFunction(erc20Wrapper, randomAcc, &ERC20Wrapper::withdraw, erc20, uint256_t("250000000000000000")));
+      // Not enough balance
+      REQUIRE_THROWS(sdk.callFunction(erc20Wrapper, &ERC20Wrapper::withdraw, erc20, uint256_t("250000000000000000")));
     }
 
     SECTION("ERC20Wrapper transferTo()") {
-      SDKTestSuite sdk = SDKTestSuite::createNewEnvironment("testERC20TransferTo");
+      TestAccount randomAcc = TestAccount::newRandomAccount();
+      SDKTestSuite sdk = SDKTestSuite::createNewEnvironment("testERC20WrapperTransferTo", {randomAcc});
       Address erc20 = sdk.deployContract<ERC20>(
         std::string("TestToken"), std::string("TST"), uint8_t(18), uint256_t("1000000000000000000")
       );
@@ -127,6 +132,17 @@ namespace TERC20Wrapper {
       REQUIRE(erc20Bal == uint256_t("500000000000000000"));
       REQUIRE(wrapperBal == uint256_t("250000000000000000"));
       REQUIRE(destBal == uint256_t("250000000000000000"));
+
+      // For coverage
+      Address randomToken(Utils::randBytes(20));
+      Address randomUser(Utils::randBytes(20));
+      REQUIRE(sdk.callViewFunction(erc20Wrapper, &ERC20Wrapper::getUserBalance, erc20, randomUser) == 0);
+      // Token not found
+      REQUIRE_THROWS(sdk.callFunction(erc20Wrapper, &ERC20Wrapper::transferTo, randomToken, dest, uint256_t("250000000000000000")));
+      // User not found
+      REQUIRE_THROWS(sdk.callFunction(erc20Wrapper, randomAcc, &ERC20Wrapper::transferTo, erc20, dest, uint256_t("250000000000000000")));
+      // Not enough balance
+      REQUIRE_THROWS(sdk.callFunction(erc20Wrapper, &ERC20Wrapper::transferTo, erc20, dest, uint256_t("250000000000000000")));
     }
   }
 }

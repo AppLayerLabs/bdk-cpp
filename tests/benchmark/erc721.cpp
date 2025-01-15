@@ -5,11 +5,12 @@
 */
 
 #include "../src/libs/catch2/catch_amalgamated.hpp"
-#include "../src/contract/abi.h"
-#include "../src/utils/options.h"
-#include "../src/core/rdpos.h"
+
+#include "../src/contract/templates/erc721test.h"
+
+#include "../src/utils/uintconv.h"
+
 #include "../sdktestsuite.hpp"
-#include "contract/templates/erc721test.h"
 
 namespace TERC721BENCHMARK {
   /*
@@ -46,14 +47,14 @@ namespace TERC721BENCHMARK {
       std::unique_ptr<Options> options = nullptr;
       Address to(Utils::randBytes(20));
 
-      SDKTestSuite sdk = SDKTestSuite::createNewEnvironment("testERC721CPPBenchmark");
+      SDKTestSuite sdk = SDKTestSuite::createNewEnvironment("testERC721CPPBenchmark", {}, nullptr, IndexingMode::DISABLED);
       auto erc721Address = sdk.deployContract<ERC721Test>(std::string("MintNFT"), std::string("MNFT"), std::numeric_limits<uint64_t>::max());
       // Now for the funny part, we are NOT a C++ contract, but we can
       // definitely take advantage of the templated ABI to interact with it
       // as the encoding is the same
 
       // Create the transaction for transfer
-      auto functor = Utils::uint32ToBytes(ABI::FunctorEncoder::encode<Address>("mint").value);
+      auto functor = UintConv::uint32ToBytes(ABI::FunctorEncoder::encode<Address>("mint").value);
       Bytes mintEncoded(functor.cbegin(), functor.cend());
       Utils::appendBytes(mintEncoded, ABI::Encoder::encodeData<Address>(to));
       TxBlock transferTx = sdk.createNewTx(sdk.getChainOwnerAccount(), erc721Address, 0, mintEncoded);
@@ -93,18 +94,20 @@ namespace TERC721BENCHMARK {
       // Dump the state
       sdk.getState().saveToDB();
     }
+
+    // TODO: AddressSanitizer heap-use-after-free here for some reason, someone plz fix it
     SECTION("EVM ERC721 Benchmark") {
       std::unique_ptr<Options> options = nullptr;
       Address to(Utils::randBytes(20));
 
-      SDKTestSuite sdk = SDKTestSuite::createNewEnvironment("testERC721EVMBenchmark");
+      SDKTestSuite sdk = SDKTestSuite::createNewEnvironment("testERC721EVMBenchmark", {}, nullptr, IndexingMode::DISABLED);
       auto erc721Address = sdk.deployBytecode(erc721bytecode);
       // Now for the funny part, we are NOT a C++ contract, but we can
       // definitely take advantage of the templated ABI to interact with it
       // as the encoding is the same
 
       // Create the transaction for transfer
-      auto functor = Utils::uint32ToBytes(ABI::FunctorEncoder::encode<Address>("mint").value);
+      auto functor = UintConv::uint32ToBytes(ABI::FunctorEncoder::encode<Address>("mint").value);
       Bytes mintEncoded(functor.cbegin(), functor.cend());
       Utils::appendBytes(mintEncoded, ABI::Encoder::encodeData<Address>(to));
       TxBlock transferTx = sdk.createNewTx(sdk.getChainOwnerAccount(), erc721Address, 0, mintEncoded);

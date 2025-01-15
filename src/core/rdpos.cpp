@@ -6,9 +6,8 @@ See the LICENSE.txt file in the project root for more information.
 */
 
 #include "rdpos.h"
-#include "storage.h"
-#include "state.h"
-#include "../contract/contractmanager.h"
+
+#include "../utils/uintconv.h"
 
 rdPoS::rdPoS(
   const DB& db, DumpManager& dumpManager, const Storage& storage,
@@ -278,7 +277,7 @@ DBBatch rdPoS::dump() const
   uint64_t i = 0;
   // add batch operations
   for (const auto &validator : this->validators_) {
-    dbBatch.push_back(Utils::uint64ToBytes(i), validator, DBPrefix::rdPoS);
+    dbBatch.push_back(UintConv::uint64ToBytes(i), validator, DBPrefix::rdPoS);
     i++;
   }
   return dbBatch;

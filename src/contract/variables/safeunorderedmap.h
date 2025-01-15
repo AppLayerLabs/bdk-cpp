@@ -243,7 +243,7 @@ template <typename Key, typename T> class SafeUnorderedMap : public SafeBase {
      */
     template <class InputIt> void insert(InputIt first, InputIt last) {
       // On this insert, we copy everything because we cannot check the insert
-      // return to see what keys were insertted.
+      // return to see what keys were inserted.
       for (auto it = first; it != last; ++it) {
         auto valueIt = this->value_.find(it->first);
         if (valueIt != this->value_.end()) {
@@ -483,7 +483,7 @@ template <typename Key, typename T> class SafeUnorderedMap : public SafeBase {
     }
 
     /**
-     * Erase a value from the map.
+     * Erase a value from the map. Segfaults if value is already non-existant.
      * @param pos The position of the value to erase.
      * @return An iterator to the next value.
      */
@@ -492,14 +492,12 @@ template <typename Key, typename T> class SafeUnorderedMap : public SafeBase {
     ) {
       if (auto itValue = this->value_.find((*pos).first); itValue != this->value_.end()) {
         this->copy_.try_emplace((*itValue).first, std::in_place, (*itValue).second);
-      } else {
-        this->copy_.try_emplace((*itValue).first, std::nullopt);
       }
-      markAsUsed(); return this->value_.erase(pos);
+      markAsUsed(); return this->value_.erase(pos); // segfaults if itValue == end() (doesn't exist), seems to be intended behaviour from std
     }
 
     /**
-     * Erase a range of values from the map.
+     * Erase a range of values from the map. Segfaults if any of the values are already non-existant.
      * @param first The first position to erase.
      * @param last The last position to erase.
      * @return An iterator to the next value.
@@ -509,26 +507,21 @@ template <typename Key, typename T> class SafeUnorderedMap : public SafeBase {
       typename boost::unordered_flat_map<Key, T, SafeHash>::const_iterator last
     ) {
       for (auto it = first; it != last; ++it) {
-        auto itValue = this->value_.find((*it).first);
-        if (itValue != this->value_.end()) {
+        if (auto itValue = this->value_.find((*it).first); itValue != this->value_.end()) {
           this->copy_.try_emplace((*itValue).first, std::in_place, (*itValue).second);
-        } else {
-          this->copy_.try_emplace((*itValue).first, std::nullopt);
         }
       }
       markAsUsed(); return this->value_.erase(first, last);
     }
 
     /**
-     * Erase a value from the map, using a key.
+     * Erase a value from the map, using a key. Does nothing if the key is already non-existant.
      * @param key The key of the value to erase.
      * @return The number of values erased.
      */
     typename boost::unordered_flat_map<Key, T, SafeHash>::size_type erase(const Key& key) {
       if (auto itValue = this->value_.find(key); itValue != this->value_.end()) {
         this->copy_.try_emplace((*itValue).first, std::in_place, (*itValue).second);
-      } else {
-        this->copy_.try_emplace((*itValue).first, std::nullopt);
       }
       markAsUsed(); return this->value_.erase(key);
     }

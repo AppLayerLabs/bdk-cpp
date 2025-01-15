@@ -8,18 +8,12 @@ See the LICENSE.txt file in the project root for more information.
 #ifndef P2P_SESSION_H
 #define P2P_SESSION_H
 
-#include <cstdlib>
-#include <iostream>
-#include <memory>
-#include <utility>
 #include <shared_mutex>
-#include <functional>
-#include <boost/asio.hpp>
-#include <boost/beast.hpp>
-#include <boost/asio/buffer.hpp>
 
-#include "../../utils/utils.h"
-#include "encoding.h"
+#include <boost/asio.hpp> // asio/buffer.hpp
+#include <boost/beast.hpp>
+
+#include "encoding.h" // NodeID, NodeType, utils.h -> libs/json.hpp -> cstdlib, functional, memory, utility
 
 using boost::asio::ip::tcp;
 namespace net = boost::asio;  // from <boost/asio.hpp>
@@ -170,13 +164,13 @@ namespace P2P {
       void close() { close(""); }
 
       /// Writes a message to the socket.
-      void write(const std::shared_ptr<const Message>& message);
+      bool write(const std::shared_ptr<const Message>& message);
 
       /// ManagerBase notifies this session that it has been unregistered; returns whether this session was handshaked.
       bool notifyUnregistered();
 
       ///@{
-      /* Getter. */
+      /** Getter. */
       const net::ip::address& address() const { return this->address_; }
       const unsigned short& port() const { return port_; }
       std::string addressAndPortStr() const {

@@ -5,9 +5,13 @@ This software is distributed under the MIT License.
 See the LICENSE.txt file in the project root for more information.
 */
 
-#include "state.h"
 #include <evmone/evmone.h>
-#include "../contract/contracthost.h"
+
+#include "state.h"
+
+#include "../contract/contracthost.h" // contractmanager.h
+
+#include "../utils/uintconv.h"
 #include "bytes/random.h"
 
 State::State(
@@ -53,7 +57,6 @@ State::State(
   }
 
   auto latestBlock = this->storage_.latest();
-
   // Insert the contract manager into the contracts_ map.
   this->contracts_[ProtocolContractAddresses.at("ContractManager")] = std::make_unique<ContractManager>(
     db, this->contracts_, this->dumpManager_ ,this->options_
@@ -516,6 +519,8 @@ int64_t State::estimateGas(EncodedMessageVariant msg) {
     host.simulate(std::forward<decltype(msg)>(msg));
     return initialGas - int64_t(gas);
   }, std::move(msg));
+
+  // TODO: add 15% workaround
 }
 
 std::vector<std::pair<std::string, Address>> State::getCppContracts() const {

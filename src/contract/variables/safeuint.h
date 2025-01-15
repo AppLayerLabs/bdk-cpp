@@ -709,4 +709,38 @@ template <int Size> class SafeUint_t : public SafeBase {
     }
 };
 
+// Aliases for SafeUint
+using SafeUint8_t = SafeUint_t<8>;
+using SafeUint16_t = SafeUint_t<16>;
+using SafeUint24_t = SafeUint_t<24>;
+using SafeUint32_t = SafeUint_t<32>;
+using SafeUint40_t = SafeUint_t<40>;
+using SafeUint48_t = SafeUint_t<48>;
+using SafeUint56_t = SafeUint_t<56>;
+using SafeUint64_t = SafeUint_t<64>;
+using SafeUint72_t = SafeUint_t<72>;
+using SafeUint80_t = SafeUint_t<80>;
+using SafeUint88_t = SafeUint_t<88>;
+using SafeUint96_t = SafeUint_t<96>;
+using SafeUint104_t = SafeUint_t<104>;
+using SafeUint112_t = SafeUint_t<112>;
+using SafeUint120_t = SafeUint_t<120>;
+using SafeUint128_t = SafeUint_t<128>;
+using SafeUint136_t = SafeUint_t<136>;
+using SafeUint144_t = SafeUint_t<144>;
+using SafeUint152_t = SafeUint_t<152>;
+using SafeUint160_t = SafeUint_t<160>;
+using SafeUint168_t = SafeUint_t<168>;
+using SafeUint176_t = SafeUint_t<176>;
+using SafeUint184_t = SafeUint_t<184>;
+using SafeUint192_t = SafeUint_t<192>;
+using SafeUint200_t = SafeUint_t<200>;
+using SafeUint208_t = SafeUint_t<208>;
+using SafeUint216_t = SafeUint_t<216>;
+using SafeUint224_t = SafeUint_t<224>;
+using SafeUint232_t = SafeUint_t<232>;
+using SafeUint240_t = SafeUint_t<240>;
+using SafeUint248_t = SafeUint_t<248>;
+using SafeUint256_t = SafeUint_t<256>;
+
 #endif // SAFEUINT_T_H

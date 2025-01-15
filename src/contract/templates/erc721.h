@@ -168,45 +168,64 @@ public:
 
   /**
    * Constructor for loading contract from DB.
-   * @param interface Reference to the contract manager interface.
    * @param address The address where the contract will be deployed.
    * @param db Reference to the database object.
    */
-  ERC721(const Address &address,
-         const DB& db);
+  ERC721(const Address &address, const DB& db);
 
   /**
    * Constructor to be used when creating a new contract.
    * @param erc721name The name of the ERC721 token.
    * @param erc721symbol The symbol of the ERC721 token.
-   * @param interface Reference to the contract manager interface.
    * @param address The address where the contract will be deployed.
    * @param creator The address of the creator of the contract.
    * @param chainId The chain where the contract wil be deployed.
-   * @param db Reference to the database object.
    */
   ERC721(const std::string &erc721name, const std::string &erc721symbol,
-         const Address &address,
-         const Address &creator, const uint64_t &chainId);
+    const Address &address, const Address &creator, const uint64_t &chainId
+  );
 
   /**
    * Constructor to be used when creating a new contract.
    * @param derivedTypeName The name of the derived type.
    * @param erc721name The name of the ERC721 token.
    * @param erc721symbol The symbol of the ERC721 token.
-   * @param interface Reference to the contract manager interface.
    * @param address The address where the contract will be deployed.
    * @param creator The address of the creator of the contract.
    * @param chainId The chain where the contract wil be deployed.
-   * @param db Reference to the database object.
    */
   ERC721(const std::string &derivedTypeName, const std::string &erc721name,
-         const std::string &erc721symbol,
-         const Address &address, const Address &creator,
-         const uint64_t &chainId);
+    const std::string &erc721symbol, const Address &address,
+    const Address &creator, const uint64_t &chainId
+  );
 
   /// Destructor.
   ~ERC721() override = default;
+
+
+  /// Event for when a token is transferred.
+  /// event Transfer(address indexed from, address indexed to, uint256 indexed tokenId);
+  void Transfer(const EventParam<Address, true> &from,
+                const EventParam<Address, true> &to,
+                const EventParam<uint256_t, true> &tokenId) {
+    this->emitEvent("Transfer", std::make_tuple(from, to, tokenId));
+  }
+
+  /// Event for when a token is approved.
+  /// event Approval(address indexed owner, address indexed approved, uint256 indexed tokenId);
+  void Approval(const EventParam<Address, true> &owner,
+                const EventParam<Address, true> &approved,
+                const EventParam<uint256_t, true> &tokenId) {
+    this->emitEvent("Approval", std::make_tuple(owner, approved, tokenId));
+  }
+
+  /// Event for when an operator is approved.
+  /// event ApprovalForAll(address indexed owner, address indexed operator, bool approved);
+  void ApprovalForAll(const EventParam<Address, true> &owner,
+                      const EventParam<Address, true> &operatorAddress,
+                      const EventParam<bool, false> &approved) {
+    this->emitEvent("ApprovalForAll", std::make_tuple(owner, operatorAddress, approved));
+  }
 
   /**
    * Get the name of the ERC721 token.
@@ -328,6 +347,11 @@ public:
                         std::vector<std::string>{"owner", "operatorAddress"}),
         std::make_tuple("transferFrom", &ERC721::transferFrom, FunctionTypes::NonPayable,
                         std::vector<std::string>{"from", "to", "tokenId"}));
+    ContractReflectionInterface::registerContractEvents<ERC721>(
+        std::make_tuple("Transfer", false, &ERC721::Transfer, std::vector<std::string>{"from","to", "tokenId"}),
+        std::make_tuple("Approval", false, &ERC721::Approval, std::vector<std::string>{"owner","approved", "tokenId"}),
+        std::make_tuple("ApprovalForAll", false, &ERC721::ApprovalForAll, std::vector<std::string>{"owner","operatorAddress", "approved"})
+    );
   }
 
    /// Dump method

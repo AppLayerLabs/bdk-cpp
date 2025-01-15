@@ -6,13 +6,10 @@ See the LICENSE.txt file in the project root for more information.
 */
 
 #include "../../src/libs/catch2/catch_amalgamated.hpp"
-#include "../../src/utils/utils.h"
-#include "../../src/utils/options.h"
-#include "../../src/net/p2p/managernormal.h"
-#include "../../src/net/http/httpserver.h"
-#include "../../src/core/state.h"
-#include "../../src/core/storage.h"
-#include "../../blockchainwrapper.hpp"
+
+#include "../../blockchainwrapper.hpp" // blockchain.h -> (net/http/httpserver.h -> net/p2p/managernormal.h), consensus.h -> state.h -> dump.h -> (storage.h -> utils/options.h), utils/db.h -> utils.h
+
+#include "../../src/net/http/jsonrpc/call.h"
 
 std::string makeHTTPRequest(
   const std::string& reqBody, const std::string& host, const std::string& port,
@@ -82,7 +79,6 @@ std::string makeHTTPRequest(
   return result;
 }
 
-
 const std::vector<Hash> validatorPrivKeysHttpJsonRpc {
   Hash(Hex::toBytes("0x0a0415d68a5ec2df57aab65efc2a7231b59b029bae7ff1bd2e40df9af96418c8")),
   Hash(Hex::toBytes("0xb254f12b4ca3f0120f305cabf1188fe74f0bd38e58c932a3df79c4c55df8fa66")),
@@ -94,31 +90,44 @@ const std::vector<Hash> validatorPrivKeysHttpJsonRpc {
   Hash(Hex::toBytes("0x426dc06373b694d8804d634a0fd133be18e4e9bcbdde099fce0ccf3cb965492f"))
 };
 
-template <typename T>
-json requestMethod(std::string method, T params) {
+template <typename T> json requestMethod(std::string method, T params) {
   return json::parse(makeHTTPRequest(
     json({
-           {"jsonrpc", "2.0"},
-           {"id", 1},
-           {"method", method},
-           {"params", params}
-         }).dump(),
+      {"jsonrpc", "2.0"},
+      {"id", 1},
+      {"method", method},
+      {"params", params}
+    }).dump(),
     "127.0.0.1",
     std::to_string(9999), // Default port for HTTPJsonRPC
     "/",
     "POST",
-    "application/json"));
+    "application/json")
+  );
 }
 
-namespace THTTPJsonRPC{
+namespace THTTPJsonRPC {
   TEST_CASE("HTTPJsonRPC Tests", "[net][http][jsonrpc]") {
+    SECTION("checkJsonRPCSpec") {
+      json ok = {{"jsonrpc", "2.0"}, {"method", "myMethod"}, {"params", json::array()}};
+      json noJsonRpc = {{"method", "myMethod"}, {"params", json::array()}};
+      json wrongJsonRpc = {{"jsonrpc", "1.0"}, {"method", "myMethod"}, {"params", json::array()}};
+      json noMethod = {{"jsonrpc", "2.0"}, {"params", json::array()}};
+      json wrongParams = {{"jsonrpc", "2.0"}, {"method", "myMethod"}, {"params", 12345}};
+      jsonrpc::checkJsonRPCSpec(ok);
+      REQUIRE_THROWS(jsonrpc::checkJsonRPCSpec(noJsonRpc));
+      REQUIRE_THROWS(jsonrpc::checkJsonRPCSpec(wrongJsonRpc));
+      REQUIRE_THROWS(jsonrpc::checkJsonRPCSpec(noMethod));
+      REQUIRE_THROWS(jsonrpc::checkJsonRPCSpec(wrongParams));
+    }
+
     SECTION("HTTPJsonRPC") {
-      /// One section to lead it all
-      /// Reasoning: we don't want to keep opening and closing everything per Section, just initialize once and run.
+      // One section to lead it all
+      // Reasoning: we don't want to keep opening and closing everything per Section, just initialize once and run.
       std::string testDumpPath = Utils::getTestDumpPath();
       auto blockchainWrapper = initialize(validatorPrivKeysHttpJsonRpc, validatorPrivKeysHttpJsonRpc[0], 8080, true, testDumpPath + "/HTTPjsonRPC");
 
-      /// Make random transactions within a given block, we need to include requests for getting txs and blocks
+      // Make random transactions within a given block, we need to include requests for getting txs and blocks
       Address targetOfTransactions = Address(Utils::randBytes(20));
       uint256_t targetExpectedValue = 0;
       std::unordered_map<PrivKey, std::pair<uint256_t, uint64_t>, SafeHash> randomAccounts;
@@ -143,12 +152,21 @@ namespace THTTPJsonRPC{
           privkey
         );
 
-        /// Take note of expected balance and nonce
+        // Take note of expected balance and nonce
         val.first = blockchainWrapper.state.getNativeBalance(me) - (transactions.back().getMaxFeePerGas() * transactions.back().getGasLimit()) -
                     transactions.back().getValue();
         val.second = blockchainWrapper.state.getNativeNonce(me) + 1;
         targetExpectedValue += transactions.back().getValue();
       }
+
+      // TODO: missing the following (as per coverage):
+      // * eth_call
+      // * eth_getLogs
+      // * eth_getCode
+      // * eth_getUncleByBlockHashAndIndex
+      // * txpool_content
+      // * debug_traceBlockByNumber
+      // * debug_traceTransaction
 
       // We need to copy since createValidBlock will consume (move) the transactions
       auto transactionsCopy = transactions;
@@ -159,6 +177,7 @@ namespace THTTPJsonRPC{
 
       blockchainWrapper.http.start();
       std::this_thread::sleep_for(std::chrono::milliseconds(100));
+      blockchainWrapper.http.start(); // Attempt to start again, for coverage (runFuture is valid)
 
       json web3_clientVersionResponse = requestMethod("web3_clientVersion", json::array());
 
@@ -276,7 +295,6 @@ namespace THTTPJsonRPC{
       json eth_blockNumberResponse = requestMethod("eth_blockNumber", json::array());
       REQUIRE(eth_blockNumberResponse["result"] == "0x1");
 
-      /// TODO: eth_call
       json eth_estimateGasResponse = requestMethod("eth_estimateGas", json::array({json::object({
         {"from", blockchainWrapper.options.getChainOwner().hex(true) },
         {"to", "0xaaA85B2B2bD0bFdF6Bc5D0d61B6192c53818567b"},
@@ -285,7 +303,7 @@ namespace THTTPJsonRPC{
         {"value", "0x1"}
       }), "latest"}));
 
-      REQUIRE(eth_estimateGasResponse["result"] == "0x5208");
+      REQUIRE(eth_estimateGasResponse["result"] == "0x5e56");
 
       json eth_gasPriceResponse = requestMethod("eth_gasPrice", json::array());
       REQUIRE(eth_gasPriceResponse["result"] == "0x9502f900");
@@ -398,6 +416,22 @@ namespace THTTPJsonRPC{
       REQUIRE(eth_feeHistoryResponse["result"]["baseFeePerGas"][1] == "0x9502f900");
       REQUIRE(eth_feeHistoryResponse["result"]["gasUsedRatio"][0] == 1.0); // TODO: properly compare float pointing values
       REQUIRE(eth_feeHistoryResponse["result"]["oldestBlock"] == "0x0");
+
+      // Last part - cover the catch cases
+      // Invalid JSON id type
+      json wrongId = {{"jsonrpc", "2.0"}, {"id", json::array()}, {"method", "web3_clientVersion"}, {"params", json::array()}};
+      json idErr = json::parse(makeHTTPRequest(
+        wrongId.dump(), "127.0.0.1", std::to_string(9999), "/", "POST", "application/json"
+      ));
+      REQUIRE(idErr.contains("error"));
+      REQUIRE(idErr["error"]["code"] == -32603);
+      REQUIRE(idErr["error"]["message"] == "Internal error: Invalid id type");
+      // Invalid method call
+      json methodErr = requestMethod("lololol", json::array());
+      REQUIRE(methodErr.contains("error"));
+      REQUIRE(methodErr["error"]["code"] == -32601);
+      REQUIRE(methodErr["error"]["message"] == "Method \"lololol\" not found/available");
     }
   }
 }
+

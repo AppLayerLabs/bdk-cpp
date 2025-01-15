@@ -1,23 +1,29 @@
+/*
+Copyright (c) [2023-2024] [AppLayer Developers]
+
+This software is distributed under the MIT License.
+See the LICENSE.txt file in the project root for more information.
+*/
+
 #ifndef JSONRPC_ERROR_H
 #define JSONRPC_ERROR_H
 
-#include <string_view>
 #include <stdexcept>
+#include <string_view>
 
 namespace jsonrpc {
 
 /// @brief JSON RPC error, refer to https://www.jsonrpc.org/specification#error_object
 class Error : public std::exception {
 private:
-  int code_;
-  std::string message_;
+  int code_;  ///< The error code.
+  std::string message_; ///< The error message.
 
 public:
   /// @brief error constructor
   /// @param code the error code
   /// @param message the error message
-  Error(int code, std::string message)
-    : code_(code), message_(std::move(message)) {}
+  Error(int code, std::string message) : code_(code), message_(std::move(message)) {}
 
   /// @brief returns the error code
   /// @return the error code

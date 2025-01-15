@@ -80,9 +80,8 @@ void ERC20Wrapper::registerContractFunctions() {
   this->registerMemberFunction("deposit", &ERC20Wrapper::deposit, FunctionTypes::NonPayable, this);
 }
 
-DBBatch ERC20Wrapper::dump () const {
+DBBatch ERC20Wrapper::dump() const {
   DBBatch dbBatch = BaseContract::dump();
-
   for (auto i = tokensAndBalances_.cbegin(); i != tokensAndBalances_.cend(); ++i) {
     for (auto j = i->second.cbegin(); j != i->second.cend(); ++j) {
       const auto& key = i->first;

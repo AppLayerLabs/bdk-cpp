@@ -1,4 +1,13 @@
+/*
+Copyright (c) [2023-2024] [AppLayer Developers]
+
+This software is distributed under the MIT License.
+See the LICENSE.txt file in the project root for more information.
+*/
+
 #include "ownable.h"
+
+#include "../../utils/strconv.h"
 
 Ownable::Ownable(
   const Address& address, const DB& db
@@ -41,7 +50,7 @@ void Ownable::registerContractFunctions() {
 
 DBBatch Ownable::dump() const {
   DBBatch batch = BaseContract::dump();
-  batch.push_back(Utils::stringToBytes("owner_"), this->owner_.get().asBytes(), this->getDBPrefix());
+  batch.push_back(StrConv::stringToBytes("owner_"), this->owner_.get().asBytes(), this->getDBPrefix());
   return batch;
 }
 
@@ -52,17 +61,15 @@ void Ownable::checkOwner_() const {
 }
 
 void Ownable::transferOwnership_(const Address& newOwner) {
+  Address prevOwner = this->owner_.get();
   this->owner_ = newOwner;
+  this->ownershipTransferred(prevOwner, newOwner);
 }
 
 
-void Ownable::onlyOwner() const {
-  this->checkOwner_();
-}
+void Ownable::onlyOwner() const { this->checkOwner_(); }
 
-Address Ownable::owner() const {
-  return this->owner_.get();
-}
+Address Ownable::owner() const { return this->owner_.get(); }
 
 void Ownable::renounceOwnership() {
   this->onlyOwner();
@@ -71,8 +78,7 @@ void Ownable::renounceOwnership() {
 
 void Ownable::transferOwnership(const Address& newOwner) {
   this->onlyOwner();
-  if (newOwner == Address()) {
-    throw DynamicException("Ownable: new owner is the zero address");
-  }
+  if (newOwner == Address()) throw DynamicException("Ownable: new owner is the zero address");
   this->transferOwnership_(newOwner);
 }
+

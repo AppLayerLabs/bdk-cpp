@@ -7,12 +7,14 @@ See the LICENSE.txt file in the project root for more information.
 
 #include "erc721.h"
 
+#include "../../utils/strconv.h"
+
 ERC721::ERC721(const Address& address, const DB& db
 ) : DynamicContract(address, db), name_(this), symbol_(this),
   owners_(this), balances_(this), tokenApprovals_(this), operatorAddressApprovals_(this)
 {
-  this->name_ = Utils::bytesToString(db.get(std::string("name_"), this->getDBPrefix()));
-  this->symbol_ = Utils::bytesToString(db.get(std::string("symbol_"), this->getDBPrefix()));
+  this->name_ = StrConv::bytesToString(db.get(std::string("name_"), this->getDBPrefix()));
+  this->symbol_ = StrConv::bytesToString(db.get(std::string("symbol_"), this->getDBPrefix()));
   for (const auto& dbEntry : db.getBatch(this->getNewPrefix("owners_"))) {
     View<Bytes> valueView(dbEntry.value);
     this->owners_[Utils::fromBigEndian<uint64_t>(dbEntry.key)] = Address(valueView.subspan(0, 20));
@@ -132,6 +134,7 @@ Address ERC721::update_(const Address& to, const uint256_t& tokenId, const Addre
     this->balances_[to]++;
   }
   this->owners_[static_cast<uint64_t>(tokenId)] = to;
+  this->Transfer(from, to, tokenId);
   return from;
 }
 
@@ -160,7 +163,7 @@ void ERC721::mint_(const Address& to, const uint256_t& tokenId) {
 }
 
 void ERC721::burn_(const uint256_t& tokenId) {
-  Address prevOwner = this->update_(Address(), tokenId, Address());
+  Address prevOwner = this->update_(Address(), tokenId, this->getCaller());
   if (prevOwner == Address()) {
     throw DynamicException("ERC721::burn_: inexistent token");
   }
@@ -171,7 +174,7 @@ void ERC721::transfer_(const Address& from, const Address& to, const uint256_t& 
     throw DynamicException("ERC721::transfer_: transfer to the zero address");
   }
 
-  Address prevOwner = this->update_(to, tokenId, Address());
+  Address prevOwner = this->update_(to, tokenId, this->getCaller());
   if (prevOwner == Address()) {
     throw DynamicException("ERC721::transfer_: inexistent token");
   } else if (prevOwner != from) {
@@ -187,6 +190,7 @@ Address ERC721::approve_(const Address& to, const uint256_t& tokenId, const Addr
   }
 
   this->tokenApprovals_[static_cast<uint64_t>(tokenId)] = to;
+  this->Approval(owner, to, tokenId);
 
   return owner;
 }
@@ -235,6 +239,7 @@ void ERC721::setApprovalForAll_(const Address& owner, const Address& operatorAdd
     throw DynamicException("ERC721::setApprovalForAll_: zero address");
   }
   this->operatorAddressApprovals_[owner][operatorAddress] = approved;
+  this->ApprovalForAll(owner, operatorAddress, approved);
 }
 
 void ERC721::requireMinted_(const uint256_t& tokenId) const {
@@ -252,26 +257,18 @@ bool ERC721::isApprovedForAll(const Address& owner, const Address& operatorAddre
 }
 
 void ERC721::transferFrom(const Address& from, const Address& to, const uint256_t& tokenId) {
-  if (to == Address()) {
-    throw DynamicException("ERC721::transferFrom: transfer to the zero address");
-  }
-  Address prevOwner = this->update_(to, tokenId, this->getCaller());
-  if (prevOwner == Address()) {
-    throw DynamicException("ERC721::transferFrom: inexistent token");
-  } else if (prevOwner != from) {
-    throw DynamicException("ERC721::transferFrom: incorrect owner");
-  }
+  this->transfer_(from, to, tokenId);
 }
 
 DBBatch ERC721::dump() const {
   DBBatch dbBatch = BaseContract::dump();
-  boost::unordered_flat_map<std::string, View<Bytes>> data {
-      {"name_",  Utils::stringToBytes(name_.get())},
-      {"symbol_", Utils::stringToBytes(symbol_.get())}
+  boost::unordered_flat_map<std::string, Bytes> data {
+      {"name_",  StrConv::stringToBytes(name_.get())},
+      {"symbol_", StrConv::stringToBytes(symbol_.get())}
   };
 
   for (auto it = data.cbegin(); it != data.cend(); ++it) {
-    dbBatch.push_back(Utils::stringToBytes(it->first),
+    dbBatch.push_back(StrConv::stringToBytes(it->first),
                       it->second,
                       this->getDBPrefix());
   }

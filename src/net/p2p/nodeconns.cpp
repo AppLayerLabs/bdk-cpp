@@ -7,7 +7,6 @@ See the LICENSE.txt file in the project root for more information.
 
 #include "nodeconns.h"
 #include "managernormal.h"
-#include "../../core/blockchain.h"
 
 namespace P2P {
   void NodeConns::forceRefresh() {
@@ -99,8 +98,8 @@ namespace P2P {
 
   void NodeConns::loop() {
     while (!this->stop_) {
-      // work every 100ms
-      std::this_thread::sleep_for(std::chrono::milliseconds(100));
+      // work every 10ms
+      std::this_thread::sleep_for(std::chrono::milliseconds(10));
 
       // push our own current node info to all our peers
       manager_.notifyAllInfo();

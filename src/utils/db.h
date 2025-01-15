@@ -8,17 +8,9 @@ See the LICENSE.txt file in the project root for more information.
 #ifndef DB_H
 #define DB_H
 
-#include <cstring>
-#include <filesystem>
-#include <mutex>
-#include <string>
-#include <vector>
+#include <rocksdb/db.h> // rocksdb/transaction_log.h -> rocksdb/write_batch.h, includes mutex somewhere in there too
 
-#include <rocksdb/db.h>
-#include <rocksdb/write_batch.h>
-
-#include "utils.h"
-#include "dynamicexception.h"
+#include "utils.h" // libs/json.hpp -> (cstring, filesystem, string, vector)
 
 /// Namespace for accessing database prefixes.
 namespace DBPrefix {
@@ -30,7 +22,7 @@ namespace DBPrefix {
   const Bytes contracts =          { 0x00, 0x06 }; ///< "contracts" = "0006"
   const Bytes contractManager =    { 0x00, 0x07 }; ///< "contractManager" = "0007"
   const Bytes events =             { 0x00, 0x08 }; ///< "events" = "0008"
-  const Bytes vmStorage =          { 0x00, 0x09 }; ///< "evmHost" = "0009"
+  const Bytes vmStorage =          { 0x00, 0x09 }; ///< "vmStorage" = "0009"
   const Bytes txToAdditionalData = { 0x00, 0x0A }; ///< "txToAdditionalData" = "000A"
   const Bytes txToCallTrace =      { 0x00, 0x0B }; ///< "txToCallTrace" = "000B"
 };
@@ -131,7 +123,7 @@ class DBBatch {
 };
 
 /**
- * Abstraction of a [Speedb](https://github.com/speedb-io/speedb) database (Speedb is a RocksDB drop-in replacement).
+ * Abstraction of a [Speedb](https://github.com/speedb-io/speedb) database (RocksDB drop-in replacement).
  * Keys begin with prefixes that separate entries in several categories. @see DBPrefix
  */
 class DB {
@@ -144,9 +136,10 @@ class DB {
     /**
      * Constructor. Automatically creates the database if it doesn't exist.
      * @param path The database's filesystem path (relative to the binary's current working directory).
+     * @param compress (optional) If `true`, activates compression on the database. Defaults to `false`.
      * @throw DynamicException if database opening fails.
      */
-    explicit DB(const std::filesystem::path& path);
+    explicit DB(const std::filesystem::path& path, bool compress = false);
 
     /// Destructor. Automatically closes the database so it doesn't leave a LOCK file behind.
     ~DB() { this->close(); delete this->db_; this->db_ = nullptr; }
@@ -182,20 +175,13 @@ class DB {
      * @return The requested value, or an empty Bytes object if the key doesn't exist.
      */
     template <typename BytesContainer> Bytes get(const BytesContainer& key, const Bytes& pfx = {}) const {
-      std::unique_ptr<rocksdb::Iterator> it(this->db_->NewIterator(rocksdb::ReadOptions()));
       Bytes keyTmp = pfx;
       keyTmp.reserve(pfx.size() + key.size());
       keyTmp.insert(keyTmp.end(), key.cbegin(), key.cend());
       rocksdb::Slice keySlice(reinterpret_cast<const char*>(keyTmp.data()), keyTmp.size());
-      for (it->Seek(keySlice); it->Valid(); it->Next()) {
-        if (it->key().ToString() == keySlice) {
-          Bytes value(it->value().data(), it->value().data() + it->value().size());
-          it.reset();
-          return value;
-        }
-      }
-      it.reset();
-      return {};
+      std::string ret; // std::string is used to avoid copying the value.
+      this->db_->Get(rocksdb::ReadOptions(), keySlice, &ret);
+      return Bytes(ret.begin(), ret.end());
     }
 
     /**
@@ -240,8 +226,19 @@ class DB {
       return true;
     }
 
+    /**
+     * Get the last value of a given prefix.
+     * @param pfx The prefix to query.
+     * @return The last value found in that prefix.
+     */
     Bytes getLastByPrefix(const Bytes& pfx) const;
 
+    /**
+     * Insert a new prefix into an already existing one. The new prefix is appended to the end of the old one.
+     * @param prefix The prefix to insert into.
+     * @param newPrefix The new prefix to insert.
+     * @return The newly-formed prefix.
+     */
     static Bytes makeNewPrefix(Bytes prefix, std::string_view newPrefix) {
       prefix.reserve(prefix.size() + newPrefix.size());
       prefix.insert(prefix.end(), newPrefix.cbegin(), newPrefix.cend());
@@ -267,12 +264,12 @@ class DB {
     /**
      * Get all entries from a given prefix.
      * @param bytesPfx The prefix to search for.
-     * @param keys (optional) A list of keys to search for. Defaults to an empty list.
+     * @param keys (optional) A list of keys to search for, WITHOUT the prefixes. Defaults to an empty list.
      * @return A list of found entries.
      */
     std::vector<DBEntry> getBatch(
       const Bytes& bytesPfx, const std::vector<Bytes>& keys = {}
-      ) const;
+    ) const;
 
     /**
      * Get all keys from a given prefix.
@@ -280,8 +277,8 @@ class DB {
      * (e.g. a query that returns millions of entries at once).
      * Prefix is automatically added to the queries themselves internally.
      * @param pfx The prefix to search keys from.
-     * @param start (optional) The first key to start searching from. Defaults to none.
-     * @param end (optional) The last key to end searching at. Defaults to none.
+     * @param start (optional) The first key to start searching from, WITHOUT the prefix. Defaults to none.
+     * @param end (optional) The last key to end searching at, WITHOUT the prefix. Defaults to none.
      * @return A list of found keys, WITHOUT their prefixes.
      */
     std::vector<Bytes> getKeys(const Bytes& pfx, const Bytes& start = {}, const Bytes& end = {}) const;

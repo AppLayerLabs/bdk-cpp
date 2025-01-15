@@ -8,14 +8,7 @@ See the LICENSE.txt file in the project root for more information.
 #ifndef BLOCKCHAINWRAPPER_H
 #define BLOCKCHAINWRAPPER_H
 
-#include "../src/core/storage.h"
-#include "../src/core/state.h"
-#include "../src/net/p2p/managernormal.h"
-#include "../src/net/http/httpserver.h"
-#include "../src/utils/options.h"
-#include "../src/utils/db.h"
-#include "../src/core/blockchain.h"
-#include "../src/utils/utils.h"
+#include "../src/core/blockchain.h" // net/http/httpserver.h, consensus.h -> state.h -> (rdpos.h -> net/p2p/managernormal.h), dump.h -> (storage.h -> utils/options.h), utils/db.h -> utils.h
 #include "bytes/random.h"
 
 /**
@@ -66,7 +59,8 @@ inline TestBlockchainWrapper initialize(const std::vector<Hash>& validatorPrivKe
                                  const PrivKey& validatorKey,
                                  const uint64_t& serverPort,
                                  bool clearDb,
-                                 const std::string& folderName) {
+                                 const std::string& folderName,
+                                 const IndexingMode indexMode = IndexingMode::RPC_TRACE) {
   if (clearDb) {
     if (std::filesystem::exists(folderName)) {
       std::filesystem::remove_all(folderName);
@@ -98,14 +92,14 @@ inline TestBlockchainWrapper initialize(const std::vector<Hash>& validatorPrivKe
         2000,
         10000,
         1000,
-        4,
+        7,
         discoveryNodes,
         genesis,
         genesisTimestamp,
         genesisPrivKey,
         genesisBalances,
         genesisValidators,
-        IndexingMode::RPC_TRACE
+        indexMode
       ));
   } else {
     return TestBlockchainWrapper(Options(
@@ -124,7 +118,7 @@ inline TestBlockchainWrapper initialize(const std::vector<Hash>& validatorPrivKe
       2000,
       10000,
       1000,
-      4,
+      7,
       discoveryNodes,
       genesis,
       genesisTimestamp,
@@ -132,7 +126,7 @@ inline TestBlockchainWrapper initialize(const std::vector<Hash>& validatorPrivKe
       genesisBalances,
       genesisValidators,
       validatorKey,
-      IndexingMode::RPC
+      indexMode
     ));
   }
 }
@@ -210,7 +204,7 @@ inline FinalizedBlock createValidBlock(const std::vector<Hash>& validatorPrivKey
 
   // Check rdPoS mempool.
   auto rdPoSmempool = state.rdposGetMempool();
-  REQUIRE(state.rdposGetMempool().size() == 8);
+  REQUIRE(state.rdposGetMempool().size() == 14);
   for (const auto& tx : randomHashTxs) {
     REQUIRE(rdPoSmempool.contains(tx.hash()));
   }

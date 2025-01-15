@@ -8,12 +8,7 @@ See the LICENSE.txt file in the project root for more information.
 #ifndef OPTIONS_H
 #define OPTIONS_H
 
-#include "utils.h"
-#include "ecdsa.h"
-#include "finalizedblock.h"
-
-#include <filesystem>
-#include <boost/asio/ip/address.hpp>
+#include "finalizedblock.h" // merkle.h -> tx.h -> ecdsa.h -> utils.h -> filesystem, boost/asio/ip/address.hpp
 
 /**
  * Example options.json file:
@@ -43,7 +38,7 @@ See the LICENSE.txt file in the project root for more information.
  *        "0xbec7b74f70c151707a0bfb20fe3767c6e65499e0"
  *      ],
  *     "timestamp" : 1656356646000000,
- *     "signer" : "0x4d48bdf34d65ef2bed2e4ee9020a7d3162b494ac31d3088153425f286f3d3c8c"
+ *     "signer" : "0x4d48bdf34d65ef2bed2e4ee9020a7d3162b494ac31d3088153425f286f3d3c8c",
  *      "balances": [
  *        { "address": "0x00dead00665771855a34155f5e7405489df2c3c6", "balance": "1000000000000000000000" }
  *      ]
@@ -57,45 +52,39 @@ See the LICENSE.txt file in the project root for more information.
  * }
  */
 
+/// Helper class for setting the node's indexing mode.
 class IndexingMode {
-private:
-  int value_;
+  private:
+    int value_; ///< The value of the setting.
 
-  constexpr explicit IndexingMode(int value) : value_(value) {}
+    /**
+     * Constructor.
+     * @param value The value of the setting.
+     */
+    constexpr explicit IndexingMode(int value) : value_(value) {}
 
-public:
-  static const IndexingMode DISABLED;
-  static const IndexingMode RPC;
-  static const IndexingMode RPC_TRACE;
+  public:
+    static const IndexingMode DISABLED; ///< Indexing is disabled.
+    static const IndexingMode RPC;  ///< Indexing is enabled (no tracing).
+    static const IndexingMode RPC_TRACE; ///< Indexing is enabled (with tracing).
 
-  explicit IndexingMode(std::string_view mode) {
-    if (mode == "DISABLED") {
-      value_ = DISABLED.value_;
-    } else if (mode == "RPC") {
-      value_ = RPC.value_;
-    } else if (mode == "RPC_TRACE") {
-      value_ = RPC_TRACE.value_;
-    } else {
-      std::stringstream errorMessage;
-      errorMessage << "Invalid indexing mode value: \"" << mode << "\"";
-      throw DynamicException(errorMessage.str());
+    /**
+     * Constructor.
+     * @param mode The value of the setting, in string form.
+     * @throw DynamicException if the name doesn't match one of the names above.
+     */
+    explicit IndexingMode(std::string_view mode);
+
+    /// Convert the internal value back to its string form.
+    constexpr std::string_view toString() const {
+      if (*this == DISABLED) return "DISABLED";
+      if (*this == RPC) return "RPC";
+      if (*this == RPC_TRACE) return "RPC_TRACE";
+      std::unreachable();
     }
-  }
 
-  constexpr std::string_view toString() const {
-    if (*this == DISABLED)
-      return "DISABLED";
-    
-    if (*this == RPC)
-      return "RPC";
-
-    if (*this == RPC_TRACE)
-      return "RPC_TRACE";
-
-    throw DynamicException("Unknown indexing mode");
-  }
-
-  constexpr bool operator==(const IndexingMode&) const = default;
+    /// Equality operator (default, as the internal value is just an int).
+    constexpr bool operator==(const IndexingMode&) const = default;
 };
 
 constexpr const IndexingMode IndexingMode::DISABLED{0};
@@ -130,7 +119,7 @@ class Options {
     const FinalizedBlock genesisBlock_;  ///< Genesis block.
     const std::vector<std::pair<Address, uint256_t>> genesisBalances_;  ///< List of addresses and their respective initial balances.
     const std::vector<Address> genesisValidators_;  ///< List of genesis validators.
-    const IndexingMode indexingMode_;
+    const IndexingMode indexingMode_; ///< The node's indexing mode.
 
   public:
     /**
@@ -158,6 +147,7 @@ class Options {
      * @param genesisSigner Genesis signer.
      * @param genesisBalances List of addresses and their respective initial balances.
      * @param genesisValidators List of genesis validators.
+     * @param indexingMode The node's indexing mode.
      */
     Options(
       const std::string& rootPath, const std::string& web3clientVersion,
@@ -200,6 +190,7 @@ class Options {
      * @param genesisBalances List of addresses and their respective initial balances.
      * @param genesisValidators List of genesis validators.
      * @param privKey Private key of the Validator.
+     * @param indexingMode The node's indexing mode.
      */
     Options(
       const std::string& rootPath, const std::string& web3clientVersion,

@@ -8,6 +8,9 @@ See the LICENSE.txt file in the project root for more information.
 #include "dexv2factory.h"
 #include "dexv2pair.h"
 
+#include "../../../utils/uintconv.h"
+#include "../../../utils/strconv.h"
+
 DEXV2Factory::DEXV2Factory(const Address &address, const DB& db
 ) : DynamicContract(address, db), feeTo_(this), feeToSetter_(this),
   allPairs_(this), getPair_(this)
@@ -109,16 +112,15 @@ void DEXV2Factory::setFeeTo(const Address& feeTo) { this->feeTo_ = feeTo; }
 
 void DEXV2Factory::setFeeToSetter(const Address& feeToSetter) { this->feeToSetter_ = feeToSetter; }
 
-DBBatch DEXV2Factory::dump() const
-{
+DBBatch DEXV2Factory::dump() const {
   DBBatch dbBatch = BaseContract::dump();
   uint32_t i = 0;
 
-  dbBatch.push_back(Utils::stringToBytes("feeTo_"), this->feeTo_.get().view(), this->getDBPrefix());
-  dbBatch.push_back(Utils::stringToBytes("feeToSetter_"), this->feeToSetter_.get().view(), this->getDBPrefix());
+  dbBatch.push_back(StrConv::stringToBytes("feeTo_"), this->feeTo_.get().view(), this->getDBPrefix());
+  dbBatch.push_back(StrConv::stringToBytes("feeToSetter_"), this->feeToSetter_.get().view(), this->getDBPrefix());
 
   for (const auto& address : this->allPairs_.get()) {
-    dbBatch.push_back(Utils::uint32ToBytes(i), address.view(), this->getNewPrefix("allPairs_"));
+    dbBatch.push_back(UintConv::uint32ToBytes(i), address.view(), this->getNewPrefix("allPairs_"));
     i++;
   }
 
@@ -130,5 +132,7 @@ DBBatch DEXV2Factory::dump() const
       dbBatch.push_back(key, value, this->getNewPrefix("getPair_"));
     }
   }
+
   return dbBatch;
 }
+

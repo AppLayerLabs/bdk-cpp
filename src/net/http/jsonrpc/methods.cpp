@@ -1,3 +1,10 @@
+/*
+Copyright (c) [2023-2024] [AppLayer Developers]
+
+This software is distributed under the MIT License.
+See the LICENSE.txt file in the project root for more information.
+*/
+
 #include "methods.h"
 
 #include "blocktag.h"
@@ -6,43 +13,13 @@
 #include "../../../core/state.h"
 #include "bytes/cast.h"
 
-#include <ranges>
+#include "../../../utils/evmcconv.h"
 
 static inline constexpr std::string_view FIXED_BASE_FEE_PER_GAS = "0x9502f900"; // Fixed to 2.5 GWei
 
 namespace jsonrpc {
 
-static std::optional<uint64_t> getBlockNumber(const Storage& storage, const Hash& hash) {
-  if (const auto block = storage.getBlock(hash); block != nullptr) return block->getNHeight();
-  return std::nullopt;
-}
-
-template<typename T, std::ranges::input_range R>
-requires std::convertible_to<std::ranges::range_value_t<R>, T>
-static std::vector<T> makeVector(R&& range) {
-  std::vector<T> res(std::ranges::size(range));
-  std::ranges::copy(std::forward<R>(range), res.begin());
-  return res;
-}
-
-static inline void forbidParams(const json& request) {
-  if (request.contains("params") && !request["params"].empty())
-    throw DynamicException("\"params\" are not required for method");
-}
-
-static inline void requiresIndexing(const Storage& storage, std::string_view method) {
-  if (storage.getIndexingMode() == IndexingMode::DISABLED) {
-    throw Error::methodNotAvailable(method);
-  }
-}
-
-static inline void requiresDebugIndexing(const Storage& storage, std::string_view method) {
-  if (storage.getIndexingMode() != IndexingMode::RPC_TRACE) {
-    throw Error::methodNotAvailable(method);
-  }
-}
-
-static json getBlockJson(const FinalizedBlock *block, bool includeTransactions) {
+json getBlockJson(const FinalizedBlock* block, bool includeTransactions) {
   json ret;
   if (block == nullptr) { ret = json::value_t::null; return ret; }
   ret["hash"] = block->getHash().hex(true);
@@ -102,9 +79,11 @@ static std::tuple<Address, Address, Gas, uint256_t, Bytes> parseMessage(const js
 
   const auto [txJson, optionalBlockNumber] = parseAllParams<json, std::optional<BlockTagOrNumber>>(request);
 
-  if (optionalBlockNumber.has_value() && !optionalBlockNumber->isLatest(storage)) {
-    throw Error(-32601, "Only latest block is supported");
-  }
+  // Metamask can't keep up with a fast enough moving blockchain
+  // Causing it to constantly fail with "Only the latest block is supported"
+  // as it requests information on the block it knows it was the latest (not the "latest" flag)
+  //if (optionalBlockNumber.has_value() && !optionalBlockNumber->isLatest(storage))
+  //  throw Error(-32601, "Only the latest block is supported");
 
   from = parseIfExists<Address>(txJson, "from").value_or(Address{});
 
@@ -120,6 +99,10 @@ static std::tuple<Address, Address, Gas, uint256_t, Bytes> parseMessage(const js
 
   return result;
 }
+
+// ========================================================================
+//  METHODS START HERE
+// ========================================================================
 
 json web3_clientVersion(const json& request, const Options& options) {
   forbidParams(request);
@@ -147,9 +130,9 @@ json eth_protocolVersion(const json& request, const Options& options) {
   return options.getSDKVersion();
 }
 
-json net_peerCount(const json& request, const P2P::ManagerNormal& manager) {
+json net_peerCount(const json& request, const P2P::ManagerNormal& p2p) {
   forbidParams(request);
-  return Hex::fromBytes(Utils::uintToBytes(manager.getPeerCount()), true).forRPC();
+  return Hex::fromBytes(Utils::uintToBytes(p2p.getPeerCount()), true).forRPC();
 }
 
 json eth_getBlockByHash(const json& request, const Storage& storage) {
@@ -297,8 +280,9 @@ json eth_getLogs(const json& request, const Storage& storage) {
 json eth_getBalance(const json& request, const Storage& storage, const State& state) {
   const auto [address, block] = parseAllParams<Address, BlockTagOrNumber>(request);
 
-  if (!block.isLatest(storage))
-    throw DynamicException("Only the latest block is supported");
+  // Same reasoning as on parseEvmcMessage (Metamask not keeping up)
+  // if (!block.isLatest(storage))
+  //  throw DynamicException("Only the latest block is supported");
 
   return Hex::fromBytes(Utils::uintToBytes(state.getNativeBalance(address)), true).forRPC();
 }
@@ -306,8 +290,9 @@ json eth_getBalance(const json& request, const Storage& storage, const State& st
 json eth_getTransactionCount(const json& request, const Storage& storage, const State& state) {
   const auto [address, block] = parseAllParams<Address, BlockTagOrNumber>(request);
 
-  if (!block.isLatest(storage))
-    throw DynamicException("Only the latest block is supported");
+  // Same reasoning as on parseEvmcMessage (Metamask not keeping up)
+  // if (!block.isLatest(storage))
+  //  throw DynamicException("Only the latest block is supported");
 
   return Hex::fromBytes(Utils::uintToBytes(state.getNativeNonce(address)), true).forRPC();
 }
@@ -315,8 +300,9 @@ json eth_getTransactionCount(const json& request, const Storage& storage, const 
 json eth_getCode(const json& request, const Storage& storage, const State& state) {
   const auto [address, block] = parseAllParams<Address, BlockTagOrNumber>(request);
 
-  if (!block.isLatest(storage))
-    throw DynamicException("Only the latest block is supported");
+  // Same reasoning as on parseEvmcMessage (Metamask not keeping up)
+  // if (!block.isLatest(storage))
+  //  throw DynamicException("Only the latest block is supported");
 
   return Hex::fromBytes(state.getContractCode(address), true).forRPC();
 }
@@ -505,11 +491,11 @@ json txpool_content(const json& request, const State& state) {
     txJson["gasUsed"] = json::value_t::null;
     txJson["gasPrice"] = Hex::fromBytes(Utils::uintToBytes(tx.getMaxFeePerGas()),true).forRPC();
     txJson["getMaxFeePerGas"] = Hex::fromBytes(Utils::uintToBytes(tx.getMaxFeePerGas()),true).forRPC();
-    txJson["chainId"] = Hex::fromBytes(Utils::uintToBytes(tx.getChainId()),true).forRPC(); 
+    txJson["chainId"] = Hex::fromBytes(Utils::uintToBytes(tx.getChainId()),true).forRPC();
     txJson["input"] = Hex::fromBytes(tx.getData(), true).forRPC();
     txJson["nonce"] = Hex::fromBytes(Utils::uintToBytes(tx.getNonce()), true).forRPC();
     txJson["transactionIndex"] = json::value_t::null;
-    txJson["type"] = "0x2"; // Legacy Transactions ONLY. TODO: change this to 0x2 when we support EIP-1559
+    txJson["type"] = "0x2"; // Legacy Transactions ONLY
     txJson["v"] = Hex::fromBytes(Utils::uintToBytes(tx.getV()), true).forRPC();
     txJson["r"] = Hex::fromBytes(Utils::uintToBytes(tx.getR()), true).forRPC();
     txJson["s"] = Hex::fromBytes(Utils::uintToBytes(tx.getS()), true).forRPC();

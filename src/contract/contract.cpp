@@ -6,7 +6,9 @@ See the LICENSE.txt file in the project root for more information.
 */
 
 #include "contract.h"
-#include "contracthost.h"
+#include "contracthost.h" // leave it in to avoid "invalid use of incomplete type" errors
+
+#include "../utils/dynamicexception.h"
 
 Address ContractGlobals::coinbase_ = Address(Hex::toBytes("0x0000000000000000000000000000000000000000"));
 Hash ContractGlobals::blockHash_ = Hash();
@@ -26,3 +28,16 @@ uint64_t BaseContract::getNonce(const Address& address) const {
   }
   return this->host_->context().getAccount(address).getNonce();
 }
+
+void BaseContract::ethCall(const evmc_message& data, ContractHost* host) {
+  throw DynamicException("Derived Class from Contract does not override ethCall()");
+}
+
+Bytes BaseContract::evmEthCall(const evmc_message& data, ContractHost* host) {
+  throw DynamicException("Derived Class from Contract does not override ethCall()");
+}
+
+Bytes BaseContract::ethCallView(const evmc_message &data, ContractHost* host) const {
+  throw DynamicException("Derived Class from Contract does not override ethCallView()");
+}
+

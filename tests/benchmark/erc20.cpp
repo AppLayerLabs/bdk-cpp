@@ -5,10 +5,11 @@
 */
 
 #include "../src/libs/catch2/catch_amalgamated.hpp"
+
 #include "../src/contract/templates/erc20.h"
-#include "../src/contract/abi.h"
-#include "../src/utils/options.h"
-#include "../src/core/rdpos.h"
+
+#include "../src/utils/uintconv.h"
+
 #include "../sdktestsuite.hpp"
 
 namespace TERC20BENCHMARK {
@@ -34,7 +35,7 @@ namespace TERC20BENCHMARK {
       std::unique_ptr<Options> options = nullptr;
       Address to(Utils::randBytes(20));
 
-      SDKTestSuite sdk = SDKTestSuite::createNewEnvironment("testERC20CppBenchmark");
+      SDKTestSuite sdk = SDKTestSuite::createNewEnvironment("testERC20CppBenchmark", {}, nullptr, IndexingMode::DISABLED);
       // const TestAccount& from, const Address& to, const uint256_t& value, Bytes data = Bytes()
       auto erc20Address = sdk.deployContract<ERC20>(std::string("TestToken"), std::string("TST"), uint8_t(18), uint256_t("10000000000000000000000"));
       // Now for the funny part, we are NOT a C++ contract, but we can
@@ -49,7 +50,7 @@ namespace TERC20BENCHMARK {
 
 
       // Create the transaction for transfer
-      auto functor = Utils::uint32ToBytes(ABI::FunctorEncoder::encode<Address, uint256_t>("transfer").value);
+      auto functor = UintConv::uint32ToBytes(ABI::FunctorEncoder::encode<Address, uint256_t>("transfer").value);
       Bytes transferEncoded(functor.cbegin(), functor.cend());
       Utils::appendBytes(transferEncoded, ABI::Encoder::encodeData<Address, uint256_t>(to, uint256_t("100")));
       TxBlock transferTx = sdk.createNewTx(sdk.getChainOwnerAccount(), erc20Address, 0, transferEncoded);
@@ -100,7 +101,7 @@ namespace TERC20BENCHMARK {
       std::unique_ptr<Options> options = nullptr;
       Address to(Utils::randBytes(20));
 
-      auto sdk = SDKTestSuite::createNewEnvironment("testERC20EvmBenchmark");
+      auto sdk = SDKTestSuite::createNewEnvironment("testERC20EvmBenchmark", {}, nullptr, IndexingMode::DISABLED);
 
       auto erc20Address = sdk.deployBytecode(erc20bytecode);
 
@@ -111,7 +112,7 @@ namespace TERC20BENCHMARK {
       REQUIRE(sdk.callViewFunction(erc20Address, &ERC20::balanceOf, sdk.getChainOwnerAccount().address) == uint256_t("10000000000000000000000"));
 
       // Create the transaction for transfer
-      auto functor = Utils::uint32ToBytes(ABI::FunctorEncoder::encode<Address, uint256_t>("transfer").value);
+      auto functor = UintConv::uint32ToBytes(ABI::FunctorEncoder::encode<Address, uint256_t>("transfer").value);
       Bytes transferEncoded(functor.cbegin(), functor.cend());
       Utils::appendBytes(transferEncoded, ABI::Encoder::encodeData<Address, uint256_t>(to, uint256_t("100")));
       TxBlock transferTx = sdk.createNewTx(sdk.getChainOwnerAccount(), erc20Address, 0, transferEncoded);

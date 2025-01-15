@@ -8,16 +8,16 @@ See the LICENSE.txt file in the project root for more information.
 #ifndef STRINGS_H
 #define STRINGS_H
 
-#include <string>
+#include <evmc/evmc.hpp> // evmc/hex.hpp -> string
 #include <openssl/rand.h>
-#include <span>
-#include <algorithm>
 
-#include <evmc/evmc.hpp>
+#include "../libs/zpp_bits.h" // algorithm
+
+#include "../bytes/initializer.h" // bytes/view.h -> bytes/range.h -> ranges -> span
+
+#include "dynamicexception.h" // TODO: see the size todo below
 #include "hex.h"
-#include "bytes/range.h"
-#include "bytes/initializer.h"
-#include "zpp_bits.h"
+#include "uintconv.h"
 
 #include "fixedbytes.h"
 #include "address.h"
@@ -30,7 +30,9 @@ using StorageKeyView = std::pair<View<Address>, View<Hash>>;
 
 /// Abstraction of a functor (the first 4 bytes of a function's keccak hash).
 struct Functor {
-  uint32_t value = 0;
+  uint32_t value = 0; ///< The value of the hash.
+
+  /// Equality operator.
   inline bool operator==(const Functor& other) const { return this->value == other.value; }
 };
 

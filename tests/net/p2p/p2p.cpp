@@ -6,19 +6,15 @@ See the LICENSE.txt file in the project root for more information.
 */
 
 #include "../../src/libs/catch2/catch_amalgamated.hpp"
-#include "../../src/utils/utils.h"
-#include "../../src/net/p2p/managernormal.h"
+
 #include "../../src/net/p2p/managerdiscovery.h"
-#include "../../src/core/rdpos.h"
-#include "../../src/core/storage.h"
-#include "../../src/core/state.h"
-#include "../../src/utils/db.h"
-#include "../../blockchainwrapper.hpp"
-#include "../../sdktestsuite.hpp"
+
+#include "../../blockchainwrapper.hpp" // blockchain.h -> consensus.h -> state.h -> (rdpos.h -> net/p2p/managernormal.h), dump.h -> storage.h, utils/db.h -> utils.h
+#include "../../sdktestsuite.hpp" // contracthost.h -> contractmanager.h -> contractreflectioninterface.h -> abi.h
 
 using Catch::Matchers::Equals;
-namespace TP2P {
 
+namespace TP2P {
   const std::vector<Hash> validatorPrivKeysP2P {
     Hash(Hex::toBytes("0x0a0415d68a5ec2df57aab65efc2a7231b59b029bae7ff1bd2e40df9af96418c8")),
     Hash(Hex::toBytes("0xb254f12b4ca3f0120f305cabf1188fe74f0bd38e58c932a3df79c4c55df8fa66")),
@@ -50,7 +46,7 @@ namespace TP2P {
 
     SECTION("2 Node Network, Syncer") {
 
-      /// Make blockchainWrapper be 10 blocks ahead
+      // Make blockchainWrapper be 10 blocks ahead
       auto blockchainWrapper = initialize(validatorPrivKeysP2P, validatorPrivKeysP2P[0], SDKTestSuite::getTestPort(), true, testDumpPath + "/p2pSyncerNode1");
       for (uint64_t index = 0; index < 10; ++index) {
         std::vector<TxBlock> txs;
@@ -59,10 +55,10 @@ namespace TP2P {
       }
       REQUIRE(blockchainWrapper.storage.latest()->getNHeight() == 10);
 
-      /// Create a blockchaiNWrapper2 with zero blocks
+      // Create a blockchaiNWrapper2 with zero blocks
       auto blockchainWrapper2 = initialize(validatorPrivKeysP2P, PrivKey(), SDKTestSuite::getTestPort(), true, testDumpPath + "/p2pSyncerNode2");
 
-      /// Start the servers and connect them
+      // Start the servers and connect them
       blockchainWrapper.p2p.start();
       blockchainWrapper2.p2p.start();
       blockchainWrapper.p2p.connectToServer(LOCALHOST, blockchainWrapper2.p2p.serverPort());
@@ -76,7 +72,7 @@ namespace TP2P {
       REQUIRE(blockchainWrapper.p2p.getSessionsIDs().size() == 1);
       REQUIRE(blockchainWrapper2.p2p.getSessionsIDs().size() == 1);
 
-      /// Run blockchainWrapper2's Syncer
+      // Run blockchainWrapper2's Syncer
       // - At most "3" blocks per block range request answer
       // - Limit to "2000" bytes per block range request answer
       // - Don't wait for connections ("0")
@@ -126,6 +122,18 @@ namespace TP2P {
       auto node1SessionsIDs = blockchainWrapper1.p2p.getSessionsIDs();
       auto node2SessionsIDs = blockchainWrapper2.p2p.getSessionsIDs();
       auto node3SessionsIDs = blockchainWrapper3.p2p.getSessionsIDs();
+
+      // After a while, the discovery thread should have found all the nodes and connected between each other.
+      auto discoveryFuture = std::async(std::launch::async, [&]() {
+        while (blockchainWrapper1.p2p.getSessionsIDs().size() != 2 ||
+               blockchainWrapper2.p2p.getSessionsIDs().size() != 2 ||
+               blockchainWrapper3.p2p.getSessionsIDs().size() != 2) {
+          std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        }
+      });
+
+      // Wait the discovery to take effect (5 seconds)
+      REQUIRE(discoveryFuture.wait_for(std::chrono::seconds(5)) != std::future_status::timeout);
 
       REQUIRE(node1SessionsIDs.size() == 2);
       REQUIRE(node2SessionsIDs.size() == 2);
@@ -252,11 +260,11 @@ namespace TP2P {
 
       auto blockchainWrapper2 = initialize(validatorPrivKeysP2P, PrivKey(), SDKTestSuite::getTestPort(), true, testDumpPath + "/p2pRequestInfoNode2");
 
-      /// Start the servers
+      // Start the servers
       blockchainWrapper1.p2p.start();
       blockchainWrapper2.p2p.start();
 
-      /// Connect to each other
+      // Connect to each other
       blockchainWrapper1.p2p.connectToServer(LOCALHOST, blockchainWrapper2.p2p.serverPort());
       auto futureConnect = std::async(std::launch::async, [&]() {
         while (blockchainWrapper1.p2p.getSessionsIDs().size() != 1 ||

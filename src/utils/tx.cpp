@@ -7,6 +7,8 @@ See the LICENSE.txt file in the project root for more information.
 
 #include "tx.h"
 #include "bytes/cast.h"
+#include "dynamicexception.h"
+#include "evmcconv.h"
 
 TxBlock::TxBlock(const View<Bytes> bytes, const uint64_t&) {
   uint64_t index = 0;
@@ -67,8 +69,8 @@ TxBlock::TxBlock(
 
   Hash msgHash = Utils::sha3(this->rlpSerialize(false)); // Do not include signature
   Signature sig = Secp256k1::sign(msgHash, privKey);
-  this->r_ = Utils::bytesToUint256(sig.view(0, 32));
-  this->s_ = Utils::bytesToUint256(sig.view(32,32));
+  this->r_ = UintConv::bytesToUint256(sig.view(0, 32));
+  this->s_ = UintConv::bytesToUint256(sig.view(32,32));
   this->v_ = sig[64];
 
   if (pubKey != Secp256k1::recover(sig, msgHash)) {
@@ -472,10 +474,7 @@ evmc_message TxBlock::txToMessage() const {
   //   evmc_address code_address;
   // };
   evmc_message msg;
-  if (this->to_ == Address())
-    msg.kind = EVMC_CREATE;
-  else
-    msg.kind = EVMC_CALL;
+  msg.kind = (this->to_ == Address()) ? EVMC_CREATE : EVMC_CALL;
   msg.flags = 0;
   msg.depth = 1;
   msg.gas = static_cast<int64_t>(this->gasLimit_);
@@ -483,7 +482,7 @@ evmc_message TxBlock::txToMessage() const {
   msg.sender = bytes::cast<evmc_address>(this->from_);
   msg.input_data = (this->data_.empty()) ? nullptr : this->data_.data();
   msg.input_size = this->data_.size();
-  msg.value = Utils::uint256ToEvmcUint256(this->value_);
+  msg.value = EVMCConv::uint256ToEvmcUint256(this->value_);
   msg.create2_salt = {};
   msg.code_address = bytes::cast<evmc_address>(this->to_);
   return msg;
@@ -554,8 +553,8 @@ TxValidator::TxValidator(
   if (add != this->from_) throw DynamicException("Private key does not match sender address (from)");
 
   Signature sig = Secp256k1::sign(msgHash, privKey);
-  this->r_ = Utils::bytesToUint256(sig.view(0, 32));
-  this->s_ = Utils::bytesToUint256(sig.view(32,32));
+  this->r_ = UintConv::bytesToUint256(sig.view(0, 32));
+  this->s_ = UintConv::bytesToUint256(sig.view(32,32));
   uint8_t recoveryIds = sig[64];
   this->v_ = recoveryIds + (this->chainId_ * 2 + 35);
 

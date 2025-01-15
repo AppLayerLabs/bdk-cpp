@@ -6,6 +6,7 @@ See the LICENSE.txt file in the project root for more information.
 */
 
 #include "httpparser.h"
+
 #include "jsonrpc/call.h"
 
 std::string parseJsonRpcRequest(

@@ -5,10 +5,11 @@
 */
 
 #include "../src/libs/catch2/catch_amalgamated.hpp"
+
 #include "../src/contract/templates/snailtracer.h"
-#include "../src/contract/abi.h"
-#include "../src/utils/options.h"
-#include "../src/core/rdpos.h"
+
+#include "../src/utils/uintconv.h"
+
 #include "../sdktestsuite.hpp"
 
 namespace TSNAILTRACERBENCHMARK {
@@ -23,7 +24,7 @@ namespace TSNAILTRACERBENCHMARK {
       std::unique_ptr<Options> options = nullptr;
       Address to(Utils::randBytes(20));
 
-      SDKTestSuite sdk = SDKTestSuite::createNewEnvironment("testSnailTracerCppBenchmark");
+      SDKTestSuite sdk = SDKTestSuite::createNewEnvironment("testSnailTracerCppBenchmark", {}, nullptr, IndexingMode::DISABLED);
       // const TestAccount& from, const Address& to, const uint256_t& value, Bytes data = Bytes()
       auto snailtracerAddress = sdk.deployContract<SnailTracer>(int256_t(1024), int256_t(768));
       // Now for the funny part, we are NOT a C++ contract, but we can
@@ -31,7 +32,7 @@ namespace TSNAILTRACERBENCHMARK {
       // as the encoding is the same
 
       // Create the transaction for transfer
-      auto functor = Utils::uint32ToBytes(ABI::FunctorEncoder::encode("Benchmark").value);
+      auto functor = UintConv::uint32ToBytes(ABI::FunctorEncoder::encode("Benchmark").value);
       Bytes benchmarkEncoded(functor.cbegin(), functor.cend());
       //Utils::appendBytes(benchmarkEncoded, ABI::Encoder::encodeData<int256_t, int256_t>(1024, 768)); // TODO: this is a bug, the function does not take any params yet it is called with them just fine
       TxBlock benchmarkTx = sdk.createNewTx(sdk.getChainOwnerAccount(), snailtracerAddress, 0, benchmarkEncoded);
@@ -72,11 +73,11 @@ namespace TSNAILTRACERBENCHMARK {
       std::unique_ptr<Options> options = nullptr;
       Address to(Utils::randBytes(20));
 
-      auto sdk = SDKTestSuite::createNewEnvironment("testSnailTracerEvmBenchmark");
+      auto sdk = SDKTestSuite::createNewEnvironment("testSnailTracerEvmBenchmark", {}, nullptr, IndexingMode::DISABLED);
 
       auto snailtracerAddress = sdk.deployBytecode(snailTracerBytecode);
       // Create the transaction for transfer
-      auto functor = Utils::uint32ToBytes(ABI::FunctorEncoder::encode("Benchmark").value);
+      auto functor = UintConv::uint32ToBytes(ABI::FunctorEncoder::encode("Benchmark").value);
       Bytes benchmarkEncoded(functor.cbegin(), functor.cend());
       //Utils::appendBytes(benchmarkEncoded, ABI::Encoder::encodeData<int256_t, int256_t>(1024, 768)); // TODO: this is a bug, the function does not take any params yet it is called with them just fine
 

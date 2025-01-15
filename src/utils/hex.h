@@ -8,18 +8,9 @@ See the LICENSE.txt file in the project root for more information.
 #ifndef HEX_H
 #define HEX_H
 
-#include <algorithm>
-#include <filesystem>
-#include <fstream>
-#include <iostream>
-#include <regex>
-#include <string_view>
-#include <thread>
-#include <span>
 #include <boost/multiprecision/cpp_int.hpp>
-#include "dynamicexception.h"
 
-#include "bytes/view.h"
+#include "bytes/view.h" // bytes/ranges.h -> ranges -> span libs/zpp_bits.h -> span
 #include "bytes.h"
 #include "utils/view.h"
 
@@ -163,20 +154,10 @@ class Hex {
      * Concat operator.
      * @throw DynamicException on invalid concat.
      */
-    Hex& operator+=(const std::string& hex) {
-      if (Hex::isValid(hex, (hex[0] == '0' && (hex[1] == 'x' || hex[1] == 'X')))) {
-        this->hex_ += (hex[0] == '0' && (hex[1] == 'x' || hex[1] == 'X')) ? hex.substr(2) : hex;
-      } else {
-        throw DynamicException("Invalid Hex concat operation");
-      }
-      return *this;
-    }
+    Hex& operator+=(const std::string& hex);
 
     /// Concat operator.
-    Hex& operator+=(const Hex& other) {
-      this->hex_ += (other.strict_) ? other.hex_.substr(2) : other.hex_;
-      return *this;
-    }
+    Hex& operator+=(const Hex& other);
 
     /**
      * Default operator to return the internal hex string directly as a string. Example:

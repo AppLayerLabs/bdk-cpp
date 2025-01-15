@@ -8,19 +8,13 @@ See the LICENSE.txt file in the project root for more information.
 #ifndef SDKTESTSUITE_H
 #define SDKTESTSUITE_H
 
-#include "../src/core/storage.h"
-#include "../src/core/rdpos.h"
-#include "../src/core/state.h"
-#include "../src/net/p2p/managernormal.h"
-#include "../src/net/http/httpserver.h"
-#include "../src/utils/options.h"
-#include "../src/utils/db.h"
-#include "../src/core/blockchain.h"
-#include "../src/utils/utils.h"
-#include "contract/contracthost.h"
+#include "../src/core/blockchain.h" // net/http/httpserver.h, consensus.h -> state.h -> rdpos.h -> net/p2p/managernormal.h, (utils/tx.h -> ecdsa.h -> utils.h -> libs/json.hpp -> tuple), (dump.h -> utils/db.h, storage.h -> options.h)
+
+#include "../src/utils/evmcconv.h"
+#include "../src/utils/uintconv.h"
+
 #include "statetest.hpp"
 #include "bytes/random.h"
-
 
 /// Wrapper struct for accounts used within the SDKTestSuite.
 struct TestAccount {
@@ -117,7 +111,7 @@ class SDKTestSuite {
     explicit SDKTestSuite(const Options& options) :
       options_(options),
       db_(std::get<0>(DumpManager::getBestStateDBPath(this->options_))),
-      storage_(p2p_.getLogicalLocation(),options_),
+      storage_(p2p_.getLogicalLocation(), options_),
       state_(db_, storage_, p2p_, std::get<1>(DumpManager::getBestStateDBPath(this->options_)), options_),
       p2p_(LOCALHOST, options_, storage_, state_),
       http_(state_, storage_, p2p_, options_)
@@ -139,7 +133,8 @@ class SDKTestSuite {
     static SDKTestSuite createNewEnvironment(
       const std::string& sdkPath,
       const std::vector<TestAccount>& accounts = {},
-      const Options* const options = nullptr
+      const Options* const options = nullptr,
+      const IndexingMode indexingMode = IndexingMode::RPC_TRACE
     ) {
       if (std::filesystem::exists(sdkPath)) std::filesystem::remove_all(sdkPath);
 
@@ -186,7 +181,7 @@ class SDKTestSuite {
           genesisSigner,
           genesisBalances,
           genesisValidators,
-          IndexingMode::RPC_TRACE
+          indexingMode
         );
       } else {
         options_ = std::make_unique<Options>(*options);
@@ -501,7 +496,7 @@ class SDKTestSuite {
         ContractReflectionInterface::getFunctionName(func)
       );
       Bytes txData;
-      Utils::appendBytes(txData, Utils::uint32ToBytes(txFunctor.value));
+      Utils::appendBytes(txData, UintConv::uint32ToBytes(txFunctor.value));
       // Use the chain owner account if no account is provided
       TxBlock tx = this->createNewTx(
         ((!testAccount) ? this->getChainOwnerAccount() : testAccount),
@@ -544,7 +539,7 @@ class SDKTestSuite {
         ContractReflectionInterface::getFunctionName(func)
       );
       Bytes txData;
-      Utils::appendBytes(txData, Utils::uint32ToBytes(txFunctor.value));
+      Utils::appendBytes(txData, UintConv::uint32ToBytes(txFunctor.value));
       Utils::appendBytes(
         txData, ABI::Encoder::encodeData<Args...>(std::forward<decltype(args)>(args)...)
       );
@@ -748,7 +743,7 @@ class SDKTestSuite {
 
       auto functor = ABI::FunctorEncoder::encode<>(ContractReflectionInterface::getFunctionName(func));
       Bytes fullData;
-      Utils::appendBytes(fullData, Utils::uint32ToBytes(functor.value));
+      Utils::appendBytes(fullData, UintConv::uint32ToBytes(functor.value));
 
       Gas gas(10'000'000);
       const Address from = this->getChainOwnerAccount().address;
@@ -776,7 +771,7 @@ class SDKTestSuite {
       TContract::registerContract();
       auto functor = ABI::FunctorEncoder::encode<Args...>(ContractReflectionInterface::getFunctionName(func));
       Bytes fullData;
-      Utils::appendBytes(fullData, Utils::uint32ToBytes(functor.value));
+      Utils::appendBytes(fullData, UintConv::uint32ToBytes(functor.value));
       Utils::appendBytes(fullData, ABI::Encoder::encodeData<Args...>(std::forward<decltype(args)>(args)...));
 
       Gas gas(10'000'000);

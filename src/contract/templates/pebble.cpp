@@ -1,32 +1,33 @@
+/*
+Copyright (c) [2023-2024] [AppLayer Developers]
+
+This software is distributed under the MIT License.
+See the LICENSE.txt file in the project root for more information.
+*/
+
 #include "pebble.h"
 
-#include "contract/variables/reentrancyguard.h"
+#include "../variables/reentrancyguard.h"
+
+#include "../../utils/uintconv.h"
+#include "../../utils/strconv.h"
 
 Pebble::Pebble(const Address& address, const DB& db)
-  : DynamicContract(address, db),
-    ERC721(address, db),
-    ERC721URIStorage(address, db),
-    Ownable(address, db),
-    maxSupply_(this),
-    tokenIds_(this),
-    tokenRarity_(this),
-    totalNormal_(this),
-    totalGold_(this),
-    totalDiamond_(this),
-    raritySeed_(this),
-    diamondRarity_(this),
-    goldRarity_(this),
-    authorizer_(this),
-    minters_(this) {
+  : DynamicContract(address, db), ERC721(address, db), ERC721URIStorage(address, db), Ownable(address, db),
+    maxSupply_(this), tokenIds_(this), tokenRarity_(this),
+    totalNormal_(this), totalGold_(this), totalDiamond_(this),
+    raritySeed_(this), diamondRarity_(this), goldRarity_(this),
+    authorizer_(this), minters_(this)
+{
   // Load from DB.
-  this->maxSupply_ = Utils::bytesToUint256(db.get(std::string("maxSupply_"), this->getDBPrefix()));
-  this->tokenIds_ = Utils::bytesToUint256(db.get(std::string("tokenIds_"), this->getDBPrefix()));
+  this->maxSupply_ = UintConv::bytesToUint256(db.get(std::string("maxSupply_"), this->getDBPrefix()));
+  this->tokenIds_ = UintConv::bytesToUint256(db.get(std::string("tokenIds_"), this->getDBPrefix()));
   this->totalNormal_ = Utils::fromBigEndian<uint64_t>(db.get(std::string("totalNormal_"), this->getDBPrefix()));
   this->totalGold_ = Utils::fromBigEndian<uint64_t>(db.get(std::string("totalGold_"), this->getDBPrefix()));
   this->totalDiamond_ = Utils::fromBigEndian<uint64_t>(db.get(std::string("totalDiamond_"), this->getDBPrefix()));
-  this->raritySeed_ = Utils::bytesToUint256(db.get(std::string("raritySeed_"), this->getDBPrefix()));
-  this->diamondRarity_ = Utils::bytesToUint256(db.get(std::string("diamondRarity_"), this->getDBPrefix()));
-  this->goldRarity_ = Utils::bytesToUint256(db.get(std::string("goldRarity_"), this->getDBPrefix()));
+  this->raritySeed_ = UintConv::bytesToUint256(db.get(std::string("raritySeed_"), this->getDBPrefix()));
+  this->diamondRarity_ = UintConv::bytesToUint256(db.get(std::string("diamondRarity_"), this->getDBPrefix()));
+  this->goldRarity_ = UintConv::bytesToUint256(db.get(std::string("goldRarity_"), this->getDBPrefix()));
   for (const auto& dbEntry : db.getBatch(this->getNewPrefix("tokenRarity_"))) {
     this->tokenRarity_[Utils::fromBigEndian<uint64_t>(dbEntry.key)] = static_cast<Rarity>(Utils::fromBigEndian<uint8_t>(dbEntry.value));
   }
@@ -117,21 +118,21 @@ DBBatch Pebble::dump() const {
     batch.delete_key(dbItem);
   }
   // Then, dump the contents of this class.
-  batch.push_back(Utils::stringToBytes("maxSupply_"), Utils::uint256ToBytes(this->maxSupply_.get()), this->getDBPrefix());
-  batch.push_back(Utils::stringToBytes("tokenIds_"), Utils::uint256ToBytes(this->tokenIds_.get()), this->getDBPrefix());
-  batch.push_back(Utils::stringToBytes("totalNormal_"), Utils::uint64ToBytes(this->totalNormal_.get()), this->getDBPrefix());
-  batch.push_back(Utils::stringToBytes("totalGold_"), Utils::uint64ToBytes(this->totalGold_.get()), this->getDBPrefix());
-  batch.push_back(Utils::stringToBytes("totalDiamond_"), Utils::uint64ToBytes(this->totalDiamond_.get()), this->getDBPrefix());
-  batch.push_back(Utils::stringToBytes("raritySeed_"), Utils::uint256ToBytes(this->raritySeed_.get()), this->getDBPrefix());
-  batch.push_back(Utils::stringToBytes("diamondRarity_"), Utils::uint256ToBytes(this->diamondRarity_.get()), this->getDBPrefix());
-  batch.push_back(Utils::stringToBytes("goldRarity_"), Utils::uint256ToBytes(this->goldRarity_.get()), this->getDBPrefix());
+  batch.push_back(StrConv::stringToBytes("maxSupply_"), UintConv::uint256ToBytes(this->maxSupply_.get()), this->getDBPrefix());
+  batch.push_back(StrConv::stringToBytes("tokenIds_"), UintConv::uint256ToBytes(this->tokenIds_.get()), this->getDBPrefix());
+  batch.push_back(StrConv::stringToBytes("totalNormal_"), UintConv::uint64ToBytes(this->totalNormal_.get()), this->getDBPrefix());
+  batch.push_back(StrConv::stringToBytes("totalGold_"), UintConv::uint64ToBytes(this->totalGold_.get()), this->getDBPrefix());
+  batch.push_back(StrConv::stringToBytes("totalDiamond_"), UintConv::uint64ToBytes(this->totalDiamond_.get()), this->getDBPrefix());
+  batch.push_back(StrConv::stringToBytes("raritySeed_"), UintConv::uint256ToBytes(this->raritySeed_.get()), this->getDBPrefix());
+  batch.push_back(StrConv::stringToBytes("diamondRarity_"), UintConv::uint256ToBytes(this->diamondRarity_.get()), this->getDBPrefix());
+  batch.push_back(StrConv::stringToBytes("goldRarity_"), UintConv::uint256ToBytes(this->goldRarity_.get()), this->getDBPrefix());
   for (auto it = this->tokenRarity_.cbegin(); it != this->tokenRarity_.cend(); ++it) {
-    batch.push_back(Utils::uint256ToBytes(it->first), Utils::uint8ToBytes(static_cast<uint8_t>(it->second)), this->getNewPrefix("tokenRarity_"));
+    batch.push_back(UintConv::uint256ToBytes(it->first), UintConv::uint8ToBytes(static_cast<uint8_t>(it->second)), this->getNewPrefix("tokenRarity_"));
   }
   for (auto it = this->minters_.cbegin(); it != this->minters_.cend(); ++it) {
-    batch.push_back(it->first.asBytes(), Utils::uint8ToBytes(static_cast<uint8_t>(it->second)), this->getNewPrefix("minters_"));
+    batch.push_back(it->first.asBytes(), UintConv::uint8ToBytes(static_cast<uint8_t>(it->second)), this->getNewPrefix("minters_"));
   }
-  batch.push_back(Utils::stringToBytes("authorized_"), this->authorizer_.get().asBytes(), this->getDBPrefix());
+  batch.push_back(StrConv::stringToBytes("authorizer_"), this->authorizer_.get().asBytes(), this->getDBPrefix());
   return batch;
 }
 
@@ -189,64 +190,41 @@ void Pebble::mintNFT(const Address& to, const uint64_t& num) {
 
 std::string Pebble::getTokenRarity(const uint256_t& tokenId) const {
   auto it = this->tokenRarity_.find(static_cast<uint64_t>(tokenId));
-  if (it == this->tokenRarity_.cend()) {
-    return "Unknown";
-  }
+  if (it == this->tokenRarity_.cend()) return "Unknown";
   return this->rarityToString(it->second);
 }
 
-uint256_t Pebble::totalSupply() const {
-  return this->tokenIds_.get();
-}
+uint256_t Pebble::totalSupply() const { return this->tokenIds_.get(); }
 
-uint256_t Pebble::maxSupply() const {
-  return this->maxSupply_.get();
-}
+uint256_t Pebble::maxSupply() const { return this->maxSupply_.get(); }
 
-uint64_t Pebble::totalNormal() const {
-  return this->totalNormal_.get();
-}
+uint64_t Pebble::totalNormal() const { return this->totalNormal_.get(); }
 
-uint64_t Pebble::totalGold() const {
-  return this->totalGold_.get();
-}
+uint64_t Pebble::totalGold() const { return this->totalGold_.get(); }
 
-uint64_t Pebble::totalDiamond() const {
-  return this->totalDiamond_.get();
-}
+uint64_t Pebble::totalDiamond() const { return this->totalDiamond_.get(); }
 
-uint256_t Pebble::raritySeed() const {
-  return this->raritySeed_.get();
-}
+uint256_t Pebble::raritySeed() const { return this->raritySeed_.get(); }
 
-uint256_t Pebble::diamondRarity() const {
-  return this->diamondRarity_.get();
-}
+uint256_t Pebble::goldRarity() const { return this->goldRarity_.get(); }
 
-uint256_t Pebble::goldRarity() const {
-  return this->goldRarity_.get();
-}
+uint256_t Pebble::diamondRarity() const { return this->diamondRarity_.get(); }
 
 void Pebble::setRaritySeed(const uint256_t &seed) {
-  this->onlyOwner();
-  this->raritySeed_ = seed;
-}
-
-void Pebble::setDiamondRarity(const uint256_t &rarity) {
-  this->onlyOwner();
-  this->diamondRarity_ = rarity;
+  this->onlyOwner(); this->raritySeed_ = seed;
 }
 
 void Pebble::setGoldRarity(const uint256_t &rarity) {
-  this->onlyOwner();
-  this->goldRarity_ = rarity;
+  this->onlyOwner(); this->goldRarity_ = rarity;
+}
+
+void Pebble::setDiamondRarity(const uint256_t &rarity) {
+  this->onlyOwner(); this->diamondRarity_ = rarity;
 }
 
 std::string Pebble::tokenURI(const uint256_t &tokenId) const {
   auto it = this->tokenRarity_.find(static_cast<uint64_t>(tokenId));
-  if (it == this->tokenRarity_.cend()) {
-    return "";
-  }
+  if (it == this->tokenRarity_.cend()) return "";
   return std::string("https://s3.amazonaws.com/com.applayer.pebble/") + this->rarityToString(it->second) + ".json";
 }
 
@@ -276,7 +254,7 @@ std::string Pebble::rarityToString(const Rarity& rarity) const {
   return ret;
 }
 
-void Pebble::onlyAuthorizer() const {
+void Pebble::onlyAuthorizer() {
   if (this->getCaller() != this->authorizer_) {
     throw DynamicException("Pebble: caller is not the authorizer");
   }
@@ -308,7 +286,6 @@ Address Pebble::getAuthorizer() const {
   return this->authorizer_.get();
 }
 
-
 void Pebble::registerContractFunctions() {
   Pebble::registerContract();
   this->registerMemberFunction("mintNFT", &Pebble::mintNFT, FunctionTypes::NonPayable, this);
@@ -334,3 +311,4 @@ void Pebble::registerContractFunctions() {
   this->registerMemberFunction("canMint", &Pebble::canMint, FunctionTypes::View, this);
   this->registerMemberFunction("getAuthorizer", &Pebble::getAuthorizer, FunctionTypes::View, this);
 }
+

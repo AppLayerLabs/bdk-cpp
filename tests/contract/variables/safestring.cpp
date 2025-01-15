@@ -5,10 +5,10 @@ This software is distributed under the MIT License.
 See the LICENSE.txt file in the project root for more information.
 */
 
-#include "../../src/contract/variables/safestring.h"
 #include "../../src/libs/catch2/catch_amalgamated.hpp"
-#include <string>
-#include <cctype>
+#include "../../src/contract/variables/safestring.h"
+
+using Catch::Matchers::Equals;
 
 namespace TSafeString {
   TEST_CASE("SafeString class", "[contract][variables][safestring]") {
@@ -45,7 +45,9 @@ namespace TSafeString {
       // assign std::string move
       std::string mov1 = "222";
       std::string mov2 = "222";
+      std::string movA = "222";
       str.assign(std::move(mov1));
+      str.assign(std::move(movA)); // For coverage (copy != nullptr)
       str.revert();
       REQUIRE(str == "111");
       str.assign(std::move(mov2));
@@ -54,6 +56,7 @@ namespace TSafeString {
       // assign SafeString copy
       SafeString cpy("333");
       str.assign(cpy);
+      str.assign(cpy); // For coverage (copy != nullptr)
       str.revert();
       REQUIRE(str == "222");
       str.assign(cpy);
@@ -62,6 +65,7 @@ namespace TSafeString {
       // assign std::string substring (str, pos, count)
       std::string sub = "aa444aa";
       str.assign(sub, 2, 3);
+      str.assign(sub, 2, 3); // For coverage (copy != nullptr)
       str.revert();
       REQUIRE(str == "333");
       str.assign(sub, 2, 3);
@@ -70,6 +74,7 @@ namespace TSafeString {
       // assign SafeString substring (str, pos, count)
       SafeString sub2("bbbbb555bbbbb");
       str.assign(sub2, 5, 3);
+      str.assign(sub2, 5, 3); // For coverage (copy != nullptr)
       str.revert();
       REQUIRE(str == "444");
       str.assign(sub2, 5, 3);
@@ -77,6 +82,7 @@ namespace TSafeString {
       REQUIRE(str == "555");
       // assign number of chars (count, ch)
       str.assign(3, '6');
+      str.assign(3, '9'); // For coverage (copy != nullptr)
       str.revert();
       REQUIRE(str == "555");
       str.assign(3, '6');
@@ -85,6 +91,7 @@ namespace TSafeString {
       // assign non-NULL-terminated C-style string (char*, count)
       char c[3] = {'7', '7', '7'};
       str.assign(c, 3);
+      str.assign(c, 3); // For coverage (copy != nullptr)
       str.revert();
       REQUIRE(str == "666");
       str.assign(c, 3);
@@ -93,6 +100,7 @@ namespace TSafeString {
       // assign NULL-terminated C-style string (char*)
       char c2[4] = {'8', '8', '8', '\0'};
       str.assign(c2);
+      str.assign(c2); // For coverage (copy != nullptr)
       str.revert();
       REQUIRE(str == "777");
       str.assign(c2);
@@ -101,6 +109,7 @@ namespace TSafeString {
       // assign iterators
       std::string iter("cccccccccc999cccccccccc");
       str.assign(iter.cbegin() + 10, iter.cend() - 10);
+      str.assign(iter.cbegin() + 10, iter.cend() - 10); // For coverage (copy != nullptr)
       str.revert();
       REQUIRE(str == "888");
       str.assign(iter.cbegin() + 10, iter.cend() - 10);
@@ -109,6 +118,7 @@ namespace TSafeString {
       // assign ilist
       std::initializer_list<char> ilist {'!','!','!'};
       str.assign(ilist);
+      str.assign(ilist); // For coverage (copy != nullptr)
       str.revert();
       REQUIRE(str == "999");
       str.assign(ilist);
@@ -161,6 +171,10 @@ namespace TSafeString {
       str.back() = '!';
       str.commit();
       REQUIRE(std::as_const(str).back() == '!');
+      // For coverage (copy != nullptr)
+      REQUIRE(str.at(0) == 'H');
+      REQUIRE(str.front() == 'H');
+      REQUIRE(str.back() == '!');
     }
 
     SECTION("SafeString begin, end, rbegin, rend") {
@@ -203,6 +217,7 @@ namespace TSafeString {
       std::size_t oriCap = str.capacity();
       // reserve
       str.reserve(100);
+      str.reserve(200); // For coverage (copy != nullptr)
       str.revert();
       REQUIRE(str.capacity() <= oriCap);
       str.reserve(100);
@@ -211,6 +226,7 @@ namespace TSafeString {
       REQUIRE(str.capacity() <= 100);
       // shrink_to_fit
       str.shrink_to_fit();
+      str.shrink_to_fit(); // For coverage (copy != nullptr)
       str.revert();
       REQUIRE(str.capacity() > oriCap);
       REQUIRE(str.capacity() <= 100);
@@ -222,6 +238,7 @@ namespace TSafeString {
     SECTION("SafeString clear") {
       SafeString str("Hello World");
       str.clear();
+      str.clear(); // For coverage (copy != nullptr)
       str.revert();
       REQUIRE((!str.empty() && str == "Hello World"));
       str.clear();
@@ -233,6 +250,7 @@ namespace TSafeString {
       SafeString str("Hello");
       // insert repeat chars (count, ch)
       str.insert(0, 5, 'a');
+      str.insert(0, 5, 'b'); // For coverage (copy != nullptr)
       str.revert();
       REQUIRE(str == "Hello");
       str.insert(0, 5, 'a');
@@ -242,6 +260,7 @@ namespace TSafeString {
       // insert NULL-terminated C-style string (char*)
       char c[4] = {'b', 'b', 'b', '\0'};
       str.insert(0, c);
+      str.insert(0, c); // For coverage (copy != nullptr)
       str.revert();
       REQUIRE(str == "Hello");
       str.insert(0, c);
@@ -251,6 +270,7 @@ namespace TSafeString {
       // insert non-NULL-terminated C-style string (char*, count)
       char c2[3] = {'c', 'c', 'c'};
       str.insert(0, c2, 3);
+      str.insert(0, c2, 3); // For coverage (copy != nullptr)
       str.revert();
       REQUIRE(str == "Hello");
       str.insert(0, c2, 3);
@@ -260,6 +280,7 @@ namespace TSafeString {
       // insert SafeString
       SafeString str2("World");
       str.insert(0, str2);
+      str.insert(0, str2); // For coverage (copy != nullptr)
       str.revert();
       REQUIRE(str == "Hello");
       str.insert(0, str2);
@@ -269,6 +290,7 @@ namespace TSafeString {
       // insert std::string
       std::string str3("World");
       str.insert(0, str3);
+      str.insert(0, str3); // For coverage (copy != nullptr)
       str.revert();
       REQUIRE(str == "Hello");
       str.insert(0, str3);
@@ -278,6 +300,7 @@ namespace TSafeString {
       // insert SafeString substring (str, idx, count)
       SafeString str4("dddddWorldddddd");
       str.insert(0, str4, 5, 5);
+      str.insert(0, str4, 5, 5); // For coverage (copy != nullptr)
       str.revert();
       REQUIRE(str == "Hello");
       str.insert(0, str4, 5, 5);
@@ -287,6 +310,7 @@ namespace TSafeString {
       // insert std::string substring (str, idx, count)
       std::string str5("eeeeeWorldeeeee");
       str.insert(0, str5, 5, 5);
+      str.insert(0, str5, 5, 5); // For coverage (copy != nullptr)
       str.revert();
       REQUIRE(str == "Hello");
       str.insert(0, str5, 5, 5);
@@ -295,6 +319,7 @@ namespace TSafeString {
       str = "Hello"; str.commit();
       // insert char with iterator (pos, ch)
       str.insert(str.cend(), '!');
+      str.insert(str.cend(), '#'); // For coverage (copy != nullptr)
       str.revert();
       REQUIRE(str == "Hello");
       str.insert(str.cend(), '!');
@@ -303,6 +328,7 @@ namespace TSafeString {
       str = "Hello"; str.commit();
       // insert repeat chars with iterator (pos, count, ch)
       str.insert(str.cend(), 3, '!');
+      str.insert(str.cend(), 3, '#'); // For coverage (copy != nullptr)
       str.revert();
       REQUIRE(str == "Hello");
       str.insert(str.cend(), 3, '!');
@@ -312,6 +338,7 @@ namespace TSafeString {
       // insert with iterators
       std::string iter("ffffffffffWorldffffffffff");
       str.insert(str.cend(), iter.cbegin() + 10, iter.cend() - 10);
+      str.insert(str.cend(), iter.cbegin() + 10, iter.cend() - 10); // For coverage (copy != nullptr)
       str.revert();
       REQUIRE(str == "Hello");
       str.insert(str.cend(), iter.cbegin() + 10, iter.cend() - 10);
@@ -321,6 +348,7 @@ namespace TSafeString {
       // insert ilist
       std::initializer_list<char> ilist { 'D', 'a', 'r', 'k', 'n', 'e', 's', 's' };
       str.insert(str.cend(), ilist);
+      str.insert(str.cend(), ilist); // For coverage (copy != nullptr)
       str.revert();
       REQUIRE(str == "Hello");
       str.insert(str.cend(), ilist);
@@ -332,6 +360,7 @@ namespace TSafeString {
       SafeString str("Hello World");
       // erase a number of chars
       str.erase(2, 6); // "llo Wo"
+      str.erase(0, 1); // For coverage (copy != nullptr)
       str.revert();
       REQUIRE(str == "Hello World");
       str.erase(2, 6);
@@ -340,6 +369,7 @@ namespace TSafeString {
       str = "Hello World"; str.commit(); // always reset str for next test
       // erase one char
       str.erase(str.cbegin() + 4); // "o"
+      str.erase(str.cbegin() + 1); // For coverage (copy != nullptr)
       str.revert();
       REQUIRE(str == "Hello World");
       str.erase(str.cbegin() + 4);
@@ -348,6 +378,7 @@ namespace TSafeString {
       str = "Hello World"; str.commit();
       // erase a range of chars
       str.erase(str.cbegin() + 5, str.cend()); // " World"
+      str.erase(str.cbegin(), str.cend()); // For coverage (copy != nullptr)
       str.revert();
       REQUIRE(str == "Hello World");
       str.erase(str.cbegin() + 5, str.cend()); // " World"
@@ -369,12 +400,18 @@ namespace TSafeString {
       str.pop_back();
       str.commit();
       REQUIRE(str == "Goodbye");
+      // For coverage (copy != nullptr)
+      str.push_back('!');
+      str.pop_back();
+      str.push_back('!');
+      REQUIRE(str == "Goodbye!");
     }
 
     SECTION("SafeString append") {
       SafeString str("Howdy");
       // append number of chars
       str.append(3, '.');
+      str.append(3, '.'); // For coverage (copy != nullptr)
       str.revert();
       REQUIRE(str == "Howdy");
       str.append(3, '.');
@@ -384,6 +421,7 @@ namespace TSafeString {
       // append SafeString
       SafeString str2("Pardner");
       str.append(str2);
+      str.append(str2); // For coverage (copy != nullptr)
       str.revert();
       REQUIRE(str == "Howdy");
       str.append(str2);
@@ -393,6 +431,7 @@ namespace TSafeString {
       // append std::string
       std::string str3("Miss");
       str.append(str3);
+      str.append(str3); // For coverage (copy != nullptr)
       str.revert();
       REQUIRE(str == "Howdy");
       str.append(str3);
@@ -402,6 +441,7 @@ namespace TSafeString {
       // append Safestring substring
       SafeString str4("Dat's Mah Horse");
       str.append(str4, 10, 2); // "Ho"
+      str.append(str4, 10, 2); // For coverage (copy != nullptr)
       str.revert();
       REQUIRE(str == "Howdy");
       str.append(str4, 10, 2);
@@ -411,6 +451,7 @@ namespace TSafeString {
       // append std::string substring
       std::string str5("It's a Champion Breed");
       str.append(str5, 7, 5); // "Champ"
+      str.append(str5, 7, 5); // For coverage (copy != nullptr)
       str.revert();
       REQUIRE(str == "Howdy");
       str.append(str5, 7, 5);
@@ -420,6 +461,7 @@ namespace TSafeString {
       // append non-NULL-terminated C-style string
       char c[6] = {'F','a','m','i','l','y'};
       str.append(c, 3);
+      str.append(c, 3); // For coverage (copy != nullptr)
       str.revert();
       REQUIRE(str == "Howdy");
       str.append(c, 3);
@@ -429,6 +471,7 @@ namespace TSafeString {
       // append NULL-terminated C-style string
       char c2[4] = {'B','r','o','\0'};
       str.append(c2);
+      str.append(c2); // For coverage (copy != nullptr)
       str.revert();
       REQUIRE(str == "Howdy");
       str.append(c2);
@@ -438,6 +481,7 @@ namespace TSafeString {
       // append range of chars (iterator)
       std::string iter("The Pizza Planet Oneiric Experience"); // I'm hungry and sleepy and running out of ideas
       str.append(iter.cbegin() + 10, iter.cbegin() + 16); // "Planet"
+      str.append(iter.cbegin() + 10, iter.cbegin() + 16); // For coverage (copy != nullptr)
       str.revert();
       REQUIRE(str == "Howdy");
       str.append(iter.cbegin() + 10, iter.cbegin() + 16);
@@ -447,6 +491,7 @@ namespace TSafeString {
       // append ilist
       std::initializer_list<char> ilist {'S','e','e','y','a'};
       str.append(ilist);
+      str.append(ilist); // For coverage (copy != nullptr)
       str.revert();
       REQUIRE(str == "Howdy");
       str.append(ilist);
@@ -539,6 +584,7 @@ namespace TSafeString {
       // replace SafeString (pos + count)
       SafeString str1("ost");
       str.replace(5, 3, str1);
+      str.replace(5, 3, str1); // For coverage (copy != nullptr)
       str.revert();
       REQUIRE(str == "Alo Brasil");
       str.replace(5, 3, str1);
@@ -548,6 +594,7 @@ namespace TSafeString {
       // replace std::string (pos + count)
       std::string str2("urr");
       str.replace(5, 3, str2);
+      str.replace(5, 3, str2); // For coverage (copy != nullptr)
       str.revert();
       REQUIRE(str == "Alo Brasil");
       str.replace(5, 3, str2);
@@ -557,6 +604,7 @@ namespace TSafeString {
       // replace SafeString (iterators)
       SafeString str3("anan");
       str.replace(str.cbegin() + 5, str.cend() - 2, str3);
+      str.replace(str.cbegin() + 5, str.cend() - 2, str3); // For coverage (copy != nullptr)
       str.revert();
       REQUIRE(str == "Alo Brasil");
       str.replace(str.cbegin() + 5, str.cend() - 2, str3);
@@ -566,6 +614,7 @@ namespace TSafeString {
       // replace std::string (iterators)
       std::string str4("eston");
       str.replace(str.cbegin() + 5, str.cend() - 2, str4);
+      str.replace(str.cbegin() + 5, str.cend() - 2, str4); // For coverage (copy != nullptr)
       str.revert();
       REQUIRE(str == "Alo Brasil");
       str.replace(str.cbegin() + 5, str.cend() - 2, str4);
@@ -575,6 +624,7 @@ namespace TSafeString {
       // replace SafeString substring (pos + count)
       SafeString str5("fundo do poço");
       str.replace(5, 3, str5, 1, 3);
+      str.replace(5, 3, str5, 1, 3); // For coverage (copy != nullptr)
       str.revert();
       REQUIRE(str == "Alo Brasil");
       str.replace(5, 3, str5, 1, 3);
@@ -584,6 +634,7 @@ namespace TSafeString {
       // replace std::string substring (pos + count)
       std::string str6("viva o aldeão da taverna");
       str.replace(5, 3, str6, 7, 3);
+      str.replace(5, 3, str6, 7, 3); // For coverage (copy != nullptr)
       str.revert();
       REQUIRE(str == "Alo Brasil");
       str.replace(5, 3, str6, 7, 3);
@@ -593,6 +644,7 @@ namespace TSafeString {
       // replace std::string substring (iterators)
       std::string str7("todo mundo sabe que latrocinio significa roubo seguido de morte");
       str.replace(str.cbegin() + 4, str.cend() - 2, str7.cbegin() + 20, str7.cend() - 39);
+      str.replace(str.cbegin() + 4, str.cend() - 2, str7.cbegin() + 20, str7.cend() - 39); // For coverage (copy != nullptr)
       str.revert();
       REQUIRE(str == "Alo Brasil");
       str.replace(str.cbegin() + 4, str.cend() - 2, str7.cbegin() + 20, str7.cend() - 39);
@@ -602,6 +654,7 @@ namespace TSafeString {
       // replace C-style substring (pos + count)
       const char* c = "inutil, a gente somos inutil";
       str.replace(4, 4, c, 4);
+      str.replace(4, 4, c, 4); // For coverage (copy != nullptr)
       str.revert();
       REQUIRE(str == "Alo Brasil");
       str.replace(4, 4, c, 4);
@@ -611,6 +664,7 @@ namespace TSafeString {
       // replace C-style substring (iterators)
       const char* c2 = "establishment";
       str.replace(str.cbegin() + 5, str.cend() - 2, c2, 3);
+      str.replace(str.cbegin() + 5, str.cend() - 2, c2, 3); // For coverage (copy != nullptr)
       str.revert();
       REQUIRE(str == "Alo Brasil");
       str.replace(str.cbegin() + 5, str.cend() - 2, c2, 3);
@@ -620,6 +674,7 @@ namespace TSafeString {
       // replace C-style string (pos)
       const char* c3 = "Huelandia";
       str.replace(4, 6, c3);
+      str.replace(4, 6, c3); // For coverage (copy != nullptr)
       str.revert();
       REQUIRE(str == "Alo Brasil");
       str.replace(4, 6, c3);
@@ -629,6 +684,7 @@ namespace TSafeString {
       // replace C-style string (iterators)
       const char* c4 = "infern";
       str.replace(str.cbegin() + 4, str.cend() - 2, c4);
+      str.replace(str.cbegin() + 4, str.cend() - 2, c4); // For coverage (copy != nullptr)
       str.revert();
       REQUIRE(str == "Alo Brasil");
       str.replace(str.cbegin() + 4, str.cend() - 2, c4);
@@ -637,6 +693,7 @@ namespace TSafeString {
       str = "Alo Brasil"; str.commit();
       // replace repeat chars (pos + count)
       str.replace(6, 4, 10, 'r');
+      str.replace(6, 4, 10, 'r'); // For coverage (copy != nullptr)
       str.revert();
       REQUIRE(str == "Alo Brasil");
       str.replace(6, 4, 10, 'r');
@@ -645,6 +702,7 @@ namespace TSafeString {
       str = "Alo Brasil"; str.commit();
       // replace repeat chars (iterators)
       str.replace(str.cbegin() + 3, str.cend(), 10, 'o');
+      str.replace(str.cbegin() + 3, str.cend(), 10, 'o'); // For coverage (copy != nullptr)
       str.revert();
       REQUIRE(str == "Alo Brasil");
       str.replace(str.cbegin() + 3, str.cend(), 10, 'o');
@@ -654,6 +712,7 @@ namespace TSafeString {
       // replace ilist (iterators)
       std::initializer_list<char> ilist { 'A', 'd', 'e', 'u', 's' };
       str.replace(str.cbegin(), str.cbegin() + 3, ilist);
+      str.replace(str.cbegin(), str.cbegin() + 3, ilist); // For coverage (copy != nullptr)
       str.revert();
       REQUIRE(str == "Alo Brasil");
       str.replace(str.cbegin(), str.cbegin() + 3, ilist);
@@ -663,6 +722,7 @@ namespace TSafeString {
       // replace std::string_view (pos + count)
       std::string_view sv1("orr");
       str.replace(5, 3, sv1);
+      str.replace(5, 3, sv1); // For coverage (copy != nullptr)
       str.revert();
       REQUIRE(str == "Alo Brasil");
       str.replace(5, 3, sv1);
@@ -672,6 +732,7 @@ namespace TSafeString {
       // replace std::string_view (iterators)
       std::string_view sv2("arr");
       str.replace(str.cbegin() + 5, str.cend() - 2, sv2);
+      str.replace(str.cbegin() + 5, str.cend() - 2, sv2); // For coverage (copy != nullptr)
       str.revert();
       REQUIRE(str == "Alo Brasil");
       str.replace(str.cbegin() + 5, str.cend() - 2, sv2);
@@ -681,6 +742,7 @@ namespace TSafeString {
       // replace std::string_view substring (pos + count)
       std::string_view sv3("Baronesa da Pisadinha");
       str.replace(4, 4, sv3, 0, 5);
+      str.replace(4, 4, sv3, 0, 5); // For coverage (copy != nullptr)
       str.revert();
       REQUIRE(str == "Alo Brasil");
       str.replace(4, 4, sv3, 0, 5);
@@ -713,6 +775,7 @@ namespace TSafeString {
       SafeString str("aaa");
       // resize bigger, default char ('\0')
       str.resize(5);
+      str.resize(10); // For coverage (copy != nullptr)
       str.revert();
       REQUIRE(str.size() == 3);
       REQUIRE(str == "aaa");
@@ -739,6 +802,7 @@ namespace TSafeString {
       REQUIRE(str == "a");
       // resize bigger, custom char
       str.resize(10, 'a');
+      str.resize(20, 'a'); // For coverage (copy != nullptr)
       str.revert();
       REQUIRE(str.size() == 1);
       REQUIRE(str == "a");
@@ -764,6 +828,7 @@ namespace TSafeString {
       std::string strRaw2("string4");
       // swap std::string
       str1.swap(strRaw1);
+      str1.swap(strRaw1); // For coverage (copy != nullptr)
       str1.revert();
       REQUIRE(str1 == "string1");
       str1.swap(strRaw2);
@@ -772,6 +837,7 @@ namespace TSafeString {
       str1 = "string1"; str1.commit(); // reset str1 for next test
       // swap SafeString
       str1.swap(str2);
+      str1.swap(str2); // For coverage (copy != nullptr)
       str1.revert();
       str2.revert();
       REQUIRE(str1 == "string1");
@@ -926,6 +992,7 @@ namespace TSafeString {
       // assign SafeString
       SafeString str1("Test1");
       str = str1;
+      str = str1; // For coverage (copy != nullptr)
       str.revert();
       REQUIRE(str == "Test0");
       str = str1;
@@ -934,6 +1001,7 @@ namespace TSafeString {
       // assign std::string
       std::string str2("Test2");
       str = str2;
+      str = str2; // For coverage (copy != nullptr)
       str.revert();
       REQUIRE(str == "Test1");
       str = str2;
@@ -942,6 +1010,7 @@ namespace TSafeString {
       // assign C-style string
       const char* str3 = "Test3";
       str = str3;
+      str = str3; // For coverage (copy != nullptr)
       str.revert();
       REQUIRE(str == "Test2");
       str = str3;
@@ -950,6 +1019,7 @@ namespace TSafeString {
       // assign char
       char ch = '4';
       str = ch;
+      str = ch; // For coverage (copy != nullptr)
       str.revert();
       REQUIRE(str == "Test3");
       str = ch;
@@ -958,6 +1028,7 @@ namespace TSafeString {
       // assign ilist
       std::initializer_list<char> ilist { 'T', 'e', 's', 't', '5' };
       str = ilist;
+      str = ilist; // For coverage (copy != nullptr)
       str.revert();
       REQUIRE(str == "4");
       str = ilist;
@@ -970,6 +1041,7 @@ namespace TSafeString {
       // assign SafeString
       SafeString str1("111");
       str += str1;
+      str += str1; // For coverage (copy != nullptr)
       str.revert();
       REQUIRE(str == "Test");
       str += str1;
@@ -978,6 +1050,7 @@ namespace TSafeString {
       // assign std::string
       std::string str2("222");
       str += str2;
+      str += str2; // For coverage (copy != nullptr)
       str.revert();
       REQUIRE(str == "Test111");
       str += str2;
@@ -986,6 +1059,7 @@ namespace TSafeString {
       // assign C-style string
       const char* str3 = "333";
       str += str3;
+      str += str3; // For coverage (copy != nullptr)
       str.revert();
       REQUIRE(str == "Test111222");
       str += str3;
@@ -994,6 +1068,7 @@ namespace TSafeString {
       // assign char
       char ch = '4';
       str += ch;
+      str += ch; // For coverage (copy != nullptr)
       str.revert();
       REQUIRE(str == "Test111222333");
       str += ch;
@@ -1002,6 +1077,7 @@ namespace TSafeString {
       // assign ilist
       std::initializer_list<char> ilist { '5', '6', '7', '8', '9' };
       str += ilist;
+      str += ilist; // For coverage (copy != nullptr)
       str.revert();
       REQUIRE(str == "Test1112223334");
       str += ilist;
@@ -1101,6 +1177,14 @@ namespace TSafeString {
       REQUIRE(strB >= cstrA);
       REQUIRE(!(strA1 >= cstrB));
       REQUIRE(!(strB <= cstrA));
+    }
+
+    SECTION("SafeString operator<<") {
+      SafeString str("ABCDE");
+      std::stringstream ss;
+      ss << str;
+      REQUIRE_THAT(ss.str(), Equals("ABCDE"));
+      str.revert(); // For coverage (copy != nullptr)
     }
   }
 }

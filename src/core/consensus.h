@@ -8,16 +8,7 @@ See the LICENSE.txt file in the project root for more information.
 #ifndef CONSENSUS_H
 #define CONSENSUS_H
 
-#include <thread>
-
-#include "rdpos.h"
-
-#include "../utils/ecdsa.h"
-#include "../utils/logger.h"
-#include "../utils/strings.h"
-#include "../utils/tx.h"
-
-class Blockchain; // Forward declaration.
+#include "state.h" // rdpos.h -> utils/tx.h -> ecdsa.h -> utils.h -> strings.h, logger.h, (libs/json.hpp -> boost/unordered/unordered_flat_map.hpp)
 
 // TODO: tests for Consensus (if necessary)
 
@@ -30,7 +21,9 @@ class Consensus : public Log::LogicalLocationProvider {
     const Options& options_; ///< Reference to the Options singleton.
 
     std::future<void> loopFuture_;  ///< Future object holding the thread for the consensus loop.
-    std::atomic<bool> stop_ = false; ///< Flag for stopping the consensus processing.
+    std::future<void> pullFuture_; ///< Future object to keep pulling transactions from nodes on the network.
+    std::atomic<bool> stopConsensus_ = false; ///< Flag for stopping the consensus processing.
+    std::atomic<bool> stopPuller_ = false; ///< Flag for stopping the puller processing.
 
     /**
      * Create and broadcast a Validator block (called by validatorLoop()).
@@ -47,6 +40,12 @@ class Consensus : public Log::LogicalLocationProvider {
      * node wait until it receives a new block.
      */
     void doValidatorTx(const uint64_t& nHeight, const Validator& me);
+
+    /**
+     * Entry function for the puller thread (keeps requesting transactions from the network).
+     * @return `true` when done running.
+     */
+    void pullerLoop();
 
   public:
     /**

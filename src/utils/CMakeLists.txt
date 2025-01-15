@@ -1,4 +1,5 @@
 set(UTILS_HEADERS
+  ${CMAKE_SOURCE_DIR}/src/utils/clargs.h
   ${CMAKE_SOURCE_DIR}/src/utils/db.h
   ${CMAKE_SOURCE_DIR}/src/utils/utils.h
   ${CMAKE_SOURCE_DIR}/src/utils/strings.h
@@ -13,10 +14,15 @@ set(UTILS_HEADERS
   ${CMAKE_SOURCE_DIR}/src/utils/logger.h
   ${CMAKE_SOURCE_DIR}/src/utils/dynamicexception.h
   ${CMAKE_SOURCE_DIR}/src/utils/finalizedblock.h
+  ${CMAKE_SOURCE_DIR}/src/utils/strconv.h
+  ${CMAKE_SOURCE_DIR}/src/utils/evmcconv.h
+  ${CMAKE_SOURCE_DIR}/src/utils/intconv.h
+  ${CMAKE_SOURCE_DIR}/src/utils/uintconv.h
   PARENT_SCOPE
 )
 
 set(UTILS_SOURCES
+  ${CMAKE_SOURCE_DIR}/src/utils/clargs.cpp
   ${CMAKE_SOURCE_DIR}/src/utils/db.cpp
   ${CMAKE_SOURCE_DIR}/src/utils/address.cpp
   ${CMAKE_SOURCE_DIR}/src/utils/hash.cpp
@@ -31,5 +37,9 @@ set(UTILS_SOURCES
   ${CMAKE_SOURCE_DIR}/src/utils/contractreflectioninterface.cpp
   ${CMAKE_SOURCE_DIR}/src/utils/jsonabi.cpp
   ${CMAKE_SOURCE_DIR}/src/utils/finalizedblock.cpp
+  ${CMAKE_SOURCE_DIR}/src/utils/strconv.cpp
+  ${CMAKE_SOURCE_DIR}/src/utils/evmcconv.cpp
+  ${CMAKE_SOURCE_DIR}/src/utils/intconv.cpp
+  ${CMAKE_SOURCE_DIR}/src/utils/uintconv.cpp
   PARENT_SCOPE
 )

@@ -25,19 +25,14 @@ class ThrowTestC : public DynamicContract {
 
     /**
     * Constructor from create. Create contract and save it to database.
-    * @param interface The interface to the contract manager.
     * @param address The address of the contract.
     * @param creator The address of the creator of the contract.
     * @param chainId The chain ID.
-    * @param db The database to use.
     */
-    ThrowTestC(const Address& address,
-      const Address& creator, const uint64_t& chainId
-    );
+    ThrowTestC(const Address& address, const Address& creator, const uint64_t& chainId);
 
     /**
     * Constructor from load. Load contract from database.
-    * @param interface The interface to the contract manager.
     * @param address The address of the contract.
     * @param db The database to use.
     */

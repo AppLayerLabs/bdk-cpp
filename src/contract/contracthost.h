@@ -2,18 +2,8 @@
 #ifndef CONTRACT_HOST_H
 #define CONTRACT_HOST_H
 
-
-#include <evmc/evmc.hpp>
-#include "../utils/utils.h"
-#include "../utils/strings.h"
-#include "../utils/hex.h"
-#include "../utils/safehash.h"
-#include "../utils/db.h"
-#include "../core/storage.h"
-#include <evmone/evmone.h>
-#include "contractstack.h"
-#include "../core/rdpos.h"
-#include "../utils/contractreflectioninterface.h"
+// utils/{contractreflectioninterface.h, db.h, safehash.h, (strings.h -> hex.h, evmc/evmc.hpp), utils.h},
+// contract.h -> core/{dump.h, storage.h -> calltracer.h}
 #include "contractmanager.h"
 #include "../core/dump.h"
 #include "calltracer.h"
@@ -98,13 +88,13 @@ class ContractHost {
       }
     }
 
-    /// CONTRACT INTERFACING FUNCTIONS
     /**
      * Call a contract view function based on the basic requirements of a contract call.
      * @tparam R The return type of the view function.
      * @tparam C The contract type.
      * @tparam Args The argument types of the view function.
-     * @param address The address of the contract to call.
+     * @param caller Pointer to the contract that made the call.
+     * @param targetAddr The address of the contract to call.
      * @param func The view function to call.
      * @param args The arguments to pass to the view function.
      * @return The result of the view function.
@@ -122,6 +112,18 @@ class ContractHost {
       return this->dispatchMessage(std::move(msg));
     }
 
+    /**
+     * Call a contract non-view function based on the basic requirements of a contract call.
+     * @tparam R The return type of the view function.
+     * @tparam C The contract type.
+     * @tparam Args The argument types of the view function.
+     * @param caller Pointer to the contract that made the call.
+     * @param targetAddr The address of the contract to call.
+     * @param value The value to use in the call.
+     * @param func The view function to call.
+     * @param args The arguments to pass to the view function.
+     * @return The result of the non-view function.
+     */
     template <typename R, typename C, typename... Args>
     R callContractFunction(
       BaseContract* caller, const Address& targetAddr,
@@ -143,8 +145,8 @@ class ContractHost {
      * Call the createNewContract function of a contract.
      * Used by DynamicContract to create new contracts.
      * @tparam TContract The contract type.
-     * @param callValue The caller value.
-     * @param encoder The ABI encoder.
+     * @param caller Pointer to the contract that made the call.
+     * @param fullData The caller data.
      * @return The address of the new contract.
      */
     template<typename ContractType, typename... Args>

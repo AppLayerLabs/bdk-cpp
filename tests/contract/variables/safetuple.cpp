@@ -7,10 +7,6 @@ See the LICENSE.txt file in the project root for more information.
 
 #include "../../src/libs/catch2/catch_amalgamated.hpp"
 #include "../../src/contract/variables/safetuple.h"
-#include <cstdint>
-#include <utility>
-#include <string>
-#include <tuple>
 
 namespace TSafeTuple {
   TEST_CASE("SafeTuple Class", "[contract][variables][safetuple]") {
@@ -70,6 +66,14 @@ namespace TSafeTuple {
       REQUIRE(get<0>(std::as_const(tup)) == 30);
       REQUIRE(get<1>(std::as_const(tup)) == 3.0);
       REQUIRE(get<2>(std::as_const(tup)) == "ccc");
+    }
+
+    SECTION("SafeTuple raw") {
+      SafeTuple<int, double, std::string> tup(std::make_tuple(10, 1.0, "aaa"));
+      std::tuple<int, double, std::string> tupRaw = tup.raw();
+      REQUIRE(std::get<0>(tupRaw) == 10);
+      REQUIRE(std::get<1>(tupRaw) == 1.0);
+      REQUIRE(std::get<2>(tupRaw) == "aaa");
     }
 
     SECTION("SafeTuple operator=") {

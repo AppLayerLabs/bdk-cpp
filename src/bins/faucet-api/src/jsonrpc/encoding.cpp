@@ -6,6 +6,7 @@ See the LICENSE.txt file in the project root for more information.
 */
 
 #include "encoding.h"
+
 namespace Faucet {
   namespace JsonRPC::Encoding {
     json dripToAddress() {

@@ -6,9 +6,10 @@ See the LICENSE.txt file in the project root for more information.
 */
 
 #include "../../src/libs/catch2/catch_amalgamated.hpp"
-#include "../../src/utils/utils.h"
-#include "../../src/utils/tx.h"
-#include "../../src/utils/finalizedblock.h"
+
+#include "../../src/utils/finalizedblock.h" // merkle.h -> tx.h -> ecdsa.h -> utils.h
+
+#include "../../src/utils/uintconv.h"
 #include "bytes/random.h"
 
 using Catch::Matchers::Equals;
@@ -22,7 +23,6 @@ namespace TBlock {
       uint64_t nHeight = 92137812;
       FinalizedBlock finalizedNewBlock = FinalizedBlock::createNewValidBlock({},{}, nPrevBlockHash, timestamp, nHeight, validatorPrivKey);
 
-
       // Checking within finalized block
       REQUIRE(finalizedNewBlock.getValidatorSig() == Signature(Hex::toBytes("18395ff0c8ee38a250b9e7aeb5733c437fed8d6ca2135fa634367bb288a3830a3c624e33401a1798ce09f049fb6507adc52b085d0a83dacc43adfa519c1228e701")));
       REQUIRE(Secp256k1::verifySig(finalizedNewBlock.getValidatorSig().r(), finalizedNewBlock.getValidatorSig().s(), finalizedNewBlock.getValidatorSig().v()));
@@ -35,6 +35,20 @@ namespace TBlock {
       REQUIRE(finalizedNewBlock.getTxValidators().size() == 0);
       REQUIRE(finalizedNewBlock.getTxs().size() == 0);
       REQUIRE(finalizedNewBlock.getValidatorPubKey() == UPubKey(Hex::toBytes("046ab1f056c30ae181f92e97d0cbb73f4a8778e926c35f10f0c4d1626d8dfd51672366413809a48589aa103e1865e08bd6ddfd0559e095841eb1bd3021d9cc5e62")));
+    }
+
+    SECTION("Block operator== (coverage)") {
+      PrivKey validatorPrivKey(Hex::toBytes("0x4d5db4107d237df6a3d58ee5f70ae63d73d765d8a1214214d8a13340d0f2750d"));
+      PrivKey validatorPrivKey2(Hex::toBytes("0x4d5db4107d237df6a3d58ee5f70ae63d73d765d8a1214214d8a13340d0f2750e"));
+      Hash nPrevBlockHash(Hex::toBytes("22143e16db549af9ccfd3b746ea4a74421847fa0fe7e0e278626a4e7307ac0f6"));
+      uint64_t timestamp = 1678400201859;
+      uint64_t nHeight = 92137812;
+      FinalizedBlock blockA = FinalizedBlock::createNewValidBlock({},{}, nPrevBlockHash, timestamp, nHeight, validatorPrivKey);
+      FinalizedBlock blockB = FinalizedBlock::createNewValidBlock({},{}, nPrevBlockHash, timestamp, nHeight, validatorPrivKey2);
+      FinalizedBlock blockC = FinalizedBlock::createNewValidBlock({},{}, nPrevBlockHash, timestamp + 1, nHeight, validatorPrivKey);
+      REQUIRE(blockA == blockA);
+      REQUIRE(blockA != blockB);
+      REQUIRE(blockA != blockC);
     }
 
     SECTION("Block creation with 10 transactions") {
@@ -62,9 +76,7 @@ namespace TBlock {
 
       // Compare transactions
       for (uint64_t i = 0; i < 10; i++) REQUIRE(finalizedNewBlock.getTxs()[i] == tx);
-
     }
-
 
     SECTION("Block creation with 64 TxBlock transactions and 16 TxValidator transactions") {
       // There is 16 TxValidator transactions, but only 8 of them are used for block randomness.
@@ -154,10 +166,10 @@ namespace TBlock {
         Address to(Utils::randBytes(20));
         Bytes data = Utils::randBytes(32);
         uint64_t chainId = 8080;
-        uint256_t nonce = Utils::bytesToUint32(Utils::randBytes(4));
-        uint256_t value = Utils::bytesToUint64(Utils::randBytes(8));
-        uint256_t gasLimit = Utils::bytesToUint32(Utils::randBytes(4));
-        uint256_t maxFeePerGas = Utils::bytesToUint32(Utils::randBytes(4));
+        uint256_t nonce = UintConv::bytesToUint32(Utils::randBytes(4));
+        uint256_t value = UintConv::bytesToUint64(Utils::randBytes(8));
+        uint256_t gasLimit = UintConv::bytesToUint32(Utils::randBytes(4));
+        uint256_t maxFeePerGas = UintConv::bytesToUint32(Utils::randBytes(4));
         txs.emplace_back(
           to,
           from,
@@ -255,10 +267,10 @@ namespace TBlock {
             Address to(Utils::randBytes(20));
             Bytes data = Utils::randBytes(32);
             uint64_t chainId = 8080;
-            uint256_t nonce = Utils::bytesToUint32(Utils::randBytes(4));
-            uint256_t value = Utils::bytesToUint64(Utils::randBytes(8));
-            uint256_t gasLimit = Utils::bytesToUint32(Utils::randBytes(4));
-            uint256_t maxFeePerGas = Utils::bytesToUint32(Utils::randBytes(4));
+            uint256_t nonce = UintConv::bytesToUint32(Utils::randBytes(4));
+            uint256_t value = UintConv::bytesToUint64(Utils::randBytes(8));
+            uint256_t gasLimit = UintConv::bytesToUint32(Utils::randBytes(4));
+            uint256_t maxFeePerGas = UintConv::bytesToUint32(Utils::randBytes(4));
             auto tx = TxBlock(
               to,
               from,
@@ -311,10 +323,12 @@ namespace TBlock {
           txValidatorPrivKey
         );
       }
+
       // We need to calculate the merkle root BEFORE creating the block
       // because we MOVE the transactions to the block.
       Hash txMerkleRoot = Merkle(txs).getRoot();
       Hash validatorMerkleRoot = Merkle(txValidators).getRoot();
+
       // Also make a copy of txValidators and txs for later comparison
       std::vector<TxValidator> txValidatorsCopy = txValidators;
       std::vector<TxBlock> txsCopy = txs;
@@ -332,10 +346,14 @@ namespace TBlock {
       REQUIRE(finalizedNewBlock.getTxValidators().size() == 256);
       REQUIRE(finalizedNewBlock.getTxs().size() == 40000);
 
-
       // Compare transactions
       for (uint64_t i = 0; i < 40000; ++i) REQUIRE(finalizedNewBlock.getTxs()[i] == txsCopy[i]);
       for (uint64_t i = 0; i < 256; ++i) REQUIRE(finalizedNewBlock.getTxValidators()[i] == txValidatorsCopy[i]);
+
+      // Deserialize again with threading (for coverage)
+      Bytes serializedNewBlock = finalizedNewBlock.serializeBlock();
+      FinalizedBlock finalizedNewBlock2 = FinalizedBlock::fromBytes(serializedNewBlock, 8080);
+      REQUIRE(finalizedNewBlock2 == finalizedNewBlock);
     }
   }
 }

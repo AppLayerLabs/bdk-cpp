@@ -11,7 +11,7 @@ See the LICENSE.txt file in the project root for more information.
 #include "../dynamiccontract.h"
 #include "../variables/safestring.h"
 #include "../variables/safetuple.h"
-#include "../../utils/utils.h" // SafeUintX_t aliases declared here
+#include "../variables/safeuint.h"
 
 /**
  * SimpleContract is a simple contract that stores a name, number and tuple.
@@ -60,11 +60,9 @@ class SimpleContract : public DynamicContract {
      * @param name The name of the contract.
      * @param number The number of the contract.
      * @param tuple The name and number tuple of the contract.
-     * @param interface The interface to the contract manager.
      * @param address The address of the contract.
      * @param creator The address of the creator of the contract.
      * @param chainId The chain ID.
-     * @param db The database to use.
      */
     SimpleContract(
       const std::string& name,
@@ -77,7 +75,6 @@ class SimpleContract : public DynamicContract {
 
     /**
      * Constructor from load. Load contract from database.
-     * @param interface The interface to the contract manager.
      * @param address The address of the contract.
      * @param db The database to use.
      */
@@ -153,8 +150,7 @@ class SimpleContract : public DynamicContract {
     static void registerContract() {
       ContractReflectionInterface::registerContractMethods<
         SimpleContract, const std::string&, const uint256_t&, const std::tuple<std::string, uint256_t>&,
-        const Address&, const Address&, const uint64_t&,
-        DB&
+        const Address&, const Address&, const uint64_t&, const DB&
       >(
         std::vector<std::string>{"name_", "number_", "tuple_"},
         std::make_tuple("setName", &SimpleContract::setName, FunctionTypes::NonPayable, std::vector<std::string>{"argName"}),

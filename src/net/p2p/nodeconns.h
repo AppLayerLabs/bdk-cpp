@@ -8,15 +8,11 @@ See the LICENSE.txt file in the project root for more information.
 #ifndef NODECONNS_H
 #define NODECONNS_H
 
-#include "encoding.h" // NodeID, NodeInfo
-
-#include "../../utils/logger.h"
-#include "../../utils/safehash.h"
-
-#include <algorithm> // std::find
-#include <thread> // std::this_thread::sleep_for
 #include <shared_mutex>
 
+#include "../../utils/safehash.h" // tx.h -> ecdsa.h -> utils.h -> libs/json.hpp -> algorithm (std::find in .cpp), boost/unordered/unordered_flat_map.hpp
+
+#include "encoding.h" // NodeID, NodeInfo
 
 // TODO: tests for NodeConns (if necessary)
 

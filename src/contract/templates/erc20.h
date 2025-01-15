@@ -61,17 +61,16 @@ class ERC20 : public DynamicContract {
   public:
 
     /**
-    * ConstructorArguments is a tuple of the contract constructor arguments in the order they appear in the constructor.
-    */
+     * ConstructorArguments is a tuple of the contract constructor arguments in the order they appear in the constructor.
+     */
     using ConstructorArguments = std::tuple<const std::string&, const std::string&, const uint8_t&, const uint256_t&>;
+
     /**
      * Constructor for loading contract from DB.
      * @param address The address where the contract will be deployed.
      * @param db Reference to the database object.
-    */
-    ERC20(
-      const Address& address, const DB& db
-    );
+     */
+    ERC20(const Address& address, const DB& db);
 
     /**
      * Constructor to be used when creating a new contract.
@@ -82,7 +81,6 @@ class ERC20 : public DynamicContract {
      * @param address The address where the contract will be deployed.
      * @param creator The address of the creator of the contract.
      * @param chainId The chain where the contract wil be deployed.
-     * @param db Reference to the database object.
      */
     ERC20(
       const std::string &erc20name, const std::string &erc20symbol,
@@ -100,6 +98,19 @@ class ERC20 : public DynamicContract {
 
     /// Destructor.
     ~ERC20() override = default;
+
+
+    /// Event for when a token is transferred.
+    /// event Transfer(address indexed from, address indexed to, uint256 value);
+    void Transfer(const EventParam<Address, true>& from, const EventParam<Address, true>& to, const EventParam<uint256_t, false>& value) {
+      this->emitEvent("Transfer", std::make_tuple(from, to, value));
+    }
+
+    /// Event for when a token is approved.
+    /// event Approval(address indexed owner, address indexed spender, uint256 value);
+    void Approval(const EventParam<Address, true>& owner, const EventParam<Address, true>& spender, const EventParam<uint256_t, false>& value) {
+      this->emitEvent("Approval", std::make_tuple(owner, spender, value));
+    }
 
     /**
      * Get the name of the ERC20 token. Solidity counterpart:
@@ -195,6 +206,10 @@ class ERC20 : public DynamicContract {
         std::make_tuple("approve", &ERC20::approve, FunctionTypes::NonPayable, std::vector<std::string>{"spender", "value"}),
         std::make_tuple("allowance", &ERC20::allowance, FunctionTypes::View, std::vector<std::string>{"owner", "spender"}),
         std::make_tuple("transferFrom", &ERC20::transferFrom, FunctionTypes::NonPayable, std::vector<std::string>{"from", "to", "value"})
+      );
+      ContractReflectionInterface::registerContractEvents<ERC20>(
+        std::make_tuple("Transfer", false, &ERC20::Transfer, std::vector<std::string>{"from","to", "value"}),
+        std::make_tuple("Approval", false, &ERC20::Approval, std::vector<std::string>{"owner","spender", "value"})
       );
     }
 

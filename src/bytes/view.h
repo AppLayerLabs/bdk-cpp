@@ -1,9 +1,7 @@
-
 #ifndef BYTES_VIEW_H
 #define BYTES_VIEW_H
 
-#include <span>
-#include "range.h"
+#include "range.h" // ranges -> span
 #include "utils/view.h"
 
 namespace bytes {

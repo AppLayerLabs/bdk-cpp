@@ -1,4 +1,15 @@
+/*
+Copyright (c) [2023-2024] [AppLayer Developers]
+
+This software is distributed under the MIT License.
+See the LICENSE.txt file in the project root for more information.
+*/
+
+#ifndef STATETEST_HPP
+#define STATETEST_HPP
+
 #include "../src/core/state.h"
+
 #include "../src/contract/contracthost.h"
 
 
@@ -14,3 +25,5 @@ class StateTest : public State {
     StateTest(const DB& db, Storage& storage, P2P::ManagerNormal& p2pManager, const uint64_t& snapshotHeight, const Options& options) :
       State(db, storage, p2pManager, snapshotHeight, options) {};
 };
+
+#endif // STATETEST_HPP

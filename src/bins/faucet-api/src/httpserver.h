@@ -11,10 +11,11 @@ See the LICENSE.txt file in the project root for more information.
 #include "httpparser.h"
 #include "httplistener.h"
 
-
+/// Namespace for faucet-related functionalities.
 namespace Faucet {
+  class Manager; // Forward declaration.
+  
   /// Abstraction of an HTTP server.
-  class Manager;
   class HTTPServer {
   private:
     Manager& faucet_; ///< Reference to the faucet manager.
@@ -35,22 +36,18 @@ namespace Faucet {
   public:
     /// The run function (effectively starts the server).
     bool run();
+
     /**
      * Constructor. Does NOT automatically start the server.
-     * @param state Reference pointer to the blockchain's state.
-     * @param storage Reference pointer to the blockchain's storage.
-     * @param p2p Reference pointer to the P2P connection manager.
-     * @param options Reference pointer to the options singleton.
+     * @param port The port where the server runs.
+     * @param faucet Reference to the faucet manager.
      */
     HTTPServer(const uint16_t& port, Manager& faucet) : port_(port), faucet_(faucet) {
       std::cout << "Starting at port: "  << port_ << std::endl;
     }
 
-    /**
-     * Destructor.
-     * Automatically stops the server.
-     */
-    ~HTTPServer() { }
+    /// Destructor. Automatically stops the server.
+    ~HTTPServer() {}
 
     /**
      * Check if the server is currently active and running.
