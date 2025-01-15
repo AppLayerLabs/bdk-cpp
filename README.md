@@ -116,6 +116,8 @@ For a more detailed explanation of the project's structure, check the [docs](htt
   * Use `-DUSE_LINT=ON` to run clang-tidy along the build (OFF by default, WILL TAKE SIGNIFICANTLY LONGER TO COMPILE)
 * Build the executable: `cmake --build . -- -j$(nproc)` (adjust `-j$(nproc)` accordingly if needed)
   * If using the linter, pipe stderr to a file (e.g. `cmake --build . -- -j$(nproc) 2> log.txt`)
+* If you need to clean up the build, use `cmake --build . --target clean`
+  * This also cleans stale `.pb.*` files in the `proto` folder (useful for if/when Protobuf gets updated)
 
 ## Deploying
 

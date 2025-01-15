@@ -45,8 +45,18 @@ check_libs() {
   if [ -n "$FOUND1" ]; then echo "/usr/local/lib/$1"; elif [ -n "$FOUND2" ]; then echo "/usr/lib/$1"; else echo ""; fi
 }
 
+# Yet another version of check_lib() for use with header-only libs (e.g. absl)".
+# Returns the first found match, or an empty string if there is no match.
+# Usage: HAS_LIBS=$(check_libs_hdr "libpath")
+# $1 = library folder path, including suffix (e.g. "absl")
+check_libs_hdr() {
+  FOUND1=$(find /usr/local/include -name "$1" 2> /dev/null | head -n 1)
+  FOUND2=$(find /usr/include -name "$1" 2> /dev/null | head -n 1)
+  if [ -n "$FOUND1" ]; then echo "/usr/local/include/$1"; elif [ -n "$FOUND2" ]; then echo "/usr/include/$1"; else echo ""; fi
+}
+
 # Versions for external dependencies - update numbers here if required
-GRPC_VERSION="1.67.0"
+PROTOC_VERSION="29.3"
 COMETBFT_VERSION="1.0.0"
 ETHASH_VERSION="1.0.1"
 EVMONE_VERSION="0.11.0"
@@ -59,17 +69,14 @@ SPEEDB_VERSION="2.8.0"
 echo "-- Scanning for dependencies..."
 
 # Check toolchain binaries
-# Necessary: git, wget, gcc/g++, ld, autoconf, libtool, pkg-config, make, cmake, tmux,
-#            protoc + grpc_cpp_plugin (external)
+# Necessary: git, wget, tar, gcc/g++, ld, autoconf, libtool, pkg-config, make, cmake, tmux
 # Optional: ninja, mold, doxygen, clang-tidy
 HAS_GIT=$(check_exec git)
 HAS_WGET=$(check_exec wget)
+HAS_TAR=$(check_exec tar)
 HAS_GCC=$(check_exec gcc)
 HAS_GPP=$(check_exec g++)
 HAS_LD=$(check_exec ld)
-HAS_AUTOCONF=$(check_exec autoconf)     # Required for local gRPC compilation
-HAS_LIBTOOL=$(check_exec libtool)       # Required for local gRPC compilation
-HAS_PKGCONFIG=$(check_exec pkg-config)  # Required for local gRPC compilation
 HAS_MAKE=$(check_exec make)
 HAS_CMAKE=$(check_exec cmake)
 HAS_TMUX=$(check_exec tmux)
@@ -79,14 +86,14 @@ HAS_DOXYGEN=$(check_exec doxygen)
 HAS_CLANGTIDY=$(check_exec clang-tidy)
 
 # Check external binaries
-# Necessary: protoc + grpc_cpp_plugin, cometbft
+# Necessary: protoc, cometbft
 HAS_PROTOC=$(check_exec protoc)
-HAS_GRPC=$(check_exec grpc_cpp_plugin)
 HAS_COMETBFT=$(check_exec cometbft)
 
 # Check internal libraries
-# Necessary: libboost-all-dev, openssl/libssl-dev, libzstd-dev, liblz4-dev, libcrypto++-dev,
-#            libscrypt-dev, libgrpc-dev, libgrpc++-dev, libc-ares-dev, libsecp256k1-dev
+# Necessary: libabsl-dev, libboost-all-dev, openssl/libssl-dev, libzstd-dev, liblz4-dev, libcrypto++-dev,
+#            libscrypt-dev, libc-ares-dev, libsecp256k1-dev
+HAS_ABSL=$(check_libs_hdr "absl") # Required for Protobuf compilation
 HAS_BOOST=$(check_libs "libboost_*.a")
 HAS_LIBSSL=$(check_lib "libssl.a")
 HAS_ZSTD=$(check_lib "libzstd.a")
@@ -98,9 +105,7 @@ if [ -z "$HAS_LIBCARES" ]; then HAS_LIBCARES=$(check_lib "libcares.a"); fi # Deb
 HAS_SECP256K1=$(check_lib "libsecp256k1.a")
 
 # Check external libraries
-# Necessary: libgrpc + libgrpc++, ethash (+ keccak), evmone (+ evmc), speedb
-HAS_LIBGRPC=$(check_lib "libgrpc.a")
-HAS_LIBGRPCPP=$(check_lib "libgrpc++.a")
+# Necessary: ethash (+ keccak), evmone (+ evmc), speedb
 HAS_ETHASH=$(check_lib "libethash.a")
 HAS_KECCAK=$(check_lib "libkeccak.a")
 HAS_EVMC_INSTRUCTIONS=$(check_lib "libevmc-instructions.a")
@@ -112,12 +117,10 @@ if [ "${1:-}" == "--check" ]; then
   echo "-- Required toolchain binaries:"
   echo -n "git: " && [ -n "$HAS_GIT" ] && echo "$HAS_GIT" || echo "not found"
   echo -n "wget: " && [ -n "$HAS_WGET" ] && echo "$HAS_WGET" || echo "not found"
+  echo -n "tar: " && [ -n "$HAS_TAR" ] && echo "$HAS_TAR" || echo "not found"
   echo -n "gcc: " && [ -n "$HAS_GCC" ] && echo "$HAS_GCC" || echo "not found"
   echo -n "g++: " && [ -n "$HAS_GPP" ] && echo "$HAS_GPP" || echo "not found"
   echo -n "ld: " && [ -n "$HAS_LD" ] && echo "$HAS_LD" || echo "not found"
-  echo -n "autoconf: " && [ -n "$HAS_AUTOCONF" ] && echo "$HAS_AUTOCONF" || echo "not found"
-  echo -n "libtool: " && [ -n "$HAS_LIBTOOL" ] && echo "$HAS_LIBTOOL" || echo "not found"
-  echo -n "pkg-config: " && [ -n "$HAS_PKGCONFIG" ] && echo "$HAS_PKGCONFIG" || echo "not found"
   echo -n "make: " && [ -n "$HAS_MAKE" ] && echo "$HAS_MAKE" || echo "not found"
   echo -n "cmake: " && [ -n "$HAS_CMAKE" ] && echo "$HAS_CMAKE" || echo "not found"
   echo -n "tmux: " && [ -n "$HAS_TMUX" ] && echo "$HAS_TMUX" || echo "not found"
@@ -129,6 +132,7 @@ if [ "${1:-}" == "--check" ]; then
   echo -n "clang-tidy: " && [ -n "$HAS_CLANGTIDY" ] && echo "$HAS_CLANGTIDY" || echo "not found"
 
   echo "-- Internal libraries:"
+  echo -n "absl: " && [ -n "$HAS_ABSL" ] && echo "$HAS_ABSL" || echo "not found"
   echo -n "boost: " && [ -n "$HAS_BOOST" ] && echo "$HAS_BOOST" || echo "not found"
   echo -n "libssl: " && [ -n "$HAS_LIBSSL" ] && echo "$HAS_LIBSSL" || echo "not found"
   echo -n "libzstd: " && [ -n "$HAS_ZSTD" ] && echo "$HAS_ZSTD" || echo "not found"
@@ -140,12 +144,9 @@ if [ "${1:-}" == "--check" ]; then
 
   echo "-- External toolchain binaries:"
   echo -n "protoc: " && [ -n "$HAS_PROTOC" ] && echo "$HAS_PROTOC" || echo "not found"
-  echo -n "grpc_cpp_plugin: " && [ -n "$HAS_GRPC" ] && echo "$HAS_GRPC" || echo "not found"
   echo -n "cometbft: " && [ -n "$HAS_COMETBFT" ] && echo "$HAS_COMETBFT" || echo "not found"
 
   echo "-- External libraries:"
-  echo -n "libgrpc: " && [ -n "$HAS_LIBGRPC" ] && echo "$HAS_LIBGRPC" || echo "not found"
-  echo -n "libgrpc++: " && [ -n "$HAS_LIBGRPCPP" ] && echo "$HAS_LIBGRPCPP" || echo "not found"
   echo -n "libethash: " && [ -n "$HAS_ETHASH" ] && echo "$HAS_ETHASH" || echo "not found"
   echo -n "libkeccak: " && [ -n "$HAS_KECCAK" ] && echo "$HAS_KECCAK" || echo "not found"
   echo -n "libevmc-instructions: " && [ -n "$HAS_EVMC_INSTRUCTIONS" ] && echo "$HAS_EVMC_INSTRUCTIONS" || echo "not found"
@@ -165,6 +166,8 @@ elif [ "${1:-}" == "--install" ]; then
     echo "-- Checking internal dependencies..."
     PKGS=""
     if [ -z "$HAS_GIT" ]; then PKGS+="git "; fi
+    if [ -z "$HAS_WGET" ]; then PKGS+="wget "; fi
+    if [ -z "$HAS_TAR" ]; then PKGS+="tar "; fi
     if [ -z "$HAS_GCC" ] || [ -z "$HAS_GPP" ] || [ -z "$HAS_MAKE" ] || [ -z "$HAS_LD" ]; then PKGS+="build-essential "; fi
     if [ -z "$HAS_CMAKE" ]; then PKGS+="cmake "; fi
     if [ -z "$HAS_TMUX" ]; then PKGS+="tmux "; fi
@@ -172,6 +175,7 @@ elif [ "${1:-}" == "--install" ]; then
     if [ -z "$HAS_MOLD" ]; then PKGS+="mold "; fi
     if [ -z "$HAS_DOXYGEN" ]; then PKGS+="doxygen "; fi
     if [ -z "$HAS_CLANGTIDY" ]; then PKGS+="clang-tidy "; fi
+    if [ -z "$HAS_ABSL" ]; then PKGS+="libabsl-dev "; fi
     if [ -z "$HAS_BOOST" ]; then PKGS+="libboost-all-dev "; fi
     if [ -z "$HAS_LIBSSL" ]; then PKGS+="libssl-dev "; fi
     if [ -z "$HAS_ZSTD" ]; then PKGS+="libzstd-dev "; fi
@@ -190,11 +194,14 @@ elif [ "${1:-}" == "--install" ]; then
 
   # Install external libs
   echo "-- Checking external dependencies..."
-  if [ -z "$HAS_PROTOC" ] || [ -z "$HAS_GRPC" ] || [ -z "$HAS_LIBGRPC" ] || [ -z "$HAS_LIBGRPCPP" ]; then
-    echo "-- Installing gRPC and Protobuf..."
-    cd /usr/local/src && git clone --recurse-submodules -b "v${GRPC_VERSION}" --depth 1 --shallow-submodules https://github.com/grpc/grpc
-    cd grpc && mkdir -p cmake/build && cd cmake/build
-    cmake -DgRPC_INSTALL=ON -DgRPC_BUILD_TESTS=OFF -DCMAKE_INSTALL_PREFIX="/usr/local" ../..
+  if [ -z "$HAS_PROTOC" ]; then
+    echo "-- Installing Protobuf..."
+    cd /usr/local/src
+    wget "https://github.com/protocolbuffers/protobuf/releases/download/v${PROTOC_VERSION}/protobuf-${PROTOC_VERSION}.tar.gz"
+    tar -xf "protobuf-${PROTOC_VERSION}.tar.gz"
+    cd "protobuf-${PROTOC_VERSION}"
+    mkdir build && cd build
+    cmake -Dprotobuf_BUILD_TESTS=OFF -Dprotobuf_ABSL_PROVIDER=package -DCMAKE_INSTALL_PREFIX="/usr/local" -DCMAKE_PREFIX_PATH=/usr/include ..
     cmake --build . -- -j$(nproc) && cmake --install .
   fi
   if [ -z "$HAS_COMETBFT" ]; then
@@ -238,6 +245,11 @@ elif [ "${1:-}" == "--cleanext" ]; then
   fi
 
   # Uninstall any external dependencies (+ source code repos) found in the system
+  if [ -n "$HAS_PROTOC" ]; then
+    echo "-- Uninstalling Protobuf..."
+    rm -r "/usr/local/include/google/protobuf"
+    rm "/usr/local/bin/protoc"
+  fi
   if [ -n "$HAS_ETHASH" ] || [ -n "$HAS_KECCAK" ]; then
     echo "-- Uninstalling ethash..."
     rm -r "/usr/local/src/ethash"

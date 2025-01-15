@@ -46,9 +46,6 @@ if(MOLD)
 endif()
 
 # Set project version inside the code (forcefully so changes in the .in file are always reflected correctly to the compiler)
-# if (EXISTS ${CMAKE_SOURCE_DIR}/src/utils/options.h)
-#   file(REMOVE ${CMAKE_SOURCE_DIR}/src/utils/options.h)
-# endif()
 configure_file(
   ${CMAKE_SOURCE_DIR}/src/utils/options.h.in
   ${CMAKE_SOURCE_DIR}/src/utils/options.h
@@ -93,73 +90,22 @@ set(Boost_USE_STATIC_LIBS ON)
 set(OPENSSL_USE_STATIC_LIBS ON)
 set(Protobuf_USE_STATIC_LIBS ON)
 
-
-
-
-
-#  ************ CUSTOM GRPC / PROTO *********************************************************
-
-# IMPORTANT!
-#
-# For compilation to work in this branch, you MUST follow these steps:
-#
-#    ----->    https://grpc.io/docs/languages/cpp/quickstart/    <----
-#
-# ... to download, compile and install the latest GRPC, Protobuf, and all their dependencies
-#     in a local directory in your machine (I recommend using ~/.install instead of ~/.local).
-#
-# This local GRPC installation instructions will get ALL the dependencies of the latest GRPC
-#     version as submodules and compile them as well. Then it is just a matter of having our
-#     CMake pipeline pick up on it and link against the correct libraries that are referenced
-#     by the correct CMake variables (this can be done using the CMake scripts from the GRPC
-#     cpp examples repository).
-#
-# TODO: This should be done by scripts/deps.sh instead, and then through changing the
-#       PATH variable (or some other mechanism) the cmake/FindGRPCLocal.cmake script
-#       below should be able to find it (that script can be modified if needed).
-
-# This finds Protobuf and gRPC that have been built locally under
-#   e.g. ~/.local or ~/.install and then make install'd
-#
-# NOTE: This works if and when your PATH variable points to e.g. ~/.install/bin
-#       (or ~/.local/bin or whatever local directory you built gRPC in)
-#       Yes, CMake uses the PATH variable to find the gRPC, Protobuf, etc. files that it needs
-#       You can use:
-#           cmake .. --debug-find
-#       To see this in action (try removing the bin directory from the PATH)
-#
-include(cmake/FindGRPCLocal.cmake)
-
-# Here we will do the code generation of all the cometbft proto files (with the has_vote hack)
-#
-# Using the old protoc logic which did work, will generate target gen-proto-grpc
-#
+# Generate the code of all the CometBFT proto files (with the has_vote hack)
+# using the old protoc logic which did work, will generate target gen-proto-grpc
 include(cmake/GenerateCometBFTProtoV1_NoExp.cmake)
-
-#  ************ CUSTOM GRPC / PROTO *********************************************************
-
-
-
-
 
 # Find system packages (built-in)
 find_package(Boost 1.83.0 REQUIRED COMPONENTS chrono filesystem program_options system thread nowide)
-#  ************ CUSTOM GRPC / PROTO *********************************************************
-# GRPC comes with libcrypto already
-# Need to comment this out otherwise you get duplicate symbol definition when you link against gen-proto-grpc.
-#find_package(OpenSSL 1.1.1 REQUIRED)
-#  ************ CUSTOM GRPC / PROTO *********************************************************
+find_package(OpenSSL 1.1.1 REQUIRED)
 find_package(ZLIB REQUIRED)
-#find_package(Protobuf REQUIRED) # TODO: not used yet but will be, keep it for now
 find_package(Threads)
 
 # Find system packages (custom)
-#find_package(Cares REQUIRED) # TODO: not used yet but will be, keep it for now
+find_package(Protobuf CONFIG REQUIRED)
 find_package(CryptoPP 8.2.0 REQUIRED)
 find_package(Ethash REQUIRED)
 find_package(Evmc REQUIRED)
 find_package(Evmone REQUIRED)
-#find_package(GRPC REQUIRED) # TODO: not used yet but will be, keep it for now
 find_package(Keccak REQUIRED)
 find_package(Scrypt REQUIRED)
 find_package(Secp256k1 REQUIRED)
@@ -205,39 +151,22 @@ add_library(bdk_lib STATIC
   ${CORE_HEADERS} ${CORE_SOURCES} ${NET_HEADERS} ${NET_SOURCES}
 )
 
-# I think it works even without this line
-add_dependencies(bdk_lib gen-proto-grpc)
-
 target_include_directories(bdk_lib PRIVATE
   ${CMAKE_SOURCE_DIR}/include ${OPENSSL_INCLUDE_DIR} ${ETHASH_INCLUDE_DIR} ${KECCAK_INCLUDE_DIR}
   ${EVMC_INCLUDE_DIR} ${EVMONE_INCLUDE_DIR} ${SPEEDB_INCLUDE_DIR} ${SECP256K1_INCLUDE_DIR}
+  ${Protobuf_INCLUDE_DIRS}
 )
 
-target_link_libraries(bdk_lib PRIVATE
+# gen-proto-grpc contains all the generated .proto headers and sources
+# TODO: rename it later to just "gen-proto" as we're not using gRPC anymore
+target_link_libraries(bdk_lib
+  PRIVATE
   ${EVMC_INSTRUCTIONS_LIBRARY} ${EVMC_LOADER_LIBRARY} ${EVMONE_LIBRARY}
   ${CRYPTOPP_LIBRARIES} ${SCRYPT_LIBRARY} ${SECP256K1_LIBRARY}
   ${ETHASH_LIBRARY} ${KECCAK_LIBRARY} ${SPEEDB_LIBRARY}
-  ${Boost_LIBRARIES} ${OPENSSL_LIBRARIES} -l:liblz4.a
-
-  # FIXME
-  # Protobuf/GRPC stack
-  #${Protobuf_LIBRARIES} ${GRPC_LIBRARIES} ${CARES_LIBRARY} absl::flags
-  #
-  # Using the custom GRPC build directory in e.g. ~/.install and the CMake scripts
-  #   we are using here makes this unnecessary, i.e. it is enough to link against
-  #   gen-proto-grpc and it then just works, because gen-proto-grpc is picking
-  #   up not only the object files from the cc/h generated code from the proto files,
-  #   but it actually comes with GRPC and Protobuf and all its dependencies in it as well.
-
-  # FIXME
-  # The entire CometBFT v1 protocol with all GRPC interfaces (PUBLIC linkage)
-  #  (depends on the Protobuf/GRPC stack linked above)
-  #PUBLIC gen-grpc ProtoFiles
-  PUBLIC gen-proto-grpc   # just one library with all the protos (gprc + protobuf)
-                          # NEW: This also comes with the GRPC, Protobuf & their deps now
-                          # If needed or wanted they can be taken out of the gen-proto-grpc target
-                          #   and placed here as well (I did it that way because that's what is in
-                          #   the grpc cpp examples)
+  ${Boost_LIBRARIES} ${OPENSSL_LIBRARIES} protobuf::libprotobuf -l:liblz4.a
+  PUBLIC
+  gen-proto-grpc
 )
 
 add_subdirectory(src/bins)
