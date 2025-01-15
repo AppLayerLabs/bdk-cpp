@@ -57,13 +57,18 @@ SPEEDB_VERSION="2.8.0"
 echo "-- Scanning for dependencies..."
 
 # Check toolchain binaries
-# Necessary: git, gcc/g++, ld, make, cmake, tmux, protobuf-compiler (protoc), protobuf-compiler-grpc (grpc_cpp_plugin)
+# Necessary: git, wget, gcc/g++, make, ld, autoconf, libtool, pkg-config, cmake, tmux,
+#            protoc + grpc_cpp_plugin (external)
 # Optional: ninja, mold, doxygen, clang-tidy
 HAS_GIT=$(check_exec git)
+HAS_WGET=$(check_exec wget)
 HAS_GCC=$(check_exec gcc)
 HAS_GPP=$(check_exec g++)
-HAS_LD=$(check_exec ld)
 HAS_MAKE=$(check_exec make)
+HAS_LD=$(check_exec ld)
+HAS_AUTOCONF=$(check_exec autoconf)     # Required for local gRPC compilation
+HAS_LIBTOOL=$(check_exec libtool)       # Required for local gRPC compilation
+HAS_PKGCONFIG=$(check_exec pkg-config)  # Required for local gRPC compilation
 HAS_CMAKE=$(check_exec cmake)
 HAS_TMUX=$(check_exec tmux)
 HAS_PROTOC=$(check_exec protoc)
@@ -101,10 +106,14 @@ HAS_SPEEDB=$(check_lib "libspeedb.a")
 if [ "${1:-}" == "--check" ]; then
   echo "-- Required toolchain binaries:"
   echo -n "git: " && [ -n "$HAS_GIT" ] && echo "$HAS_GIT" || echo "not found"
+  echo -n "wget: " && [ -n "$HAS_WGET" ] && echo "$HAS_WGET" || echo "not found"
   echo -n "gcc: " && [ -n "$HAS_GCC" ] && echo "$HAS_GCC" || echo "not found"
   echo -n "g++: " && [ -n "$HAS_GPP" ] && echo "$HAS_GPP" || echo "not found"
-  echo -n "ld: " && [ -n "$HAS_LD" ] && echo "$HAS_LD" || echo "not found"
   echo -n "make: " && [ -n "$HAS_MAKE" ] && echo "$HAS_MAKE" || echo "not found"
+  echo -n "ld: " && [ -n "$HAS_LD" ] && echo "$HAS_LD" || echo "not found"
+  echo -n "autoconf: " && [ -n "$HAS_AUTOCONF" ] && echo "$HAS_AUTOCONF" || echo "not found"
+  echo -n "libtool: " && [ -n "$HAS_LIBTOOL" ] && echo "$HAS_LIBTOOL" || echo "not found"
+  echo -n "pkg-config: " && [ -n "$HAS_PKGCONFIG" ] && echo "$HAS_PKGCONFIG" || echo "not found"
   echo -n "cmake: " && [ -n "$HAS_CMAKE" ] && echo "$HAS_CMAKE" || echo "not found"
   echo -n "tmux: " && [ -n "$HAS_TMUX" ] && echo "$HAS_TMUX" || echo "not found"
   echo -n "protoc: " && [ -n "$HAS_PROTOC" ] && echo "$HAS_PROTOC" || echo "not found"
@@ -148,7 +157,11 @@ elif [ "${1:-}" == "--install" ]; then
     echo "-- Checking internal dependencies..."
     PKGS=""
     if [ -z "$HAS_GIT" ]; then PKGS+="git "; fi
+    if [ -z "$HAS_WGET" ]; then PKGS+="wget "; fi
     if [ -z "$HAS_GCC" ] || [ -z "$HAS_GPP" ] || [ -z "$HAS_MAKE" ] || [ -z "$HAS_LD" ]; then PKGS+="build-essential "; fi
+    if [ -z "$HAS_AUTOCONF" ]; then PKGS+="autoconf "; fi
+    if [ -z "$HAS_LIBTOOL" ]; then PKGS+="libtool-bin "; fi
+    if [ -z "$HAS_PKGCONFIG" ]; then PKGS+="pkg-config "; fi
     if [ -z "$HAS_CMAKE" ]; then PKGS+="cmake "; fi
     if [ -z "$HAS_TMUX" ]; then PKGS+="tmux "; fi
     if [ -z "$HAS_PROTOC" ]; then PKGS+="protobuf-compiler "; fi
