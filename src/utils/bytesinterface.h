@@ -37,7 +37,7 @@ public:
   explicit constexpr BytesInterface(const bytes::Range auto& data)
   requires (N != std::dynamic_extent) {
     if (const size_t size = std::ranges::size(data); size != N)
-        throw DynamicException("Given bytes range of size " + std::to_string(size) + 
+        throw std::invalid_argument("Given bytes range of size " + std::to_string(size) + 
           " is not suitable for initializing a FixedBytes<" + std::to_string(N) + ">");
 
     std::ranges::copy(data, self().begin());

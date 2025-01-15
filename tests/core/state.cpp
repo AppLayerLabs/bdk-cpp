@@ -58,7 +58,7 @@ std::pair<evmc_message, Bytes> buildCallInfo(const Address& addressToCall, const
 
 static Bytes buildMessageData(const Functor& function, View<Bytes> callData) {
   Bytes messageData;
-  Utils::appendBytes(messageData, Utils::uint32ToBytes(function.value));
+  Utils::appendBytes(messageData, UintConv::uint32ToBytes(function.value));
   Utils::appendBytes(messageData, callData);
   return messageData;
 }

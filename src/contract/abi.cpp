@@ -52,7 +52,7 @@ Bytes ABI::Encoder::encodeError(std::string_view reason) {
   std::copy_n(reason.begin(), count, reasonEncoded.begin());
 
   const uint256_t size(reason.size());
-  const FixedBytes<32> sizeEncoded(Utils::uint256ToBytes(size));
+  const FixedBytes<32> sizeEncoded(UintConv::uint256ToBytes(size));
 
   return Utils::makeBytes(bytes::join(
     Hex::toBytes("0x08c379a0"),
@@ -67,7 +67,7 @@ std::string ABI::Decoder::decodeError(View<Bytes> data) {
     throw DynamicException("Encoded revert reason is expected to have exactly 100 bytes");
   }
 
-  const size_t size = Utils::bytesToUint256(data.subspan(36, 32)).convert_to<size_t>();
+  const size_t size = UintConv::bytesToUint256(data.subspan(36, 32)).convert_to<size_t>();
 
   std::string res;
   res.reserve(size);

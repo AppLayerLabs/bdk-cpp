@@ -16,7 +16,7 @@ json Call::toJson() const {
   res["from"] = this->from.hex(true);
   res["to"] = this->to.hex(true);
 
-  const uint256_t value = Utils::bytesToUint256(this->value);
+  const uint256_t value = UintConv::bytesToUint256(this->value);
   res["value"] = Hex::fromBytes(Utils::uintToBytes(value), true).forRPC();
 
   res["gas"] = Hex::fromBytes(Utils::uintToBytes(this->gas), true).forRPC();

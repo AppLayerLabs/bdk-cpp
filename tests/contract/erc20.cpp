@@ -11,6 +11,8 @@ See the LICENSE.txt file in the project root for more information.
 
 #include "../sdktestsuite.hpp"
 
+#include "bytes/hex.h"
+
 // TODO: test events if/when implemented
 
 namespace TERC20 {
@@ -80,7 +82,7 @@ namespace TERC20 {
       REQUIRE(std::get<0>(ABI::Decoder::decodeData<uint256_t>(approveEvents[0].getData())) == uint256_t("500000000000000000"));
 
       // Search for a non-existing spender (for coverage)
-      Address ghost("0x1234567890123456789012345678901234567890", false);
+      Address ghost(bytes::hex("0x1234567890123456789012345678901234567890"));
       REQUIRE(sdk.callViewFunction(erc20, &ERC20::allowance, owner, ghost) == uint256_t(0));
     }
 

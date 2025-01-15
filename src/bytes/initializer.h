@@ -8,6 +8,7 @@ See the LICENSE.txt file in the project root for more information.
 #ifndef BYTES_INITIALIZER_H
 #define BYTES_INITIALIZER_H
 
+#include <functional>
 #include "view.h" // range.h -> ranges -> concepts
 
 /// Namespace for bytes-related functionalities.

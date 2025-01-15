@@ -150,7 +150,7 @@ std::tuple<
   const Bytes blockData = blocksDb_.get(blockHash, DBPrefix::blocks);
   if (blockData.empty()) std::make_tuple(nullptr, Hash(), 0u, 0u);
 
-  const uint64_t blockHeight = Utils::bytesToUint64(View<Bytes>(blockData).subspan(201, 8));
+  const uint64_t blockHeight = UintConv::bytesToUint64(View<Bytes>(blockData).subspan(201, 8));
   return std::make_tuple(
     std::make_shared<TxBlock>(getTxFromBlockWithIndex(blockData, blockIndex)),
     blockHash, blockIndex, blockHeight

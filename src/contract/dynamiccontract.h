@@ -391,7 +391,7 @@ class DynamicContract : public BaseContract {
     Bytes evmEthCall(const evmc_message& callInfo, ContractHost* host) final {
       this->host_ = host;
       PointerNullifier nullifier(this->host_);
-      Functor funcName = Utils::getFunctor(callInfo);
+      Functor funcName = EVMCConv::getFunctor(callInfo);
       if (this->isPayableFunction(funcName)) {
         auto func = this->evmFunctions_.find(funcName);
         if (func == this->evmFunctions_.end()) throw DynamicException("Functor not found for payable function");
@@ -418,7 +418,7 @@ class DynamicContract : public BaseContract {
     Bytes ethCallView(const evmc_message& data, ContractHost* host) const override {
       this->host_ = host;
       PointerNullifier nullifier(this->host_);
-      Functor funcName = Utils::getFunctor(data);
+      Functor funcName = EVMCConv::getFunctor(data);
       auto func = this->viewFunctions_.find(funcName);
       if (func == this->viewFunctions_.end())
         throw DynamicException("Functor not found");

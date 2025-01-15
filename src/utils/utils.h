@@ -438,7 +438,7 @@ namespace Utils {
    * @return The converted span.
    * @throw DynamicException if range is invalid.
    */
-   bytes::View create_view_span(const Bytes& vec, size_t start, size_t size);
+   View<Bytes> create_view_span(const Bytes& vec, size_t start, size_t size);
 
   /**
    * Convert an array to const span.
@@ -482,7 +482,7 @@ namespace Utils {
    * @return The converted span.
    * @throw DynamicException if range is invalid.
    */
-  bytes::View create_view_span(const std::string_view str, size_t start, size_t size);
+  View<Bytes> create_view_span(const std::string_view str, size_t start, size_t size);
 
   /**
    * Append a vector to another.

@@ -73,9 +73,9 @@ namespace IntConv {
    * @return The converted integer.
    * @throw DynamicException if string size is invalid.
    */
-  int256_t bytesToInt256(const bytes::View b);
-  int136_t bytesToInt136(const bytes::View b);
-  int64_t bytesToInt64(const bytes::View b);
+  int256_t bytesToInt256(const View<Bytes> b);
+  int136_t bytesToInt136(const View<Bytes> b);
+  int64_t bytesToInt64(const View<Bytes> b);
   ///@}
 };
 

@@ -132,12 +132,12 @@ TEST_CASE("Evm Message Executor Tests", "[evmcontractexecutor]") {
   //   // TODO: with the call bellow, things doesn't work
   //   input.clear();
   //   auto functor1 = ABI::FunctorEncoder::encode<>("close");
-  //   Utils::appendBytes(input, Utils::uint32ToBytes(functor1.value));
+  //   Utils::appendBytes(input, UintConv::uint32ToBytes(functor1.value));
   //   env.executor.execute(EncodedCallMessage(firstAccountAddress, casinoAddress, gas, value, input));
 
   //   input.clear();
   //   auto functor2 = ABI::FunctorEncoder::encode<Address, Address>("gamble");
-  //   Utils::appendBytes(input, Utils::uint32ToBytes(functor2.value));
+  //   Utils::appendBytes(input, UintConv::uint32ToBytes(functor2.value));
   //   Utils::appendBytes(input, ABI::Encoder::encodeData<Address, Address>(casinoAddress, fundsAddress));
 
   //   value = ONE_ETHER / 2;
@@ -169,7 +169,7 @@ TEST_CASE("Evm Message Executor Tests", "[evmcontractexecutor]") {
 
   //   Bytes input;
   //   auto functor = ABI::FunctorEncoder::encode<Address, std::string>("delegateTo");
-  //   Utils::appendBytes(input, Utils::uint32ToBytes(functor.value));
+  //   Utils::appendBytes(input, UintConv::uint32ToBytes(functor.value));
   //   Utils::appendBytes(input, ABI::Encoder::encodeData<Address, std::string>(delegatedAddress, std::string("cometa")));
 
   //   std::cout << "\n\n";

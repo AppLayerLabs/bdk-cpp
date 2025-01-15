@@ -749,7 +749,11 @@ class SDKTestSuite {
       const Address from = this->getChainOwnerAccount().address;
       EncodedStaticCallMessage msg(from, contractAddress, gas, fullData);
 
-      return std::get<0>(ABI::Decoder::decodeData<ReturnType>(this->state_.ethCall(msg)));
+      const Bytes result = this->state_.ethCall(msg);
+
+      if constexpr (not std::same_as<ReturnType, void>) {
+        return std::get<0>(ABI::Decoder::decodeData<ReturnType>(result));
+      }
     }
 
       /**
@@ -778,7 +782,11 @@ class SDKTestSuite {
       const Address from = this->getChainOwnerAccount().address;
       EncodedStaticCallMessage msg(from, contractAddress, gas, fullData);
 
-      return std::get<0>(ABI::Decoder::decodeData<ReturnType>(this->state_.ethCall(msg)));
+      const Bytes result = this->state_.ethCall(msg);
+
+      if constexpr (not std::same_as<ReturnType, void>) {
+        return std::get<0>(ABI::Decoder::decodeData<ReturnType>(result));
+      }
     }
 
 

@@ -40,7 +40,7 @@ public:
     callTrace.status = trace::CallStatus::SUCCEEDED;
     callTrace.from = Address(msg.from());
     callTrace.to = Address(msg.to());
-    callTrace.value = FixedBytes<32>(Utils::uint256ToBytes(messageValueOrZero(msg)));
+    callTrace.value = FixedBytes<32>(UintConv::uint256ToBytes(messageValueOrZero(msg)));
     callTrace.gas = uint64_t(gas);
 
     try {

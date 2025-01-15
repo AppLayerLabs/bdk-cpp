@@ -105,13 +105,13 @@ std::string Utils::getSignalName(int signum) {
   return n;
 }
 
-bytes::View Utils::create_view_span(const Bytes& vec, size_t start, size_t size) {
+View<Bytes> Utils::create_view_span(const Bytes& vec, size_t start, size_t size) {
   if (start + size > vec.size()) throw DynamicException("Invalid range for span");
-  return bytes::View(vec.data() + start, size);
+  return View<Bytes>(vec.data() + start, size);
 }
 
-bytes::View Utils::create_view_span(const std::string_view str, size_t start, size_t size) {
+View<Bytes> Utils::create_view_span(const std::string_view str, size_t start, size_t size) {
   if (start + size > str.size()) throw DynamicException("Invalid range for span");
-  return bytes::View(reinterpret_cast<const uint8_t*>(str.data()) + start, size);
+  return View<Bytes>(reinterpret_cast<const uint8_t*>(str.data()) + start, size);
 }
 

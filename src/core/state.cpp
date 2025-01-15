@@ -220,7 +220,7 @@ void State::processTransaction(
   TxAdditionalData txData{.hash = tx.hash()};
 
   try {
-    const Hash randomSeed(Utils::uint256ToBytes((static_cast<uint256_t>(randomnessHash) + txIndex)));
+    const Hash randomSeed(UintConv::uint256ToBytes((static_cast<uint256_t>(randomnessHash) + txIndex)));
 
     ExecutionContext context = ExecutionContext::Builder{}
       .storage(this->vmStorage_)

@@ -1,8 +1,10 @@
 #include "evmcontractexecutor.h"
+
 #include "bytes/cast.h"
 #include "bytes/hex.h"
 #include "common.h"
 #include "outofgas.h"
+#include "utils/evmcconv.h"
 #include "contract/costs.h"
 
 constexpr decltype(auto) getAndThen(auto&& map, const auto& key, auto&& andThen, auto&& orElse) {
@@ -56,7 +58,7 @@ constexpr evmc_message makeEvmcMessage(const M& msg, uint64_t depth) {
     .sender = bytes::cast<evmc_address>(msg.from()),
     .input_data = msg.input().data(),
     .input_size = msg.input().size(),
-    .value = Utils::uint256ToEvmcUint256(messageValueOrZero(msg)),
+    .value = EVMCConv::uint256ToEvmcUint256(messageValueOrZero(msg)),
     .create2_salt = evmc_bytes32{},
     .code_address = bytes::cast<evmc_address>(messageCodeAddress(msg))
   };
@@ -73,7 +75,7 @@ constexpr evmc_message makeEvmcMessage(const M& msg, uint64_t depth, View<Addres
     .sender = bytes::cast<evmc_address>(msg.from()),
     .input_data = nullptr,
     .input_size = 0,
-    .value = Utils::uint256ToEvmcUint256(messageValueOrZero(msg)),
+    .value = EVMCConv::uint256ToEvmcUint256(messageValueOrZero(msg)),
     .create2_salt = bytes::cast<evmc_bytes32>(messageSaltOrDefault(msg)),
     .code_address = evmc_address{} // TODO: CALL CODE?
   };
@@ -184,7 +186,7 @@ evmc_storage_status EvmContractExecutor::set_storage(const evmc::address& addr, 
 
 evmc::uint256be EvmContractExecutor::get_balance(const evmc::address& addr) const noexcept {
   try {
-    return Utils::uint256ToEvmcUint256(context_.getAccount(addr).getBalance());
+    return EVMCConv::uint256ToEvmcUint256(context_.getAccount(addr).getBalance());
   } catch (const std::exception&) {
     return evmc::uint256be{};
   }
@@ -230,14 +232,14 @@ bool EvmContractExecutor::selfdestruct(const evmc::address& addr, const evmc::ad
 
 evmc_tx_context EvmContractExecutor::get_tx_context() const noexcept {
   return evmc_tx_context{
-    .tx_gas_price = Utils::uint256ToEvmcUint256(context_.getTxGasPrice()),
+    .tx_gas_price = EVMCConv::uint256ToEvmcUint256(context_.getTxGasPrice()),
     .tx_origin = bytes::cast<evmc_address>(context_.getTxOrigin()),
     .block_coinbase = bytes::cast<evmc_address>(context_.getBlockCoinbase()),
     .block_number = context_.getBlockNumber(),
     .block_timestamp = context_.getBlockTimestamp(),
     .block_gas_limit = context_.getBlockGasLimit(),
     .block_prev_randao = {},
-    .chain_id = Utils::uint256ToEvmcUint256(context_.getChainId()),
+    .chain_id = EVMCConv::uint256ToEvmcUint256(context_.getChainId()),
     .block_base_fee = {},
     .blob_base_fee = {},
     .blob_hashes = nullptr,
@@ -246,7 +248,7 @@ evmc_tx_context EvmContractExecutor::get_tx_context() const noexcept {
 }
 
 evmc::bytes32 EvmContractExecutor::get_block_hash(int64_t number) const noexcept {
-  return Utils::uint256ToEvmcUint256(number); // TODO: ???
+  return EVMCConv::uint256ToEvmcUint256(number); // TODO: ???
 }
 
 void EvmContractExecutor::emit_log(const evmc::address& addr, const uint8_t* data, size_t dataSize, const evmc::bytes32 topics[], size_t topicsCount) noexcept {
@@ -294,7 +296,7 @@ void EvmContractExecutor::set_transient_storage(const evmc::address &addr, const
 
 evmc::Result EvmContractExecutor::call(const evmc_message& msg) noexcept {
   Gas gas(msg.gas);
-  const uint256_t value = Utils::evmcUint256ToUint256(msg.value);
+  const uint256_t value = EVMCConv::evmcUint256ToUint256(msg.value);
 
   const auto process = [&] (auto& msg) {
     try {

@@ -660,7 +660,7 @@ namespace P2P {
    * @return A map of the nodes and their respective IDs.
    * @throw DynamicException if data size or IP version is invalid.
    */
-  boost::unordered_flat_map<NodeID, NodeType, SafeHash> nodesFromMessage(bytes::View data);
+  boost::unordered_flat_map<NodeID, NodeType, SafeHash> nodesFromMessage(View<Bytes> data);
 
   /**
    * Helper function for converting nodes to a message. Conversion is done in-place.
@@ -674,7 +674,7 @@ namespace P2P {
    * @param data The raw bytes string to parse.
    * @return A struct with the node's information.
    */
-  NodeInfo nodeInfoFromMessage(const bytes::View& data);
+  NodeInfo nodeInfoFromMessage(const View<Bytes>& data);
 
   /**
    * Helper function for converting node information to a message. Conversion is done in-place.
@@ -697,7 +697,7 @@ namespace P2P {
    * @return A list of blocks.
    * @throw DynamicException if data size is invalid.
    */
-  std::vector<FinalizedBlock> blocksFromMessage(const bytes::View& data, const uint64_t& requiredChainId);
+  std::vector<FinalizedBlock> blocksFromMessage(const View<Bytes>& data, const uint64_t& requiredChainId);
 
   /**
    * Helper function for converting block data to a message. Conversion is done in-place.

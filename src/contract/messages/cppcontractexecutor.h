@@ -4,6 +4,7 @@
 #include "executioncontext.h"
 #include "traits.h"
 #include "bytes/cast.h"
+#include "utils/evmcconv.h"
 #include "utils/contractreflectioninterface.h"
 #include "contract/costs.h"
 
@@ -104,7 +105,7 @@ private:
       + ")";
 
     // We only need the first 4 bytes for the function signature
-    Bytes fullData = Utils::makeBytes(Utils::sha3(bytes::view(createSignature)) | std::views::take(4));
+    Bytes fullData = Utils::makeBytes(Utils::sha3(View<Bytes>(bytes::view(createSignature))) | std::views::take(4));
 
     std::apply(Utils::Overloaded{
       [] () {},
@@ -124,7 +125,7 @@ private:
       .sender = bytes::cast<evmc_address>(msg.from()),
       .input_data = fullData.data(),
       .input_size = fullData.size(),
-      .value = Utils::uint256ToEvmcUint256(msg.value()),
+      .value = EVMCConv::uint256ToEvmcUint256(msg.value()),
       .create2_salt{},
       .code_address = bytes::cast<evmc_address>(to)
     };

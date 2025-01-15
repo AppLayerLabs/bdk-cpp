@@ -12,6 +12,7 @@ See the LICENSE.txt file in the project root for more information.
 #include "bytes/view.h"
 #include "bytes/random.h"
 #include "bytes/hex.h"
+#include "bytes/cast.h"
 
 using Catch::Matchers::Equals;
 
@@ -203,7 +204,7 @@ namespace THash {
       Bytes b = Hex::toBytes("9be83ea08b549e7c77644c451b55a674bb12e4668d018183ff9723b1de493818");
       for (int i = 0; i < 32; i++) num.bytes[i] = b[i];
       Hash hash(num);
-      REQUIRE(hash.toEvmcBytes32() == num);
+      REQUIRE(bytes::cast<evmc::bytes32>(hash) == num);
     }
 
     SECTION("Hash random()") {
@@ -236,14 +237,14 @@ namespace TSignature {
 namespace TAddress {
   TEST_CASE("Address Class", "[utils][strings][address]") {
     SECTION("Address String View Constructor") {
-      Address addStr(std::string_view("0x71c7656ec7ab88b098defb751b7401b5f6d8976f"), false);
-      Address addBytes(std::string_view("\x71\xc7\x65\x6e\xc7\xab\x88\xb0\x98\xde\xfb\x75\x1b\x74\x01\xb5\xf6\xd8\x97\x6f"), true);
+      Address addStr(bytes::hex("0x71c7656ec7ab88b098defb751b7401b5f6d8976f"));
+      Address addBytes(bytes::view("\x71\xc7\x65\x6e\xc7\xab\x88\xb0\x98\xde\xfb\x75\x1b\x74\x01\xb5\xf6\xd8\x97\x6f"));
       REQUIRE(addStr == addBytes);
       REQUIRE_THAT(addStr.hex(), Equals("71c7656ec7ab88b098defb751b7401b5f6d8976f"));
       REQUIRE_THAT(addBytes.hex(), Equals("71c7656ec7ab88b098defb751b7401b5f6d8976f"));
       // For coverage
-      REQUIRE_THROWS(Address(std::string_view("0x71c7656ec7ab88b098defb751b7401b5f6d8976h"), false)); // last char is "h"
-      REQUIRE_THROWS(Address("\x71\xc7\x65\x6e\xc7\xab\x88\xb0\x98\xde\xfb\x75\x1b\x74\x01\xb5\xf6\xd8\x97", true)); // missing last byte "\x6f"
+      REQUIRE_THROWS(Address(bytes::hex("0x71c7656ec7ab88b098defb751b7401b5f6d8976h"))); // last char is "h"
+      REQUIRE_THROWS(Address(bytes::view("\x71\xc7\x65\x6e\xc7\xab\x88\xb0\x98\xde\xfb\x75\x1b\x74\x01\xb5\xf6\xd8\x97"))); // missing last byte "\x6f"
     }
 
     SECTION("Address Copy Constructor") {
@@ -305,40 +306,3 @@ namespace TAddress {
     }
   }
 }
-
-namespace TStorageKey {
-  TEST_CASE("StorageKey Class", "[utils][strings][storagekey]") {
-    SECTION("StorageKey Constructors") {
-      evmc::address addr1;
-      evmc_address addr2;
-      evmc::bytes32 slot1;
-      evmc_bytes32 slot2;
-      Address addr3(std::string("0x1234567890123456789012345678901234567890"), false);
-      Hash slot3(Hex::toBytes("aaaaaaaabbbbbbbbccccccccddddddddeeeeeeeeffffffff0000000099999999"));
-
-      // TODO: replace this with one of the std::ranges alternatives after ContractHost refactor is merged:
-      // std::ranges::fill(addr, 0xFF); // <--- preferred
-      // std::ranges::fill(addr.bytes, 0xFF);
-      // std::fill(addr.bytes, addr.bytes + sizeof(addr.bytes), 0xFF);
-      for (int i = 0; i < 20; i++) { addr1.bytes[i] = 0xAA; addr2.bytes[i] = 0xFF; }
-      for (int i = 0; i < 32; i++) { slot1.bytes[i] = 0xAA; slot2.bytes[i] = 0xFF; }
-
-      StorageKey key1(addr1, slot1);
-      StorageKey key2(addr2, slot2);
-      StorageKey key3(addr2, slot1);
-      StorageKey key4(addr1, slot2);
-      StorageKey key5(addr3, slot3);
-
-      REQUIRE_THAT(Hex::fromBytes(key1.asBytes()).get(), Equals("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"));
-      REQUIRE_THAT(Hex::fromBytes(key2.asBytes()).get(), Equals("ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"));
-      REQUIRE_THAT(Hex::fromBytes(key3.asBytes()).get(), Equals("ffffffffffffffffffffffffffffffffffffffffaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"));
-      REQUIRE_THAT(Hex::fromBytes(key4.asBytes()).get(), Equals("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"));
-      REQUIRE_THAT(Hex::fromBytes(key5.asBytes()).get(), Equals("1234567890123456789012345678901234567890aaaaaaaabbbbbbbbccccccccddddddddeeeeeeeeffffffff0000000099999999"));
-
-      // Testing throw for coverage
-      FixedBytes<5> keyWrongSize({0x00, 0x00, 0x00, 0x00, 0x00});
-      REQUIRE_THROWS(StorageKey(keyWrongSize.view()));
-    }
-  }
-}
-

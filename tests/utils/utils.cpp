@@ -106,8 +106,8 @@ namespace TUtils {
     SECTION("create_view_span") {
       Bytes b{0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f};
       std::string_view sv("abcdef");
-      bytes::View v1 = Utils::create_view_span(b, 0, 6);
-      bytes::View v2 = Utils::create_view_span(sv, 0, 6);
+      View<Bytes> v1 = Utils::create_view_span(b, 0, 6);
+      View<Bytes> v2 = Utils::create_view_span(sv, 0, 6);
       REQUIRE(Hex::fromBytes(v1).get() == "0a0b0c0d0e0f");
       REQUIRE(Hex::fromBytes(v2).get() == "616263646566");
       REQUIRE_THROWS(Utils::create_view_span(b, 0, 12));

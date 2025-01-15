@@ -87,22 +87,6 @@ struct UserWrapper {
 
 namespace TCallTracer {
   TEST_CASE("CallTracer Tests", "[trace]") {
-    SECTION("Call Type Parsing") {
-      evmc_message msgCall;
-      evmc_message msgStaticCall;
-      evmc_message msgDelegateCall;
-      evmc_message msgInvalidCall;
-      msgCall.kind = EVMC_CALL;
-      msgStaticCall.kind = EVMC_CALL;
-      msgDelegateCall.kind = EVMC_DELEGATECALL;
-      msgInvalidCall.kind = evmc_call_kind(-1);
-      msgStaticCall.flags = EVMC_STATIC;
-      REQUIRE(trace::getCallType(msgCall) == trace::Call::Type::CALL);
-      REQUIRE(trace::getCallType(msgStaticCall) == trace::Call::Type::STATICCALL);
-      REQUIRE(trace::getCallType(msgDelegateCall) == trace::Call::Type::DELEGATECALL);
-      REQUIRE_THROWS(trace::getCallType(msgInvalidCall));
-    }
-
     SECTION("EVM Single Call") {
       SDKTestSuite sdk = SDKTestSuite::createNewEnvironment("TestTraceContracts");
 
@@ -124,7 +108,7 @@ namespace TCallTracer {
     REQUIRE(callTrace->to == contractAddress);
     REQUIRE(callTrace->value == FixedBytes<32>());
     // TODO: gas and gasUsed?
-    REQUIRE(FixedBytes<32>(callTrace->input | std::views::drop(4)) == FixedBytes<32>(Utils::uint256ToBytes(uint256_t(33))));
+    REQUIRE(FixedBytes<32>(callTrace->input | std::views::drop(4)) == FixedBytes<32>(UintConv::uint256ToBytes(uint256_t(33))));
 
     REQUIRE(callTrace->output == Bytes());
     REQUIRE(callTrace->calls.empty());
@@ -143,9 +127,9 @@ namespace TCallTracer {
     REQUIRE(callTrace->to == contractAddress);
     REQUIRE(callTrace->value == FixedBytes<32>());
     // TODO: gas and gasUsed?
-    REQUIRE(FixedBytes<32>(callTrace->input | std::views::drop(4)) == FixedBytes<32>(Utils::uint256ToBytes(uint256_t(66))));
+    REQUIRE(FixedBytes<32>(callTrace->input | std::views::drop(4)) == FixedBytes<32>(UintConv::uint256ToBytes(uint256_t(66))));
 
-    REQUIRE(callTrace->output == Utils::makeBytes(Utils::uint256ToBytes(uint256_t(99))));
+    REQUIRE(callTrace->output == Utils::makeBytes(UintConv::uint256ToBytes(uint256_t(99))));
     REQUIRE(callTrace->calls.empty());
 
       res = sdk.callViewFunction(contractAddress, &TestWrapper::sum);
@@ -179,7 +163,7 @@ namespace TCallTracer {
     REQUIRE(callTrace->value == FixedBytes<32>());
     // TODO: gas and gasUsed
     REQUIRE(Address(callTrace->input | std::views::drop(16) | std::views::take(20)) == testContractAddress);
-    REQUIRE(FixedBytes<32>(callTrace->input | std::views::drop(36)) == FixedBytes<32>(Utils::uint256ToBytes(uint256_t(55))));
+    REQUIRE(FixedBytes<32>(callTrace->input | std::views::drop(36)) == FixedBytes<32>(UintConv::uint256ToBytes(uint256_t(55))));
 
       REQUIRE(callTrace->output == Utils::makeBytes(UintConv::uint256ToBytes(uint256_t(100))));
       REQUIRE(callTrace->calls.size() == 1);
@@ -190,7 +174,7 @@ namespace TCallTracer {
     REQUIRE(nestedCall.from == testProxyContractAddress);
     REQUIRE(nestedCall.to == testContractAddress);
     REQUIRE(nestedCall.value == FixedBytes<32>());
-    REQUIRE(FixedBytes<32>(nestedCall.input | std::views::drop(4)) == FixedBytes<32>(Utils::uint256ToBytes(uint256_t(55))));
+    REQUIRE(FixedBytes<32>(nestedCall.input | std::views::drop(4)) == FixedBytes<32>(UintConv::uint256ToBytes(uint256_t(55))));
 
       REQUIRE(nestedCall.output == Utils::makeBytes(UintConv::uint256ToBytes(uint256_t(100))));
       REQUIRE(nestedCall.calls.empty());
@@ -313,7 +297,7 @@ namespace TCallTracer {
     REQUIRE(payCallTrace->status == trace::CallStatus::SUCCEEDED);
     REQUIRE(payCallTrace->from == sdk.getOptions().getChainOwner());
     REQUIRE(payCallTrace->to == bankAddress);
-    REQUIRE(payCallTrace->value == FixedBytes<32>(Utils::uint256ToBytes(uint256_t(4568))));
+    REQUIRE(payCallTrace->value == FixedBytes<32>(UintConv::uint256ToBytes(uint256_t(4568))));
     REQUIRE(payCallTrace->input == Hex::toBytes("0x1b9265b8"));
     REQUIRE(payCallTrace->output == Bytes());
     REQUIRE(payCallTrace->calls.empty());

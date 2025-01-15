@@ -50,7 +50,7 @@ Bytes CallExecutor::executeCall(kind::Any callKind, Gas& gas, const Message& msg
     .sender = bytes::cast<evmc_address>(msg.from),
     .input_data = msg.input.data(),
     .input_size = msg.input.size(),
-    .value = Utils::uint256ToEvmcUint256(msg.value),
+    .value = EVMCConv::uint256ToEvmcUint256(msg.value),
     .create2_salt = {},
     .code_address = {}
   };
@@ -88,7 +88,7 @@ bool CallExecutor::account_exists(const evmc::address& addr) const noexcept {
 
 evmc::bytes32 CallExecutor::get_storage(const evmc::address& addr, const evmc::bytes32& key) const noexcept {
   return get(vmStorage_, StorageKey(addr, key))
-    .transform([] (const Hash& hash) { return hash.toEvmcBytes32(); })
+    .transform([] (const Hash& hash) { return bytes::cast<evmc::bytes32>(hash); })
     .value_or(evmc::bytes32{});
 }
 
@@ -102,7 +102,7 @@ evmc_storage_status CallExecutor::set_storage(const evmc::address& addr, const e
 
 evmc::uint256be CallExecutor::get_balance(const evmc::address& addr) const noexcept {
   return get(accounts_, addr)
-    .transform([] (const auto& account) { return Utils::uint256ToEvmcUint256(account.get()->balance); })
+    .transform([] (const auto& account) { return EVMCConv::uint256ToEvmcUint256(account.get()->balance); })
     .value_or(evmc::uint256be{});
 }
 
@@ -114,7 +114,7 @@ size_t CallExecutor::get_code_size(const evmc::address& addr) const noexcept {
 
 evmc::bytes32 CallExecutor::get_code_hash(const evmc::address& addr) const noexcept {
   return get(accounts_, addr)
-    .transform([] (const auto& account) { return account.get()->codeHash.toEvmcBytes32(); })
+    .transform([] (const auto& account) { return bytes::cast<evmc::bytes32>(account.get()->codeHash); })
     .value_or(evmc::bytes32{});
 }
 
@@ -146,7 +146,7 @@ evmc_tx_context CallExecutor::get_tx_context() const noexcept {
 }
 
 evmc::bytes32 CallExecutor::get_block_hash(int64_t number) const noexcept {
-  return Utils::uint256ToEvmcUint256(number);
+  return EVMCConv::uint256ToEvmcUint256(number);
 }
 
 void CallExecutor::emit_log(const evmc::address& addr, const uint8_t* data, size_t data_size, const evmc::bytes32 topics[], size_t topics_count) noexcept {
@@ -181,7 +181,7 @@ evmc_access_status CallExecutor::access_storage(const evmc::address& addr, const
 
 evmc::bytes32 CallExecutor::get_transient_storage(const evmc::address &addr, const evmc::bytes32 &key) const noexcept {
   return get(transientStorage_, StorageKey(addr, key))
-    .transform([] (const Hash& hash) { return hash.toEvmcBytes32(); })
+    .transform([] (const Hash& hash) { return bytes::cast<evmc::bytes32>(hash); })
     .value_or(evmc::bytes32{});
 }
 
@@ -212,7 +212,7 @@ evmc::Result CallExecutor::call(const evmc_message& msg) noexcept {
       case EVMC_DELEGATECALL:
         callMsg.from = Address(msg.sender);
         callMsg.to = Address(msg.recipient);
-        callMsg.value = Utils::evmcUint256ToUint256(msg.value);
+        callMsg.value = EVMCConv::evmcUint256ToUint256(msg.value);
         callMsg.depth = msg.depth;
         callMsg.input = View<Bytes>(msg.input_data, msg.input_size);
         result = callHandler_.onCall(callKind, gas, callMsg);

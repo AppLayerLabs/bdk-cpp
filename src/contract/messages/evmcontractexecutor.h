@@ -38,7 +38,7 @@ public:
         throw DynamicException("EVM contract function name is empty (contract not registered?)");
       }
 
-      Bytes res = Utils::makeBytes(Utils::uint32ToBytes(ABI::FunctorEncoder::encode<Args...>(functionName).value));
+      Bytes res = Utils::makeBytes(UintConv::uint32ToBytes(ABI::FunctorEncoder::encode<Args...>(functionName).value));
 
       if constexpr (sizeof...(Args) > 0) {
         Utils::appendBytes(res, ABI::Encoder::encodeData<Args...>(args...));
