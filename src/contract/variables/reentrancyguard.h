@@ -8,6 +8,8 @@ See the LICENSE.txt file in the project root for more information.
 #ifndef REENTRANCY_GUARD_H
 #define REENTRANCY_GUARD_H
 
+#include "../../utils/dynamicexception.h"
+
 /**
  * RAII object used to prevent reentrancy attacks, similar to std::unique_lock or std::shared_lock.
  * It is meant to be used within the first line of the function you want to protect against reentrancy attacks.

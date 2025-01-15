@@ -106,19 +106,19 @@ class BaseContract : public ContractLocals, public Dumpable {
     BaseContract(const Address &address, const DB& db) :
       contractAddress_(address),
       dbPrefix_([&]() {
-       Bytes prefix = DBPrefix::contracts;
-       prefix.reserve(prefix.size() + address.size());
-       prefix.insert(prefix.end(), address.cbegin(), address.cend());
-       return prefix;
+        Bytes prefix = DBPrefix::contracts;
+        prefix.reserve(prefix.size() + address.size());
+        prefix.insert(prefix.end(), address.cbegin(), address.cend());
+        return prefix;
       }()),
       contractName_([&]() {
-       return StrConv::bytesToString(db.get(std::string("contractName_"), dbPrefix_));
+        return StrConv::bytesToString(db.get(std::string("contractName_"), dbPrefix_));
       }()),
       contractCreator_([&]() {
-       return Address(db.get(std::string("contractCreator_"), dbPrefix_));
+        return Address(db.get(std::string("contractCreator_"), dbPrefix_));
       }()),
       contractChainId_([&]() {
-       return UintConv::bytesToUint64(db.get(std::string("contractChainId_"), dbPrefix_));
+        return UintConv::bytesToUint64(db.get(std::string("contractChainId_"), dbPrefix_));
       }())
     {}
 

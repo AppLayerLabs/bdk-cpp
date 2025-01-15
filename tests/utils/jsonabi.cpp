@@ -16,6 +16,9 @@ namespace TJsonAbi {
       std::string type2 = "int";
       REQUIRE(JsonAbi::isArray(type1));
       REQUIRE_FALSE(JsonAbi::isArray(type2));
+      // For coverage
+      REQUIRE_FALSE(JsonAbi::isArray("int()")); // "()" != "[]"
+      REQUIRE_FALSE(JsonAbi::isArray("int[)")); // "[)" != "[]"
     }
 
     SECTION("JsonAbi isTuple") {
@@ -25,6 +28,11 @@ namespace TJsonAbi {
       REQUIRE(JsonAbi::isTuple(type1));
       REQUIRE(JsonAbi::isTuple(type2));
       REQUIRE_FALSE(JsonAbi::isTuple(type3));
+      // For coverage
+      REQUIRE_FALSE(JsonAbi::isTuple("{int, double, float}"));  // "{}" != "()"
+      REQUIRE_FALSE(JsonAbi::isTuple("{int, double}[]"));
+      REQUIRE_FALSE(JsonAbi::isTuple("{int, double, float)")); // "{)" != "()"
+      REQUIRE_FALSE(JsonAbi::isTuple("{int, double)[]"));
     }
 
     SECTION("JsonAbi countTupleArrays") {
@@ -36,6 +44,9 @@ namespace TJsonAbi {
       REQUIRE(JsonAbi::countTupleArrays(type1) == 1);
       REQUIRE(JsonAbi::countTupleArrays(type2) == 2);
       REQUIRE(JsonAbi::countTupleArrays(type3) == 3);
+      // For coverage
+      REQUIRE(JsonAbi::countTupleArrays("(int, double){}") == 0); // "{}" != "[]"
+      REQUIRE(JsonAbi::countTupleArrays("(int, double){]") == 0); // "{]" != "[]"
     }
 
     SECTION("JsonAbi getTupleTypes") {

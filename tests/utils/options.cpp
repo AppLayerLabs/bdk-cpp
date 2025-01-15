@@ -27,6 +27,10 @@ namespace TOptions {
       if (std::filesystem::exists(testDumpPath + "/optionClassFromFileWithPrivKey")) {
         std::filesystem::remove_all(testDumpPath + "/optionClassFromFileWithPrivKey");
       }
+      if (std::filesystem::exists(testDumpPath + "/optionClassFromFileWithoutPrivKey")) {
+        std::filesystem::remove_all(testDumpPath + "/optionClassFromFileWithoutPrivKey");
+      }
+
       PrivKey genesisPrivKey(Hex::toBytes("0xe89ef6409c467285bcae9f80ab1cfeb3487cfe61ab28fb7d36443e1daa0c2867"));
       uint64_t genesisTimestamp = 1678887538000000;
       FinalizedBlock genesis = FinalizedBlock::createNewValidBlock({},{}, Hash(), genesisTimestamp, 0, genesisPrivKey);
@@ -35,6 +39,8 @@ namespace TOptions {
       for (const auto& privKey : validatorPrivKeys_) {
         genesisValidators.push_back(Secp256k1::toAddress(Secp256k1::toUPub(privKey)));
       }
+
+      // Options WITH PrivKey
       Options optionsWithPrivKey(
         testDumpPath + "/optionClassFromFileWithPrivKey",
         "BDK/cpp/linux_x86-64/0.2.0",
@@ -91,6 +97,63 @@ namespace TOptions {
       REQUIRE(optionsFromFileWithPrivKey.getGenesisBlock() == optionsWithPrivKey.getGenesisBlock());
       REQUIRE(optionsFromFileWithPrivKey.getGenesisBalances() == optionsWithPrivKey.getGenesisBalances());
       REQUIRE(optionsFromFileWithPrivKey.getGenesisValidators() == optionsWithPrivKey.getGenesisValidators());
+
+      // Options WITHOUT PrivKey
+      Options optionsWithoutPrivKey(
+        testDumpPath + "/optionClassFromFileWithoutPrivKey",
+        "BDK/cpp/linux_x86-64/0.2.0",
+        1,
+        8080,
+        Address(Hex::toBytes("0x00dead00665771855a34155f5e7405489df2c3c6")),
+        LOCALHOST,
+        8080,
+        8081,
+        11,
+        11,
+        200,
+        50,
+        2000,
+        10000,
+        1000,
+        4,
+        {
+          {boost::asio::ip::address_v4::from_string("127.0.0.1"), uint64_t(8000)},
+          {boost::asio::ip::address_v4::from_string("127.0.0.1"), uint64_t(8001)}
+        },
+        genesis,
+        genesisTimestamp,
+        genesisPrivKey,
+        genesisBalances,
+        genesisValidators,
+        IndexingMode::RPC
+      );
+
+      Options optionsFromFileWithoutPrivKey(Options::fromFile(testDumpPath + "/optionClassFromFileWithoutPrivKey"));
+      REQUIRE(optionsFromFileWithoutPrivKey.getRootPath() == optionsWithoutPrivKey.getRootPath());
+      REQUIRE(optionsFromFileWithoutPrivKey.getMajorSDKVersion() == optionsWithoutPrivKey.getMajorSDKVersion());
+      REQUIRE(optionsFromFileWithoutPrivKey.getMinorSDKVersion() == optionsWithoutPrivKey.getMinorSDKVersion());
+      REQUIRE(optionsFromFileWithoutPrivKey.getPatchSDKVersion() == optionsWithoutPrivKey.getPatchSDKVersion());
+      REQUIRE(optionsFromFileWithoutPrivKey.getWeb3ClientVersion() == optionsWithoutPrivKey.getWeb3ClientVersion());
+      REQUIRE(optionsFromFileWithoutPrivKey.getVersion() == optionsWithoutPrivKey.getVersion());
+      REQUIRE(optionsFromFileWithoutPrivKey.getChainOwner() == optionsWithoutPrivKey.getChainOwner());
+      REQUIRE(optionsFromFileWithoutPrivKey.getChainID() == optionsWithoutPrivKey.getChainID());
+      REQUIRE(optionsFromFileWithoutPrivKey.getP2PIp() == optionsWithoutPrivKey.getP2PIp());
+      REQUIRE(optionsFromFileWithoutPrivKey.getP2PPort() == optionsWithoutPrivKey.getP2PPort());
+      REQUIRE(optionsFromFileWithoutPrivKey.getHttpPort() == optionsWithoutPrivKey.getHttpPort());
+      REQUIRE(optionsFromFileWithoutPrivKey.getMinDiscoveryConns() == optionsWithoutPrivKey.getMinDiscoveryConns());
+      REQUIRE(optionsFromFileWithoutPrivKey.getMinNormalConns() == optionsWithoutPrivKey.getMinNormalConns());
+      REQUIRE(optionsFromFileWithoutPrivKey.getMaxDiscoveryConns() == optionsWithoutPrivKey.getMaxDiscoveryConns());
+      REQUIRE(optionsFromFileWithoutPrivKey.getMaxNormalConns() == optionsWithoutPrivKey.getMaxNormalConns());
+      REQUIRE(optionsFromFileWithoutPrivKey.getEventBlockCap() == optionsWithoutPrivKey.getEventBlockCap());
+      REQUIRE(optionsFromFileWithoutPrivKey.getEventLogCap() == optionsWithoutPrivKey.getEventLogCap());
+      REQUIRE(optionsFromFileWithoutPrivKey.getStateDumpTrigger() == optionsWithoutPrivKey.getStateDumpTrigger());
+      REQUIRE(optionsFromFileWithoutPrivKey.getMinValidators() == optionsWithoutPrivKey.getMinValidators());
+      REQUIRE(optionsFromFileWithoutPrivKey.getCoinbase() == optionsWithoutPrivKey.getCoinbase());
+      REQUIRE(optionsFromFileWithoutPrivKey.getIsValidator() == optionsWithoutPrivKey.getIsValidator());
+      REQUIRE(optionsFromFileWithoutPrivKey.getDiscoveryNodes() == optionsWithoutPrivKey.getDiscoveryNodes());
+      REQUIRE(optionsFromFileWithoutPrivKey.getGenesisBlock() == optionsWithoutPrivKey.getGenesisBlock());
+      REQUIRE(optionsFromFileWithoutPrivKey.getGenesisBalances() == optionsWithoutPrivKey.getGenesisBalances());
+      REQUIRE(optionsFromFileWithoutPrivKey.getGenesisValidators() == optionsWithoutPrivKey.getGenesisValidators());
     }
 
     SECTION("IndexingMode Coverage") {

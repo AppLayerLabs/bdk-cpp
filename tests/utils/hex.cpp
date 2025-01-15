@@ -20,41 +20,58 @@ namespace THex {
       REQUIRE_THAT(hexStrict.get(), Equals("0x"));
     }
 
-    SECTION("Hex Copy Constructor") {
-      std::string hexStr = "0x1234";
-      Hex hex(hexStr, false);
-      Hex hexStrict(hexStr, true);
-      REQUIRE_THAT(hex.get(), Equals("1234"));
-      REQUIRE_THAT(hexStrict.get(), Equals("0x1234"));
-      REQUIRE_THAT(hexStr, Equals("0x1234"));
+    SECTION("Hex String View Constructor") {
+      Hex hexA1(std::string_view("0x1234"), true);
+      Hex hexA2(std::string_view("0X1234"), true);
+      Hex hexA3(std::string_view("1234"), true);
+      Hex hexB1(std::string_view("0x1234"), false);
+      Hex hexB2(std::string_view("0X1234"), false);
+      Hex hexB3(std::string_view("1234"), false);
+      REQUIRE_THAT(hexA1.get(), Equals("0x1234"));
+      REQUIRE_THAT(hexA2.get(), Equals("0x1234"));
+      REQUIRE_THAT(hexA3.get(), Equals("0x1234"));
+      REQUIRE_THAT(hexB1.get(), Equals("1234"));
+      REQUIRE_THAT(hexB2.get(), Equals("1234"));
+      REQUIRE_THAT(hexB3.get(), Equals("1234"));
+      REQUIRE_THROWS(Hex(std::string_view("01234"), true));
+      REQUIRE_THROWS(Hex(std::string_view("x1234"), true));
+      REQUIRE_THROWS(Hex(std::string_view("x1234"), false));
+    }
 
-      bool catch1 = false;
-      bool catch2 = false;
-      std::string wrongStr = "xyzw";
-      try { Hex wrongHex(wrongStr, false); } catch (std::exception &e) { catch1 = true; }
-      try { Hex wrongHex2(wrongStr, true); } catch (std::exception &e) { catch2 = true; }
-      REQUIRE(catch1 == true);
-      REQUIRE(catch2 == true);
+    SECTION("Hex Copy Constructor") {
+      Hex hexA1(std::string("0x1234"), true);
+      Hex hexA2(std::string("0X1234"), true);
+      Hex hexA3(std::string("1234"), true);
+      Hex hexB1(std::string("0x1234"), false);
+      Hex hexB2(std::string("0X1234"), false);
+      Hex hexB3(std::string("1234"), false);
+      REQUIRE_THAT(hexA1.get(), Equals("0x1234"));
+      REQUIRE_THAT(hexA2.get(), Equals("0x1234"));
+      REQUIRE_THAT(hexA3.get(), Equals("0x1234"));
+      REQUIRE_THAT(hexB1.get(), Equals("1234"));
+      REQUIRE_THAT(hexB2.get(), Equals("1234"));
+      REQUIRE_THAT(hexB3.get(), Equals("1234"));
+      REQUIRE_THROWS(Hex(std::string("01234"), true));
+      REQUIRE_THROWS(Hex(std::string("x1234"), true));
+      REQUIRE_THROWS(Hex(std::string("x1234"), false));
     }
 
     SECTION("Hex Move Constructor") {
-      std::string hexStr = "1234";
-      std::string hexStrStrict = "0x1234";
-      Hex hex(std::move(hexStr), false);
-      Hex hexStrict(std::move(hexStrStrict), true);
-      REQUIRE_THAT(hex.get(), Equals("1234"));
-      REQUIRE_THAT(hexStrict.get(), Equals("0x1234"));
-      REQUIRE_THAT(hexStr, Equals(""));
-      REQUIRE_THAT(hexStrStrict, Equals(""));
-
-      bool catch1 = false;
-      bool catch2 = false;
-      std::string wrongStr = "xyzw";
-      std::string wrongStr2 = "xyzw";
-      try { Hex wrongHex(std::move(wrongStr), false); } catch (std::exception &e) { catch1 = true; }
-      try { Hex wrongHex2(std::move(wrongStr2), true); } catch (std::exception &e) { catch2 = true; }
-      REQUIRE(catch1 == true);
-      REQUIRE(catch2 == true);
+      Hex hexA1(std::move(std::string("0x1234")), true);
+      Hex hexA2(std::move(std::string("0X1234")), true);
+      Hex hexA3(std::move(std::string("1234")), true);
+      Hex hexB1(std::move(std::string("0x1234")), false);
+      Hex hexB2(std::move(std::string("0X1234")), false);
+      Hex hexB3(std::move(std::string("1234")), false);
+      REQUIRE_THAT(hexA1.get(), Equals("0x1234"));
+      REQUIRE_THAT(hexA2.get(), Equals("0x1234"));
+      REQUIRE_THAT(hexA3.get(), Equals("0x1234"));
+      REQUIRE_THAT(hexB1.get(), Equals("1234"));
+      REQUIRE_THAT(hexB2.get(), Equals("1234"));
+      REQUIRE_THAT(hexB3.get(), Equals("1234"));
+      REQUIRE_THROWS(Hex(std::move(std::string("01234")), true));
+      REQUIRE_THROWS(Hex(std::move(std::string("x1234")), true));
+      REQUIRE_THROWS(Hex(std::move(std::string("x1234")), false));
     }
 
     SECTION("Hex FromBytes") {
@@ -83,6 +100,7 @@ namespace THex {
 
     SECTION("Hex IsValid") {
       REQUIRE(Hex::isValid("0x1a2b3c4d5e6f7890", true));
+      REQUIRE(Hex::isValid("0X1A2B3C4D5E6F7890", true));
       REQUIRE(Hex::isValid("1a2b3c4d5e6f7890", false));
       REQUIRE(!Hex::isValid("0x81684g837h3892j", true));
       REQUIRE(!Hex::isValid("81684g837h3892j", false));
@@ -97,11 +115,8 @@ namespace THex {
       Bytes bytesStr2 = Hex::toBytes(hexStr2);
       REQUIRE(Hex::fromBytes(bytesStr).get() == "1234");
       REQUIRE(Hex::fromBytes(bytesStr2).get() == "5678");
-
-      bool catched = false;
-      std::string_view wrongStr("xyzw");
-      try { Bytes s = Hex::toBytes(wrongStr); } catch (std::exception &e) { catched = true; }
-      REQUIRE(catched == true);
+      REQUIRE_THROWS(Hex::toBytes(std::string_view("xyzw")));
+      REQUIRE_THROWS(Hex::toBytes(std::string_view("0xghij")));
     }
 
     SECTION("Hex Bytes") {
@@ -219,7 +234,7 @@ namespace THex {
       std::string hexStr = "0x1234";
       Hex hex(hexStr, false);
       Hex hexStrict(hexStr, true);
-      hex += Hex(std::move(std::string("0x5678")), false);
+      hex += Hex(std::move(std::string("5678")), false);
       hexStrict += Hex(std::move(std::string("0x5678")), true);
       REQUIRE_THAT(hex.get(), Equals("12345678"));
       REQUIRE_THAT(hexStrict.get(), Equals("0x12345678"));

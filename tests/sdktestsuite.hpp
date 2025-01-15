@@ -110,7 +110,7 @@ class SDKTestSuite {
     explicit SDKTestSuite(const Options& options) :
       options_(options),
       db_(std::get<0>(DumpManager::getBestStateDBPath(this->options_))),
-      storage_(p2p_.getLogicalLocation(),options_),
+      storage_(p2p_.getLogicalLocation(), options_),
       state_(db_, storage_, p2p_, std::get<1>(DumpManager::getBestStateDBPath(this->options_)), options_),
       p2p_(LOCALHOST, options_, storage_, state_),
       http_(state_, storage_, p2p_, options_)
@@ -783,7 +783,14 @@ class SDKTestSuite {
       callValue = EVMCConv::uint256ToEvmcUint256(0);
       callCreate2Salt = {};
       callCodeAddress = contractAddress.toEvmcAddress();
-      return std::get<0>(ABI::Decoder::decodeData<ReturnType>(this->state_.ethCall(callData)));
+
+      // If function is void do not return any data
+      if constexpr (std::is_same_v<ReturnType, void>) {
+        this->state_.ethCall(callData);
+        return;
+      } else {
+        return std::get<0>(ABI::Decoder::decodeData<ReturnType>(this->state_.ethCall(callData)));
+      }
     }
 
     /**
@@ -832,7 +839,13 @@ class SDKTestSuite {
       callCreate2Salt = {};
       callCodeAddress = {};
 
-      return std::get<0>(ABI::Decoder::decodeData<ReturnType>(this->state_.ethCall(callData)));
+      // If function is void do not return any data
+      if constexpr (std::is_same_v<ReturnType, void>) {
+        this->state_.ethCall(callData);
+        return;
+      } else {
+        return std::get<0>(ABI::Decoder::decodeData<ReturnType>(this->state_.ethCall(callData)));
+      }
     }
 
 

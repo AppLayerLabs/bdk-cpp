@@ -38,7 +38,7 @@ See the LICENSE.txt file in the project root for more information.
  *        "0xbec7b74f70c151707a0bfb20fe3767c6e65499e0"
  *      ],
  *     "timestamp" : 1656356646000000,
- *     "signer" : "0x4d48bdf34d65ef2bed2e4ee9020a7d3162b494ac31d3088153425f286f3d3c8c"
+ *     "signer" : "0x4d48bdf34d65ef2bed2e4ee9020a7d3162b494ac31d3088153425f286f3d3c8c",
  *      "balances": [
  *        { "address": "0x00dead00665771855a34155f5e7405489df2c3c6", "balance": "1000000000000000000000" }
  *      ]

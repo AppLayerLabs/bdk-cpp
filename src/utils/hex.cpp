@@ -16,6 +16,7 @@ Hex::Hex(const std::string_view value, bool strict) : strict_(strict) {
   } else {
     if (ret[0] == '0' && (ret[1] == 'x' || ret[1] == 'X')) ret.erase(0, 2);
   }
+  if (ret[1] == 'X') ret[1] = 'x'; // Always fix "0X" back to "0x"
   if (!Hex::isValid(ret, strict)) throw DynamicException("Invalid Hex string at constructor");
   this->hex_ = std::move(ret);
 }
@@ -30,6 +31,7 @@ Hex::Hex(std::string&& value, bool strict) : hex_(std::move(value)), strict_(str
       this->hex_.erase(0, 2);
     }
   }
+  if (this->hex_[1] == 'X') this->hex_[1] = 'x'; // Always fix "0X" back to "0x"
   if (!Hex::isValid(this->hex_, strict)) throw DynamicException("Invalid Hex string at constructor");
 }
 
@@ -75,6 +77,7 @@ Hex Hex::fromUTF8(std::string_view str, bool strict) {
 
 std::string Hex::forRPC() const {
   std::string retHex = this->hex_;
+  if (retHex[1] == 'X') retHex[1] = 'x';  // Always fix "0X" back to "0x"
   if (retHex[0] != '0' && retHex[1] != 'x') retHex.insert(0, "0x");
   if (retHex == "0x") { retHex ="0x0"; return retHex; }
   // Check for leading zeroes!
@@ -85,20 +88,22 @@ std::string Hex::forRPC() const {
 
 Bytes Hex::toBytes(const std::string_view hex) {
   Bytes ret;
-  size_t i = (hex[0] == '0' && (hex[1] == 'x' || hex[1] == 'X')) ? 2 : 0;
+  std::string hexStr(hex);
+  if (hexStr[1] == 'X') hexStr[1] = 'x'; // Always fix "0X" back to "0x"
+  size_t i = (hexStr.starts_with("0x")) ? 2 : 0;
   const static std::string_view filter("0123456789abcdefABCDEF");
-  if (auto pos = hex.find_first_not_of(filter, i); pos != std::string::npos) {
+  if (auto pos = hexStr.find_first_not_of(filter, i); pos != std::string::npos) {
     throw DynamicException(std::string(__func__) + ": Invalid hex string: "
-      + std::string(hex) + " filter: " + std::string(filter) + " at pos: " + std::to_string(pos));
+      + hexStr + " filter: " + std::string(filter) + " at pos: " + std::to_string(pos));
   }
-  if (hex.size() % 2) {
-    int h = Hex::toInt(hex[i]);
+  if (hexStr.size() % 2) {
+    int h = Hex::toInt(hexStr[i]);
     i++;
     ret.emplace_back(uint8_t(h));
   }
-  for (; i < hex.size(); i += 2) {
-    int h = Hex::toInt(hex[i]);
-    int l = Hex::toInt(hex[i + 1]);
+  for (; i < hexStr.size(); i += 2) {
+    int h = Hex::toInt(hexStr[i]);
+    int l = Hex::toInt(hexStr[i + 1]);
     ret.emplace_back(uint8_t(h * 16 + l));
   }
   return ret;
@@ -122,8 +127,10 @@ Bytes Hex::bytes() const {
 }
 
 Hex& Hex::operator+=(const std::string& hex) {
-  if (Hex::isValid(hex, (hex[0] == '0' && (hex[1] == 'x' || hex[1] == 'X')))) {
-    this->hex_ += (hex[0] == '0' && (hex[1] == 'x' || hex[1] == 'X')) ? hex.substr(2) : hex;
+  bool strict = (hex[0] == '0' && (hex[1] == 'x' || hex[1] == 'X'));
+  if (Hex::isValid(hex, strict)) {
+    this->hex_ += strict ? hex.substr(2) : hex;
+    if (this->hex_[1] == 'X') this->hex_[1] = 'x';  // Always fix "0X" back to "0x"
   } else {
     throw DynamicException("Invalid Hex concat operation");
   }

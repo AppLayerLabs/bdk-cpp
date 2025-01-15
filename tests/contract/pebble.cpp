@@ -11,6 +11,8 @@ See the LICENSE.txt file in the project root for more information.
 
 #include "../sdktestsuite.hpp"
 
+using Catch::Matchers::Equals;
+
 namespace TPEBBLE {
   TEST_CASE("Pebble Class", "[contract][pebble]") {
     SECTION("Pebble creation + dump") {
@@ -82,6 +84,16 @@ namespace TPEBBLE {
         REQUIRE_NOTHROW(sdk.callFunction(pebbleAddr, &Pebble::changeAuthorizer, authorizerAccount.address));
         REQUIRE_NOTHROW(sdk.callFunction(pebbleAddr, 0, authorizerAccount, &Pebble::addMinter, minterAccount.address));
 
+        // Check only authorizer can add minters
+        REQUIRE_THROWS(sdk.callFunction(pebbleAddr, 0, anotherAccount, &Pebble::addMinter, anotherAccount.address));
+        // Add and remove another minter (for coverage)
+        REQUIRE_NOTHROW(sdk.callFunction(pebbleAddr, 0, authorizerAccount, &Pebble::addMinter, anotherAccount.address));
+        REQUIRE_THROWS(sdk.callFunction(pebbleAddr, 0, anotherAccount, &Pebble::removeMinter, anotherAccount.address));
+        REQUIRE_NOTHROW(sdk.callFunction(pebbleAddr, 0, authorizerAccount, &Pebble::removeMinter, anotherAccount.address));
+        // Check minter account can actually mint and others don't
+        REQUIRE_NOTHROW(sdk.callViewFunction(pebbleAddr, &Pebble::canMint, minterAccount.address));
+        REQUIRE_THROWS(sdk.callViewFunction(pebbleAddr, &Pebble::canMint, anotherAccount.address));
+
         auto mintTx = sdk.callFunction(pebbleAddr, 0, minterAccount, &Pebble::mintNFT, minterAccount.address, uint64_t(1));
 
         auto events = sdk.getEventsEmittedByTxTup(mintTx, &Pebble::MintedNFT);
@@ -144,7 +156,14 @@ namespace TPEBBLE {
         REQUIRE_THROWS(sdk.callFunction(pebbleAddr, 0, anotherAccount, &Pebble::setDiamondRarity, uint256_t(1)));
         // Check throw against non authorized mint
         REQUIRE_THROWS(sdk.callFunction(pebbleAddr, 0, anotherAccount, &Pebble::mintNFT, anotherAccount.address, uint64_t(1)));
+        // Check throw against excessive minting (> 25 tokens at once)
+        REQUIRE_THROWS(sdk.callFunction(pebbleAddr, 0, minterAccount, &Pebble::mintNFT, minterAccount.address, uint64_t(30)));
         opts = std::make_unique<Options>(sdk.getOptions());
+        // Check unknown token rarity
+        REQUIRE(sdk.callViewFunction(pebbleAddr, &Pebble::getTokenRarity, uint256_t(99999999)) == "Unknown");
+        // Check token URIs
+        REQUIRE_THAT(sdk.callViewFunction(pebbleAddr, &Pebble::tokenURI, uint256_t(1)), Equals("https://s3.amazonaws.com/com.applayer.pebble/Diamond.json"));
+        REQUIRE_THAT(sdk.callViewFunction(pebbleAddr, &Pebble::tokenURI, uint256_t(99999999)), Equals(""));
       }
 
       auto sdk = SDKTestSuite(*opts);

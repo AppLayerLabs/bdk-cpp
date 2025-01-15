@@ -118,6 +118,7 @@ template <unsigned N> class FixedBytes {
      * @param pos (optional) Index to start getting chars from. Defaults to the start of the string.
      * @param len (optional) Number of chars to get. Defaults to the whole string.
      * @return A string view of the data, in bytes.
+     * @throws std::out_of_range if pos goes beyond the length.
      */
     inline bytes::View view(size_t pos = 0, size_t len = N) const {
       auto real_len = std::min(len, N - pos);

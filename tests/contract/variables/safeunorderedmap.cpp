@@ -210,6 +210,9 @@ namespace TSafeUnorderedMap {
       map.commit();
       REQUIRE(map.size() == 101);
       for (std::pair<Address, uint256_t> val : values) REQUIRE(map.at(val.first) == val.second);
+
+      // Force failure on insert (for coverage)
+      REQUIRE_FALSE(map.insert(valCopy2[0]).second);
     }
 
     SECTION("SafeUnorderedMap insert (hint)") {

@@ -7,11 +7,12 @@ See the LICENSE.txt file in the project root for more information.
 
 #include <csignal>
 #include <condition_variable>
+#include <iostream>
 
-#include "net/p2p/managerdiscovery.h"
-#include "utils/options.h"
-#include "iostream"
+#include "src/net/p2p/managerdiscovery.h"
+
 #include "src/utils/clargs.h"
+#include "src/utils/options.h"
 
 std::condition_variable cv;
 std::mutex cv_m;

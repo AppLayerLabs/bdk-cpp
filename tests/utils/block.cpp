@@ -36,6 +36,20 @@ namespace TBlock {
       REQUIRE(finalizedNewBlock.getValidatorPubKey() == UPubKey(Hex::toBytes("046ab1f056c30ae181f92e97d0cbb73f4a8778e926c35f10f0c4d1626d8dfd51672366413809a48589aa103e1865e08bd6ddfd0559e095841eb1bd3021d9cc5e62")));
     }
 
+    SECTION("Block operator== (coverage)") {
+      PrivKey validatorPrivKey(Hex::toBytes("0x4d5db4107d237df6a3d58ee5f70ae63d73d765d8a1214214d8a13340d0f2750d"));
+      PrivKey validatorPrivKey2(Hex::toBytes("0x4d5db4107d237df6a3d58ee5f70ae63d73d765d8a1214214d8a13340d0f2750e"));
+      Hash nPrevBlockHash(Hex::toBytes("22143e16db549af9ccfd3b746ea4a74421847fa0fe7e0e278626a4e7307ac0f6"));
+      uint64_t timestamp = 1678400201859;
+      uint64_t nHeight = 92137812;
+      FinalizedBlock blockA = FinalizedBlock::createNewValidBlock({},{}, nPrevBlockHash, timestamp, nHeight, validatorPrivKey);
+      FinalizedBlock blockB = FinalizedBlock::createNewValidBlock({},{}, nPrevBlockHash, timestamp, nHeight, validatorPrivKey2);
+      FinalizedBlock blockC = FinalizedBlock::createNewValidBlock({},{}, nPrevBlockHash, timestamp + 1, nHeight, validatorPrivKey);
+      REQUIRE(blockA == blockA);
+      REQUIRE(blockA != blockB);
+      REQUIRE(blockA != blockC);
+    }
+
     SECTION("Block creation with 10 transactions") {
       PrivKey validatorPrivKey(Hex::toBytes("0x4d5db4107d237df6a3d58ee5f70ae63d73d765d8a1214214d8a13340d0f2750d"));
       Hash nPrevBlockHash(Hex::toBytes("97a5ebd9bbb5e330b0b3c74b9816d595ffb7a04d4a29fb117ea93f8a333b43be"));
