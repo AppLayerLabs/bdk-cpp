@@ -44,6 +44,9 @@ See the LICENSE.txt file in the project root for more information.
 */
 #define COMET_PUB_KEY_TYPE "ed25519"
 
+/// Use our modified version of cometbft that uses sha3 for Tx hash and TxKey
+#define COMETBFT_EXECUTABLE "cometbft-bdk"
+
 // ---------------------------------------------------------------------------------------
 // WebsocketRPCConnection class
 // ---------------------------------------------------------------------------------------
@@ -1157,7 +1160,10 @@ void CometImpl::checkCometBFT() {
   // This throws an exception if it can't find cometbft, for example
   runCometBFT({ "version" }, &cometOut, &cometErr);
   // Right now we expect an exact cometbft version to pair with the Comet driver
-  const std::string expectedVersion = "1.0.0";
+  // 1.0.0+ce344cc66 will be the version output by git checkout v1.0.0 + make build
+  // This version will include our replacement of sha256 with eth sha3 for Tx hash
+  // and TxKey.
+  const std::string expectedVersion = "1.0.0+ce344cc66";
   if (cometOut != expectedVersion) {
     throw DynamicException("Expected version [" + expectedVersion + "] from cometbft, got [" + cometOut + "] instead");
   }
@@ -1286,7 +1292,7 @@ void CometImpl::doStartCometBFT(
   searchPaths.insert(searchPaths.begin(), ".");
 
   // Search for the cometbft executable in current directory and system PATH
-  boost::filesystem::path cometbft_exec_path = boost::process::search_path("cometbft", searchPaths);
+  boost::filesystem::path cometbft_exec_path = boost::process::search_path(COMETBFT_EXECUTABLE, searchPaths);
   if (cometbft_exec_path.empty()) {
     throw DynamicException("cometbft executable not found in current directory or system PATH");
   }

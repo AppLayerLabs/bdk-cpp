@@ -68,6 +68,10 @@ void Storage::setGetTxCacheSize(const uint64_t cacheSize) {
   }
 }
 */
+/*
+
+  no longer needed
+  changed to cometbft-bdk w/ sha3 txhash
 
 void Storage::putTxMap(Hash txHashSha3, Hash txHashSha256) {
   txMapDb_.put(txHashSha3.asBytes(), txHashSha256.asBytes(), DBPrefix::txSha3ToSha256);
@@ -79,6 +83,7 @@ bool Storage::getTxMap(Hash txHashSha3, Hash& txHashSha256) const {
   txHashSha256 = Hash(hashData);
   return true;
 }
+*/
 
 /*
 Storage::Storage(std::string instanceIdStr, const Options& options)

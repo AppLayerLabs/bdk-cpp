@@ -176,12 +176,15 @@ GetTxResultType Blockchain::getTx(const Hash& tx) {
   lock.unlock();
   LOGTRACE("Storage::getTx(" + tx.hex().get() + "): cache miss");
 
+  // sha3->sha256 translation no longer needed
+  // cometbft-bdk uses sha3
+  //
   // Translate `tx` (BDK sha3 hash) to a CometBFT sha256 hash
-  Hash txSha256;
-  if (storage_.getTxMap(tx, txSha256)) {
-
+  //Hash txSha256;
+  //if (storage_.getTxMap(tx, txSha256)) {
     // Get the data via a sync (blocking) RPC request to cometbft
-    Bytes hx = Hex::toBytes(txSha256.hex());
+    //Bytes hx = Hex::toBytes(txSha256.hex());
+    Bytes hx = Hex::toBytes(tx.hex());
     std::string encodedHexBytes = base64::encode_into<std::string>(hx.begin(), hx.end());
     json params = { {"hash", encodedHexBytes} };
     json ret;
@@ -229,9 +232,9 @@ GetTxResultType Blockchain::getTx(const Hash& tx) {
     } else {
       LOGTRACE("getTx(): rpcSyncCall('tx') failed");
     }
-  } else {
-    LOGTRACE("getTx(): cannot find tx sha256");
-  }
+  //} else {
+  //  LOGTRACE("getTx(): cannot find tx sha256");
+  //}
   LOGTRACE("getTx(" + tx.hex().get() + ") FAIL!");
   return std::make_tuple(nullptr, Hash(), 0u, 0u);
 }
@@ -306,15 +309,18 @@ void Blockchain::incomingBlock(
       // REVIEW: in fact, we shouldn't even need to verify the block at this point?
       LOGFATALP_THROW("Invalid block.");
     } else {
+      // sha3->sha256 translation no longer needed
+      // cometbft-bdk uses sha3
+      //
       // Update the sha3 --> sha256 txhash interop map
       // FIXME/TODO: we will need a strategy to be able to clean up tx hash mappings
       //  for old blocks, such as adding a bucket ID prefix to each key, then looking
       //  up a hash multiple times in all buckets.
-      for (uint32_t i = 0; i < block->txs.size(); ++i) {
-        Hash txHashSha3 = Utils::sha3(block->txs[i]);
-        Hash txHashSha256 = Utils::sha256(block->txs[i]);
-        storage_.putTxMap(txHashSha3, txHashSha256);
-      }
+      //for (uint32_t i = 0; i < block->txs.size(); ++i) {
+      //  Hash txHashSha3 = Utils::sha3(block->txs[i]);
+      //  Hash txHashSha256 = Utils::sha256(block->txs[i]);
+      //  storage_.putTxMap(txHashSha3, txHashSha256);
+      //}
       // Advance machine state
       std::vector<bool> succeeded;
       std::vector<uint64_t> gasUsed;

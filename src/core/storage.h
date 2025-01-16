@@ -147,7 +147,7 @@ class Storage : public Log::LogicalLocationProvider {
      * @param txHashSha3 Key.
      * @param txHashSha256 Value.
      */
-    void putTxMap(Hash txHashSha3, Hash txHashSha256);
+    //void putTxMap(Hash txHashSha3, Hash txHashSha256);
 
     /**
      * Load a sha3 -> sha256 txHash mapping.
@@ -155,7 +155,7 @@ class Storage : public Log::LogicalLocationProvider {
      * @param txHashSha256 Value (outparam).
      * @return `true` if mapping found, `false` otherwise (txHashSha256 is unset).
      */
-    bool getTxMap(Hash txHashSha3, Hash& txHashSha256) const;
+    //bool getTxMap(Hash txHashSha3, Hash& txHashSha256) const;
 
     // MOVE block queries to Blockchain class (or delete)
     /// Wrapper for `pushBackInternal()`. Use this as it properly locks `chainLock_`.

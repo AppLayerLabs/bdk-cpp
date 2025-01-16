@@ -1196,7 +1196,10 @@ namespace TComet {
       const uint8_t txContentByte = 0xde;
       const uint8_t txBorderByte = 0xad;
 
-      static const std::string transactionHash = "2A62F69DB37417A3EB7E72219BDE4D6ADCD1A9878527DA245D4CC30FD1F899AB";
+      // Default sha256 computed by CometBFT
+      //static const std::string transactionHash = "2A62F69DB37417A3EB7E72219BDE4D6ADCD1A9878527DA245D4CC30FD1F899AB";
+      // Eth sha3 computed by our patched CometBFT
+      static const std::string transactionHash = "98922D4C7850BC46439DFFE434AAC9523F64A5D711B74ADDF8D5665184E0F2C3";
 
       // Create a simple listener that just records that we got InitChain and what the current height is.
       class TestCometListener : public CometListener {
@@ -1305,9 +1308,13 @@ namespace TComet {
       // Utils::sha256() should match the expected CometBFT-produced transaction hash
       // hex(false, true) returns a Hex object without "0x" and uppercase "ABCDEF" (char data)
       // Hex::get() returns itself as a std::string
-      Hash sha256txHash;
-      Utils::sha256(largeTransaction, sha256txHash);
-      REQUIRE(sha256txHash.hex(false, true).get() == transactionHash);
+      //Hash sha256txHash;
+      //Utils::sha256(largeTransaction, sha256txHash);
+      //REQUIRE(sha256txHash.hex(false, true).get() == transactionHash);
+      //
+      // With our patched CometBFT, it must match eth sha3 instead.
+      Hash sha3txHash = Utils::sha3(largeTransaction);
+      REQUIRE(sha3txHash.hex(false, true).get() == transactionHash);
 
       // Send the transaction to cause a block to be produced
       GLOGDEBUG("TEST: Sending transaction");
