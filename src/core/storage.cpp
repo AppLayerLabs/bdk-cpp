@@ -12,8 +12,6 @@ See the LICENSE.txt file in the project root for more information.
 
 #include "blockchain.h"
 
-#include "../libs/base64.hpp"
-
 static bool topicsMatch(const Event& event, const std::vector<Hash>& topics) {
   if (topics.empty()) return true; // No topic filter applied
   const std::vector<Hash>& eventTopics = event.getTopics();
@@ -59,6 +57,7 @@ IndexingMode Storage::getIndexingMode() const {
   return blockchain_.opt().getIndexingMode();
 }
 
+/*
 void Storage::setGetTxCacheSize(const uint64_t cacheSize) {
   txCacheSize_ = cacheSize;
   if (txCacheSize_ == 0) {
@@ -68,6 +67,7 @@ void Storage::setGetTxCacheSize(const uint64_t cacheSize) {
     txCacheBucket_ = 0;
   }
 }
+*/
 
 void Storage::putTxMap(Hash txHashSha3, Hash txHashSha256) {
   txMapDb_.put(txHashSha3.asBytes(), txHashSha256.asBytes(), DBPrefix::txSha3ToSha256);
@@ -180,6 +180,7 @@ uint64_t Storage::currentChainSize() const {
 bool Storage::txExists(const Hash& tx) const { return blocksDb_.has(tx, DBPrefix::txToBlock); }
 */
 
+/*
 void Storage::putTx(const Hash& tx, const StorageGetTxResultType& val) {
   std::scoped_lock lock(txCacheMutex_);
 
@@ -191,8 +192,9 @@ void Storage::putTx(const Hash& tx, const StorageGetTxResultType& val) {
     txCache_[txCacheBucket_].clear();
   }
 }
+*/
 
-StorageGetTxResultType Storage::getTx(const Hash& tx) const {
+//StorageGetTxResultType Storage::getTx(const Hash& tx) const {
   /*
   const Bytes txData = blocksDb_.get(tx, DBPrefix::txToBlock);
   if (txData.empty()) return std::make_tuple(nullptr, Hash(), 0u, 0u);
@@ -208,7 +210,7 @@ StorageGetTxResultType Storage::getTx(const Hash& tx) const {
     blockHash, blockIndex, blockHeight
   );
   */
-
+/*
   // First thing we would do is check a TxBlock object cached in RAM (or the
   //  TxBlock plus all the other elements in the tuple that we are fetching).
   //
@@ -297,6 +299,7 @@ StorageGetTxResultType Storage::getTx(const Hash& tx) const {
   LOGTRACE("getTx(" + tx.hex().get() + ") FAIL!");
   return std::make_tuple(nullptr, Hash(), 0u, 0u);
 }
+*/
 
 /*
 std::tuple<

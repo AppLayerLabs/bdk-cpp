@@ -126,3 +126,55 @@ bytes::View Utils::create_view_span(const std::string_view str, size_t start, si
   if (start + size > str.size()) throw DynamicException("Invalid range for span");
   return bytes::View(reinterpret_cast<const uint8_t*>(str.data()) + start, size);
 }
+
+uint64_t Utils::stringToNanos(const std::string& timestamp) {
+  // Converts an ISO 8601 timestamp string (with nanosecond precision) into
+  // nanoseconds since the epoch.
+  std::string timeStr = timestamp;
+  if (!timeStr.empty() && timeStr.back() == 'Z') {
+    timeStr.pop_back(); // Remove trailing 'Z'
+  }
+  // Split the string into the part without fraction and the fractional part.
+  auto dotPos = timeStr.find('.');
+  std::string timeWithoutFraction = (dotPos == std::string::npos)
+    ? timeStr : timeStr.substr(0, dotPos);
+  std::string fraction = (dotPos == std::string::npos)
+    ? "0" : timeStr.substr(dotPos + 1);
+  // Parse the non-fractional date/time.
+  std::tm tm = {};
+  std::istringstream ss(timeWithoutFraction);
+  ss >> std::get_time(&tm, "%Y-%m-%dT%H:%M:%S");
+  if (ss.fail()) {
+    throw DynamicException("Failed to parse time without fraction: " + timeWithoutFraction);
+  }
+  // Convert to seconds since epoch.
+  std::time_t seconds = timegm(&tm);  // timegm interprets tm as UTC
+  uint64_t nanosecondsSinceEpoch = static_cast<uint64_t>(seconds) * 1000000000ULL;
+  // Process the fractional part:
+  // Pad the fractional part to 9 digits (nanosecond resolution)
+  if (fraction.size() > 9)
+    fraction = fraction.substr(0, 9);
+  else if (fraction.size() < 9)
+    fraction.append(9 - fraction.size(), '0');
+  nanosecondsSinceEpoch += std::stoull(fraction);
+  return nanosecondsSinceEpoch;
+}
+
+std::string Utils::nanosToString(uint64_t nanosecondsSinceEpoch) {
+  // Converts nanoseconds since epoch to an ISO 8601 timestamp string
+  // with nanosecond precision.
+  // Extract whole seconds and the remaining nanoseconds.
+  std::time_t seconds = nanosecondsSinceEpoch / 1000000000ULL;
+  uint64_t ns = nanosecondsSinceEpoch % 1000000000ULL;
+  // Convert seconds to UTC time.
+  std::tm* utc_tm = std::gmtime(&seconds);
+  if (!utc_tm) {
+    throw DynamicException("gmtime failed");
+  }
+  // Format the date and time.
+  std::ostringstream oss;
+  oss << std::put_time(utc_tm, "%Y-%m-%dT%H:%M:%S");
+  // Append the fractional part with 9 digits.
+  oss << "." << std::setw(9) << std::setfill('0') << ns << "Z";
+  return oss.str();
+}

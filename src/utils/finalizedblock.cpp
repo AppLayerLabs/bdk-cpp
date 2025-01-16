@@ -13,14 +13,17 @@ See the LICENSE.txt file in the project root for more information.
 
 #include "../core/comet.h"
 
+#include "../libs/base64.hpp"
+
+
 
 // FIXME/TODO
 // This constructor will end up entirely removed, since the source of a FinalizedBlock instance
 // is now a CometBlock instance (plus some info you can get via RPC to complement it if you need it).
 // Ideally, FinalizedBlock depends only on CometBlock, and whatever downstream code depends on
 // removed fields can itself be removed.
-FinalizedBlock FinalizedBlock::fromBytes(const bytes::View bytes, const uint64_t& requiredChainId) {
-  throw DynamicException("FOREVER UNSUPPORTED, convert callsite to fromCometBlock() or delete it");
+//FinalizedBlock FinalizedBlock::fromBytes(const bytes::View bytes, const uint64_t& requiredChainId) {
+ // throw DynamicException("FOREVER UNSUPPORTED, convert callsite to fromCometBlock() or delete it");
   /*try {
     // Verify minimum size for a valid block
     SLOGTRACE("Deserializing block...");
@@ -163,7 +166,7 @@ FinalizedBlock FinalizedBlock::fromBytes(const bytes::View bytes, const uint64_t
     throw std::domain_error(std::string("Error when deserializing a FinalizedBlock: ") + e.what());
   }
   */
-}
+//}
 
 FinalizedBlock FinalizedBlock::fromCometBlock(const CometBlock& block) {
   auto validatorSig = Signature();
@@ -211,18 +214,114 @@ FinalizedBlock FinalizedBlock::fromCometBlock(const CometBlock& block) {
   };
 }
 
-FinalizedBlock FinalizedBlock::createNewValidBlock(
-  std::vector<TxBlock>&& txs,
-  std::vector<TxValidator>&& txValidators,
-  Hash prevBlockHash,
-  const uint64_t& timestamp,
-  const uint64_t& nHeight,
-  const PrivKey& validatorPrivKey
-) {
+FinalizedBlock FinalizedBlock::fromRPC(const json& ret) {
+  auto validatorSig = Signature();
+  auto prevBlockHash = Hash();
+  auto blockRandomness = Hash();
+  auto validatorMerkleRoot = Hash();
+
+  uint64_t requiredChainId = 0; // FIXME
+
+  std::vector<TxBlock> txs;
+
+  //----
+
+  if (ret.is_object() && ret.contains("result") && ret["result"].is_object()) {
+    throw DynamicException("Invalid block data");
+  }
+  const auto& result = ret["result"];
+  if (!result.contains("block_id") || !result["block_id"].is_object()) {
+    throw DynamicException("Invalid block data");
+  }
+  const auto& block_id = result["block_id"];
+  if (!result.contains("block") || !result["block"].is_object()) {
+    throw DynamicException("Invalid block data");
+  }
+  const auto& block = result["block"];
+  if (!block.contains("header") || !block["header"].is_object()) {
+    throw DynamicException("Invalid block data");
+  }
+  const auto& header = block["header"];
+  if (!block.contains("data") || !block["data"].is_object()) {
+    throw DynamicException("Invalid block data");
+  }
+  const auto& data = block["data"];
+  SLOGTRACE("Deserializing transactions...");
+  if (data.contains("txs") && data["txs"].is_array()) {
+    // There is data.txs in the response, so unpack the transactions
+    for (const auto& tx : data["txs"]) {
+      if (tx.is_string()) {
+        // Compute tx Bytes from the base64-encoded tx data string
+        std::string txBase64 = tx.get<std::string>();
+        Bytes txBytes = base64::decode_into<Bytes>(txBase64);
+        // Create TxBlock object from tx Bytes
+        txs.emplace_back(txBytes, requiredChainId);
+      } else {
+        throw DynamicException("Invalid block data");
+      }
+    }
+  }
+
+  if (!header.contains("height") || !header["height"].is_string()) {
+    throw DynamicException("Invalid block data");
+  }
+
+  uint64_t nHeight = std::stoull(header["height"].get<std::string>());
+
+  if (!header.contains("timestamp") || !header["timestamp"].is_string()) {
+    throw DynamicException("Invalid block data");
+  }
+
+  uint64_t timestamp = Utils::stringToNanos(header["timestamp"].get<std::string>());
+  timestamp /= 1000; // FinalizedBlock uses microseconds, so convert nanos to micros
+
+  if (!block_id.contains("hash") || !block_id["hash"].is_string()) {
+    throw DynamicException("Invalid block data");
+  }
+  std::string blockIdHashStr = block_id["hash"].get<std::string>();
+
+  Hash hash(Hex::toBytes(blockIdHashStr));
+
+  //----
+
+  // Same merkle root value as before cometbft integration
+  auto txMerkleRoot = Merkle(txs).getRoot();
+
+  UPubKey validatorPubKey;
+
+  uint64_t blockSize = 1; // FIXME
+
+  std::vector<TxValidator> txValidators;
+
+  return {
+    std::move(validatorSig),
+    std::move(validatorPubKey),
+    std::move(prevBlockHash),
+    std::move(blockRandomness),
+    std::move(validatorMerkleRoot),
+    std::move(txMerkleRoot),
+    timestamp,
+    nHeight,
+    std::move(txValidators),
+    std::move(txs),
+    std::move(hash),
+    blockSize
+  };
+}
+
+
+//FinalizedBlock FinalizedBlock::createNewValidBlock(
+//  std::vector<TxBlock>&& txs,
+//  std::vector<TxValidator>&& txValidators,
+//  Hash prevBlockHash,
+//  const uint64_t& timestamp,
+//  const uint64_t& nHeight,
+//  const PrivKey& validatorPrivKey
+//) {
   // "creating blocks" for testing no longer makes any sense
   // blocks are only created by cometbft
   // FinalizedBlock can only be constructed from an already existing and valid CometBFT block (CometBlock)
-  throw DynamicException("FOREVER UNSUPPORTED, delete all callsites then delete this method");
+//  throw DynamicException("FOREVER UNSUPPORTED, delete all callsites then delete this method");
 
   /*
   // We need to sign the block header
@@ -263,8 +362,8 @@ FinalizedBlock FinalizedBlock::createNewValidBlock(
     blockSize
   };
   */
-}
-
+//}
+/*
 Bytes FinalizedBlock::serializeHeader() const {
 
   // FIXME/TODO
@@ -314,4 +413,4 @@ Bytes FinalizedBlock::serializeBlock() const {
 
   return ret;
 }
-
+*/

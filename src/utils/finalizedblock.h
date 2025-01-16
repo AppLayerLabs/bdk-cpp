@@ -21,6 +21,11 @@ See the LICENSE.txt file in the project root for more information.
  * longer a bytes source for a block. We get blocks via the ABCI as disjoint binary transaction lists
  * and metadata scattered in named ABCI parameters (and all other info that cometbft doesn't think the
  * app should care about  like signatures, other header info, etc. can be fetched via the cometbft RPC).
+ *
+ * NEW: We are going to use this class to store a block query result as well
+ * (block data that comes via a cometbft JSON-RPC block query response); in that
+ * case we could have more fields available, such as the validator signature (for
+ * whatever purpose that would serve). That is done via FinalizedBlock::fromRPC(json&).
  */
 
 #include "merkle.h" // tx.h -> ecdsa.h -> utils.h -> strings.h, (logger.h -> future), bytes/join.h
@@ -30,7 +35,7 @@ class CometBlock;
 // REVIEW/TODO: We may want to create a class to represent a standard ETH1
 //       block header, that can be predictably hashed with sha3(), and that is
 //       deterministically derived from a FinalizedBlock, which in turn is
-//       always derived from a CometBlock.
+//       always derived from a CometBlock (NEW: or a json block RPC query response).
 
 /// Abstraction of a finalized block. Members are purposefully const due to the immutable nature of the structure.
 class FinalizedBlock {
@@ -88,7 +93,7 @@ class FinalizedBlock {
      * + validator merkle root + tx merkle root + timestamp + block height).
      * @return The serialized header string.
      */
-    Bytes serializeHeader() const;
+    //Bytes serializeHeader() const;
 
   public:
     /**
@@ -177,7 +182,7 @@ class FinalizedBlock {
      * @return A FinalizedBlock instance.
      * @throw std::domain_error if deserialization fails for some reason.
      */
-    static FinalizedBlock fromBytes(const bytes::View bytes, const uint64_t& requiredChainId);
+    //static FinalizedBlock fromBytes(const bytes::View bytes, const uint64_t& requiredChainId);
 
     /**
      * Build a FinalizedBlock from a CometBlock.
@@ -185,10 +190,17 @@ class FinalizedBlock {
     static FinalizedBlock fromCometBlock(const CometBlock& block);
 
     /**
+     * Build a FinalizedBlock from a CometBFT block query response.
+     * To get a shared_ptr for the returned object X, just use make_shared(std::move(X)).
+     * FIXME/TODO
+     */
+    static FinalizedBlock fromRPC(const json& ret);
+
+    /**
      * Serialize the entire block (including the header) to a raw bytes string.
      * @return The serialized block.
      */
-    Bytes serializeBlock() const;
+    //Bytes serializeBlock() const;
 
     /**
      * Create a new valid block given the arguments.
@@ -203,6 +215,7 @@ class FinalizedBlock {
      * @param validatorPrivKey Private key of the Validator to sign the block.
      * @return The new valid block.
      */
+    /*
     static FinalizedBlock createNewValidBlock(
       std::vector<TxBlock>&& txs,
       std::vector<TxValidator>&& txValidators,
@@ -211,6 +224,7 @@ class FinalizedBlock {
       const uint64_t& nHeight,
       const PrivKey& validatorPrivKey
     );
+    */
 
     ///@{
     /** Getter. */

@@ -653,7 +653,7 @@ void State::processBlock(const FinalizedBlock& block, std::vector<bool>& succeed
 
     // Add the transaction to the RAM getTx() cache in Storage.
     // Storage will check this cache before hitting cometbft with an RPC request.
-    blockchain_.storage().putTx(
+    blockchain_.putTx(
       tx.hash(),
       std::make_tuple(
         std::make_shared<TxBlock>(tx),

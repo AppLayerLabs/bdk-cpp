@@ -16,6 +16,11 @@ See the LICENSE.txt file in the project root for more information.
 #include "../net/http/httpserver.h"
 #include "../net/http/noderpcinterface.h"
 
+/// A <TxBlock, blockHash, blockIndex, blockHeight> tuple.
+using GetTxResultType = std::tuple<
+  std::shared_ptr<TxBlock>, Hash, uint64_t, uint64_t
+>;
+
 /**
  * A BDK node.
  * This is the nexus object that brings together multiple blockchain node
@@ -75,6 +80,23 @@ class Blockchain : public CometListener, public NodeRPCInterface, public Log::Lo
     //              The upside is that we'd have some cached responses for getBlock()
     // TODO: cache the hash and height of latest_ at least for getBlock()
     std::atomic<std::shared_ptr<const FinalizedBlock>> latest_; ///< Pointer to the latest block in the blockchain.
+
+    // RAM transaction cache
+    // The GetTxResultType tuple just conforms to the query result type that the
+    //   storage class was providing before.
+    // This is a simple cache with two rotating buckets that indexes by (tx hash) only.
+    // For (block height, tx index) queries we would need some other data structure.
+    // NOTE/REVIEW: If we're going to cache many FinalizedBlock objects in RAM, then
+    //   FinalizedBlock could have e.g. vector<shared_ptr<TxBlock>> txs; instead, which
+    //   would avoid duplicating TxBlock objects in a separate TxCache; instead the TxCache
+    //   would simply be various indexes into shared_ptr<TxBlock> objects that were created
+    //   for the FinalizedBlock objects.
+    //   The only way this doesn't work is if we ever create and cache TxBlock before they
+    //   are final (that is, in a finalized block that we get via the ABCI).
+    std::atomic<uint64_t> txCacheSize_ = 1000000; ///< Transaction cache size in maximum entries per bucket (0 to disable).
+    mutable std::mutex txCacheMutex_; ///< Mutex to protect cache access.
+    std::array<std::unordered_map<Hash, GetTxResultType, SafeHash>, 2> txCache_; ///< Transaction cache as two rotating buckets.
+    uint64_t txCacheBucket_ = 0; ///< Active txCache_ bucket.
 
   public:
 
@@ -158,6 +180,17 @@ class Blockchain : public CometListener, public NodeRPCInterface, public Log::Lo
 
     ~Blockchain() = default; ///< Default destructor.
 
+    /**
+     * Set the size of the GetTx() cache.
+     * If you set it to 0, you turn off the cache.
+     * NOTE: CometBFT has a lag between finalizing a block and indexing transactions,
+     * so if you turn off the cache, you need to take that into consideration when
+     * using methods like Storage::getTx() which will hit cometbft with a 'tx' RPC
+     * call and possibly fail because the transaction hasn't been indexed yet.
+     * @param cacheSize Maximum size in entries for each bucket (two rotating buckets).
+     */
+    void setGetTxCacheSize(const uint64_t cacheSize);
+
     void start(); ///< Start the blockchain node.
 
     void stop(); ///< Stop the blockchain node.
@@ -179,6 +212,24 @@ class Blockchain : public CometListener, public NodeRPCInterface, public Log::Lo
      * @return A pointer to the found block, or `nullptr` if block is not found.
      */
     std::shared_ptr<const FinalizedBlock> getBlock(uint64_t height);
+
+    /**
+     * Store a getTx(txHash) result in the getTx() cache.
+     * @param tx The transaction hash (key) to store in the cache.
+     * @param val The transaction data (value) to store in the cache.
+     */
+    void putTx(const Hash& tx, const GetTxResultType& val);
+
+    /**
+     * Get a transaction from the chain using a given hash.
+     * @param tx The transaction hash to get.
+     * @return A tuple with the found transaction, block hash, index and height.
+     * @throw DynamicException on hash mismatch.
+     */
+    // FIXME: remove the Hash (get<1>) param as it seems to be unused; it would require
+    //        a second separate RPC call to fetch.
+    //        right now, Hash is being set to 0x0000..0000
+    GetTxResultType getTx(const Hash& tx);
 
     ///@{
     /** Getter. */

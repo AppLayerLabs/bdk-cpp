@@ -15,6 +15,8 @@ See the LICENSE.txt file in the project root for more information.
 #include "../net/http/jsonrpc/blocktag.h"
 using namespace jsonrpc;
 
+#include "../libs/base64.hpp"
+
 //#define NODE_DATABASE_DIRECTORY_SUFFIX "/db/"
 
 // ------------------------------------------------------------------
@@ -48,6 +50,16 @@ Blockchain::Blockchain(const Options& options, const std::string& blockchainPath
     http_(options_.getHttpPort(), *this)//,
     //db_(options_.getRootPath() + NODE_DATABASE_DIRECTORY_SUFFIX)
 {
+}
+
+void Blockchain::setGetTxCacheSize(const uint64_t cacheSize) {
+  txCacheSize_ = cacheSize;
+  if (txCacheSize_ == 0) {
+    std::scoped_lock lock(txCacheMutex_);
+    txCache_[0].clear();
+    txCache_[1].clear();
+    txCacheBucket_ = 0;
+  }
 }
 
 void Blockchain::start() {
@@ -100,14 +112,130 @@ uint64_t Blockchain::getLatestHeight() const {
 }
 
 std::shared_ptr<const FinalizedBlock> Blockchain::getBlock(const Hash& hash) {
-  // FIXME/TODO
-  return {};
+  // REVIEW: We may want to cache more than just the latest FinalizedBlock
+  auto latestPtr = latest_.load();
+  if (latestPtr && latestPtr->getHash() == hash)
+    return latestPtr;
+  // Not cached in RAM; retrieve via cometbft RPC
+  json params;
+  params["hash"] = hash.hex().get();
+  json ret;
+  if (!comet_.rpcSyncCall("block_by_hash", params, ret)) {
+    return {};
+  }
+  return std::make_shared<const FinalizedBlock>(FinalizedBlock::fromRPC(ret));
 }
 
 std::shared_ptr<const FinalizedBlock> Blockchain::getBlock(uint64_t height) {
-  // FIXME/TODO
-  return {};
+  // REVIEW: We may want to cache more than just the latest FinalizedBlock
+  auto latestPtr = latest_.load();
+  if (latestPtr && latestPtr->getNHeight() == height)
+    return latestPtr;
+  // Not cached in RAM; retrieve via cometbft RPC
+  json params;
+  params["height"] = std::to_string(height);
+  json ret;
+  if (!comet_.rpcSyncCall("block", params, ret)) {
+    return {};
+  }
+  return std::make_shared<const FinalizedBlock>(FinalizedBlock::fromRPC(ret));
 }
+
+void Blockchain::putTx(const Hash& tx, const GetTxResultType& val) {
+  std::scoped_lock lock(txCacheMutex_);
+
+  auto& activeBucket = txCache_[txCacheBucket_];
+  activeBucket[tx] = val;
+
+  if (activeBucket.size() >= txCacheSize_) {
+    txCacheBucket_ = 1 - txCacheBucket_;
+    txCache_[txCacheBucket_].clear();
+  }
+}
+
+GetTxResultType Blockchain::getTx(const Hash& tx) {
+  // First thing we would do is check a TxBlock object cached in RAM (or the
+  //  TxBlock plus all the other elements in the tuple that we are fetching).
+  //
+  // We NEED this RAM cache because the transaction indexer at the cometbft
+  //  end lags a bit -- the transaction simply isn't there for a while AFTER the
+  //  block is delivered, so we need to cache this on our end in RAM anyway
+  //  (we proactively cache the tx the moment we know it exists, via putTx()).
+  // CometBFT RPC retrieval will work fine for older data that has been flushed
+  //  from this RAM cache already.
+
+  std::unique_lock<std::mutex> lock(txCacheMutex_);
+  for (int i = 0; i < 2; ++i) {
+    auto& bucket = txCache_[(txCacheBucket_ + i) % 2];
+    auto it = bucket.find(tx);
+    if (it != bucket.end()) {
+      LOGTRACE("Storage::getTx(" + tx.hex().get() + "): cache hit");
+      return it->second;
+    }
+  }
+  lock.unlock();
+  LOGTRACE("Storage::getTx(" + tx.hex().get() + "): cache miss");
+
+  // Translate `tx` (BDK sha3 hash) to a CometBFT sha256 hash
+  Hash txSha256;
+  if (storage_.getTxMap(tx, txSha256)) {
+
+    // Get the data via a sync (blocking) RPC request to cometbft
+    Bytes hx = Hex::toBytes(txSha256.hex());
+    std::string encodedHexBytes = base64::encode_into<std::string>(hx.begin(), hx.end());
+    json params = { {"hash", encodedHexBytes} };
+    json ret;
+    if (comet_.rpcSyncCall("tx", params, ret)) {
+      if (ret.is_object() && ret.contains("result") && ret["result"].is_object()) {
+        // Validate returned JSON
+        const auto& result = ret["result"];
+        if (
+            result.contains("tx") && result["tx"].is_string() &&
+            result.contains("height") && result["height"].is_string() &&
+            result.contains("index") && result["index"].is_number_integer()
+          )
+        {
+          // Base64-decode the tx string data into a Bytes
+          Bytes txBytes = base64::decode_into<Bytes>(result["tx"].get<std::string>());
+
+          // Decode Bytes into a TxBlock
+          uint64_t chainId = options_.getChainID();
+          std::shared_ptr<TxBlock> txBlock = std::make_shared<TxBlock>(txBytes, chainId);
+
+          // Block height and index of tx within block
+          uint64_t blockHeight = std::stoull(result["height"].get<std::string>());
+          uint64_t blockIndex = result["index"].get<int>();
+
+          // REVIEW: For some reason we need to fill in the hash of the
+          //   block as well, but that would be another lookup for the hash
+          //   of the block at a given block height.
+          //   (This value seems unused and we should remove it anyways).
+          Hash blockHash;
+
+          LOGTRACE(
+            "getTx(" + tx.hex().get() + "): blockIndex=" +
+            std::to_string(blockIndex) + " blockHeight=" +
+            std::to_string(blockHeight)
+          );
+
+          // Assemble return value
+          return std::make_tuple(txBlock, blockHash, blockIndex, blockHeight);
+        } else {
+         LOGTRACE("getTx(): bad tx call result: " + result.dump());
+        }
+      } else {
+        LOGTRACE("getTx(): bad rpcSyncCall result: " + ret.dump());
+      }
+    } else {
+      LOGTRACE("getTx(): rpcSyncCall('tx') failed");
+    }
+  } else {
+    LOGTRACE("getTx(): cannot find tx sha256");
+  }
+  LOGTRACE("getTx(" + tx.hex().get() + ") FAIL!");
+  return std::make_tuple(nullptr, Hash(), 0u, 0u);
+}
+
 
 // ------------------------------------------------------------------
 // CometListener
@@ -363,8 +491,17 @@ static json getBlockJson(const FinalizedBlock *block, bool includeTransactions) 
   ret["totalDifficulty"] = "0x1";
   ret["baseFeePerGas"] = FIXED_BASE_FEE_PER_GAS;
   ret["withdrawRoot"] = Hash().hex(true); // No withdrawRoot.
+
+  // FIXME/REVIEW: Do we *really* need to know the block size here?
+  //               Who is consuming this / depending on this?
+  //               It would be better to just add up the byte size of all transactions
+  //               and record this in the FinalizedBlock object, maybe adding some
+  //               constant guess for the header size, if we just want an estimate.
+  //
   // TODO: to get a block you have to serialize it entirely, this can be expensive.
-  ret["size"] = Hex::fromBytes(Utils::uintToBytes(block->serializeBlock().size()),true).forRPC();
+  //ret["size"] = Hex::fromBytes(Utils::uintToBytes(block->serializeBlock().size()),true).forRPC();
+  ret["size"] = Hex::fromBytes(Utils::uintToBytes(size_t(0)), true).forRPC();
+
   ret["transactions"] = json::array();
   uint64_t txIndex = 0;
   for (const auto& tx : block->getTxs()) {
@@ -510,39 +647,13 @@ json Blockchain::eth_feeHistory(const json& request) {
 json Blockchain::eth_getLogs(const json& request) {
   const auto [logsObj] = parseAllParams<json>(request);
   const auto getBlockByHash = [this] (const Hash& hash) {
-    //return getBlockNumber(storage, hash);
-    // FIXME/TODO:
-    // - replace this parsing with whatever we are doing
-    // - we should probably cache at least the block-hash --> block-height mapping
-    json params;
-    params["hash"] = hash.hex().get(); // FIXME: to string, review
-    json ret;
-    if (!comet_.rpcSyncCall("block_by_hash", params, ret)) {
-      return std::optional<uint64_t>{};
-    }
-    if (!ret.is_object() || !ret.contains("result") || !ret["result"].is_object()) {
-      return std::optional<uint64_t>{};
-    }
-    const auto& result = ret["result"];
-    if (!result.contains("block") || !result["block"].is_object()) {
-      return std::optional<uint64_t>{};
-    }
-    const auto& block = result["block"];
-    if (!block.contains("header") || !block["header"].is_object()) {
-      return std::optional<uint64_t>{};
-    }
-    const auto& header = block["header"];
-    if (!header.contains("height") || !header["height"].is_string()) {
-      return std::optional<uint64_t>{};
-    }
-    std::string heightStr = header["height"].get<std::string>();
-    uint64_t height = 0;
     try {
-      height = std::stoull(heightStr);
-    } catch (const std::exception&) {
+      auto finBlockPtr = getBlock(hash);
+      return std::optional<uint64_t>{finBlockPtr->getNHeight()};
+    } catch (std::exception& ex) {
+      LOGDEBUG("ERROR eth_getLogs(): " + std::string(ex.what()));
       return std::optional<uint64_t>{};
     }
-    return std::optional<uint64_t>{height};
   };
 
   uint64_t latestHeight = getLatestHeight();
