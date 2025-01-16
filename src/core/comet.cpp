@@ -1159,13 +1159,16 @@ void CometImpl::checkCometBFT() {
   std::string cometOut, cometErr;
   // This throws an exception if it can't find cometbft, for example
   runCometBFT({ "version" }, &cometOut, &cometErr);
-  // Right now we expect an exact cometbft version to pair with the Comet driver
-  // 1.0.0+ce344cc66 will be the version output by git checkout v1.0.0 + make build
-  // This version will include our replacement of sha256 with eth sha3 for Tx hash
-  // and TxKey.
-  const std::string expectedVersion = "1.0.0+ce344cc66";
-  if (cometOut != expectedVersion) {
-    throw DynamicException("Expected version [" + expectedVersion + "] from cometbft, got [" + cometOut + "] instead");
+  // Right now we expect an exact cometbft version to pair with the Comet driver.
+  //
+  // "1.0.0+ce344cc66" is the version for "git checkout v1.0.0" + modifying the code.
+  // This version includes our replacement of sha256 with eth sha3 for Tx hash and TxKey.
+  //
+  // Unfortunately, the git commit hex varies in lenght depending on the machine
+  // (not sure why), so we will check for a "version+" prefix only.
+  const std::string expectedVersionPrefix = "1.0.0+";
+  if (!cometOut.starts_with(expectedVersionPrefix)) {
+    throw DynamicException("Expected version prefix [" + expectedVersionPrefix + "] from cometbft, got version [" + cometOut + "] instead");
   }
 }
 
