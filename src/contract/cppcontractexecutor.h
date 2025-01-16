@@ -141,7 +141,7 @@ private:
     uint256_t value = 0;
 
     contract.caller_ = caller;
-    contract.value_ = value; // TODO: value 0 ALWAYS?
+    contract.value_ = value;
 
     auto account = context_.getAccount(msg.from());
     const Address contractAddress = generateContractAddress(account.getNonce(), msg.from());

@@ -199,14 +199,6 @@ namespace THash {
       REQUIRE(bytes::cast<evmc::bytes32>(hash) == num);
     }
 
-    SECTION("Hash toEvmcBytes32") {
-      evmc::bytes32 num;
-      Bytes b = Hex::toBytes("9be83ea08b549e7c77644c451b55a674bb12e4668d018183ff9723b1de493818");
-      for (int i = 0; i < 32; i++) num.bytes[i] = b[i];
-      Hash hash(num);
-      REQUIRE(bytes::cast<evmc::bytes32>(hash) == num);
-    }
-
     SECTION("Hash random()") {
       Hash hash1 = bytes::random();
       Hash hash2 = bytes::random();

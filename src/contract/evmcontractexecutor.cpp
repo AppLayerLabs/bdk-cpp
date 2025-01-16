@@ -250,7 +250,7 @@ evmc_tx_context EvmContractExecutor::get_tx_context() const noexcept {
 }
 
 evmc::bytes32 EvmContractExecutor::get_block_hash(int64_t number) const noexcept {
-  return EVMCConv::uint256ToEvmcUint256(number); // TODO: ???
+  return EVMCConv::uint256ToEvmcUint256(number);
 }
 
 void EvmContractExecutor::emit_log(const evmc::address& addr, const uint8_t* data, size_t dataSize, const evmc::bytes32 topics[], size_t topicsCount) noexcept {

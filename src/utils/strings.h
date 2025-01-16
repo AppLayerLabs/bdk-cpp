@@ -15,7 +15,7 @@ See the LICENSE.txt file in the project root for more information.
 
 #include "../bytes/initializer.h" // bytes/view.h -> bytes/range.h -> ranges -> span
 
-#include "dynamicexception.h" // TODO: see the size todo below
+#include "dynamicexception.h"
 #include "hex.h"
 #include "uintconv.h"
 

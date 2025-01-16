@@ -18,11 +18,11 @@ BaseContract& ExecutionContext::getContract(View<Address> contractAddress) {
   const auto it = contracts_.find(contractAddress);
 
   if (it == contracts_.end()) {
-    throw DynamicException("contract not found"); // TODO: dynamic exception
+    throw DynamicException("contract not found");
   }
 
   if (it->second == nullptr) {
-    throw DynamicException("not a C++ contract"); // TODO: dynamic exception
+    throw DynamicException("not a C++ contract");
   }
 
   return *it->second;
@@ -32,11 +32,11 @@ const BaseContract& ExecutionContext::getContract(View<Address> contractAddress)
   const auto it = contracts_.find(contractAddress);
 
   if (it == contracts_.end()) {
-    throw DynamicException("contract not found"); // TODO: dynamic exception
+    throw DynamicException("contract not found");
   }
 
   if (it->second == nullptr) {
-    throw DynamicException("not a C++ contract"); // TODO: dynamic exception
+    throw DynamicException("not a C++ contract");
   }
 
   return *it->second;
@@ -46,7 +46,7 @@ Account& ExecutionContext::getMutableAccount(View<Address> accountAddress) {
   const auto iterator = accounts_.find(accountAddress);
 
   if (iterator == accounts_.end()) {
-    throw DynamicException("account not found"); // TODO: dynamic exception
+    throw DynamicException("account not found");
   }
 
   return *iterator->second;
