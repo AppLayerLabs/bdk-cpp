@@ -25,9 +25,6 @@ scripts/AIO-setup.log
 compile_commands.json
 .cache/
 
-# Supra has a lot of patches in root
-*.patch
-
 # IDEA's IDE
 .idea/
 cmake-build-debug/

@@ -62,6 +62,14 @@ ETHASH_VERSION="1.0.1"
 EVMONE_VERSION="0.11.0"
 SPEEDB_VERSION="2.8.0"
 
+# Helper vars
+# Full path to the CometBFT patch file - MUST exist, otherwise script will fail
+COMETBFT_PATCH=$(find . -name "cometbft_useKeccak256.patch" -exec realpath {} \; 2> /dev/null | head -n 1)
+if [ -z "$COMETBFT_PATCH" ]; then
+  echo "ERROR: could not find CometBFT patch file, aborting"
+  exit
+fi
+
 # ===========================================================================
 # SCRIPT STARTS HERE
 # ===========================================================================
@@ -69,13 +77,14 @@ SPEEDB_VERSION="2.8.0"
 echo "-- Scanning for dependencies..."
 
 # Check toolchain binaries
-# Necessary: git, wget, tar, gcc/g++, ld, autoconf, libtool, pkg-config, make, cmake, tmux
+# Necessary: git, wget, tar, gcc/g++, golang, ld, autoconf, libtool, pkg-config, make, cmake, tmux
 # Optional: ninja, mold, doxygen, clang-tidy
 HAS_GIT=$(check_exec git)
 HAS_WGET=$(check_exec wget)
 HAS_TAR=$(check_exec tar)
 HAS_GCC=$(check_exec gcc)
 HAS_GPP=$(check_exec g++)
+HAS_GO=$(check_exec go) # Required for CometBFT compilation
 HAS_LD=$(check_exec ld)
 HAS_MAKE=$(check_exec make)
 HAS_CMAKE=$(check_exec cmake)
@@ -88,7 +97,7 @@ HAS_CLANGTIDY=$(check_exec clang-tidy)
 # Check external binaries
 # Necessary: protoc, cometbft
 HAS_PROTOC=$(check_exec protoc)
-HAS_COMETBFT=$(check_exec cometbft)
+HAS_COMETBFT=$(check_exec cometbft-bdk)
 
 # Check internal libraries
 # Necessary: libabsl-dev, libboost-all-dev, openssl/libssl-dev, libzstd-dev, liblz4-dev, libcrypto++-dev,
@@ -120,6 +129,7 @@ if [ "${1:-}" == "--check" ]; then
   echo -n "tar: " && [ -n "$HAS_TAR" ] && echo "$HAS_TAR" || echo "not found"
   echo -n "gcc: " && [ -n "$HAS_GCC" ] && echo "$HAS_GCC" || echo "not found"
   echo -n "g++: " && [ -n "$HAS_GPP" ] && echo "$HAS_GPP" || echo "not found"
+  echo -n "go: " && [ -n "$HAS_GO" ] && echo "$HAS_GO" || echo "not found"
   echo -n "ld: " && [ -n "$HAS_LD" ] && echo "$HAS_LD" || echo "not found"
   echo -n "make: " && [ -n "$HAS_MAKE" ] && echo "$HAS_MAKE" || echo "not found"
   echo -n "cmake: " && [ -n "$HAS_CMAKE" ] && echo "$HAS_CMAKE" || echo "not found"
@@ -169,6 +179,7 @@ elif [ "${1:-}" == "--install" ]; then
     if [ -z "$HAS_WGET" ]; then PKGS+="wget "; fi
     if [ -z "$HAS_TAR" ]; then PKGS+="tar "; fi
     if [ -z "$HAS_GCC" ] || [ -z "$HAS_GPP" ] || [ -z "$HAS_MAKE" ] || [ -z "$HAS_LD" ]; then PKGS+="build-essential "; fi
+    if [ -z "$HAS_GO" ]; then PKGS+="golang "; fi
     if [ -z "$HAS_CMAKE" ]; then PKGS+="cmake "; fi
     if [ -z "$HAS_TMUX" ]; then PKGS+="tmux "; fi
     if [ -z "$HAS_NINJA" ]; then PKGS+="ninja-build "; fi
@@ -206,11 +217,9 @@ elif [ "${1:-}" == "--install" ]; then
   fi
   if [ -z "$HAS_COMETBFT" ]; then
     echo "-- Installing CometBFT..."
-    cd /usr/local/src
-    wget "https://github.com/cometbft/cometbft/releases/download/v${COMETBFT_VERSION}/cometbft_${COMETBFT_VERSION}_linux_amd64.tar.gz"
-    mkdir -p "cometbft_${COMETBFT_VERSION}_linux_amd64"
-    tar -xf "cometbft_${COMETBFT_VERSION}_linux_amd64.tar.gz" -C "cometbft_${COMETBFT_VERSION}_linux_amd64"
-    cp "cometbft_${COMETBFT_VERSION}_linux_amd64/cometbft" /usr/local/bin/
+    cd /usr/local/src && git clone --depth 1 --branch "v${COMETBFT_VERSION}" https://github.com/cometbft/cometbft
+    cd cometbft && git apply "${COMETBFT_PATCH}" # https://gist.github.com/fcecin/2fe336e9f76900f37be89a35e5ebac62
+    make build && cp ./build/cometbft /usr/local/bin/cometbft-bdk
   fi
   if [ -z "$HAS_ETHASH" ] || [ -z "$HAS_KECCAK" ]; then
     echo "-- Installing ethash..."
@@ -249,6 +258,11 @@ elif [ "${1:-}" == "--cleanext" ]; then
     echo "-- Uninstalling Protobuf..."
     rm -r "/usr/local/include/google/protobuf"
     rm "/usr/local/bin/protoc"
+  fi
+  if [ -n "$HAS_COMETBFT" ]; then
+    echo "-- Uninstalling CometBFT..."
+    rm -r "/usr/local/src/cometbft"
+    rm "/usr/local/bin/cometbft-bdk"
   fi
   if [ -n "$HAS_ETHASH" ] || [ -n "$HAS_KECCAK" ]; then
     echo "-- Uninstalling ethash..."

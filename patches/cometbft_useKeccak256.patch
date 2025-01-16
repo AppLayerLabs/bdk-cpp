@@ -1,0 +1,45 @@
+diff --git a/go.mod b/go.mod
+index ec71c0e..e6294e6 100644
+--- a/go.mod
++++ b/go.mod
+@@ -3,6 +3,7 @@ module github.com/cometbft/cometbft
+ go 1.23.1
+ 
+ require (
++	github.com/ethereum/go-ethereum v1.14.12
+ 	github.com/BurntSushi/toml v1.4.0
+ 	github.com/adlio/schema v1.3.6
+ 	github.com/btcsuite/btcd/btcutil v1.1.6
+diff --git a/types/tx.go b/types/tx.go
+index 3cbcf33..315b194 100644
+--- a/types/tx.go
++++ b/types/tx.go
+@@ -8,7 +8,7 @@ import (
+ 
+ 	cmtproto "github.com/cometbft/cometbft/api/cometbft/types/v1"
+ 	"github.com/cometbft/cometbft/crypto/merkle"
+-	"github.com/cometbft/cometbft/crypto/tmhash"
++	"github.com/ethereum/go-ethereum/crypto"
+ 	cmtbytes "github.com/cometbft/cometbft/libs/bytes"
+ )
+ 
+@@ -25,13 +25,16 @@ type (
+ 	TxKey [TxKeySize]byte
+ )
+ 
+-// Hash computes the TMHASH hash of the wire encoded transaction.
++// Hash computes the Keccak256 hash of the wire encoded transaction.
+ func (tx Tx) Hash() []byte {
+-	return tmhash.Sum(tx)
++	return crypto.Keccak256(tx)
+ }
+ 
++// Key returns the Keccak256-based fixed-length key for indexing.
+ func (tx Tx) Key() TxKey {
+-	return sha256.Sum256(tx)
++	var key TxKey
++	copy(key[:], crypto.Keccak256(tx))
++	return key
+ }
+ 
+ // String returns the hex-encoded transaction as a string.
