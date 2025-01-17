@@ -33,11 +33,6 @@ class State : public Log::LogicalLocationProvider {
     boost::unordered_flat_map<StorageKey, Hash, SafeHash> vmStorage_; ///< Map with the storage of the EVM.
     boost::unordered_flat_map<Address, NonNullUniquePtr<Account>, SafeHash> accounts_; ///< Map with information about blockchain accounts (Address -> Account).
 
-    // The actual mempool is on the cometbft process
-    // REVIEW: We *might* want or need to maintain a cache of TxBlock objects that are created from the Bytes
-    //   raw transactions we send/receive to/from cometbft.
-    //boost::unordered_flat_map<Hash, TxBlock, SafeHash> mempool_; ///< TxBlock mempool.
-
     /**
      * Doesn't acquire the state mutex.
      */
@@ -45,13 +40,16 @@ class State : public Log::LogicalLocationProvider {
 
     /**
      * FIXME/TODO:
-     * - blockHash passed in will be just 0
      * - randomnessHash passed in will be just 0 and we don't have actual support for secure
-     *   randomness. The correct solution is to just remove this from the protocol and
-     *   outsource randomness to oracles in the short term while we develop RDPOS. OR, we have
-     *   the block proposer just generate a random number, and if that's good enough for your
-     *   application, then you just use it. OR, we use CometBFT Vote Extensions to try and do
-     *   something slightly fancier (that is probably still not 100% secure).
+     *   randomness. we need to implement a commit/reveal protocol between the validators
+     *   of a block that runs in parallel generates a secure and signed random number that
+     *   is used by processBlock() for that height (i.e. the CometBFT consensus is not
+     *   actually aware of this; we just commit the hash of the random block on the next
+     *   cometbft block, or maybe in the app_hash since it looks like the app_hash value
+     *   goes into the same block that generates that app hash value (that is, the app_hash
+     *   that is written in the header of a final/committed block is the hash of the state
+     *   *after* processing that block! If so, app_hash is perfect for storing the hash
+     *   of the secure, signed result of the random generation protocol for that round.
      *
      * Process a transaction within a block. Called by processNextBlock().
      * If the process fails, any state change that this transaction would cause has to be reverted.

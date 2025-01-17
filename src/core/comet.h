@@ -72,31 +72,6 @@ struct CometValidatorUpdate {
 };
 
 /**
- * Special values for CometTxStatus::height that signal different reasons for a transaction not being included in a block yet.
- */
-//enum CometTxStatusHeight : int64_t {
-//  NONE       = -9, ///< A state that is never set on the object.
-//  SUBMITTING = -3, ///< Sent the transaction to the cometbft RPC port.
-//  REJECTED   = -2, ///< cometbft rejected the transaction or it never reached it due to some local communication error.
-//  SUBMITTED  = -1  ///< cometbft acknowledged and accepted it.
-//};
-
-/**
- * The current status of a transaction in the network.
- * Instances of this struct will be indexed by the sha3 hash of the transaction in a hash table.
- * If there isn't a CometTxStatus entry in the hash table at all, it means the Comet driver has no idea about it,
- * but that doesn't mean the network doesn't know about it (there's an unconfirmed-transactions method in the
- * cometbft RPC server that can be queried to figure it out, but you'll need cometbft transaction hashes, i.e.
- * SHA256 to locate it).
- */
-//struct CometTxStatus {
-//  int64_t           height; ///< Height of the block in which this transaction was included (< 0 if not included in any block).
-//  int32_t           index; ///< Index of the transaction in the block in which it was included (valid only if height >= 0).
-//  std::string       cometTxHash; ///< cometbft tx hash (i.e. SHA256) if known.
-//  CometExecTxResult result; ///< Transaction execution result (valid only if height >= 0).
-//};
-
-/**
  * A block output by the consensus engine.
  * NOTE: the "hash" param value provided via incomingBlock(CometBlock block) IS the actual, final block hash,
  * since CometBFT (at least in v1.0 / ABCI 2.0) seems to write the appHash we compute during incomingBlock()
@@ -380,15 +355,6 @@ class Comet : public Log::LogicalLocationProvider {
     virtual ~Comet();
 
     /**
-     * Set the transaction cache size (if 0, the cache is disabled).
-     * When the cache is enabled, transactions will get their eth-compatible hash computed,
-     * and Comet will keep the most recent transactions it has seen in the cache with their
-     * status (submitted, included in a block at some height, etc).
-     * @param cacheSize New cache capacity, in transaction count (if zero, disable the cache).
-     */
-    //void setTransactionCacheSize(const uint64_t cacheSize);
-
-    /**
      * Get the global status of the Comet worker.
      * @return `true` if it is in a working state, `false` if it is in a failed/terminated state.
      */
@@ -475,17 +441,6 @@ class Comet : public Log::LogicalLocationProvider {
      * @return The ticket number for the block request, or 0 on error (RPC call not made).
      */
     uint64_t getBlock(const uint64_t height);
-
-    /**
-     * Check the status of a transaction given its eth hash.
-     * This will query the internal tx cache (which is also updated when FinalizedBlock is processed),
-     * instead of the cometbft RPC /tx endpoint and so returns the result immediately instead of via
-     * CometListener::checkTransactionResult().
-     * @param txEthHash The binary Ethereum-compatible hash of the transaction.
-     * @param txStatus Outparam to be filled with the current status of the transaction if it is found.
-     * @return `true` if a CometTxStatus for the tx was found, `false` otherwise (txStatus is unmodified).
-     */
-    //bool checkTransactionInCache(const Hash& txEthHash, CometTxStatus& txStatus);
 
     /**
      * Make a JSON-RPC call to the RPC endpoint. The Comet engine must be in a state that has cometbft

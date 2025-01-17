@@ -16,10 +16,39 @@ See the LICENSE.txt file in the project root for more information.
 #include "../net/http/httpserver.h"
 #include "../net/http/noderpcinterface.h"
 
+/// Number of FinalizedBlock objects to cache at any time
+#define FINALIZEDBLOCK_CACHE_SIZE 100
+
 /// A <TxBlock, blockHash, blockIndex, blockHeight> tuple.
 using GetTxResultType = std::tuple<
   std::shared_ptr<TxBlock>, Hash, uint64_t, uint64_t
 >;
+
+/// A <blockHeight, blockIndex> tuple.
+struct TxCacheValueType {
+  uint64_t blockHeight; ///< Height of the block this transaction is included in.
+  uint64_t blockIndex; ///< Index inside the block this transaction is included in.
+};
+
+/**
+ * RAM cache of FinalizedBlock objects.
+ */
+class FinalizedBlockCache
+{
+public:
+  explicit FinalizedBlockCache(size_t capacity);
+  void insert(std::shared_ptr<const FinalizedBlock> x);
+  std::shared_ptr<const FinalizedBlock> getByHeight(uint64_t height);
+  std::shared_ptr<const FinalizedBlock> getByHash(const Hash& hash);
+private:
+  void evictIndices(const std::shared_ptr<const FinalizedBlock>& x);
+  std::vector<std::shared_ptr<const FinalizedBlock>> ring_;
+  size_t nextInsertPos_;
+  size_t capacity_;
+  std::map<uint64_t, std::shared_ptr<const FinalizedBlock>> byHeight_;
+  std::unordered_map<Hash, std::shared_ptr<const FinalizedBlock>, SafeHash> byHash_;
+  std::mutex mutex_;
+};
 
 /**
  * A BDK node.
@@ -69,34 +98,32 @@ class Blockchain : public CometListener, public NodeRPCInterface, public Log::Lo
 
     std::vector<CometValidatorUpdate> validators_; ///< Up-to-date CometBFT validator set.
 
-    // We have to keep the latest fully deserialized block at the very least because our
-    // current contract test suite makes heavy use of a latest FinalizedBlock that has
-    // TxBlock objects in it, etc.
-    // TODO/REVIEW: Do we really want to keep a deque of a thousand FinalizedBlock in RAM?
-    //              What if blocks are close to 100MB each?
-    //              We could have the deque limited by total byte size and have that as a
-    //              BDK config, but that would not ensure we have at least N blocks cached
-    //              if we would use them for e.g. feeHistory.
-    //              The upside is that we'd have some cached responses for getBlock()
-    // TODO: cache the hash and height of latest_ at least for getBlock()
+    // FIXME/TODO: Need to query for the last block and fill this in on boot.
+    //             (That initial block query will also feed the fbCache_).
     std::atomic<std::shared_ptr<const FinalizedBlock>> latest_; ///< Pointer to the latest block in the blockchain.
 
-    // RAM transaction cache
-    // The GetTxResultType tuple just conforms to the query result type that the
-    //   storage class was providing before.
-    // This is a simple cache with two rotating buckets that indexes by (tx hash) only.
-    // For (block height, tx index) queries we would need some other data structure.
-    // NOTE/REVIEW: If we're going to cache many FinalizedBlock objects in RAM, then
-    //   FinalizedBlock could have e.g. vector<shared_ptr<TxBlock>> txs; instead, which
-    //   would avoid duplicating TxBlock objects in a separate TxCache; instead the TxCache
-    //   would simply be various indexes into shared_ptr<TxBlock> objects that were created
-    //   for the FinalizedBlock objects.
-    //   The only way this doesn't work is if we ever create and cache TxBlock before they
-    //   are final (that is, in a finalized block that we get via the ABCI).
-    std::atomic<uint64_t> txCacheSize_ = 1000000; ///< Transaction cache size in maximum entries per bucket (0 to disable).
+    // Cache of transaction hash to (block height, block index).
+    // It is too expensive to clean up these mappings every time we get a FinalizedBlock
+    // evicted from fbCache_. Instead, we just oversize the buckets in txCache_ to make sure
+    // they can hold more entries than what will be ever present in the fbCache_.
+    std::atomic<uint64_t> txCacheSize_ = 10'000'000; ///< Transaction cache size in maximum entries per bucket (0 to disable).
     mutable std::mutex txCacheMutex_; ///< Mutex to protect cache access.
-    std::array<std::unordered_map<Hash, GetTxResultType, SafeHash>, 2> txCache_; ///< Transaction cache as two rotating buckets.
+    std::array<std::unordered_map<Hash, TxCacheValueType, SafeHash>, 2> txCache_; ///< Transaction cache as two rotating buckets.
     uint64_t txCacheBucket_ = 0; ///< Active txCache_ bucket.
+
+    // RAM finalized block/tx cache
+    // We will be doing miscellaneous queries for blocks and assembling FinalizedBlock
+    // objects from the query results. We need to cache the FinalizedBlock objects,
+    // otherwise series of calls to e.g. getTxByBlockHashAndIndex() will be slow.
+    // Since we cache FinalizedBlock's here, we will also use this as the back-end for
+    // the GetTx() / GetTxBy...() methods.
+    FinalizedBlockCache fbCache_;
+
+    bool getBlockRPC(const Hash& blockHash, json& ret);
+    bool getBlockRPC(const uint64_t blockHeight, json& ret);
+    bool getTxRPC(const Hash& txHash, json& ret);
+
+    void putTx(const Hash& tx, const TxCacheValueType& val);
 
   public:
 
@@ -214,13 +241,6 @@ class Blockchain : public CometListener, public NodeRPCInterface, public Log::Lo
     std::shared_ptr<const FinalizedBlock> getBlock(uint64_t height);
 
     /**
-     * Store a getTx(txHash) result in the getTx() cache.
-     * @param tx The transaction hash (key) to store in the cache.
-     * @param val The transaction data (value) to store in the cache.
-     */
-    void putTx(const Hash& tx, const GetTxResultType& val);
-
-    /**
      * Get a transaction from the chain using a given hash.
      * @param tx The transaction hash to get.
      * @return A tuple with the found transaction, block hash, index and height.
@@ -230,6 +250,27 @@ class Blockchain : public CometListener, public NodeRPCInterface, public Log::Lo
     //        a second separate RPC call to fetch.
     //        right now, Hash is being set to 0x0000..0000
     GetTxResultType getTx(const Hash& tx);
+
+    /**
+     * MOVED to Blockchain or delete.
+     *
+     * Get a transaction from a block with a specific index.
+     * @param blockHash The block hash
+     * @param blockIndex the index within the block
+     * @return A tuple with the found transaction, block hash, index and height.
+     * @throw DynamicException on hash mismatch.
+     */
+    GetTxResultType getTxByBlockHashAndIndex(const Hash& blockHash, const uint64_t blockIndex);
+
+    /**
+     * MOVED to Blockchain or delete.
+     *
+     * Get a transaction from a block with a specific index.
+     * @param blockHeight The block height
+     * @param blockIndex The index within the block.
+     * @return A tuple with the found transaction, block hash, index and height.
+     */
+    GetTxResultType getTxByBlockNumberAndIndex(uint64_t blockHeight, uint64_t blockIndex);
 
     ///@{
     /** Getter. */

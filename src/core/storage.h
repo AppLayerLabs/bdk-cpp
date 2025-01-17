@@ -130,38 +130,6 @@ class Storage : public Log::LogicalLocationProvider {
     std::string getLogicalLocation() const override;
 
     /**
-     * moved to Blockchain
-     *
-     * Set the size of the GetTx() cache.
-     * If you set it to 0, you turn off the cache.
-     * NOTE: CometBFT has a lag between finalizing a block and indexing transactions,
-     * so if you turn off the cache, you need to take that into consideration when
-     * using methods like Storage::getTx() which will hit cometbft with a 'tx' RPC
-     * call and possibly fail because the transaction hasn't been indexed yet.
-     * @param cacheSize Maximum size in entries for each bucket (two rotating buckets).
-     */
-    //void setGetTxCacheSize(const uint64_t cacheSize);
-
-    /**
-     * Store a sha3 -> sha256 txHash mapping.
-     * @param txHashSha3 Key.
-     * @param txHashSha256 Value.
-     */
-    //void putTxMap(Hash txHashSha3, Hash txHashSha256);
-
-    /**
-     * Load a sha3 -> sha256 txHash mapping.
-     * @param txHashSha3 Key.
-     * @param txHashSha256 Value (outparam).
-     * @return `true` if mapping found, `false` otherwise (txHashSha256 is unset).
-     */
-    //bool getTxMap(Hash txHashSha3, Hash& txHashSha256) const;
-
-    // MOVE block queries to Blockchain class (or delete)
-    /// Wrapper for `pushBackInternal()`. Use this as it properly locks `chainLock_`.
-    //void pushBlock(FinalizedBlock block);
-
-    /**
      * MOVE block queries to Blockchain class (or delete)
      *
      * Check if a block exists anywhere in storage (memory/chain, then cache, then database).
@@ -181,24 +149,6 @@ class Storage : public Log::LogicalLocationProvider {
     //bool blockExists(uint64_t height) const;
 
     /**
-     * MOVED block queries to Blockchain class (or delete)
-     *
-     * Get a block from the chain using a given hash.
-     * @param hash The block hash to get.
-     * @return A pointer to the found block, or `nullptr` if block is not found.
-     */
-    //std::shared_ptr<const FinalizedBlock> getBlock(const Hash& hash) const;
-
-    /**
-     * MOVED block queries to Blockchain class (or delete)
-     *
-     * Get a block from the chain using a given height.
-     * @param height The block height to get.
-     * @return A pointer to the found block, or `nullptr` if block is not found.
-     */
-    //std::shared_ptr<const FinalizedBlock> getBlock(uint64_t height) const;
-
-    /**
      * MOVE block queries to Blockchain class (or delete)
      * checking if a transaction exists can involve Comet, so it should go
      * to Blockchain as well
@@ -208,57 +158,6 @@ class Storage : public Log::LogicalLocationProvider {
      * @return Bool telling if the transaction exists.
      */
     //bool txExists(const Hash& tx) const;
-
-    /**
-     * MOVED to Blockchain
-     *
-     * Store a getTx(txHash) result in the getTx() cache.
-     * @param tx The transaction hash (key) to store in the cache.
-     * @param val The transaction data (value) to store in the cache.
-     */
-    //void putTx(const Hash& tx, const StorageGetTxResultType& val);
-
-    /**
-     * MOVED to Blockchain
-     *
-     *  Get a transaction from the chain using a given hash.
-     * @param tx The transaction hash to get.
-     * @return A tuple with the found transaction, block hash, index and height.
-     * @throw DynamicException on hash mismatch.
-     */
-    // FIXME: remove the Hash (get<1>) param as it seems to be unused; it would require
-    //        a second separate RPC call to fetch.
-    //        right now, Hash is being set to 0x0000..0000
-    //StorageGetTxResultType getTx(const Hash& tx) const;
-
-    /**
-     * MOVE to Blockchain or delete.
-     *
-     * Get a transaction from a block with a specific index.
-     * @param blockHash The block hash
-     * @param blockIndex the index within the block
-     * @return A tuple with the found transaction, block hash, index and height.
-     * @throw DynamicException on hash mismatch.
-     */
-    //std::tuple<
-    //  const std::shared_ptr<const TxBlock>, const Hash, const uint64_t, const uint64_t
-    //> getTxByBlockHashAndIndex(const Hash& blockHash, const uint64_t blockIndex) const;
-
-    /**
-     * MOVE to Blockchain or delete.
-     *
-     * Get a transaction from a block with a specific index.
-     * @param blockHeight The block height
-     * @param blockIndex The index within the block.
-     * @return A tuple with the found transaction, block hash, index and height.
-     */
-    //std::tuple<
-    //  const std::shared_ptr<const TxBlock>, const Hash, const uint64_t, const uint64_t
-    //> getTxByBlockNumberAndIndex(uint64_t blockHeight, uint64_t blockIndex) const;
-
-    // moved to Blockchain already.
-    /// Get the most recently added block from the chain.
-    //std::shared_ptr<const FinalizedBlock> latest() const;
 
     //MOVE to Blockchain or delete.
     // You get this from the State (the machine has a height which is the current state)
