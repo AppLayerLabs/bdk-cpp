@@ -169,10 +169,12 @@ See the LICENSE.txt file in the project root for more information.
 //}
 
 FinalizedBlock FinalizedBlock::fromCometBlock(const CometBlock& block) {
-  auto validatorSig = Signature();
-  auto prevBlockHash = Hash();
-  auto blockRandomness = Hash();
-  auto validatorMerkleRoot = Hash();
+  //auto validatorSig = Signature();
+  auto proposerAddr = Address(block.proposerAddr);
+
+  auto prevBlockHash = Hash(block.prevHash);
+  //auto blockRandomness = Hash();
+  //auto validatorMerkleRoot = Hash();
 
   uint64_t requiredChainId = 0; // FIXME
 
@@ -191,62 +193,69 @@ FinalizedBlock FinalizedBlock::fromCometBlock(const CometBlock& block) {
   uint64_t timestamp = block.timeNanos / 1000; // FinalizedBlock uses microseconds
   uint64_t nHeight = block.height;
 
-  UPubKey validatorPubKey;
+  //UPubKey validatorPubKey;
 
-  uint64_t blockSize = 1; // FIXME
+  //uint64_t blockSize = 1; // FIXME
 
   Hash hash(block.hash);
-  std::vector<TxValidator> txValidators;
+  //std::vector<TxValidator> txValidators;
 
   return {
-    std::move(validatorSig),
-    std::move(validatorPubKey),
+    //std::move(validatorSig),
+    std::move(proposerAddr),
+    //std::move(validatorPubKey),
     std::move(prevBlockHash),
-    std::move(blockRandomness),
-    std::move(validatorMerkleRoot),
+    //std::move(blockRandomness),
+    //std::move(validatorMerkleRoot),
     std::move(txMerkleRoot),
     timestamp,
     nHeight,
-    std::move(txValidators),
+    //std::move(txValidators),
     std::move(txs),
-    std::move(hash),
-    blockSize
+    std::move(hash)//,
+    //blockSize
   };
 }
 
 FinalizedBlock FinalizedBlock::fromRPC(const json& ret) {
-  auto validatorSig = Signature();
-  auto prevBlockHash = Hash();
-  auto blockRandomness = Hash();
-  auto validatorMerkleRoot = Hash();
-
-  uint64_t requiredChainId = 0; // FIXME
-
-  std::vector<TxBlock> txs;
-
-  //----
+  //auto validatorSig = Signature();
+  //auto prevBlockHash = Hash();
+  //auto blockRandomness = Hash();
+  //auto validatorMerkleRoot = Hash();
 
   if (ret.is_object() && ret.contains("result") && ret["result"].is_object()) {
     throw DynamicException("Invalid block data");
   }
   const auto& result = ret["result"];
+
   if (!result.contains("block_id") || !result["block_id"].is_object()) {
     throw DynamicException("Invalid block data");
   }
   const auto& block_id = result["block_id"];
+
   if (!result.contains("block") || !result["block"].is_object()) {
     throw DynamicException("Invalid block data");
   }
   const auto& block = result["block"];
+
   if (!block.contains("header") || !block["header"].is_object()) {
     throw DynamicException("Invalid block data");
   }
   const auto& header = block["header"];
+
+  if (!header.contains("last_block_id") || !header["last_block_id"].is_object()) {
+    throw DynamicException("Invalid block data");
+  }
+  const auto& last_block_id = header["last_block_id"];
+
   if (!block.contains("data") || !block["data"].is_object()) {
     throw DynamicException("Invalid block data");
   }
   const auto& data = block["data"];
+
   SLOGTRACE("Deserializing transactions...");
+  uint64_t requiredChainId = 0; // FIXME
+  std::vector<TxBlock> txs;
   if (data.contains("txs") && data["txs"].is_array()) {
     // There is data.txs in the response, so unpack the transactions
     for (const auto& tx : data["txs"]) {
@@ -261,6 +270,20 @@ FinalizedBlock FinalizedBlock::fromRPC(const json& ret) {
       }
     }
   }
+
+  if (!last_block_id.contains("hash") || !last_block_id["hash"].is_string()) {
+    throw DynamicException("Invalid block data");
+  }
+
+  std::string lastBlockHashStr = last_block_id["hash"].get<std::string>();
+  Hash prevBlockHash(Hex::toBytes(lastBlockHashStr)); // may be "" (for block at height == 1)
+
+  if (!header.contains("proposer_address") || !header["proposer_address"].is_string()) {
+    throw DynamicException("Invalid block data");
+  }
+
+  std::string proposerAddrStr = header["proposer_address"].get<std::string>();
+  Address proposerAddr(Hex::toBytes(proposerAddrStr));
 
   if (!header.contains("height") || !header["height"].is_string()) {
     throw DynamicException("Invalid block data");
@@ -287,25 +310,26 @@ FinalizedBlock FinalizedBlock::fromRPC(const json& ret) {
   // Same merkle root value as before cometbft integration
   auto txMerkleRoot = Merkle(txs).getRoot();
 
-  UPubKey validatorPubKey;
+  //UPubKey validatorPubKey;
 
-  uint64_t blockSize = 1; // FIXME
+  //uint64_t blockSize = 1; // FIXME
 
-  std::vector<TxValidator> txValidators;
+  //std::vector<TxValidator> txValidators;
 
   return {
-    std::move(validatorSig),
-    std::move(validatorPubKey),
+    //std::move(validatorSig),
+    std::move(proposerAddr),
+    //std::move(validatorPubKey),
     std::move(prevBlockHash),
-    std::move(blockRandomness),
-    std::move(validatorMerkleRoot),
+    //std::move(blockRandomness),
+    //std::move(validatorMerkleRoot),
     std::move(txMerkleRoot),
     timestamp,
     nHeight,
-    std::move(txValidators),
+    //std::move(txValidators),
     std::move(txs),
-    std::move(hash),
-    blockSize
+    std::move(hash)//,
+    //blockSize
   };
 }
 

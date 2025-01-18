@@ -341,11 +341,13 @@ void State::processBlock(const FinalizedBlock& block, std::vector<bool>& succeed
     );
   }
 
-  // FIXME/TODO: Whoops! We have a problem with the coinbase = validator-address idea.
-  //   Validator keys are ed25519 now, while the account structure of the
-  //   Eth-compatible machine is using secp256k1. You can't "pay" the validator key
-  //   directly.
-  //ContractGlobals::coinbase_ = Secp256k1::toAddress(block.getValidatorPubKey());
+  // The coinbase address that gets all the block fees, etc. is the block proposer.
+  // Address derivation schemes (from the same Secp256k1 public key) differ between CometBFT and Eth.
+  // So we need to map CometBFT Address to CometValidatorUpdate (a validator public key)
+  //   and then use the validator public key to compute the correct Eth Address.
+  Address proposerEthAddr = blockchain_.validatorCometAddressToEthAddress(block.getProposerAddr());
+  ContractGlobals::coinbase_ = proposerEthAddr;
+  LOGTRACE("Coinbase set to: " + proposerEthAddr.hex().get() + " (CometBFT Addr: " + block.getProposerAddr().hex().get() + ")");
 
   // TODO: randomHash needs a secure random gen protocol between all validators
   Hash randomHash; // 0

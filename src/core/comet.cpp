@@ -20,29 +20,30 @@ See the LICENSE.txt file in the project root for more information.
 
 #include "../libs/base64.hpp"
 
+#include <cryptopp/sha.h>
+#include <cryptopp/ripemd.h>
+#include <cryptopp/cryptlib.h>
+
 /*
-  NOTE: cometbft public key vs. cometbft address
+  NOTE: CometBFT keys
 
-  There is only one public key type and it is hard-coded in the Comet driver.
-  The cometbft genesis.json file should have "tendermint/PubKeyEd25519" as the only public key type,
-  whose equivalent in ABCI parlance is the "ed25519" string below.
+  There is only one public key type for validators and it is hard-coded in the Comet driver.
+  The cometbft genesis.json file should have "tendermint/PubKeySecp256k1" as the only public
+  key type for validators, whose equivalent in ABCI parlance is the "secp256k1" string below.
+  Node keys (for network P2P-node IDs) are still Ed25519.
 
-  (NOTE: secp256k1 and BLS keys are supported if there's a reason to use either.)
+  NOTE: CometBFT addresses
 
-  Address
-  Address is a type alias of a slice of bytes. The address is calculated by hashing the public key
-  using sha256 and truncating it to only use the first 20 bytes of the slice.
+  We cannot use CometBFT addresses (like the proposer address) as drop-in to Eth addresses.
+  Although they are both using a Secp256k1 public key as the starting point, the address
+  derivation scheme for CometBFT and Eth differs.
 
-  const (
-    TruncatedSize = 20
-  )
-
-  func SumTruncated(bz []byte) []byte {
-    hash := sha256.Sum256(bz)
-    return hash[:TruncatedSize]
-  }
+  In some docs it says the CometBFT address is just sha256(pubkey) truncated to 20 bytes,
+  but it's actually:
+    address = RIPEMD160(SHA256(pubkey))
+  as verified by the CometBootTest unit test.
 */
-#define COMET_PUB_KEY_TYPE "ed25519"
+#define COMET_PUB_KEY_TYPE "secp256k1"
 
 /// Use our modified version of cometbft that uses sha3 for Tx hash and TxKey
 #define COMETBFT_EXECUTABLE "cometbft-bdk"
@@ -803,6 +804,9 @@ class CometImpl : public ABCIHandler, public Log::LogicalLocationProvider {
 
     WebsocketRPCConnection<CometRPCRequestType> rpc_; ///< Singleton websocket RPC connection to process_ (started/stopped as needed).
 
+    Bytes lastCometBFTBlockHash_; ///< Last block hash seen from CometBFT (e.g. via ABCI).
+    uint64_t lastCometBFTBlockHashHeight_ = 0; ///< Height of lastCometBFTBlockHash_, 0 if none.
+
     static void doStartCometBFT(
       const std::vector<std::string>& cometArgs,
       std::unique_ptr<boost::process::child>& process, std::shared_ptr<std::atomic<bool>> processDone,
@@ -837,6 +841,8 @@ class CometImpl : public ABCIHandler, public Log::LogicalLocationProvider {
     bool stop();
     static void runCometBFT(const std::vector<std::string>& cometArgs, std::string* outStdout = nullptr, std::string* outStderr = nullptr);
     static void checkCometBFT();
+    static Bytes getCometAddressFromPubKey(Bytes pubKey);
+
     uint64_t sendTransaction(const Bytes& tx);
     uint64_t checkTransaction(const std::string& txHash);
     uint64_t getBlock(const uint64_t height);
@@ -1069,6 +1075,15 @@ void CometImpl::checkCometBFT() {
   }
 }
 
+Bytes CometImpl::getCometAddressFromPubKey(Bytes pubKey) {
+  using namespace CryptoPP;
+  byte shaDigest[SHA256::DIGESTSIZE];
+  SHA256().CalculateDigest(shaDigest, pubKey.data(), pubKey.size());
+  byte ripemdDigest[RIPEMD160::DIGESTSIZE];
+  RIPEMD160().CalculateDigest(ripemdDigest, shaDigest, SHA256::DIGESTSIZE);
+  return Bytes(ripemdDigest, ripemdDigest + RIPEMD160::DIGESTSIZE);
+}
+
 void CometImpl::setState(const CometState& state) {
   LOGTRACE("Set comet state: " + std::to_string((int)state));
   auto oldState = state;
@@ -1140,6 +1155,10 @@ void CometImpl::cleanup() {
   // Reset what we know about the cometbft store state (this is the default state if the block store is empty)
   lastCometBFTBlockHeight_ = 0;
   lastCometBFTAppHash_ = "";
+
+  // Reset the prevHash helper.
+  lastCometBFTBlockHash_.clear();
+  lastCometBFTBlockHashHeight_ = 0;
 
   // Reset any state we might have as an ABCIHandler
   infoCount_ = 0; // needed for the TESTING_COMET -> TESTED_COMET state transition.
@@ -1547,7 +1566,7 @@ void CometImpl::workerLoopInner() {
       LOGDEBUG("Comet worker: creating comet directory");
 
       // run cometbft init cometPath to create the cometbft directory with default configs
-      runCometBFT({ "init", "--home=" + cometPath });
+      runCometBFT({ "init", "--home=" + cometPath, "-k=secp256k1"});
 
       // check it exists now, otherwise halt node
       if (!std::filesystem::exists(cometPath)) {
@@ -1824,6 +1843,11 @@ void CometImpl::workerLoopInner() {
       lastCometBFTAppHash_ = header["app_hash"].get<std::string>();
       LOGDEBUG("Parsed header successfully: Last Block Height = " + std::to_string(lastCometBFTBlockHeight_) + ", Last App Hash = " + lastCometBFTAppHash_);
     }
+
+    // FIXME/TODO: if we have at least one block (lastCometBFTBlockHeight_ >= 1) then
+    //             call the inspect "blockchain" method with minheight==maxheight==lastCometBFTBlockHeight_
+    //             and get the block hash of the last block from the block_metas
+    //             and save it in lastCometBFTBlockHash_ and lastCometBFTBlockHashHeight_
 
     // Check if quitting
     if (stop_) break;
@@ -2221,6 +2245,11 @@ void CometImpl::prepare_proposal(const cometbft::abci::v1::PrepareProposalReques
   block.timeNanos = toNanosSinceEpoch(req.time());
   block.proposerAddr = toBytes(req.proposer_address());
   //NOTE: There is no block.hash value to set here
+  if (lastCometBFTBlockHashHeight_ != 0 && block.height == lastCometBFTBlockHashHeight_ + 1) {
+    // CometBlock::prevHash does not come from "this" ABCI call, but from the previous finalize_block call.
+    // Shouldn't need this field to be filled in at this point, but why not.
+    block.prevHash = lastCometBFTBlockHash_;
+  }
   toBytesVector(reqTxs, block.txs);
 
   std::vector<size_t> txIds; // Filled-in by the listener.
@@ -2253,6 +2282,11 @@ void CometImpl::process_proposal(const cometbft::abci::v1::ProcessProposalReques
   block.timeNanos = toNanosSinceEpoch(req.time());
   block.proposerAddr = toBytes(req.proposer_address());
   block.hash = toBytes(req.hash());
+  if (lastCometBFTBlockHashHeight_ != 0 && block.height == lastCometBFTBlockHashHeight_ + 1) {
+    // CometBlock::prevHash does not come from "this" ABCI call, but from the previous finalize_block call.
+    // Shouldn't need this field to be filled in at this point, but why not.
+    block.prevHash = lastCometBFTBlockHash_;
+  }
   toBytesVector(req.txs(), block.txs);
 
   listener_->validateBlockProposal(block, accept);
@@ -2288,7 +2322,16 @@ void CometImpl::finalize_block(const cometbft::abci::v1::FinalizeBlockRequest& r
   block->timeNanos = toNanosSinceEpoch(req.time());
   block->proposerAddr = toBytes(req.proposer_address());
   block->hash = toBytes(req.hash());
+  if (lastCometBFTBlockHashHeight_ != 0 && block->height == lastCometBFTBlockHashHeight_ + 1) {
+    // CometBlock::prevHash does not come from "this" ABCI call, but from the previous finalize_block call.
+    block->prevHash = lastCometBFTBlockHash_;
+  }
   toBytesVector(req.txs(), block->txs);
+
+  // Now that we have used it to fill in prevHash, update the last block hash value.
+  lastCometBFTBlockHash_ = block->hash;
+  lastCometBFTBlockHashHeight_ = block->height;
+
   Bytes hashBytes;
   std::vector<CometExecTxResult> txResults;
   std::vector<CometValidatorUpdate> validatorUpdates;
@@ -2455,4 +2498,8 @@ void Comet::runCometBFT(const std::vector<std::string>& cometArgs, std::string* 
 
 void Comet::checkCometBFT() {
   CometImpl::checkCometBFT();
+}
+
+Bytes Comet::getCometAddressFromPubKey(Bytes pubKey) {
+  return CometImpl::getCometAddressFromPubKey(pubKey);
 }

@@ -85,9 +85,10 @@ struct CometValidatorUpdate {
 struct CometBlock {
   uint64_t height = 0; ///< Block height (0 == unknown/unset).
   uint64_t timeNanos = 0; ///< Block timestamp (nanos since epoch).
-  Bytes proposerAddr; ///< Address of the validator that was the block proposer.
+  Bytes proposerAddr; ///< CometBFT Address (NOT Eth Address) of the validator that was the block proposer.
   std::vector<Bytes> txs; ///< All block transactions (in order).
   Bytes hash; ///< [OPTIONAL] the "hash" param, when one is provided by the specific ABCI request.
+  Bytes prevHash; ///< [OPTIONAL] the "hash" param of the *previous* block (synth by the driver, not from ABCI).
 };
 
 /**
@@ -303,6 +304,9 @@ class CometImpl;
  * Most of its implementation details are private and contained in CometImpl, which is
  * declared and defined in comet.cpp, in order to keep this header short and simple.
  *
+ * NOTE: The driver hard-codes Secp256k1 keys for validators, and Ed25519 keys for P2P
+ * (node_key.json).
+ *
  * NOTE: Comet first searches for a cometbft executable in the current working directory;
  * if it is not found, then it will search for it in the system PATH.
  *
@@ -490,6 +494,11 @@ class Comet : public Log::LogicalLocationProvider {
      * Throws on any error -- if it doesn't throw an error, then the check passed.
      */
     static void checkCometBFT();
+
+    /**
+     * Given a public key, compute the CometBFT Address for it.
+     */
+    static Bytes getCometAddressFromPubKey(Bytes pubKey);
 
     /**
      * Return an instance (object) identifier for all LOGxxx() messages emitted this class.

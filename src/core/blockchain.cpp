@@ -139,6 +139,31 @@ void Blockchain::putTx(const Hash& tx, const TxCacheValueType& val) {
   }
 }
 
+void Blockchain::setValidators(const std::vector<CometValidatorUpdate>& newValidatorSet) {
+  validators_ = newValidatorSet;
+  validatorAddrs_.clear();
+  for (int i = 0; i < validators_.size(); ++i) {
+    const CometValidatorUpdate& v = validators_[i];
+    Bytes cometAddrBytes = Comet::getCometAddressFromPubKey(v.publicKey);
+    Address cometAddr(cometAddrBytes);
+    validatorAddrs_[cometAddr] = i;
+  }
+}
+
+Address Blockchain::validatorCometAddressToEthAddress(Address validatorCometAddress) {
+  auto it = validatorAddrs_.find(validatorCometAddress);
+  if (it == validatorAddrs_.end()) {
+    return {};
+  }
+  const uint64_t& validatorIndex = it->second;
+  if (validatorIndex >= validators_.size()) {
+    throw DynamicException("Blockchain::validatorCometAddressToEthAddress() returned an index not in validators_.");
+  }
+  const CometValidatorUpdate& v = validators_[validatorIndex];
+  PubKey pubKey(v.publicKey); // Compressed key (33 bytes)
+  return Secp256k1::toAddress(pubKey); // Generate Eth address from validator pub key
+}
+
 void Blockchain::setGetTxCacheSize(const uint64_t cacheSize) {
   txCacheSize_ = cacheSize;
   if (txCacheSize_ == 0) {
@@ -383,7 +408,7 @@ void Blockchain::initChain(
   // For now, the validator set is fixed on genesis and never changes.
   // TODO: When we get to validator set changes via governance, validators_ will have to be
   //   updated via incomingBlock(validatorUpdates).
-  validators_ = initialValidators;
+  setValidators(initialValidators);
 
   // Initialize the machine state on InitChain.
   // State is not RAII. We are not creating the State instance here.
@@ -610,13 +635,16 @@ static std::vector<T> makeVector(R&& range) {
   return res;
 }
 
-static json getBlockJson(const FinalizedBlock *block, bool includeTransactions) {
+json Blockchain::getBlockJson(const FinalizedBlock *block, bool includeTransactions) {
   json ret;
   if (block == nullptr) { ret = json::value_t::null; return ret; }
   ret["hash"] = block->getHash().hex(true);
   ret["parentHash"] = block->getPrevBlockHash().hex(true);
   ret["sha3Uncles"] = Hash().hex(true); // Uncles do not exist.
-  ret["miner"] = Secp256k1::toAddress(block->getValidatorPubKey()).hex(true);
+
+  //ret["miner"] = Secp256k1::toAddress(block->getValidatorPubKey()).hex(true);
+  ret["miner"] = validatorCometAddressToEthAddress(block->getProposerAddr()).hex(true);
+
   ret["stateRoot"] = Hash().hex(true); // No State root.
   ret["transactionsRoot"] = block->getTxMerkleRoot().hex(true);
   ret["receiptsRoot"] = Hash().hex(true); // No receiptsRoot.

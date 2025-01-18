@@ -135,23 +135,6 @@ class SDKTestSuite : public Blockchain {
     /// Estimate gas.
     int64_t estimateGas(const evmc_message& callInfo);
 
-    // FIXME/TODO:
-    // We probably don't want to return CometBlock here (FinalizedBlock?), and
-    // we do want to ask storage_ for it, which will either get
-    // it from a RAM block cache on itself or from cometbft RPC
-    /**
-     * Get a block by its hash.
-     * @param hash Hash of the block to get.
-     * @return A pointer to the block, or nullptr if not found.
-     */
-    //const std::shared_ptr<const CometBlock> getBlock(const Hash& hash) const;
-    /**
-     * Get a block by its height.
-     * @param height Height of the block to get.
-     * @return A pointer to the block, or nullptr if not found.
-     */
-    //const std::shared_ptr<const CometBlock> getBlock(const uint64_t height) const;
-
     /**
      * Initialize all components of a full blockchain node.
      * @param sdkPath Path to the SDK folder.

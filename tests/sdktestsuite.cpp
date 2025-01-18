@@ -272,7 +272,7 @@ SDKTestSuite SDKTestSuite::createNewEnvironment(
             },
             "validator": {
               "pub_key_types": [
-                "ed25519"
+                "secp256k1"
               ]
             },
             "version": {
@@ -284,10 +284,10 @@ SDKTestSuite SDKTestSuite::createNewEnvironment(
           },
           "validators": [
             {
-              "address": "4C1C6CF20843997082D7F7EF302A05DD6A757B99",
+              "address": "B0CCBF7CCFAC74122A4AA8624CAD53E335B9DC80",
               "pub_key": {
-                "type": "tendermint/PubKeyEd25519",
-                "value": "c9lrxwblmJz23RhnNZtoab0UlL6wtEjbsm+a7olOShI="
+                "type": "tendermint/PubKeySecp256k1",
+                "value": "A0ADzY/h+js7mkX8Da25jkMe2DjjIpkfqpUwD5tvr1xW"
               },
               "power": "10",
               "name": ""
@@ -298,21 +298,21 @@ SDKTestSuite SDKTestSuite::createNewEnvironment(
 
         "priv_validator_key.json":
         {
-          "address": "4C1C6CF20843997082D7F7EF302A05DD6A757B99",
+          "address": "B0CCBF7CCFAC74122A4AA8624CAD53E335B9DC80",
           "pub_key": {
-            "type": "tendermint/PubKeyEd25519",
-            "value": "c9lrxwblmJz23RhnNZtoab0UlL6wtEjbsm+a7olOShI="
+            "type": "tendermint/PubKeySecp256k1",
+            "value": "A0ADzY/h+js7mkX8Da25jkMe2DjjIpkfqpUwD5tvr1xW"
           },
           "priv_key": {
-            "type": "tendermint/PrivKeyEd25519",
-            "value": "u754POzgx4Tc4JBZvVbt4MVk+EhN0GePq1RcMmXj7BJz2WvHBuWYnPbdGGc1m2hpvRSUvrC0SNuyb5ruiU5KEg=="
+            "type": "tendermint/PrivKeySecp256k1",
+            "value": "2WRBho3VAEA5M8L1OEgWJNhWXRgBgHCZ2BX/+RuykpQ="
           }
         },
 
         "node_key.json": {
           "priv_key": {
             "type": "tendermint/PrivKeyEd25519",
-            "value": "DJZS1+kjt1kICsxkgfKuFaBW3OYeefr75gpy1jeTZfsd6MIwWjUKJClUnfC7XZCUApoZ4GpksvGyku5aXdQeAg=="
+            "value": "EIdhyXiMsxFZeSIfoA4lZNZOm3oqZiQrX+Z698ze2+N9GZXPM9UT2JrOJEk7qXg7XZKbmOg2MXBvv8/cgNR/YQ=="
           }
         },
 

@@ -98,6 +98,8 @@ class Blockchain : public CometListener, public NodeRPCInterface, public Log::Lo
 
     std::vector<CometValidatorUpdate> validators_; ///< Up-to-date CometBFT validator set.
 
+    std::unordered_map<Address, uint64_t, SafeHash> validatorAddrs_; /// Up-to-date map of CometBFT validator address to index in validators_.
+
     // FIXME/TODO: Need to query for the last block and fill this in on boot.
     //             (That initial block query will also feed the fbCache_).
     std::atomic<std::shared_ptr<const FinalizedBlock>> latest_; ///< Pointer to the latest block in the blockchain.
@@ -124,6 +126,10 @@ class Blockchain : public CometListener, public NodeRPCInterface, public Log::Lo
     bool getTxRPC(const Hash& txHash, json& ret);
 
     void putTx(const Hash& tx, const TxCacheValueType& val);
+
+    void setValidators(const std::vector<CometValidatorUpdate>& newValidatorSet);
+
+    json getBlockJson(const FinalizedBlock *block, bool includeTransactions);
 
   public:
 
@@ -225,6 +231,8 @@ class Blockchain : public CometListener, public NodeRPCInterface, public Log::Lo
     std::shared_ptr<const FinalizedBlock> latest() const; ///< Get latest finalized block.
 
     uint64_t getLatestHeight() const; ///< Get the height of the lastest finalized block or 0.
+
+    Address validatorCometAddressToEthAddress(Address validatorCometAddress);
 
     /**
      * Get a block from the chain using a given hash.
