@@ -799,6 +799,9 @@ class CometImpl : public ABCIHandler, public Log::LogicalLocationProvider {
     std::mutex nodeIdMutex_; ///< mutex to protect reading/writing nodeId_.
     std::string nodeId_; ///< Cometbft node id or an empty string if not yet retrieved.
 
+    std::mutex validatorPubKeyMutex_; ///< mutex to protect reading/writing validatorPubKey_.
+    Bytes validatorPubKey_; ///< Validator ETH address derived from its secp256k1 public key (set by priv_validator_key.json), if any.
+
     uint64_t lastCometBFTBlockHeight_; ///< Current block height stored in the cometbft data dir, if known.
     std::string lastCometBFTAppHash_; ///< Current app hash stored in the cometbft data dir, if known.
 
@@ -837,6 +840,7 @@ class CometImpl : public ABCIHandler, public Log::LogicalLocationProvider {
     CometState getPauseState();
     std::string waitPauseState(uint64_t timeoutMillis);
     std::string getNodeID();
+    Bytes getValidatorPubKey();
     bool start();
     bool stop();
     static void runCometBFT(const std::vector<std::string>& cometArgs, std::string* outStdout = nullptr, std::string* outStderr = nullptr);
@@ -922,6 +926,11 @@ std::string CometImpl::waitPauseState(uint64_t timeoutMillis) {
 std::string CometImpl::getNodeID() {
   std::scoped_lock(this->nodeIdMutex_);
   return this->nodeId_;
+}
+
+Bytes CometImpl::getValidatorPubKey() {
+  std::scoped_lock(this->validatorPubKeyMutex_);
+  return this->validatorPubKey_;
 }
 
 uint64_t CometImpl::sendTransaction(const Bytes& tx/*, std::shared_ptr<Hash>* ethHash*/) {
@@ -1164,9 +1173,12 @@ void CometImpl::cleanup() {
   infoCount_ = 0; // needed for the TESTING_COMET -> TESTED_COMET state transition.
   rpcPort_ = 0;
   p2pPort_ = 0;
-  std::unique_lock<std::mutex> resetInfoLock(this->nodeIdMutex_);
+  std::unique_lock<std::mutex> resetValidatorPubKeyLock(this->validatorPubKeyMutex_);
+  this->validatorPubKey_.clear();
+  resetValidatorPubKeyLock.unlock();
+  std::unique_lock<std::mutex> resetNodeIdLock(this->nodeIdMutex_);
   this->nodeId_ = ""; // only known after "comet/config/node_key.json" is set and "cometbft show-node-id" is run.
-  resetInfoLock.unlock();
+  resetNodeIdLock.unlock();
 }
 
 void CometImpl::startCometBFT(const std::vector<std::string>& cometArgs, bool saveOutput) {
@@ -1607,6 +1619,21 @@ void CometImpl::workerLoopInner() {
       if (outputFile.is_open()) {
         outputFile << privValidatorKeyJSON.dump(4);
         outputFile.close();
+
+        // Compute the validator address and save it.
+        if (!privValidatorKeyJSON.contains("pub_key") || !privValidatorKeyJSON["pub_key"].is_object()) {
+          setErrorCode(CometError::DATA);
+          throw DynamicException("CometBFT priv_validator_key.json pub_key field is missing or invalid.");
+        }
+        const json& pubKeyObject = privValidatorKeyJSON["pub_key"];
+        if (!pubKeyObject.contains("value") || !pubKeyObject["value"].is_string()) {
+          setErrorCode(CometError::DATA);
+          throw DynamicException("CometBFT priv_validator_key.json pub_key::value field is missing or invalid.");
+        }
+        std::string validatorPubKeyStr = pubKeyObject["value"].get<std::string>();
+        std::scoped_lock(this->validatorPubKeyMutex_);
+        validatorPubKey_ = base64::decode_into<Bytes>(validatorPubKeyStr);
+        LOGINFO("Validator public key is: " + Hex::fromBytes(validatorPubKey_).get());
       } else {
         setErrorCode(CometError::FATAL);
         throw DynamicException("Cannot open comet privValidatorKey file for writing: " + cometConfigPrivValidatorKeyPath);
@@ -2462,6 +2489,10 @@ std::string Comet::waitPauseState(uint64_t timeoutMillis) {
 
 std::string Comet::getNodeID() {
   return impl_->getNodeID();
+}
+
+Bytes Comet::getValidatorPubKey() {
+  return impl_->getValidatorPubKey();
 }
 
 uint64_t Comet::sendTransaction(const Bytes& tx/*, std::shared_ptr<Hash>* ethHash*/) {

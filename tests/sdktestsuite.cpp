@@ -157,29 +157,6 @@ int64_t SDKTestSuite::estimateGas(const evmc_message& callInfo) {
   return this->state_.estimateGas(callInfo);
 }
 
-// Get a block by its hash.
-//const std::shared_ptr<const CometBlock> SDKTestSuite::getBlock(const Hash& hash) const {
-
-  // easiest implementation:
-  // - fetch block from cometbft store via RPC
-  // - use the info we got from cometbft to build a CometBlock object
-  //   (the old FinalizedBlock type will cease to exist.. maybe.. probably..) and then return it
-  //
-  // The goal is that for everything that defines what a block is inside of BDK, we can get it
-  // already from cometbft, or we can compute locally after we get the base info from cometbft
-  // (and then cache that computation inside e.g. the CometBlock struct, and then cache the
-  // CometBlock object itself).
-
-  //return this->storage_.getBlock(hash);
- // return {}; // FIXME/TODO: since it's for testing, this will first get this with a blocking RPC call to cometbft to fetch the block, later, can be cached locally as well
-//}
-
-// Get a block by its height.
-//const std::shared_ptr<const CometBlock> SDKTestSuite::getBlock(const uint64_t height) const {
-  //return this->storage_.getBlock(height);
-//  return {}; // FIXME/TODO: since it's for testing, this will first get this with a blocking RPC call to cometbft to fetch the block, later, can be cached locally as well
-//}
-
 // Compatibility method for tests that want to advance a cometbft blockchain.
 void SDKTestSuite::advanceChain(std::vector<TxBlock>&& txs) {
   // Save the current SDKTestSuite-tracked height which is updated by incomingBlock().

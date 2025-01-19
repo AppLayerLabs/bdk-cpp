@@ -42,8 +42,6 @@ class HTTPServer : public Log::LogicalLocationProvider {
     HTTPServer(const unsigned short port, NodeRPCInterface& rpc)
       : port_(port), rpc_(rpc)
     {
-      // FIXME: move to caller
-      //port_ = blockchain_.getOptions().getHttpPort();
     }
 
     std::string getLogicalLocation() const override; ///< Get log location from the P2P engine

@@ -816,7 +816,15 @@ json Blockchain::eth_syncing(const json& request) {
 
 json Blockchain::eth_coinbase(const json& request) {
   forbidParams(request);
-  return options_.getCoinbase().hex(true);
+  //return options_.getCoinbase().hex(true);
+  Address coinbaseAddress;
+  Bytes validatorPubKeyBytes = comet_.getValidatorPubKey();
+  // PubKey may be empty in the Comet driver if configuration step hasn't completed yet.
+  if (!validatorPubKeyBytes.empty()) {
+    PubKey pubKey(validatorPubKeyBytes); // Compressed key (33 bytes)
+    coinbaseAddress = Secp256k1::toAddress(pubKey); // Generate Eth address from validator pub key
+  }
+  return coinbaseAddress.hex(true);
 }
 
 json Blockchain::eth_blockNumber(const json& request) {

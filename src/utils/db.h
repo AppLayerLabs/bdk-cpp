@@ -15,7 +15,7 @@ See the LICENSE.txt file in the project root for more information.
 /**
  * FIXME/TODO:
  *
- * Persisted state can be divided into 3 categories:
+ * Persisted state can be divided into 2 categories:
  * Machine state:
  *   nativeAccounts
  *   contracts
@@ -31,9 +31,6 @@ See the LICENSE.txt file in the project root for more information.
  *   txToAdditionalData
  *   txToCallTrace
  *
- * CometBFT interop:
- *   txSha3toSha256
- *
  * Machine state must NOT be in the same file/dir database as chain state.
  * Machine state must always be written separately as its own snapshot file/dir
  * which is bound to a specific finalized chain height.
@@ -41,9 +38,6 @@ See the LICENSE.txt file in the project root for more information.
  * Also, we must always consider whether we will keep a certain bit of chain
  * state on our side, or if we will delegate to the CometBFT chain store.
  * By default, we don't want to duplicate the block, tx, etc DB on the cometbft side.
- *
- * CometBFT interop, such as translating sha3 <--> sha256 tx hashes, should also
- * be kept to a minimum.
  */
 
 /// Namespace for accessing database prefixes.
@@ -59,10 +53,6 @@ namespace DBPrefix {
   const Bytes vmStorage =          { 0x00, 0x09 }; ///< "vmStorage" = "0009"
   const Bytes txToAdditionalData = { 0x00, 0x0A }; ///< "txToAdditionalData" = "000A"
   const Bytes txToCallTrace =      { 0x00, 0x0B }; ///< "txToCallTrace" = "000B"
-
-  // Not needed
-  // cometbft-bdk uses sha3
-  //const Bytes txSha3ToSha256 =     { 0x00, 0x0C }; ///< (stored in txMapDb) given the sha3 of a transaction, get its sha256 hash
 };
 
 /// Struct for a database connection/endpoint.

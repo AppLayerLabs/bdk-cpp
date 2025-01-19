@@ -11,14 +11,6 @@ See the LICENSE.txt file in the project root for more information.
 
 #include "../sdktestsuite.hpp"
 
-
-  // FIXME/TODO: reimplement basic SDKTestSuite functionality with Comet
-  //             so that this testcase compiles and works unmodified:
-  // - callFunction
-  // - callViewFunction
-  // - deployContract
-  // - getEventsEmittedByTx
-
 namespace TSimpleContract {
   TEST_CASE("SimpleContract class", "[contract][simplecontract]") {
     SECTION("SimpleContract creation") {

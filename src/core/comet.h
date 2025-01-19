@@ -413,6 +413,14 @@ class Comet : public Log::LogicalLocationProvider {
     std::string getNodeID();
 
     /**
+     * Get the configured validator public key (from priv_validator_key.json).
+     * @return The local validator's secp256k1 public key in compressed format (33 bytes) or an
+     * empty `Bytes` if the local node is not configured as a validator or the Comet driver is not yet
+     * at state `CometState::CONFIGURED`.
+     */
+    Bytes getValidatorPubKey();
+
+    /**
      * Enqueues a transaction to be sent to the cometbft node; will retry until the localhost cometbft
      * instance is running and it acknowledges the receipt of the transaction bytes, meaning it should
      * be in its mempool from now on (if it passes CheckTx, etc).
