@@ -27,7 +27,17 @@ class RandomGen {
      * Constructor.
      * @param seed A random seed for initialization.
      */
-    explicit RandomGen(const Hash& seed) : seed_(seed) {};
+    explicit RandomGen(const Hash& seed) : seed_(seed) {}
+
+    ~RandomGen() = default;
+
+    RandomGen(const RandomGen&);
+
+    RandomGen(RandomGen&& other) noexcept : seed_(other.seed_) {}
+
+    RandomGen& operator=(const RandomGen&);
+
+    RandomGen& operator=(RandomGen&&) noexcept;
 
     /// Getter for `seed_`.
     inline const Hash& getSeed() const { std::lock_guard lock(seedLock_); return this->seed_; }
@@ -51,7 +61,7 @@ class RandomGen {
       for (uint64_t i = 0; i < v.size(); ++i) {
         this->seed_ = Utils::sha3(this->seed_);
         // Print seed as hex here if you want to debug it
-        uint64_t n = uint64_t(i + this->seed_.toUint256() % (v.size() - i));
+        uint64_t n = uint64_t(i + static_cast<uint256_t>(this->seed_) % (v.size() - i));
         std::swap(v[n], v[i]);
       }
     }

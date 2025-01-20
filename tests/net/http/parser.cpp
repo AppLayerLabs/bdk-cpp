@@ -9,15 +9,18 @@ See the LICENSE.txt file in the project root for more information.
 
 #include "../../src/net/http/jsonrpc/blocktag.h" // parser.h
 
+#include "bytes/random.h"
+#include "bytes/hex.h"
+
 namespace THTTPJSONRPCParser {
   TEST_CASE("HTTP JSON RPC Parser Tests", "[net][http][jsonrpc][parser]") {
     SECTION("Parser operator()") {
-      Hash h = Hash::random();
+      Hash h = bytes::random();
       std::vector<uint64_t> v = {10, 20, 30, 40, 50};
 
       // Parser regex REQUIRES hex prefix (0x)
       json jsonHash = h.hex(true).get();
-      json jsonAdd = Address("0x0000111122223333444455556666777788889999", false).hex(true).get();
+      json jsonAdd = Address(bytes::hex("0x0000111122223333444455556666777788889999")).hex(true).get();
       json jsonBytes = Hex::fromBytes(Bytes{0x01, 0x23, 0x45, 0x67, 0x89, 0xAB, 0xCD, 0xEF}, true).get();
       json jsonBool = true;
       json jsonFloat = 13.37f;
@@ -48,7 +51,7 @@ namespace THTTPJSONRPCParser {
       std::vector<uint64_t> resVectorObj = jsonrpc::parse<std::vector<uint64_t>>(jsonVectorObj);
 
       REQUIRE(resHash == h);
-      REQUIRE(resAdd == Address("0x0000111122223333444455556666777788889999", false));
+      REQUIRE(resAdd == Address(bytes::hex("0x0000111122223333444455556666777788889999")));
       REQUIRE(resBytes == Bytes{0x01, 0x23, 0x45, 0x67, 0x89, 0xAB, 0xCD, 0xEF});
       REQUIRE(resBool == true);
       REQUIRE(resFloat == 13.37f);
@@ -66,9 +69,9 @@ namespace THTTPJSONRPCParser {
     SECTION("Parser operator() (throws)") {
       // Same thing but everything is wrong on purpose to cover throw cases
       json hashWrongType = json::array(); // Type is not string (or the required type)
-      json hashWrongFormat = Hash::random().hex().get(); // No "0x"
+      json hashWrongFormat = Hash(bytes::random()).hex().get(); // No "0x"
       json addWrongType = json::array();
-      json addWrongFormat = Address("0x0000111122223333444455556666777788889999", false).hex().get();
+      json addWrongFormat = Address(bytes::hex("0x0000111122223333444455556666777788889999")).hex().get();
       json bytesWrongType = json::array();
       json bytesWrongFormat = "0x000g"; // Invalid hex (0-9a-fA-F)
       json boolWrongType = json::array();

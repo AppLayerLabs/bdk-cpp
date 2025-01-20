@@ -137,7 +137,7 @@ struct Account {
   Account(uint256_t&& balance, uint64_t&& nonce) : balance(std::move(balance)), nonce(std::move(nonce)) {}
 
   /// Deserialize constructor.
-  Account(const bytes::View& bytes);
+  Account(const View<Bytes>& bytes);
 
   /**
    * Serialize the account.
@@ -201,6 +201,10 @@ template<typename T, bool Index> struct EventParam {
 
 /// Namespace for utility functions.
 namespace Utils {
+
+  template<typename... Ts>
+  struct Overloaded : Ts... { using Ts::operator()...; };
+
   std::string getTestDumpPath(); ///< Get the path to the test dump folder.
 
   /**
@@ -335,7 +339,7 @@ namespace Utils {
    * @param input The string to hash.
    * @return The SHA3-hashed string.
    */
-  Hash sha3(const bytes::View input);
+  Hash sha3(const View<Bytes> input);
 
   /**
    * Generate a random bytes string of a given size.
@@ -422,8 +426,8 @@ namespace Utils {
    * @param vec The vector to convert.
    * @return The converted span.
    */
-  inline bytes::View create_view_span(const Bytes& vec) {
-    return bytes::View(vec.data(), vec.size());
+  inline View<Bytes> create_view_span(const Bytes& vec) {
+    return View<Bytes>(vec.data(), vec.size());
   }
 
   /**
@@ -434,15 +438,15 @@ namespace Utils {
    * @return The converted span.
    * @throw DynamicException if range is invalid.
    */
-   bytes::View create_view_span(const Bytes& vec, size_t start, size_t size);
+   View<Bytes> create_view_span(const Bytes& vec, size_t start, size_t size);
 
   /**
    * Convert an array to const span.
    * @param arr The array to convert.
    * @return The converted span.
    */
-  template<std::size_t N> inline bytes::View create_view_span(const BytesArr<N>& arr) {
-    return bytes::View(arr.data(), arr.size());
+  template<std::size_t N> inline View<Bytes> create_view_span(const BytesArr<N>& arr) {
+    return View<Bytes>(arr.data(), arr.size());
   }
 
   /**
@@ -453,12 +457,12 @@ namespace Utils {
    * @return The converted span.
    * @throw DynamicException if range is invalid.
    */
-  template<std::size_t N> inline bytes::View create_view_span(
+  template<std::size_t N> inline View<Bytes> create_view_span(
     const BytesArr<N>& arr, size_t start, size_t size
   ) {
     // TODO: somehow migrate this to the cpp file so we can include dynamicexception.h only there, OR get rid of the exception altogether
     if (start + size > arr.size()) throw DynamicException("Invalid range for span");
-    return bytes::View(arr.data() + start, size);
+    return View<Bytes>(arr.data() + start, size);
   }
 
   /**
@@ -466,8 +470,8 @@ namespace Utils {
    * @param str The string to convert.
    * @return The converted span.
    */
-  inline bytes::View create_view_span(const std::string_view str) {
-    return bytes::View(reinterpret_cast<const uint8_t*>(str.data()), str.size());
+  inline View<Bytes> create_view_span(const std::string_view str) {
+    return View<Bytes>(reinterpret_cast<const uint8_t*>(str.data()), str.size());
   }
 
   /**
@@ -478,7 +482,7 @@ namespace Utils {
    * @return The converted span.
    * @throw DynamicException if range is invalid.
    */
-  bytes::View create_view_span(const std::string_view str, size_t start, size_t size);
+  View<Bytes> create_view_span(const std::string_view str, size_t start, size_t size);
 
   /**
    * Append a vector to another.

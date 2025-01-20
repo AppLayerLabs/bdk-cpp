@@ -11,33 +11,36 @@ See the LICENSE.txt file in the project root for more information.
 #include "initializer.h" // view.h -> range.h
 
 namespace bytes {
-  namespace detail {
-    std::size_t joinedSize(const SizedInitializer auto& arg) {
-      return arg.size();
-    }
 
-    std::size_t joinedSize(const DataRange auto& arg) {
-      return std::ranges::size(arg);
-    }
+namespace detail {
 
-    std::size_t joinedSize(const auto& arg, const auto&... args) {
-      return joinedSize(arg) + joinedSize(args...);
-    }
+std::size_t joinedSize(const SizedInitializer auto& arg) {
+  return arg.size();
+}
 
-    Byte* joinImpl(Byte *dest, const SizedInitializer auto& init) {
-      init.to(dest);
-      return dest + init.size();
-    }
+std::size_t joinedSize(const DataRange auto& arg) {
+  return std::ranges::size(arg);
+}
 
-    Byte* joinImpl(Byte *dest, const DataRange auto& range) {
-      std::memcpy(dest, std::ranges::data(range), std::ranges::size(range));
-      return dest + std::ranges::size(range);
-    }
+std::size_t joinedSize(const auto& arg, const auto&... args) {
+  return joinedSize(arg) + joinedSize(args...);
+}
 
-    Byte* joinImpl(Byte *dest, const auto& arg, const auto&... args) {
-      return joinImpl(joinImpl(dest, arg), args...);
-    }
-  } // namespace detail
+Byte* joinImpl(Byte *dest, const SizedInitializer auto& init) {
+  init.to(dest);
+  return dest + init.size();
+}
+
+Byte* joinImpl(Byte *dest, const DataRange auto& range) {
+  std::memcpy(dest, std::ranges::data(range), std::ranges::size(range));
+  return dest + std::ranges::size(range);
+}
+
+Byte* joinImpl(Byte *dest, const auto& arg, const auto&... args) {
+  return joinImpl(joinImpl(dest, arg), args...);
+}
+
+} // namespace detail
 
   /**
    * Join several raw byte strings into one.
@@ -48,12 +51,13 @@ namespace bytes {
   template<typename... Ts> SizedInitializer auto join(Ts&&... args) {
     const size_t size = detail::joinedSize(args...);
 
-    auto func = [args_ = std::tuple<Ts...>(std::forward<Ts>(args)...)] (Byte *dest) {
-      std::apply(detail::joinImpl<Ts...>, std::tuple_cat(std::make_tuple(dest), std::tuple<const Ts&...>(args_)));
-    };
+  auto func = [args_ = std::tuple<Ts...>(std::forward<Ts>(args)...)] (Byte *dest) {
+    std::apply(detail::joinImpl<Ts...>, std::tuple_cat(std::make_tuple(dest), std::tuple<const Ts&...>(args_)));
+  };
 
-    return makeInitializer(size, std::move(func));
-  }
+  return makeInitializer(size, std::move(func));
+}
+
 } // namespace bytes
 
 #endif // BYTES_JOIN_H

@@ -10,6 +10,8 @@
 
 #include "../sdktestsuite.hpp"
 
+#include "bytes/hex.h"
+
 namespace TERC721Test {
   TEST_CASE("ERC721Test Class", "[contract][erc721test]") {
     SECTION("ERC721Test Creation + Dump") {
@@ -70,8 +72,8 @@ namespace TERC721Test {
       REQUIRE_THROWS(sdk.callFunction(ERC721Address, &ERC721Test::mint, Address()));
 
       // Try transferring to zero address and from wrong owner
-      Address add1("0x1234567890123456789012345678901234567890", false);
-      Address add2("0x0987654321098765432109876543210987654321", false);
+      Address add1(bytes::hex("0x1234567890123456789012345678901234567890"));
+      Address add2(bytes::hex("0x0987654321098765432109876543210987654321"));
       REQUIRE_THROWS(sdk.callFunction(ERC721Address, &ERC721Test::transferFrom, sdk.getChainOwnerAccount().address, Address(), uint256_t(0)));
       REQUIRE_THROWS(sdk.callFunction(ERC721Address, &ERC721Test::transferFrom, add1, add2, uint256_t(0)));
 

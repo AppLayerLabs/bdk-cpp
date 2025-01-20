@@ -39,7 +39,7 @@ namespace TDEXV2 {
       Address pair;
       Address tokenA;
       Address tokenB;
-      Address chainOwner("0x00dead00665771855a34155f5e7405489df2c3c6", false);
+      Address chainOwner(bytes::hex("0x00dead00665771855a34155f5e7405489df2c3c6"));
       std::unique_ptr<Options> options;
       {
         SDKTestSuite sdk = SDKTestSuite::createNewEnvironment("testDEXV2Pair");
@@ -133,7 +133,7 @@ namespace TDEXV2 {
       std::vector<Address> allPairs = sdk.callViewFunction(factory, &DEXV2Factory::allPairs);
       REQUIRE(allPairs.size() == 1);
       REQUIRE(allPairs[0] == pair);
-      Address add("0x1234567890123456789012345678901234567890", false);
+      Address add(bytes::hex("0x1234567890123456789012345678901234567890"));
       sdk.callFunction(factory, &DEXV2Factory::setFeeTo, add);
       sdk.callFunction(factory, &DEXV2Factory::setFeeToSetter, add);
       REQUIRE(sdk.callViewFunction(factory, &DEXV2Factory::feeTo) == add);

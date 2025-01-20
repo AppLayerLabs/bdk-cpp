@@ -11,7 +11,7 @@ See the LICENSE.txt file in the project root for more information.
 
 #include "../utils/uintconv.h"
 
-FinalizedBlock FinalizedBlock::fromBytes(const bytes::View bytes, const uint64_t& requiredChainId) {
+FinalizedBlock FinalizedBlock::fromBytes(const View<Bytes> bytes, const uint64_t& requiredChainId) {
   try {
     // Verify minimum size for a valid block
     SLOGTRACE("Deserializing block...");
@@ -132,7 +132,7 @@ FinalizedBlock FinalizedBlock::fromBytes(const bytes::View bytes, const uint64_t
     if (expectedRandomness != blockRandomness) throw std::invalid_argument("Invalid block randomness");
 
     /// Block header to hash is the 144 after the signature
-    bytes::View headerBytes = bytes.subspan(65, 144);
+    View<Bytes> headerBytes = bytes.subspan(65, 144);
     Hash hash = Utils::sha3(headerBytes);
     UPubKey validatorPubKey = Secp256k1::recover(validatorSig, hash);
     return {

@@ -300,11 +300,10 @@ namespace THTTPJsonRPC {
         {"to", "0xaaA85B2B2bD0bFdF6Bc5D0d61B6192c53818567b"},
         {"gas", "0xffffff"},
         {"gasPrice", "0x1"},
-        {"value", "0x1"},
-        {"data", "0x1"},
+        {"value", "0x1"}
       }), "latest"}));
 
-      REQUIRE(eth_estimateGasResponse["result"] == "0x5e56");
+      REQUIRE(eth_estimateGasResponse["result"] == "0x5e55");
 
       json eth_gasPriceResponse = requestMethod("eth_gasPrice", json::array());
       REQUIRE(eth_gasPriceResponse["result"] == "0x9502f900");

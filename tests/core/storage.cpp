@@ -10,6 +10,8 @@ See the LICENSE.txt file in the project root for more information.
 #include "../../src/utils/uintconv.h"
 
 #include "../blockchainwrapper.hpp" // blockchain.h -> consensus.h -> state.h -> dump.h -> (storage.h -> utils/options.h), utils/db.h
+#include "bytes/random.h"
+#include "bytes/hex.h"
 
 const std::vector<Hash> validatorPrivKeysStorage {
   Hash(Hex::toBytes("0x0a0415d68a5ec2df57aab65efc2a7231b59b029bae7ff1bd2e40df9af96418c8")),
@@ -24,7 +26,7 @@ const std::vector<Hash> validatorPrivKeysStorage {
 
 // Random transaction
 TxBlock createRandomTx(const uint64_t& requiredChainId) {
-  PrivKey txPrivKey = PrivKey::random();
+  PrivKey txPrivKey = bytes::random();
   Address from = Secp256k1::toAddress(Secp256k1::toUPub(txPrivKey));
   Address to(Utils::randBytes(20));
   Bytes data = Utils::randBytes(32);
@@ -44,10 +46,10 @@ std::pair<std::vector<TxValidator>, Bytes> createRandomTxValidatorList(uint64_t 
   Bytes randomnessStr;
   ret.first.reserve(N);
 
-  std::vector<Hash> seeds(N, Hash::random());
+  std::vector<Hash> seeds(N, bytes::random());
   for (const auto& seed : seeds) {
     Utils::appendBytes(ret.second, seed);
-    PrivKey txValidatorPrivKey = PrivKey::random();
+    PrivKey txValidatorPrivKey = bytes::random();
     Address validatorAddress = Secp256k1::toAddress(Secp256k1::toUPub(txValidatorPrivKey));
     Bytes hashTxData = Hex::toBytes("0xcfffe746");
     Utils::appendBytes(hashTxData, Utils::sha3(seed));
@@ -73,7 +75,7 @@ std::pair<std::vector<TxValidator>, Bytes> createRandomTxValidatorList(uint64_t 
 }
 
 FinalizedBlock createRandomBlock(uint64_t txCount, uint64_t validatorCount, uint64_t nHeight, Hash prevHash, const uint64_t& requiredChainId) {
-  PrivKey blockValidatorPrivKey = PrivKey::random();
+  PrivKey blockValidatorPrivKey = bytes::random();
   uint64_t timestamp = 230915972837111; // Timestamp doesn't really matter.
 
   std::vector<TxBlock> txs;
@@ -116,33 +118,33 @@ namespace TStorage {
     }
 
     SECTION("Storage topicsMatch") {
-      Hash txHash = Hash::random();
-      Hash blockHash = Hash::random();
-      std::vector<Hash> topics = {Hash::random(), Hash::random(), Hash::random(), Hash::random(), Hash::random()};
-      Address add("0x1234567890123456789012345678901234567890", false);
+      Hash txHash = bytes::random();
+      Hash blockHash = bytes::random();
+      std::vector<Hash> topics = {bytes::random(), bytes::random(), bytes::random(), bytes::random(), bytes::random()};
+      Address add(bytes::hex("0x1234567890123456789012345678901234567890"));
       Bytes data{0xDE, 0xAD, 0xBE, 0xEF};
       Event e("myEvent", 0, txHash, 1, blockHash, 2, add, data, topics, false);
       REQUIRE(Storage::topicsMatch(e, topics));
 
       // For coverage
       REQUIRE(Storage::topicsMatch(e, {})); // Empty topics
-      topics.push_back(Hash::random());
+      topics.push_back(bytes::random());
       REQUIRE_FALSE(Storage::topicsMatch(e, topics)); // Event has fewer topics than required
       topics.pop_back();
-      topics[0] = Hash::random();
+      topics[0] = bytes::random();
       REQUIRE_FALSE(Storage::topicsMatch(e, topics)); // Event has wrong topics
     }
 
     SECTION("Storage getEvents") {
       auto blockchainWrapper = initialize(validatorPrivKeysStorage, PrivKey(), 8080, true, "StorageGetEvents");
-      Address add("0x1234567890123456789012345678901234567890", false);
+      Address add(bytes::hex("0x1234567890123456789012345678901234567890"));
       Bytes data{0xDE, 0xAD, 0xBE, 0xEF};
       std::vector<std::vector<Hash>> topics;
       std::vector<Event> events;
       for (int i = 0; i < 5; i++) {
-        topics.push_back({Hash::random(), Hash::random(), Hash::random()});
+        topics.push_back({bytes::random(), bytes::random(), bytes::random()});
         events.push_back(Event(
-          "event" + std::to_string(i), 0, Hash::random(), 0, Hash::random(), i, add, data, topics[i], false
+          "event" + std::to_string(i), 0, bytes::random(), 0, bytes::random(), i, add, data, topics[i], false
         ));
         blockchainWrapper.storage.putEvent(events[i]);
       }

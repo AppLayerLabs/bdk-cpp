@@ -37,7 +37,7 @@ class Storage : public Log::LogicalLocationProvider {
      * @param blockData The raw block string.
      * @param txIndex The index of the transaction to get.
      */
-    TxBlock getTxFromBlockWithIndex(bytes::View blockData, uint64_t txIndex) const;
+    TxBlock getTxFromBlockWithIndex(View<Bytes> blockData, uint64_t txIndex) const;
 
   public:
     /**

@@ -31,17 +31,48 @@ Bytes ABI::Encoder::encodeInt(const int256_t& num) {
   return ret;
 }
 
-uint256_t ABI::Decoder::decodeUint(const bytes::View &bytes, uint64_t &index) {
+uint256_t ABI::Decoder::decodeUint(const View<Bytes> &bytes, uint64_t &index) {
   if (index + 32 > bytes.size()) throw std::length_error("Data too short for uint256");
   uint256_t result = UintConv::bytesToUint256(bytes.subspan(index, 32));
   index += 32;
   return result;
 }
 
-int256_t ABI::Decoder::decodeInt(const bytes::View& bytes, uint64_t& index) {
+int256_t ABI::Decoder::decodeInt(const View<Bytes>& bytes, uint64_t& index) {
   if (index + 32 > bytes.size()) throw std::length_error("Data too short for int256");
   int256_t result = IntConv::bytesToInt256(bytes.subspan(index, 32));
   index += 32;
   return result;
 }
 
+Bytes ABI::Encoder::encodeError(std::string_view reason) {
+  FixedBytes<32> reasonEncoded{};
+
+  const size_t count = std::min(reason.size(), reasonEncoded.size());
+  std::copy_n(reason.begin(), count, reasonEncoded.begin());
+
+  const uint256_t size(reason.size());
+  const FixedBytes<32> sizeEncoded(UintConv::uint256ToBytes(size));
+
+  return Utils::makeBytes(bytes::join(
+    Hex::toBytes("0x08c379a0"),
+    Hex::toBytes("0x0000000000000000000000000000000000000000000000000000000000000020"),
+    sizeEncoded,
+    reasonEncoded
+  ));
+}
+
+std::string ABI::Decoder::decodeError(View<Bytes> data) {
+  static constexpr size_t MAX_STR_SIZE = 32;
+
+    if (data.size() != 100) {
+    throw DynamicException("Encoded revert reason is expected to have exactly 100 bytes");
+  }
+
+  const size_t size = std::min(size_t(UintConv::bytesToUint256(data.subspan(36, 32))), MAX_STR_SIZE);
+
+  std::string res;
+  res.reserve(size);
+  std::ranges::copy(data.subspan(68, size), std::back_inserter(res));
+  return res;
+}

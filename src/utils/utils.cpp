@@ -30,7 +30,7 @@ void Utils::logToFile(std::string_view str) {
 Functor Utils::makeFunctor(std::string_view functionSignature) {
   Functor ret;
   // Create the hash
-  Hash hash = Utils::sha3(bytes::View(reinterpret_cast<const uint8_t*>(functionSignature.data()), functionSignature.size()));
+  Hash hash = Utils::sha3(View<Bytes>(reinterpret_cast<const uint8_t*>(functionSignature.data()), functionSignature.size()));
   // Copy the first 4 bytes of the hash to the value
   ret.value = UintConv::bytesToUint32(hash.view(0,4));
   return ret;
@@ -44,14 +44,14 @@ void Utils::safePrintTest(std::string_view str) {
   Log::safePrintTest(str);
 }
 
-Hash Utils::sha3(const bytes::View input) {
+Hash Utils::sha3(const View<Bytes> input) {
   ethash_hash256 h = ethash_keccak256(input.data(), input.size());
   Hash ret;
   std::copy(reinterpret_cast<const Byte*>(h.bytes), reinterpret_cast<const Byte*>(h.bytes + 32), ret.begin());
   return ret;
 }
 
-Account::Account(const bytes::View& bytes) {
+Account::Account(const View<Bytes>& bytes) {
   if (bytes.size() < 73) throw DynamicException(std::string(__func__) + ": Invalid bytes size");
   this->balance = UintConv::bytesToUint256(bytes.subspan(0,32));
   this->nonce = UintConv::bytesToUint64(bytes.subspan(32,8));
@@ -105,13 +105,13 @@ std::string Utils::getSignalName(int signum) {
   return n;
 }
 
-bytes::View Utils::create_view_span(const Bytes& vec, size_t start, size_t size) {
+View<Bytes> Utils::create_view_span(const Bytes& vec, size_t start, size_t size) {
   if (start + size > vec.size()) throw DynamicException("Invalid range for span");
-  return bytes::View(vec.data() + start, size);
+  return View<Bytes>(vec.data() + start, size);
 }
 
-bytes::View Utils::create_view_span(const std::string_view str, size_t start, size_t size) {
+View<Bytes> Utils::create_view_span(const std::string_view str, size_t start, size_t size) {
   if (start + size > str.size()) throw DynamicException("Invalid range for span");
-  return bytes::View(reinterpret_cast<const uint8_t*>(str.data()) + start, size);
+  return View<Bytes>(reinterpret_cast<const uint8_t*>(str.data()) + start, size);
 }
 

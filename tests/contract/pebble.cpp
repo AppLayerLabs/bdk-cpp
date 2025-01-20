@@ -57,8 +57,8 @@ namespace TPEBBLE {
       SDKTestSuite sdk = SDKTestSuite::createNewEnvironment("testPebbleOwnershipTransfer");
       Address pebbleAddr = sdk.deployContract<Pebble>(uint256_t(100000));
       REQUIRE_THROWS(sdk.callFunction(pebbleAddr, &Pebble::transferOwnership, Address())); // cannot transfer to zero address
-      REQUIRE(sdk.callViewFunction(pebbleAddr, &Pebble::owner) == Address("0x00dead00665771855a34155f5e7405489df2c3c6", false));
-      Address newOwner("0x1234567890123456789012345678901234567890", false);
+      REQUIRE(sdk.callViewFunction(pebbleAddr, &Pebble::owner) == Address(bytes::hex("0x00dead00665771855a34155f5e7405489df2c3c6")));
+      Address newOwner(bytes::hex("0x1234567890123456789012345678901234567890"));
       sdk.callFunction(pebbleAddr, &Pebble::transferOwnership, newOwner);
       REQUIRE(sdk.callViewFunction(pebbleAddr, &Pebble::owner) == newOwner);
     }
@@ -66,7 +66,7 @@ namespace TPEBBLE {
     SECTION("Pebble ownership renounce (Ownable coverage)") {
       SDKTestSuite sdk = SDKTestSuite::createNewEnvironment("testPebbleOwnershipTransfer");
       Address pebbleAddr = sdk.deployContract<Pebble>(uint256_t(100000));
-      REQUIRE(sdk.callViewFunction(pebbleAddr, &Pebble::owner) == Address("0x00dead00665771855a34155f5e7405489df2c3c6", false));
+      REQUIRE(sdk.callViewFunction(pebbleAddr, &Pebble::owner) == Address(bytes::hex("0x00dead00665771855a34155f5e7405489df2c3c6")));
       sdk.callFunction(pebbleAddr, &Pebble::renounceOwnership);
       REQUIRE(sdk.callViewFunction(pebbleAddr, &Pebble::owner) == Address());
     }
@@ -104,7 +104,7 @@ namespace TPEBBLE {
         // Derive the same randomness as the one generated to create the rarity
         // then check against the rarity inside the event.
         auto latestBlock = sdk.getStorage().latest();
-        auto latestRandomness = latestBlock->getBlockRandomness().toUint256();
+        auto latestRandomness = static_cast<uint256_t>(latestBlock->getBlockRandomness());
         auto expectedRarity = sdk.callViewFunction(pebbleAddr, &Pebble::determineRarity, latestRandomness);
         REQUIRE(std::get<2>(event) == expectedRarity);
         REQUIRE(sdk.callViewFunction(pebbleAddr, &Pebble::totalSupply) == uint256_t(1));

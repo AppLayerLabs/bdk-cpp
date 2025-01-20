@@ -94,7 +94,7 @@ namespace P2P {
    * @param message The message to parse.
    * @return The request type.
    */
-  RequestType getRequestType(const bytes::View message);
+  RequestType getRequestType(const View<Bytes> message);
 
   /**
    * Get the 1-byte prefix of a given request inside typePrefixes.
@@ -108,7 +108,7 @@ namespace P2P {
    * @param message The message to parse.
    * @return The command type.
    */
-  CommandType getCommandType(const bytes::View message);
+  CommandType getCommandType(const View<Bytes> message);
 
   /**
    * Get the 2-byte prefix of a given command inside commandPrefixes.
@@ -586,19 +586,19 @@ namespace P2P {
       }
 
       /// Get the request type of the message.
-      RequestType type() const { return getRequestType(bytes::View(rawMessage_).subspan(0,1)); }
+      RequestType type() const { return getRequestType(View<Bytes>(rawMessage_).subspan(0,1)); }
 
       /// Get the request ID of the message.
-      RequestID id() const { return RequestID(bytes::View(rawMessage_).subspan(1, 8)); }
+      RequestID id() const { return RequestID(View<Bytes>(rawMessage_).subspan(1, 8)); }
 
       /// Get the command type of the message.
-      CommandType command() const { return getCommandType(bytes::View(rawMessage_).subspan(9,2)); }
+      CommandType command() const { return getCommandType(View<Bytes>(rawMessage_).subspan(9,2)); }
 
       /// Get the message data (without the flags and IDs).
-      bytes::View message() const { return bytes::View(rawMessage_).subspan(11); }
+      View<Bytes> message() const { return View<Bytes>(rawMessage_).subspan(11); }
 
       /// Get the whole message.
-      bytes::View raw() const { return this->rawMessage_; }
+      View<Bytes> raw() const { return this->rawMessage_; }
 
       /// Get the message's size.
       size_t size() const { return this->rawMessage_.size(); }
@@ -660,7 +660,7 @@ namespace P2P {
    * @return A map of the nodes and their respective IDs.
    * @throw DynamicException if data size or IP version is invalid.
    */
-  boost::unordered_flat_map<NodeID, NodeType, SafeHash> nodesFromMessage(bytes::View data);
+  boost::unordered_flat_map<NodeID, NodeType, SafeHash> nodesFromMessage(View<Bytes> data);
 
   /**
    * Helper function for converting nodes to a message. Conversion is done in-place.
@@ -674,7 +674,7 @@ namespace P2P {
    * @param data The raw bytes string to parse.
    * @return A struct with the node's information.
    */
-  NodeInfo nodeInfoFromMessage(const bytes::View& data);
+  NodeInfo nodeInfoFromMessage(const View<Bytes>& data);
 
   /**
    * Helper function for converting node information to a message. Conversion is done in-place.
@@ -697,7 +697,7 @@ namespace P2P {
    * @return A list of blocks.
    * @throw DynamicException if data size is invalid.
    */
-  std::vector<FinalizedBlock> blocksFromMessage(const bytes::View& data, const uint64_t& requiredChainId);
+  std::vector<FinalizedBlock> blocksFromMessage(const View<Bytes>& data, const uint64_t& requiredChainId);
 
   /**
    * Helper function for converting block data to a message. Conversion is done in-place.

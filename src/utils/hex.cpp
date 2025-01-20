@@ -48,7 +48,7 @@ bool Hex::isValid(const std::string_view hex, bool strict) {
   return true;
 }
 
-Hex Hex::fromBytes(const std::span<const uint8_t> bytes, bool strict) {
+Hex Hex::fromBytes(View<Bytes> bytes, bool strict) {
   auto beg = bytes.begin();
   auto end = bytes.end();
   static const char* digits = "0123456789abcdef";
