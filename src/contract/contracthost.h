@@ -84,7 +84,7 @@ class ContractHost {
         return dispatchMessage(std::forward<decltype(msg)>(msg));
       } catch (const std::exception& err) {
         mustRevert_ = true;
-        throw err;
+        throw;
       }
     }
 

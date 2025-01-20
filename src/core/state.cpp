@@ -199,8 +199,6 @@ void State::processTransaction(
   // processNextBlock already calls validateTransaction in every tx,
   // as it calls validateNextBlock as a sanity check.
   Account& accountFrom = *this->accounts_[tx.getFrom()];
-  Account& accountTo = *this->accounts_[tx.getTo()];
-  auto leftOverGas = int64_t(tx.getGasLimit());
   auto& fromNonce = accountFrom.nonce;
   auto& fromBalance = accountFrom.balance;
   if (fromBalance < (tx.getValue() + tx.getGasLimit() * tx.getMaxFeePerGas())) {

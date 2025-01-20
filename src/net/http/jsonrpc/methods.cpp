@@ -93,7 +93,7 @@ static std::tuple<Address, Address, Gas, uint256_t, Bytes> parseMessage(const js
 
   gas = Gas(parseIfExists<uint64_t>(txJson, "gas").value_or(10'000'000));
 
-  value = uint256_t(parseIfExists<uint64_t>(txJson, "value").value_or(0));
+  value = parseIfExists<uint256_t>(txJson, "value").value_or(0);
 
   data = parseIfExists<Bytes>(txJson, "data").value_or(Bytes{});
 

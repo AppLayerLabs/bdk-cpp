@@ -71,7 +71,7 @@ public:
       callTrace.gasUsed = callTrace.gas - uint64_t(gas);
       callStack_.pop();
 
-      throw outOfGas;
+      throw;
     } catch (const std::exception& error) {
       callTrace.status = trace::CallStatus::EXECUTION_REVERTED;
 
@@ -84,7 +84,7 @@ public:
       callTrace.gasUsed = callTrace.gas - uint64_t(gas);
       callStack_.pop();
 
-      throw error;
+      throw;
     }
   }
 

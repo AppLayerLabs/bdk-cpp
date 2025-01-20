@@ -50,5 +50,21 @@ namespace jsonrpc {
     if (!std::regex_match(value, numberFormat)) throw Error::invalidFormat(value);
     return uint64_t(Hex(value).getUint());
   }
+
+  uint256_t Parser<uint256_t>::operator()(const json& data) const {
+    if (data.is_number_unsigned())
+      return uint256_t(data.get<std::string>());
+
+    if (!data.is_string())
+      throw Error::invalidType("string", data.type_name());
+
+    auto value = data.get<std::string>();
+
+    if (!std::regex_match(value, numberFormat))
+      throw Error::invalidFormat(value);
+
+    return Hex(value).getUint();
+  }
+  
 } // namespace jsonrpc
 

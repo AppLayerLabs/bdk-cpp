@@ -63,11 +63,13 @@ Bytes ABI::Encoder::encodeError(std::string_view reason) {
 }
 
 std::string ABI::Decoder::decodeError(View<Bytes> data) {
+  static constexpr size_t MAX_STR_SIZE = 32;
+
     if (data.size() != 100) {
     throw DynamicException("Encoded revert reason is expected to have exactly 100 bytes");
   }
 
-  const size_t size = UintConv::bytesToUint256(data.subspan(36, 32)).convert_to<size_t>();
+  const size_t size = std::min(size_t(UintConv::bytesToUint256(data.subspan(36, 32))), MAX_STR_SIZE);
 
   std::string res;
   res.reserve(size);

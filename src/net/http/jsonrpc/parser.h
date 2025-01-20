@@ -63,6 +63,11 @@ namespace jsonrpc {
     uint64_t operator()(const json& data) const;  ///< Function call operator.
   };
 
+    /// Specialization.
+  template<> struct Parser<uint256_t> {
+    uint256_t operator()(const json& data) const;  ///< Function call operator.
+  };
+
   /// Partial specialization to optionally parse a json field.
   template<typename T> struct Parser<std::optional<T>> {
     /**
