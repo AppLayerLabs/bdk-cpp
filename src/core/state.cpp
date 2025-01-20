@@ -511,14 +511,12 @@ int64_t State::estimateGas(EncodedMessageVariant msg) {
     context
   );
 
-  return std::visit([&host] (auto&& msg) {
+  return int64_t(std::visit([&host] (auto&& msg) {
     const Gas& gas = msg.gas();
     const int64_t initialGas(gas);
     host.simulate(std::forward<decltype(msg)>(msg));
     return initialGas - int64_t(gas);
-  }, std::move(msg));
-
-  // TODO: add 15% workaround
+  }, std::move(msg)) * 1.15);
 }
 
 std::vector<std::pair<std::string, Address>> State::getCppContracts() const {
