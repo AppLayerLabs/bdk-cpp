@@ -12,7 +12,7 @@ namespace Faucet {
     const boost::asio::ip::address address = net::ip::make_address("0.0.0.0");
     auto docroot = std::make_shared<const std::string>(".");
     this->listener_ = std::make_shared<HTTPListener>(
-      this->ioc_, tcp::endpoint{address, this->port_}, docroot, this->faucet_
+      this->ioc_, tcp::endpoint{address, this->port_}, docroot, this->faucet_, this->rpc_
     );
     this->listener_->start();
 

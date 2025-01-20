@@ -13,90 +13,51 @@ See the LICENSE.txt file in the project root for more information.
 
 #include "../utils/uintconv.h"
 
-State::State(
-  const DB& db,
-  Storage& storage,
-  P2P::ManagerNormal& p2pManager,
-  const uint64_t& snapshotHeight,
-  const Options& options
-) : vm_(evmc_create_evmone()),
-  options_(options),
-  storage_(storage),
-  dumpManager_(storage_, options_, this->stateMutex_),
-  dumpWorker_(options_, storage_, dumpManager_),
-  p2pManager_(p2pManager),
-  rdpos_(db, dumpManager_, storage, p2pManager, options)
+#include "blockchain.h"
+
+State::State(Blockchain& blockchain) : blockchain_(blockchain), vm_(evmc_create_evmone())
 {
+  // The State constructor sets the blockchain machine state to a default.
+  // This default can then be modified when connecting to cometbft, as cometbft supports
+  //   passing an arbitrary binary state blob via genesis.json. But deserializing and executing
+  //   that genesis state blob comes after the initializations that are done here, which are
+  //   only the initializations that are mandatory for the state of any BDK contract machine.
+
   std::unique_lock lock(this->stateMutex_);
-  if (auto accountsFromDB = db.getBatch(DBPrefix::nativeAccounts); accountsFromDB.empty()) {
-    if (snapshotHeight != 0) {
-      throw DynamicException("Snapshot height is higher than 0, but no accounts found in DB");
-    }
-    for (const auto& [addr, balance] : options_.getGenesisBalances()) {
-      this->accounts_[addr]->balance = balance;
-    }
-    // Also append the ContractManager account
-    auto& contractManagerAcc = *this->accounts_[ProtocolContractAddresses.at("ContractManager")];
-    contractManagerAcc.nonce = 1;
-    contractManagerAcc.contractType = ContractType::CPP;
-  } else {
-    for (const auto& dbEntry : accountsFromDB) {
-      this->accounts_.emplace(Address(dbEntry.key), dbEntry.value);
-    }
-  }
 
-  // Load all the EVM Storage Slot/keys from the DB
-  for (const auto& dbEntry : db.getBatch(DBPrefix::vmStorage)) {
-    this->vmStorage_.emplace(StorageKey(dbEntry.key), dbEntry.value);
-  }
+  // we will now fill in here the default machine state for simulation time 0
+  height_ = 0;
 
-  auto latestBlock = this->storage_.latest();
+  // ContractManager account
+  auto& contractManagerAcc = *this->accounts_[ProtocolContractAddresses.at("ContractManager")];
+  contractManagerAcc.nonce = 1;
+  contractManagerAcc.contractType = ContractType::CPP;
 
   // Insert the contract manager into the contracts_ map.
   this->contracts_[ProtocolContractAddresses.at("ContractManager")] = std::make_unique<ContractManager>(
-    db, this->contracts_, this->dumpManager_ ,this->options_
+    //db, this->contracts_, this->dumpManager_ ,this->options_
+    this->contracts_, blockchain_.opt()
   );
-  ContractGlobals::coinbase_ = Secp256k1::toAddress(latestBlock->getValidatorPubKey());
-  ContractGlobals::blockHash_ = latestBlock->getHash();
-  ContractGlobals::blockHeight_ = latestBlock->getNHeight();
-  ContractGlobals::blockTimestamp_ = latestBlock->getTimestamp();
 
   // State sanity check, lets check if all found contracts in the accounts_ map really have code or are C++ contracts
   for (const auto& [addr, acc] : this->accounts_) contractSanityCheck(addr, *acc);
 
-  if (snapshotHeight > this->storage_.latest()->getNHeight()) {
-    LOGERROR("Snapshot height is higher than latest block, we can't load State! Crashing the program");
-    throw DynamicException("Snapshot height is higher than latest block, we can't load State!");
-  }
-
-  // For each nHeight from snapshotHeight + 1 to latestBlock->getNHeight()
-  // We need to process the block and update the state
-  // We can't call processNextBlock here, as it will place the block again on the storage
-  Utils::safePrint("Loading state from snapshot height: " + std::to_string(snapshotHeight));
-  Utils::safePrint("Got latest block height: " + std::to_string(latestBlock->getNHeight()));
-  for (uint64_t nHeight = snapshotHeight + 1; nHeight <= latestBlock->getNHeight(); nHeight++) {
-    auto block = this->storage_.getBlock(nHeight);
-    LOGINFOP("Processing block " + block->getHash().hex().get() + " at height " + std::to_string(nHeight));
-    // Update contract globals based on (now) latest block
-    const Hash blockHash = block->getHash();
-    ContractGlobals::coinbase_ = Secp256k1::toAddress(block->getValidatorPubKey());
-    ContractGlobals::blockHash_ = blockHash;
-    ContractGlobals::blockHeight_ = block->getNHeight();
-    ContractGlobals::blockTimestamp_ = block->getTimestamp();
-
-    // Process transactions of the block within the current state
-    uint64_t txIndex = 0;
-    for (const auto& tx : block->getTxs()) {
-      this->processTransaction(tx, blockHash, txIndex, block->getBlockRandomness());
-      txIndex++;
-    }
-    // Process rdPoS State
-    this->rdpos_.processBlock(*block);
-  }
-  this->dumpManager_.pushBack(this);
+  // FIXME/TODO
+  // While we don't remove these global variables and make them members of State, lock them globally, set them,
+  //  and process a whole block into the State instance that's running contract code.
+  ContractGlobals::coinbase_ = Address();
+  ContractGlobals::blockHash_ = Hash();
+  ContractGlobals::blockHeight_ = height_;
+  ContractGlobals::blockTimestamp_ = 0;
 }
 
-State::~State() { evmc_destroy(this->vm_); }
+State::~State() {
+  evmc_destroy(this->vm_);
+}
+
+std::string State::getLogicalLocation() const {
+  return blockchain_.getLogicalLocation();
+}
 
 void State::contractSanityCheck(const Address& addr, const Account& acc) {
   switch (acc.contractType) {
@@ -129,6 +90,9 @@ void State::contractSanityCheck(const Address& addr, const Account& acc) {
   }
 }
 
+/*
+    TODO: checkpointing State
+
 DBBatch State::dump() const {
   // DB is stored as following
   // Under the DBPrefix::nativeAccounts
@@ -145,290 +109,7 @@ DBBatch State::dump() const {
 
   return stateBatch;
 }
-
-TxStatus State::validateTransactionInternal(const TxBlock& tx) const {
-  /**
-   * Rules for a transaction to be accepted within the current state:
-   * Transaction value + txFee (gas * gasPrice) needs to be lower than account balance
-   * Transaction nonce must match account nonce
-   */
-
-  // Verify if transaction already exists within the mempool, if on mempool, it has been validated previously.
-  if (this->mempool_.contains(tx.hash())) {
-    LOGTRACE("Transaction: " + tx.hash().hex().get() + " already in mempool");
-    return TxStatus::ValidExisting;
-  }
-  auto accountIt = this->accounts_.find(tx.getFrom());
-  if (accountIt == this->accounts_.end()) {
-    LOGERROR("Account doesn't exist (0 balance and 0 nonce)");
-    return TxStatus::InvalidBalance;
-  }
-  const auto& accBalance = accountIt->second->balance;
-  const auto& accNonce = accountIt->second->nonce;
-  if (
-    uint256_t txWithFees = tx.getValue() + (tx.getGasLimit() * tx.getMaxFeePerGas());
-    txWithFees > accBalance
-  ) {
-    LOGERROR("Transaction sender: " + tx.getFrom().hex().get()
-      + " doesn't have balance to send transaction"
-      + " expected: " + txWithFees.str() + " has: " + accBalance.str()
-    );
-    return TxStatus::InvalidBalance;
-  }
-  // TODO: The blockchain is able to store higher nonce transactions until they are valid. Handle this case.
-  if (accNonce != tx.getNonce()) {
-    LOGERROR("Transaction: " + tx.hash().hex().get()
-      + " nonce mismatch, expected: " + std::to_string(accNonce)
-      + " got: " + tx.getNonce().str()
-    );
-    return TxStatus::InvalidNonce;
-  }
-  return TxStatus::ValidNew;
-}
-
-void State::processTransaction(
-  const TxBlock& tx, const Hash& blockHash, const uint64_t& txIndex, const Hash& randomnessHash
-) {
-  // Lock is already called by processNextBlock.
-  // processNextBlock already calls validateTransaction in every tx,
-  // as it calls validateNextBlock as a sanity check.
-  Account& accountFrom = *this->accounts_[tx.getFrom()];
-  Account& accountTo = *this->accounts_[tx.getTo()];
-  auto leftOverGas = int64_t(tx.getGasLimit());
-  auto& fromNonce = accountFrom.nonce;
-  auto& fromBalance = accountFrom.balance;
-  if (fromBalance < (tx.getValue() + tx.getGasLimit() * tx.getMaxFeePerGas())) {
-    LOGERROR("Transaction sender: " + tx.getFrom().hex().get() + " doesn't have balance to send transaction");
-    throw DynamicException("Transaction sender doesn't have balance to send transaction");
-    return;
-  }
-  if (fromNonce != tx.getNonce()) {
-    LOGERROR("Transaction: " + tx.hash().hex().get() + " nonce mismatch, expected: "
-      + std::to_string(fromNonce) + " got: " + tx.getNonce().str()
-    );
-    throw DynamicException("Transaction nonce mismatch");
-    return;
-  }
-  try {
-    evmc_tx_context txContext;
-    txContext.tx_gas_price = EVMCConv::uint256ToEvmcUint256(tx.getMaxFeePerGas());
-    txContext.tx_origin = tx.getFrom().toEvmcAddress();
-    txContext.block_coinbase = ContractGlobals::getCoinbase().toEvmcAddress();
-    txContext.block_number = ContractGlobals::getBlockHeight();
-    txContext.block_timestamp = ContractGlobals::getBlockTimestamp();
-    txContext.block_gas_limit = 10000000;
-    txContext.block_prev_randao = {};
-    txContext.chain_id = EVMCConv::uint256ToEvmcUint256(this->options_.getChainID());
-    txContext.block_base_fee = {};
-    txContext.blob_base_fee = {};
-    txContext.blob_hashes = nullptr;
-    txContext.blob_hashes_count = 0;
-    Hash randomSeed(UintConv::uint256ToBytes((randomnessHash.toUint256() + txIndex)));
-    ContractHost host(
-      this->vm_,
-      this->dumpManager_,
-      this->storage_,
-      randomSeed,
-      txContext,
-      this->contracts_,
-      this->accounts_,
-      this->vmStorage_,
-      tx.hash(),
-      txIndex,
-      blockHash,
-      leftOverGas
-    );
-
-    host.execute(tx.txToMessage(), accountTo.contractType);
-  } catch (std::exception& e) {
-    LOGERRORP("Transaction: " + tx.hash().hex().get() + " failed to process, reason: " + e.what());
-  }
-  if (leftOverGas < 0) {
-    leftOverGas = 0; // We don't want to """refund""" gas due to negative gas
-  }
-  ++fromNonce;
-  auto usedGas = tx.getGasLimit() - leftOverGas;
-  fromBalance -= (usedGas * tx.getMaxFeePerGas());
-}
-
-void State::refreshMempool(const FinalizedBlock& block) {
-  // No need to lock mutex as function caller (this->processNextBlock) already lock mutex.
-  // Remove all transactions within the block that exists on the unordered_map.
-  for (const auto& tx : block.getTxs()) {
-    const auto it = this->mempool_.find(tx.hash());
-    if (it != this->mempool_.end()) {
-      this->mempool_.erase(it);
-    }
-  }
-
-  // Copy mempool over
-  auto mempoolCopy = this->mempool_;
-  this->mempool_.clear();
-
-  // Verify if the transactions within the old mempool
-  // not added to the block are valid given the current state
-  for (const auto& [hash, tx] : mempoolCopy) {
-    // Calls internal function which doesn't lock mutex.
-    if (isTxStatusValid(this->validateTransactionInternal(tx))) {
-      this->mempool_.insert({hash, tx});
-    }
-  }
-}
-
-uint256_t State::getNativeBalance(const Address &addr) const {
-  std::shared_lock lock(this->stateMutex_);
-  auto it = this->accounts_.find(addr);
-  if (it == this->accounts_.end()) return 0;
-  return it->second->balance;
-}
-
-uint64_t State::getNativeNonce(const Address& addr) const {
-  std::shared_lock lock(this->stateMutex_);
-  auto it = this->accounts_.find(addr);
-  if (it == this->accounts_.end()) return 0;
-  return it->second->nonce;
-}
-
-std::vector<TxBlock> State::getMempool() const {
-  std::shared_lock lock(this->stateMutex_);
-  std::vector<TxBlock> mempoolCopy;
-  mempoolCopy.reserve(this->mempool_.size());
-  for (const auto& [hash, tx] : this->mempool_) {
-    mempoolCopy.emplace_back(tx);
-  }
-  return mempoolCopy;
-}
-
-BlockValidationStatus State::validateNextBlockInternal(const FinalizedBlock& block) const {
-  /**
-   * Rules for a block to be accepted within the current state
-   * Block nHeight must match latest nHeight + 1
-   * Block nPrevHash must match latest hash
-   * Block nTimestamp must be higher than latest block
-   * Block has valid rdPoS transaction and signature based on current state.
-   * All transactions within Block are valid (does not return false on validateTransaction)
-   * Block constructor already checks if merkle roots within a block are valid.
-   */
-  auto latestBlock = this->storage_.latest();
-  if (block.getNHeight() != latestBlock->getNHeight() + 1) {
-    LOGERROR("Block nHeight doesn't match, expected " + std::to_string(latestBlock->getNHeight() + 1)
-      + " got " + std::to_string(block.getNHeight())
-    );
-    return BlockValidationStatus::invalidWrongHeight;
-  }
-
-  if (block.getPrevBlockHash() != latestBlock->getHash()) {
-    LOGERROR("Block prevBlockHash doesn't match, expected " + latestBlock->getHash().hex().get()
-      + " got: " + block.getPrevBlockHash().hex().get()
-    );
-    return BlockValidationStatus::invalidErroneous;
-  }
-
-  if (latestBlock->getTimestamp() > block.getTimestamp()) {
-    LOGERROR("Block timestamp is lower than latest block, expected higher than "
-      + std::to_string(latestBlock->getTimestamp()) + " got " + std::to_string(block.getTimestamp())
-    );
-    return BlockValidationStatus::invalidErroneous;
-  }
-
-  if (!this->rdpos_.validateBlock(block)) {
-    LOGERROR("Invalid rdPoS in block");
-    return BlockValidationStatus::invalidErroneous;
-  }
-
-  for (const auto& tx : block.getTxs()) {
-    if (!isTxStatusValid(this->validateTransactionInternal(tx))) {
-      LOGERROR("Transaction " + tx.hash().hex().get() + " within block is invalid");
-      return BlockValidationStatus::invalidErroneous;
-    }
-  }
-
-  LOGTRACE("Block " + block.getHash().hex().get() + " is valid. (Sanity Check Passed)");
-  return BlockValidationStatus::valid;
-}
-
-bool State::validateNextBlock(const FinalizedBlock& block) const {
-  std::shared_lock lock(this->stateMutex_);
-  return validateNextBlockInternal(block) == BlockValidationStatus::valid;
-}
-
-void State::processNextBlock(FinalizedBlock&& block) {
-  if (tryProcessNextBlock(std::move(block)) != BlockValidationStatus::valid) {
-    LOGERROR("Sanity check failed - blockchain is trying to append a invalid block, throwing");
-    throw DynamicException("Invalid block detected during processNextBlock sanity check");
-  }
-}
-
-BlockValidationStatus State::tryProcessNextBlock(FinalizedBlock&& block) {
-  std::unique_lock lock(this->stateMutex_);
-
-  // Sanity check - if it passes, the block is valid and will be processed
-  BlockValidationStatus vStatus = this->validateNextBlockInternal(block);
-  if (vStatus != BlockValidationStatus::valid) {
-    return vStatus;
-  }
-
-  // Update contract globals based on (now) latest block
-  const Hash blockHash = block.getHash();
-  ContractGlobals::coinbase_ = Secp256k1::toAddress(block.getValidatorPubKey());
-  ContractGlobals::blockHash_ = blockHash;
-  ContractGlobals::blockHeight_ = block.getNHeight();
-  ContractGlobals::blockTimestamp_ = block.getTimestamp();
-
-  // Process transactions of the block within the current state
-  uint64_t txIndex = 0;
-  for (auto const& tx : block.getTxs()) {
-    this->processTransaction(tx, blockHash, txIndex, block.getBlockRandomness());
-    txIndex++;
-  }
-
-  // Process rdPoS State
-  this->rdpos_.processBlock(block);
-
-  // Refresh the mempool based on the block transactions
-  this->refreshMempool(block);
-  LOGINFO("Block " + block.getHash().hex().get() + " processed successfully.");
-  Utils::safePrint("Block: " + block.getHash().hex().get() + " height: " + std::to_string(block.getNHeight()) + " was added to the blockchain");
-  for (const auto& tx : block.getTxs()) {
-    Utils::safePrint("Transaction: " + tx.hash().hex().get() + " was accepted in the blockchain");
-  }
-
-  // Move block to storage
-  this->storage_.pushBlock(std::move(block));
-  return vStatus; // BlockValidationStatus::valid
-}
-
-TxStatus State::validateTransaction(const TxBlock& tx) const {
-  std::shared_lock lock(this->stateMutex_);
-  return this->validateTransactionInternal(tx);
-}
-
-TxStatus State::addTx(TxBlock&& tx) {
-  const auto txResult = this->validateTransaction(tx);
-  if (txResult != TxStatus::ValidNew) return txResult;
-  std::unique_lock lock(this->stateMutex_);
-  auto txHash = tx.hash();
-  this->mempool_.insert({txHash, std::move(tx)});
-  LOGTRACE("Transaction: " + txHash.hex().get() + " was added to the mempool");
-  return txResult; // should be TxStatus::ValidNew
-}
-
-TxStatus State::addValidatorTx(const TxValidator& tx) {
-  std::unique_lock lock(this->stateMutex_);
-  return this->rdpos_.addValidatorTx(tx);
-}
-
-bool State::isTxInMempool(const Hash& txHash) const {
-  std::shared_lock lock(this->stateMutex_);
-  return this->mempool_.contains(txHash);
-}
-
-std::unique_ptr<TxBlock> State::getTxFromMempool(const Hash &txHash) const {
-  std::shared_lock lock(this->stateMutex_);
-  auto it = this->mempool_.find(txHash);
-  if (it == this->mempool_.end()) return nullptr;
-  return std::make_unique<TxBlock>(it->second);
-}
+*/
 
 void State::addBalance(const Address& addr) {
   std::unique_lock lock(this->stateMutex_);
@@ -455,7 +136,7 @@ Bytes State::ethCall(const evmc_message& callInfo) {
     txContext.block_timestamp = static_cast<int64_t>(ContractGlobals::getBlockTimestamp());
     txContext.block_gas_limit = 10000000;
     txContext.block_prev_randao = {};
-    txContext.chain_id = EVMCConv::uint256ToEvmcUint256(this->options_.getChainID());
+    txContext.chain_id = EVMCConv::uint256ToEvmcUint256(blockchain_.opt().getChainID());
     txContext.block_base_fee = {};
     txContext.blob_base_fee = {};
     txContext.blob_hashes = nullptr;
@@ -464,8 +145,8 @@ Bytes State::ethCall(const evmc_message& callInfo) {
     Hash randomSeed = Hash::random();
     return ContractHost(
       this->vm_,
-      this->dumpManager_,
-      this->storage_,
+      //this->dumpManager_,
+      this->blockchain_.storage(),
       randomSeed,
       txContext,
       this->contracts_,
@@ -495,8 +176,8 @@ int64_t State::estimateGas(const evmc_message& callInfo) {
   Hash randomSeed = Hash::random();
   ContractHost(
     this->vm_,
-    this->dumpManager_,
-    this->storage_,
+    //this->dumpManager_,
+    blockchain_.storage(),
     randomSeed,
     evmc_tx_context(),
     this->contracts_,
@@ -541,3 +222,250 @@ Bytes State::getContractCode(const Address &addr) const {
   return it->second->code;
 }
 
+bool State::validateTransaction(const TxBlock& tx) const {
+  std::unique_lock lock(this->stateMutex_);
+  return validateTransactionInternal(tx);
+}
+
+bool State::validateTransactionInternal(const TxBlock& tx) const {
+  // NOTE: Caller must have stateMutex_ locked.
+
+  // REVIEW: It *could* make sense to check in a transaction cache if the transaction has been validated
+  //         before, but that is not a given.
+  //
+  // Membership into a mempool is no longer related to whether a tx is valid
+  //
+  // Verify if transaction already exists within the mempool, if on mempool, it has been validated previously.
+  //if (this->mempool_.contains(tx.hash())) {
+  //  LOGTRACE("Transaction: " + tx.hash().hex().get() + " already in mempool");
+  //  return TxStatus::ValidExisting;
+  //}
+
+  // NOTE: Signature of the originating account and other constraints are checked in TxBlock().
+
+  // The transaction is invalid if the originator account simply doesn't exist.
+  auto accountIt = this->accounts_.find(tx.getFrom());
+  if (accountIt == this->accounts_.end()) {
+    LOGERROR("Account doesn't exist (0 balance and 0 nonce)");
+    return false;
+  }
+  const auto accBalance = accountIt->second->balance;
+  const auto accNonce = accountIt->second->nonce;
+
+  // The transaction is invalid if the originator account cannot pay for the transaction.
+  if (
+    uint256_t txWithFees = tx.getValue() + (tx.getGasLimit() * tx.getMaxFeePerGas());
+    txWithFees > accBalance
+  ) {
+    LOGERROR("Transaction sender: " + tx.getFrom().hex().get()
+      + " doesn't have balance to send transaction"
+      + " expected: " + txWithFees.str() + " has: " + accBalance.str()
+    );
+    return false;
+  }
+
+  // The transaction is invalid if the account's next available nonce is different from the
+  //   transaction's own nonce. We only support one transaction per account per block for now.
+  //
+  // TODO: If a block has multiple transactions for the same account within it, then
+  //   transactions for nonces [account_nonce], [account_nonce+1], [account_nonce+2], etc.
+  //   should all be considered individually valid.
+  //   In other words, when checking if a *block* is valid, each transaction that is validated
+  //   in sequence will create a speculative nonce cache that is specific to the block validation
+  //   loop, which affects the result of checking whether a transaction is valid or not. The way
+  //   to do this is to pass this nonce cache as an optional in/out parameter to this function,
+  //   so it will do context-dependent validation of transactions.
+  //   And finally, when preparing a block proposal (PrepareProposal), transactions should be
+  //   reordered so that (a) [account_nonce], [account_nonce+1], [account_nonce+2] is respected
+  //   and (b) if a nonce is skipped in a sequence, e.g. [account_nonce], [account_nonce+2], the
+  //   proposal will exclude the transactions that have no way of being valid in that block (in
+  //   that case, [account_nonce+2].
+  if (accNonce != tx.getNonce()) {
+    LOGERROR("Transaction: " + tx.hash().hex().get()
+      + " nonce mismatch, expected: " + std::to_string(accNonce)
+      + " got: " + tx.getNonce().str()
+    );
+    return false;
+  }
+
+  // If the originating account can pay for it and the nonce is valid, then it is valid (that is,
+  // it can be included in a block because it does not invalidate it).
+  return true;
+}
+
+bool State::validateNextBlock(const FinalizedBlock& block) const {
+  // NOTE: We don't have to validate the low-level block at consensus level since that's
+  // now done by CometBFT. We just need to check if the transactions make sense for our
+  // machine and its current state.
+
+  // The block must be proposing up dates for the next machine simulation time (height + 1)
+  if (block.getNHeight() != this->height_ + 1) {
+    LOGERROR(
+      "Block height doesn't match, expected " + std::to_string(this->height_ + 1) +
+      " got " + std::to_string(block.getNHeight())
+    );
+    return false;
+  }
+
+  // Validate all transactions
+  // TODO: context-aware tx validation
+  for (const auto& txPtr : block.getTxs()) {
+    const auto& tx = *txPtr;
+    if (!validateTransactionInternal(tx)) {
+      LOGERROR("Transaction " + tx.hash().hex().get() + " within block is invalid");
+      return false;
+    }
+  }
+
+  LOGTRACE("Block " + block.getHash().hex().get() + " is valid. (Sanity Check Passed)");
+  return true;
+}
+
+void State::processBlock(const FinalizedBlock& block, std::vector<bool>& succeeded, std::vector<uint64_t>& gasUsed) {
+  std::unique_lock lock(this->stateMutex_);
+
+  // NOTE:Block validation has to be done separately by the caller
+  //
+  // Sanity check - if it passes, the block is valid and will be processed
+  //BlockValidationStatus vStatus = this->validateNextBlockInternal(block);
+  //if (vStatus != BlockValidationStatus::valid) {
+  //  return vStatus;
+  //}
+
+  // Although block validation should have already been done, ensure
+  // that the block height is the expected one.
+  if (block.getNHeight() != height_ + 1) {
+    throw DynamicException(
+      "State::processBlock(): current height is " +
+      std::to_string(height_) + " and block height is " +
+      std::to_string(block.getNHeight())
+    );
+  }
+
+  // The coinbase address that gets all the block fees, etc. is the block proposer.
+  // Address derivation schemes (from the same Secp256k1 public key) differ between CometBFT and Eth.
+  // So we need to map CometBFT Address to CometValidatorUpdate (a validator public key)
+  //   and then use the validator public key to compute the correct Eth Address.
+  Address proposerEthAddr = blockchain_.validatorCometAddressToEthAddress(block.getProposerAddr());
+  ContractGlobals::coinbase_ = proposerEthAddr;
+  LOGTRACE("Coinbase set to: " + proposerEthAddr.hex().get() + " (CometBFT Addr: " + block.getProposerAddr().hex().get() + ")");
+
+  // TODO: randomHash needs a secure random gen protocol between all validators
+  Hash randomHash; // 0
+
+  const Hash blockHash = block.getHash();
+  const uint64_t blockHeight = block.getNHeight();
+
+  // Update contract globals based on (now) latest block
+  ContractGlobals::blockHash_ = blockHash;
+  ContractGlobals::blockHeight_ = blockHeight;
+  ContractGlobals::blockTimestamp_ = block.getTimestamp();
+
+  // Process transactions of the block within the current state
+  uint64_t txIndex = 0;
+  for (auto const& tx : block.getTxs()) {
+    bool txSucceeded;
+    uint64_t txGasUsed;
+    this->processTransaction(*tx, txIndex, blockHash, randomHash, txSucceeded, txGasUsed);
+    succeeded.push_back(txSucceeded);
+    gasUsed.push_back(txGasUsed);
+    txIndex++;
+  }
+
+  // Update the state height after processing
+  height_ = block.getNHeight();
+
+  // REVIEW: may need to store on disk block metadata (not the entire block, but header info, hashes, etc.
+  //   especially the ones that are computed on our side -- if we don't want to have to recompute this later,
+  //   when the node is brought online and all the RAM caches of this info are empty (also a possibility -- just
+  //   recompute this info later).
+}
+
+void State::processTransaction(
+  const TxBlock& tx, const uint64_t& txIndex, const Hash& blockHash, const Hash& randomnessHash,
+  bool& succeeded, uint64_t& gasUsed
+) {
+  // NOTE: Caller must have stateMutex_ locked.
+
+  Account& accountFrom = *this->accounts_[tx.getFrom()];
+  Account& accountTo = *this->accounts_[tx.getTo()];
+  auto leftOverGas = int64_t(tx.getGasLimit());
+  auto& fromNonce = accountFrom.nonce;
+  auto& fromBalance = accountFrom.balance;
+
+  // NOTE: All validation must have already been done.
+  // The errors below only trigger if we have failed to properly validate the transaction.
+  if (fromBalance < (tx.getValue() + tx.getGasLimit() * tx.getMaxFeePerGas())) {
+    LOGERROR("Transaction sender: " + tx.getFrom().hex().get() + " doesn't have balance to send transaction");
+    throw DynamicException("Transaction sender doesn't have balance to send transaction");
+    return;
+  }
+  if (fromNonce != tx.getNonce()) {
+    LOGERROR("Transaction: " + tx.hash().hex().get() + " nonce mismatch, expected: "
+      + std::to_string(fromNonce) + " got: " + tx.getNonce().str()
+    );
+    throw DynamicException("Transaction nonce mismatch");
+    return;
+  }
+
+  // Advance contract state using the given TxBlock.
+  try {
+    evmc_tx_context txContext;
+    txContext.tx_gas_price = EVMCConv::uint256ToEvmcUint256(tx.getMaxFeePerGas());
+    txContext.tx_origin = tx.getFrom().toEvmcAddress();
+    txContext.block_coinbase = ContractGlobals::getCoinbase().toEvmcAddress();
+    txContext.block_number = ContractGlobals::getBlockHeight();
+    txContext.block_timestamp = ContractGlobals::getBlockTimestamp();
+    txContext.block_gas_limit = 10000000;
+    txContext.block_prev_randao = {};
+    txContext.chain_id = EVMCConv::uint256ToEvmcUint256(this->blockchain_.opt().getChainID());
+    txContext.block_base_fee = {};
+    txContext.blob_base_fee = {};
+    txContext.blob_hashes = nullptr;
+    txContext.blob_hashes_count = 0;
+    Hash randomSeed(UintConv::uint256ToBytes((randomnessHash.toUint256() + txIndex)));
+    ContractHost host(
+      this->vm_,
+      //this->dumpManager_,
+      blockchain_.storage(),
+      randomSeed,
+      txContext,
+      this->contracts_,
+      this->accounts_,
+      this->vmStorage_,
+      tx.hash(),
+      txIndex,
+      blockHash,
+      leftOverGas
+    );
+
+    host.execute(tx.txToMessage(), accountTo.contractType);
+
+    const auto& addTxData = host.getAddTxData();
+    succeeded = addTxData.succeeded;
+    gasUsed = addTxData.gasUsed;
+
+  } catch (std::exception& e) {
+    LOGERRORP("Transaction: " + tx.hash().hex().get() + " failed to process, reason: " + e.what());
+  }
+  if (leftOverGas < 0) {
+    leftOverGas = 0; // We don't want to """refund""" gas due to negative gas
+  }
+  ++fromNonce;
+  auto usedGas = tx.getGasLimit() - leftOverGas;
+  fromBalance -= (usedGas * tx.getMaxFeePerGas());
+}
+
+uint256_t State::getNativeBalance(const Address &addr) const {
+  std::shared_lock lock(this->stateMutex_);
+  auto it = this->accounts_.find(addr);
+  if (it == this->accounts_.end()) return 0;
+  return it->second->balance;
+}
+
+uint64_t State::getNativeNonce(const Address& addr) const {
+  std::shared_lock lock(this->stateMutex_);
+  auto it = this->accounts_.find(addr);
+  if (it == this->accounts_.end()) return 0;
+  return it->second->nonce;
+}

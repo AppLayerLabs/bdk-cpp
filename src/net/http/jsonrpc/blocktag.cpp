@@ -1,11 +1,5 @@
-/*
-Copyright (c) [2023-2024] [AppLayer Developers]
-
-This software is distributed under the MIT License.
-See the LICENSE.txt file in the project root for more information.
-*/
-
-#include "blocktag.h" // parser.h -> error.h
+#include "blocktag.h"
+#include "error.h"
 
 /**
  * Helper type for std::visit.
@@ -14,21 +8,23 @@ See the LICENSE.txt file in the project root for more information.
 template<class... Ts>
 struct Overloaded : Ts... { using Ts::operator()...; };
 
+
 /// Explicit deduction guide
 template<class... Ts>
 Overloaded(Ts...) -> Overloaded<Ts...>;
 
+
 namespace jsonrpc {
 
-bool BlockTagOrNumber::isLatest(const Storage& storage) const {
-  return number(storage) == storage.latest()->getNHeight();
+bool BlockTagOrNumber::isLatest(const uint64_t latestHeight) const {
+  return number(latestHeight) == latestHeight;
 }
 
-uint64_t BlockTagOrNumber::number(const Storage& storage) const {
+uint64_t BlockTagOrNumber::number(const uint64_t latestHeight) const {
   return std::visit(Overloaded{
     [](uint64_t number) { return number; },
-    [&storage](BlockTag tag) {
-      if (tag == BlockTag::LATEST) return storage.latest()->getNHeight();
+    [latestHeight](BlockTag tag) {
+      if (tag == BlockTag::LATEST) return latestHeight;
       if (tag == BlockTag::EARLIEST) return uint64_t(0);
       throw Error(-32601, "Pending block not supported for operation");
     }
@@ -44,7 +40,7 @@ BlockTag Parser<BlockTag>::operator()(const json& data) const {
   if (value == "latest")
     return BlockTag::LATEST;
 
-  if (value == "earliest")  
+  if (value == "earliest")
     return BlockTag::EARLIEST;
 
   if (value == "pending")

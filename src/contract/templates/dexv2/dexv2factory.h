@@ -47,7 +47,7 @@ class DEXV2Factory : public DynamicContract {
      * @param address The address where the contract will be deployed.
      * @param db Reference to the database object.
      */
-    DEXV2Factory(const Address& address, const DB& db);
+    //DEXV2Factory(const Address& address, const DB& db);
 
     /**
      * Constructor to be used when creating a new contract.
@@ -101,8 +101,8 @@ class DEXV2Factory : public DynamicContract {
     static void registerContract() {
       ContractReflectionInterface::registerContractMethods<
         DEXV2Factory, const Address&,
-        const Address &, const Address &, const uint64_t &,
-        DB &
+        const Address &, const Address &, const uint64_t &//,
+        //DB &
       >(
         std::vector<std::string>{"_feeToSetter"},
         std::make_tuple("feeTo", &DEXV2Factory::feeTo, FunctionTypes::View, std::vector<std::string>{}),
@@ -117,7 +117,7 @@ class DEXV2Factory : public DynamicContract {
       );
     }
   /// Dump method
-  DBBatch dump() const override;
+  //DBBatch dump() const override;
 };
 
 #endif  // DEXFACTORY_H

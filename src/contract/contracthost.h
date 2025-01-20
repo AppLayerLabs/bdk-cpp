@@ -12,9 +12,13 @@ See the LICENSE.txt file in the project root for more information.
 // contract.h -> core/{dump.h, storage.h -> calltracer.h}
 #include "contractmanager.h"
 #include "contractstack.h" // utils/{strings.h,safehash.h, bytes/join.h}
+#include "calltracer.h"
 
 #include "../utils/evmcconv.h"
 #include "../utils/uintconv.h"
+#include "../utils/randomgen.h"
+
+class Storage;
 
 // TODO: EVMC Static Mode Handling
 // TODO: Contract creating other contracts (EVM Factories)
@@ -74,7 +78,7 @@ class ContractHost : public evmc::Host {
     };
 
     evmc_vm* vm_; ///< Pointer to the EVMC virtual machine.
-    DumpManager& manager_; ///< Reference to the database dumping manager.
+    //DumpManager& manager_; ///< Reference to the database dumping manager.
     Storage& storage_;  ///< Reference to the blockchain storage.
     mutable ContractStack stack_; ///< Contract stack object (ephemeral).
     mutable RandomGen randomGen_; ///< Random generator for the contract.
@@ -236,7 +240,7 @@ class ContractHost : public evmc::Host {
      */
     ContractHost(
       evmc_vm* vm,
-      DumpManager& manager,
+      //DumpManager& manager,
       Storage& storage,
       const Hash& randomnessSeed,
       const evmc_tx_context& currentTxContext,
@@ -248,7 +252,7 @@ class ContractHost : public evmc::Host {
       const Hash& blockHash,
       int64_t& txGasLimit
     ) : vm_(vm),
-        manager_(manager),
+        //manager_(manager),
         storage_(storage),
         randomGen_(randomnessSeed),
         currentTxContext_(currentTxContext),
@@ -266,6 +270,12 @@ class ContractHost : public evmc::Host {
     ContractHost& operator=(const ContractHost&) = delete; ///< Copy assignment operator (deleted, Rule of Zero).
     ContractHost& operator=(ContractHost&&) = delete; ///< Move assignment operator (deleted, Rule of Zero).
     ~ContractHost() noexcept override; ///< Destructor.
+
+    /**
+     * Get the addTxData_ field to check the transaction execution results
+     * after execute().
+     */
+    TxAdditionalData& getAddTxData() { return addTxData_; }
 
     /**
      * Derive a new contract address from a given address and nonce.

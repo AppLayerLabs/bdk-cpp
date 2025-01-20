@@ -523,6 +523,22 @@ namespace Utils {
    * @return A string containing the signal name (or "Unknown signal") and number.
    */
   std::string getSignalName(int signum);
+
+  /**
+   * Convert a timestamp string to nanoseconds since epoch.
+   * Example: "2025-01-15T16:46:34.326703208Z" --> 1736959594326703208
+   * @param timestamp ISO 8601 timestamp string (function assumes this is in UTC).
+   * @return Equivalent nanoseconds since epoch.
+   */
+  uint64_t stringToNanos(const std::string& timestamp);
+
+  /**
+   * Convert nanoseconds since epoch to a timestamp string.
+   * @param nanosecondsSinceEpoch Nanoseconds since epoch.
+   * @return Equivalent ISO 8601 timestamp string (in UTC).
+   */
+  std::string nanosToString(uint64_t nanosecondsSinceEpoch);
+
 };
 
 #endif  // UTILS_H

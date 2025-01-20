@@ -22,7 +22,7 @@ namespace TERC20Wrapper {
       );
       Address erc20Wrapper = sdk.deployContract<ERC20Wrapper>();
       Address owner = sdk.getChainOwnerAccount().address;
-      for (const auto& [name, address] : sdk.getState().getCppContracts()) {
+      for (const auto& [name, address] : sdk.state().getCppContracts()) {
         if (name == "ERC20") REQUIRE(address == erc20);
         if (name == "ERC20Wrapper") REQUIRE(address == erc20Wrapper);
       }
@@ -35,7 +35,7 @@ namespace TERC20Wrapper {
       );
       Address erc20Wrapper = sdk.deployContract<ERC20Wrapper>();
       Address owner = sdk.getChainOwnerAccount().address;
-      for (const auto& [name, address] : sdk.getState().getCppContracts()) {
+      for (const auto& [name, address] : sdk.state().getCppContracts()) {
         if (name == "ERC20") REQUIRE(address == erc20);
         if (name == "ERC20Wrapper") REQUIRE(address == erc20Wrapper);
       }
@@ -80,7 +80,7 @@ namespace TERC20Wrapper {
       Address erc20Wrapper = sdk.deployContract<ERC20Wrapper>();
       Address owner = sdk.getChainOwnerAccount().address;
       Address dest(Utils::randBytes(20));
-      for (const auto& [name, address] : sdk.getState().getCppContracts()) {
+      for (const auto& [name, address] : sdk.state().getCppContracts()) {
         if (name == "ERC20") REQUIRE(address == erc20);
         if (name == "ERC20Wrapper") REQUIRE(address == erc20Wrapper);
       }

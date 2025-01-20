@@ -12,6 +12,34 @@ See the LICENSE.txt file in the project root for more information.
 
 #include "utils.h" // libs/json.hpp -> (cstring, filesystem, string, vector)
 
+/**
+ * FIXME/TODO:
+ *
+ * Persisted state can be divided into 2 categories:
+ * Machine state:
+ *   nativeAccounts
+ *   contracts
+ *   contractManager
+ *   vmStorage
+ *
+ * Chain state:
+ *   block
+ *   heightToBlock
+ *   txToBlock
+ *   rdPoS
+ *   events
+ *   txToAdditionalData
+ *   txToCallTrace
+ *
+ * Machine state must NOT be in the same file/dir database as chain state.
+ * Machine state must always be written separately as its own snapshot file/dir
+ * which is bound to a specific finalized chain height.
+ *
+ * Also, we must always consider whether we will keep a certain bit of chain
+ * state on our side, or if we will delegate to the CometBFT chain store.
+ * By default, we don't want to duplicate the block, tx, etc DB on the cometbft side.
+ */
+
 /// Namespace for accessing database prefixes.
 namespace DBPrefix {
   const Bytes blocks =             { 0x00, 0x01 }; ///< "blocks" = "0001"
@@ -21,7 +49,7 @@ namespace DBPrefix {
   const Bytes rdPoS =              { 0x00, 0x05 }; ///< "rdPoS" = "0005"
   const Bytes contracts =          { 0x00, 0x06 }; ///< "contracts" = "0006"
   const Bytes contractManager =    { 0x00, 0x07 }; ///< "contractManager" = "0007"
-  const Bytes events =             { 0x00, 0x08 }; ///< "events" = "0008"
+  const Bytes events =             { 0x00, 0x08 }; ///< (stored in eventsDb) "events" = "0008"
   const Bytes vmStorage =          { 0x00, 0x09 }; ///< "vmStorage" = "0009"
   const Bytes txToAdditionalData = { 0x00, 0x0A }; ///< "txToAdditionalData" = "000A"
   const Bytes txToCallTrace =      { 0x00, 0x0B }; ///< "txToCallTrace" = "000B"

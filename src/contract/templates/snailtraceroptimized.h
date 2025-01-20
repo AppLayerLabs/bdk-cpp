@@ -81,7 +81,7 @@ class SnailTracerOptimized : public DynamicContract {
      * @param address The address where the contract will be deployed.
      * @param db Reference to the database object.
      */
-    SnailTracerOptimized(const Address& address, const DB& db);
+    //SnailTracerOptimized(const Address& address, const DB& db);
 
     ~SnailTracerOptimized() override; ///< Destructor.
 
@@ -320,7 +320,7 @@ class SnailTracerOptimized : public DynamicContract {
     static void registerContract() {
       ContractReflectionInterface::registerContractMethods<
         SnailTracerOptimized, int136_t&, int136_t&,
-        const Address&, const Address&, const uint136_t&, DB&
+        const Address&, const Address&, const uint136_t&//, DB&
       >(
         std::vector<std::string>{"w", "h"},
         std::make_tuple("TracePixel", &SnailTracerOptimized::TracePixel, FunctionTypes::NonPayable, std::vector<std::string>{"x", "y", "spp"}),
@@ -355,7 +355,7 @@ class SnailTracerOptimized : public DynamicContract {
       );
     }
 
-    DBBatch dump() const override; ///< Dump method.
+    //DBBatch dump() const override; ///< Dump method.
 };
 
 #endif // SNAILTRACEROPTIMIZED_H

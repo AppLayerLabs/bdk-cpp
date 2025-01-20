@@ -16,28 +16,16 @@ See the LICENSE.txt file in the project root for more information.
 #include "../contract/calltracer.h"
 #include "../contract/event.h"
 
+class Blockchain;
+
 /**
- * Abstraction of the blockchain history.
- * Used to store blocks in memory and on disk, and helps the State process
- * new blocks, transactions and RPC queries.
+ * Interface to the DB instances of a BDK node.
  */
 class Storage : public Log::LogicalLocationProvider {
-  // TODO: possibly replace `std::shared_ptr<const Block>` with a better solution.
   private:
-    std::atomic<std::shared_ptr<const FinalizedBlock>> latest_; ///< Pointer to the latest block in the blockchain.
-    DB blocksDb_;  ///< Database object that contains all the blockchain blocks
-    DB eventsDb_; ///< DB exclusive to events (should be removed in future)
-    const Options& options_;  ///< Reference to the options singleton.
-    const std::string instanceIdStr_; ///< Identifier for logging
-
-    void initializeBlockchain(); ///< Initialize the blockchain.
-
-    /**
-     * Get a transaction from a block based on a given transaction index.
-     * @param blockData The raw block string.
-     * @param txIndex The index of the transaction to get.
-     */
-    TxBlock getTxFromBlockWithIndex(bytes::View blockData, uint64_t txIndex) const;
+    Blockchain& blockchain_; ///< Our parent object through which we reach the other components
+    DB blocksDb_;  ///< DB for general-purpose usage (doesn't actually hold blocks; TODO: rename)
+    DB eventsDb_; ///< DB for events
 
   public:
     /**
@@ -46,86 +34,11 @@ class Storage : public Log::LogicalLocationProvider {
      * @param instanceIdStr Instance ID string to use for logging.
      * @param options Reference to the options singleton.
      */
-    Storage(std::string instanceIdStr, const Options& options);
+    Storage(Blockchain& blockchain); //, std::string instanceIdStr, const Options& options);
 
-    /// Log instance (provided in ctor).
-    std::string getLogicalLocation() const override { return instanceIdStr_; }
+    ~Storage() = default; ///< Destructor.
 
-    /// Wrapper for `pushBackInternal()`. Use this as it properly locks `chainLock_`.
-    void pushBlock(FinalizedBlock block);
-
-    /**
-     * Check if a block exists anywhere in storage (memory/chain, then cache, then database).
-     * Locks `chainLock_` and `cacheLock_`, to be used by external actors.
-     * @param hash The block hash to search.
-     * @return `true` if the block exists, `false` otherwise.
-     */
-    bool blockExists(const Hash& hash) const;
-
-    /**
-     * Overload of blockExists() that works with block height instead of hash.
-     * @param height The block height to search.
-     * @return `true` if the block exists, `false` otherwise.
-     */
-    bool blockExists(uint64_t height) const;
-
-    /**
-     * Get a block from the chain using a given hash.
-     * @param hash The block hash to get.
-     * @return A pointer to the found block, or `nullptr` if block is not found.
-     */
-    std::shared_ptr<const FinalizedBlock> getBlock(const Hash& hash) const;
-
-    /**
-     * Get a block from the chain using a given height.
-     * @param height The block height to get.
-     * @return A pointer to the found block, or `nullptr` if block is not found.
-     */
-    std::shared_ptr<const FinalizedBlock> getBlock(uint64_t height) const;
-
-    /**
-     * Check if a transaction exists anywhere in storage (memory/chain, then cache, then database).
-     * @param tx The transaction to check.
-     * @return Bool telling if the transaction exists.
-     */
-    bool txExists(const Hash& tx) const;
-
-    /**
-     * Get a transaction from the chain using a given hash.
-     * @param tx The transaction hash to get.
-     * @return A tuple with the found transaction, block hash, index and height.
-     * @throw DynamicException on hash mismatch.
-     */
-    std::tuple<
-      const std::shared_ptr<const TxBlock>, const Hash, const uint64_t, const uint64_t
-    > getTx(const Hash& tx) const;
-
-    /**
-     * Get a transaction from a block with a specific index.
-     * @param blockHash The block hash
-     * @param blockIndex the index within the block
-     * @return A tuple with the found transaction, block hash, index and height.
-     * @throw DynamicException on hash mismatch.
-     */
-    std::tuple<
-      const std::shared_ptr<const TxBlock>, const Hash, const uint64_t, const uint64_t
-    > getTxByBlockHashAndIndex(const Hash& blockHash, const uint64_t blockIndex) const;
-
-    /**
-     * Get a transaction from a block with a specific index.
-     * @param blockHeight The block height
-     * @param blockIndex The index within the block.
-     * @return A tuple with the found transaction, block hash, index and height.
-     */
-    std::tuple<
-      const std::shared_ptr<const TxBlock>, const Hash, const uint64_t, const uint64_t
-    > getTxByBlockNumberAndIndex(uint64_t blockHeight, uint64_t blockIndex) const;
-
-    /// Get the most recently added block from the chain.
-    std::shared_ptr<const FinalizedBlock> latest() const;
-
-    /// Get the number of blocks currently in the chain (nHeight of latest block + 1).
-    uint64_t currentChainSize() const;
+    std::string getLogicalLocation() const override; ///< Log helper.
 
     /**
      * Stores additional transaction data
@@ -182,7 +95,7 @@ class Storage : public Log::LogicalLocationProvider {
      * Get the indexing mode of the storage.
      * @returns The indexing mode of the storage.
      */
-    inline IndexingMode getIndexingMode() const { return options_.getIndexingMode(); }
+    IndexingMode getIndexingMode() const;
 };
 
 #endif  // STORAGE_H

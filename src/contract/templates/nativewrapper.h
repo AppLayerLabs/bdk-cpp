@@ -37,7 +37,7 @@ class NativeWrapper : public ERC20 {
      * @param address The address where the contract will be deployed.
      * @param db Reference to the database object.
      */
-    NativeWrapper(const Address& address, const DB& db);
+    //NativeWrapper(const Address& address, const DB& db);
 
     /**
      * Constructor to be used when creating a new contract.
@@ -76,7 +76,7 @@ class NativeWrapper : public ERC20 {
       ContractReflectionInterface::registerContractMethods<
         NativeWrapper, std::string &, std::string &, uint8_t &,
         const Address &,
-        const Address &, const uint64_t &, DB&
+        const Address &, const uint64_t &//, DB&
       >(
         std::vector<std::string>{"erc20_name", "erc20_symbol", "erc20_decimals"},
         std::make_tuple("deposit", &NativeWrapper::deposit, FunctionTypes::Payable, std::vector<std::string>{}),
@@ -85,7 +85,7 @@ class NativeWrapper : public ERC20 {
     }
 
     /// Dump method
-    DBBatch dump() const override;
+    //DBBatch dump() const override;
 };
 
 #endif // NATIVEWRAPPER_H

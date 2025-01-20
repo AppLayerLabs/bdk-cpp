@@ -43,7 +43,7 @@ class ERC721Test : public ERC721 {
      * @param address The address where the contract will be deployed.
      * @param db Reference to the database object.
      */
-    ERC721Test(const Address &address, const DB& db);
+    //ERC721Test(const Address &address, const DB& db);
 
     /**
      * Constructor to be used when creating a new contract.
@@ -96,7 +96,8 @@ class ERC721Test : public ERC721 {
       ContractReflectionInterface::registerContractMethods<
         ERC721Test, const std::string &, const std::string &, const uint64_t &,
         const Address &, const Address &,
-        const uint64_t &, DB&>
+        const uint64_t &//, DB&
+        >
       (
         std::vector<std::string>{"erc721name", "erc721symbol", "maxTokens"},
         std::make_tuple("mint", &ERC721Test::mint, FunctionTypes::NonPayable, std::vector<std::string>{"to"}),
@@ -108,7 +109,7 @@ class ERC721Test : public ERC721 {
     }
 
     /// Dump method
-    DBBatch dump() const override;
+    //DBBatch dump() const override;
 };
 
 

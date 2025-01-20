@@ -9,12 +9,10 @@ See the LICENSE.txt file in the project root for more information.
 
 #include "jsonrpc/call.h"
 
+#include "../utils/utils.h"
+
 std::string parseJsonRpcRequest(
-  const std::string& body,
-  State& state,
-  const Storage& storage,
-  P2P::ManagerNormal& p2p,
-  const Options& options
+  const std::string& body, NodeRPCInterface& rpc
 ) {
   Utils::safePrint("HTTP Request: " + body);
   json ret;
@@ -23,10 +21,10 @@ std::string parseJsonRpcRequest(
     if (request.is_array()) {
       ret = json::array();
       for (const auto& req : request) {
-        ret.emplace_back(jsonrpc::call(req, state, storage, p2p, options));
+        ret.emplace_back(jsonrpc::call(req, rpc));
       }
     } else {
-      ret = jsonrpc::call(request, state, storage, p2p, options);
+      ret = jsonrpc::call(request, rpc);
     }
   } catch (const std::exception& e) {
     ret["error"]["code"] = -32603;

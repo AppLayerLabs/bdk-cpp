@@ -7,6 +7,8 @@ See the LICENSE.txt file in the project root for more information.
 
 #include "httpsession.h"
 
+#include "../utils/utils.h"
+
 HTTPQueue::HTTPQueue(HTTPSession& session) : session_(session) {
   assert(this->limit_ > 0);
   this->items_.reserve(this->limit_);
@@ -61,8 +63,7 @@ void HTTPSession::on_read(beast::error_code ec, std::size_t bytes) {
   if (ec) return fail("HTTPSession", __func__, ec, "Failed to close connection");
   // Send the response
   handle_request(
-    *this->docroot_, this->parser_->release(), this->queue_, this->state_,
-    this->storage_, this->p2p_, this->options_
+    *this->docroot_, this->parser_->release(), this->queue_, rpc_
   );
   // If queue still has free space, try to pipeline another request
   if (!this->queue_.full()) this->do_read();

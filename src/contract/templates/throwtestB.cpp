@@ -14,19 +14,21 @@ ThrowTestB::ThrowTestB(
   registerContractFunctions();
 }
 
+/*
 ThrowTestB::ThrowTestB(
   const Address& address,
   const DB& db
 ) : DynamicContract(address, db) {
   registerContractFunctions();
 }
+*/
 
 ThrowTestB::~ThrowTestB() { return; }
 
-DBBatch ThrowTestB::dump() const
-{
-  return BaseContract::dump();
-}
+//DBBatch ThrowTestB::dump() const
+//{
+//  return BaseContract::dump();
+//}
 
 uint8_t ThrowTestB::getNumB() const { return this->num_.get(); }
 

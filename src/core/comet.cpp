@@ -20,29 +20,33 @@ See the LICENSE.txt file in the project root for more information.
 
 #include "../libs/base64.hpp"
 
+#include <cryptopp/sha.h>
+#include <cryptopp/ripemd.h>
+#include <cryptopp/cryptlib.h>
+
 /*
-  NOTE: cometbft public key vs. cometbft address
+  NOTE: CometBFT keys
 
-  There is only one public key type and it is hard-coded in the Comet driver.
-  The cometbft genesis.json file should have "tendermint/PubKeyEd25519" as the only public key type,
-  whose equivalent in ABCI parlance is the "ed25519" string below.
+  There is only one public key type for validators and it is hard-coded in the Comet driver.
+  The cometbft genesis.json file should have "tendermint/PubKeySecp256k1" as the only public
+  key type for validators, whose equivalent in ABCI parlance is the "secp256k1" string below.
+  Node keys (for network P2P-node IDs) are still Ed25519.
 
-  (NOTE: secp256k1 and BLS keys are supported if there's a reason to use either.)
+  NOTE: CometBFT addresses
 
-  Address
-  Address is a type alias of a slice of bytes. The address is calculated by hashing the public key
-  using sha256 and truncating it to only use the first 20 bytes of the slice.
+  We cannot use CometBFT addresses (like the proposer address) as drop-in to Eth addresses.
+  Although they are both using a Secp256k1 public key as the starting point, the address
+  derivation scheme for CometBFT and Eth differs.
 
-  const (
-    TruncatedSize = 20
-  )
-
-  func SumTruncated(bz []byte) []byte {
-    hash := sha256.Sum256(bz)
-    return hash[:TruncatedSize]
-  }
+  In some docs it says the CometBFT address is just sha256(pubkey) truncated to 20 bytes,
+  but it's actually:
+    address = RIPEMD160(SHA256(pubkey))
+  as verified by the CometBootTest unit test.
 */
-#define COMET_PUB_KEY_TYPE "ed25519"
+#define COMET_PUB_KEY_TYPE "secp256k1"
+
+/// Use our modified version of cometbft that uses sha3 for Tx hash and TxKey
+#define COMETBFT_EXECUTABLE "cometbft-bdk"
 
 /// Use our modified version of cometbft that uses sha3 for Tx hash and TxKey
 #define COMETBFT_EXECUTABLE "cometbft-bdk"
@@ -718,9 +722,8 @@ bool WebsocketRPCConnection<T>::rpcSyncCall(const std::string& method, const jso
 // ---------------------------------------------------------------------------------------
 
 // Comet::sendTransaction() async RPC request data
-// - std::shared_ptr<Hash>: Eth hash of the transaction being sent (nullptr if ignoring txCache)
 // - Bytes: transaction data (Bytes)
-using TxSendType = Bytes; //std::tuple<std::shared_ptr<Hash>, Bytes>;
+using TxSendType = Bytes;
 
 // Comet::checkTransaction() async RPC request data
 // - std::string: cometbft SHA256 hex hash of the transaction being queried (no "0x" prefix)
@@ -799,15 +802,16 @@ class CometImpl : public ABCIHandler, public Log::LogicalLocationProvider {
     std::mutex nodeIdMutex_; ///< mutex to protect reading/writing nodeId_.
     std::string nodeId_; ///< Cometbft node id or an empty string if not yet retrieved.
 
+    std::mutex validatorPubKeyMutex_; ///< mutex to protect reading/writing validatorPubKey_.
+    Bytes validatorPubKey_; ///< Validator ETH address derived from its secp256k1 public key (set by priv_validator_key.json), if any.
+
     uint64_t lastCometBFTBlockHeight_; ///< Current block height stored in the cometbft data dir, if known.
     std::string lastCometBFTAppHash_; ///< Current app hash stored in the cometbft data dir, if known.
 
-    //std::atomic<uint64_t> txCacheSize_ = 1000000; ///< Transaction cache size in maximum entries per bucket (0 to disable).
-    //std::mutex txCacheMutex_; ///< Mutex to protect cache access.
-    //std::array<std::unordered_map<Hash, CometTxStatus, SafeHash>, 2> txCache_; ///< Transaction cache as two rotating buckets.
-    //uint64_t txCacheBucket_ = 0; ///< Active txCache_ bucket.
-
     WebsocketRPCConnection<CometRPCRequestType> rpc_; ///< Singleton websocket RPC connection to process_ (started/stopped as needed).
+
+    Bytes lastCometBFTBlockHash_; ///< Last block hash seen from CometBFT (e.g. via ABCI).
+    uint64_t lastCometBFTBlockHashHeight_ = 0; ///< Height of lastCometBFTBlockHash_, 0 if none.
 
     static void doStartCometBFT(
       const std::vector<std::string>& cometArgs,
@@ -831,7 +835,6 @@ class CometImpl : public ABCIHandler, public Log::LogicalLocationProvider {
     std::string getLogicalLocation() const override { return instanceIdStr_; } ///< Log instance
     CometImpl(CometListener* listener, std::string instanceIdStr, const Options& options);
     virtual ~CometImpl();
-    //void setTransactionCacheSize(const uint64_t cacheSize);
     bool getStatus();
     const std::string& getErrorStr();
     CometError getErrorCode();
@@ -840,14 +843,16 @@ class CometImpl : public ABCIHandler, public Log::LogicalLocationProvider {
     CometState getPauseState();
     std::string waitPauseState(uint64_t timeoutMillis);
     std::string getNodeID();
+    Bytes getValidatorPubKey();
     bool start();
     bool stop();
     static void runCometBFT(const std::vector<std::string>& cometArgs, std::string* outStdout = nullptr, std::string* outStderr = nullptr);
     static void checkCometBFT();
-    uint64_t sendTransaction(const Bytes& tx/*, std::shared_ptr<Hash>* ethHash*/);
+    static Bytes getCometAddressFromPubKey(Bytes pubKey);
+
+    uint64_t sendTransaction(const Bytes& tx);
     uint64_t checkTransaction(const std::string& txHash);
     uint64_t getBlock(const uint64_t height);
-    //bool checkTransactionInCache(const Hash& txEthHash, CometTxStatus& txStatus);
     bool rpcSyncCall(const std::string& method, const json& params, json& outResult);
     uint64_t rpcAsyncCall(const std::string& method, const json& params);
 
@@ -882,21 +887,6 @@ CometImpl::CometImpl(CometListener* listener, std::string instanceIdStr, const O
 CometImpl::~CometImpl() {
   stop();
 }
-
-/*
-void CometImpl::setTransactionCacheSize(const uint64_t cacheSize) {
-  txCacheSize_ = cacheSize;
-  // If cache gets smaller than current capacity it just keeps its current elements until the next bucket flip cycle.
-  // Exception is if the size is set to 0. In that case we just purge the cache.
-  // A cache purge can be forced by setting size to 0 then resetting it back to its previous positive size.
-  if (txCacheSize_ == 0) {
-    std::scoped_lock lock(txCacheMutex_);
-    txCache_[0].clear();
-    txCache_[1].clear();
-    txCacheBucket_ = 0;
-  }
-}
-*/
 
 bool CometImpl::getStatus() {
   return status_;
@@ -941,6 +931,11 @@ std::string CometImpl::getNodeID() {
   return this->nodeId_;
 }
 
+Bytes CometImpl::getValidatorPubKey() {
+  std::scoped_lock(this->validatorPubKeyMutex_);
+  return this->validatorPubKey_;
+}
+
 uint64_t CometImpl::sendTransaction(const Bytes& tx/*, std::shared_ptr<Hash>* ethHash*/) {
   // Add transaction to a queue that will try to push it to our cometbft instance.
   // Queue is NEVER reset on continue; etc. it is the same node, need to deliver tx to it eventually.
@@ -960,65 +955,12 @@ uint64_t CometImpl::sendTransaction(const Bytes& tx/*, std::shared_ptr<Hash>* et
     return 0;
   }
 
-  /*
-  // If cache is enabled and caller wants us to insert/track this tx in the cache (i.e. ethHash != nullptr)
-  if (txCacheSize_ > 0 && ethHash) {
-    // If ethHash is a shared_ptr, but the shared_ptr tracks a null object, compute the eth hash
-    // of the transaction bytes and store them in the shared_ptr.
-    if (!*ethHash) {
-      *ethHash = std::make_shared<Hash>(Utils::sha3(tx));
-    }
-
-    Hash& ethHashRef = *(*ethHash);
-
-    std::scoped_lock lock(txCacheMutex_);
-
-    // If there's already a transaction in the cache with the same sha3 key, and the transaction
-    // entry isn't fully dead (i.e. REJECTED, meaning it CAN be resent), then refuse to send it.
-    for (int i = 0; i < 2; ++i) {
-      auto& bucket = txCache_[(txCacheBucket_ + i) % 2];
-      auto it = bucket.find(ethHashRef);
-      if (it != bucket.end()) {
-        if (it->second.height != CometTxStatusHeight::REJECTED) {
-          return 0; // Invalid ticket: not sent (error)
-        }
-      }
-    }
-  }
-  */
-
   std::string encodedTx = base64::encode_into<std::string>(tx.begin(), tx.end());
   json params = { {"tx", encodedTx} };
 
   CometRPCRequestType requestData = TxSendType{/*ethHash ? *ethHash : nullptr,*/ tx};
 
   uint64_t requestId = rpc_.rpcAsyncCall("broadcast_tx_async", params, requestData);
-
-  /*
-  if (requestId != 0) {
-    // Only need to add the transaction to the cache if there's a chance
-    // broadcast_tx_async actually went through (asynccall ticket# > 0).
-    if (txCacheSize_ > 0 && ethHash) {
-      CometTxStatus txStatus;
-      txStatus.height = CometTxStatusHeight::SUBMITTING; // Got rid of intermediary queue
-      txStatus.index = -1;
-      txStatus.cometTxHash = "";
-      txStatus.result = CometExecTxResult();
-
-      Hash& ethHashRef = *(*ethHash);
-
-      std::scoped_lock lock(txCacheMutex_);
-
-      auto& activeBucket = txCache_[txCacheBucket_];
-      activeBucket[ethHashRef] = txStatus;
-
-      if (activeBucket.size() >= txCacheSize_) {
-        txCacheBucket_ = 1 - txCacheBucket_;
-        txCache_[txCacheBucket_].clear();
-      }
-    }
-  }
-  */
   return requestId;
 }
 
@@ -1027,13 +969,10 @@ uint64_t CometImpl::checkTransaction(const std::string& txHash) {
   // when we are checking for the status of a transaction, and it also takes some time between
   // seeing that the transaction went into a block and indexing it (it just says "not found"/error
   // if the transaction is pending, i.e. as if it didn't exist at all).
-  // Instead of putting a cache in front of this method, it's better to leave it as doing a /tx query
-  // only, since it takes the SHA256 hash anyway (meaning you want cometbft's idea of the tx).
 
   // NOTE: If you want to call 'tx' on cometbft ispect using an async RPC, use Comet::rpcAsyncCall().
 
-  // Since we killed the txCheck_ queue and hardwired this to sending to the WebsocketRPCConnection,
-  // we need to ensure the connection is to a cometbft start (CometState::RUNNING) node, not inspect
+  // We need to ensure the connection is to a cometbft start (CometState::RUNNING) node, not inspect
   // or anything else (worse: just not running at all and can't connect).
   // Luckily, once the driver is at CometState::RUNNING, the worst that can happen is an erroneous
   // shutdown, so if we pass the test here the worst that can happen is a failure to send, which
@@ -1068,30 +1007,6 @@ uint64_t CometImpl::getBlock(const uint64_t height) {
   uint64_t requestId = rpc_.rpcAsyncCall("block", params, requestData);
   return requestId;
 }
-
-/*
-bool CometImpl::checkTransactionInCache(const Hash& txEthHash, CometTxStatus& txStatus) {
-  // Since this method takes an eth hash, this just does a lookup in the cache.
-  // If this is a transaction that this node sent, then it is visible through its
-  // whole lifetime. Also, the cache is updated when a FinalizedBlock is processed,
-  // so even if you never *sent* the transaction, you will eventually find it through
-  // here when it gets included in a block (a recent block, that is, as the cache has
-  // a maximum size).
-  if (txCacheSize_ > 0) {
-    // Check both buckets, but check the active bucket (txCacheBucket_) first.
-    std::scoped_lock lock(txCacheMutex_);
-    for (int i = 0; i < 2; ++i) {
-      const auto& bucket = txCache_[(txCacheBucket_ + i) % 2];
-      auto it = bucket.find(txEthHash);
-      if (it != bucket.end()) {
-        txStatus = it->second;
-        return true;
-      }
-    }
-  }
-  return false;
-}
-*/
 
 bool CometImpl::rpcSyncCall(const std::string& method, const json& params, json& outResult) {
   if (!process_) {
@@ -1170,6 +1085,15 @@ void CometImpl::checkCometBFT() {
   }
 }
 
+Bytes CometImpl::getCometAddressFromPubKey(Bytes pubKey) {
+  using namespace CryptoPP;
+  byte shaDigest[SHA256::DIGESTSIZE];
+  SHA256().CalculateDigest(shaDigest, pubKey.data(), pubKey.size());
+  byte ripemdDigest[RIPEMD160::DIGESTSIZE];
+  RIPEMD160().CalculateDigest(ripemdDigest, shaDigest, SHA256::DIGESTSIZE);
+  return Bytes(ripemdDigest, ripemdDigest + RIPEMD160::DIGESTSIZE);
+}
+
 void CometImpl::setState(const CometState& state) {
   LOGTRACE("Set comet state: " + std::to_string((int)state));
   auto oldState = state;
@@ -1242,13 +1166,20 @@ void CometImpl::cleanup() {
   lastCometBFTBlockHeight_ = 0;
   lastCometBFTAppHash_ = "";
 
+  // Reset the prevHash helper.
+  lastCometBFTBlockHash_.clear();
+  lastCometBFTBlockHashHeight_ = 0;
+
   // Reset any state we might have as an ABCIHandler
   infoCount_ = 0; // needed for the TESTING_COMET -> TESTED_COMET state transition.
   rpcPort_ = 0;
   p2pPort_ = 0;
-  std::unique_lock<std::mutex> resetInfoLock(this->nodeIdMutex_);
+  std::unique_lock<std::mutex> resetValidatorPubKeyLock(this->validatorPubKeyMutex_);
+  this->validatorPubKey_.clear();
+  resetValidatorPubKeyLock.unlock();
+  std::unique_lock<std::mutex> resetNodeIdLock(this->nodeIdMutex_);
   this->nodeId_ = ""; // only known after "comet/config/node_key.json" is set and "cometbft show-node-id" is run.
-  resetInfoLock.unlock();
+  resetNodeIdLock.unlock();
 }
 
 void CometImpl::startCometBFT(const std::vector<std::string>& cometArgs, bool saveOutput) {
@@ -1648,7 +1579,7 @@ void CometImpl::workerLoopInner() {
       LOGDEBUG("Comet worker: creating comet directory");
 
       // run cometbft init cometPath to create the cometbft directory with default configs
-      runCometBFT({ "init", "--home=" + cometPath });
+      runCometBFT({ "init", "--home=" + cometPath, "-k=secp256k1"});
 
       // check it exists now, otherwise halt node
       if (!std::filesystem::exists(cometPath)) {
@@ -1689,6 +1620,21 @@ void CometImpl::workerLoopInner() {
       if (outputFile.is_open()) {
         outputFile << privValidatorKeyJSON.dump(4);
         outputFile.close();
+
+        // Compute the validator address and save it.
+        if (!privValidatorKeyJSON.contains("pub_key") || !privValidatorKeyJSON["pub_key"].is_object()) {
+          setErrorCode(CometError::DATA);
+          throw DynamicException("CometBFT priv_validator_key.json pub_key field is missing or invalid.");
+        }
+        const json& pubKeyObject = privValidatorKeyJSON["pub_key"];
+        if (!pubKeyObject.contains("value") || !pubKeyObject["value"].is_string()) {
+          setErrorCode(CometError::DATA);
+          throw DynamicException("CometBFT priv_validator_key.json pub_key::value field is missing or invalid.");
+        }
+        std::string validatorPubKeyStr = pubKeyObject["value"].get<std::string>();
+        std::scoped_lock(this->validatorPubKeyMutex_);
+        validatorPubKey_ = base64::decode_into<Bytes>(validatorPubKeyStr);
+        LOGINFO("Validator public key is: " + Hex::fromBytes(validatorPubKey_).get());
       } else {
         setErrorCode(CometError::FATAL);
         throw DynamicException("Cannot open comet privValidatorKey file for writing: " + cometConfigPrivValidatorKeyPath);
@@ -1926,6 +1872,11 @@ void CometImpl::workerLoopInner() {
       LOGDEBUG("Parsed header successfully: Last Block Height = " + std::to_string(lastCometBFTBlockHeight_) + ", Last App Hash = " + lastCometBFTAppHash_);
     }
 
+    // FIXME/TODO: if we have at least one block (lastCometBFTBlockHeight_ >= 1) then
+    //             call the inspect "blockchain" method with minheight==maxheight==lastCometBFTBlockHeight_
+    //             and get the block hash of the last block from the block_metas
+    //             and save it in lastCometBFTBlockHash_ and lastCometBFTBlockHashHeight_
+
     // Check if quitting
     if (stop_) break;
 
@@ -2148,36 +2099,11 @@ void CometImpl::workerLoopInner() {
         std::visit([&](auto&& arg) {
           using T = std::decay_t<decltype(arg)>;
           if constexpr (std::is_same_v<T, TxSendType>) {
-            //const std::shared_ptr<Hash>& txEthHashPtr = std::get<0>(arg);
-            const Bytes& tx = arg; //std::get<1>(arg);
-
+            const Bytes& tx = arg;
             std::string txHash = "";
             if (requestSuccess && requestResponseJson.contains("result") && requestResponseJson["result"].contains("hash")) {
               txHash = requestResponseJson["result"]["hash"].get<std::string>();
             }
-/*
-            // If txCache is enabled and we enabled sha3 computation for outgoing txs,
-            // find the cache entry and update its state.
-            if (txCacheSize_ > 0 && txEthHashPtr) {
-              // Search active bucket first
-              std::scoped_lock lock(txCacheMutex_);
-              for (int i = 0; i < 2; ++i) {
-                auto& bucket = txCache_[(txCacheBucket_ + i) % 2];
-                auto it = bucket.find(*txEthHashPtr);
-                if (it != bucket.end()) {
-                  CometTxStatus& txStatus = it->second;
-                  if (requestSuccess) {
-                    txStatus.height = CometTxStatusHeight::SUBMITTED;
-                    txStatus.cometTxHash = txHash;
-                  } else {
-                    // cometTxHash is not returned in the RPC response in case of error
-                    txStatus.height = CometTxStatusHeight::REJECTED;
-                  }
-                  break;
-                }
-              }
-            }
-*/
             listener_->sendTransactionResult(requestId, requestSuccess, requestResponseJson, txHash, tx);
 
           } else if constexpr (std::is_same_v<T, TxCheckType>) {
@@ -2347,6 +2273,11 @@ void CometImpl::prepare_proposal(const cometbft::abci::v1::PrepareProposalReques
   block.timeNanos = toNanosSinceEpoch(req.time());
   block.proposerAddr = toBytes(req.proposer_address());
   //NOTE: There is no block.hash value to set here
+  if (lastCometBFTBlockHashHeight_ != 0 && block.height == lastCometBFTBlockHashHeight_ + 1) {
+    // CometBlock::prevHash does not come from "this" ABCI call, but from the previous finalize_block call.
+    // Shouldn't need this field to be filled in at this point, but why not.
+    block.prevHash = lastCometBFTBlockHash_;
+  }
   toBytesVector(reqTxs, block.txs);
 
   std::vector<size_t> txIds; // Filled-in by the listener.
@@ -2379,6 +2310,11 @@ void CometImpl::process_proposal(const cometbft::abci::v1::ProcessProposalReques
   block.timeNanos = toNanosSinceEpoch(req.time());
   block.proposerAddr = toBytes(req.proposer_address());
   block.hash = toBytes(req.hash());
+  if (lastCometBFTBlockHashHeight_ != 0 && block.height == lastCometBFTBlockHashHeight_ + 1) {
+    // CometBlock::prevHash does not come from "this" ABCI call, but from the previous finalize_block call.
+    // Shouldn't need this field to be filled in at this point, but why not.
+    block.prevHash = lastCometBFTBlockHash_;
+  }
   toBytesVector(req.txs(), block.txs);
 
   listener_->validateBlockProposal(block, accept);
@@ -2414,20 +2350,16 @@ void CometImpl::finalize_block(const cometbft::abci::v1::FinalizeBlockRequest& r
   block->timeNanos = toNanosSinceEpoch(req.time());
   block->proposerAddr = toBytes(req.proposer_address());
   block->hash = toBytes(req.hash());
-  toBytesVector(req.txs(), block->txs);
-/*
-  // Since we are going to transfer ownership of `block` (and thus of `block.txs`) when the callback is
-  // called, unfortunately we need to compute the sha3 of every transaction before we lose them.
-  std::unique_lock<std::mutex> txCacheLock(txCacheMutex_);
-  std::vector<Hash> txEthHashes;
-  if (txCacheSize_ > 0) {
-    txEthHashes.reserve(block->txs.size());
-    for (int32_t i = 0; i < req.txs().size(); ++i) {
-      txEthHashes.emplace_back(Utils::sha3(block->txs[i]));
-    }
+  if (lastCometBFTBlockHashHeight_ != 0 && block->height == lastCometBFTBlockHashHeight_ + 1) {
+    // CometBlock::prevHash does not come from "this" ABCI call, but from the previous finalize_block call.
+    block->prevHash = lastCometBFTBlockHash_;
   }
-  txCacheLock.unlock();
-*/
+  toBytesVector(req.txs(), block->txs);
+
+  // Now that we have used it to fill in prevHash, update the last block hash value.
+  lastCometBFTBlockHash_ = block->hash;
+  lastCometBFTBlockHashHeight_ = block->height;
+
   Bytes hashBytes;
   std::vector<CometExecTxResult> txResults;
   std::vector<CometValidatorUpdate> validatorUpdates;
@@ -2444,13 +2376,6 @@ void CometImpl::finalize_block(const cometbft::abci::v1::FinalizeBlockRequest& r
   std::string hashString(hashBytes.begin(), hashBytes.end());
   res->set_app_hash(hashString);
 
-  // NOTE: acquiring the txCache_ lock for the whole FinalizeBlock tx processing loop is
-  // better than acquiring it potentially thousands of times for all the transactions in a block.
-  // It's better to cause some contention than to just waste CPU time for virtually no benefit.
-  //txCacheLock.lock();
-  // Check the never-happens-but-possible corner case of the transaction cache being enabled
-  // after we decided to not fill in txEthHashes above (because it was disabled then).
-  //bool hasTxEthHashes = txEthHashes.size() > 0;
   // Process all txs in the incoming block.
   for (int32_t i = 0; i < req.txs().size(); ++i) {
     // TODO/REVIEW: Check if we need to expose more ExecTxResult fields to the application.
@@ -2460,32 +2385,7 @@ void CometImpl::finalize_block(const cometbft::abci::v1::FinalizeBlockRequest& r
     tx_result->set_data(toStringForProtobuf(txRes.data));
     tx_result->set_gas_wanted(txRes.gasWanted);
     tx_result->set_gas_used(txRes.gasUsed);
-
-    /*
-    // If the transaction cache is enabled, we can fill in the result of each transaction
-    // as their execution and inclusion in a block is definitive.
-    if (txCacheSize_ > 0 && hasTxEthHashes) {
-      Hash& txEthHash = txEthHashes[i];
-      CometTxStatus* txStatusPtr = nullptr;
-      for (int j = 0; j < 2; ++j) {
-        auto& bucket = txCache_[(txCacheBucket_ + j) % 2];
-        auto it = bucket.find(txEthHash);
-        if (it != bucket.end()) {
-          txStatusPtr = &it->second;
-          break;
-        }
-      }
-      CometTxStatus& txStatus = txStatusPtr ? *txStatusPtr : txCache_[txCacheBucket_][txEthHash];
-      txStatus.height = req.height();
-      txStatus.index = i;
-      txStatus.result = txRes;
-      // We don't know the CometBFT hex hash Bytes here as that's only returned by the broadcast_tx_async RPC method.
-      // If there was a cache entry before with this field set, then you have it, otherwise you need to compute the value if you need it.
-      //txStatus.txHash = ...
-    }
-    */
   }
-  //txCacheLock.unlock();
 
   // Relay validator update commands to cometbft
   for (const auto& validatorUpdate : validatorUpdates) {
@@ -2560,10 +2460,6 @@ Comet::~Comet() {
   impl_->stop();
 }
 
-//void Comet::setTransactionCacheSize(const uint64_t cacheSize) {
-//  impl_->setTransactionCacheSize(cacheSize);
-//}
-
 bool Comet::getStatus() {
   return impl_->getStatus();
 }
@@ -2596,6 +2492,10 @@ std::string Comet::getNodeID() {
   return impl_->getNodeID();
 }
 
+Bytes Comet::getValidatorPubKey() {
+  return impl_->getValidatorPubKey();
+}
+
 uint64_t Comet::sendTransaction(const Bytes& tx/*, std::shared_ptr<Hash>* ethHash*/) {
   return impl_->sendTransaction(tx/*, ethHash*/);
 }
@@ -2603,10 +2503,6 @@ uint64_t Comet::sendTransaction(const Bytes& tx/*, std::shared_ptr<Hash>* ethHas
 uint64_t Comet::checkTransaction(const std::string& txHash) {
   return impl_->checkTransaction(txHash);
 }
-
-//bool Comet::checkTransactionInCache(const Hash& txEthHash, CometTxStatus& txStatus) {
-//  return impl_->checkTransactionInCache(txEthHash, txStatus);
-//}
 
 uint64_t Comet::getBlock(const uint64_t height) {
   return impl_->getBlock(height);
@@ -2634,4 +2530,8 @@ void Comet::runCometBFT(const std::vector<std::string>& cometArgs, std::string* 
 
 void Comet::checkCometBFT() {
   CometImpl::checkCometBFT();
+}
+
+Bytes Comet::getCometAddressFromPubKey(Bytes pubKey) {
+  return CometImpl::getCometAddressFromPubKey(pubKey);
 }

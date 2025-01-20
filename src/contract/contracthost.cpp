@@ -7,6 +7,8 @@ See the LICENSE.txt file in the project root for more information.
 
 #include "../utils/strconv.h" //cArrayToBytes
 
+#include "../core/storage.h"
+
 #include "contracthost.h"
 #include "dynamiccontract.h"
 
@@ -43,13 +45,15 @@ ContractHost::~ContractHost() {
     for (auto& var : this->stack_.getUsedVars()) {
       var.get().commit();
     }
+
     for (const auto& event : this->stack_.getEvents()) {
       this->storage_.putEvent(event);
     }
+
     for (const auto& contractPair : this->stack_.getContracts()) {
       const auto& [address, contract] = contractPair;
       if (contract != nullptr) {
-        this->manager_.pushBack(dynamic_cast<Dumpable*>(contract));
+        //this->manager_.pushBack(dynamic_cast<Dumpable*>(contract));
       } else {
         // If the contract is nullptr, it means that it was a EVM contract, we need to link txHash and txIndex
         this->addTxData_.contractAddress = address;

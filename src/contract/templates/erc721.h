@@ -171,7 +171,7 @@ public:
    * @param address The address where the contract will be deployed.
    * @param db Reference to the database object.
    */
-  ERC721(const Address &address, const DB& db);
+  //ERC721(const Address &address, const DB& db);
 
   /**
    * Constructor to be used when creating a new contract.
@@ -299,7 +299,8 @@ public:
     ContractReflectionInterface::registerContractMethods<
         ERC721, const std::string &, const std::string &,
         const Address &, const Address &,
-        const uint64_t &, DB&>(
+        const uint64_t &//, DB&
+        >(
         std::vector<std::string>{"erc721name", "erc721symbol"},
         std::make_tuple("name", &ERC721::name, FunctionTypes::View,
                         std::vector<std::string>{}),
@@ -325,7 +326,7 @@ public:
   }
 
    /// Dump method
-   DBBatch dump() const override;
+   //DBBatch dump() const override;
 };
 
 #endif // ERC721_H

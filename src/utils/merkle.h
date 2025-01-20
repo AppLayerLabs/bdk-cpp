@@ -35,16 +35,27 @@ class Merkle {
 
     /**
      * Constructor for block transactions.
-     * TxType would be one of the enum types described in rdPoS.
+     * TxType is either TxBlock or shared_ptr<TxBlock>.
      * @param txs The list of transactions to create the %Merkle tree from.
      */
-    template <typename TxType> explicit Merkle(const std::vector<TxType>& txs) {
+    template <typename TxType>
+    explicit Merkle(const std::vector<TxType>& txs) {
       // Mount the base leaves
       std::vector<Hash> tmp;
-      for (auto tx : txs) tmp.emplace_back(Utils::sha3(tx.hash()));
+      for (const auto& tx : txs) {
+        if constexpr (requires { typename TxType::element_type; }) {
+          // This branch is selected if TxType has an `element_type` member,
+          // which std::shared_ptr<T> does. We assume non-shared_ptr types won’t.
+          tmp.emplace_back(Utils::sha3(tx->hash()));
+        } else {
+          tmp.emplace_back(Utils::sha3(tx.hash()));
+        }
+      }
       this->tree_.emplace_back(tmp);
       // Make the layers up to root
-      while (this->tree_.back().size() > 1) this->tree_.emplace_back(newLayer(this->tree_.back()));
+      while (this->tree_.back().size() > 1) {
+        this->tree_.emplace_back(newLayer(this->tree_.back()));
+      }
     }
 
     /// Getter for `tree_`.

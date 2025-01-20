@@ -72,31 +72,6 @@ struct CometValidatorUpdate {
 };
 
 /**
- * Special values for CometTxStatus::height that signal different reasons for a transaction not being included in a block yet.
- */
-//enum CometTxStatusHeight : int64_t {
-//  NONE       = -9, ///< A state that is never set on the object.
-//  SUBMITTING = -3, ///< Sent the transaction to the cometbft RPC port.
-//  REJECTED   = -2, ///< cometbft rejected the transaction or it never reached it due to some local communication error.
-//  SUBMITTED  = -1  ///< cometbft acknowledged and accepted it.
-//};
-
-/**
- * The current status of a transaction in the network.
- * Instances of this struct will be indexed by the sha3 hash of the transaction in a hash table.
- * If there isn't a CometTxStatus entry in the hash table at all, it means the Comet driver has no idea about it,
- * but that doesn't mean the network doesn't know about it (there's an unconfirmed-transactions method in the
- * cometbft RPC server that can be queried to figure it out, but you'll need cometbft transaction hashes, i.e.
- * SHA256 to locate it).
- */
-//struct CometTxStatus {
-//  int64_t           height; ///< Height of the block in which this transaction was included (< 0 if not included in any block).
-//  int32_t           index; ///< Index of the transaction in the block in which it was included (valid only if height >= 0).
-//  std::string       cometTxHash; ///< cometbft tx hash (i.e. SHA256) if known.
-//  CometExecTxResult result; ///< Transaction execution result (valid only if height >= 0).
-//};
-
-/**
  * A block output by the consensus engine.
  * NOTE: the "hash" param value provided via incomingBlock(CometBlock block) IS the actual, final block hash,
  * since CometBFT (at least in v1.0 / ABCI 2.0) seems to write the appHash we compute during incomingBlock()
@@ -110,9 +85,10 @@ struct CometValidatorUpdate {
 struct CometBlock {
   uint64_t height = 0; ///< Block height (0 == unknown/unset).
   uint64_t timeNanos = 0; ///< Block timestamp (nanos since epoch).
-  Bytes proposerAddr; ///< Address of the validator that was the block proposer.
+  Bytes proposerAddr; ///< CometBFT Address (NOT Eth Address) of the validator that was the block proposer.
   std::vector<Bytes> txs; ///< All block transactions (in order).
   Bytes hash; ///< [OPTIONAL] the "hash" param, when one is provided by the specific ABCI request.
+  Bytes prevHash; ///< [OPTIONAL] the "hash" param of the *previous* block (synth by the driver, not from ABCI).
 };
 
 /**
@@ -280,7 +256,7 @@ class CometListener {
     }
 
     /**
-     * Notification of completing a Comet::checkTransaction(txHash) RPC request.
+     * Notification of completing a Comet::getBlock(height) RPC request.
      * @param tId The getBlock() request ticket ID.
      * @param success Whether the get block ('block' JSON-RPC method call) was successful or not.
      * @param response The full JSON-RPC response returned by cometbft.
@@ -327,6 +303,9 @@ class CometImpl;
  * The Comet class is instantiated by the BDK node to serve as an interface to CometBFT.
  * Most of its implementation details are private and contained in CometImpl, which is
  * declared and defined in comet.cpp, in order to keep this header short and simple.
+ *
+ * NOTE: The driver hard-codes Secp256k1 keys for validators, and Ed25519 keys for P2P
+ * (node_key.json).
  *
  * NOTE: Comet first searches for a cometbft executable in the current working directory;
  * if it is not found, then it will search for it in the system PATH.
@@ -378,15 +357,6 @@ class Comet : public Log::LogicalLocationProvider {
      * Destructor; ensures all subordinate jobs are stopped.
      */
     virtual ~Comet();
-
-    /**
-     * Set the transaction cache size (if 0, the cache is disabled).
-     * When the cache is enabled, transactions will get their eth-compatible hash computed,
-     * and Comet will keep the most recent transactions it has seen in the cache with their
-     * status (submitted, included in a block at some height, etc).
-     * @param cacheSize New cache capacity, in transaction count (if zero, disable the cache).
-     */
-    //void setTransactionCacheSize(const uint64_t cacheSize);
 
     /**
      * Get the global status of the Comet worker.
@@ -443,6 +413,14 @@ class Comet : public Log::LogicalLocationProvider {
     std::string getNodeID();
 
     /**
+     * Get the configured validator public key (from priv_validator_key.json).
+     * @return The local validator's secp256k1 public key in compressed format (33 bytes) or an
+     * empty `Bytes` if the local node is not configured as a validator or the Comet driver is not yet
+     * at state `CometState::CONFIGURED`.
+     */
+    Bytes getValidatorPubKey();
+
+    /**
      * Enqueues a transaction to be sent to the cometbft node; will retry until the localhost cometbft
      * instance is running and it acknowledges the receipt of the transaction bytes, meaning it should
      * be in its mempool from now on (if it passes CheckTx, etc).
@@ -475,17 +453,6 @@ class Comet : public Log::LogicalLocationProvider {
      * @return The ticket number for the block request, or 0 on error (RPC call not made).
      */
     uint64_t getBlock(const uint64_t height);
-
-    /**
-     * Check the status of a transaction given its eth hash.
-     * This will query the internal tx cache (which is also updated when FinalizedBlock is processed),
-     * instead of the cometbft RPC /tx endpoint and so returns the result immediately instead of via
-     * CometListener::checkTransactionResult().
-     * @param txEthHash The binary Ethereum-compatible hash of the transaction.
-     * @param txStatus Outparam to be filled with the current status of the transaction if it is found.
-     * @return `true` if a CometTxStatus for the tx was found, `false` otherwise (txStatus is unmodified).
-     */
-    //bool checkTransactionInCache(const Hash& txEthHash, CometTxStatus& txStatus);
 
     /**
      * Make a JSON-RPC call to the RPC endpoint. The Comet engine must be in a state that has cometbft
@@ -535,6 +502,11 @@ class Comet : public Log::LogicalLocationProvider {
      * Throws on any error -- if it doesn't throw an error, then the check passed.
      */
     static void checkCometBFT();
+
+    /**
+     * Given a public key, compute the CometBFT Address for it.
+     */
+    static Bytes getCometAddressFromPubKey(Bytes pubKey);
 
     /**
      * Return an instance (object) identifier for all LOGxxx() messages emitted this class.

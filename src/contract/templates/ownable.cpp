@@ -9,6 +9,7 @@ See the LICENSE.txt file in the project root for more information.
 
 #include "../../utils/strconv.h"
 
+/*
 Ownable::Ownable(
   const Address& address, const DB& db
 ) : DynamicContract(address, db), owner_(this)
@@ -18,6 +19,7 @@ Ownable::Ownable(
   Ownable::registerContractFunctions();
   this->owner_.enableRegister();
 }
+*/
 
 Ownable::Ownable(
   const Address& initialOwner, const Address& address, const Address& creator, const uint64_t& chainId
@@ -48,11 +50,11 @@ void Ownable::registerContractFunctions() {
   this->registerMemberFunction("transferOwnership", &Ownable::transferOwnership, FunctionTypes::NonPayable, this);
 }
 
-DBBatch Ownable::dump() const {
-  DBBatch batch = BaseContract::dump();
-  batch.push_back(StrConv::stringToBytes("owner_"), this->owner_.get().asBytes(), this->getDBPrefix());
-  return batch;
-}
+//DBBatch Ownable::dump() const {
+//  DBBatch batch = BaseContract::dump();
+//  batch.push_back(StrConv::stringToBytes("owner_"), this->owner_.get().asBytes(), this->getDBPrefix());
+//  return batch;
+//}
 
 void Ownable::checkOwner_() const {
   if (this->owner_ != this->getCaller()) {

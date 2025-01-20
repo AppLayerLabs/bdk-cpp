@@ -10,11 +10,10 @@ See the LICENSE.txt file in the project root for more information.
 
 #include "httpparser.h"
 
+#include "noderpcinterface.h"
+
 // Forward declarations.
 class HTTPSession;  // HTTPQueue depends on HTTPSession and vice-versa
-class State;
-class Storage;
-namespace P2P { class ManagerNormal; }
 
 /// Class used for HTTP pipelining.
 class HTTPQueue {
@@ -61,6 +60,9 @@ class HTTPQueue {
 /// Class that handles an HTTP connection session.
 class HTTPSession : public std::enable_shared_from_this<HTTPSession> {
   private:
+    /// Reference to the RPC implementor
+    NodeRPCInterface& rpc_;
+
     /// TCP/IP stream socket.
     beast::tcp_stream stream_;
 
@@ -79,18 +81,6 @@ class HTTPSession : public std::enable_shared_from_this<HTTPSession> {
      * from scratch at the beginning of each new message.
      */
     boost::optional<http::request_parser<http::string_body>> parser_;
-
-    /// Reference pointer to the blockchain's state.
-    State& state_;
-
-    /// Reference pointer to the blockchain's storage.
-    const Storage& storage_;
-
-    /// Reference pointer to the P2P connection manager.
-    P2P::ManagerNormal& p2p_;
-
-    /// Reference pointer to the options singleton.
-    const Options& options_;
 
     /// Read whatever is on the internal buffer.
     void do_read();
@@ -120,19 +110,11 @@ class HTTPSession : public std::enable_shared_from_this<HTTPSession> {
      * Constructor.
      * @param sock The socket to take ownership of.
      * @param docroot Reference pointer to the root directory of the endpoint.
-     * @param state Reference pointer to the blockchain's state.
-     * @param storage Reference pointer to the blockchain's storage.
-     * @param p2p Reference pointer to the P2P connection manager.
-     * @param options Reference pointer to the options singleton.
      */
-    HTTPSession(tcp::socket&& sock,
-      const std::shared_ptr<const std::string>& docroot,
-      State& state,
-      const Storage& storage,
-      P2P::ManagerNormal& p2p,
-      const Options& options
-    ) : stream_(std::move(sock)), docroot_(docroot), queue_(*this), state_(state),
-      storage_(storage), p2p_(p2p), options_(options)
+    HTTPSession(
+      tcp::socket&& sock, const std::shared_ptr<const std::string>& docroot,
+      NodeRPCInterface& rpc
+    ) : stream_(std::move(sock)), docroot_(docroot), queue_(*this), rpc_(rpc)
     {
       stream_.expires_never();
     }

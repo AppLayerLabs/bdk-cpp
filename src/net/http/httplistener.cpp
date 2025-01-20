@@ -7,12 +7,12 @@ See the LICENSE.txt file in the project root for more information.
 
 #include "httplistener.h"
 
+#include "../utils/utils.h"
+
 HTTPListener::HTTPListener(
   net::io_context& ioc, tcp::endpoint ep, const std::shared_ptr<const std::string>& docroot,
-  State& state, const Storage& storage,
-  P2P::ManagerNormal& p2p, const Options& options
-) : ioc_(ioc), acc_(net::make_strand(ioc)), docroot_(docroot), state_(state),
-  storage_(storage), p2p_(p2p), options_(options)
+  NodeRPCInterface& rpc
+) : ioc_(ioc), acc_(net::make_strand(ioc)), docroot_(docroot), rpc_(rpc)
 {
   beast::error_code ec;
   this->acc_.open(ep.protocol(), ec);  // Open the acceptor
@@ -36,8 +36,7 @@ void HTTPListener::on_accept(beast::error_code ec, tcp::socket sock) {
     fail("HTTPListener", __func__, ec, "Failed to accept connection");
   } else {
     std::make_shared<HTTPSession>(
-      std::move(sock), this->docroot_, this->state_, this->storage_, this->p2p_,
-      this->options_
+      std::move(sock), this->docroot_, this->rpc_
     )->start(); // Create the http session and run it
   }
   this->do_accept(); // Accept another connection

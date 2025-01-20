@@ -14,7 +14,7 @@ See the LICENSE.txt file in the project root for more information.
 #include "../nativewrapper.h"
 
 #include "../../../utils/strconv.h"
-
+/*
 DEXV2Router02::DEXV2Router02(const Address &address, const DB& db
 ) : DynamicContract(address, db), factory_(this), wrappedNative_(this)
 {
@@ -29,6 +29,7 @@ DEXV2Router02::DEXV2Router02(const Address &address, const DB& db
   this->factory_.enableRegister();
   this->wrappedNative_.enableRegister();
 }
+*/
 
 DEXV2Router02::DEXV2Router02(
   const Address& factory, const Address& nativeWrapper,
@@ -365,7 +366,7 @@ std::vector<uint256_t> DEXV2Router02::swapNativeForExactTokens(
   this->_swap(amounts, path, to);
   return amounts;
 }
-
+/*
 DBBatch DEXV2Router02::dump() const
 {
   DBBatch dbBatch = BaseContract::dump();
@@ -375,3 +376,4 @@ DBBatch DEXV2Router02::dump() const
 
   return dbBatch;
 }
+*/

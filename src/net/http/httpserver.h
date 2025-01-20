@@ -10,22 +10,15 @@ See the LICENSE.txt file in the project root for more information.
 
 #include "httplistener.h" // httpsession.h -> httpparser.h
 
-#include "../p2p/managernormal.h"
+#include "noderpcinterface.h"
 
-/// Abstraction of an HTTP server.
+#include "../utils/logger.h"
+
+/// HTTP server for a Blockchain node
 class HTTPServer : public Log::LogicalLocationProvider {
   private:
-    /// Reference pointer to the blockchain's state.
-    State& state_;
-
-    /// Reference pointer to the blockchain's storage.
-    const Storage& storage_;
-
-    /// Reference pointer to the P2P connection manager.
-    P2P::ManagerNormal& p2p_;
-
-    /// Reference pointer to the options singleton.
-    const Options& options_;
+    /// Reference to the actual implementor of the RPC interface
+    NodeRPCInterface& rpc_;
 
     /// Provides core I/O functionality ({x} = max threads the object can use).
     net::io_context ioc_{4};
@@ -42,19 +35,17 @@ class HTTPServer : public Log::LogicalLocationProvider {
     /// Future for the run function so we know when it should stop.
     std::future<bool> runFuture_;
 
+    /// Instance ID for logging
+    std::string instanceId_;
+
   public:
     /**
      * Constructor. Does NOT automatically start the server.
-     * @param state Reference pointer to the blockchain's state.
-     * @param storage Reference pointer to the blockchain's storage.
-     * @param p2p Reference pointer to the P2P connection manager.
-     * @param options Reference pointer to the options singleton.
      */
-    HTTPServer(
-      State& state, const Storage& storage,
-      P2P::ManagerNormal& p2p, const Options& options
-    ) : state_(state), storage_(storage), p2p_(p2p), options_(options), port_(options.getHttpPort())
-    {}
+    HTTPServer(const unsigned short port, NodeRPCInterface& rpc, std::string instanceId = "")
+      : port_(port), rpc_(rpc), instanceId_(instanceId)
+    {
+    }
 
     std::string getLogicalLocation() const override; ///< Get log location from the P2P engine
 

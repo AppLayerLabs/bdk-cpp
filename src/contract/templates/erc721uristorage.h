@@ -45,9 +45,9 @@ class ERC721URIStorage : virtual public ERC721 {
      * @param address The address where the contract will be deployed.
      * @param db Reference to the database object.
      */
-    ERC721URIStorage(
-      const Address& address, const DB& db
-    );
+    //ERC721URIStorage(
+    //  const Address& address, const DB& db
+    //);
 
     /**
      * Constructor to be used when creating a new contract.
@@ -84,8 +84,8 @@ class ERC721URIStorage : virtual public ERC721 {
     static void registerContract() {
       ContractReflectionInterface::registerContractMethods<
         ERC721URIStorage, const std::string &, const std::string &,
-        const Address &, const Address &, const uint64_t &,
-        const std::unique_ptr<DB> &
+        const Address &, const Address &, const uint64_t &//,
+        //const std::unique_ptr<DB> &
       >(
         std::vector<std::string>{"erc721_name", "erc721_symbol"},
         std::make_tuple("tokenOfOwnerByIndex", &ERC721URIStorage::tokenURI, FunctionTypes::View, std::vector<std::string>{"tokenId"})
@@ -93,7 +93,7 @@ class ERC721URIStorage : virtual public ERC721 {
     }
 
     /// Dump method
-    DBBatch dump() const override;
+    //DBBatch dump() const override;
 };
 
 #endif // ERC721URISTORAGE_H

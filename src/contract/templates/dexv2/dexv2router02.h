@@ -82,7 +82,7 @@ class DEXV2Router02 : public DynamicContract {
      * @param address The address where the contract will be deployed.
      * @param db Reference to the database object.
     */
-    DEXV2Router02(const Address& address, const DB& db);
+    //DEXV2Router02(const Address& address, const DB& db);
 
     /**
      * Constructor to be used when creating a new contract.
@@ -308,8 +308,8 @@ class DEXV2Router02 : public DynamicContract {
     static void registerContract() {
       ContractReflectionInterface::registerContractMethods<
         DEXV2Router02, const Address &, const Address &,
-        const Address &, const Address &, const uint64_t &,
-        const DB&
+        const Address &, const Address &, const uint64_t &//,
+        //const DB&
       >(
         std::vector<std::string>{"factory", "wrappedNative"},
         std::make_tuple("factory", &DEXV2Router02::factory, FunctionTypes::View, std::vector<std::string>{}),
@@ -348,7 +348,7 @@ class DEXV2Router02 : public DynamicContract {
     }
 
     /// Dump method
-    DBBatch dump() const override;
+    //DBBatch dump() const override;
 };
 
 #endif // DEXV2ROUTER_H

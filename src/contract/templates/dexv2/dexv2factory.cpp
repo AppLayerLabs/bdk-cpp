@@ -11,6 +11,7 @@ See the LICENSE.txt file in the project root for more information.
 #include "../../../utils/uintconv.h"
 #include "../../../utils/strconv.h"
 
+/*
 DEXV2Factory::DEXV2Factory(const Address &address, const DB& db
 ) : DynamicContract(address, db), feeTo_(this), feeToSetter_(this),
   allPairs_(this), getPair_(this)
@@ -37,6 +38,7 @@ DEXV2Factory::DEXV2Factory(const Address &address, const DB& db
   this->allPairs_.enableRegister();
   this->getPair_.enableRegister();
 }
+*/
 
 DEXV2Factory::DEXV2Factory(
   const Address& feeToSetter,
@@ -112,6 +114,7 @@ void DEXV2Factory::setFeeTo(const Address& feeTo) { this->feeTo_ = feeTo; }
 
 void DEXV2Factory::setFeeToSetter(const Address& feeToSetter) { this->feeToSetter_ = feeToSetter; }
 
+/*
 DBBatch DEXV2Factory::dump() const {
   DBBatch dbBatch = BaseContract::dump();
   uint32_t i = 0;
@@ -135,4 +138,4 @@ DBBatch DEXV2Factory::dump() const {
 
   return dbBatch;
 }
-
+*/

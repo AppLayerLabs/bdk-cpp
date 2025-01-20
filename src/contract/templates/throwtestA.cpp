@@ -13,20 +13,22 @@ ThrowTestA::ThrowTestA(
 ) : DynamicContract("ThrowTestA", address, creator, chainId) {
   registerContractFunctions();
 }
-
+/*
 ThrowTestA::ThrowTestA(
   const Address& address,
   const DB& db
-) : DynamicContract(address, db) {
+) : DynamicContract(address, db
+) {
   registerContractFunctions();
 }
+*/
 
 ThrowTestA::~ThrowTestA() { return; }
 
-DBBatch ThrowTestA::dump() const
-{
-  return BaseContract::dump();
-}
+//DBBatch ThrowTestA::dump() const
+//{
+//  return BaseContract::dump();
+//}
 
 uint8_t ThrowTestA::getNumA() const { return this->num_.get(); }
 

@@ -56,8 +56,6 @@ struct SafeHash {
     return wyhash(std::bit_cast<const void*>(hash.data()), hash.size(), 0, _wyp);
   }
 
-  size_t operator()(const TxValidator& tx) const { return SafeHash()(tx.hash()); }
-
   template <typename T> size_t operator()(const std::shared_ptr<T>& ptr) const {
     return SafeHash()(*ptr->get());
   }

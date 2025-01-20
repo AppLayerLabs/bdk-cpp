@@ -11,6 +11,8 @@ See the LICENSE.txt file in the project root for more information.
 // leave it in to avoid "AddressSanitizer unknown-crash" runtime errors
 #include "contract.h" // core/dump.h -> utils/db.h -> utils.h -> strings.h
 
+#include "event.h"
+
 /**
  * ContractStack is a class/object required to initialize a sequence of contract executions (1 tx == 1 contract stack).
  * The ContractStack have the following responsabilities:
