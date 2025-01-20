@@ -309,7 +309,8 @@ bool State::validateNextBlock(const FinalizedBlock& block) const {
 
   // Validate all transactions
   // TODO: context-aware tx validation
-  for (const auto& tx : block.getTxs()) {
+  for (const auto& txPtr : block.getTxs()) {
+    const auto& tx = *txPtr;
     if (!validateTransactionInternal(tx)) {
       LOGERROR("Transaction " + tx.hash().hex().get() + " within block is invalid");
       return false;
@@ -365,7 +366,7 @@ void State::processBlock(const FinalizedBlock& block, std::vector<bool>& succeed
   for (auto const& tx : block.getTxs()) {
     bool txSucceeded;
     uint64_t txGasUsed;
-    this->processTransaction(tx, txIndex, blockHash, randomHash, txSucceeded, txGasUsed);
+    this->processTransaction(*tx, txIndex, blockHash, randomHash, txSucceeded, txGasUsed);
     succeeded.push_back(txSucceeded);
     gasUsed.push_back(txGasUsed);
     txIndex++;

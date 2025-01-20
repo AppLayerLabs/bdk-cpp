@@ -23,6 +23,15 @@ using namespace jsonrpc;
 // Constants
 // ------------------------------------------------------------------
 
+/// Number of FinalizedBlock objects to cache at any time
+#define FINALIZEDBLOCK_CACHE_SIZE 100
+
+/// Default size of the transaction cache
+#define TX_CACHE_SIZE 10'000'000
+
+// Size of block height to block hash cache
+#define BLOCK_HASH_CACHE_SIZE 10'000
+
 // Fixed to 2.5 GWei
 static inline constexpr std::string_view FIXED_BASE_FEE_PER_GAS = "0x9502f900";
 
@@ -91,9 +100,10 @@ Blockchain::Blockchain(const std::string& blockchainPath, std::string instanceId
     comet_(this, instanceId, options_),
     state_(*this),
     storage_(*this),
-    http_(options_.getHttpPort(), *this),
-    fbCache_(FINALIZEDBLOCK_CACHE_SIZE)
-    //db_(options_.getRootPath() + NODE_DATABASE_DIRECTORY_SUFFIX)
+    http_(options_.getHttpPort(), *this, instanceId),
+    txCache_(TX_CACHE_SIZE),
+    fbCache_(FINALIZEDBLOCK_CACHE_SIZE),
+    blockHeightToHashCache_(BLOCK_HASH_CACHE_SIZE)
 {
 }
 
@@ -104,8 +114,9 @@ Blockchain::Blockchain(const Options& options, const std::string& blockchainPath
     state_(*this),
     storage_(*this),
     http_(options_.getHttpPort(), *this),
-    fbCache_(FINALIZEDBLOCK_CACHE_SIZE)
-    //db_(options_.getRootPath() + NODE_DATABASE_DIRECTORY_SUFFIX)
+    txCache_(TX_CACHE_SIZE),
+    fbCache_(FINALIZEDBLOCK_CACHE_SIZE),
+    blockHeightToHashCache_(BLOCK_HASH_CACHE_SIZE)
 {
 }
 
@@ -130,13 +141,7 @@ bool Blockchain::getTxRPC(const Hash& txHash, json& ret) {
 }
 
 void Blockchain::putTx(const Hash& tx, const TxCacheValueType& val) {
-  std::scoped_lock lock(txCacheMutex_);
-  auto& activeBucket = txCache_[txCacheBucket_];
-  activeBucket[tx] = val;
-  if (activeBucket.size() >= txCacheSize_) {
-    txCacheBucket_ = 1 - txCacheBucket_;
-    txCache_[txCacheBucket_].clear();
-  }
+  txCache_.put(tx, val);
 }
 
 void Blockchain::setValidators(const std::vector<CometValidatorUpdate>& newValidatorSet) {
@@ -165,13 +170,7 @@ Address Blockchain::validatorCometAddressToEthAddress(Address validatorCometAddr
 }
 
 void Blockchain::setGetTxCacheSize(const uint64_t cacheSize) {
-  txCacheSize_ = cacheSize;
-  if (txCacheSize_ == 0) {
-    std::scoped_lock lock(txCacheMutex_);
-    txCache_[0].clear();
-    txCache_[1].clear();
-    txCacheBucket_ = 0;
-  }
+  txCache_.resize(cacheSize);
 }
 
 void Blockchain::start() {
@@ -247,6 +246,8 @@ std::shared_ptr<const FinalizedBlock> Blockchain::getBlock(const Hash& hash) {
   bp = std::make_shared<const FinalizedBlock>(FinalizedBlock::fromRPC(ret));
   // Feed the cache (since the cache object itself doesn't know about the data source)
   fbCache_.insert(bp);
+  // Feed the blockHeightToHash cache as well
+  blockHeightToHashCache_.put(bp->getNHeight(), bp->getHash());
   return bp;
 }
 
@@ -264,7 +265,40 @@ std::shared_ptr<const FinalizedBlock> Blockchain::getBlock(uint64_t height) {
   bp = std::make_shared<const FinalizedBlock>(FinalizedBlock::fromRPC(ret));
   // Feed the cache (since the cache object itself doesn't know about the data source)
   fbCache_.insert(bp);
+  // Feed the blockHeightToHash cache as well
+  blockHeightToHashCache_.put(bp->getNHeight(), bp->getHash());
   return bp;
+}
+
+Hash Blockchain::getBlockHash(const uint64_t height) {
+  std::shared_ptr<const FinalizedBlock> bp = fbCache_.getByHeight(height);
+  if (bp) {
+    return bp->getHash();
+  }
+  // We don't want to load the entire block on the fbCache_ just to figure out the
+  // block hash for the block height.
+  // First, check in the block height --> block hash cache.
+  std::optional<Hash> hashOpt = blockHeightToHashCache_.get(height);
+  if (hashOpt) {
+    return *hashOpt;
+  }
+
+  // TODO: Use the cheaper 'blockchain' CometBFT RPC endpoint to figure out the
+  // block hash and then use it to feed the block height --> block hash cache.
+  //
+  // getBlockHash() is currently used by the BDK RPC endpoint impls to return
+  // the block hash in a transaction query. Since getTxByBlockNumberAndIndex()
+  // internally will retrieve the full block and feed the fbCache() and then
+  // feed the blockHeightToHashCache_, the following getBlockHah() call made
+  // by the eth_getTransactionByBlockNumberAndIndex() will indeed find a hit
+  // in the blockHeightToHashCache_ above. So we currently never hit this
+  // condition here.
+  // However, for completeness at least, we should query the CometBFT RPC
+  // 'blockchain' endpoint and try to fetch the block hash from the block
+  // height (should be in a 'block_metas' field in the RPC response).
+
+  // Just return an empty hash if we can't figure it out.
+  return Hash();
 }
 
 GetTxResultType Blockchain::getTx(const Hash& tx) {
@@ -281,17 +315,12 @@ GetTxResultType Blockchain::getTx(const Hash& tx) {
   // Translate the transaction hash to (block height, block index).
   // If a mapping is found, we just transform this query into a
   //   GetTxByBlockNumberAndIndex() and we're done.
-  std::unique_lock<std::mutex> lock(txCacheMutex_);
-  for (int i = 0; i < 2; ++i) {
-    auto& bucket = txCache_[(txCacheBucket_ + i) % 2];
-    auto it = bucket.find(tx);
-    if (it != bucket.end()) {
-      LOGTRACE("Storage::getTx(" + tx.hex().get() + "): cache hit");
-      TxCacheValueType& val = it->second;
-      return getTxByBlockNumberAndIndex(val.blockHeight, val.blockIndex);
-    }
+  std::optional<TxCacheValueType> valOpt = txCache_.get(tx);
+  if (valOpt) {
+    TxCacheValueType& val = *valOpt;
+    LOGTRACE("Storage::getTx(" + tx.hex().get() + "): cache hit");
+    return getTxByBlockNumberAndIndex(val.blockHeight, val.blockIndex);
   }
-  lock.unlock();
   LOGTRACE("Storage::getTx(" + tx.hex().get() + "): cache miss");
 
   // The txCache_ doesn't know about this transaction hash, meaning it's likely
@@ -327,11 +356,6 @@ GetTxResultType Blockchain::getTx(const Hash& tx) {
         uint64_t blockHeight = std::stoull(result["height"].get<std::string>());
         uint64_t blockIndex = result["index"].get<int>();
 
-        // REVIEW: For some reason we need to fill in the hash of the
-        //   block as well, but that would be another lookup for the hash
-        //   of the block at a given block height.
-        Hash blockHash;
-
         LOGTRACE(
           "getTx(" + tx.hex().get() + "): blockIndex=" +
           std::to_string(blockIndex) + " blockHeight=" +
@@ -339,7 +363,7 @@ GetTxResultType Blockchain::getTx(const Hash& tx) {
         );
 
         // Assemble return value
-        return std::make_tuple(txBlock, blockHash, blockIndex, blockHeight);
+        return { txBlock, blockIndex, blockHeight };
       } else {
         LOGTRACE("getTx(): bad tx call result: " + result.dump());
       }
@@ -350,7 +374,7 @@ GetTxResultType Blockchain::getTx(const Hash& tx) {
     LOGTRACE("getTx(): rpcSyncCall('tx') failed");
   }
   LOGTRACE("getTx(" + tx.hex().get() + ") FAIL!");
-  return std::make_tuple(nullptr, Hash(), 0u, 0u);
+  return {};
 }
 
 GetTxResultType Blockchain::getTxByBlockHashAndIndex(const Hash& blockHash, const uint64_t blockIndex) {
@@ -359,19 +383,19 @@ GetTxResultType Blockchain::getTxByBlockHashAndIndex(const Hash& blockHash, cons
     // If FinalizedBlock cache miss, retrieve the block from RPC then feed the cache
     json ret;
     if (!getBlockRPC(blockHash, ret)) {
-      return std::make_tuple(nullptr, Hash(), 0u, 0u);
+      return {};
     }
     // If the ret JSON is invalid, fromRPC() will throw
     bp = std::make_shared<const FinalizedBlock>(FinalizedBlock::fromRPC(ret));
     fbCache_.insert(bp);
+    // Feed the blockHeightToHash cache as well
+    blockHeightToHashCache_.put(bp->getNHeight(), bp->getHash());
   }
-  // FIXME: FinalizedBlock should already have every TxBlock object be a shared_ptr
-  return std::make_tuple(
-    std::make_shared<TxBlock>(bp->getTxs()[blockIndex]),
-    bp->getHash(), // == blockHash
+  return {
+    bp->getTxs()[blockIndex],
     blockIndex,
     bp->getNHeight()
-  );
+  };
 }
 
 GetTxResultType Blockchain::getTxByBlockNumberAndIndex(uint64_t blockHeight, uint64_t blockIndex) {
@@ -380,19 +404,19 @@ GetTxResultType Blockchain::getTxByBlockNumberAndIndex(uint64_t blockHeight, uin
     // If FinalizedBlock cache miss, retrieve the block from RPC then feed the cache
     json ret;
     if (!getBlockRPC(blockHeight, ret)) {
-      return std::make_tuple(nullptr, Hash(), 0u, 0u);
+      return {};
     }
     // If the ret JSON is invalid, fromRPC() will throw
     bp = std::make_shared<const FinalizedBlock>(FinalizedBlock::fromRPC(ret));
     fbCache_.insert(bp);
+    // Feed the blockHeightToHash cache as well
+    blockHeightToHashCache_.put(bp->getNHeight(), bp->getHash());
   }
-  // FIXME: FinalizedBlock should already have every TxBlock object be a shared_ptr
-  return std::make_tuple(
-    std::make_shared<TxBlock>(bp->getTxs()[blockIndex]),
-    bp->getHash(),
+  return {
+    bp->getTxs()[blockIndex],
     blockIndex,
     bp->getNHeight() // == blockHeight
-  );
+  };
 }
 
 // ------------------------------------------------------------------
@@ -480,7 +504,7 @@ void Blockchain::incomingBlock(
       state_.processBlock(*fbPtr, succeeded, gasUsed);
 
       for (uint32_t i = 0; i < block->txs.size(); ++i) {
-        const TxBlock& txBlock = fbPtr->getTxs()[i];
+        const TxBlock& txBlock = *fbPtr->getTxs()[i];
 
         // Fill in the txResults that get sent to cometbft for storage
         CometExecTxResult txRes;
@@ -673,7 +697,8 @@ json Blockchain::getBlockJson(const FinalizedBlock *block, bool includeTransacti
 
   ret["transactions"] = json::array();
   uint64_t txIndex = 0;
-  for (const auto& tx : block->getTxs()) {
+  for (const auto& txPtr : block->getTxs()) {
+    const auto& tx = *txPtr;
     if (!includeTransactions) { // Only include the transaction hashes.
       ret["transactions"].push_back(tx.hash().hex(true));
     } else { // Include the transactions as a whole.
@@ -956,10 +981,6 @@ json Blockchain::eth_sendRawTransaction(const json& request) {
 }
 
 json Blockchain::eth_getTransactionByHash(const json& request) {
-  requiresIndexing(storage_, "eth_getTransactionByHash");
-  const auto [txHash] = parseAllParams<Hash>(request);
-  json ret;
-
   // CometBFT does NOT index transactions in the mempool.
   // You can't query CometBFT for an unconfirmed transaction by hash -- at all.
   // If we want to see and return unconfirmed txs here, we need to track our
@@ -971,23 +992,30 @@ json Blockchain::eth_getTransactionByHash(const json& request) {
   // Alternatively, we can have this solved when we implement our own mempool
   //   (using the "nop" mempool config from CometBFT).
 
-  auto txOnChain = getTx(txHash);
-  const auto& [tx, blockHash, blockIndex, blockHeight] = txOnChain;
-  if (tx != nullptr) {
+  requiresIndexing(storage_, "eth_getTransactionByHash");
+
+  const auto [txHash] = parseAllParams<Hash>(request);
+
+  GetTxResultType txResult = getTx(txHash);
+
+  if (txResult.txBlockPtr != nullptr) {
+    Hash blockHash = getBlockHash(txResult.blockHeight);
+    TxBlock& tx = *txResult.txBlockPtr;
+    json ret;
     ret["blockHash"] = blockHash.hex(true);
-    ret["blockNumber"] = Hex::fromBytes(Utils::uintToBytes(blockHeight), true).forRPC();
-    ret["from"] = tx->getFrom().hex(true);
-    ret["gas"] = Hex::fromBytes(Utils::uintToBytes(tx->getGasLimit()), true).forRPC();
-    ret["gasPrice"] = Hex::fromBytes(Utils::uintToBytes(tx->getMaxFeePerGas()), true).forRPC();
-    ret["hash"] = tx->hash().hex(true);
-    ret["input"] = Hex::fromBytes(tx->getData(), true);
-    ret["nonce"] = Hex::fromBytes(Utils::uintToBytes(tx->getNonce()), true).forRPC();
-    ret["to"] = tx->getTo().hex(true);
-    ret["transactionIndex"] = Hex::fromBytes(Utils::uintToBytes(blockIndex), true).forRPC();
-    ret["value"] = Hex::fromBytes(Utils::uintToBytes(tx->getValue()), true).forRPC();
-    ret["v"] = Hex::fromBytes(Utils::uintToBytes(tx->getV()), true).forRPC();
-    ret["r"] = Hex::fromBytes(Utils::uintToBytes(tx->getR()), true).forRPC();
-    ret["s"] = Hex::fromBytes(Utils::uintToBytes(tx->getS()), true).forRPC();
+    ret["blockNumber"] = Hex::fromBytes(Utils::uintToBytes(txResult.blockHeight), true).forRPC();
+    ret["from"] = tx.getFrom().hex(true);
+    ret["gas"] = Hex::fromBytes(Utils::uintToBytes(tx.getGasLimit()), true).forRPC();
+    ret["gasPrice"] = Hex::fromBytes(Utils::uintToBytes(tx.getMaxFeePerGas()), true).forRPC();
+    ret["hash"] = tx.hash().hex(true);
+    ret["input"] = Hex::fromBytes(tx.getData(), true);
+    ret["nonce"] = Hex::fromBytes(Utils::uintToBytes(tx.getNonce()), true).forRPC();
+    ret["to"] = tx.getTo().hex(true);
+    ret["transactionIndex"] = Hex::fromBytes(Utils::uintToBytes(txResult.blockIndex), true).forRPC();
+    ret["value"] = Hex::fromBytes(Utils::uintToBytes(tx.getValue()), true).forRPC();
+    ret["v"] = Hex::fromBytes(Utils::uintToBytes(tx.getV()), true).forRPC();
+    ret["r"] = Hex::fromBytes(Utils::uintToBytes(tx.getR()), true).forRPC();
+    ret["s"] = Hex::fromBytes(Utils::uintToBytes(tx.getS()), true).forRPC();
     return ret;
   }
 
@@ -996,25 +1024,26 @@ json Blockchain::eth_getTransactionByHash(const json& request) {
 
 json Blockchain::eth_getTransactionByBlockHashAndIndex(const json& request) {
   const auto [blockHash, blockIndex] = parseAllParams<Hash, uint64_t>(request);
-  auto txInfo = getTxByBlockHashAndIndex(blockHash, blockIndex);
-  const auto& [tx, txBlockHash, txBlockIndex, txBlockHeight] = txInfo;
 
-  if (tx != nullptr) {
+  GetTxResultType txResult = getTxByBlockHashAndIndex(blockHash, blockIndex);
+
+  if (txResult.txBlockPtr != nullptr) {
+    TxBlock& tx = *txResult.txBlockPtr;
     json ret;
-    ret["blockHash"] = txBlockHash.hex(true);
-    ret["blockNumber"] = Hex::fromBytes(Utils::uintToBytes(txBlockHeight), true).forRPC();
-    ret["from"] = tx->getFrom().hex(true);
-    ret["gas"] = Hex::fromBytes(Utils::uintToBytes(tx->getGasLimit()), true).forRPC();
-    ret["gasPrice"] = Hex::fromBytes(Utils::uintToBytes(tx->getMaxFeePerGas()), true).forRPC();
-    ret["hash"] = tx->hash().hex(true);
-    ret["input"] = Hex::fromBytes(tx->getData(), true);
-    ret["nonce"] = Hex::fromBytes(Utils::uintToBytes(tx->getNonce()), true).forRPC();
-    ret["to"] = tx->getTo().hex(true);
-    ret["transactionIndex"] = Hex::fromBytes(Utils::uintToBytes(txBlockIndex), true).forRPC();
-    ret["value"] = Hex::fromBytes(Utils::uintToBytes(tx->getValue()), true).forRPC();
-    ret["v"] = Hex::fromBytes(Utils::uintToBytes(tx->getV()), true).forRPC();
-    ret["r"] = Hex::fromBytes(Utils::uintToBytes(tx->getR()), true).forRPC();
-    ret["s"] = Hex::fromBytes(Utils::uintToBytes(tx->getS()), true).forRPC();
+    ret["blockHash"] = blockHash.hex(true);
+    ret["blockNumber"] = Hex::fromBytes(Utils::uintToBytes(txResult.blockHeight), true).forRPC();
+    ret["from"] = tx.getFrom().hex(true);
+    ret["gas"] = Hex::fromBytes(Utils::uintToBytes(tx.getGasLimit()), true).forRPC();
+    ret["gasPrice"] = Hex::fromBytes(Utils::uintToBytes(tx.getMaxFeePerGas()), true).forRPC();
+    ret["hash"] = tx.hash().hex(true);
+    ret["input"] = Hex::fromBytes(tx.getData(), true);
+    ret["nonce"] = Hex::fromBytes(Utils::uintToBytes(tx.getNonce()), true).forRPC();
+    ret["to"] = tx.getTo().hex(true);
+    ret["transactionIndex"] = Hex::fromBytes(Utils::uintToBytes(txResult.blockIndex), true).forRPC();
+    ret["value"] = Hex::fromBytes(Utils::uintToBytes(tx.getValue()), true).forRPC();
+    ret["v"] = Hex::fromBytes(Utils::uintToBytes(tx.getV()), true).forRPC();
+    ret["r"] = Hex::fromBytes(Utils::uintToBytes(tx.getR()), true).forRPC();
+    ret["s"] = Hex::fromBytes(Utils::uintToBytes(tx.getS()), true).forRPC();
     return ret;
   }
 
@@ -1023,25 +1052,26 @@ json Blockchain::eth_getTransactionByBlockHashAndIndex(const json& request) {
 
 json Blockchain::eth_getTransactionByBlockNumberAndIndex(const json& request) {
   const auto [blockNumber, blockIndex] = parseAllParams<uint64_t, uint64_t>(request);
-  auto txInfo = getTxByBlockNumberAndIndex(blockNumber, blockIndex);
-  const auto& [tx, txBlockHash, txBlockIndex, txBlockHeight] = txInfo;
 
-  if (tx != nullptr) {
+  GetTxResultType txResult = getTxByBlockNumberAndIndex(blockNumber, blockIndex);
+
+  if (txResult.txBlockPtr != nullptr) {
+    TxBlock& tx = *txResult.txBlockPtr;
     json ret;
-    ret["blockHash"] = txBlockHash.hex(true);
-    ret["blockNumber"] = Hex::fromBytes(Utils::uintToBytes(txBlockHeight), true).forRPC();
-    ret["from"] = tx->getFrom().hex(true);
-    ret["gas"] = Hex::fromBytes(Utils::uintToBytes(tx->getGasLimit()), true).forRPC();
-    ret["gasPrice"] = Hex::fromBytes(Utils::uintToBytes(tx->getMaxFeePerGas()), true).forRPC();
-    ret["hash"] = tx->hash().hex(true);
-    ret["input"] = Hex::fromBytes(tx->getData(), true);
-    ret["nonce"] = Hex::fromBytes(Utils::uintToBytes(tx->getNonce()), true).forRPC();
-    ret["to"] = tx->getTo().hex(true);
-    ret["transactionIndex"] = Hex::fromBytes(Utils::uintToBytes(txBlockIndex), true).forRPC();
-    ret["value"] = Hex::fromBytes(Utils::uintToBytes(tx->getValue()), true).forRPC();
-    ret["v"] = Hex::fromBytes(Utils::uintToBytes(tx->getV()), true).forRPC();
-    ret["r"] = Hex::fromBytes(Utils::uintToBytes(tx->getR()), true).forRPC();
-    ret["s"] = Hex::fromBytes(Utils::uintToBytes(tx->getS()), true).forRPC();
+    ret["blockHash"] = getBlockHash(blockNumber).hex(true);
+    ret["blockNumber"] = Hex::fromBytes(Utils::uintToBytes(txResult.blockHeight), true).forRPC();
+    ret["from"] = tx.getFrom().hex(true);
+    ret["gas"] = Hex::fromBytes(Utils::uintToBytes(tx.getGasLimit()), true).forRPC();
+    ret["gasPrice"] = Hex::fromBytes(Utils::uintToBytes(tx.getMaxFeePerGas()), true).forRPC();
+    ret["hash"] = tx.hash().hex(true);
+    ret["input"] = Hex::fromBytes(tx.getData(), true);
+    ret["nonce"] = Hex::fromBytes(Utils::uintToBytes(tx.getNonce()), true).forRPC();
+    ret["to"] = tx.getTo().hex(true);
+    ret["transactionIndex"] = Hex::fromBytes(Utils::uintToBytes(txResult.blockIndex), true).forRPC();
+    ret["value"] = Hex::fromBytes(Utils::uintToBytes(tx.getValue()), true).forRPC();
+    ret["v"] = Hex::fromBytes(Utils::uintToBytes(tx.getV()), true).forRPC();
+    ret["r"] = Hex::fromBytes(Utils::uintToBytes(tx.getR()), true).forRPC();
+    ret["s"] = Hex::fromBytes(Utils::uintToBytes(tx.getS()), true).forRPC();
     return ret;
   }
   return json::value_t::null;
@@ -1116,12 +1146,12 @@ json Blockchain::debug_traceBlockByNumber(const json& request) {
   for (const auto& tx : block->getTxs()) {
     json txTrace;
 
-    auto callTrace = storage_.getCallTrace(tx.hash());
+    auto callTrace = storage_.getCallTrace(tx->hash());
 
     if (!callTrace)
       continue;
 
-    txTrace["txHash"] = tx.hash().hex(true);
+    txTrace["txHash"] = tx->hash().hex(true);
     txTrace["result"] = callTrace->toJson();
 
     res.push_back(std::move(txTrace));

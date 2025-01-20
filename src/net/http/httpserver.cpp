@@ -7,7 +7,7 @@ See the LICENSE.txt file in the project root for more information.
 
 #include "httpserver.h"
 
-std::string HTTPServer::getLogicalLocation() const { return ""; } // FIXME
+std::string HTTPServer::getLogicalLocation() const { return instanceId_; }
 
 bool HTTPServer::run() {
   // Create and launch a listening port

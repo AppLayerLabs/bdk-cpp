@@ -20,32 +20,10 @@ static bool topicsMatch(const Event& event, const std::vector<Hash>& topics) {
   return true;
 }
 
-/*
-static void storeBlock(DB& db, const FinalizedBlock& block, bool indexingEnabled) {
-  DBBatch batch;
-  batch.push_back(block.getHash(), block.serializeBlock(), DBPrefix::blocks);
-  batch.push_back(UintConv::uint64ToBytes(block.getNHeight()), block.getHash(), DBPrefix::heightToBlock);
-
-  if (indexingEnabled) {
-    const auto& Txs = block.getTxs();
-    for (uint32_t i = 0; i < Txs.size(); i++) {
-      const auto& TxHash = Txs[i].hash();
-      const FixedBytes<44> value(
-        bytes::join(block.getHash(), UintConv::uint32ToBytes(i), UintConv::uint64ToBytes(block.getNHeight()))
-      );
-      batch.push_back(TxHash, value, DBPrefix::txToBlock);
-    }
-  }
-
-  db.putBatch(batch);
-}
-*/
-
 Storage::Storage(Blockchain& blockchain)
   : blockchain_(blockchain),
     blocksDb_(blockchain_.opt().getRootPath() + "/blocksDb/"), // Uncompressed
-    eventsDb_(blockchain_.opt().getRootPath() + "/eventsDb/", true), // Compressed
-    txMapDb_(blockchain_.opt().getRootPath() + "/txMapDb/") // Uncompressed
+    eventsDb_(blockchain_.opt().getRootPath() + "/eventsDb/", true) // Compressed
 {
 }
 
@@ -56,68 +34,6 @@ std::string Storage::getLogicalLocation() const {
 IndexingMode Storage::getIndexingMode() const {
   return blockchain_.opt().getIndexingMode();
 }
-
-/*
-Storage::Storage(std::string instanceIdStr, const Options& options)
-  : blocksDb_(options.getRootPath() + "/blocksDb/"),  // Uncompressed
-    eventsDb_(options.getRootPath() + "/eventsDb/", true),  // Compressed
-    options_(options), instanceIdStr_(std::move(instanceIdStr))
-{
-  // Initialize the blockchain if latest block doesn't exist.
-  //LOGINFO("Loading blockchain from DB");
-  //initializeBlockchain();
-
-  // Get the latest block from the database
-  //LOGINFO("Loading latest block");
-  //const Bytes latestBlockHash = blocksDb_.getLastByPrefix(DBPrefix::heightToBlock);
-  //if (latestBlockHash.empty()) throw DynamicException("Latest block hash not found in DB");
-
-  //const Bytes latestBlockBytes = blocksDb_.get(latestBlockHash, DBPrefix::blocks);
-  //if (latestBlockBytes.empty()) throw DynamicException("Latest block bytes not found in DB");
-
-  //latest_ = std::make_shared<const FinalizedBlock>(FinalizedBlock::fromBytes(latestBlockBytes, this->options_.getChainID()));
-  //LOGINFO("Latest block successfully loaded");
-}
-*/
-
-/*
-void Storage::initializeBlockchain() {
-  // Genesis block comes from Options, not hardcoded
-  const auto& genesis = options_.getGenesisBlock();
-
-  if (
-    const Bytes latestBlockHash = blocksDb_.getLastByPrefix(DBPrefix::heightToBlock);
-    latestBlockHash.empty()
-  ) {
-    if (genesis.getNHeight() != 0) throw DynamicException("Genesis block height is not 0");
-    storeBlock(blocksDb_, genesis, options_.getIndexingMode() != IndexingMode::DISABLED);
-    LOGINFO(std::string("Created genesis block: ") + Hex::fromBytes(genesis.getHash()).get());
-  }
-
-  // Sanity check for genesis block. (check if genesis in DB matches genesis in Options)
-  const Hash genesisInDBHash(blocksDb_.get(UintConv::uint64ToBytes(0), DBPrefix::heightToBlock));
-
-  FinalizedBlock genesisInDB = FinalizedBlock::fromBytes(
-    blocksDb_.get(genesisInDBHash, DBPrefix::blocks), options_.getChainID()
-  );
-
-  if (genesis != genesisInDB) {
-    LOGERROR("Sanity Check! Genesis block in DB does not match genesis block in Options");
-    throw DynamicException("Sanity Check! Genesis block in DB does not match genesis block in Options");
-  }
-}
-
-bool Storage::blockExists(const Hash& hash) const { return blocksDb_.has(hash, DBPrefix::blocks); }
-
-bool Storage::blockExists(uint64_t height) const { return blocksDb_.has(UintConv::uint64ToBytes(height), DBPrefix::heightToBlock); }
-
-uint64_t Storage::currentChainSize() const {
-  auto latest = latest_.load();
-  return latest ? (latest->getNHeight() + 1) : 0u;
-}
-
-bool Storage::txExists(const Hash& tx) const { return blocksDb_.has(tx, DBPrefix::txToBlock); }
-*/
 
 void Storage::putTxAdditionalData(const TxAdditionalData& txData) {
   Bytes serialized;

@@ -33,11 +33,11 @@ FinalizedBlock FinalizedBlock::fromCometBlock(const CometBlock& block) {
 
   // compute txs here txblocks
   SLOGTRACE("Deserializing transactions...");
-  std::vector<TxBlock> txs;
+  std::vector<std::shared_ptr<TxBlock>> txs;
   uint64_t txCount = block.txs.size();
   for (uint64_t i = 0; i < txCount; i++) {
     // NOTE: requiredChainId seems to be a discarded argument of the TxBlock ctor
-    txs.emplace_back(block.txs[i], requiredChainId);
+    txs.push_back(std::make_shared<TxBlock>(block.txs[i], requiredChainId));
   }
 
   // Same merkle root value as before cometbft integration
@@ -92,7 +92,7 @@ FinalizedBlock FinalizedBlock::fromRPC(const json& ret) {
 
   SLOGTRACE("Deserializing transactions...");
   uint64_t requiredChainId = 0; // FIXME
-  std::vector<TxBlock> txs;
+  std::vector<std::shared_ptr<TxBlock>> txs;
   if (data.contains("txs") && data["txs"].is_array()) {
     // There is data.txs in the response, so unpack the transactions
     for (const auto& tx : data["txs"]) {
@@ -101,7 +101,7 @@ FinalizedBlock FinalizedBlock::fromRPC(const json& ret) {
         std::string txBase64 = tx.get<std::string>();
         Bytes txBytes = base64::decode_into<Bytes>(txBase64);
         // Create TxBlock object from tx Bytes
-        txs.emplace_back(txBytes, requiredChainId);
+        txs.push_back(std::make_shared<TxBlock>(txBytes, requiredChainId));
       } else {
         throw DynamicException("Invalid block data");
       }

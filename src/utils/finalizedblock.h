@@ -55,9 +55,7 @@ class FinalizedBlock {
 
     const Hash txMerkleRoot_; ///< Merkle root for block transactions.
 
-    // TODO: This should probably be vector<shared_ptr<TxBlock>> so that the tx objects
-    // can be automatically used by all the rpc/query/cache code that uses shared_ptr<TxBlock>.
-    const std::vector<TxBlock> txs_; ///< List of block transactions.
+    const std::vector<std::shared_ptr<TxBlock>> txs_; ///< List of block transactions.
 
   public:
     /**
@@ -78,7 +76,7 @@ class FinalizedBlock {
       Hash&& txMerkleRoot,
       uint64_t timestamp, // Primitive types like uint64_t can (and should) be passed by value, no &&
       uint64_t nHeight, // Same for nHeight
-      std::vector<TxBlock>&& txs,
+      std::vector<std::shared_ptr<TxBlock>>&& txs,
       Hash&& hash
     ) :
       proposerAddr_(std::move(proposerAddr)),
@@ -129,7 +127,6 @@ class FinalizedBlock {
     /**
      * Build a FinalizedBlock from a CometBFT block query response.
      * To get a shared_ptr for the returned object X, just use make_shared(std::move(X)).
-     * FIXME/TODO
      */
     static FinalizedBlock fromRPC(const json& ret);
 
@@ -140,7 +137,7 @@ class FinalizedBlock {
     const Hash& getTxMerkleRoot() const { return this->txMerkleRoot_; }
     const uint64_t& getTimestamp() const { return this->timestamp_; }
     const uint64_t& getNHeight() const { return this->nHeight_; }
-    const std::vector<TxBlock>& getTxs() const { return this->txs_; }
+    const std::vector<std::shared_ptr<TxBlock>>& getTxs() const { return this->txs_; }
     const Hash& getHash() const { return this->hash_; }
     ///@}
 

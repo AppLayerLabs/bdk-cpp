@@ -9,20 +9,19 @@ See the LICENSE.txt file in the project root for more information.
 #define BLOCKCHAIN_H
 
 #include "../utils/options.h"
-//#include "../utils/db.h"
+#include "../utils/bucketcache.h"
 #include "comet.h"
 #include "state.h"
 #include "storage.h"
 #include "../net/http/httpserver.h"
 #include "../net/http/noderpcinterface.h"
 
-/// Number of FinalizedBlock objects to cache at any time
-#define FINALIZEDBLOCK_CACHE_SIZE 100
-
-/// A <TxBlock, blockHash, blockIndex, blockHeight> tuple.
-using GetTxResultType = std::tuple<
-  std::shared_ptr<TxBlock>, Hash, uint64_t, uint64_t
->;
+/// A <TxBlock, blockIndex, blockHeight> tuple.
+struct GetTxResultType {
+  std::shared_ptr<TxBlock> txBlockPtr; ///< The transaction object.
+  uint64_t blockIndex; ///< Index inside the block this transaction is included in.
+  uint64_t blockHeight; ///< Height of the block this transaction is included in.
+};
 
 /// A <blockHeight, blockIndex> tuple.
 struct TxCacheValueType {
@@ -108,10 +107,10 @@ class Blockchain : public CometListener, public NodeRPCInterface, public Log::Lo
     // It is too expensive to clean up these mappings every time we get a FinalizedBlock
     // evicted from fbCache_. Instead, we just oversize the buckets in txCache_ to make sure
     // they can hold more entries than what will be ever present in the fbCache_.
-    std::atomic<uint64_t> txCacheSize_ = 10'000'000; ///< Transaction cache size in maximum entries per bucket (0 to disable).
-    mutable std::mutex txCacheMutex_; ///< Mutex to protect cache access.
-    std::array<std::unordered_map<Hash, TxCacheValueType, SafeHash>, 2> txCache_; ///< Transaction cache as two rotating buckets.
-    uint64_t txCacheBucket_ = 0; ///< Active txCache_ bucket.
+    BucketCache<Hash, TxCacheValueType, SafeHash> txCache_;
+
+    // Block height to block hash cache
+    BucketCache<uint64_t, Hash, SafeHash> blockHeightToHashCache_;
 
     // RAM finalized block/tx cache
     // We will be doing miscellaneous queries for blocks and assembling FinalizedBlock
@@ -249,34 +248,34 @@ class Blockchain : public CometListener, public NodeRPCInterface, public Log::Lo
     std::shared_ptr<const FinalizedBlock> getBlock(uint64_t height);
 
     /**
+     * Get the block hash given a block height.
+     * @param height The block height.
+     * @return The block hash, or an empty hash if can't find it.
+     */
+    Hash getBlockHash(const uint64_t height);
+
+    /**
      * Get a transaction from the chain using a given hash.
      * @param tx The transaction hash to get.
-     * @return A tuple with the found transaction, block hash, index and height.
+     * @return A tuple with the found shared_ptr<TxBlock>, transaction index in the block, and block height.
      * @throw DynamicException on hash mismatch.
      */
-    // FIXME: remove the Hash (get<1>) param as it seems to be unused; it would require
-    //        a second separate RPC call to fetch.
-    //        right now, Hash is being set to 0x0000..0000
     GetTxResultType getTx(const Hash& tx);
 
     /**
-     * MOVED to Blockchain or delete.
-     *
      * Get a transaction from a block with a specific index.
      * @param blockHash The block hash
      * @param blockIndex the index within the block
-     * @return A tuple with the found transaction, block hash, index and height.
+     * @return A tuple with the found shared_ptr<TxBlock>, transaction index in the block, and block height.
      * @throw DynamicException on hash mismatch.
      */
     GetTxResultType getTxByBlockHashAndIndex(const Hash& blockHash, const uint64_t blockIndex);
 
     /**
-     * MOVED to Blockchain or delete.
-     *
      * Get a transaction from a block with a specific index.
      * @param blockHeight The block height
      * @param blockIndex The index within the block.
-     * @return A tuple with the found transaction, block hash, index and height.
+     * @return A tuple with the found shared_ptr<TxBlock>, transaction index in the block, and block height.
      */
     GetTxResultType getTxByBlockNumberAndIndex(uint64_t blockHeight, uint64_t blockIndex);
 

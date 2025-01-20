@@ -35,12 +35,15 @@ class HTTPServer : public Log::LogicalLocationProvider {
     /// Future for the run function so we know when it should stop.
     std::future<bool> runFuture_;
 
+    /// Instance ID for logging
+    std::string instanceId_;
+
   public:
     /**
      * Constructor. Does NOT automatically start the server.
      */
-    HTTPServer(const unsigned short port, NodeRPCInterface& rpc)
-      : port_(port), rpc_(rpc)
+    HTTPServer(const unsigned short port, NodeRPCInterface& rpc, std::string instanceId = "")
+      : port_(port), rpc_(rpc), instanceId_(instanceId)
     {
     }
 

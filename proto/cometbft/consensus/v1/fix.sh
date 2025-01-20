@@ -3,8 +3,6 @@
 # --------------------------------------------------------------------------------
 # Script run after consensus/v1/types.pb.cc and .h are generated to fix them due
 #   to vote / has_vote fields in types.proto generating symbol collisions.
-#
-# TODO: fully validate; not sure if this is enough to make it work.
 # --------------------------------------------------------------------------------
 
 # Determine the directory where the script is located

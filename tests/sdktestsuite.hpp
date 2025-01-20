@@ -644,8 +644,8 @@ class SDKTestSuite : public Blockchain {
      * @param txHash The hash of the transaction to look for events.
      */
     std::vector<Event> getEvents(const Hash& txHash) {
-      auto tx = this->getTx(txHash);
-      return this->storage_.getEvents(std::get<3>(tx), std::get<2>(tx));
+      GetTxResultType tx = this->getTx(txHash);
+      return this->storage_.getEvents(tx.blockHeight, tx.blockIndex);
     }
 
     /**

@@ -57,8 +57,7 @@ namespace TDEXV2 {
         uint256_t("10000"), uint256_t(0), std::vector<Address>({ tokenA, tokenB }), owner, deadline
       );
       auto txTlp = sdk.getStorage().getTx(swapTx);
-      TxBlock tx = *std::get<0>(txTlp);
-
+      TxBlock tx = *txTlp.txBlockPtr;
       evmc_tx_context txContext;
 
       txContext.tx_origin = sdk.getChainOwnerAccount().address.toEvmcAddress();
