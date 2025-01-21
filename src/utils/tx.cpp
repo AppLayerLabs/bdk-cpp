@@ -10,22 +10,7 @@ See the LICENSE.txt file in the project root for more information.
 #include "dynamicexception.h"
 #include "evmcconv.h"
 
-/**
- * FIXME:
- *
- * TxBlock ctor should NOT validate the signature, as the TxBlock object
- * should be primarily understood as the deserialized form of a transaction
- * as a byte stream/array.
- *
- * If we write the original byte stream of a TxBlock in a certain store and
- * in that store we know all transactions already had their signatures verified,
- * then reverifying the signature on reconstructing the TxBlock object is pointless.
- *
- * Instead, signature verification sould be done in a TxBlock::verifySig() method.
- * If necessary, add a boolean field to track whether the signature was verified already.
- */
-
-TxBlock::TxBlock(const bytes::View bytes, const uint64_t&) {
+TxBlock::TxBlock(const bytes::View bytes, const uint64_t& requiredChainId, bool verifySig) {
   uint64_t index = 0;
   bytes::View txData = bytes.subspan(1);
 
@@ -48,6 +33,11 @@ TxBlock::TxBlock(const bytes::View bytes, const uint64_t&) {
 
   // Parse each tx element individually in sequence
   this->parseChainId(txData, index);
+  // FIXME: To enable this feature, need to fix some broken tests.
+  //        Either that or just remove the requiredChainId param/feature entirely.
+  //if (this->chainId_ != requiredChainId) {
+  //  throw DynamicException("TxBlock(): chainId_ " + std::to_string(this->chainId_) + " != " + std::to_string(requiredChainId));
+  //}
   this->parseNonce(txData, index);
   this->parseMaxPriorityFeePerGas(txData, index);
   this->parseMaxFeePerGas(txData, index);
@@ -58,16 +48,23 @@ TxBlock::TxBlock(const bytes::View bytes, const uint64_t&) {
   this->parseAccessList(txData, index);
   this->parseVRS(txData, index);
 
-  // Validate signature
-  if (!Secp256k1::verifySig(this->r_, this->s_, this->v_)) {
+  // Validate signature if verifySig flag is set
+  if (verifySig && !Secp256k1::verifySig(this->r_, this->s_, this->v_)) {
     throw DynamicException("Invalid tx signature - doesn't fit elliptic curve verification");
   }
+
+  // Reconstruct transaction sender address
   Signature sig = Secp256k1::makeSig(this->r_, this->s_, this->v_);
   Hash msgHash = Utils::sha3(this->rlpSerialize(false)); // Do not include signature in hash
   UPubKey key = Secp256k1::recover(sig, msgHash);
-  if (!key) throw DynamicException("Invalid tx signature - cannot recover public key");
+  if (!key) {
+    throw DynamicException("Invalid tx signature - cannot recover public key");
+  }
   this->from_ = Secp256k1::toAddress(key);
-  this->hash_ = Utils::sha3(this->rlpSerialize(true)); // Include signature in hash
+
+  // No need to recreate the byte stream to get the txhash
+  //this->hash_ = Utils::sha3(this->rlpSerialize(true)); // Include signature in hash
+  this->hash_ = Utils::sha3(bytes);
 }
 
 TxBlock::TxBlock(

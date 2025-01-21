@@ -39,14 +39,14 @@ static inline constexpr std::string_view FIXED_BASE_FEE_PER_GAS = "0x9502f900";
 // FinalizedBlockCache
 // ------------------------------------------------------------------
 
-FinalizedBlockCache::FinalizedBlockCache(size_t capacity)
+Blockchain::FinalizedBlockCache::FinalizedBlockCache(size_t capacity)
   : capacity_(capacity),
     ring_(capacity),
     nextInsertPos_(0)
 {
 }
 
-void FinalizedBlockCache::insert(std::shared_ptr<const FinalizedBlock> x) {
+void Blockchain::FinalizedBlockCache::insert(std::shared_ptr<const FinalizedBlock> x) {
   std::lock_guard<std::mutex> lock(mutex_);
   if (!x) {
     return;
@@ -61,7 +61,7 @@ void FinalizedBlockCache::insert(std::shared_ptr<const FinalizedBlock> x) {
   nextInsertPos_ = (nextInsertPos_ + 1) % capacity_;
 }
 
-std::shared_ptr<const FinalizedBlock> FinalizedBlockCache::getByHeight(uint64_t height) {
+std::shared_ptr<const FinalizedBlock> Blockchain::FinalizedBlockCache::getByHeight(uint64_t height) {
   std::lock_guard<std::mutex> lock(mutex_);
   auto it = byHeight_.find(height);
   if (it != byHeight_.end()) {
@@ -70,7 +70,7 @@ std::shared_ptr<const FinalizedBlock> FinalizedBlockCache::getByHeight(uint64_t 
   return nullptr;
 }
 
-std::shared_ptr<const FinalizedBlock> FinalizedBlockCache::getByHash(const Hash& hash) {
+std::shared_ptr<const FinalizedBlock> Blockchain::FinalizedBlockCache::getByHash(const Hash& hash) {
   std::lock_guard<std::mutex> lock(mutex_);
   auto it = byHash_.find(hash);
   if (it != byHash_.end()) {
@@ -79,7 +79,7 @@ std::shared_ptr<const FinalizedBlock> FinalizedBlockCache::getByHash(const Hash&
   return nullptr;
 }
 
-void FinalizedBlockCache::evictIndices(const std::shared_ptr<const FinalizedBlock>& x) {
+void Blockchain::FinalizedBlockCache::evictIndices(const std::shared_ptr<const FinalizedBlock>& x) {
   auto itHeight = byHeight_.find(x->getNHeight());
   if (itHeight != byHeight_.end() && itHeight->second == x) {
     byHeight_.erase(itHeight);
@@ -96,7 +96,7 @@ void FinalizedBlockCache::evictIndices(const std::shared_ptr<const FinalizedBloc
 
 Blockchain::Blockchain(const std::string& blockchainPath, std::string instanceId)
   : instanceId_(instanceId),
-    options_(Options::fromFile(blockchainPath)),
+    options_(Options::fromFile(blockchainPath)), // build the Options object from the blockchainPath/options.json file (or binarydefaults)
     comet_(this, instanceId, options_),
     state_(*this),
     storage_(*this),
@@ -109,7 +109,7 @@ Blockchain::Blockchain(const std::string& blockchainPath, std::string instanceId
 
 Blockchain::Blockchain(const Options& options, const std::string& blockchainPath, std::string instanceId)
   : instanceId_(instanceId),
-    options_(options),
+    options_(options), // copy the given Options object
     comet_(this, instanceId, options_),
     state_(*this),
     storage_(*this),
@@ -301,7 +301,7 @@ Hash Blockchain::getBlockHash(const uint64_t height) {
   return Hash();
 }
 
-GetTxResultType Blockchain::getTx(const Hash& tx) {
+Blockchain::GetTxResultType Blockchain::getTx(const Hash& tx) {
   // First thing we would do is check a TxBlock object cached in RAM (or the
   //  TxBlock plus all the other elements in the tuple that we are fetching).
   //
@@ -350,7 +350,7 @@ GetTxResultType Blockchain::getTx(const Hash& tx) {
 
         // Decode Bytes into a TxBlock
         uint64_t chainId = options_.getChainID();
-        std::shared_ptr<TxBlock> txBlock = std::make_shared<TxBlock>(txBytes, chainId);
+        std::shared_ptr<TxBlock> txBlock = std::make_shared<TxBlock>(txBytes, chainId, false); // verifySig=false
 
         // Block height and index of tx within block
         uint64_t blockHeight = std::stoull(result["height"].get<std::string>());
@@ -377,7 +377,7 @@ GetTxResultType Blockchain::getTx(const Hash& tx) {
   return {};
 }
 
-GetTxResultType Blockchain::getTxByBlockHashAndIndex(const Hash& blockHash, const uint64_t blockIndex) {
+Blockchain::GetTxResultType Blockchain::getTxByBlockHashAndIndex(const Hash& blockHash, const uint64_t blockIndex) {
   std::shared_ptr<const FinalizedBlock> bp = fbCache_.getByHash(blockHash);
   if (!bp) {
     // If FinalizedBlock cache miss, retrieve the block from RPC then feed the cache
@@ -398,7 +398,7 @@ GetTxResultType Blockchain::getTxByBlockHashAndIndex(const Hash& blockHash, cons
   };
 }
 
-GetTxResultType Blockchain::getTxByBlockNumberAndIndex(uint64_t blockHeight, uint64_t blockIndex) {
+Blockchain::GetTxResultType Blockchain::getTxByBlockNumberAndIndex(uint64_t blockHeight, uint64_t blockIndex) {
   std::shared_ptr<const FinalizedBlock> bp = fbCache_.getByHeight(blockHeight);
   if (!bp) {
     // If FinalizedBlock cache miss, retrieve the block from RPC then feed the cache
@@ -453,23 +453,17 @@ void Blockchain::initChain(
   //   like a genesis State dump/snapshot.
 }
 
-void Blockchain::checkTx(const Bytes& tx, int64_t& gasWanted, bool& accept)
-{
-  // TODO/REVIEW: It is possible that we will keep our own view of the mempool, or our idea
-  // of what is in the cometbft mempool, in such a way that we'd know that transactions for
-  // some account and nonce, nonce+1, nonce+2 are already there for example (because they have
-  // been accepted on our side), so when we see a nonce+3 here for the same account, we know,
-  // by looking up on that mempool cache, that this is valid, even though the account in State
-  // is still at "nonce". We cannot, unfortunately, e.g. make RPC calls to cometbft from here
-  // to poke at the cometbft mempool because all ABCI methods should return "immediately" (if
-  // RPC queries are being made to explore the mempool, that's done by some internal worker
-  // thread instead, and here we'd just be reading what it has gathered so far).
-
-  // Simply parse and validate the transaction in isolation (this is just checking for
-  // an exact nonce match with the tx sender account).
+void Blockchain::checkTx(const Bytes& tx, const bool recheck, int64_t& gasWanted, bool& accept) {
+  // State::validateTransaction() has an internal model of the mempool, so it is capable
+  // of knowing that transactions from the same account and a sequence of nonces (current nonce,
+  // current nonce + 1, current nonce + 2, etc.) are all valid, as long as it looks like the
+  // account can pay for all of them.
+  // The mempool model is maintained automatically in a transparent fashion by State. It only
+  // needs to know if State:: validateTransaction() is being called for CheckTx and is thus
+  // determining transaction eviction from the mempool when CheckTx returns `false`.
   try {
-    TxBlock parsedTx(tx, options_.getChainID());
-    accept = state_.validateTransaction(parsedTx);
+    TxBlock parsedTx(tx, options_.getChainID(), !recheck); // Verify signature only if it's not a recheck.
+    accept = state_.validateTransaction(parsedTx, true);
   } catch (const std::exception& ex) {
     LOGDEBUG("ERROR: Blockchain::checkTx(): " + std::string(ex.what()));
     accept = false;
@@ -501,6 +495,9 @@ void Blockchain::incomingBlock(
       // Advance machine state
       std::vector<bool> succeeded;
       std::vector<uint64_t> gasUsed;
+
+      // NOTE: State::processBlock() knows that it has to remove the transactions that
+      // are processed into the state from its internal mempool model.
       state_.processBlock(*fbPtr, succeeded, gasUsed);
 
       for (uint32_t i = 0; i < block->txs.size(); ++i) {
@@ -531,18 +528,125 @@ void Blockchain::incomingBlock(
 void Blockchain::buildBlockProposal(
   const uint64_t maxTxBytes, const CometBlock& block, bool& noChange, std::vector<size_t>& txIds
 ) {
-  // TODO: exclude invalid transactions (because invalid nonce or no ability to pay)
-  // TODO: reorder transactions to make the nonce valid (say n, n+1, n+2 txs on same account but out of order)
-  noChange = true;
+  noChange = false;
+
+  // We need to build TxBlock objects from the raw transactions to parse from, nonce, etc.
+  std::vector<std::optional<TxBlock>> parsedTxs;
+  parsedTxs.reserve(block.txs.size());
+  for (const auto& rawTx : block.txs) {
+    try {
+      parsedTxs.emplace_back(TxBlock(rawTx, options_.getChainID(), false)); // verifySig=false
+    } catch (const std::exception& ex) {
+      parsedTxs.emplace_back(std::nullopt);
+    }
+  }
+
+  // Transaction map considering (from account, nonce, tx cost)
+  std::map<
+    Address, // from account address -->
+    std::map<
+      uint256_t, // nonce -->
+      std::vector< // transactions (all with the same nonce)
+        std::pair<
+          size_t, // index into block.txs and parsedTxs
+          uint256_t // transaction max fee (we want to pick the one that pays the most)
+        >
+      >
+    >
+  > accountToNonces;
+
+  // Build the accountToNonces mapping for all parsedTxs
+  for (size_t i = 0; i < parsedTxs.size(); ++i) {
+    if (!parsedTxs[i].has_value()) {
+      continue;
+    }
+    const TxBlock& txBlock = *parsedTxs[i];
+    const Address& fromAddr = txBlock.getFrom();
+    const uint256_t& nonce = txBlock.getNonce();
+    // We will compare how much transactions with the same nonce pay, ignoring the value transferred.
+    // (the value transferred is checked by validateTransactionInternal())
+    const uint256_t maxFee = txBlock.getGasLimit() * txBlock.getMaxFeePerGas();
+    auto& nonceVec = accountToNonces[fromAddr][nonce];
+    nonceVec.emplace_back(i, maxFee);
+  }
+
+  // Add transactions to the block proposal outparam (txIds)
+  MempoolModel mm; // Blank mempool model (see comment in Blockchain::validateBlockProposal() below)
+  txIds.clear();
+  txIds.reserve(block.txs.size());
+  size_t totalBytes = 0;
+  for (const auto& [account, nonceMap] : accountToNonces) {
+    // Iterate over all nonces mentioned in txs with same from account, in ascending order.
+    for (const auto& [nonce, txVec] : nonceMap) {
+      // We break; here on any errors to simplify: we just stop adding transactions for the given account.
+      // We could e.g. scan for the second-most expensive transaction with the same nonce and so on, but
+      // that's probably overkill. We can just try again for this account on the next block.
+
+      // Should never happen, but let's ensure.
+      if (txVec.empty()) {
+        break;
+      }
+      // For all txs with the same nonce, pick the most expensive (generates largest fee
+      // and is probably the tx that the end user wants to override others w/ same nonce with).
+      size_t bestTxIndex = txVec[0].first;
+      uint256_t bestFee = txVec[0].second;
+      for (size_t i = 1; i < txVec.size(); ++i) {
+        if (txVec[i].second > bestFee) {
+          bestTxIndex = txVec[i].first;
+          bestFee = txVec[i].second;
+        }
+      }
+      // Retrieve the corresponding parsed TxBlock object
+      // (has_value() is true because it passed earlier filtering, but let's ensure)
+      if (!parsedTxs[bestTxIndex].has_value()) {
+        break;
+      }
+      const TxBlock& parsedTx = *parsedTxs[bestTxIndex];
+      // This validity check will catch anything we haven't checked here.
+      // We already know about the nonce sequence here, and we could do a nonce sequence check,
+      //   and we could potentially use the information that we are validating txs from the same
+      //   account in ascending nonce order to make the check of gas costs faster, as
+      //   validateTransaction will scan every nonce in the sequence and add up the tx costs
+      //   for each nonce we supply to it, while we could do this check with O(1) here by
+      //   accumulating the gas cost in the loop. However, we'd probably just end up duplicating
+      //   the entire validity check here, including eviction logic, so it's cleaner to just call
+      //   validateTransaction() here.
+      //   A potential mitigation would be to institute a limit in the number of txs this node
+      //   implementation is willing to include, from the same sender account, in the same block.
+      // Any failed transactions here will be flagged as "ejected" from State::mempoolModel_
+      //   and NOT from the given temporary mm, as validateTransaction() always removes/ejects
+      //   txs from the real mempool model, never from the custom temporary mm (as it would
+      //   make zero sense to do maintenance in a throwaway, temporary mempool model anyways).
+      if (!state_.validateTransaction(parsedTx, false, &mm)) {
+        // Skip txs that fail the tx validity check.
+        break;
+      }
+      // Check maxTxBytes limit
+      const size_t thisTxSize = block.txs[bestTxIndex].size();
+      if (totalBytes + thisTxSize > maxTxBytes) {
+        return; // Done, don't add any more transactions.
+      }
+      // Include this transaction
+      txIds.push_back(bestTxIndex);
+      totalBytes += thisTxSize;
+    }
+  }
 }
 
 void Blockchain::validateBlockProposal(const CometBlock& block, bool& accept) {
-  // FIXME/TODO: Validate all transactions in sequence (context-aware)
-  // For now, just validate all of the transactions in isolation (this is insufficient!)
+  // By passing a custom (blank) MempoolModel to the verification step of all transactions
+  //  in the proposal we are able to automatically verify if nonces for a same from account
+  //  are out of order, exactly because the mempool model is empty -- so it only accepts
+  //  txs from the same from account and increasing nonces if the nonces are added to the
+  //  mempool model in order, meaning they are ordered in the `block.txs` proposal.
+  // In addition, note that any transactions found to be invalid here will be ejected from
+  //  the State::mempoolModel_ (the 'real' model) and not mm, since mm is a temporary
+  //  model and doing maintenance on it would make no sense.
+  MempoolModel mm;
   for (const auto& tx : block.txs) {
     try {
-      TxBlock parsedTx(tx, options_.getChainID());
-      if (!state_.validateTransaction(parsedTx)) {
+      TxBlock parsedTx(tx, options_.getChainID(), false); // verifySig=false
+      if (!state_.validateTransaction(parsedTx, false, &mm)) {
         accept = false;
         return;
       }
@@ -691,7 +795,7 @@ json Blockchain::getBlockJson(const FinalizedBlock *block, bool includeTransacti
   //               and record this in the FinalizedBlock object, maybe adding some
   //               constant guess for the header size, if we just want an estimate.
   //
-  // TODO: to get a block you have to serialize it entirely, this can be expensive.
+  // to get a block you have to serialize it entirely, this can be expensive.
   //ret["size"] = Hex::fromBytes(Utils::uintToBytes(block->serializeBlock().size()),true).forRPC();
   ret["size"] = Hex::fromBytes(Utils::uintToBytes(size_t(0)), true).forRPC();
 
@@ -967,7 +1071,7 @@ json Blockchain::eth_sendRawTransaction(const json& request) {
   // CometBFT will call us back via ABCI to verify it again (CheckTx),
   //   and we can either have the txHash cached and save some time, or
   //   just check it again (depends on what we will do in our CheckTx).
-  if (state_.validateTransaction(txBlock)) {
+  if (state_.validateTransaction(txBlock, false)) {
     uint64_t ticketId = comet_.sendTransaction(txBytes);
     if (ticketId == 0) {
       throw Error(-32000, "Error relaying transaction via CometBFT");

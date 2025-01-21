@@ -15,39 +15,7 @@ See the LICENSE.txt file in the project root for more information.
 #include "storage.h"
 #include "../net/http/httpserver.h"
 #include "../net/http/noderpcinterface.h"
-
-/// A <TxBlock, blockIndex, blockHeight> tuple.
-struct GetTxResultType {
-  std::shared_ptr<TxBlock> txBlockPtr; ///< The transaction object.
-  uint64_t blockIndex; ///< Index inside the block this transaction is included in.
-  uint64_t blockHeight; ///< Height of the block this transaction is included in.
-};
-
-/// A <blockHeight, blockIndex> tuple.
-struct TxCacheValueType {
-  uint64_t blockHeight; ///< Height of the block this transaction is included in.
-  uint64_t blockIndex; ///< Index inside the block this transaction is included in.
-};
-
-/**
- * RAM cache of FinalizedBlock objects.
- */
-class FinalizedBlockCache
-{
-public:
-  explicit FinalizedBlockCache(size_t capacity);
-  void insert(std::shared_ptr<const FinalizedBlock> x);
-  std::shared_ptr<const FinalizedBlock> getByHeight(uint64_t height);
-  std::shared_ptr<const FinalizedBlock> getByHash(const Hash& hash);
-private:
-  void evictIndices(const std::shared_ptr<const FinalizedBlock>& x);
-  std::vector<std::shared_ptr<const FinalizedBlock>> ring_;
-  size_t nextInsertPos_;
-  size_t capacity_;
-  std::map<uint64_t, std::shared_ptr<const FinalizedBlock>> byHeight_;
-  std::unordered_map<Hash, std::shared_ptr<const FinalizedBlock>, SafeHash> byHash_;
-  std::mutex mutex_;
-};
+#include "typedefs.h"
 
 /**
  * A BDK node.
@@ -87,6 +55,32 @@ private:
  */
 class Blockchain : public CometListener, public NodeRPCInterface, public Log::LogicalLocationProvider {
   protected: // protected is correct; don't change.
+    /// A <blockHeight, blockIndex> tuple.
+    struct TxCacheValueType {
+      uint64_t blockHeight; ///< Height of the block this transaction is included in.
+      uint64_t blockIndex; ///< Index inside the block this transaction is included in.
+    };
+
+    /**
+     * RAM cache of FinalizedBlock objects.
+     */
+    class FinalizedBlockCache
+    {
+    public:
+      explicit FinalizedBlockCache(size_t capacity);
+      void insert(std::shared_ptr<const FinalizedBlock> x);
+      std::shared_ptr<const FinalizedBlock> getByHeight(uint64_t height);
+      std::shared_ptr<const FinalizedBlock> getByHash(const Hash& hash);
+    private:
+      void evictIndices(const std::shared_ptr<const FinalizedBlock>& x);
+      std::vector<std::shared_ptr<const FinalizedBlock>> ring_;
+      size_t nextInsertPos_;
+      size_t capacity_;
+      std::map<uint64_t, std::shared_ptr<const FinalizedBlock>> byHeight_;
+      std::unordered_map<Hash, std::shared_ptr<const FinalizedBlock>, SafeHash> byHash_;
+      std::mutex mutex_;
+    };
+
     const std::string instanceId_; ///< Instance ID for logging.
 
     Options options_; ///< Options singleton.
@@ -126,11 +120,21 @@ class Blockchain : public CometListener, public NodeRPCInterface, public Log::Lo
 
     void putTx(const Hash& tx, const TxCacheValueType& val);
 
-    void setValidators(const std::vector<CometValidatorUpdate>& newValidatorSet);
-
     json getBlockJson(const FinalizedBlock *block, bool includeTransactions);
 
   public:
+
+    /**
+     * TODO: This should be a private method; it's exposed for unit testing only (should use friend instead).
+     */
+    void setValidators(const std::vector<CometValidatorUpdate>& newValidatorSet);
+
+    /// A <TxBlock, blockIndex, blockHeight> tuple.
+    struct GetTxResultType {
+      std::shared_ptr<TxBlock> txBlockPtr; ///< The transaction object.
+      uint64_t blockIndex; ///< Index inside the block this transaction is included in.
+      uint64_t blockHeight; ///< Height of the block this transaction is included in.
+    };
 
     // ------------------------------------------------------------------
     // CometListener
@@ -140,7 +144,7 @@ class Blockchain : public CometListener, public NodeRPCInterface, public Log::Lo
       const uint64_t genesisTime, const std::string& chainId, const Bytes& initialAppState, const uint64_t initialHeight,
       const std::vector<CometValidatorUpdate>& initialValidators, Bytes& appHash
     ) override;
-    virtual void checkTx(const Bytes& tx, int64_t& gasWanted, bool& accept) override;
+    virtual void checkTx(const Bytes& tx, const bool recheck, int64_t& gasWanted, bool& accept) override;
     virtual void incomingBlock(
       const uint64_t syncingToHeight, std::unique_ptr<CometBlock> block, Bytes& appHash,
       std::vector<CometExecTxResult>& txResults, std::vector<CometValidatorUpdate>& validatorUpdates
@@ -260,7 +264,7 @@ class Blockchain : public CometListener, public NodeRPCInterface, public Log::Lo
      * @return A tuple with the found shared_ptr<TxBlock>, transaction index in the block, and block height.
      * @throw DynamicException on hash mismatch.
      */
-    GetTxResultType getTx(const Hash& tx);
+    Blockchain::GetTxResultType getTx(const Hash& tx);
 
     /**
      * Get a transaction from a block with a specific index.
@@ -269,7 +273,7 @@ class Blockchain : public CometListener, public NodeRPCInterface, public Log::Lo
      * @return A tuple with the found shared_ptr<TxBlock>, transaction index in the block, and block height.
      * @throw DynamicException on hash mismatch.
      */
-    GetTxResultType getTxByBlockHashAndIndex(const Hash& blockHash, const uint64_t blockIndex);
+    Blockchain::GetTxResultType getTxByBlockHashAndIndex(const Hash& blockHash, const uint64_t blockIndex);
 
     /**
      * Get a transaction from a block with a specific index.
@@ -277,7 +281,7 @@ class Blockchain : public CometListener, public NodeRPCInterface, public Log::Lo
      * @param blockIndex The index within the block.
      * @return A tuple with the found shared_ptr<TxBlock>, transaction index in the block, and block height.
      */
-    GetTxResultType getTxByBlockNumberAndIndex(uint64_t blockHeight, uint64_t blockIndex);
+    Blockchain::GetTxResultType getTxByBlockNumberAndIndex(uint64_t blockHeight, uint64_t blockIndex);
 
     ///@{
     /** Getter. */

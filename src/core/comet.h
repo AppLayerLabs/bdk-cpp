@@ -148,10 +148,12 @@ class CometListener {
     /**
      * Check if a transaction is valid.
      * @param tx The transaction to check.
+     * @param recheck If `false`, transaction is being checked for the first time, otherwise the transaction was already
+     * checked before (so the application can e.g. skip signature verification).
      * @param gasWanted Outparam to be set to the gas_limit of this transaction (leave unmodified if unknown/irrelevant).
      * @param accept Outparam to be set to `true` if the transaction is valid, `false` if it is invalid.
      */
-    virtual void checkTx(const Bytes& tx, int64_t& gasWanted, bool& accept) {
+    virtual void checkTx(const Bytes& tx, const bool recheck, int64_t& gasWanted, bool& accept) {
       accept = true;
     }
 

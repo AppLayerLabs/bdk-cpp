@@ -16,6 +16,37 @@ See the LICENSE.txt file in the project root for more information.
 
 #include "../src/contract/event.h"
 
+/// Key values required by one Comet node
+struct CometTestKeys {
+  // address, pub_key and priv_key are used to generate both "privValidatorKey:{..." (each for
+  // one comet instance) and "validators:{..." (the full validator set option for the entire
+  // test which is identical for all comet instances that are in the same testcase).
+  //
+  // node_priv_key is used to generate "nodeKey:{..."
+  //
+  // the node_id is not supplied in the cometBFT options json, since it is derived from the
+  // node_priv_key. Comet discovers its node_id dynamically after setting the node_key.json
+  // file (by running 'cometbft show-node-id' and capturing the output).
+  // nevertheless, the precomputed node_id for these test nodes is included here to allow
+  // testcases to specify their peer list immediately from the testcase without having to
+  // spawn and run Comet instances to the point they can know their node ids.
+  std::string address;
+  std::string pub_key; // "type": "tendermint/PubKeySecp256k1"
+  std::string priv_key; // "type": "tendermint/PrivKeySecp256k1"
+  std::string node_id;
+  std::string node_priv_key; // "type": "tendermint/PrivKeyEd25519"
+};
+
+/// Multiple precomputed test keys.
+extern const std::vector<CometTestKeys> cometTestKeys;
+
+/// a set of ports used by one running Comet instance.
+struct CometTestPorts {
+  // proxy_app is an unix sockets file inside comet/ (we don't support remote proxy_apps), so one less net port to manage.
+  int p2p; // CometBFT P2P port e.g. 26656
+  int rpc; // CometBFT RPC port e.g. 26657
+};
+
 /// Value that has been used by SDKTestSuite tests for the uint64_t chainId field in Options
 #define DEFAULT_UINT64_TEST_CHAIN_ID 8080
 
@@ -136,7 +167,21 @@ class SDKTestSuite : public Blockchain {
     int64_t estimateGas(const evmc_message& callInfo);
 
     /**
-     * Initialize all components of a full blockchain node.
+     * Helper for creating a test dump path.
+     * @param testDir Root path for the BDK instance (test directory root).
+     */
+    static std::string createTestDumpPath(const std::string& testDir) {
+      std::string testDumpPath = Utils::getTestDumpPath() + "/" + testDir;
+      if (std::filesystem::exists(testDumpPath)) {
+        std::filesystem::remove_all(testDumpPath);
+      }
+      std::filesystem::create_directories(testDumpPath);
+      GLOGDEBUG("Test dump path: " + testDumpPath);
+      return testDumpPath;
+    }
+
+    /**
+     * Create a SDKTestSuite object for testing.
      * @param sdkPath Path to the SDK folder.
      * @param accounts (optional) List of accounts to initialize the blockchain with. Defaults to none (empty vector).
      * @param options (optional) Options to initialize the blockchain with. Defaults to none (nullptr).
@@ -147,6 +192,42 @@ class SDKTestSuite : public Blockchain {
       const std::vector<TestAccount>& accounts = {},
       const Options* const options = nullptr,
       const std::string& instanceId = ""
+    );
+
+    /**
+     * Generate an array of node ports for a given number of test Comet nodes.
+     * @param numNodes Number of nodes to generate test ports for.
+     * @return Vector of requested CometTestPort objects.
+     */
+    static std::vector<CometTestPorts> generateCometTestPorts(int numNodes);
+
+    /**
+     * Get an Options object to test a single Comet instance, but considering the total
+     * number of instances that will be present in the test, as well as all their keys
+     * and network port numbers (contextual information required to generate the BDK
+     * options JSON for every peer, since every peer's config file needs to know about
+     * ALL of the peers).
+     * @param rootPath Root directory for the testcase.
+     * @param appHash Application state hash at genesis.
+     * @param p2pPort The CometBFT P2P local port number to use.
+     * @param rpcPort The CometBFT RPC local port number to use.
+     * @param keyNumber Index of validator key from the predefined test validator key set.
+     * @param numKeys Number of validator keys to include in the genesis spec.
+     * @param ports Vector of ports allocated by all peers (unused, if numKeys == 1).
+     * @param numNonValidators Number of peers that are not validators (excluded from the validator set).
+     * The non-validator peers, if any, are the last peers in the sequence (e.g. if numKeys == 10 and
+     * numNonValidators == 3, then key indices 0..6 are validators, but keys 7..9 are excluded from the
+     * validator set (but all 10 nodes are still fully connected to each other via persistent_peers).
+     * @return Options object set up for testing a Comet instance.
+     */
+    static Options getOptionsForTest(
+      const std::string rootPath,
+      const bool stepMode = false,
+      const std::string appHash = "",
+      int p2pPort = -1, int rpcPort = -1,
+      int keyNumber = 0, int numKeys = 1,
+      std::vector<CometTestPorts> ports = {},
+      int numNonValidators = 0
     );
 
     /**
@@ -902,7 +983,7 @@ class SDKTestSuite : public Blockchain {
       const uint64_t genesisTime, const std::string& chainId, const Bytes& initialAppState, const uint64_t initialHeight,
       const std::vector<CometValidatorUpdate>& initialValidators, Bytes& appHash
     ) override;
-    virtual void checkTx(const Bytes& tx, int64_t& gasWanted, bool& accept) override;
+    virtual void checkTx(const Bytes& tx, const bool recheck, int64_t& gasWanted, bool& accept) override;
     virtual void incomingBlock(
       const uint64_t syncingToHeight, std::unique_ptr<CometBlock> block, Bytes& appHash,
       std::vector<CometExecTxResult>& txResults, std::vector<CometValidatorUpdate>& validatorUpdates

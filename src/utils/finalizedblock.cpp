@@ -36,8 +36,10 @@ FinalizedBlock FinalizedBlock::fromCometBlock(const CometBlock& block) {
   std::vector<std::shared_ptr<TxBlock>> txs;
   uint64_t txCount = block.txs.size();
   for (uint64_t i = 0; i < txCount; i++) {
-    // NOTE: requiredChainId seems to be a discarded argument of the TxBlock ctor
-    txs.push_back(std::make_shared<TxBlock>(block.txs[i], requiredChainId));
+    // We can skip signature verification because fromCometBlock() is called from
+    // the FinalizedBlock ABCI callback. If the block is finalized, then all transactions
+    // have long been all checked for signature validity upstream.
+    txs.push_back(std::make_shared<TxBlock>(block.txs[i], requiredChainId, false));
   }
 
   // Same merkle root value as before cometbft integration
@@ -101,7 +103,9 @@ FinalizedBlock FinalizedBlock::fromRPC(const json& ret) {
         std::string txBase64 = tx.get<std::string>();
         Bytes txBytes = base64::decode_into<Bytes>(txBase64);
         // Create TxBlock object from tx Bytes
-        txs.push_back(std::make_shared<TxBlock>(txBytes, requiredChainId));
+        // We can skip signature verification because this is retrieving a finalized block
+        // from CometBFT node storage; signatures for all txs have been validated long ago.
+        txs.push_back(std::make_shared<TxBlock>(txBytes, requiredChainId, false));
       } else {
         throw DynamicException("Invalid block data");
       }

@@ -16,6 +16,8 @@ See the LICENSE.txt file in the project root for more information.
 #include "../utils/logger.h"
 #include "../utils/safehash.h"
 
+#include "typedefs.h"
+
 class Blockchain;
 class FinalizedBlock;
 
@@ -32,11 +34,22 @@ class State : public Log::LogicalLocationProvider {
     boost::unordered_flat_map<Address, std::unique_ptr<BaseContract>, SafeHash> contracts_; ///< Map with information about blockchain contracts (Address -> Contract).
     boost::unordered_flat_map<StorageKey, Hash, SafeHash> vmStorage_; ///< Map with the storage of the EVM.
     boost::unordered_flat_map<Address, NonNullUniquePtr<Account>, SafeHash> accounts_; ///< Map with information about blockchain accounts (Address -> Account).
+    MempoolModel mempoolModel_; ///< Mempool model that transparently tracks all transactions seen via validateTransactionInternal().
+
+    /**
+     * Helper that cleans up an entry from mempoolModel_.
+     */
+    void removeTxFromMempoolModel(const TxBlock& tx);
+
+    /**
+     * Helper that flags an entry in mempoolModel_ as ejected.
+     */
+    void ejectTxFromMempoolModel(const TxBlock& tx);
 
     /**
      * Doesn't acquire the state mutex.
      */
-    bool validateTransactionInternal(const TxBlock& tx) const;
+    bool validateTransactionInternal(const TxBlock& tx, bool affectsMempool, MempoolModel *mm = nullptr);
 
     /**
      * FIXME/TODO:
@@ -122,7 +135,7 @@ class State : public Log::LogicalLocationProvider {
      * @param block The block to validate.
      * @return `true` if the block is validated successfully, `false` otherwise.
      */
-    bool validateNextBlock(const FinalizedBlock& block) const;
+    bool validateNextBlock(const FinalizedBlock& block);
 
     /**
      * Apply a block to the current machine state (does NOT validate it first).
@@ -134,11 +147,21 @@ class State : public Log::LogicalLocationProvider {
     void processBlock(const FinalizedBlock& block, std::vector<bool>& succeeded, std::vector<uint64_t>& gasUsed);
 
     /**
-     * Verify if a transaction can be accepted within the current state.
+     * Verify if a transaction can be accepted within the current state and mempool model.
+     * If it is found to be valid, it will be added to the internal mempool model kept in RAM,
+     * which will allow subsequent transactions from the same account but with the next nonces
+     * in the account's nonce sequence to be found valid and included in the mempool as well.
+     * Invalid transactions will either cause the mempool model to remove them (if affectsMempool)
+     * or flag the tx entry in the mempool model as "ejected" (if !affectsMempool).
      * @param tx The transaction to verify.
+     * @param affectsMempool If `true`, this is being called from CometBFT's CheckTx, meaning
+     * the transaction will be evicted from the mempool if this method returns `false`. If `false`,
+     * this means this method is being called internally and won't affect the CometBFT mempool.
+     * @param mm Optional in/out param that, if set, causes validateTransaction() to operate
+     * with the given MempoolModel instead.
      * @return `true` if the transaction is valid, `false` otherwise.
      */
-    bool validateTransaction(const TxBlock& tx) const;
+    bool validateTransaction(const TxBlock& tx, bool affectsMempool, MempoolModel *mm = nullptr);
 
     // TODO: remember this function is for testing purposes only,
     // it should probably be removed at some point before definitive release.

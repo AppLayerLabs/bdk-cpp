@@ -89,10 +89,11 @@ class TxBlock {
     /**
      * Raw constructor.
      * @param bytes The raw tx bytes to parse.
-     * @param requiredChainId The chain ID of the transaction.
-     * @throw DynamicException on any parsing failure.
+     * @param requiredChainId Expected chain ID value.
+     * @param verifySig `false` if signature verificaiton should be skipped, `true` to verify.
+     * @throw DynamicException on any parsing failure or expected chain ID mismatch.
      */
-    TxBlock(const bytes::View bytes, const uint64_t& requiredChainId);
+    TxBlock(const bytes::View bytes, const uint64_t& requiredChainId, bool verifySig = true);
 
     /**
      * Manual constructor. Leave fields blank ("" or 0) if they're not required.

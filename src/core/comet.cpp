@@ -2034,7 +2034,7 @@ void CometImpl::workerLoopInner() {
 
     // --------------------------------------------------------------------------------------
     // Main loop.
-    // If there are queued requests, send them to the comet process.
+    // Dispatch async callbacks to the CometListener when Comet async calls are fulfilled.
 
     setState(CometState::RUNNING);
 
@@ -2329,7 +2329,8 @@ void CometImpl::process_proposal(const cometbft::abci::v1::ProcessProposalReques
 void CometImpl::check_tx(const cometbft::abci::v1::CheckTxRequest& req, cometbft::abci::v1::CheckTxResponse* res) {
   bool accept = false;
   int64_t gasWanted = -1;
-  listener_->checkTx(toBytes(req.tx()), gasWanted, accept);
+  const bool recheck = (req.type() == cometbft::abci::v1::CheckTxType::CHECK_TX_TYPE_RECHECK);
+  listener_->checkTx(toBytes(req.tx()), recheck, gasWanted, accept);
   int ret_code = 0;
   if (!accept) { ret_code = 1; }
   res->set_code(ret_code);
