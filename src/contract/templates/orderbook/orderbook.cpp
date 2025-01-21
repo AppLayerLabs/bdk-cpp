@@ -394,7 +394,8 @@ void OrderBook::delAskLimitOrder(const uint256_t& id)
   });
 }
 
-void OrderBook::addAskMarketOrder(const uint256_t& assetAmount)
+void OrderBook::addAskMarketOrder(const uint256_t& assetAmount,
+                                  const uint256_t& assetPrice)
 {
   // set asset balance
   uint256_t assetBalance = \
@@ -409,16 +410,17 @@ void OrderBook::addAskMarketOrder(const uint256_t& assetAmount)
   }
   this->transferToContract(this->addressAssetA_.get(), lotAmount);
   this->evaluateAskOrder(std::move(this->makeOrder(assetAmount,
-                                                   0,
+                                                   assetPrice,
                                                    OrderType::MARKET)));
   this->nextOrderID_++;
 }
 
-void OrderBook::addBidMarketOrder(const uint256_t& assetAmount)
+void OrderBook::addBidMarketOrder(const uint256_t& assetAmount,
+                                  const uint256_t& assetPrice)
 {
   // set asset balance
   uint256_t assetBalance = \
-    this->callContractViewFunction(this->addressAssetA_.get(),
+    this->callContractViewFunction(this->addressAssetB_.get(),
                                    &ERC20::balanceOf,
                                    this->getCaller());
   // convert tick amount
@@ -427,7 +429,10 @@ void OrderBook::addBidMarketOrder(const uint256_t& assetAmount)
   if (tickAmount > assetBalance) {
     throw std::runtime_error("OrderBook::addBidMarketOrder: INSUFFICIENT_BALANCE");
   }
-  this->evaluateBidOrder(std::move(this->makeOrder(assetAmount, 0, OrderType::MARKET)));
+  this->transferToContract(this->addressAssetB_.get(), tickAmount);
+  this->evaluateBidOrder(std::move(this->makeOrder(assetAmount,
+                                                   assetPrice,
+                                                   OrderType::MARKET)));
   this->nextOrderID_++;
 }
 
@@ -451,6 +456,16 @@ uint64_t OrderBook::getCurrentTimestamp() const
 {
   return std::chrono::duration_cast<std::chrono::milliseconds>
     (std::chrono::system_clock::now().time_since_epoch()).count();
+}
+
+Order OrderBook::getFirstBid() const
+{
+  return *(this->bids_.cbegin());
+}
+
+Order OrderBook::getFirstAsk() const
+{
+  return *(this->asks_.cbegin());
 }
 
 std::vector<Order> OrderBook::getBids() const
@@ -508,15 +523,17 @@ void OrderBook::registerContractFunctions()
   this->registerMemberFunction("getLotSize", &OrderBook::getLotSize, FunctionTypes::View, this);
   this->registerMemberFunction("getLastPrice", &OrderBook::getLastPrice, FunctionTypes::View, this);
   this->registerMemberFunction("getPrecision", &OrderBook::getPrecision, FunctionTypes::View, this);
-  this->registerMemberFunction("getBids", &OrderBook::getBids, FunctionTypes::View, this);
   this->registerMemberFunction("getAsks", &OrderBook::getAsks, FunctionTypes::View, this);
+  this->registerMemberFunction("getBids", &OrderBook::getBids, FunctionTypes::View, this);
+  this->registerMemberFunction("getFirstAsk", &OrderBook::getFirstAsk, FunctionTypes::View, this);
+  this->registerMemberFunction("getFirstBid", &OrderBook::getFirstBid, FunctionTypes::View, this);
   this->registerMemberFunction("getUserOrders", &OrderBook::getUserOrders, FunctionTypes::View, this);
   this->registerMemberFunction("addAskLimitOrder", &OrderBook::addAskLimitOrder, FunctionTypes::NonPayable, this);
   this->registerMemberFunction("addBidLimitOrder", &OrderBook::addBidLimitOrder, FunctionTypes::NonPayable, this);
   this->registerMemberFunction("delAskLimitOrder", &OrderBook::delAskLimitOrder, FunctionTypes::NonPayable, this);
   this->registerMemberFunction("delBidLimitOrder", &OrderBook::delBidLimitOrder, FunctionTypes::NonPayable, this);
-  this->registerMemberFunction("addAskMarketOrder", &OrderBook::addAskLimitOrder, FunctionTypes::NonPayable, this);
-  this->registerMemberFunction("addBidMarketOrder", &OrderBook::addAskLimitOrder, FunctionTypes::NonPayable, this);
+  this->registerMemberFunction("addAskMarketOrder", &OrderBook::addAskMarketOrder, FunctionTypes::NonPayable, this);
+  this->registerMemberFunction("addBidMarketOrder", &OrderBook::addBidMarketOrder, FunctionTypes::NonPayable, this);
 }
 
 DBBatch OrderBook::dump() const
