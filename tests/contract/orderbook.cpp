@@ -24,17 +24,17 @@ namespace TORDERBOOK {
       SDKTestSuite sdk = SDKTestSuite::createNewEnvironment(testDumpPath + "/testOrderBookCreation");
       REQUIRE(sdk.getState().getDumpManagerSize() == 3);
       Address askAddr = sdk.deployContract<ERC20>(std::string("A_Token"),
-                                                std::string("TST"),
-                                                uint8_t(18),
-                                                uint256_t("1000000000000000000"));
+                                                  std::string("TST"),
+                                                  uint8_t(18),
+                                                  uint256_t("1000000000000000000"));
       REQUIRE(sdk.getState().getDumpManagerSize() == 4);
       REQUIRE(sdk.callViewFunction(askAddr, &ERC20::name) == "A_Token");
       REQUIRE(sdk.callViewFunction(askAddr, &ERC20::decimals) > 8);
 
       Address bidAddr = sdk.deployContract<ERC20>(std::string("B_Token"),
-                                                std::string("TST"),
-                                                uint8_t(18),
-                                                uint256_t("1000000000000000000"));
+                                                  std::string("TST"),
+                                                  uint8_t(18),
+                                                  uint256_t("1000000000000000000"));
       REQUIRE(sdk.getState().getDumpManagerSize() == 5);
       REQUIRE(sdk.callViewFunction(bidAddr, &ERC20::name) == "B_Token");
 
@@ -65,10 +65,10 @@ namespace TORDERBOOK {
       sdk.callFunction(orderBook, &OrderBook::addBidLimitOrder, uint256_t("100"), uint256_t("10"));
       sdk.callFunction(orderBook, &OrderBook::addBidLimitOrder, uint256_t("100"), uint256_t("10"));
       sdk.callFunction(orderBook, &OrderBook::addBidLimitOrder, uint256_t("100"), uint256_t("10"));
-      // get bids
-      auto bids = sdk.callViewFunction(orderBook, &OrderBook::getBids);
+      // get bid
+      auto bid = sdk.callViewFunction(orderBook, &OrderBook::getFirstBid);
       // verify the number of bid orders
-      REQUIRE(bids.size() == 3);
+      REQUIRE(sdk.callViewFunction(orderBook, &OrderBook::getBids).size() == 3);
     }
 
     SECTION("Orderbook add ask limit order") {
@@ -192,6 +192,76 @@ namespace TORDERBOOK {
       sdk.callFunction(orderBook, &OrderBook::delAskLimitOrder, id);
       // verify the number of bid orders
       REQUIRE(sdk.callViewFunction(orderBook, &OrderBook::getAsks).size() == 0);
+    }
+
+    SECTION("Orderbook add market order") {
+      SDKTestSuite sdk = SDKTestSuite::createNewEnvironment(testDumpPath + "/testOrderBookCreation");
+      Address owner = sdk.getChainOwnerAccount().address;
+      Address askAddr = sdk.deployContract<ERC20>(std::string("A_Token"), std::string("TKN_A"), uint8_t(18), uint256_t("2000000000000000000"));
+      Address bidAddr = sdk.deployContract<ERC20>(std::string("B_Token"), std::string("TKN_B"), uint8_t(18), uint256_t("2000000000000000000"));
+      uint8_t decA = sdk.callViewFunction(askAddr, &ERC20::decimals);
+      uint8_t decB = sdk.callViewFunction(bidAddr, &ERC20::decimals);
+      // create the contract
+      Address orderBook = sdk.deployContract<OrderBook>(askAddr, std::string("A_Token"), decA,
+                                                        bidAddr, std::string("B_Token"), decB);
+      // approve orderbook to transfer the tokens
+      sdk.callFunction(askAddr, &ERC20::approve, orderBook, uint256_t("2000000000000000000"));
+      sdk.callFunction(bidAddr, &ERC20::approve, orderBook, uint256_t("2000000000000000000"));
+      // add ask market order
+      sdk.callFunction(orderBook, &OrderBook::addAskMarketOrder, uint256_t("100"), uint256_t("10"));
+      sdk.callFunction(orderBook, &OrderBook::addAskMarketOrder, uint256_t("100"), uint256_t("10"));
+      sdk.callFunction(orderBook, &OrderBook::addAskMarketOrder, uint256_t("100"), uint256_t("10"));
+      // get asks orders
+      auto asks = sdk.callViewFunction(orderBook, &OrderBook::getAsks);
+      // verify the number of ask orders
+      REQUIRE(asks.size() == 3);
+    }
+
+    SECTION("Orderbook add bid market order") {
+      SDKTestSuite sdk = SDKTestSuite::createNewEnvironment(testDumpPath + "/testOrderBookCreation");
+      Address owner = sdk.getChainOwnerAccount().address;
+      Address askAddr = sdk.deployContract<ERC20>(std::string("A_Token"), std::string("TKN_A"), uint8_t(18), uint256_t("2000000000000000000"));
+      Address bidAddr = sdk.deployContract<ERC20>(std::string("B_Token"), std::string("TKN_B"), uint8_t(18), uint256_t("2000000000000000000"));
+      uint8_t decA = sdk.callViewFunction(askAddr, &ERC20::decimals);
+      uint8_t decB = sdk.callViewFunction(bidAddr, &ERC20::decimals);
+      // create the contract
+      Address orderBook = sdk.deployContract<OrderBook>(askAddr, std::string("A_Token"), decA,
+                                                        bidAddr, std::string("B_Token"), decB);
+      // approve orderbook to transfer the tokens
+      sdk.callFunction(askAddr, &ERC20::approve, orderBook, uint256_t("2000000000000000000"));
+      sdk.callFunction(bidAddr, &ERC20::approve, orderBook, uint256_t("2000000000000000000"));
+      // add bid market order
+      sdk.callFunction(orderBook, &OrderBook::addBidMarketOrder, uint256_t("100"), uint256_t("10"));
+      sdk.callFunction(orderBook, &OrderBook::addBidMarketOrder, uint256_t("100"), uint256_t("10"));
+      sdk.callFunction(orderBook, &OrderBook::addBidMarketOrder, uint256_t("100"), uint256_t("10"));
+      // get bids orders
+      auto bids = sdk.callViewFunction(orderBook, &OrderBook::getBids);
+      // verify the number of bid orders
+      REQUIRE(bids.size() == 3);
+    }
+
+    SECTION("Orderbook add ask and bid market order to match a transaction") {
+      SDKTestSuite sdk = SDKTestSuite::createNewEnvironment(testDumpPath + "/testOrderBookCreation");
+      Address owner = sdk.getChainOwnerAccount().address;
+      Address askAddr = sdk.deployContract<ERC20>(std::string("A_Token"), std::string("TKN_A"), uint8_t(18), uint256_t("2000000000000000000"));
+      Address bidAddr = sdk.deployContract<ERC20>(std::string("B_Token"), std::string("TKN_B"), uint8_t(18), uint256_t("2000000000000000000"));
+      uint8_t decA = sdk.callViewFunction(askAddr, &ERC20::decimals);
+      uint8_t decB = sdk.callViewFunction(bidAddr, &ERC20::decimals);
+      // create the contract
+      Address orderBook = sdk.deployContract<OrderBook>(askAddr, std::string("A_Token"), decA,
+                                                        bidAddr, std::string("B_Token"), decB);
+      // approve orderbook to transfer the tokens
+      sdk.callFunction(askAddr, &ERC20::approve, orderBook, uint256_t("2000000000000000000"));
+      sdk.callFunction(bidAddr, &ERC20::approve, orderBook, uint256_t("2000000000000000000"));
+      // add bid order
+      sdk.callFunction(orderBook, &OrderBook::addAskMarketOrder, uint256_t("100"), uint256_t("20"));
+      sdk.callFunction(orderBook, &OrderBook::addBidMarketOrder, uint256_t("100"), uint256_t("10"));
+      // get asks and bids
+      auto asks = sdk.callViewFunction(orderBook, &OrderBook::getAsks);
+      auto bids = sdk.callViewFunction(orderBook, &OrderBook::getBids);
+      // verify the number of bid orders
+      REQUIRE(asks.size() == 0);
+      REQUIRE(bids.size() == 0);
     }
   }
 }
