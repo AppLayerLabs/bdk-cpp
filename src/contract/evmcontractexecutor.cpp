@@ -159,7 +159,9 @@ Address EvmContractExecutor::execute(EncodedCreateMessage& msg) {
   auto account = context_.getAccount(msg.from());
   const Address contractAddress = generateContractAddress(account.getNonce(), msg.from());
   createContractImpl(msg, context_, contractAddress, vm_, *this, ++depth_);
-  account.setNonce(account.getNonce() + 1);
+  if (account.getContractType() != ContractType::NOT_A_CONTRACT) {
+    account.setNonce(account.getNonce() + 1);
+  }
   return contractAddress;
 }
 

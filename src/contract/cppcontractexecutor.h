@@ -96,12 +96,10 @@ private:
   Address createContract(concepts::CreateMessage auto&& msg) {
     msg.gas().use(CPP_CONTRACT_CREATION_COST);
 
-    using ContractType = traits::MessageContract<decltype(msg)>;
-
     const std::string createSignature = "createNew"
-      + Utils::getRealTypeName<ContractType>()
+      + Utils::getRealTypeName<traits::MessageContract<decltype(msg)>>()
       + "Contract("
-      + ContractReflectionInterface::getConstructorArgumentTypesString<ContractType>()
+      + ContractReflectionInterface::getConstructorArgumentTypesString<traits::MessageContract<decltype(msg)>>()
       + ")";
 
     // We only need the first 4 bytes for the function signature
@@ -146,7 +144,9 @@ private:
     auto account = context_.getAccount(msg.from());
     const Address contractAddress = generateContractAddress(account.getNonce(), msg.from());
     contract.ethCall(evmcMsg, &host_);
-    account.setNonce(account.getNonce() + 1);
+    if (account.getContractType() != ContractType::NOT_A_CONTRACT) {
+      account.setNonce(account.getNonce() + 1);
+    }
 
     return contractAddress;
   }
