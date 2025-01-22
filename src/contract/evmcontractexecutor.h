@@ -12,11 +12,11 @@
 class EvmContractExecutor : public evmc::Host {
 public:
   EvmContractExecutor(
-    AnyEncodedMessageHandler messageHandler, ExecutionContext& context, evmc_vm *vm)
-      : messageHandler_(messageHandler), context_(context), vm_(vm), transientStorage_(), depth_(0) {}
+    AnyEncodedMessageHandler messageHandler, ExecutionContext& context, evmc_vm *vm, IndexingMode indexingMode)
+      : messageHandler_(messageHandler), context_(context), vm_(vm), transientStorage_(), depth_(0), indexingMode_(indexingMode) {}
 
-  EvmContractExecutor(ExecutionContext& context, evmc_vm *vm)
-      : context_(context), vm_(vm), transientStorage_(), depth_(0) {}
+  EvmContractExecutor(ExecutionContext& context, evmc_vm *vm, IndexingMode indexingMode)
+      : context_(context), vm_(vm), transientStorage_(), depth_(0), indexingMode_(indexingMode) {}
 
   void setMessageHandler(AnyEncodedMessageHandler messageHandler) { messageHandler_ = messageHandler; }
 
@@ -93,6 +93,7 @@ private:
   ExecutionContext& context_;
   evmc_vm *vm_;
   boost::unordered_flat_map<StorageKey, Hash, SafeHash, SafeCompare> transientStorage_;
+  IndexingMode indexingMode_;
   uint64_t depth_;
 };
 

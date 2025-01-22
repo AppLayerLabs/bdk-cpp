@@ -256,6 +256,10 @@ evmc::bytes32 EvmContractExecutor::get_block_hash(int64_t number) const noexcept
 }
 
 void EvmContractExecutor::emit_log(const evmc::address& addr, const uint8_t* data, size_t dataSize, const evmc::bytes32 topics[], size_t topicsCount) noexcept {
+  if (indexingMode_ != IndexingMode::RPC_TRACE) {
+    return;
+  }
+
   try {
     // We need the following arguments to build a event:
     // (std::string) name The event's name.

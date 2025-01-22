@@ -60,7 +60,7 @@ class ContractHost {
     storage_(storage),
     stack_(),
     context_(context),
-    messageHandler_(MessageDispatcher(context_, CppContractExecutor(context_, *this), EvmContractExecutor(context_, vm), PrecompiledContractExecutor(RandomGen(randomnessSeed))), storage.getIndexingMode()) {
+    messageHandler_(MessageDispatcher(context_, CppContractExecutor(context_, *this), EvmContractExecutor(context_, vm, storage.getIndexingMode()), PrecompiledContractExecutor(RandomGen(randomnessSeed))), storage.getIndexingMode()) {
       messageHandler_.handler().evmExecutor().setMessageHandler(AnyEncodedMessageHandler::from(messageHandler_)); // TODO: is this really required?
     }
 
@@ -208,7 +208,9 @@ class ContractHost {
       const std::tuple<EventParam<Args, Flags>...>& args,
       bool anonymous
     ) {
-      context_.addEvent(name, contract, args, anonymous);
+      if (storage_.getIndexingMode() == IndexingMode::RPC_TRACE) {
+        context_.addEvent(name, contract, args, anonymous);
+      }
     }
 
     ExecutionContext& context() { return context_; }
