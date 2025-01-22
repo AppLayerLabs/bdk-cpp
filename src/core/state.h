@@ -42,9 +42,9 @@ class State : public Log::LogicalLocationProvider {
     void removeTxFromMempoolModel(const TxBlock& tx);
 
     /**
-     * Helper that flags an entry in mempoolModel_ as ejected.
+     * Helper that cleans up an entry from mempoolModel_ (faster).
      */
-    void ejectTxFromMempoolModel(const TxBlock& tx);
+    void removeTxFromMempoolModel(const TxBlock& tx, MempoolModelIt& fromIt, MempoolModelNonceIt& nonceIt, MempoolModelHashIt& hashIt);
 
     /**
      * Doesn't acquire the state mutex.
@@ -103,11 +103,19 @@ class State : public Log::LogicalLocationProvider {
     // STATE FUNCTIONS
     // ----------------------------------------------------------------------
 
+    /**
+     * Get the blockchain block height currently reflected by this machine state.
+     * @return The current machine logical time (block height); 0 if genesis.
+     */
     uint64_t getHeight() const {
       std::shared_lock<std::shared_mutex> lock(stateMutex_);
       return height_;
     }
 
+    /**
+     * Get the current wall-clock time associated with the machine state.
+     * @return A microseconds timestamp (of the last processed block, or genesis timestamp).
+     */
     uint64_t getTimeMicros() const {
       std::shared_lock<std::shared_mutex> lock(stateMutex_);
       return timeMicros_;
@@ -126,6 +134,21 @@ class State : public Log::LogicalLocationProvider {
      * @return The native account nonce of the given address.
      */
     uint64_t getNativeNonce(const Address& addr) const;
+
+    /**
+     * Add uint256_t("1000000000000000000000") (1,000 eth) tokens to an account.
+     * Unit testing helper only; do NOT expose e.g. via RPC, not even for testing.
+     * @param addr The account address to fund.
+     */
+    void addBalance(const Address& addr);
+
+    /**
+     * Set the balance of an account.
+     * Unit testing helper only; do NOT expose e.g. via RPC, not even for testing.
+     * @param addr The account address that will have its balance modified.
+     * @param balance The new balance of the account.
+     */
+    void setBalance(const Address& addr, const uint256_t& balance);
 
     /**
      * Validate the next block given the current state and its transactions.
@@ -162,19 +185,6 @@ class State : public Log::LogicalLocationProvider {
      * @return `true` if the transaction is valid, `false` otherwise.
      */
     bool validateTransaction(const TxBlock& tx, bool affectsMempool, MempoolModel *mm = nullptr);
-
-    // TODO: remember this function is for testing purposes only,
-    // it should probably be removed at some point before definitive release.
-    /**
-     * Add balance to a given account.
-     * Used through HTTP RPC to add balance to a given address
-     * NOTE: ONLY TO BE USED WITHIN THE TESTNET OF A GIVEN CHAIN.
-     * THIS FUNCTION ALLOWS ANYONE TO GIVE THEMSELVES NATIVE TOKENS.
-     * IF CALLING THIS FUNCTION WITHIN A MULTI-NODE NETWORK, YOU HAVE TO CALL
-     * IT ON ALL NODES IN ORDER TO BE VALID.
-     * @param addr The address to add balance to.
-     */
-    void addBalance(const Address& addr);
 
     /**
      * Simulate an `eth_call` to a contract.

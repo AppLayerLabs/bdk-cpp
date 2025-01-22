@@ -25,4 +25,27 @@ using MempoolModel =
     >
   , SafeHash>;
 
+using MempoolModelIt = MempoolModel::iterator;
+
+using MempoolModelNonceIt =
+  std::map<
+    uint64_t,
+    std::unordered_map<
+      Hash,
+      std::pair<
+        uint256_t,
+        bool>
+      , SafeHash>
+  , SafeHash>::iterator;
+
+using MempoolModelHashIt =
+  std::unordered_map<
+    Hash,
+    std::pair<
+      uint256_t,
+      bool
+    >
+  , SafeHash>::iterator;
+
+
 #endif // _CORE_H_

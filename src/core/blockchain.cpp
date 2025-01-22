@@ -573,15 +573,10 @@ void Blockchain::buildBlockProposal(
   // Add transactions to the block proposal outparam (txIds)
   MempoolModel mm; // Blank mempool model (see comment in Blockchain::validateBlockProposal() below)
   txIds.clear();
-  txIds.reserve(block.txs.size());
   size_t totalBytes = 0;
   for (const auto& [account, nonceMap] : accountToNonces) {
     // Iterate over all nonces mentioned in txs with same from account, in ascending order.
     for (const auto& [nonce, txVec] : nonceMap) {
-      // We break; here on any errors to simplify: we just stop adding transactions for the given account.
-      // We could e.g. scan for the second-most expensive transaction with the same nonce and so on, but
-      // that's probably overkill. We can just try again for this account on the next block.
-
       // Should never happen, but let's ensure.
       if (txVec.empty()) {
         break;
@@ -618,8 +613,11 @@ void Blockchain::buildBlockProposal(
       //   txs from the real mempool model, never from the custom temporary mm (as it would
       //   make zero sense to do maintenance in a throwaway, temporary mempool model anyways).
       if (!state_.validateTransaction(parsedTx, false, &mm)) {
-        // Skip txs that fail the tx validity check.
-        break;
+        // LOGXTRACE("tx " + parsedTx.hash().hex().get() + " for account is invalid, continuing to next nonce");
+        // Skip txs that are invalid for whatever reason.
+        // We need to continue; here instead of break; mostly because testing becomes a pain otherwise.
+        // We could also break; and skip whatever the entire account is attempting on this block.
+        continue;
       }
       // Check maxTxBytes limit
       const size_t thisTxSize = block.txs[bestTxIndex].size();

@@ -73,34 +73,42 @@ namespace TBlockchain {
 
       Blockchain blockchain(options, testDumpPath);
 
-      // For this test, we will fool Blockchain/State and just inject
-      //  some TxBlock and FinalizedBlock objects we create here, which
-      //  is faster, doesn't involve networking, and allows us greater
-      //  control of what's going on.
+      // For this test, we will not do blockchain start() and stop().
+      // Instead, we will just fool Blockchain/State and inject some
+      //  TxBlock and FinalizedBlock objects we create here, which is
+      //  faster, doesn't involve networking, and allows better control.
       // We can write a networked test as well which takes transactions
       //  via the BDK RPC or the CometBFT RPC port (blockchain.comet().rpcSyncCall('tx',... )
       //  but the BDK RPC will validate the tx and prevent us from sending invalid txs to
       //  the mempool.
 
-      // next block:
+      // give lots of tokens to account A
+      // tx A --> AA nonce 0 X token
+      // tx A --> AA nonce 1 X token
+      // tx A --> AA nonce 2 X token
+      // tx A --> AA nonce 3 X token
+      // verify all included in block, balance of AA is now 4*X token
 
-      // give infinite money to account A
-      // tx A --> AA nonce 0 10 token
-      // tx A --> AA nonce 1 10 token
-      // tx A --> AA nonce 2 10 token
-      // tx A --> AA nonce 3 10 token
-      // verify all included in block, balance of AA is now 40 token
+      TestAccount accValidator = TestAccount::newRandomAccount();
+
+      // Here we have to create the CometBFT address that corresponds to the Eth address that we want the coinbase to be set to.
+      // Unfortunately this has to be valid otherwise the coinbase processing step in State::processBlock() will blow up.
+      Bytes accValidatorPubKeyBytes = Secp256k1::toPub(accValidator.privKey).asBytes();
+      blockchain.setValidators({{accValidatorPubKeyBytes, 10}}); // second arg is voting power (irrelevant)
+      Bytes accValidatorCometAddress = Comet::getCometAddressFromPubKey(accValidatorPubKeyBytes);
 
       TestAccount accA = TestAccount::newRandomAccount();
-
-      // We need to inject a fake comet validator whose key will be the coinbase.
-      Bytes accApubKeyBytes = Secp256k1::toPub(accA.privKey).asBytes();
-      blockchain.setValidators({{accApubKeyBytes, 10}}); // second arg is voting power (irrelevant)
-      Bytes accAcometAddress = Comet::getCometAddressFromPubKey(accApubKeyBytes);
-
       TestAccount accAA = TestAccount::newRandomAccount();
 
-      blockchain.state().addBalance(accA.address);
+      blockchain.state().addBalance(accA.address); // +1,000 eth
+      blockchain.state().addBalance(accAA.address); // +1,000 eth
+
+      uint256_t accAbal0 = blockchain.state().getNativeBalance(accA.address);
+      uint256_t accAAbal0 = blockchain.state().getNativeBalance(accAA.address);
+      GLOGDEBUG("TEST: accA starting balance: " + accAbal0.str());
+      GLOGDEBUG("TEST: accAA starting balance: " + accAAbal0.str());
+      REQUIRE(accAbal0 == uint256_t("1000000000000000000000"));
+      REQUIRE(accAAbal0 == uint256_t("1000000000000000000000"));
 
       TxBlock tx_A_AA_0 (
         accAA.address, // to
@@ -159,14 +167,11 @@ namespace TBlockchain {
       REQUIRE(blockchain.state().validateTransaction(tx_A_AA_2, true) == true);
       REQUIRE(blockchain.state().validateTransaction(tx_A_AA_3, true) == true);
 
-      // Fake an ABCI block here
+      // Fake an ABCI block here with the transactions
       CometBlock cometBlock;
       cometBlock.height = 1;
-      cometBlock.timeNanos = 0;
-      // Here we have to create the CometBFT address that corresponds to the Eth address that we want the coinbase to be set to.
-      // Unfortunately this has to be valid otherwise the coinbase set step will blow up.
-      cometBlock.proposerAddr = accAcometAddress;
-      // Put our transactions in there
+      cometBlock.timeNanos = 1;
+      cometBlock.proposerAddr = accValidatorCometAddress;
       cometBlock.txs.push_back(tx_A_AA_0.rlpSerialize(true));
       cometBlock.txs.push_back(tx_A_AA_1.rlpSerialize(true));
       cometBlock.txs.push_back(tx_A_AA_2.rlpSerialize(true));
@@ -174,126 +179,237 @@ namespace TBlockchain {
       cometBlock.hash.resize(32); // The block hash can be whatever, it's not checked.
       cometBlock.prevHash.resize(32); // The prev block hash can be whatever, it's not checked.
 
+      // Create a BDK FinalizedBlock from the fake ABCI block and send it to the machine state
       std::vector<bool> succeeded;
       std::vector<uint64_t> gasUsed;
-      FinalizedBlock finBlock = FinalizedBlock::fromCometBlock(cometBlock);
-      blockchain.state().processBlock(finBlock, succeeded, gasUsed);
+      FinalizedBlock finBlock1 = FinalizedBlock::fromCometBlock(cometBlock);
+      blockchain.state().processBlock(finBlock1, succeeded, gasUsed);
 
       REQUIRE(succeeded.size() == 4);
       REQUIRE(succeeded[0] == true);
       REQUIRE(succeeded[1] == true);
       REQUIRE(succeeded[2] == true);
       REQUIRE(succeeded[3] == true);
+      REQUIRE(gasUsed[0] == 21000);
+      REQUIRE(gasUsed[1] == 21000);
+      REQUIRE(gasUsed[2] == 21000);
+      REQUIRE(gasUsed[3] == 21000);
 
-      // FIXME/TODO: check that the account balance of accAA is the expected one.
+      uint256_t accNonce1 = blockchain.state().getNativeNonce(accA.address);
+      REQUIRE(accNonce1 == 4);
 
-      // ***********************************
-      // FIXME/TODO: expand this test:
-      // ***********************************
+      uint256_t accAbal1 = blockchain.state().getNativeBalance(accA.address);
+      uint256_t accAAbal1 = blockchain.state().getNativeBalance(accAA.address);
+      GLOGDEBUG("TEST: accA block 1 balance: " + accAbal1.str());
+      GLOGDEBUG("TEST: accAA block 1 balance: " + accAAbal1.str());
+      REQUIRE(accAbal1 == uint256_t("995999916000000000000")); // REVIEW: 21 * 4 = 84; 100 - 84 = 16 (21K * 1M = gasPrice for each tx)
+      REQUIRE(accAAbal1 == uint256_t("1004000000000000000000"));
 
-      // For the next test, we will go even deeper and pretend we are the ABCI, and call
+      // For the next tests, we will go even deeper and pretend we are the ABCI, and call
       // Blockchain::buildBlockProposal directly with a bunch of weird transactions.
       // This is easier than torturing CometBFT to stuff "bad" transactions in the mempool
       // (which would require us to actually bypass checks that are in the Blockchain class)
       // Afterwards, we manually check for what the block builder did.
 
+      // Test nonce in past, nonce in future OK, and nonce in future with a hole (fails)
+
       // Build the transactions
 
-      // Fake CheckTx calls (not really necessary, but mimics what would happen more closely)
+      TxBlock tx_A_AA_3_PastNonce (
+        accAA.address, // to
+        accA.address, // from
+        Bytes(), // data
+        options.getChainID(), // chainId
+        3, // nonce
+        1000000000000000000, // value
+        21000, // maxPriorityFeePerGas
+        1000000000, // maxFeePerGas
+        1000000000, // gasLimit
+        accA.privKey // privKey
+      );
 
+      TxBlock tx_A_AA_4_PresentNonce (
+        accAA.address, // to
+        accA.address, // from
+        Bytes(), // data
+        options.getChainID(), // chainId
+        4, // nonce
+        1000000000000000000, // value
+        21000, // maxPriorityFeePerGas
+        1000000000, // maxFeePerGas
+        1000000000, // gasLimit
+        accA.privKey // privKey
+      );
+
+      TxBlock tx_A_AA_5_FutureNonce (
+        accAA.address, // to
+        accA.address, // from
+        Bytes(), // data
+        options.getChainID(), // chainId
+        5, // nonce
+        1000000000000000000, // value
+        21000, // maxPriorityFeePerGas
+        1000000000, // maxFeePerGas
+        1000000000, // gasLimit
+        accA.privKey // privKey
+      );
+
+      TxBlock tx_A_AA_6_TooExpensive (
+        accAA.address, // to
+        accA.address, // from
+        Bytes(), // data
+        options.getChainID(), // chainId
+        6, // nonce
+        uint256_t("10000000000000000000000"), // value 10,000 eth: can't pay so will reject
+        21000, // maxPriorityFeePerGas
+        1000000000, // maxFeePerGas
+        1000000000, // gasLimit
+        accA.privKey // privKey
+      );
+
+      // Nonce 6 is missing because the tx with nonce 6 is too expensive so it was never added to the mempool
+      TxBlock tx_A_AA_7_MissingNonce6 (
+        accAA.address, // to
+        accA.address, // from
+        Bytes(), // data
+        options.getChainID(), // chainId
+        7, // nonce
+        1000000000000000000, // value
+        21000, // maxPriorityFeePerGas
+        1000000000, // maxFeePerGas
+        1000000000, // gasLimit
+        accA.privKey // privKey
+      );
+
+      // Fake CheckTx calls (not really necessary, but mimics what would happen more closely)
+      REQUIRE(blockchain.state().validateTransaction(tx_A_AA_3_PastNonce, true) == false); // expected to fail
+      REQUIRE(blockchain.state().validateTransaction(tx_A_AA_4_PresentNonce, true) == true);
+      REQUIRE(blockchain.state().validateTransaction(tx_A_AA_5_FutureNonce, true) == true);
+      REQUIRE(blockchain.state().validateTransaction(tx_A_AA_6_TooExpensive, true) == false); // expected to fail
+      REQUIRE(blockchain.state().validateTransaction(tx_A_AA_7_MissingNonce6, true) == false); // expected to fail
+
+      // Create a more profitable alternative for nonce 4
+      TxBlock tx_A_AA_4_PresentNonce_MoreProfitable (
+        accAA.address, // to
+        accA.address, // from
+        Bytes(), // data
+        options.getChainID(), // chainId
+        4, // nonce
+        100000000000000000, // value (10x smaller than value of tx_A_AA_4_PresentNonce)
+        21000, // maxPriorityFeePerGas
+        2000000000, // maxFeePerGas
+        2000000000, // gasLimit
+        accA.privKey // privKey
+      );
+      REQUIRE(blockchain.state().validateTransaction(tx_A_AA_4_PresentNonce_MoreProfitable, true) == true);
 
       // Fake the CometBlock that is the pre-proposal (just stuff all the txs there)
+      cometBlock.height = 2;
+      cometBlock.timeNanos = 2;
+      cometBlock.txs.clear();
+      cometBlock.txs.push_back(tx_A_AA_3_PastNonce.rlpSerialize(true)); // should be excluded by block builder
+      cometBlock.txs.push_back(tx_A_AA_4_PresentNonce.rlpSerialize(true)); // should be excluded by block builder
+      cometBlock.txs.push_back(tx_A_AA_4_PresentNonce_MoreProfitable.rlpSerialize(true));
+      cometBlock.txs.push_back(tx_A_AA_5_FutureNonce.rlpSerialize(true));
+      cometBlock.txs.push_back(tx_A_AA_7_MissingNonce6.rlpSerialize(true)); // should be excluded by block builder
 
       // Call buildBlockProposal
+      GLOGDEBUG("TEST: calling buildBlockProposal");
+      bool noChange;
+      std::vector<size_t> txIds;
+      blockchain.buildBlockProposal(100'000'000, cometBlock, noChange, txIds);
+      for (const size_t txId : txIds) {
+        GLOGDEBUG("TEST: proposal has included txId: " + std::to_string(txId));
+      }
+      REQUIRE(txIds.size() == 2);
+      REQUIRE(txIds[0] == 2); // tx_A_AA_4_PresentNonce_MoreProfitable
+      REQUIRE(txIds[1] == 3); // tx_A_AA_5_FutureNonce
 
-      // Check the returned (filtered) proposal, check that it is what we expect
+      // Fix the block according to the block builder
+      std::vector<Bytes> newTxs;
+      for (const size_t txId : txIds) {
+        newTxs.push_back(cometBlock.txs[txId]);
+      }
+      cometBlock.txs = newTxs;
+      REQUIRE(cometBlock.txs.size() == 2);
 
-      // Fake the ABCI block and send it to processBlock() for good measure.
-
+      // Send it to processBlock() for good measure.
+      succeeded.clear();
+      gasUsed.clear();
+      FinalizedBlock finBlock2 = FinalizedBlock::fromCometBlock(cometBlock);
+      blockchain.state().processBlock(finBlock2, succeeded, gasUsed);
 
       // Check that the transactions picked by the block builder each have the expected outcome.
+      uint256_t accAbal2 = blockchain.state().getNativeBalance(accA.address);
+      uint256_t accAAbal2 = blockchain.state().getNativeBalance(accAA.address);
+      GLOGDEBUG("TEST: accA block 2 balance: " + accAbal2.str());
+      GLOGDEBUG("TEST: accAA block 2 balance: " + accAAbal2.str());
+      REQUIRE(accAbal2 == uint256_t("994899853000000000000"));
+      REQUIRE(accAAbal2 == uint256_t("1005100000000000000000"));
 
+      // Test eject tx from memory model then build a nonce sequence that depends on it.
 
-      // ADD MORE TESTS
-      // - REPEAT NONCE, PICK UP THE GREATEST **FEE** NOT COST
-      // - NONCE IN PAST
-      // - NONCES IN FUTURE (WITH A HOLE)
-      // - HOLE BECAUSE TX TOO EXPENSIVE IN THE MIDDLE
-      // FIXME TODO
+      // Massively expensive tx
+      TxBlock tx_A_AA_6 (
+        accAA.address, // to
+        accA.address, // from
+        Bytes(), // data
+        options.getChainID(), // chainId
+        6, // nonce
+        uint256_t("900000000000000000000"), // value is 900 ETH, account A has 994.89... ETH right now
+        21000, // maxPriorityFeePerGas
+        1000000000, // maxFeePerGas
+        1000000000, // gasLimit
+        accA.privKey // privKey
+      );
 
+      // Regular tx
+      TxBlock tx_A_AA_7 (
+        accAA.address, // to
+        accA.address, // from
+        Bytes(), // data
+        options.getChainID(), // chainId
+        7, // nonce
+        1000000000000000000, // value
+        21000, // maxPriorityFeePerGas
+        1000000000, // maxFeePerGas
+        1000000000, // gasLimit
+        accA.privKey // privKey
+      );
 
-      // next block:
+      // For now, we can afford both, emulate CheckTx
+      REQUIRE(blockchain.state().validateTransaction(tx_A_AA_6, true) == true);
+      REQUIRE(blockchain.state().validateTransaction(tx_A_AA_7, true) == true);
 
-      // tx A --> AA nonce 4 20 token , but small gas limit
-      // tx A --> AA nonce 4 10 token , but large gas limit
-      // verify only second tx is included (no repeat nonce in block) and balance of AA is now 50 token
+      // Take 900 ETH out of A, so now it can't afford tx 6, though it can afford tx 7
+      uint256_t preHackBalance = accAbal2;
+      uint256_t hackedBalance = accAbal2 - uint256_t("900000000000000000000");
+      blockchain.state().setBalance(accA.address, hackedBalance); // -900 eth
+      uint256_t accAbal2hacked = blockchain.state().getNativeBalance(accA.address);
+      GLOGDEBUG("TEST: accA block 2 balance (after -900 eth hack): " + accAbal2hacked.str());
+      REQUIRE(accAbal2hacked == uint256_t("94899853000000000000"));
 
-      // next block:
+      // Do a recheck for tx 6, but turn off affectsMempool so it fill flag it as
+      //   ejected in the State's mempoolModel_ instead of just removing it.
+      GLOGDEBUG("TEST: forcing flag tx nonce=6 as ejected in the State's mempool model due to insufficient balance");
+      REQUIRE(blockchain.state().validateTransaction(tx_A_AA_6, false) == false);
 
-      // tx A --> AA nonce 3 10 token
-      // tx A --> AA nonce 5 10 token
-      // tx A --> AA nonce 6 10 token
-      // tx A --> AA nonce 8 10 token
-      // tx A --> AA nonce 9 10 token
-      // verify only nonce 5 and nonce 6 txs go in the block, the other txs are dropped eventually
-      // we need to be able to lie to CometBFT and get txs injected in the mempool directly
-      // call comet() send transaction with bad nonces 3, 8, 9, it will go through because it's
-      //  not going via the BDK RPC which does check the TxBlock
+      // Give the money back to A, so now it can afford tx 6 again.
+      // But it should no longer matter, as tx 6 has already been ejected from the mempool
+      //   according to the State's mempool model.
+      GLOGDEBUG("TEST: restoring accA block 2 balance");
+      blockchain.state().setBalance(accA.address, preHackBalance); // +900 eth
 
-      //blockchain.stop();
+      // Now send both txs to the block builder, both should be excluded
+      cometBlock.height = 2;
+      cometBlock.timeNanos = 2;
+      cometBlock.txs.clear();
+      cometBlock.txs.push_back(tx_A_AA_6.rlpSerialize(true)); // should be excluded by block builder: flagged as ejected
+      cometBlock.txs.push_back(tx_A_AA_7.rlpSerialize(true)); // should be excluded by block builder: nonce path deleted
+      txIds.clear();
+      blockchain.buildBlockProposal(100'000'000, cometBlock, noChange, txIds);
+      REQUIRE(txIds.size() == 0);
     }
-
-    /*
-      // Reference for HTTP/RPC request code
-      // FIXME/TODO: write tests with something like this and remove
-
-
-      PrivKey privKey(Hex::toBytes("0xe89ef6409c467285bcae9f80ab1cfeb3487cfe61ab28fb7d36443e1daa0c2867"));
-      Address me = Secp256k1::toAddress(Secp256k1::toUPub(privKey));
-      Address targetOfTransactions = Address(Utils::randBytes(20));
-      uint256_t targetBalance = 0;
-      uint256_t myBalance("1000000000000000000000");
-
-        (...)
-
-        uint64_t blocks = 0;
-        while (blocks < 10) {
-          TxBlock tx(
-              targetOfTransactions,
-              me,
-              Bytes(),
-              8080,
-              blockchainValidator1->getState()->getNativeNonce(me),
-              1000000000000000000,
-              21000,
-              1000000000,
-              1000000000,
-              privKey
-          );
-
-          (...)
-
-          myBalance -= tx.getValue() + (tx.getMaxFeePerGas() * tx.getGasLimit());
-          targetBalance += tx.getValue();
-          /// Send the transactions through HTTP
-          auto sendRawTxJson = json({
-                                    {"jsonrpc", "2.0"},
-                                    {"id", 1},
-                                    {"method", "eth_sendRawTransaction"},
-                                    {"params", json::array({Hex::fromBytes(tx.rlpSerialize(), true).forRPC()})}});
-
-          /// Send the transaction to the first validator.
-          auto sendRawTxResponse = json::parse(makeHTTPRequest(sendRawTxJson.dump(),
-                                               "127.0.0.1",
-                                               std::to_string(8101),
-                                               "/",
-                                               "POST",
-                                               "application/json"));
-
-
-          REQUIRE(sendRawTxResponse["result"].get<std::string>() == tx.hash().hex(true).get());
-
-  */
   }
 }
 

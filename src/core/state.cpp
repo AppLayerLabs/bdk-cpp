@@ -116,6 +116,11 @@ void State::addBalance(const Address& addr) {
   this->accounts_[addr]->balance += uint256_t("1000000000000000000000");
 }
 
+void State::setBalance(const Address& addr, const uint256_t& balance) {
+  std::unique_lock lock(this->stateMutex_);
+  this->accounts_[addr]->balance = balance;
+}
+
 Bytes State::ethCall(const evmc_message& callInfo) {
   // We actually need to lock uniquely here
   // As the contract host will modify (reverting in the end) the state.
@@ -230,9 +235,6 @@ bool State::validateTransaction(const TxBlock& tx, bool affectsMempool, MempoolM
 void State::removeTxFromMempoolModel(const TxBlock& tx) {
   // ALWAYS operates on mempoolModel_, irrespective of whether validateTransactionInternal()
   // is called with a custom/temporary mempool model.
-  // REVIEW: Here we could reuse iterators from the caller in case validateTransactionInternal()
-  // is operating on mempoolModel_, which would be slightly faster, but just repeating the lookup
-  // is simpler and safer.
   auto fromIt = mempoolModel_.find(tx.getFrom());
   if (fromIt == mempoolModel_.end()) {
     return;
@@ -244,7 +246,7 @@ void State::removeTxFromMempoolModel(const TxBlock& tx) {
     return;
   }
   auto& hashMap = nonceIt->second;
-  auto hashIt   = hashMap.find(tx.hash());
+  auto hashIt = hashMap.find(tx.hash());
   if (hashIt != hashMap.end()) {
     hashMap.erase(hashIt);
   }
@@ -256,31 +258,18 @@ void State::removeTxFromMempoolModel(const TxBlock& tx) {
   }
 }
 
-void State::ejectTxFromMempoolModel(const TxBlock& tx) {
+void State::removeTxFromMempoolModel(const TxBlock& tx, MempoolModelIt& fromIt, MempoolModelNonceIt& nonceIt, MempoolModelHashIt& hashIt) {
   // ALWAYS operates on mempoolModel_, irrespective of whether validateTransactionInternal()
   // is called with a custom/temporary mempool model.
-  // REVIEW: Here we could reuse iterators from the caller in case validateTransactionInternal()
-  // is operating on mempoolModel_, which would be slightly faster, but just repeating the lookup
-  // is simpler and safer.
-  auto fromIt = mempoolModel_.find(tx.getFrom());
-  if (fromIt == mempoolModel_.end()) {
-    return; // Not in mempool => nothing to do
-  }
-  uint64_t nonce64 = static_cast<uint64_t>(tx.getNonce());
-  auto nonceIt = fromIt->second.find(nonce64);
-  if (nonceIt == fromIt->second.end()) {
-    return; // Not in mempool => nothing to do
-  }
+  auto& nonceMap = fromIt->second;
   auto& hashMap = nonceIt->second;
-  auto hashIt = hashMap.find(tx.hash());
-  if (hashIt == hashMap.end()) {
-    return; // Not in mempool => nothing to do
+  hashMap.erase(hashIt);
+  if (hashMap.empty()) {
+    nonceMap.erase(nonceIt);
   }
-  auto& [existingCost, isEjected] = hashIt->second;
-  isEjected = true;
-  LOGXTRACE(
-    "handleRejectedTx: set isEjected=true for tx " + tx.hash().hex().get()
-  );
+  if (nonceMap.empty()) {
+    mempoolModel_.erase(fromIt);
+  }
 }
 
 bool State::validateTransactionInternal(const TxBlock& tx, bool affectsMempool, MempoolModel *mm) {
@@ -290,57 +279,89 @@ bool State::validateTransactionInternal(const TxBlock& tx, bool affectsMempool, 
   // Set mm to &mempoolModel_ if mm == nullptr, so the code can use mm below.
   // All mempool model operations will be using the mm pointer, except for removeTxFromMempoolModel()
   //  and ejectTxFromMempoolModel() which *always* operate on mempoolModel_ and not the given temporary.
+  bool customMM = true;
   if (mm == nullptr) {
+    customMM = false;
     mm = &mempoolModel_;
   }
 
-  // Verify if transaction already exists within the mempool, if on mempool, it has been validated previously.
+  // Iterators specific for looking up the tx into the state's mempoolModel_
+  // (and NOT the custom MM, if any)
+  MempoolModelIt stateFromIt = mempoolModel_.find(tx.getFrom());
+  MempoolModelNonceIt stateNonceIt;
+  MempoolModelHashIt stateHashIt;
+  bool* txEjectFlagPtr = nullptr;
+
+  // Verify if transaction already exists within the mempoolModel_.
+  // If in mempoolModel_ and flagged as ejected (verified before and flagged as failed) then
+  //   we have to fail it going forward. A tx flagged as "ejected" will return false on the
+  //   next validateTransaction() that is called by the CheckTx ABCI callback, which will
+  //   cause it to be removed from the actual mempool in the CometBFT process. That means
+  //   it's dead; it will not be included in a block regardless, not until we can purge it
+  //   from the CometBFT mempool, at which point we remove the tx entry (and thus the
+  //   eject flag==true for the tx) from the mempoolModel_, at which point it can be resent
+  //   in the future, get an actual validity check that isn't aborted due to the eject flag.
+  // Tx ejection is always checked against mempoolModel_, because ejection doesn't make sense
+  //   when applied to a temporary mempool. The temp mempool is for checking what happens when
+  //   the State is presented transactions in a given sequence; it doesn't know which transactions
+  //   have already been killed in the State's mempoolModel_ and will thus fail validation when
+  //   it is time to actually process a proposed block for example.
   bool alreadyInMempool = false;  // Flag to indicate if we found the tx in mempool and it's valid
-  auto fromIt = mm->find(tx.getFrom());
-  if (fromIt != mm->end()) {
+  if (stateFromIt != mempoolModel_.end()) {
     uint64_t nonce64 = static_cast<uint64_t>(tx.getNonce());
-    auto nonceIt = fromIt->second.find(nonce64);
-    if (nonceIt != fromIt->second.end()) {
-      const auto& hashMap = nonceIt->second;
-      auto hashIt = hashMap.find(tx.hash());
-      if (hashIt != hashMap.end()) {
+    stateNonceIt = stateFromIt->second.find(nonce64);
+    if (stateNonceIt != stateFromIt->second.end()) {
+      auto& hashMap = stateNonceIt->second;
+      stateHashIt = hashMap.find(tx.hash());
+      if (stateHashIt != hashMap.end()) {
         // Found an entry for (from, nonce, txHash)
-        const std::pair<uint256_t, bool>& txEntry = hashIt->second;
+        std::pair<uint256_t, bool>& txEntry = stateHashIt->second;
         if (txEntry.second) {
           // Tx is marked as ejected
-          LOGXTRACE(
-            "Transaction: " + tx.hash().hex().get() +
-            " is already in mempool but marked ejected. Failing immediately."
-          );
+          // LOGXTRACE(
+          //   "Transaction: " + tx.hash().hex().get() +
+          //   " is already in mempool but marked ejected. Failing immediately."
+          // );
           // If rejecting the transaction will affect the mempool, then we can
           // update our internal mempool model to exclude it.
           if (affectsMempool) {
-            removeTxFromMempoolModel(tx);
+            removeTxFromMempoolModel(tx, stateFromIt, stateNonceIt, stateHashIt);
           }
           return false;
         }
-        // Otherwise, it's in mempool & not ejected => set flag
-        LOGXTRACE(
-          "Transaction: " + tx.hash().hex().get() +
-          " is already in mempool and not ejected."
-        );
+        // Tx not ejected, so just keep going to re-check tx validity
+        // LOGXTRACE(
+        //   "Transaction: " + tx.hash().hex().get() +
+        //   " is already in mempool and not ejected."
+        // );
         alreadyInMempool = true;
-        // We will still re-validate the transaction; keep going.
+        txEjectFlagPtr = &(txEntry.second);
       }
     }
   }
 
+  // NOTE that if !alreadInMempool, then we don't ever need to create an entry with
+  //   the ejected flag set to true for it, because if it isn't in mempoolModel_ at
+  //   all then it means that finding it invalid in a temporary mempoolModel (mm)
+  //   generates no need at all to let the State's mempoolModel_ know in advance
+  //   that the tx in question is invalid, since if it isn't in the mempoolModel_
+  //   then it means we never got CheckTx for it from the ABCI, meaning CometBFT
+  //   doesn't know about it in the first place.
+  // This could only ever be a false prerequisite if CometBFT somehow persisted
+  //   its mempool on disk and the BDK node process didn't. But it doesn't, so
+  //   if it isn't in mempoolModel_, then CometBFT must not have it in its mempool.
+
   // The transaction is invalid if the originator account simply doesn't exist.
   auto accountIt = this->accounts_.find(tx.getFrom());
   if (accountIt == this->accounts_.end()) {
-    LOGERROR("Account doesn't exist (0 balance and 0 nonce)");
+    // LOGXTRACE("Account doesn't exist (0 balance and 0 nonce)");
     if (affectsMempool) {
        if (alreadyInMempool) {
-        removeTxFromMempoolModel(tx);
+        removeTxFromMempoolModel(tx, stateFromIt, stateNonceIt, stateHashIt);
       }
     } else {
       if (alreadyInMempool) {
-        ejectTxFromMempoolModel(tx);
+        *txEjectFlagPtr = true;
       }
     }
     return false;
@@ -365,17 +386,17 @@ bool State::validateTransactionInternal(const TxBlock& tx, bool affectsMempool, 
 
   // The transaction is invalid if the tx nonce is in the past.
   if (txNonce < accNonce) {
-    LOGERROR("Transaction: " + tx.hash().hex().get()
-      + " nonce mismatch, expected: " + accNonce.str()
-      + " got: " + txNonce.str()
-    );
+    // LOGXTRACE(
+    //   "Transaction: " + tx.hash().hex().get() + " nonce " + txNonce.str() +
+    //   " is in the past; current: " + accNonce.str()
+    // );
     if (affectsMempool) {
        if (alreadyInMempool) {
-        removeTxFromMempoolModel(tx);
+        removeTxFromMempoolModel(tx, stateFromIt, stateNonceIt, stateHashIt);
       }
     } else {
       if (alreadyInMempool) {
-        ejectTxFromMempoolModel(tx);
+        *txEjectFlagPtr = true;
       }
     }
     return false;
@@ -388,46 +409,55 @@ bool State::validateTransactionInternal(const TxBlock& tx, bool affectsMempool, 
   // the cost of *this* transaction to see if it can be afforded.
   uint256_t costOfAllPreviousTxs = 0;
   if (txNonce > accNonce) {
+    auto fromIt = mm->find(tx.getFrom()); // Check sequencing in mm (may be a custom mm)
     if (fromIt == mm->end()) {
-      LOGXTRACE(
-        "Transaction: " + tx.hash().hex().get() +
-        " nonce is in the future but no mempool entries exist for that account."
-      );
+      // LOGXTRACE(
+      //   "Transaction: " + tx.hash().hex().get() + " nonce " + txNonce.str() +
+      //   " is in the future but no mempool entries exist for that account; current: " + accNonce.str()
+      // );
       if (affectsMempool) {
         if (alreadyInMempool) {
-          removeTxFromMempoolModel(tx);
+          removeTxFromMempoolModel(tx, stateFromIt, stateNonceIt, stateHashIt);
         }
       } else {
         if (alreadyInMempool) {
-          ejectTxFromMempoolModel(tx);
+          *txEjectFlagPtr = true;
         }
       }
       return false;
     }
 
     // For each intermediary nonce, collect the maximum cost among all non-ejected txs
-    const uint64_t accNonceUint64 = static_cast<uint64_t>(accNonceUint64);
+    const uint64_t accNonceUint64 = static_cast<uint64_t>(accNonce);
     for (uint64_t inonce = accNonceUint64; inonce < txNonceUint64; ++inonce) {
+      // LOGXTRACE(
+      //   "Transaction: " + tx.hash().hex().get() + " nonce " + txNonce.str() +
+      //  " checking inonce " + std::to_string(inonce)
+      // );
       auto nonceIt = fromIt->second.find(inonce);
-      if (nonceIt == fromIt->second.end()) {
+      // Shouldn't need to check for empty map if we are doing maintenance correctly at removeTxFromMempoolModel()
+      if (nonceIt == fromIt->second.end() /*|| nonceIt->second.size() == 0*/) {
         // No transaction for this nonce => can't fill the gap
-        LOGXTRACE(
-          "Transaction: " + tx.hash().hex().get() +
-          " is missing intermediate nonce " + std::to_string(inonce)
-        );
+        // LOGXTRACE(
+        //   "Transaction: " + tx.hash().hex().get() + " nonce " + txNonce.str() +
+        //   " is missing intermediate nonce " + std::to_string(inonce)
+        // );
         if (affectsMempool) {
           if (alreadyInMempool) {
-            removeTxFromMempoolModel(tx);
+            removeTxFromMempoolModel(tx, stateFromIt, stateNonceIt, stateHashIt);
           }
         } else {
           if (alreadyInMempool) {
-            ejectTxFromMempoolModel(tx);
+            *txEjectFlagPtr = true;
           }
         }
         return false;
+      } else {
+        //LOGXTRACE("Transaction: " + tx.hash().hex().get() + " nonce " + txNonce.str() + " found entries for inonce " + std::to_string(inonce));
       }
 
       const auto& hashMap = nonceIt->second;
+      //LOGXTRACE("inonce entries size: " + std::to_string(hashMap.size())); // should never be 0
       bool foundValidTx = false;
       uint256_t maxCostForNonce = 0;
 
@@ -449,18 +479,18 @@ bool State::validateTransactionInternal(const TxBlock& tx, bool affectsMempool, 
 
       if (!foundValidTx) {
         // All transactions for that nonce are ejected => no valid coverage for the gap
-        LOGXTRACE(
-          "Transaction: " + tx.hash().hex().get() +
-          " cannot be validated because nonce " + std::to_string(inonce) +
-          " is present, but all are ejected."
-        );
+        // LOGXTRACE(
+        //   "Transaction: " + tx.hash().hex().get() + " nonce " + txNonce.str() +
+        //   " cannot be validated because nonce " + std::to_string(inonce) +
+        //   " is present, but all are ejected."
+        // );
         if (affectsMempool) {
           if (alreadyInMempool) {
-            removeTxFromMempoolModel(tx);
+            removeTxFromMempoolModel(tx, stateFromIt, stateNonceIt, stateHashIt);
           }
         } else {
           if (alreadyInMempool) {
-            ejectTxFromMempoolModel(tx);
+            *txEjectFlagPtr = true;
           }
         }
         return false;
@@ -475,35 +505,45 @@ bool State::validateTransactionInternal(const TxBlock& tx, bool affectsMempool, 
   // (considering the worst case total cost at each nonce: value transferred + max fee).
   const uint256_t txWithFees = tx.getValue() + (tx.getGasLimit() * tx.getMaxFeePerGas());
   if ((txWithFees + costOfAllPreviousTxs) > accBalance) {
-    LOGXTRACE(
-      "Transaction sender: " + tx.getFrom().hex().get() +
-      " doesn't have enough balance to send transaction. Required: " +
-      (txWithFees + costOfAllPreviousTxs).str() + ", has: " + accBalance.str()
-    );
+    // LOGXTRACE(
+    //   "Transaction sender: " + tx.getFrom().hex().get() +
+    //   " doesn't have enough balance to send transaction. Required: " +
+    //   (txWithFees + costOfAllPreviousTxs).str() + ", has: " + accBalance.str()
+    // );
     if (affectsMempool) {
        if (alreadyInMempool) {
-        removeTxFromMempoolModel(tx);
+        removeTxFromMempoolModel(tx, stateFromIt, stateNonceIt, stateHashIt);
       }
     } else {
       if (alreadyInMempool) {
-        ejectTxFromMempoolModel(tx);
+        *txEjectFlagPtr = true;
       }
     }
     return false;
   }
 
   // We are going to accept it, so make sure it is added to the mempool model.
-  if (!alreadyInMempool) {
+  // If custoMM == true, we need to ensure it is inserted in the custom mm-> since
+  //   alreadyInMempool is tracking only membership in the State's mempoolModel_
+  if (!alreadyInMempool || customMM) {
     auto& nonceMap = (*mm)[tx.getFrom()];
     auto& hashMap = nonceMap[txNonceUint64];
     hashMap[tx.hash()] = std::make_pair(txWithFees, false);
-    LOGXTRACE(
-      "Transaction: " + tx.hash().hex().get() +
-      " added to mempool model (from=" + tx.getFrom().hex().get() +
-      ", nonce=" + txNonce.str() +
-      ", cost=" + txWithFees.str() + ")."
-    );
+    // LOGXTRACE(
+    //   "Transaction: " + tx.hash().hex().get() +
+    //   " added to mempool model (custom = " + std::to_string(customMM) + "; from=" + tx.getFrom().hex().get() +
+    //   ", nonce=" + txNonce.str() +
+    //   ", cost=" + txWithFees.str() + ")."
+    // );
   }
+  // else {
+  //  LOGXTRACE(
+  //    "Transaction: " + tx.hash().hex().get() +
+  //    " already in mempool is valid (custom = " + std::to_string(customMM) + "; from=" + tx.getFrom().hex().get() +
+  //     ", nonce=" + txNonce.str() +
+  //     ", cost=" + txWithFees.str() + ")."
+  //   );
+  // }
 
   // If the originating account can pay for it and the nonce is valid, then it is valid (that is,
   // it can be included in a block because it does not invalidate it).
@@ -561,7 +601,7 @@ void State::processBlock(const FinalizedBlock& block, std::vector<bool>& succeed
   //   and then use the validator public key to compute the correct Eth Address.
   Address proposerEthAddr = blockchain_.validatorCometAddressToEthAddress(block.getProposerAddr());
   ContractGlobals::coinbase_ = proposerEthAddr;
-  LOGTRACE("Coinbase set to: " + proposerEthAddr.hex().get() + " (CometBFT Addr: " + block.getProposerAddr().hex().get() + ")");
+  // LOGTRACE("Coinbase set to: " + proposerEthAddr.hex().get() + " (CometBFT Addr: " + block.getProposerAddr().hex().get() + ")");
 
   // TODO: randomHash needs a secure random gen protocol between all validators
   Hash randomHash; // 0
