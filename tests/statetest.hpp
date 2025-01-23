@@ -53,14 +53,8 @@ class StateTest : public State {
 
       Gas gas(uint64_t(tx.getGasLimit()));
 
-      TxAdditionalData txData{.hash = tx.hash()};
-
       std::visit([&] (auto&& msg) {
-        if constexpr (concepts::CreateMessage<decltype(msg)>) {
-          txData.contractAddress = host.execute(std::forward<decltype(msg)>(msg));
-        } else {
-          host.execute(std::forward<decltype(msg)>(msg));
-        }
+        host.execute(std::forward<decltype(msg)>(msg));
       }, tx.toMessage(gas));
     };
 };

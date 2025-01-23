@@ -42,6 +42,4 @@ ContractHost::~ContractHost() {
   if (messageHandler_.hasCallTrace()) {
     storage_.putCallTrace(Hash(context_.getTxHash()), messageHandler_.getCallTrace());
   }
-
-  // TODO: save transaction additional data
 }
