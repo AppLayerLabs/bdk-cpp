@@ -61,31 +61,12 @@ namespace TDEXV2 {
       );
       REQUIRE(swapTx != Hash());
       TxBlock tx = sdk.getStorage().latest()->getTxs()[0];
-
-      evmc_tx_context txContext;
-
-      txContext.tx_origin = sdk.getChainOwnerAccount().address.toEvmcAddress();
-      txContext.tx_gas_price = {};
-      txContext.block_coinbase = tx.getTo().toEvmcAddress();
-      txContext.block_number = 1;
-      txContext.block_timestamp = 1;
-      txContext.block_gas_limit = std::numeric_limits<int64_t>::max();
-      txContext.block_prev_randao = {};
-      txContext.chain_id = {};
-      txContext.block_base_fee = {};
-      txContext.blob_base_fee = {};
-      txContext.blob_hashes = nullptr;
-      txContext.blob_hashes_count = 0;
-
-      auto callInfo = tx.txToMessage();
-      Hash randomnessHash = bytes::random();
-      int64_t leftOverGas = std::numeric_limits<int64_t>::max();
       uint64_t iterations = 250000;
 
       auto start = std::chrono::high_resolution_clock::now();
       auto& state = sdk.getState();
       for (uint64_t i = 0; i < iterations; i++) {
-        state.call(callInfo, txContext, ContractType::CPP, randomnessHash, randomnessHash, randomnessHash, leftOverGas);
+        state.call(tx);
       }
       auto end = std::chrono::high_resolution_clock::now();
 

@@ -9,6 +9,7 @@ See the LICENSE.txt file in the project root for more information.
 #define STATETEST_HPP
 
 #include "../src/core/state.h"
+#include "../src/bytes/random.h"
 
 #include "../src/contract/contracthost.h"
 
@@ -24,6 +25,44 @@ class StateTest : public State {
     // StateTest has the same constructor as State
     StateTest(const DB& db, Storage& storage, P2P::ManagerNormal& p2pManager, const uint64_t& snapshotHeight, const Options& options) :
       State(db, storage, p2pManager, snapshotHeight, options) {};
+
+    void call(const TxBlock& tx) {
+      std::unique_lock lock(this->stateMutex_);
+      ExecutionContext context = ExecutionContext::Builder{}
+      .storage(this->vmStorage_)
+      .accounts(this->accounts_)
+      .contracts(this->contracts_)
+      .blockHash(Hash())
+      .txHash(tx.hash())
+      .txOrigin(tx.getFrom())
+      .blockCoinbase(ContractGlobals::getCoinbase())
+      .txIndex(0)
+      .blockNumber(ContractGlobals::getBlockHeight())
+      .blockTimestamp(ContractGlobals::getBlockTimestamp())
+      .blockGasLimit(10'000'000)
+      .txGasPrice(tx.getMaxFeePerGas())
+      .chainId(this->options_.getChainID())
+      .build();
+
+      ContractHost host(
+        this->vm_,
+        this->dumpManager_,
+        this->storage_,
+        Hash(),
+        context);
+
+      Gas gas(uint64_t(tx.getGasLimit()));
+
+      TxAdditionalData txData{.hash = tx.hash()};
+
+      std::visit([&] (auto&& msg) {
+        if constexpr (concepts::CreateMessage<decltype(msg)>) {
+          txData.contractAddress = host.execute(std::forward<decltype(msg)>(msg));
+        } else {
+          host.execute(std::forward<decltype(msg)>(msg));
+        }
+      }, tx.toMessage(gas));
+    };
 };
 
 #endif // STATETEST_HPP
