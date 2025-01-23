@@ -202,6 +202,31 @@ public:
   /// Destructor.
   ~ERC721() override = default;
 
+
+  /// Event for when a token is transferred.
+  /// event Transfer(address indexed from, address indexed to, uint256 indexed tokenId);
+  void Transfer(const EventParam<Address, true> &from,
+                const EventParam<Address, true> &to,
+                const EventParam<uint256_t, true> &tokenId) {
+    this->emitEvent("Transfer", std::make_tuple(from, to, tokenId));
+  }
+
+  /// Event for when a token is approved.
+  /// event Approval(address indexed owner, address indexed approved, uint256 indexed tokenId);
+  void Approval(const EventParam<Address, true> &owner,
+                const EventParam<Address, true> &approved,
+                const EventParam<uint256_t, true> &tokenId) {
+    this->emitEvent("Approval", std::make_tuple(owner, approved, tokenId));
+  }
+
+  /// Event for when an operator is approved.
+  /// event ApprovalForAll(address indexed owner, address indexed operator, bool approved);
+  void ApprovalForAll(const EventParam<Address, true> &owner,
+                      const EventParam<Address, true> &operatorAddress,
+                      const EventParam<bool, false> &approved) {
+    this->emitEvent("ApprovalForAll", std::make_tuple(owner, operatorAddress, approved));
+  }
+
   /**
    * Get the name of the ERC721 token.
    * Solidity counterpart: function name() external view returns (string
@@ -323,6 +348,11 @@ public:
                         std::vector<std::string>{"owner", "operatorAddress"}),
         std::make_tuple("transferFrom", &ERC721::transferFrom, FunctionTypes::NonPayable,
                         std::vector<std::string>{"from", "to", "tokenId"}));
+    ContractReflectionInterface::registerContractEvents<ERC721>(
+        std::make_tuple("Transfer", false, &ERC721::Transfer, std::vector<std::string>{"from","to", "tokenId"}),
+        std::make_tuple("Approval", false, &ERC721::Approval, std::vector<std::string>{"owner","approved", "tokenId"}),
+        std::make_tuple("ApprovalForAll", false, &ERC721::ApprovalForAll, std::vector<std::string>{"owner","operatorAddress", "approved"})
+    );
   }
 
    /// Dump method

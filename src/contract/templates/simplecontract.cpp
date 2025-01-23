@@ -87,6 +87,9 @@ void SimpleContract::setNumber(const uint256_t& argNumber) {
 }
 
 void SimpleContract::setNumbers(const std::vector<uint256_t>& argNumber) {
+  if (this->getCaller() != this->getContractCreator()) {
+    throw DynamicException("Only contract creator can call this function.");
+  }
   this->number_ = 0;
   for (const auto& number : argNumber) this->number_ += number;
   this->numberChanged(this->number_.get());
@@ -224,7 +227,7 @@ void SimpleContract::registerContractFunctions() {
 
 /*
 DBBatch SimpleContract::dump() const {
-  DBBatch dbBatch;
+  DBBatch dbBatch = BaseContract::dump();
   dbBatch.push_back(StrConv::stringToBytes("name_"), StrConv::stringToBytes(this->name_.get()), this->getDBPrefix());
   dbBatch.push_back(StrConv::stringToBytes("number_"), UintConv::uint256ToBytes(this->number_.get()), this->getDBPrefix());
   dbBatch.push_back(StrConv::stringToBytes("tuple_name"), StrConv::stringToBytes(get<0>(this->tuple_)), this->getDBPrefix());

@@ -112,7 +112,7 @@ class DBBatch {
    * @param value The entry's value.
    * @param prefix The entry's prefix.
    */
-  void push_back(const bytes::View key, const bytes::View value, const Bytes& prefix) {
+  void push_back(const View<Bytes> key, const View<Bytes> value, const Bytes& prefix) {
     Bytes tmp = prefix;
     tmp.reserve(prefix.size() + key.size());
     tmp.insert(tmp.end(), key.begin(), key.end());
@@ -130,7 +130,7 @@ class DBBatch {
      * @param key The entry's key.
      * @param prefix The entry's prefix.
      */
-    void delete_key(const bytes::View key, const Bytes& prefix) {
+    void delete_key(const View<Bytes> key, const Bytes& prefix) {
       Bytes tmp = prefix;
       tmp.reserve(prefix.size() + key.size());
       tmp.insert(tmp.end(), key.begin(), key.end());
@@ -292,7 +292,7 @@ class DB {
     /**
      * Get all entries from a given prefix.
      * @param bytesPfx The prefix to search for.
-     * @param keys (optional) A list of keys to search for. Defaults to an empty list.
+     * @param keys (optional) A list of keys to search for, WITHOUT the prefixes. Defaults to an empty list.
      * @return A list of found entries.
      */
     std::vector<DBEntry> getBatch(
@@ -305,8 +305,8 @@ class DB {
      * (e.g. a query that returns millions of entries at once).
      * Prefix is automatically added to the queries themselves internally.
      * @param pfx The prefix to search keys from.
-     * @param start (optional) The first key to start searching from. Defaults to none.
-     * @param end (optional) The last key to end searching at. Defaults to none.
+     * @param start (optional) The first key to start searching from, WITHOUT the prefix. Defaults to none.
+     * @param end (optional) The last key to end searching at, WITHOUT the prefix. Defaults to none.
      * @return A list of found keys, WITHOUT their prefixes.
      */
     std::vector<Bytes> getKeys(const Bytes& pfx, const Bytes& start = {}, const Bytes& end = {}) const;

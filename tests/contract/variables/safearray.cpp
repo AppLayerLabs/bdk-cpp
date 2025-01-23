@@ -116,6 +116,21 @@ namespace TSafeArray {
       arrFill.commit();
       for (std::size_t i = 0; i < arrFill.size(); i++) REQUIRE(arrFill[i] == 100);
     }
+
+    SECTION("SafeArray Coverage") {
+      SafeArray<int, 5> arrFill({1,2,3,4,5});
+      // copy_ != nullptr
+      arrFill.fill(200);
+      for (std::size_t i = 0; i < arrFill.size(); i++) REQUIRE(arrFill.at(i) == 200);
+      for (std::size_t i = 0; i < arrFill.size(); i++) REQUIRE(arrFill[i] == 200);
+      REQUIRE(arrFill.front() == 200);
+      REQUIRE(arrFill.back() == 200);
+      arrFill.fill(300);
+      for (std::size_t i = 0; i < arrFill.size(); i++) REQUIRE(arrFill.at(i) == 300);
+      for (std::size_t i = 0; i < arrFill.size(); i++) REQUIRE(arrFill[i] == 300);
+      REQUIRE(arrFill.front() == 300);
+      REQUIRE(arrFill.back() == 300);
+    }
   }
 }
 

@@ -1,8 +1,13 @@
+/*
+  Copyright (c) [2023-2024] [AppLayer Developers]
+  This software is distributed under the MIT License.
+  See the LICENSE.txt file in the project root for more information.
+*/
+
 #ifndef ERC721URISTORAGE_H
 #define ERC721URISTORAGE_H
 
 #include "erc721.h"
-
 
 /// Template for an ERC721URIStorage contract.
 /// Roughly based on the OpenZeppelin implementation.
@@ -33,21 +38,17 @@ class ERC721URIStorage : virtual public ERC721 {
     void registerContractFunctions() override;
 
   public:
-
     /**
      * ConstructorArguments is a tuple of the contract constructor arguments in the order they appear in the constructor.
      */
     using ConstructorArguments = std::tuple<const std::string&, const std::string&>;
-
 
     /**
      * Constructor for loading contract from DB.
      * @param address The address where the contract will be deployed.
      * @param db Reference to the database object.
      */
-    //ERC721URIStorage(
-    //  const Address& address, const DB& db
-    //);
+    ERC721URIStorage(const Address& address, const DB& db);
 
     /**
      * Constructor to be used when creating a new contract.

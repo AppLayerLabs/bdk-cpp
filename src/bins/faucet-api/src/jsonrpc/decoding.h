@@ -12,8 +12,6 @@ See the LICENSE.txt file in the project root for more information.
 
 #include "utils/utils.h"
 
-#include "methods.h"
-
 // Forward declarations.
 class Storage;
 

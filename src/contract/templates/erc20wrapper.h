@@ -32,10 +32,9 @@ class ERC20Wrapper : public DynamicContract {
     void registerContractFunctions() override;
 
   public:
-
     /**
-    * ConstructorArguments is a tuple of the contract constructor arguments in the order they appear in the constructor.
-    */
+     * ConstructorArguments is a tuple of the contract constructor arguments in the order they appear in the constructor.
+     */
     using ConstructorArguments = std::tuple<>;
 
     /**

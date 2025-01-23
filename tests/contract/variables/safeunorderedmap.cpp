@@ -210,6 +210,9 @@ namespace TSafeUnorderedMap {
       map.commit();
       REQUIRE(map.size() == 101);
       for (std::pair<Address, uint256_t> val : values) REQUIRE(map.at(val.first) == val.second);
+
+      // Force failure on insert (for coverage)
+      REQUIRE_FALSE(map.insert(valCopy2[0]).second);
     }
 
     SECTION("SafeUnorderedMap insert (hint)") {
@@ -259,10 +262,10 @@ namespace TSafeUnorderedMap {
 
       // Same as insert (simple), but we use iterators to the vector instead (also an ilist)
       std::vector<std::pair<Address, uint256_t>> values;
-      for (uint8_t i = 0; i < 100; i++) { // inserting 100 values
+      for (uint8_t i = 0; i < 100; i++) { // Inserting 100 values
         values.emplace_back(std::make_pair(Address(Utils::randBytes(20)), bal0));
       }
-      std::initializer_list<std::pair<const Address, uint256_t>> ilist { // creating 10 values
+      std::initializer_list<std::pair<const Address, uint256_t>> ilist { // Creating 10 values
         std::make_pair(Address(Utils::randBytes(20)), bal0),
         std::make_pair(Address(Utils::randBytes(20)), bal0),
         std::make_pair(Address(Utils::randBytes(20)), bal0),
@@ -287,7 +290,9 @@ namespace TSafeUnorderedMap {
       REQUIRE(map.size() == 101);
       for (std::pair<Address, uint256_t> val : values) REQUIRE(map.at(val.first) == val.second);
 
-      map.clear(); map.insert(std::make_pair(add0, bal0)); map.commit(); // revert to starting map
+      map.insert(values.cbegin(), values.cend()); // "Re-insert" for coverage
+
+      map.clear(); map.insert(std::make_pair(add0, bal0)); map.commit(); // Revert to starting map
 
       // Mass insert by ilist, then revert
       map.insert(ilist);
@@ -300,6 +305,8 @@ namespace TSafeUnorderedMap {
       map.commit();
       REQUIRE(map.size() == 11);
       for (auto it = ilist.begin(); it != ilist.end(); it++) REQUIRE(map.at(it->first) == it->second);
+
+      map.insert(ilist); // "Re-insert" for coverage
     }
 
     SECTION("SafeUnorderedMap insert_or_assign (copy)") {
@@ -647,7 +654,7 @@ namespace TSafeUnorderedMap {
       map.commit();
       REQUIRE(map.size() == 100);
       REQUIRE(!map.contains(firstVal.first));
-      map[firstVal.first] = firstVal.second; map.commit(); REQUIRE(map.size() == 101); // re-add the key for next test
+      map[firstVal.first] = firstVal.second; map.commit(); REQUIRE(map.size() == 101); // Re-add the key for next test
 
       // Erase a single key using a value
       map.erase(add0);
@@ -662,11 +669,11 @@ namespace TSafeUnorderedMap {
       // Erase a range of keys using iterators
       auto itB = map.cbegin();
       auto itE = map.cbegin();
-      std::advance(itE, map.size() / 2); // thanos snap, half the map is gone
+      std::advance(itE, map.size() / 2); // Thanos snap, half the map is gone
       map.erase(itB, itE);
       map.revert();
       REQUIRE(map.size() == 100);
-      itB = map.cbegin(); // refresh iterators just in case
+      itB = map.cbegin(); // Refresh iterators just in case
       itE = map.cbegin();
       std::advance(itE, map.size() / 2);
       map.erase(itB, itE);

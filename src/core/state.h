@@ -22,18 +22,22 @@ class Blockchain;
 class FinalizedBlock;
 
 /// Abstraction of the blockchain's current state at the current block.
-class State : public Log::LogicalLocationProvider {
+// FIXME/TODO: reimplement periodic state saving
+class State : /*public Dumpable,*/ public Log::LogicalLocationProvider {
   private:
     Blockchain& blockchain_; ///< Parent Blockchain object
+
+    DumpManager dumpManager_;
+    //DumpWorker dumpWorker_; // FIXME
 
     // Machine state
     mutable std::shared_mutex stateMutex_; ///< Mutex for managing read/write access to the state object.
     uint64_t height_; ///< This is the simulation timestamp the State machine is at.
     uint64_t timeMicros_; ///< This is the wallclock timestamp the State machine is at, in microseconds since epoch.
     evmc_vm* vm_; ///< Pointer to the EVMC VM.
-    boost::unordered_flat_map<Address, std::unique_ptr<BaseContract>, SafeHash> contracts_; ///< Map with information about blockchain contracts (Address -> Contract).
-    boost::unordered_flat_map<StorageKey, Hash, SafeHash> vmStorage_; ///< Map with the storage of the EVM.
-    boost::unordered_flat_map<Address, NonNullUniquePtr<Account>, SafeHash> accounts_; ///< Map with information about blockchain accounts (Address -> Account).
+    boost::unordered_flat_map<Address, std::unique_ptr<BaseContract>, SafeHash, SafeCompare> contracts_; ///< Map with information about blockchain contracts (Address -> Contract).
+    boost::unordered_flat_map<StorageKey, Hash, SafeHash, SafeCompare> vmStorage_; ///< Map with the storage of the EVM.
+    boost::unordered_flat_map<Address, NonNullUniquePtr<Account>, SafeHash, SafeCompare> accounts_; ///< Map with information about blockchain accounts (Address -> Account).
     MempoolModel mempoolModel_; ///< Mempool model that transparently tracks all transactions seen via validateTransactionInternal().
 
     /**
@@ -98,6 +102,25 @@ class State : public Log::LogicalLocationProvider {
     ~State(); ///< Destructor.
 
     std::string getLogicalLocation() const override;
+
+    /**
+     * FIXME: snapshot saving should always be done in a NEW database dir ("snapshot file")
+     * Should not even be named "DB". The database driver is an implementation detail of
+     *   the feature, which is a state snapshotting tool. Should be named snapshot or checkpoint,
+     *   not "DB".
+     * This should be instead named something like:
+     *    saveSnapshot()
+     * Which is aware of its *current* height, and saves to a new database at that height.
+     * Insead of constantly updating a snapshot DB dir whose height number is some
+     *   arbitrary height number from the past (from when the node was instantiated.
+     * 
+     * FIXME/TODO: also implement a loadSnapshot(const uint64_t height = 0) that loads the
+     *  saved snapshot at a given height, or if 0, load the latest one.
+     * 
+     * FIXME/TODO: other snapshot management functions: list, count, getLatestHeight,
+     *    delete/prune, check snapshot integrity, etc.
+     */
+    void saveToDB() const { this->dumpManager_.dumpToDB(); }
 
     // ----------------------------------------------------------------------
     // STATE FUNCTIONS
@@ -191,7 +214,7 @@ class State : public Log::LogicalLocationProvider {
      * @param callInfo Tuple with info about the call (from, to, gasLimit, gasPrice, value, data).
      * @return The return of the called function as a data string.
      */
-    Bytes ethCall(const evmc_message& callInfo);
+    Bytes ethCall(EncodedStaticCallMessage& msg);
 
     /**
      * Estimate gas for callInfo in RPC.
@@ -199,7 +222,7 @@ class State : public Log::LogicalLocationProvider {
      * @param callInfo Tuple with info about the call (from, to, gasLimit, gasPrice, value, data).
      * @return The used gas limit of the transaction.
      */
-    int64_t estimateGas(const evmc_message& callInfo);
+    int64_t estimateGas(EncodedMessageVariant msg);
 
     /// Get a list of the C++ contract addresses and names.
     std::vector<std::pair<std::string, Address>> getCppContracts() const;

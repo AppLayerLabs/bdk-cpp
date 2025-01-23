@@ -8,7 +8,7 @@ See the LICENSE.txt file in the project root for more information.
 #include "jsonabi.h"
 
 bool JsonAbi::isTuple(const std::string& type) {
-  // Tuples are always as "(type1, type2, ...)" (alternatively, "(type1,type2,...)[]").
+  // Tuples are always as "(type1,type2,...)" (alternatively, "(type1,type2,...)[]").
   // Check if first and last characters are "()" (not counting the "[]" at the end, if there are any).
   return (JsonAbi::isArray(type))
     ? (type[0] == '(' && type[type.size() - 2 * JsonAbi::countTupleArrays(type) - 1] == ')')
@@ -49,7 +49,7 @@ std::vector<std::string> JsonAbi::getTupleTypes(const std::string& type) {
       types.push_back(tmp);
       tmp = "";
     } else {
-      tmp += c;
+      if (c != ' ') tmp += c; // Prevent e.g. "(int, double)" second type coming out as " double" with the space in it
     }
   }
   // Push the last type and return.

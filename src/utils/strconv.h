@@ -37,7 +37,7 @@ namespace StrConv {
    * @param sign (optional) The character to use as padding. Defaults to '0'.
    * @return The padded vector.
    */
-  Bytes padLeftBytes(const bytes::View bytes, unsigned int charAmount, uint8_t sign = 0x00);
+  Bytes padLeftBytes(const View<Bytes> bytes, unsigned int charAmount, uint8_t sign = 0x00);
 
   /**
    * Add padding to the right of a byte vector.
@@ -49,7 +49,7 @@ namespace StrConv {
    * @param sign (optional) The character to use as padding. Defaults to '0'.
    * @return The padded vector.
    */
-  Bytes padRightBytes(const bytes::View bytes, unsigned int charAmount, uint8_t sign = 0x00);
+  Bytes padRightBytes(const View<Bytes> bytes, unsigned int charAmount, uint8_t sign = 0x00);
 
   /// Overload of padLeftBytes() that works with UTF-8 strings.
   std::string padLeft(std::string str, unsigned int charAmount, char sign = '\x00');

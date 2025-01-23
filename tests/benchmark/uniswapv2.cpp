@@ -18,7 +18,7 @@ See the LICENSE.txt file in the project root for more information.
 namespace TDEXV2 {
   TEST_CASE("DEXV2 Benchmark", "[benchmark]") {
     SECTION("CPP DEXV2 Swap Benchmark") {
-      SDKTestSuite sdk = SDKTestSuite::createNewEnvironment("testDEXV2LiqTokenTokenPair");
+      SDKTestSuite sdk = SDKTestSuite::createNewEnvironment("testDEXV2LiqTokenTokenPair", {}, nullptr, IndexingMode::DISABLED);
       Address tokenA = sdk.deployContract<ERC20>(std::string("TokenA"), std::string("TKNA"), uint8_t(18), uint256_t("10000000000000000000000"));
       Address tokenB = sdk.deployContract<ERC20>(std::string("TokenB"), std::string("TKNB"), uint8_t(18), uint256_t("10000000000000000000000"));
       Address wrapped = sdk.deployContract<NativeWrapper>(std::string("WSPARQ"), std::string("WSPARQ"), uint8_t(18));
@@ -34,7 +34,9 @@ namespace TDEXV2 {
       // Approve "router" so it can spend up to 10000 tokens from both sides
       // on behalf of "owner" (which already has the tokens)
       Hash approveATx = sdk.callFunction(tokenA, &ERC20::approve, router, uint256_t("10000000000000000000000"));
+      REQUIRE(approveATx != Hash());
       Hash approveBTx = sdk.callFunction(tokenB, &ERC20::approve, router, uint256_t("10000000000000000000000"));
+      REQUIRE(approveBTx != Hash());
       REQUIRE(sdk.callViewFunction(tokenA, &ERC20::allowance, owner, router) == uint256_t("10000000000000000000000"));
       REQUIRE(sdk.callViewFunction(tokenB, &ERC20::allowance, owner, router) == uint256_t("10000000000000000000000"));
       REQUIRE(sdk.callViewFunction(tokenA, &ERC20::balanceOf, owner) == uint256_t("10000000000000000000000"));
@@ -49,6 +51,7 @@ namespace TDEXV2 {
         tokenA, tokenB, uint256_t("100000000000000000000"), uint256_t("250000000000000000000"),
         uint256_t(0), uint256_t(0), owner, deadline
       );
+      REQUIRE (addLiqudityTx != Hash());
 
       // Create and do a simple swap transaction
       // tokenA, tokenB, amountIn, amountOutMin, to, deadline
@@ -56,6 +59,7 @@ namespace TDEXV2 {
       Hash swapTx = sdk.callFunction(router, &DEXV2Router02::swapExactTokensForTokens,
         uint256_t("10000"), uint256_t(0), std::vector<Address>({ tokenA, tokenB }), owner, deadline
       );
+      REQUIRE(swapTx != Hash());
       auto txTlp = sdk.getStorage().getTx(swapTx);
       TxBlock tx = *txTlp.txBlockPtr;
       evmc_tx_context txContext;
@@ -74,7 +78,7 @@ namespace TDEXV2 {
       txContext.blob_hashes_count = 0;
 
       auto callInfo = tx.txToMessage();
-      Hash randomnessHash = Hash::random();
+      Hash randomnessHash = bytes::random();
       int64_t leftOverGas = std::numeric_limits<int64_t>::max();
       uint64_t iterations = 250000;
 

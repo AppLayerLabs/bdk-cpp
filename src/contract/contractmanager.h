@@ -18,6 +18,9 @@ See the LICENSE.txt file in the project root for more information.
 
 #include "../utils/options.h"
 
+#include "../utils/db.h"
+#include "../core/dump.h"
+
 /**
  * Class that holds all current contract instances in the blockchain state.
  * Responsible for creating and deploying contracts in the chain.
@@ -27,7 +30,7 @@ class ContractManager : public BaseContract {
   private:
     /// Reference of currently deployed contracts.
     /// Owned by the State
-    boost::unordered_flat_map<Address, std::unique_ptr<BaseContract>, SafeHash>& contracts_;
+    boost::unordered_flat_map<Address, std::unique_ptr<BaseContract>, SafeHash, SafeCompare>& contracts_;
 
     /// Functions to create contracts.
     boost::unordered_flat_map<
@@ -35,7 +38,7 @@ class ContractManager : public BaseContract {
           std::function<
             void(const evmc_message&,
                  const Address&,
-                 boost::unordered_flat_map<Address, std::unique_ptr<BaseContract>, SafeHash>& contracts_,
+                 boost::unordered_flat_map<Address, std::unique_ptr<BaseContract>, SafeHash, SafeCompare>& contracts_,
                  const uint64_t&,
                  ContractHost*
                  )>,
@@ -121,11 +124,10 @@ class ContractManager : public BaseContract {
      * @param options Reference to the options singleton.
      * @throw DynamicException if contract address doesn't exist in the database.
      */
-    ContractManager(//const DB& db,
-      boost::unordered_flat_map<Address, std::unique_ptr<BaseContract>, SafeHash>& contracts,
-      //DumpManager& manager, 
-      const Options& options
-    );
+    ContractManager(const DB& db,
+                    boost::unordered_flat_map<Address, std::unique_ptr<BaseContract>, SafeHash, SafeCompare>& contracts,
+                    DumpManager& manager,
+                    const Options& options);
 
     ~ContractManager() override; ///< Destructor. Automatically saves contracts to the database before wiping them.
 
@@ -138,6 +140,16 @@ class ContractManager : public BaseContract {
      * @throw DynamicException if the call is not valid.
      */
     void ethCall(const evmc_message& callInfo, ContractHost* host) override;
+
+    /**
+     * Override the default contract function call.
+     * ContractManager processes things in a non-standard way
+     * (you cannot use SafeVariables as contract creation actively writes to DB).
+     * @param callInfo The call info to process.
+     * @return The bytes from the call
+     * @throw DynamicException if the call is not valid.
+     */
+    Bytes evmEthCall(const evmc_message& callInfo, ContractHost* host) override;
 
     /**
      * Override the default contract view function call.

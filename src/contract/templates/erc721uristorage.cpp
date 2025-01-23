@@ -14,7 +14,6 @@ ERC721URIStorage::ERC721URIStorage(const Address& address, const DB& db)
   : DynamicContract(address, db),
     ERC721(address, db),
     _tokenURIs(this) {
-
   for (const auto& dbEntry : db.getBatch(this->getNewPrefix("tokenURIs_"))) {
     this->_tokenURIs[Utils::fromBigEndian<uint256_t>(dbEntry.key)] = StrConv::bytesToString(dbEntry.value);
   }
@@ -38,14 +37,12 @@ ERC721URIStorage::ERC721URIStorage(
 ) : DynamicContract(derivedTypeName, address, creator, chainId),
     ERC721(derivedTypeName, erc721_name, erc721_symbol, address, creator, chainId),
     _tokenURIs(this) {
-
   ERC721URIStorage::registerContractFunctions();
 }
 
 /*
 DBBatch ERC721URIStorage::dump() const {
   DBBatch batchedOperations = ERC721::dump();
-
   for (auto it = this->_tokenURIs.cbegin(); it != this->_tokenURIs.cend(); ++it) {
     batchedOperations.push_back(
       Utils::uintToBytes(it->first),
@@ -53,7 +50,6 @@ DBBatch ERC721URIStorage::dump() const {
       this->getNewPrefix("tokenURIs_")
     );
   }
-
   return batchedOperations;
 }
 */

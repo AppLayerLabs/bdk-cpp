@@ -16,7 +16,7 @@ Bytes StrConv::cArrayToBytes(const uint8_t* arr, size_t size) {
   return ret;
 }
 
-Bytes StrConv::padLeftBytes(const bytes::View bytes, unsigned int charAmount, uint8_t sign) {
+Bytes StrConv::padLeftBytes(const View<Bytes> bytes, unsigned int charAmount, uint8_t sign) {
   size_t padding = (charAmount > bytes.size()) ? (charAmount - bytes.size()) : 0;
   Bytes padded = (padding != 0) ? Bytes(padding, sign) : Bytes(0, 0x00);
   padded.reserve(bytes.size() + padded.size());
@@ -24,7 +24,7 @@ Bytes StrConv::padLeftBytes(const bytes::View bytes, unsigned int charAmount, ui
   return padded;
 }
 
-Bytes StrConv::padRightBytes(const bytes::View bytes, unsigned int charAmount, uint8_t sign) {
+Bytes StrConv::padRightBytes(const View<Bytes> bytes, unsigned int charAmount, uint8_t sign) {
   size_t padding = (charAmount > bytes.size()) ? (charAmount - bytes.size()) : 0;
   Bytes padded = (padding != 0) ? Bytes(padding, sign) : Bytes(0, 0x00);
   Bytes ret;

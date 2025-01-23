@@ -2,13 +2,10 @@
 #define BYTES_VIEW_H
 
 #include "range.h" // ranges -> span
+#include "utils/view.h"
 
 namespace bytes {
 
-/// A view over sized contiguous bytes
-using View = std::span<const Byte>;
-
-/// A span (i.e. a non-owning array of bytes that allows modification) over sized contiguous bytes
 using Span = std::span<Byte>;
 
 /**
@@ -20,7 +17,7 @@ using Span = std::span<Byte>;
  * @return a view object of the bytes
 */
 template<BorrowedDataRange R>
-constexpr View view(R&& r) { return View(std::forward<R>(r)); }
+constexpr View<Bytes> view(R&& r) { return View<Bytes>(std::forward<R>(r)); }
 
 /**
  * Creates a span from the given data range. It needs to be Borrowed
@@ -41,8 +38,8 @@ constexpr Span span(R&& r) { return Span(std::forward<R>(r)); }
  * @param str the target string
  * @return a bytes view of the string bytes
 */
-inline View view(std::string_view str) {
-  return View(reinterpret_cast<const Byte*>(str.data()), str.size());
+inline View<Bytes> view(std::string_view str) {
+  return View<Bytes>(reinterpret_cast<const Byte*>(str.data()), str.size());
 }
 
 /**
@@ -54,12 +51,6 @@ inline View view(std::string_view str) {
 inline Span span(std::string& str) {
   return Span(reinterpret_cast<Byte*>(str.data()), str.size());
 }
-
-/// The concept of a type that can be viewed as a sized range of contiguous bytes.
-template<typename T>
-concept Viewable = requires(const T& a) {
-  { view(a) } -> std::convertible_to<View>;
-};
 
 } // namespace bytes
 

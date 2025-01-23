@@ -33,7 +33,7 @@ ERC721Test::ERC721Test(const Address &address, const DB& db)
 ERC721Test::ERC721Test(
   const std::string &erc721name, const std::string &erc721symbol, const uint64_t& maxTokens,
   const Address &address, const Address &creator, const uint64_t &chainId
-) : DynamicContract(erc721name, address, creator, chainId),
+) : DynamicContract("ERC721Test", address, creator, chainId),
   ERC721(erc721name, erc721symbol, address, creator, chainId),
   tokenIdCounter_(this, 0), maxTokens_(this, maxTokens), totalSupply_(this, 0)
 {
@@ -74,7 +74,7 @@ void ERC721Test::mint(const Address& to) {
 }
 
 void ERC721Test::burn(const uint256_t& tokenId) {
-  this->update_(Address(), tokenId, this->getCaller());
+  this->burn_(tokenId);
   --totalSupply_;
 }
 

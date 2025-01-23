@@ -7,11 +7,11 @@ See the LICENSE.txt file in the project root for more information.
 
 #include "nativewrapper.h"
 
-//NativeWrapper::NativeWrapper(const Address& address, const DB& db
-//) : ERC20(address, db)
-//{
-//  this->registerContractFunctions();
-//}
+NativeWrapper::NativeWrapper(const Address& address, const DB& db
+) : ERC20(address, db)
+{
+  this->registerContractFunctions();
+}
 
 NativeWrapper::NativeWrapper(
   const std::string &erc20_name, const std::string &erc20_symbol,
@@ -26,9 +26,14 @@ NativeWrapper::NativeWrapper(
 
 NativeWrapper::~NativeWrapper() = default;
 
-//DBBatch NativeWrapper::dump() const {
-//  return BaseContract::dump();
-//}
+DBBatch NativeWrapper::dump() const {
+  // We need to dump all the data from the parent class as well
+  DBBatch batch = ERC20::dump();
+  DBBatch baseDump = BaseContract::dump();
+  for (const auto& dbItem : baseDump.getPuts()) batch.push_back(dbItem);
+  for (const auto& dbItem : baseDump.getDels()) batch.delete_key(dbItem);
+  return batch;
+}
 
 void NativeWrapper::registerContractFunctions() {
   registerContract();

@@ -24,7 +24,7 @@ See the LICENSE.txt file in the project root for more information.
  *       std::function<
  *         void(const evmc_message&,
  *              const Address&,
- *              boost::unordered_flat_map<Address, std::unique_ptr<BaseContract>, SafeHash>& contracts_,
+ *              boost::unordered_flat_map<Address, std::unique_ptr<BaseContract>, SafeHash, SafeCompare>& contracts_,
  *              const uint64_t&,
  *              ContractHost*
  *              )>,
@@ -115,11 +115,11 @@ namespace ContractFactory {
      * @param host Pointer to the contract host.
      * @throw DynamicException if the call to the ethCall function fails, or if the contract does not exist.
      */
-    template <typename TContract> void createNewContract(
-      const evmc_message& callInfo, const Address& derivedAddress,
-      boost::unordered_flat_map<Address, std::unique_ptr<BaseContract>, SafeHash>& contracts,
-      const uint64_t& chainId, ContractHost* host
-    ) {
+    template <typename TContract> void createNewContract(const evmc_message& callInfo,
+                                                         const Address& derivedAddress,
+                                                         boost::unordered_flat_map<Address, std::unique_ptr<BaseContract>, SafeHash, SafeCompare>& contracts,
+                                                         const uint64_t& chainId,
+                                                         ContractHost* host) {
       using ConstructorArguments = typename TContract::ConstructorArguments;
       auto decodedData = setupNewContractArgs<TContract>(callInfo);
       if (!ContractReflectionInterface::isContractFunctionsRegistered<TContract>()) {
@@ -129,10 +129,9 @@ namespace ContractFactory {
       // The constructor can set SafeVariable values from the constructor.
       // We need to take account of that and set the variables accordingly.
       auto contract = createContractWithTuple<TContract, ConstructorArguments>(
-        callInfo.sender, derivedAddress, chainId, decodedData
+        Address(callInfo.sender), derivedAddress, chainId, decodedData
       );
-      host->registerNewCPPContract(derivedAddress, contract.get());
-      contracts.insert(std::make_pair(derivedAddress, std::move(contract)));
+      host->context().addContract(derivedAddress, std::move(contract));
     }
 
     /**
@@ -141,17 +140,18 @@ namespace ContractFactory {
      * @param createFunc Function to create a new contract.
      * @param createContractFuncs Function to create the functions of a new contract.
      */
-    template <typename Contract> void addContractFuncs(
-      const std::function<void(
-        const evmc_message&, const Address&,
-        boost::unordered_flat_map<Address, std::unique_ptr<BaseContract>, SafeHash>& contracts_,
-        const uint64_t&, ContractHost* host
-      )>& createFunc,
-      boost::unordered_flat_map<Functor,std::function<void(
-        const evmc_message&, const Address&,
-        boost::unordered_flat_map<Address, std::unique_ptr<BaseContract>, SafeHash>& contracts_,
-        const uint64_t&, ContractHost*
-      )>,SafeHash>& createContractFuncs
+    template <typename Contract>
+    void addContractFuncs(const std::function<
+                       void(const evmc_message&,
+                            const Address&,
+                            boost::unordered_flat_map<Address, std::unique_ptr<BaseContract>, SafeHash, SafeCompare>& contracts_,
+                            const uint64_t&,
+                            ContractHost* host)>& createFunc
+                      ,boost::unordered_flat_map<Functor,std::function<void(const evmc_message&,
+                                                                     const Address&,
+                                                                     boost::unordered_flat_map<Address, std::unique_ptr<BaseContract>, SafeHash, SafeCompare>& contracts_,
+                                                                     const uint64_t&,
+                                                                     ContractHost*)>,SafeHash>& createContractFuncs
     ) {
       std::string createSignature = "createNew" + Utils::getRealTypeName<Contract>() + "Contract(";
       // Append args
@@ -171,7 +171,7 @@ namespace ContractFactory {
       boost::unordered_flat_map<Functor, std::function<void(
         const evmc_message&,
         const Address&,
-        boost::unordered_flat_map<Address, std::unique_ptr<BaseContract>, SafeHash>& contracts_,
+        boost::unordered_flat_map<Address, std::unique_ptr<BaseContract>, SafeHash, SafeCompare>& contracts_,
         const uint64_t&,
         ContractHost*
       )>, SafeHash>& createContractFuncs,
@@ -180,7 +180,7 @@ namespace ContractFactory {
       ((addContractFuncs<std::tuple_element_t<Is, Tuple>>([](
         const evmc_message &callInfo,
         const Address &derivedAddress,
-        boost::unordered_flat_map<Address, std::unique_ptr<BaseContract>, SafeHash> &contracts,
+        boost::unordered_flat_map<Address, std::unique_ptr<BaseContract>, SafeHash, SafeCompare> &contracts,
         const uint64_t &chainId,
         ContractHost* host
       ) {
@@ -195,7 +195,7 @@ namespace ContractFactory {
     template <typename Tuple> requires Utils::is_tuple<Tuple>::value void addAllContractFuncs(
                                                                    boost::unordered_flat_map<Functor,std::function<void(const evmc_message&,
                                                                    const Address&,
-                                                                   boost::unordered_flat_map<Address, std::unique_ptr<BaseContract>, SafeHash>& contracts_,
+                                                                   boost::unordered_flat_map<Address, std::unique_ptr<BaseContract>, SafeHash, SafeCompare>& contracts_,
                                                                    const uint64_t&,
                                                                    ContractHost*)>,SafeHash>& createContractFuncs) {
       addAllContractFuncsHelper<Tuple>(createContractFuncs, std::make_index_sequence<std::tuple_size<Tuple>::value>{});

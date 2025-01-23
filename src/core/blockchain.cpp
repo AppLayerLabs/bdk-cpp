@@ -97,6 +97,20 @@ void Blockchain::FinalizedBlockCache::evictIndices(const std::shared_ptr<const F
 Blockchain::Blockchain(const std::string& blockchainPath, std::string instanceId)
   : instanceId_(instanceId),
     options_(Options::fromFile(blockchainPath)), // build the Options object from the blockchainPath/options.json file (or binarydefaults)
+
+    // FIXME/TODO: Remove this db_ member and fix all downstream code that depends on it for whatever reason.
+    // It makes no sense to tie a Blockchain & State instance to the permanent store of some block height
+    // forever just because we constructed the node at that time.
+    // The Blockchain class should NOT have a DB object that is the "best db at some height". That makes no sense.
+    // If we are using a database to write the machine state at some block height, that DB instance is
+    // created on-the-fly at the time the machine state snapshot is read or written; there is no reason
+    // to keep an instance of that snapshot.
+    // We should NOT bind Blockchain/State instances to one snapshot. The machine state snapshot file is
+    // only accessed when we want to either read or write a snapshot.
+    // In case Blockchain/State and the contract system need a backing DB that is not relative to some
+    // block height, use Storage instead.
+    db_(std::get<0>(DumpManager::getBestStateDBPath(options_))),
+
     comet_(this, instanceId, options_),
     state_(*this),
     storage_(*this),
@@ -110,6 +124,20 @@ Blockchain::Blockchain(const std::string& blockchainPath, std::string instanceId
 Blockchain::Blockchain(const Options& options, const std::string& blockchainPath, std::string instanceId)
   : instanceId_(instanceId),
     options_(options), // copy the given Options object
+
+    // FIXME/TODO: Remove this db_ member and fix all downstream code that depends on it for whatever reason.
+    // It makes no sense to tie a Blockchain & State instance to the permanent store of some block height
+    // forever just because we constructed the node at that time.
+    // The Blockchain class should NOT have a DB object that is the "best db at some height". That makes no sense.
+    // If we are using a database to write the machine state at some block height, that DB instance is
+    // created on-the-fly at the time the machine state snapshot is read or written; there is no reason
+    // to keep an instance of that snapshot.
+    // We should NOT bind Blockchain/State instances to one snapshot. The machine state snapshot file is
+    // only accessed when we want to either read or write a snapshot.
+    // In case Blockchain/State and the contract system need a backing DB that is not relative to some
+    // block height, use Storage instead.
+    db_(std::get<0>(DumpManager::getBestStateDBPath(options_))),
+
     comet_(this, instanceId, options_),
     state_(*this),
     storage_(*this),
@@ -705,53 +733,33 @@ static inline void forbidParams(const json& request) {
     throw DynamicException("\"params\" are not required for method");
 }
 
-static std::pair<Bytes, evmc_message> parseEvmcMessage(const json& request, const uint64_t latestHeight, bool recipientRequired) {
-  std::pair<Bytes, evmc_message> res{};
+std::tuple<Address, Address, Gas, uint256_t, Bytes> Blockchain::parseMessage(const json& request, bool recipientRequired) {
+  std::tuple<Address, Address, Gas, uint256_t, Bytes> result;
 
-  Bytes& buffer = res.first;
-  evmc_message& msg = res.second;
+  auto& [from, to, gas, value, data] = result;
 
   const auto [txJson, optionalBlockNumber] = parseAllParams<json, std::optional<BlockTagOrNumber>>(request);
 
-  if (optionalBlockNumber.has_value() && !optionalBlockNumber->isLatest(latestHeight))
-    throw Error(-32601, "Only latest block is supported");
+  // Metamask can't keep up with a fast enough moving blockchain
+  // Causing it to constantly fail with "Only the latest block is supported"
+  // as it requests information on the block it knows it was the latest (not the "latest" flag)
+  //if (optionalBlockNumber.has_value() && !optionalBlockNumber->isLatest(storage))
+  //  throw Error(-32601, "Only the latest block is supported");
 
-  msg.sender = parseIfExists<Address>(txJson, "from")
-    .transform([] (const Address& addr) { return addr.toEvmcAddress(); })
-    .value_or(evmc::address{});
+  from = parseIfExists<Address>(txJson, "from").value_or(Address{});
 
-  if (recipientRequired)
-    msg.recipient = parse<Address>(txJson.at("to")).toEvmcAddress();
-  else
-    msg.recipient = parseIfExists<Address>(txJson, "to")
-      .transform([] (const Address& addr) { return addr.toEvmcAddress(); })
-      .value_or(evmc::address{});
+  to = recipientRequired
+    ? parse<Address>(txJson.at("to"))
+    : parseIfExists<Address>(txJson, "to").value_or(Address{});
 
-  msg.gas = parseIfExists<uint64_t>(txJson, "gas").value_or(10000000);
-  parseIfExists<uint64_t>(txJson, "gasPrice"); // gas price ignored as chain is fixed at 1 GWEI
+  gas = Gas(parseIfExists<uint64_t>(txJson, "gas").value_or(10'000'000));
 
-  msg.value = parseIfExists<uint64_t>(txJson, "value")
-    .transform([] (uint64_t val) { return EVMCConv::uint256ToEvmcUint256(uint256_t(val)); })
-    .value_or(evmc::uint256be{});
+  value = parseIfExists<uint256_t>(txJson, "value").value_or(0);
 
-  buffer = parseIfExists<Bytes>(txJson, "data").value_or(Bytes{});
+  data = parseIfExists<Bytes>(txJson, "data").value_or(Bytes{});
 
-  msg.input_size = buffer.size();
-  msg.input_data = buffer.empty() ? nullptr : buffer.data();
-
-  return res;
+  return result;
 }
-
-/*
-
-  inline this functionality with a synchronous comet getblock
-  in the lambda instead
-
-static std::optional<uint64_t> Blockchain::getBlockNumber(const Hash& hash) {
-  if (const auto block = storage.getBlock(hash); block != nullptr) return block->getNHeight();
-  return std::nullopt;
-}
-*/
 
 template<typename T, std::ranges::input_range R>
 requires std::convertible_to<std::ranges::range_value_t<R>, T>
@@ -961,25 +969,25 @@ json Blockchain::eth_blockNumber(const json& request) {
 }
 
 json Blockchain::eth_call(const json& request) {
-  auto [buffer, callInfo] = parseEvmcMessage(request, getLatestHeight(), true);
-  callInfo.kind = EVMC_CALL;
-  callInfo.flags = 0;
-  callInfo.depth = 0;
-  return Hex::fromBytes(state_.ethCall(callInfo), true);
+  auto [from, to, gas, value, data] = parseMessage(request, true);
+  EncodedStaticCallMessage msg(from, to, gas, data);
+  return Hex::fromBytes(state().ethCall(msg));
 }
 
 json Blockchain::eth_estimateGas(const json& request) {
-  auto [buffer, callInfo] = parseEvmcMessage(request, getLatestHeight(), false);
-  callInfo.flags = 0;
-  callInfo.depth = 0;
+  auto [from, to, gas, value, data] = parseMessage(request, false);
 
-  // TODO: "kind" is uninitialized if recipient is not zeroes
-  if (evmc::is_zero(callInfo.recipient))
-    callInfo.kind = EVMC_CREATE;
+  uint64_t gasUsed;
 
-  const auto usedGas = state_.estimateGas(callInfo);
+  if (to == Address()) {
+    EncodedCreateMessage msg(from, gas, value, data);
+    gasUsed = state().estimateGas(msg);
+  } else {
+    EncodedCallMessage msg(from, to, gas, value, data);
+    gasUsed = state().estimateGas(msg);
+  }
 
-  return Hex::fromBytes(Utils::uintToBytes(static_cast<uint64_t>(usedGas)), true).forRPC();
+  return Hex::fromBytes(Utils::uintToBytes(static_cast<uint64_t>(gasUsed)), true).forRPC();
 }
 
 json Blockchain::eth_gasPrice(const json& request) {
@@ -988,9 +996,11 @@ json Blockchain::eth_gasPrice(const json& request) {
 }
 
 json Blockchain::eth_feeHistory(const json& request) {
-  // FIXME/TODO
-  // We should probably just have this computed and saved in RAM as we
-  // process incoming blocks.
+  // FIXME/TODO: We should probably just have this computed and saved in RAM as we process incoming blocks.
+  // The previous implementation wasn't doing anything (it was just returing a default value, which can be
+  // returned here directly as well); it was just requesting 1,024 blocks from (potentially, or at least now
+  // with the new Comet-backed Blockchain::getBlock()) the backing storage, which is expensive and an attack
+  // vector on the node, really, and we should just not do that.
   return {};
 }
 
@@ -1037,8 +1047,9 @@ json Blockchain::eth_getLogs(const json& request) {
 json Blockchain::eth_getBalance(const json& request) {
   const auto [address, block] = parseAllParams<Address, BlockTagOrNumber>(request);
 
-  if (!block.isLatest(getLatestHeight()))
-    throw DynamicException("Only the latest block is supported");
+  // Same reasoning as on parseEvmcMessage (Metamask not keeping up)
+  // if (!block.isLatest(getLatestHeight()))
+  //   throw DynamicException("Only the latest block is supported");
 
   return Hex::fromBytes(Utils::uintToBytes(state_.getNativeBalance(address)), true).forRPC();
 }
@@ -1046,8 +1057,9 @@ json Blockchain::eth_getBalance(const json& request) {
 json Blockchain::eth_getTransactionCount(const json& request) {
   const auto [address, block] = parseAllParams<Address, BlockTagOrNumber>(request);
 
-  if (!block.isLatest(getLatestHeight()))
-    throw DynamicException("Only the latest block is supported");
+  // Same reasoning as on parseEvmcMessage (Metamask not keeping up)
+  // if (!block.isLatest(getLatestHeight()))
+  //   throw DynamicException("Only the latest block is supported");
 
   return Hex::fromBytes(Utils::uintToBytes(state_.getNativeNonce(address)), true).forRPC();
 }
@@ -1055,8 +1067,9 @@ json Blockchain::eth_getTransactionCount(const json& request) {
 json Blockchain::eth_getCode(const json& request) {
   const auto [address, block] = parseAllParams<Address, BlockTagOrNumber>(request);
 
-  if (!block.isLatest(getLatestHeight()))
-    throw DynamicException("Only the latest block is supported");
+  // Same reasoning as on parseEvmcMessage (Metamask not keeping up)
+  // if (!block.isLatest(getLatestHeight()))
+  //   throw DynamicException("Only the latest block is supported");
 
   return Hex::fromBytes(state_.getContractCode(address), true).forRPC();
 }
@@ -1185,49 +1198,6 @@ json Blockchain::eth_getUncleByBlockHashAndIndex(const json& request) {
   return json::value_t::null;
 }
 
-json Blockchain::txpool_content(const json& request) {
-  forbidParams(request);
-  json result;
-  result["queued"] = json::array();
-  json& pending = result["pending"];
-
-  pending = json::array();
-/*
-  FIXME/TODO
-  - We can build something here that would be useful during development
-  or testing, but if an application wants to detect the actual entire mempool
-  in production (with potentially millions of transactions) then they should
-  probably *be* a node instead.
-  - CometBFT RPC: num_unconfirmed_txs, unconfirmed_txs
-  - we could also implement our own custom mempool later, meaning we would
-  already have the data to answer this in this same process.
-  - ADR 102 (RPC Companion) also potentially relevant for this (& other ETH RPC
-  method implementation decisions)
-
-  for (const auto& [hash, tx] : state.getPendingTxs()) {
-    json accountJson;
-    json& txJson = accountJson[tx.getFrom().hex(true)][tx.getNonce().str()];
-    txJson["blockHash"] = json::value_t::null;
-    txJson["blockNumber"] = json::value_t::null;
-    txJson["from"] = tx.getFrom().hex(true);
-    txJson["to"] = tx.getTo().hex(true);
-    txJson["gasUsed"] = json::value_t::null;
-    txJson["gasPrice"] = Hex::fromBytes(Utils::uintToBytes(tx.getMaxFeePerGas()),true).forRPC();
-    txJson["getMaxFeePerGas"] = Hex::fromBytes(Utils::uintToBytes(tx.getMaxFeePerGas()),true).forRPC();
-    txJson["chainId"] = Hex::fromBytes(Utils::uintToBytes(tx.getChainId()),true).forRPC();
-    txJson["input"] = Hex::fromBytes(tx.getData(), true).forRPC();
-    txJson["nonce"] = Hex::fromBytes(Utils::uintToBytes(tx.getNonce()), true).forRPC();
-    txJson["transactionIndex"] = json::value_t::null;
-    txJson["type"] = "0x2"; // Legacy Transactions ONLY. TODO: change this to 0x2 when we support EIP-1559
-    txJson["v"] = Hex::fromBytes(Utils::uintToBytes(tx.getV()), true).forRPC();
-    txJson["r"] = Hex::fromBytes(Utils::uintToBytes(tx.getR()), true).forRPC();
-    txJson["s"] = Hex::fromBytes(Utils::uintToBytes(tx.getS()), true).forRPC();
-    pending.push_back(std::move(accountJson));
-  }
-*/
-  return result;
-}
-
 json Blockchain::debug_traceBlockByNumber(const json& request) {
   requiresDebugIndexing(storage_, "debug_traceBlockByNumber");
 
@@ -1282,4 +1252,47 @@ json Blockchain::debug_traceTransaction(const json& request) {
   res = callTrace->toJson();
 
   return res;
+}
+
+json Blockchain::txpool_content(const json& request) {
+  forbidParams(request);
+  json result;
+  result["queued"] = json::array();
+  json& pending = result["pending"];
+
+  pending = json::array();
+/*
+  FIXME/TODO
+  - We can build something here that would be useful during development
+  or testing, but if an application wants to detect the actual entire mempool
+  in production (with potentially millions of transactions) then they should
+  probably *be* a node instead.
+  - CometBFT RPC: num_unconfirmed_txs, unconfirmed_txs
+  - we could also implement our own custom mempool later, meaning we would
+  already have the data to answer this in this same process.
+  - ADR 102 (RPC Companion) also potentially relevant for this (& other ETH RPC
+  method implementation decisions)
+
+  for (const auto& [hash, tx] : state.getPendingTxs()) {
+    json accountJson;
+    json& txJson = accountJson[tx.getFrom().hex(true)][tx.getNonce().str()];
+    txJson["blockHash"] = json::value_t::null;
+    txJson["blockNumber"] = json::value_t::null;
+    txJson["from"] = tx.getFrom().hex(true);
+    txJson["to"] = tx.getTo().hex(true);
+    txJson["gasUsed"] = json::value_t::null;
+    txJson["gasPrice"] = Hex::fromBytes(Utils::uintToBytes(tx.getMaxFeePerGas()),true).forRPC();
+    txJson["getMaxFeePerGas"] = Hex::fromBytes(Utils::uintToBytes(tx.getMaxFeePerGas()),true).forRPC();
+    txJson["chainId"] = Hex::fromBytes(Utils::uintToBytes(tx.getChainId()),true).forRPC();
+    txJson["input"] = Hex::fromBytes(tx.getData(), true).forRPC();
+    txJson["nonce"] = Hex::fromBytes(Utils::uintToBytes(tx.getNonce()), true).forRPC();
+    txJson["transactionIndex"] = json::value_t::null;
+    txJson["type"] = "0x2"; // Legacy Transactions ONLY. TODO: change this to 0x2 when we support EIP-1559
+    txJson["v"] = Hex::fromBytes(Utils::uintToBytes(tx.getV()), true).forRPC();
+    txJson["r"] = Hex::fromBytes(Utils::uintToBytes(tx.getR()), true).forRPC();
+    txJson["s"] = Hex::fromBytes(Utils::uintToBytes(tx.getS()), true).forRPC();
+    pending.push_back(std::move(accountJson));
+  }
+*/
+  return result;
 }

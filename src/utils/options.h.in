@@ -38,12 +38,13 @@ class IndexingMode {
      */
     explicit IndexingMode(std::string_view mode);
 
-    /**
-     * Convert the internal value back to its string form.
-     * @return The setting as a string.
-     * @throw DynamicException if value doesn't match one of the values above.
-     */
-    constexpr std::string_view toString() const;
+    /// Convert the internal value back to its string form.
+    constexpr std::string_view toString() const {
+      if (*this == DISABLED) return "DISABLED";
+      if (*this == RPC) return "RPC";
+      if (*this == RPC_TRACE) return "RPC_TRACE";
+      std::unreachable();
+    }
 
     /// Equality operator (default, as the internal value is just an int).
     constexpr bool operator==(const IndexingMode&) const = default;

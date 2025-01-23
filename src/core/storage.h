@@ -96,6 +96,14 @@ class Storage : public Log::LogicalLocationProvider {
      * @returns The indexing mode of the storage.
      */
     IndexingMode getIndexingMode() const;
+
+    /**
+     * Helper function for checking if an event has certain topics.
+     * @param event The event to check.
+     * @param topics A list of topics to check for.
+     * @return `true` if all topics match (or if no topics were provided), `false` otherwise.
+     */
+    static bool topicsMatch(const Event& event, const std::vector<Hash>& topics);
 };
 
 #endif  // STORAGE_H

@@ -6,7 +6,6 @@ See the LICENSE.txt file in the project root for more information.
 */
 
 #include "call.h"
-#include "methods.h"
 
 #include <unordered_map>
 #include <string>

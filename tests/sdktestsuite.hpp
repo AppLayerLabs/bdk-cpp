@@ -15,6 +15,7 @@ See the LICENSE.txt file in the project root for more information.
 #include "../src/utils/contractreflectioninterface.h"
 
 #include "../src/contract/event.h"
+#include "bytes/random.h"
 
 /// Key values required by one Comet node
 struct CometTestKeys {
@@ -162,9 +163,6 @@ class SDKTestSuite : public Blockchain {
 
     /// Get the nonce of a given address.
     const uint64_t getNativeNonce(const Address& address) const;
-
-    /// Estimate gas.
-    int64_t estimateGas(const evmc_message& callInfo);
 
     /**
      * Helper for creating a test dump path.
@@ -613,38 +611,23 @@ class SDKTestSuite : public Blockchain {
       const Address& contractAddress, ReturnType(TContract::*func)() const
     ) {
       TContract::registerContract();
-      evmc_message callData;
-      auto& [callKind,
-        callFlags,
-        callDepth,
-        callGas,
-        callRecipient,
-        callSender,
-        callInputData,
-        callInputSize,
-        callValue,
-        callCreate2Salt,
-        callCodeAddress] = callData;
 
       auto functor = ABI::FunctorEncoder::encode<>(ContractReflectionInterface::getFunctionName(func));
       Bytes fullData;
       Utils::appendBytes(fullData, UintConv::uint32ToBytes(functor.value));
 
-      callKind = EVMC_CALL;
-      callFlags = 0;
-      callDepth = 1;
-      callGas = 10000000;
-      callRecipient = contractAddress.toEvmcAddress();
-      callSender = this->getChainOwnerAccount().address.toEvmcAddress();
-      callInputData = fullData.data();
-      callInputSize = fullData.size();
-      callValue = EVMCConv::uint256ToEvmcUint256(0);
-      callCreate2Salt = {};
-      callCodeAddress = contractAddress.toEvmcAddress();
-      return std::get<0>(ABI::Decoder::decodeData<ReturnType>(this->state_.ethCall(callData)));
+      Gas gas(10'000'000);
+      const Address from = this->getChainOwnerAccount().address;
+      EncodedStaticCallMessage msg(from, contractAddress, gas, fullData);
+
+      const Bytes result = this->state_.ethCall(msg);
+
+      if constexpr (not std::same_as<ReturnType, void>) {
+        return std::get<0>(ABI::Decoder::decodeData<ReturnType>(result));
+      }
     }
 
-    /**
+      /**
      * Call a contract view function with args and return the result.
      * @tparam ReturnType Return type of the function.
      * @tparam TContract Contract type to call.
@@ -659,38 +642,22 @@ class SDKTestSuite : public Blockchain {
       const Address& contractAddress,
       ReturnType(TContract::*func)(const Args&...) const,
       const Args&... args
-    ) {
+      ) {
       TContract::registerContract();
-      evmc_message callData;
-      auto& [callKind,
-        callFlags,
-        callDepth,
-        callGas,
-        callRecipient,
-        callSender,
-        callInputData,
-        callInputSize,
-        callValue,
-        callCreate2Salt,
-        callCodeAddress] = callData;
       auto functor = ABI::FunctorEncoder::encode<Args...>(ContractReflectionInterface::getFunctionName(func));
       Bytes fullData;
       Utils::appendBytes(fullData, UintConv::uint32ToBytes(functor.value));
       Utils::appendBytes(fullData, ABI::Encoder::encodeData<Args...>(std::forward<decltype(args)>(args)...));
 
-      callKind = EVMC_CALL;
-      callFlags = 0;
-      callDepth = 1;
-      callGas = 10000000;
-      callRecipient = contractAddress.toEvmcAddress();
-      callSender = this->getChainOwnerAccount().address.toEvmcAddress();
-      callInputData = fullData.data();
-      callInputSize = fullData.size();
-      callValue = EVMCConv::uint256ToEvmcUint256(0);
-      callCreate2Salt = {};
-      callCodeAddress = {};
+      Gas gas(10'000'000);
+      const Address from = this->getChainOwnerAccount().address;
+      EncodedStaticCallMessage msg(from, contractAddress, gas, fullData);
 
-      return std::get<0>(ABI::Decoder::decodeData<ReturnType>(this->state_.ethCall(callData)));
+      const Bytes result = this->state_.ethCall(msg);
+
+      if constexpr (not std::same_as<ReturnType, void>) {
+        return std::get<0>(ABI::Decoder::decodeData<ReturnType>(result));
+      }
     }
 
     /**

@@ -85,8 +85,11 @@ HAS_TAR=$(check_exec tar)
 HAS_GCC=$(check_exec gcc)
 HAS_GPP=$(check_exec g++)
 HAS_GO=$(check_exec go) # Required for CometBFT compilation
-HAS_LD=$(check_exec ld)
 HAS_MAKE=$(check_exec make)
+HAS_LD=$(check_exec ld)
+HAS_AUTOCONF=$(check_exec autoconf)     # Required for local gRPC compilation
+HAS_LIBTOOL=$(check_exec libtool)       # Required for local gRPC compilation
+HAS_PKGCONFIG=$(check_exec pkg-config)  # Required for local gRPC compilation
 HAS_CMAKE=$(check_exec cmake)
 HAS_TMUX=$(check_exec tmux)
 HAS_NINJA=$(check_exec ninja)
@@ -130,8 +133,11 @@ if [ "${1:-}" == "--check" ]; then
   echo -n "gcc: " && [ -n "$HAS_GCC" ] && echo "$HAS_GCC" || echo "not found"
   echo -n "g++: " && [ -n "$HAS_GPP" ] && echo "$HAS_GPP" || echo "not found"
   echo -n "go: " && [ -n "$HAS_GO" ] && echo "$HAS_GO" || echo "not found"
-  echo -n "ld: " && [ -n "$HAS_LD" ] && echo "$HAS_LD" || echo "not found"
   echo -n "make: " && [ -n "$HAS_MAKE" ] && echo "$HAS_MAKE" || echo "not found"
+  echo -n "ld: " && [ -n "$HAS_LD" ] && echo "$HAS_LD" || echo "not found"
+  echo -n "autoconf: " && [ -n "$HAS_AUTOCONF" ] && echo "$HAS_AUTOCONF" || echo "not found"
+  echo -n "libtool: " && [ -n "$HAS_LIBTOOL" ] && echo "$HAS_LIBTOOL" || echo "not found"
+  echo -n "pkg-config: " && [ -n "$HAS_PKGCONFIG" ] && echo "$HAS_PKGCONFIG" || echo "not found"
   echo -n "cmake: " && [ -n "$HAS_CMAKE" ] && echo "$HAS_CMAKE" || echo "not found"
   echo -n "tmux: " && [ -n "$HAS_TMUX" ] && echo "$HAS_TMUX" || echo "not found"
 
@@ -180,6 +186,9 @@ elif [ "${1:-}" == "--install" ]; then
     if [ -z "$HAS_TAR" ]; then PKGS+="tar "; fi
     if [ -z "$HAS_GCC" ] || [ -z "$HAS_GPP" ] || [ -z "$HAS_MAKE" ] || [ -z "$HAS_LD" ]; then PKGS+="build-essential "; fi
     if [ -z "$HAS_GO" ]; then PKGS+="golang "; fi
+    if [ -z "$HAS_AUTOCONF" ]; then PKGS+="autoconf "; fi
+    if [ -z "$HAS_LIBTOOL" ]; then PKGS+="libtool-bin "; fi
+    if [ -z "$HAS_PKGCONFIG" ]; then PKGS+="pkg-config "; fi
     if [ -z "$HAS_CMAKE" ]; then PKGS+="cmake "; fi
     if [ -z "$HAS_TMUX" ]; then PKGS+="tmux "; fi
     if [ -z "$HAS_NINJA" ]; then PKGS+="ninja-build "; fi

@@ -11,10 +11,8 @@ See the LICENSE.txt file in the project root for more information.
 
 
 ContractManager::ContractManager(
-  //const DB& db, 
-  boost::unordered_flat_map<Address, std::unique_ptr<BaseContract>, SafeHash>& contracts,
-  //DumpManager& manager,
-  const Options& options
+  const DB& db, boost::unordered_flat_map<Address, std::unique_ptr<BaseContract>, SafeHash, SafeCompare>& contracts,
+  DumpManager& manager, const Options& options
 ) : BaseContract("ContractManager", ProtocolContractAddresses.at("ContractManager"),
   options.getChainOwner(), options.getChainID()), contracts_(contracts)
 {
@@ -78,16 +76,21 @@ void ContractManager::ethCall(const evmc_message& callInfo, ContractHost* host) 
   PointerNullifier nullifier(this->host_);
   const Address caller(callInfo.sender);
   const Functor functor = EVMCConv::getFunctor(callInfo);
-  /// Call the function on this->createContractFuncs_
+  // Call the function on this->createContractFuncs_
   auto it = this->createContractFuncs_.find(functor);
   if (it == this->createContractFuncs_.end()) {
     throw DynamicException("ContractManager: Invalid function call");
   }
   it->second(callInfo,
-             ContractHost::deriveContractAddress(this->host_->getNonce(caller), caller),
+            generateContractAddress(this->host_->context().getAccount(caller).getNonce(), caller),
              this->contracts_,
              this->getContractChainId(),
              this->host_);
+}
+
+Bytes ContractManager::evmEthCall(const evmc_message& callInfo, ContractHost* host) {
+  this->ethCall(callInfo, host);
+  return Bytes();
 }
 
 Bytes ContractManager::ethCallView(const evmc_message& callInfo, ContractHost* host) const {

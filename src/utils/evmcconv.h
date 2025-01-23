@@ -42,7 +42,7 @@ namespace EVMCConv {
   uint256_t evmcUint256ToUint256(const evmc::uint256be& x);
   evmc::uint256be uint256ToEvmcUint256(const uint256_t& x);
   BytesArr<32> evmcUint256ToBytes(const evmc::uint256be& x);
-  evmc::uint256be bytesToEvmcUint256(const bytes::View x);
+  evmc::uint256be bytesToEvmcUint256(const View<Bytes> x);
   ///@}
 
   /**
@@ -53,11 +53,11 @@ namespace EVMCConv {
   Functor getFunctor(const evmc_message& msg);
 
   /**
-   * Get the bytes::View representing the function arguments of a given evmc_message.
+   * Get the View<Bytes> representing the function arguments of a given evmc_message.
    * @param msg The evmc_message to get the function arguments from.
-   * @return The bytes::View representing the function arguments.
+   * @return The View<Bytes> representing the function arguments.
    */
-  bytes::View getFunctionArgs(const evmc_message& msg);
+  View<Bytes> getFunctionArgs(const evmc_message& msg);
 };
 
 #endif // EVMCCONV_H

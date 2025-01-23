@@ -6,6 +6,7 @@ See the LICENSE.txt file in the project root for more information.
 */
 
 #include "../../src/libs/catch2/catch_amalgamated.hpp"
+#include "bytes/random.h"
 
 #include "../../src/utils/merkle.h" // tx.h
 
@@ -23,7 +24,7 @@ namespace TMerkle {
         StrConv::stringToBytes("jk"), StrConv::stringToBytes("km"), StrConv::stringToBytes("mn")
       };
       std::vector<Hash> hashedLeafs;
-      for(const Bytes& leaf : unhashedLeafs) hashedLeafs.emplace_back(Utils::sha3(leaf));
+      for (const Bytes& leaf : unhashedLeafs) hashedLeafs.emplace_back(Utils::sha3(leaf));
 
       Merkle tree(hashedLeafs);
       std::vector<Hash> proof = tree.getProof(3);
@@ -34,14 +35,17 @@ namespace TMerkle {
       REQUIRE_THAT(root.hex(), Equals("3fb0308018d8a6b4c2081699003624e9719774be2b7f65b7f9ac45f2bebc20b7"));
       REQUIRE(Merkle::verify(proof, leaf, root));
       REQUIRE(!Merkle::verify(proof, badLeaf, root));
+
+      // For coverage
+      REQUIRE(tree.getProof(999).empty());
     }
 
     SECTION("Random Merkle Tree") {
       std::vector<Hash> hashedLeafs {
-        Hash::random(), Hash::random(), Hash::random(), Hash::random(),
-        Hash::random(), Hash::random(), Hash::random(), Hash::random(),
-        Hash::random(), Hash::random(), Hash::random(), Hash::random(),
-        Hash::random(), Hash::random(), Hash::random()
+        bytes::random(), bytes::random(), bytes::random(), bytes::random(),
+        bytes::random(), bytes::random(), bytes::random(), bytes::random(),
+        bytes::random(), bytes::random(), bytes::random(), bytes::random(),
+        bytes::random(), bytes::random(), bytes::random()
       };
 
       Merkle tree(hashedLeafs);

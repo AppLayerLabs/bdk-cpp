@@ -7,8 +7,6 @@ See the LICENSE.txt file in the project root for more information.
 
 #include "finalizedblock.h"
 
-#include "../core/rdpos.h" // net/p2p/managernormal.h -> net/p2p/nodeconns.h (and broadcaster.h) -> thread
-
 #include "../utils/uintconv.h"
 
 #include "../core/comet.h"

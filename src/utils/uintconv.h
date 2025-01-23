@@ -98,39 +98,39 @@ namespace UintConv {
    * @return The converted integer.
    * @throw DynamicException if string size is invalid.
    */
-  uint256_t bytesToUint256(const bytes::View b);
-  uint248_t bytesToUint248(const bytes::View b);
-  uint240_t bytesToUint240(const bytes::View b);
-  uint232_t bytesToUint232(const bytes::View b);
-  uint224_t bytesToUint224(const bytes::View b);
-  uint216_t bytesToUint216(const bytes::View b);
-  uint208_t bytesToUint208(const bytes::View b);
-  uint200_t bytesToUint200(const bytes::View b);
-  uint192_t bytesToUint192(const bytes::View b);
-  uint184_t bytesToUint184(const bytes::View b);
-  uint176_t bytesToUint176(const bytes::View b);
-  uint168_t bytesToUint168(const bytes::View b);
-  uint160_t bytesToUint160(const bytes::View b);
-  uint152_t bytesToUint152(const bytes::View b);
-  uint144_t bytesToUint144(const bytes::View b);
-  uint136_t bytesToUint136(const bytes::View b);
-  uint128_t bytesToUint128(const bytes::View b);
-  uint120_t bytesToUint120(const bytes::View b);
-  uint112_t bytesToUint112(const bytes::View b);
-  uint104_t bytesToUint104(const bytes::View b);
-  uint96_t bytesToUint96(const bytes::View b);
-  uint88_t bytesToUint88(const bytes::View b);
-  uint80_t bytesToUint80(const bytes::View b);
-  uint72_t bytesToUint72(const bytes::View b);
-  uint56_t bytesToUint56(const bytes::View b);
-  uint48_t bytesToUint48(const bytes::View b);
-  uint40_t bytesToUint40(const bytes::View b);
-  uint24_t bytesToUint24(const bytes::View b);
+  uint256_t bytesToUint256(const View<Bytes> b);
+  uint248_t bytesToUint248(const View<Bytes> b);
+  uint240_t bytesToUint240(const View<Bytes> b);
+  uint232_t bytesToUint232(const View<Bytes> b);
+  uint224_t bytesToUint224(const View<Bytes> b);
+  uint216_t bytesToUint216(const View<Bytes> b);
+  uint208_t bytesToUint208(const View<Bytes> b);
+  uint200_t bytesToUint200(const View<Bytes> b);
+  uint192_t bytesToUint192(const View<Bytes> b);
+  uint184_t bytesToUint184(const View<Bytes> b);
+  uint176_t bytesToUint176(const View<Bytes> b);
+  uint168_t bytesToUint168(const View<Bytes> b);
+  uint160_t bytesToUint160(const View<Bytes> b);
+  uint152_t bytesToUint152(const View<Bytes> b);
+  uint144_t bytesToUint144(const View<Bytes> b);
+  uint136_t bytesToUint136(const View<Bytes> b);
+  uint128_t bytesToUint128(const View<Bytes> b);
+  uint120_t bytesToUint120(const View<Bytes> b);
+  uint112_t bytesToUint112(const View<Bytes> b);
+  uint104_t bytesToUint104(const View<Bytes> b);
+  uint96_t bytesToUint96(const View<Bytes> b);
+  uint88_t bytesToUint88(const View<Bytes> b);
+  uint80_t bytesToUint80(const View<Bytes> b);
+  uint72_t bytesToUint72(const View<Bytes> b);
+  uint56_t bytesToUint56(const View<Bytes> b);
+  uint48_t bytesToUint48(const View<Bytes> b);
+  uint40_t bytesToUint40(const View<Bytes> b);
+  uint24_t bytesToUint24(const View<Bytes> b);
 
-  uint64_t bytesToUint64(const bytes::View b);
-  uint32_t bytesToUint32(const bytes::View b);
-  uint16_t bytesToUint16(const bytes::View b);
-  uint8_t bytesToUint8(const bytes::View b);
+  uint64_t bytesToUint64(const View<Bytes> b);
+  uint32_t bytesToUint32(const View<Bytes> b);
+  uint16_t bytesToUint16(const View<Bytes> b);
+  uint8_t bytesToUint8(const View<Bytes> b);
   ///@}
 };
 

@@ -777,6 +777,29 @@ namespace TTX {
       REQUIRE_THAT(tx.rlpSerialize(), Equals(Hex::toBytes("02f8ed842a43649385a2789b185983e0d7c48543b85e663e830fb45394f3611f06e176b22a95e98aa4c1cae63caadff7a588e0000c1075ebc4a9b87002c3a9dd32683c6ceb4976dfa1529025747527baef0a25512c20d4dc9c099d69a32ba42e5e23d06f4d72d00faf83810d1198d7143df1cf0f1e3cefef9fb51caa7805e2562f56da8e51f7f187320a4ad42825eb7bb8dfaafd37acb153cafa113e9c385ef4a6ed2d50b4a3994171ccbd42c080a0df63f6f3b75909503fe72e01281cb973476b32b7b4c82096a85061b6b6fe2fe6a057e8cacc0d2a8a893a565d3f7d8fe05558c86fa42323c9ba38e0c33efa1c301c")));
       REQUIRE(TxBlock(tx.rlpSerialize(), 709059731) == tx);
     }
+
+    // For coverage
+    SECTION("TxBlock operator= (copy)") {
+      // Copied from Simple Transaction 1
+      TxBlock tx(Hex::toBytes("0x02f87501826e5c8402faf0808510b3a67cc282520894eb38eab2a8d5f448d7d47005b64697e159aa284e88078cbf1fc56d4f1080c080a0763458eaffb9745026fc6360443e7ff8d171824d0410d48fdf06c08c7d4a8306a031b3d8f1753acc4239ffe0584536f12095651f72a61c684ef221aaa97a315328"), 1);
+      TxBlock txCopy(Hex::toBytes("0x02f87301808405f5e100850b5b977f998252089495944f9d42e181d76bb2c7e428410533aa3fed4a88012386f1806fe51080c080a0102fc0316ef07a9be233a270cdeb692e1666710bbdb8be67bf7d896fa96c6bafa038b6cbfdeb433911da6958a9dd3ac24d4ff39f11d1b985efca6d6d79a96a62ce"), 1);
+      txCopy = tx; // "TxBlock txCopy = tx;" doesn't count as "covered" in SonarQube for some reason
+      REQUIRE(txCopy.getNonce() == 28252);
+      REQUIRE(txCopy.getMaxFeePerGas() == uint256_t("71733509314"));
+      REQUIRE(txCopy.getMaxPriorityFeePerGas() == uint256_t("50000000"));
+      REQUIRE(txCopy.getGasLimit() ==  21000);
+      REQUIRE(txCopy.getTo() == Address(Hex::toBytes("0xeb38eab2a8d5f448d7d47005b64697e159aa284e")));
+      REQUIRE(txCopy.getValue() == uint256_t("544019798182154000"));
+      REQUIRE(txCopy.getData() == Hex::toBytes(""));
+      REQUIRE(txCopy.getFrom() == Address(Hex::toBytes("0x27899fface558bde9f284ba5c8c91ec79ee60fd6")));
+      REQUIRE(txCopy.getR() == uint256_t("53465405869430873365248981118909670428386485581419461107751901704540234875654"));
+      REQUIRE(txCopy.getS() == uint256_t("22481092492079163542744806243083258891162648924785755153837119151879964676904"));
+      REQUIRE(txCopy.getV() == 0);
+      REQUIRE(txCopy.getChainId() == 1);
+      REQUIRE(txCopy.hash() == Hash(Hex::toBytes("0x06339421e7fb585e21c52e5c0a1ba1a55ac8691f6c085d344f444791dfec976c")));
+      REQUIRE_THAT(txCopy.rlpSerialize(), Equals(Hex::toBytes("0x02f87501826e5c8402faf0808510b3a67cc282520894eb38eab2a8d5f448d7d47005b64697e159aa284e88078cbf1fc56d4f1080c080a0763458eaffb9745026fc6360443e7ff8d171824d0410d48fdf06c08c7d4a8306a031b3d8f1753acc4239ffe0584536f12095651f72a61c684ef221aaa97a315328")));
+      REQUIRE(TxBlock(txCopy.rlpSerialize(), 1) == tx);
+    }
   }
 }
 

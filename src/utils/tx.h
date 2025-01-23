@@ -10,6 +10,7 @@ See the LICENSE.txt file in the project root for more information.
 
 #include "ecdsa.h" // utils.h -> strings.h, (bytes/join.h -> bytes/view.h)
 #include "uintconv.h"
+#include "contract/encodedmessages.h"
 
 /**
  * Abstraction of a block transaction.
@@ -41,16 +42,16 @@ class TxBlock {
      * @param txData The raw data to parse.
      * @param index The index to start parsing.
      */
-    void parseChainId(bytes::View txData, uint64_t& index);
-    void parseNonce(bytes::View txData, uint64_t& index);
-    void parseMaxPriorityFeePerGas(bytes::View txData, uint64_t& index);
-    void parseMaxFeePerGas(bytes::View txData, uint64_t& index);
-    void parseGasLimit(bytes::View txData, uint64_t& index);
-    void parseTo(bytes::View txData, uint64_t& index);
-    void parseValue(bytes::View txData, uint64_t& index);
-    void parseData(bytes::View txData, uint64_t& index);
-    void parseAccessList(bytes::View txData, uint64_t& index) const; // We don't support access lists, therefore we don't alter the object
-    void parseVRS(bytes::View txData, uint64_t& index);
+    void parseChainId(View<Bytes> txData, uint64_t& index);
+    void parseNonce(View<Bytes> txData, uint64_t& index);
+    void parseMaxPriorityFeePerGas(View<Bytes> txData, uint64_t& index);
+    void parseMaxFeePerGas(View<Bytes> txData, uint64_t& index);
+    void parseGasLimit(View<Bytes> txData, uint64_t& index);
+    void parseTo(View<Bytes> txData, uint64_t& index);
+    void parseValue(View<Bytes> txData, uint64_t& index);
+    void parseData(View<Bytes> txData, uint64_t& index);
+    void parseAccessList(View<Bytes> txData, uint64_t& index) const; // We don't support access lists, therefore we don't alter the object
+    void parseVRS(View<Bytes> txData, uint64_t& index);
     ///@}
 
     ///@{
@@ -93,7 +94,7 @@ class TxBlock {
      * @param verifySig `false` if signature verificaiton should be skipped, `true` to verify.
      * @throw DynamicException on any parsing failure or expected chain ID mismatch.
      */
-    TxBlock(const bytes::View bytes, const uint64_t& requiredChainId, bool verifySig = true);
+    TxBlock(const View<Bytes> bytes, const uint64_t& requiredChainId, bool verifySig = true);
 
     /**
      * Manual constructor. Leave fields blank ("" or 0) if they're not required.
@@ -176,6 +177,8 @@ class TxBlock {
      * @return The equivalent evmc_message object.
      */
     evmc_message txToMessage() const;
+
+    EncodedMessageVariant toMessage(Gas& gas) const;
 
     /// Copy assignment operator.
     TxBlock& operator=(const TxBlock& other) {

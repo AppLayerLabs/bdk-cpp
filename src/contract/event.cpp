@@ -6,6 +6,7 @@ See the LICENSE.txt file in the project root for more information.
 */
 
 #include "event.h"
+#include "bytes/hex.h"
 
 #include "../utils/uintconv.h"
 
@@ -17,7 +18,7 @@ Event::Event(const std::string& jsonstr) {
   this->txIndex_ = obj["txIndex"].get<uint64_t>();
   this->blockHash_ = Hash(Hex::toBytes(std::string_view(obj["blockHash"].get<std::string>()).substr(2)));
   this->blockIndex_ = obj["blockIndex"].get<uint64_t>();
-  this->address_ = Address(obj["address"].get<std::string>(), false);
+  this->address_ = bytes::hex(obj["address"].get<std::string>());
   this->data_ = obj["data"].get<Bytes>();
   for (std::string topic : obj["topics"]) this->topics_.emplace_back(Hex::toBytes(topic));
   this->anonymous_ = obj["anonymous"].get<bool>();

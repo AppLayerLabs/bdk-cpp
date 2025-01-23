@@ -22,7 +22,7 @@ DEXV2Factory::DEXV2Factory(const Address &address, const DB& db
     this->allPairs_.push_back(Address(dbEntry.value));
   }
   for (const auto& dbEntry : db.getBatch(this->getNewPrefix("getPair_"))) {
-    bytes::View valueView(dbEntry.value);
+    View<Bytes> valueView(dbEntry.value);
     this->getPair_[Address(dbEntry.key)][Address(valueView.subspan(0, 20))] = Address(valueView.subspan(20));
   }
 

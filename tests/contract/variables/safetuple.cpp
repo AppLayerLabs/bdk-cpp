@@ -68,6 +68,14 @@ namespace TSafeTuple {
       REQUIRE(get<2>(std::as_const(tup)) == "ccc");
     }
 
+    SECTION("SafeTuple raw") {
+      SafeTuple<int, double, std::string> tup(std::make_tuple(10, 1.0, "aaa"));
+      std::tuple<int, double, std::string> tupRaw = tup.raw();
+      REQUIRE(std::get<0>(tupRaw) == 10);
+      REQUIRE(std::get<1>(tupRaw) == 1.0);
+      REQUIRE(std::get<2>(tupRaw) == "aaa");
+    }
+
     SECTION("SafeTuple operator=") {
       SafeTuple<int, double, std::string> tup(std::make_tuple(10, 1.0, "aaa"));
       // assign by copy

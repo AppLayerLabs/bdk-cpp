@@ -153,10 +153,6 @@ const uint64_t SDKTestSuite::getNativeNonce(const Address& address) const {
   return this->state_.getNativeNonce(address);
 }
 
-int64_t SDKTestSuite::estimateGas(const evmc_message& callInfo) {
-  return this->state_.estimateGas(callInfo);
-}
-
 // Compatibility method for tests that want to advance a cometbft blockchain.
 void SDKTestSuite::advanceChain(std::vector<TxBlock>&& txs) {
   // Save the current SDKTestSuite-tracked height which is updated by incomingBlock().
@@ -353,45 +349,28 @@ SDKTestSuite SDKTestSuite::createNewEnvironment(
 TxBlock SDKTestSuite::createNewTx(
   const TestAccount& from, const Address& to, const uint256_t& value, Bytes data
 ) {
-  evmc_message callInfo;
-  auto& [callKind,
-    callFlags,
-    callDepth,
-    callGas,
-    callRecipient,
-    callSender,
-    callInputData,
-    callInputSize,
-    callValue,
-    callCreate2Salt,
-    callCodeAddress] = callInfo;
+  Gas gas(1'000'000'000);
 
-  callKind = (to == Address()) ? EVMC_CREATE : EVMC_CALL;
-  callFlags = 0;
-  callDepth = 1;
-  callGas = 1000000000;
-  callRecipient = to.toEvmcAddress();
-  callSender = from.address.toEvmcAddress();
-  callInputData = data.data();
-  callInputSize = data.size();
-  callValue = EVMCConv::uint256ToEvmcUint256(value);
-  callCreate2Salt = {};
-  callCodeAddress = {};
-  auto usedGas = this->estimateGas(callInfo);
-  usedGas += 10000; // Add some extra gas for the transaction itself
-  /// Estimate the gas to see how much gaslimit we should give to the tx itself
+  const uint64_t gasUsed = 10'000 + std::invoke([&] () {
+    if (to) {
+      return this->state_.estimateGas(EncodedCallMessage(from.address, to, gas, value, data));
+    } else {
+      return this->state_.estimateGas(EncodedCreateMessage(from.address, gas, value, data));
+    }
+  });
+
   return TxBlock(to, from.address, data, this->options_.getChainID(),
-    this->getNativeNonce(from.address),
+    this->state_.getNativeNonce(from.address),
     value,
     1000000000,
     1000000000,
-    usedGas,
+    gasUsed,
     from.privKey
   );
 }
 
 Address SDKTestSuite::deployBytecode(const Bytes& bytecode) {
-  Address newContractAddress = ContractHost::deriveContractAddress(this->getNativeNonce(this->getChainOwnerAccount().address), this->getChainOwnerAccount().address);
+  Address newContractAddress = generateContractAddress(this->getNativeNonce(this->getChainOwnerAccount().address), this->getChainOwnerAccount().address);
   auto createTx = this->createNewTx(this->getChainOwnerAccount(), Address(), 0, bytecode);
   this->advanceChain({createTx});
   return newContractAddress;

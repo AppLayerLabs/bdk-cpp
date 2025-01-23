@@ -89,6 +89,8 @@ class Blockchain : public CometListener, public NodeRPCInterface, public Log::Lo
     Storage storage_; ///< BDK persistent store front-end.
     HTTPServer http_; ///< HTTP server.
 
+    DB db_; ///< FIXME: remove this; Blockchain should not have any DB objects, ever. Use Storage as front-end if you really must.
+
     std::vector<CometValidatorUpdate> validators_; ///< Up-to-date CometBFT validator set.
 
     std::unordered_map<Address, uint64_t, SafeHash> validatorAddrs_; /// Up-to-date map of CometBFT validator address to index in validators_.
@@ -114,12 +116,35 @@ class Blockchain : public CometListener, public NodeRPCInterface, public Log::Lo
     // the GetTx() / GetTxBy...() methods.
     FinalizedBlockCache fbCache_;
 
+    /**
+     * Helper for BDK RPC services, fetches a CometBFT block via CometBFT RPC.
+     */
     bool getBlockRPC(const Hash& blockHash, json& ret);
+
+    /**
+     * Helper for BDK RPC services, fetches a CometBFT block via CometBFT RPC.
+     */
     bool getBlockRPC(const uint64_t blockHeight, json& ret);
+
+    /**
+     * Helper for BDK RPC services, fetches a CometBFT tx via CometBFT RPC.
+     */
     bool getTxRPC(const Hash& txHash, json& ret);
 
+    /**
+     * Stores a mapping of transaction hash (sha3) to block height and index
+     * within the block in the txChache_.
+     */
     void putTx(const Hash& tx, const TxCacheValueType& val);
 
+    /**
+     * Helper for BDK RPC services.
+     */
+    static std::tuple<Address, Address, Gas, uint256_t, Bytes> parseMessage(const json& request, bool recipientRequired);
+
+    /**
+     * Helper for BDK RPC services.
+     */
     json getBlockJson(const FinalizedBlock *block, bool includeTransactions);
 
   public:
@@ -290,6 +315,10 @@ class Blockchain : public CometListener, public NodeRPCInterface, public Log::Lo
     State& state() { return this->state_; }
     Storage& storage() { return this->storage_; }
     HTTPServer& http() { return this->http_; }
+
+    // FIXME: REMOVE db_
+    DB& db() { return this->db_; }
+
     ///@}
 };
 

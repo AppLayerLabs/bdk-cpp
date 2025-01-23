@@ -10,7 +10,6 @@ See the LICENSE.txt file in the project root for more information.
 #include "../../utils/uintconv.h"
 #include "../../utils/strconv.h"
 
-/*
 ERC20::ERC20(const Address& address, const DB& db)
 : DynamicContract(address, db), name_(this), symbol_(this), decimals_(this),
   totalSupply_(this), balances_(this), allowed_(this)
@@ -23,7 +22,7 @@ ERC20::ERC20(const Address& address, const DB& db)
     this->balances_[Address(dbEntry.key)] = Utils::fromBigEndian<uint256_t>(dbEntry.value);
   }
   for (const auto& dbEntry : db.getBatch(this->getNewPrefix("allowed_"))) {
-    bytes::View key(dbEntry.key);
+    View<Bytes> key(dbEntry.key);
     Address owner(key.subspan(0,20));
     Address spender(key.subspan(20));
     this->allowed_[owner][spender] = UintConv::bytesToUint256(dbEntry.value);
@@ -45,7 +44,6 @@ ERC20::ERC20(const Address& address, const DB& db)
   this->balances_.enableRegister();
   this->allowed_.enableRegister();
 }
-*/
 
 ERC20::ERC20(
   const std::string& erc20name_, const std::string& erc20symbol_,
@@ -121,6 +119,8 @@ void ERC20::registerContractFunctions() {
 void ERC20::mintValue_(const Address& address, const uint256_t& value) {
   balances_[address] += value;
   totalSupply_ += value;
+  // TODO: Allow contract events during constructor, mintValue_ is called during constructor.
+  // this->Transfer(Address(), address, value);
 }
 
 void ERC20::burnValue_(const Address& address, const uint256_t& value) {
@@ -144,11 +144,13 @@ uint256_t ERC20::balanceOf(const Address& owner) const {
 bool ERC20::transfer(const Address &to, const uint256_t &value) {
   this->balances_[this->getCaller()] -= value;
   this->balances_[to] += value;
+  this->Transfer(this->getCaller(), to, value);
   return true;
 }
 
 bool ERC20::approve(const Address &spender, const uint256_t &value) {
   this->allowed_[this->getCaller()][spender] = value;
+  this->Approval(this->getCaller(), spender, value);
   return true;
 }
 
@@ -166,10 +168,11 @@ bool ERC20::transferFrom(
   this->allowed_[from][this->getCaller()] -= value;
   this->balances_[from] -= value;
   this->balances_[to] += value;
+  this->Transfer(from, to, value);
   return true;
 }
 
-/*
+
 DBBatch ERC20::dump() const
 {
   DBBatch dbBatch = BaseContract::dump();
@@ -196,6 +199,6 @@ DBBatch ERC20::dump() const
   }
   return dbBatch;
 }
-*/
+
 
 

@@ -12,7 +12,7 @@ See the LICENSE.txt file in the project root for more information.
 
 #include "blockchain.h"
 
-static bool topicsMatch(const Event& event, const std::vector<Hash>& topics) {
+bool Storage::topicsMatch(const Event& event, const std::vector<Hash>& topics) {
   if (topics.empty()) return true; // No topic filter applied
   const std::vector<Hash>& eventTopics = event.getTopics();
   if (eventTopics.size() < topics.size()) return false;
