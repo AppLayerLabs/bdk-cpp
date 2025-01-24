@@ -357,8 +357,8 @@ public:
    * Answers cometbft about what's the earliest block in the chain it shouldn't prune.
    * @param height Height of the first block in the chain that should not be deleted.
    */
-  void getBlockRetainHeight(uint64_t& height) override {
-    GLOGDEBUG("TEST: TestMachine: getBlockRetainHeight()");
+  void persistState(uint64_t& height) override {
+    GLOGDEBUG("TEST: TestMachine: persistState()");
     height = 0; // retain all blocks forever
   }
 };

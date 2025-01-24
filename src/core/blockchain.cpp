@@ -701,7 +701,18 @@ void Blockchain::getCurrentState(uint64_t& height, Bytes& appHash, std::string& 
   appVersion = 0;
 }
 
-void Blockchain::getBlockRetainHeight(uint64_t& height) {
+void Blockchain::persistState(uint64_t& height) {
+  // TODO: Right here we decide whether the state dump trigger is met (block height
+  // for state snapshotting is reached), lock the machine state globally and exclusively,
+  // then write the entire snapshot for this block height.
+  // This should be done by a forked process that disables everything and just writes
+  // to a temp/private snapshot directory that then gets placed in the snapshots dir
+  // if it is successful, and then exits.
+  // Later, we can add support for snapshotting using a non-validator node, potentially on
+  // another machine (a snapshotting worker that keeps the protocol going but knows how
+  // to cache FinalizedBlock objects for later execution while it is dumping -- something
+  // you cannot afford to do if you are a live validator node).
+
   // TODO: automatic block history pruning
   height = 0;
 }

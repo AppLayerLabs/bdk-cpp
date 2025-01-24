@@ -48,9 +48,6 @@ See the LICENSE.txt file in the project root for more information.
 /// Use our modified version of cometbft that uses sha3 for Tx hash and TxKey
 #define COMETBFT_EXECUTABLE "cometbft-bdk"
 
-/// Use our modified version of cometbft that uses sha3 for Tx hash and TxKey
-#define COMETBFT_EXECUTABLE "cometbft-bdk"
-
 // ---------------------------------------------------------------------------------------
 // WebsocketRPCConnection class
 // ---------------------------------------------------------------------------------------
@@ -118,6 +115,9 @@ class WebsocketRPCConnection : public Log::LogicalLocationProvider {
 
     std::mutex rpcSyncResponseMapMutex_; ///< Mutex to protect all access to rpcSyncResponseMap_.
     std::unordered_map<uint64_t, std::promise<json>> rpcSyncResponseMap_; ///< Map of request ID to promise of response object for rpc sync calls.
+
+    static constexpr uint64_t FIRST_DUMMY_REQUEST_ID = 0xFFFFFFFF00000000; ///< Large async request ID range for dummy async requests.
+    uint64_t dummyRequestIdGenerator_ = FIRST_DUMMY_REQUEST_ID; ///< Dummy request ID generator.
 
     /**
      * Helper to set a JSON-RPC response to the correct map.
@@ -212,6 +212,11 @@ class WebsocketRPCConnection : public Log::LogicalLocationProvider {
      * @return ID of the request, or 0 if there weren't any responses stored (outparams are unmodified).
      */
     uint64_t rpcGetNextAsyncResponse(json& outResponse, T& outRequestData, uint64_t waitMillis = 0);
+
+    /**
+     * Signals an rpcGetNextAsyncResponse() async call on another thread to stop waiting.
+     */
+    void rpcInterruptGetNextAsyncResponse();
 
     /**
      * Make an asynchronous (non-blocking) JSON-RPC call.
@@ -575,7 +580,9 @@ uint64_t WebsocketRPCConnection<T>::rpcGetNextAsyncResponse(json& outResponse, T
       rpcAsyncResponseCv_.wait_for(
         lock,
         std::chrono::milliseconds(waitMillis),
-        [this]() -> bool { return !rpcAsyncResponseMap_.empty(); }
+        [this]() -> bool {
+          return !rpcAsyncResponseMap_.empty();
+        }
       );
       if (rpcAsyncResponseMap_.empty()) {
         return 0;
@@ -583,6 +590,13 @@ uint64_t WebsocketRPCConnection<T>::rpcGetNextAsyncResponse(json& outResponse, T
     }
     auto it = rpcAsyncResponseMap_.begin();
     requestId = it->first;
+    if (requestId >= FIRST_DUMMY_REQUEST_ID) {
+      // Fake async request response detected; this call is just being interrupted.
+      // These entries are otherwise harmless; even if we restart the driver and keep
+      //   the RPC response queue for some reason, it's always fine to have these in
+      //   the response map as they are just discarded over time.
+      return 0;
+    }
     // Retrieve the response and erase it from the async request map
     outResponse = it->second;
     rpcAsyncResponseMap_.erase(it);
@@ -597,6 +611,20 @@ uint64_t WebsocketRPCConnection<T>::rpcGetNextAsyncResponse(json& outResponse, T
     rpcAsyncSent_.erase(it);
   }
   return requestId;
+}
+
+template <typename T>
+void WebsocketRPCConnection<T>::rpcInterruptGetNextAsyncResponse() {
+  // Just post a dummy response that doesn't have a request.
+  {
+    std::scoped_lock lock(rpcAsyncResponseMapMutex_);
+    rpcAsyncResponseMap_[dummyRequestIdGenerator_] = {};
+    dummyRequestIdGenerator_ += 2; // async request IDs are even-numbered (not actually needed here, but...)
+    if (dummyRequestIdGenerator_ < FIRST_DUMMY_REQUEST_ID) { // for completeness; never happens
+      dummyRequestIdGenerator_ = FIRST_DUMMY_REQUEST_ID;
+    }
+  }
+  rpcAsyncResponseCv_.notify_one();
 }
 
 template <typename T>
@@ -1042,6 +1070,7 @@ bool CometImpl::stop() {
     return false;
   }
   this->stop_ = true;
+  rpc_.rpcInterruptGetNextAsyncResponse(); // interrupt waiting for cometbft RPC responses
   this->setPauseState(); // must reset any pause state otherwise it won't ever finish
   this->loopFuture_.wait();
   this->loopFuture_.get(); // joins with the workerLoop thread and sets the future to invalid
@@ -1137,6 +1166,16 @@ void CometImpl::cleanup() {
   rpc_.rpcStopConnection();
 
   // Stop the CometBFT node, if any
+  //
+  // NOTE: It is *probably* not necessary to sync with our ABCI callback handlers, since
+  //  the cometbft process should catch the SIGTERM we send its way and wait for its own
+  //  in-flight ABCI calls to us to finish before it exits.
+  // Things will not be smooth if SIGTERM fails (it shouldn't unless something bad is
+  //  going on) and stopCometBFT() reverts to kill -9 cometbft. But then again, processes
+  //  crashing arbitrarily has to be handled anyways, and if SIGTERM is not working, then
+  //  we already entered a failure mode -- not tryharding to fix it is acceptable.
+  // From CometBFT docs (https://docs.cometbft.com/v1.0/explanation/core/running-in-production):
+  //  "Signal handling: We catch SIGINT and SIGTERM and try to clean up nicely."
   stopCometBFT();
 
   // Stop and destroy the ABCI net engine, if any
@@ -2341,7 +2380,7 @@ void CometImpl::check_tx(const cometbft::abci::v1::CheckTxRequest& req, cometbft
 
 void CometImpl::commit(const cometbft::abci::v1::CommitRequest& req, cometbft::abci::v1::CommitResponse* res) {
   uint64_t height;
-  listener_->getBlockRetainHeight(height);
+  listener_->persistState(height);
   res->set_retain_height(height);
 }
 
@@ -2405,7 +2444,9 @@ void CometImpl::finalize_block(const cometbft::abci::v1::FinalizeBlockRequest& r
 void CometImpl::query(const cometbft::abci::v1::QueryRequest& req, cometbft::abci::v1::QueryResponse* res) {
   // Absorbed internally, may be used to implement other callbacks.
 
+  // -------------------------------------------------------------------------------------
   // From the CometBFT doc:
+  // -------------------------------------------------------------------------------------
   //  Query is a generic method with lots of flexibility to enable diverse sets of queries on application state.
   //
   //  The most important use of Query is to return Merkle proofs of the application state at some height that can be used for efficient application-specific light-clients.
@@ -2417,34 +2458,33 @@ void CometImpl::query(const cometbft::abci::v1::QueryRequest& req, cometbft::abc
   //  If either of these queries return a non-zero ABCI code, CometBFT will refuse to connect to the peer.
   //
   //  Note CometBFT has technically no requirements from the Query message for normal operation - that is, the ABCI app developer need not implement Query functionality if they do not wish to.
+  // -------------------------------------------------------------------------------------
+
+  // NOTE: We are not merklizing the machine state so we won't have light clients that can
+  //       obtain state proofs. The proofs that we need will have to be based on transaction
+  //       inclusion proofs (more specifically, tx execution receipt proofs, since Ethereum
+  //       includes reverted transactions in blocks and thus in the tx merkle root hash).
 
   // TODO:
-  // - Implement query for light-client use (e.g. snapshot/state-sync).
   // - Implement query for peer ID/IP rejection/filter (e.g. an IP address blacklist).
 }
 
+// NOTE: If we want to support snapshot sharing, we'll do that by zipping, splicing,
+//       and creating a list of hashes for the per-block height DB directories generated
+//       by the machine state save-to-db/load-from-db feature.
 void CometImpl::list_snapshots(const cometbft::abci::v1::ListSnapshotsRequest& req, cometbft::abci::v1::ListSnapshotsResponse* res) {
-  // TODO
 }
-
 void CometImpl::offer_snapshot(const cometbft::abci::v1::OfferSnapshotRequest& req, cometbft::abci::v1::OfferSnapshotResponse* res) {
-  // TODO
 }
-
 void CometImpl::load_snapshot_chunk(const cometbft::abci::v1::LoadSnapshotChunkRequest& req, cometbft::abci::v1::LoadSnapshotChunkResponse* res) {
-  // TODO
 }
-
 void CometImpl::apply_snapshot_chunk(const cometbft::abci::v1::ApplySnapshotChunkRequest& req, cometbft::abci::v1::ApplySnapshotChunkResponse* res) {
-  // TODO
 }
 
+// NOTE: Not enabled in the protocol.
 void CometImpl::extend_vote(const cometbft::abci::v1::ExtendVoteRequest& req, cometbft::abci::v1::ExtendVoteResponse* res) {
-  // TODO -- not sure if this will be needed
 }
-
 void CometImpl::verify_vote_extension(const cometbft::abci::v1::VerifyVoteExtensionRequest& req, cometbft::abci::v1::VerifyVoteExtensionResponse* res) {
-  // TODO -- not sure if this will be needed
 }
 
 // ---------------------------------------------------------------------------------------

@@ -617,8 +617,8 @@ void SDKTestSuite::getCurrentState(uint64_t& height, Bytes& appHash, std::string
   Blockchain::getCurrentState(height, appHash, appSemVer, appVersion);
 }
 
-void SDKTestSuite::getBlockRetainHeight(uint64_t& height) {
-  Blockchain::getBlockRetainHeight(height);
+void SDKTestSuite::persistState(uint64_t& height) {
+  Blockchain::persistState(height);
 }
 
 void SDKTestSuite::currentCometBFTHeight(const uint64_t height) {

@@ -179,7 +179,7 @@ class Blockchain : public CometListener, public NodeRPCInterface, public Log::Lo
     ) override;
     virtual void validateBlockProposal(const CometBlock& block, bool& accept) override;
     virtual void getCurrentState(uint64_t& height, Bytes& appHash, std::string& appSemVer, uint64_t& appVersion) override;
-    virtual void getBlockRetainHeight(uint64_t& height) override;
+    virtual void persistState(uint64_t& height) override;
     virtual void currentCometBFTHeight(const uint64_t height) override;
     virtual void sendTransactionResult(const uint64_t tId, const bool success, const json& response, const std::string& txHash, const Bytes& tx) override;
     virtual void checkTransactionResult(const uint64_t tId, const bool success, const json& response, const std::string& txHash) override;

@@ -214,10 +214,16 @@ class CometListener {
     }
 
     /**
-     * Callback from cometbft to check if it can prune some old blocks from its block store.
+     * Callback from cometbft requesting that the machine save its state to a persistent store.
+     * NOTE: The application does NOT actually have to persist state here; if it doesn't, and it later
+     * crashes and restarts, it can start from whatever state height it has, and cometbft will just replay
+     * the blocks that follow that state height. In other words, not persisting state here (or elsewhere,
+     * like during node shutdown) is equivalent to persisting it but experiencing filesystem corruption,
+     * for example (a case that has to be supported anyway, and is naturally supported by block logs and
+     * by the machine block logs and state being replicated in a network).
      * @param height Outparam to be set with the height of the earliest block that must be kept (all earlier blocks are deleted).
      */
-    virtual void getBlockRetainHeight(uint64_t& height) {
+    virtual void persistState(uint64_t& height) {
       height = 0;
     }
 
@@ -284,14 +290,12 @@ class CometListener {
 
     /**
      * Notification of a state change in the Comet consensus engine driver.
-     *
      * In TERMINATED, FINISHED or STOPPED state, the receiver of this callback can (in *another thread*)
-     * can call stop(), then start() again if they want to retry. At the point the TERMINATED state is
+     * call stop(), then start() again if they want to retry. At the point the TERMINATED state is
      * reached, the error code and the error string are already set.
-     *
-     * There will be no retries, i.e. no "continue;" in the WorkerLoopInner. Every error is a fatal error
-     * reported here for the application to figure out.
-     *
+     * NOTE: If the implementor of this callback calls Comet::stop() from a TERMINATED or FINISHED
+     * state, it WILL deadlock. As a rule of thumb, avoid reeintering Comet from this callback; prefer
+     * signaling another thread to call Comet on behalf of the current thread.
      * @param newState The new CometState.
      * @param oldState The previous CometState.
      */
