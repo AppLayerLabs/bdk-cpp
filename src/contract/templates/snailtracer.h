@@ -80,7 +80,7 @@ class SnailTracer : public DynamicContract {
      * @param address The address where the contract will be deployed.
      * @param db Reference to the database object.
      */
-    //SnailTracer(const Address& address, const DB& db);
+    SnailTracer(const Address& address, const DB& db);
 
     ~SnailTracer() override; ///< Destructor.
 
@@ -354,7 +354,7 @@ class SnailTracer : public DynamicContract {
       );
     }
 
-    //DBBatch dump() const override; ///< Dump method.
+    DBBatch dump() const override; ///< Dump method.
 };
 
 #endif // SNAILTRACER_H

@@ -43,7 +43,7 @@ class Ownable : virtual public DynamicContract {
      * @param address The address of the contract.
      * @param db The database to use.
      */
-    //Ownable(const Address& address, const DB& db);
+    Ownable(const Address& address, const DB& db);
 
     /**
      * Constructor to be used when creating a new contract.
@@ -94,7 +94,7 @@ class Ownable : virtual public DynamicContract {
       );
     }
 
-    //DBBatch dump() const override; ///< Dump method.
+    DBBatch dump() const override; ///< Dump method.
 };
 
 #endif // OWNABLE_H

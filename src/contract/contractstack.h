@@ -9,8 +9,7 @@ See the LICENSE.txt file in the project root for more information.
 #define STACKTRACE_H
 
 // leave it in to avoid "AddressSanitizer unknown-crash" runtime errors
-#include "contract.h" // core/dump.h -> utils/db.h -> utils.h -> strings.h
-
+#include "contract.h"
 #include "event.h"
 
 /**

@@ -3,9 +3,8 @@
 #define CONTRACT_HOST_H
 
 // utils/{contractreflectioninterface.h, db.h, safehash.h, (strings.h -> hex.h, evmc/evmc.hpp), utils.h},
-// contract.h -> core/{dump.h, storage.h -> calltracer.h}
 #include "contractmanager.h"
-#include "../core/dump.h"
+#include "../core/storage.h"
 #include "calltracer.h"
 #include "bytes/join.h"
 #include "bytes/cast.h"
@@ -43,7 +42,6 @@
 
 class ContractHost {
   private:
-    DumpManager& manager_;
     Storage& storage_;
     mutable ContractStack stack_;
     bool mustRevert_ = true; // We always assume that we must revert until proven otherwise.
@@ -52,11 +50,9 @@ class ContractHost {
 
   public:
     ContractHost(evmc_vm* vm,
-                 DumpManager& manager,
                  Storage& storage,
                  const Hash& randomnessSeed,
                  ExecutionContext& context) :
-    manager_(manager),
     storage_(storage),
     stack_(),
     context_(context),

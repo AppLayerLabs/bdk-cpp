@@ -56,7 +56,7 @@ class Pebble : public virtual ERC721URIStorage, public virtual Ownable {
      * @param address The address of the contract.
      * @param db The database to use.
      */
-    //Pebble(const Address& address, const DB& db);
+    Pebble(const Address& address, const DB& db);
 
     /**
      * Constructor for creating the contract from scratch.
@@ -182,7 +182,7 @@ class Pebble : public virtual ERC721URIStorage, public virtual Ownable {
       );
     }
 
-    //DBBatch dump() const override; ///< Dump method.
+    DBBatch dump() const override; ///< Dump method.
 };
 
 #endif // PEBBLE_H

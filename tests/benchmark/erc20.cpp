@@ -94,7 +94,7 @@ namespace TERC20BENCHMARK {
       REQUIRE (expectedToBalance == transferredToBalance);
       REQUIRE (expectedFromBalance == transferredFromBalance);
       // Dump the state
-      sdk.getState().saveToDB();
+      sdk.saveSnapshot();
     }
 
     SECTION("EVM ERC20 Benchmark") {
@@ -156,7 +156,7 @@ namespace TERC20BENCHMARK {
       REQUIRE (expectedToBalance == transferredToBalance);
       REQUIRE (expectedFromBalance == transferredFromBalance);
       // Dump the state
-      sdk.getState().saveToDB();
+      sdk.saveSnapshot();
     }
   }
 }

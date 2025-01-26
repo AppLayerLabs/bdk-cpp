@@ -136,6 +136,14 @@ int main(int argc, char* argv[]) {
  * using advancechain to test revert means instead looking at a call transaction and cheching its
  * status afterwards, ultimately (can also run the tx blob and metadata(sig, gas payer balance + gas limit) past
  * basic transaction checking first etc).
+ *
+ * TODO: We can, actually, replace actually using CometBFT with a mock that is much faster.
+ * All we need to do is something like what is done in tests/core/blockchain.cpp, where
+ * we create a fake CometBlock and use it generate a FinalizedBlock that feeds Blockchain/State;
+ * we also create FinalizedBlock instances from these mocked CometBlock instances, etc.
+ * We just need to maintain the mock when e.g. CometBlock changes, etc.
+ * The question is just how we can refactor SDKTestSuite to ALSO allow for using CometBFT (it
+ * would be selected in the SDKTestSuite constructor).
  */
 
 // Getter for `chainOwnerAccount_`.
@@ -570,6 +578,16 @@ void SDKTestSuite::initChain(
   const std::vector<CometValidatorUpdate>& initialValidators, Bytes& appHash
 ) {
   Blockchain::initChain(genesisTime, chainId, initialAppState, initialHeight, initialValidators, appHash);
+
+  // Blockchain::initChain() calls State::resetState(),
+  //  so we need to set the test genesis balances here.
+  // We need to give some tokens to the chainOwner and to all the
+  //  `accounts` that were passed in so they can pay for test
+  //  contract deployment, etc.
+  state_.addBalance(options_.getChainOwner());
+  for (const TestAccount& account : testAccounts_) {
+    state_.addBalance(account.address);
+  }
 }
 
 void SDKTestSuite::checkTx(const Bytes& tx, const bool recheck, int64_t& gasWanted, bool& accept)

@@ -45,7 +45,7 @@ class TestThrowVars : public DynamicContract {
      * @param address The address of the contract.
      * @param db The database to use.
      */
-    //TestThrowVars(const Address& address, const DB& db);
+    TestThrowVars(const Address& address, const DB& db);
 
     ~TestThrowVars() override; ///< Destructor.
 
@@ -59,7 +59,7 @@ class TestThrowVars : public DynamicContract {
       );
     }
 
-    //DBBatch dump() const override; ///< Dump method.
+    DBBatch dump() const override; ///< Dump method.
 };
 
 #endif  // TESTTHROWVARS_H

@@ -78,10 +78,10 @@ class SimpleContract : public DynamicContract {
      * @param address The address of the contract.
      * @param db The database to use.
      */
-    //SimpleContract(
-    //  const Address& address,
-    //  const DB& db
-    //);
+    SimpleContract(
+      const Address& address,
+      const DB& db
+    );
 
     ~SimpleContract() override; ///< Destructor.
 
@@ -182,7 +182,7 @@ class SimpleContract : public DynamicContract {
     }
 
     /// Dump method
-    //DBBatch dump() const override;
+    DBBatch dump() const override;
 };
 
 #endif // SIMPLECONTRACT_H

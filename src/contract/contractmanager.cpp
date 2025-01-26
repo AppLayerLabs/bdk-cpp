@@ -9,38 +9,30 @@ See the LICENSE.txt file in the project root for more information.
 #include "contractfactory.h"
 #include "customcontracts.h"
 
-
 ContractManager::ContractManager(
-  const DB& db, boost::unordered_flat_map<Address, std::unique_ptr<BaseContract>, SafeHash, SafeCompare>& contracts,
-  DumpManager& manager, const Options& options
-) : BaseContract("ContractManager", ProtocolContractAddresses.at("ContractManager"),
-  options.getChainOwner(), options.getChainID()), contracts_(contracts)
+  ContractsContainerType& contracts,
+  CreateContractFuncsType& createContractFuncs,
+  const Options& options
+) : BaseContract(
+      "ContractManager",
+      ProtocolContractAddresses.at("ContractManager"),
+      options.getChainOwner(), // contract manager creator is the chain owner address
+      options.getChainID()
+    ),
+    contracts_(contracts),
+    createContractFuncs_(createContractFuncs)
 {
-  ContractFactory::registerContracts<ContractTypes>();
-  ContractFactory::addAllContractFuncs<ContractTypes>(this->createContractFuncs_);
-
-  // FIXME
-  // Load Contracts from DB
-  //for (const DBEntry& contract : db.getBatch(DBPrefix::contractManager)) {
-  //  Address address(contract.key);
-  //  if (!this->loadFromDB<ContractTypes>(contract, address, db)) {
-  //    throw DynamicException("Unknown contract: " + StrConv::bytesToString(contract.value));
-  //  }
-  //}
-
-  // no db
-  //manager.pushBack(this);
+  // NOTE: Keep this ctor body empty.
+  //       ContractManager is now a stateless class; it just keeps references
+  //       to data kept at a State instance.
 }
-
 
 ContractManager::~ContractManager() {}
 
-/*
 DBBatch ContractManager::dump() const {
   DBBatch contractsBatch;
   for (const auto& [address, contract] : this->contracts_) {
     if (typeid(*contract) == typeid(ContractManager)) continue;
-    if (typeid(*contract) == typeid(rdPoS)) continue;
     contractsBatch.push_back(
       Bytes(address.asBytes()),
       StrConv::stringToBytes(contract->getContractName()),
@@ -49,7 +41,6 @@ DBBatch ContractManager::dump() const {
   }
   return contractsBatch;
 }
-*/
 
 std::vector<std::tuple<std::string, Address>> ContractManager::getDeployedContracts() const {
   std::vector<std::tuple<std::string, Address>> contracts;
@@ -82,7 +73,7 @@ void ContractManager::ethCall(const evmc_message& callInfo, ContractHost* host) 
     throw DynamicException("ContractManager: Invalid function call");
   }
   it->second(callInfo,
-            generateContractAddress(this->host_->context().getAccount(caller).getNonce(), caller),
+             generateContractAddress(this->host_->context().getAccount(caller).getNonce(), caller),
              this->contracts_,
              this->getContractChainId(),
              this->host_);

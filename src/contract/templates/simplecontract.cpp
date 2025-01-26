@@ -35,7 +35,7 @@ SimpleContract::SimpleContract(
   this->number_.enableRegister();
   this->tuple_.enableRegister();
 }
-/*
+
 SimpleContract::SimpleContract(
   const Address& address,
   const DB& db
@@ -57,7 +57,6 @@ SimpleContract::SimpleContract(
   this->number_.enableRegister();
   this->tuple_.enableRegister();
 }
-*/
 
 SimpleContract::~SimpleContract() {};
 
@@ -225,7 +224,6 @@ void SimpleContract::registerContractFunctions() {
   this->registerMemberFunction("getTuple", &SimpleContract::getTuple, FunctionTypes::View, this);
 }
 
-/*
 DBBatch SimpleContract::dump() const {
   DBBatch dbBatch = BaseContract::dump();
   dbBatch.push_back(StrConv::stringToBytes("name_"), StrConv::stringToBytes(this->name_.get()), this->getDBPrefix());
@@ -234,4 +232,4 @@ DBBatch SimpleContract::dump() const {
   dbBatch.push_back(StrConv::stringToBytes("tuple_number"), UintConv::uint256ToBytes(get<1>(this->tuple_)), this->getDBPrefix());
   return dbBatch;
 }
-*/
+

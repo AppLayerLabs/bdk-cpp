@@ -77,14 +77,8 @@ void ExecutionContext::addContract(View<Address> address, std::unique_ptr<BaseCo
 void ExecutionContext::notifyNewContract(View<Address> address, BaseContract* contract) {
   using ContractsTuple = std::tuple<ExecutionContext::Contracts&, std::vector<std::pair<Address, BaseContract*>>&>;
 
-  newContracts_.emplace_back(address, contract);
-
   transactions_.push(transactional::AnyTransactional(transactional::BasicTransactional(contracts_, [contractAddress = Address(address)] (auto& contracts) {
     contracts.erase(contractAddress);
-  })));
-
-  transactions_.push(transactional::AnyTransactional(transactional::BasicTransactional(newContracts_, [] (auto& newContracts) {
-    newContracts.pop_back();
   })));
 }
 
@@ -115,18 +109,14 @@ void ExecutionContext::commit() {
     transactions_.top().commit();
     transactions_.pop();
   }
-
   events_.clear();
-  newContracts_.clear();
 }
 
 void ExecutionContext::revert() {
   while (!transactions_.empty()) {
     transactions_.pop(); // transactions revert on destructor (by default)
   }
-
   events_.clear();
-  newContracts_.clear();
 }
 
 ExecutionContext::Checkpoint ExecutionContext::checkpoint() {

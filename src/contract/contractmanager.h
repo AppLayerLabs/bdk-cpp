@@ -9,17 +9,12 @@ See the LICENSE.txt file in the project root for more information.
 #define CONTRACTMANAGER_H
 
 #include "../utils/contractreflectioninterface.h" // contract/abi.h -> utils.h -> strings.h, libs/json.hpp -> boost/unordered/unordered_flat_map.hpp
-
-#include "contract.h" // core/dump.h -> utils/db.h
-
+#include "contract.h"
 #include "../utils/strconv.h"
-
 #include "../utils/safehash.h"
-
 #include "../utils/options.h"
-
 #include "../utils/db.h"
-#include "../core/dump.h"
+#include "../core/typedefs.h"
 
 /**
  * Class that holds all current contract instances in the blockchain state.
@@ -28,22 +23,11 @@ See the LICENSE.txt file in the project root for more information.
  */
 class ContractManager : public BaseContract {
   private:
-    /// Reference of currently deployed contracts.
-    /// Owned by the State
-    boost::unordered_flat_map<Address, std::unique_ptr<BaseContract>, SafeHash, SafeCompare>& contracts_;
+    /// Reference of currently deployed contracts, owned by State.
+    ContractsContainerType& contracts_;
 
-    /// Functions to create contracts.
-    boost::unordered_flat_map<
-          Functor,
-          std::function<
-            void(const evmc_message&,
-                 const Address&,
-                 boost::unordered_flat_map<Address, std::unique_ptr<BaseContract>, SafeHash, SafeCompare>& contracts_,
-                 const uint64_t&,
-                 ContractHost*
-                 )>,
-          SafeHash
-        > createContractFuncs_;
+    /// Reference to contract creation function list, owned by State.
+    CreateContractFuncsType& createContractFuncs_;
 
     /**
      * Get all deployed contracts.
@@ -67,14 +51,10 @@ class ContractManager : public BaseContract {
      * @param db Reference to the database.
      * @return `true` if the contract exists in the database, `false` otherwise.
      */
-    /*
-      no db
-
     template <typename Tuple, std::size_t... Is>
     bool loadFromDBHelper(const auto& contract, const Address& contractAddress, const DB& db, std::index_sequence<Is...>) {
       return (loadFromDBT<std::tuple_element_t<Is, Tuple>>(contract, contractAddress, db) || ...);
     }
-    */
 
     /**
      * Load all contracts from the database.
@@ -83,7 +63,7 @@ class ContractManager : public BaseContract {
      * @param contractAddress The address of the contract.
      * @param db Reference to the database.
      * @return `true` if the contract exists in the database, `false` otherwise.
-     *//*
+     */
     template <typename T>
     bool loadFromDBT(const auto& contract, const Address& contractAddress, const DB& db) {
       // Here we disable this template when T is a tuple
@@ -96,7 +76,6 @@ class ContractManager : public BaseContract {
       }
       return false;
     }
-*/
 
     /**
      * Load all contracts from the database using the helper function.
@@ -105,7 +84,7 @@ class ContractManager : public BaseContract {
      * @param contractAddress The address of the contract.
      * @param db Reference to the database.
      * @return `true` if the contract exists in the database, `false` otherwise.
-     *//*
+     */
     template <typename Tuple> requires Utils::is_tuple<Tuple>::value bool loadFromDB(
       const auto& contract, const Address& contractAddress, const DB& db
     ) {
@@ -113,7 +92,6 @@ class ContractManager : public BaseContract {
         contract, contractAddress, db, std::make_index_sequence<std::tuple_size<Tuple>::value>{}
       );
     }
-    */
 
   public:
     /**
@@ -124,9 +102,8 @@ class ContractManager : public BaseContract {
      * @param options Reference to the options singleton.
      * @throw DynamicException if contract address doesn't exist in the database.
      */
-    ContractManager(const DB& db,
-                    boost::unordered_flat_map<Address, std::unique_ptr<BaseContract>, SafeHash, SafeCompare>& contracts,
-                    DumpManager& manager,
+    ContractManager(ContractsContainerType& contracts,
+                    CreateContractFuncsType& createContractFuncs,
                     const Options& options);
 
     ~ContractManager() override; ///< Destructor. Automatically saves contracts to the database before wiping them.
@@ -162,8 +139,16 @@ class ContractManager : public BaseContract {
      */
     Bytes ethCallView(const evmc_message& data, ContractHost* host) const override;
 
-    /// Dump override
-    //DBBatch dump() const override;
+    /**
+     * The state of a ContractManager instance is a mapping of all deployed contract
+     * addresses to the contract name, which identifies the class of the CPP
+     * contract template for that deployed contract.
+     * @return Speedb write batch with a mapping of all deployed contract addresses
+     * to the template contract class name.
+     */
+    DBBatch dump() const override;
+
+    friend class State;
 };
 
 #endif // CONTRACTMANAGER_H

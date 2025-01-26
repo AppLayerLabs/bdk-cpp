@@ -20,14 +20,11 @@ namespace TERC20 {
 
     SECTION("ERC20 creation") {
       SDKTestSuite sdk = SDKTestSuite::createNewEnvironment("testERC20Creation");
-      // We should not add a dependency between contract behavior tests
-      // and the existence of a database worker; in any case, the dumpManager
-      // is not available during the first comet-BDK integration phase.
-      //REQUIRE(sdk.getState().getDumpManagerSize() == 3);
+      REQUIRE(sdk.getState().getContractsSize() == 1);
       Address erc20 = sdk.deployContract<ERC20>(
         std::string("TestToken"), std::string("TST"), uint8_t(18), uint256_t("1000000000000000000")
       );
-      //REQUIRE(sdk.getState().getDumpManagerSize() == 4);
+      REQUIRE(sdk.getState().getContractsSize() == 2);
       Address owner = sdk.getChainOwnerAccount().address;
       REQUIRE(sdk.callViewFunction(erc20, &ERC20::name) == "TestToken");
       REQUIRE(sdk.callViewFunction(erc20, &ERC20::symbol) == "TST");

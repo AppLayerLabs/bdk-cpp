@@ -9,7 +9,7 @@ See the LICENSE.txt file in the project root for more information.
 
 #include "../../utils/uintconv.h"
 #include "../../utils/strconv.h"
-/*
+
 ERC721Test::ERC721Test(const Address &address, const DB& db)
 :  DynamicContract(address, db),
   ERC721(address, db),
@@ -29,7 +29,7 @@ ERC721Test::ERC721Test(const Address &address, const DB& db)
   this->maxTokens_.enableRegister();
   this->totalSupply_.enableRegister();
 }
-*/
+
 ERC721Test::ERC721Test(
   const std::string &erc721name, const std::string &erc721symbol, const uint64_t& maxTokens,
   const Address &address, const Address &creator, const uint64_t &chainId
@@ -47,7 +47,7 @@ ERC721Test::ERC721Test(
   this->maxTokens_.enableRegister();
   this->totalSupply_.enableRegister();
 }
-/*
+
 DBBatch ERC721Test::dump() const {
   DBBatch batch = ERC721::dump();
   batch.push_back(StrConv::stringToBytes("tokenIdCounter_"), UintConv::uint64ToBytes(this->tokenIdCounter_.get()), this->getDBPrefix());
@@ -55,7 +55,6 @@ DBBatch ERC721Test::dump() const {
   batch.push_back(StrConv::stringToBytes("totalSupply_"), UintConv::uint64ToBytes(this->totalSupply_.get()), this->getDBPrefix());
   return batch;
 }
-*/
 
 void ERC721Test::registerContractFunctions() {
   ERC721Test::registerContract();

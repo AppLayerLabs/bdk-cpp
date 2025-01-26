@@ -8,7 +8,7 @@ See the LICENSE.txt file in the project root for more information.
 #include "erc721.h"
 
 #include "../../utils/strconv.h"
-/*
+
 ERC721::ERC721(const Address& address, const DB& db
 ) : DynamicContract(address, db), name_(this), symbol_(this),
   owners_(this), balances_(this), tokenApprovals_(this), operatorAddressApprovals_(this)
@@ -48,7 +48,7 @@ ERC721::ERC721(const Address& address, const DB& db
   this->tokenApprovals_.enableRegister();
   this->operatorAddressApprovals_.enableRegister();
 }
-*/
+
 ERC721::ERC721(
   const std::string &erc721name, const std::string &erc721symbol_,
   const Address &address, const Address &creator, const uint64_t &chainId
@@ -259,7 +259,7 @@ bool ERC721::isApprovedForAll(const Address& owner, const Address& operatorAddre
 void ERC721::transferFrom(const Address& from, const Address& to, const uint256_t& tokenId) {
   this->transfer_(from, to, tokenId);
 }
-/*
+
 DBBatch ERC721::dump() const {
   DBBatch dbBatch = BaseContract::dump();
   boost::unordered_flat_map<std::string, Bytes> data {
@@ -300,4 +300,3 @@ DBBatch ERC721::dump() const {
   }
   return dbBatch;
 }
-*/

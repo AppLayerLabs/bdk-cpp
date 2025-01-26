@@ -17,33 +17,29 @@ uint256_t ContractHost::getRandomValue() {
 
 ContractHost::~ContractHost() {
   if (mustRevert_) {
+    // Revert all CPP contract state on tx revert
     for (auto& var : this->stack_.getUsedVars()) {
       var.get().revert();
     }
-
     context_.revert();
   } else {
-    for (auto& var : this->stack_.getUsedVars())
+    // Commit all CPP contract state on tx success
+    for (auto& var : this->stack_.getUsedVars()) {
       var.get().commit();
-
-    for (auto& [address, contract] : context_.getNewContracts()) {
-      if (contract == nullptr) {
-        continue;
-      }
-
-      this->manager_.pushBack(dynamic_cast<Dumpable*>(contract));
     }
-
+    // Metadata persistence: event logs
+    // NOTE: With a bit of work, we could possibly get rid of event logging on our side
+    //       and use CometBFT event/log DB and indexing for this. But it's fine as it is.
     for (const auto& event : context_.getEvents()) {
       this->storage_.putEvent(event);
     }
-
+    // This clears the context_ so it has to be the last step
     context_.commit();
   }
 
+  // Metadata persistence: call traces for debugging
+  // (Debug info is something we should definitely keep on our side).
   if (messageHandler_.hasCallTrace()) {
     storage_.putCallTrace(Hash(context_.getTxHash()), messageHandler_.getCallTrace());
   }
-
-  // TODO: save transaction additional data
 }

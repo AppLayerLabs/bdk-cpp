@@ -1,51 +1,31 @@
-#ifndef _CORE_H_
-#define _CORE_H_
+#ifndef _CORE_TYPEDEFS_H_
+#define _CORE_TYPEDEFS_H_
 
-#include <cstdint>
-#include <map>
-#include <unordered_map>
-#include <utility>
+// Shared typedefs between State and ContractManager.
+// (ContractManager is a stateless modular extension of State and takes
+// a reference of these types in its ctor; all valid machine states have
+// exactly one ContractManager in State::contracts_).
 
-#include "../utils/strings.h"
-#include "../utils/safehash.h"
+using CreateContractFuncsType =
+  boost::unordered_flat_map<
+    Functor,
+    std::function<
+      void(
+        const evmc_message&,
+        const Address&,
+        boost::unordered_flat_map<Address, std::unique_ptr<BaseContract>, SafeHash, SafeCompare>& contracts_,
+        const uint64_t&,
+        ContractHost*
+      )>,
+    SafeHash
+  >;
 
-/// Mempool model to help validate multiple txs with same from account and various nonce values.
-using MempoolModel =
-  std::unordered_map<
-    Address, // From Address -->
-    std::map<
-      uint64_t, // Nonce (of from address) -->
-      std::unordered_map<
-        Hash, // Transaction hash (for a from address and nonce) -->
-        std::pair<
-          uint256_t, // Minimum balance (max fee) required by this transaction.
-          bool // Eject? `true` if tx should be removed from the mempool on next CheckTx().
-        >
-      , SafeHash>
-    >
-  , SafeHash>;
+using ContractsContainerType =
+  boost::unordered_flat_map<
+    Address,
+    std::unique_ptr<BaseContract>,
+    SafeHash,
+    SafeCompare
+>;
 
-using MempoolModelIt = MempoolModel::iterator;
-
-using MempoolModelNonceIt =
-  std::map<
-    uint64_t,
-    std::unordered_map<
-      Hash,
-      std::pair<
-        uint256_t,
-        bool>
-      , SafeHash>
-  , SafeHash>::iterator;
-
-using MempoolModelHashIt =
-  std::unordered_map<
-    Hash,
-    std::pair<
-      uint256_t,
-      bool
-    >
-  , SafeHash>::iterator;
-
-
-#endif // _CORE_H_
+#endif // _CORE_TYPEDEFS_H_

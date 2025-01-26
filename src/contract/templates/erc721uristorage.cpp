@@ -9,7 +9,6 @@ See the LICENSE.txt file in the project root for more information.
 
 #include "../../utils/strconv.h"
 
-/*
 ERC721URIStorage::ERC721URIStorage(const Address& address, const DB& db)
   : DynamicContract(address, db),
     ERC721(address, db),
@@ -19,7 +18,6 @@ ERC721URIStorage::ERC721URIStorage(const Address& address, const DB& db)
   }
   ERC721URIStorage::registerContractFunctions();
 }
-*/
 
 ERC721URIStorage::ERC721URIStorage(
   const std::string &erc721_name, const std::string &erc721_symbol,
@@ -40,7 +38,6 @@ ERC721URIStorage::ERC721URIStorage(
   ERC721URIStorage::registerContractFunctions();
 }
 
-/*
 DBBatch ERC721URIStorage::dump() const {
   DBBatch batchedOperations = ERC721::dump();
   for (auto it = this->_tokenURIs.cbegin(); it != this->_tokenURIs.cend(); ++it) {
@@ -52,7 +49,6 @@ DBBatch ERC721URIStorage::dump() const {
   }
   return batchedOperations;
 }
-*/
 
 void ERC721URIStorage::registerContractFunctions() {
   ERC721URIStorage::registerContract();

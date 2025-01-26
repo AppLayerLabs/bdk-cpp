@@ -66,7 +66,7 @@ namespace TSNAILTRACERBENCHMARK {
       std::cout << "CPP SnailTracer Total Time: " << durationInMicroseconds << " microseconds" << std::endl;
 
       // Dump the state
-      sdk.getState().saveToDB();
+      sdk.saveSnapshot();
     }
 
     SECTION("EVM SnailTracer Benchmark") {
@@ -110,7 +110,7 @@ namespace TSNAILTRACERBENCHMARK {
       std::cout << "EVM SnailTracer Total Time: " << durationInMicroseconds << " microseconds" << std::endl;
 
       // Dump the state
-      sdk.getState().saveToDB();
+      sdk.saveSnapshot();
     }
   }
 }

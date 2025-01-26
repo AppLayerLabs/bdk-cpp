@@ -10,50 +10,62 @@ See the LICENSE.txt file in the project root for more information.
 #include "state.h"
 
 #include "../contract/contracthost.h" // contractmanager.h
+#include "../contract/contractfactory.h" // ContractFactory
+#include "../contract/customcontracts.h" // ContractTypes
 
 #include "../utils/uintconv.h"
 #include "bytes/random.h"
 
 #include "blockchain.h"
 
-State::State(Blockchain& blockchain) : blockchain_(blockchain), vm_(evmc_create_evmone())
-,dumpManager_(blockchain_.storage(),blockchain_.opt(),this->stateMutex_)
+// Only need to register contract templates once
+std::once_flag State::stateRegisterContractsFlag;
+void State::registerContracts() {
+  ContractFactory::registerContracts<ContractTypes>();
+}
+
+State::State(Blockchain& blockchain)
+  : blockchain_(blockchain),
+    vm_(evmc_create_evmone())
 {
-  // The State constructor sets the blockchain machine state to a default.
-  // This default can then be modified when connecting to cometbft, as cometbft supports
-  //   passing an arbitrary binary state blob via genesis.json. But deserializing and executing
-  //   that genesis state blob comes after the initializations that are done here, which are
-  //   only the initializations that are mandatory for the state of any BDK contract machine.
+  // Register all contract templates in this binary at the ContractFactory
+  std::call_once(stateRegisterContractsFlag, &State::registerContracts);
 
-  std::unique_lock lock(this->stateMutex_);
+  // Populate State::createContractFuncs_ with all contract templates in the binary
+  ContractFactory::addAllContractFuncs<ContractTypes>(this->createContractFuncs_);
 
-  // we will now fill in here the default machine state for simulation time 0
-  height_ = 0;
-
-  // ContractManager account
-  auto& contractManagerAcc = *this->accounts_[ProtocolContractAddresses.at("ContractManager")];
-  contractManagerAcc.nonce = 1;
-  contractManagerAcc.contractType = ContractType::CPP;
-
-  // Insert the contract manager into the contracts_ map.
-  this->contracts_[ProtocolContractAddresses.at("ContractManager")] = std::make_unique<ContractManager>(
-    blockchain_.db(), this->contracts_, this->dumpManager_, blockchain_.opt()
-  );
-
-  // State sanity check, lets check if all found contracts in the accounts_ map really have code or are C++ contracts
-  for (const auto& [addr, acc] : this->accounts_) contractSanityCheck(addr, *acc);
-
-  // FIXME/TODO
-  // While we don't remove these global variables and make them members of State, lock them globally, set them,
-  //  and process a whole block into the State instance that's running contract code.
-  ContractGlobals::coinbase_ = Address();
-  ContractGlobals::blockHash_ = Hash();
-  ContractGlobals::blockHeight_ = height_;
-  ContractGlobals::blockTimestamp_ = 0;
+  // Set the machine state to an UNDEFINED state.
+  // To set this State instance to a block height, must call either State::initChain()
+  //   (genesis initialization) or State::loadSnapshot() (init from state snapshot).
+  // This state is however read by the ABCI Info callback, since that is called before
+  //   ABCI InitChain. Info will get height==0 from this resetState(), which seems to
+  //   be correct (that will just trigger the following ABCI InitChain callback, which
+  //   ultimately results in State::initChain() being called to set this State instance
+  //   to the actual genesis state).
+  resetState();
 }
 
 State::~State() {
   evmc_destroy(this->vm_);
+}
+
+void State::initChain(
+  uint64_t initialHeight, uint64_t initialTimeEpochSeconds,
+  std::string genesisSnapshot
+) {
+  LOGDEBUG("State::initChain(): Height (BDK, -1) = " + std::to_string(initialHeight));
+
+  // Reset the State (accounts, vmstorage, contracts) and set the genesis
+  // starting height and timeMicros (time-in-microseconds) for this State.
+  resetState(initialHeight, initialTimeEpochSeconds * 1'000'000);
+
+  // If the genesis snapshot file param is set, load it.
+  if (genesisSnapshot != "") {
+    // Allow V1 snapshots without height_ and timeMicros_
+    // If these metadata fields are present, they will overwrite the height/time
+    //   params supplied to this call and that we set in resetState() above.
+    loadSnapshot(genesisSnapshot, true);
+  }
 }
 
 std::string State::getLogicalLocation() const {
@@ -64,54 +76,227 @@ void State::contractSanityCheck(const Address& addr, const Account& acc) {
   switch (acc.contractType) {
     case ContractType::CPP: {
       if (this->contracts_.find(addr) == this->contracts_.end()) {
-        LOGERROR("Contract " + addr.hex().get() + " is marked as C++ contract but doesn't have code");
-        throw DynamicException("Contract " + addr.hex().get() + " is marked as C++ contract but doesn't have code");
+        LOGFATAL_THROW(
+          "Contract " + addr.hex().get() + " is marked as C++ contract but doesn't have code"
+        );
       }
       break;
     }
     case ContractType::EVM: {
       if (acc.code.empty()) {
-        LOGERROR("Contract " + addr.hex().get() + " is marked as EVM contract but doesn't have code");
-        throw DynamicException("Contract " + addr.hex().get() + " is marked as EVM contract but doesn't have code");
+        LOGFATAL_THROW(
+          "Contract " + addr.hex().get() + " is marked as EVM contract but doesn't have code"
+        );
       }
       break;
     }
     case ContractType::NOT_A_CONTRACT: {
       if (!acc.code.empty()) {
-        LOGERROR("Contract " + addr.hex().get() + " is marked as not a contract but has code");
-        throw DynamicException("Contract " + addr.hex().get() + " is marked as not a contract but has code");
+        LOGFATAL_THROW(
+          "Contract " + addr.hex().get() + " is marked as not a contract but has code"
+        );
       }
       break;
     }
     default:
       // TODO: this is a placeholder, contract types should be revised.
       // Also we can NOT remove NOT_A_CONTRACT for now because tests will complain about it.
-      throw DynamicException("Invalid contract type");
+      LOGFATAL_THROW("Invalid contract type");
       break;
   }
 }
 
-/*
-    TODO: checkpointing State
+void State::resetState(uint64_t height, uint64_t timeMicros) {
+  std::unique_lock<std::shared_mutex> lock(stateMutex_);
 
-DBBatch State::dump() const {
-  // DB is stored as following
-  // Under the DBPrefix::nativeAccounts
-  // Each key == Address
-  // Each Value == Account.serialize()
-  DBBatch stateBatch;
-  for (const auto& [address, account] : this->accounts_) {
-    stateBatch.push_back(address, account->serialize(), DBPrefix::nativeAccounts);
-  }
-  // There is also the need to dump the vmStorage_ map
-  for (const auto& [storageKey, storageValue] : this->vmStorage_) {
-    const auto key = Utils::makeBytes(bytes::join(storageKey.first, storageKey.second));
-    stateBatch.push_back(key, storageValue, DBPrefix::vmStorage);
-  }
+  // Init state metadata
+  height_ = height;
+  timeMicros_ = timeMicros;
 
-  return stateBatch;
+  // Ensure all machine state is wiped out
+  this->contracts_.clear();
+  this->vmStorage_.clear();
+  this->accounts_.clear();
+
+  // Create ContractManager account
+  auto& contractManagerAcc = *this->accounts_[ProtocolContractAddresses.at("ContractManager")];
+  contractManagerAcc.nonce = 1;
+  contractManagerAcc.contractType = ContractType::CPP;
+
+  // Create ContractManager contract
+  this->contracts_[ProtocolContractAddresses.at("ContractManager")] =
+    std::make_unique<ContractManager>(
+      this->contracts_, this->createContractFuncs_, blockchain_.opt()
+    );
+
+  // Reset the ContractGlobals to some default values (these are set
+  //  before the ContractHost runs anything, so these values are only
+  //  ever accessed erroneously)
+  ContractGlobals::coinbase_ = Address();
+  ContractGlobals::blockHash_ = Hash();
+  ContractGlobals::blockHeight_ = 0;
+  ContractGlobals::blockTimestamp_ = 0;
 }
-*/
+
+void State::saveSnapshot(const std::string& where) {
+
+  // FIXME: Fork the process so we don't hog stateMutex_ and kill validator nodes
+  //        (it should be way faster than creating a deep copy of a State instance)
+
+  LOGINFO("Saving snapshot to: " + where);
+
+  // DB directory & instance (uncompressed)
+  DB out(where);
+
+  // State is inaccessible while a snapshot is being written
+  std::unique_lock<std::shared_mutex> lock(stateMutex_);
+
+  // Write snapshot header
+  std::unique_ptr<DBBatch> metaBatch = std::make_unique<DBBatch>();
+  metaBatch->push_back(
+    StrConv::stringToBytes("height_"),
+    UintConv::uint64ToBytes(height_),
+    DBPrefix::snapshotMetadata
+  );
+  metaBatch->push_back(
+    StrConv::stringToBytes("timeMicros_"),
+    UintConv::uint64ToBytes(timeMicros_),
+    DBPrefix::snapshotMetadata
+  );
+  out.putBatch(*metaBatch);
+  metaBatch.reset();
+
+  size_t count;
+
+  // Write accounts_ in batches of 1,000; uses a bit more memory but should be faster
+  // than just a loop of db.put(k,v).
+  count = 0;
+  std::unique_ptr<DBBatch> accBatch = std::make_unique<DBBatch>();
+  for (const auto& [address, account] : this->accounts_) {
+    accBatch->push_back(address, account->serialize(), DBPrefix::nativeAccounts);
+    if (++count >= 1'000) {
+      count = 0;
+      out.putBatch(*accBatch);
+      accBatch = std::make_unique<DBBatch>();
+    }
+  }
+  out.putBatch(*accBatch);
+  accBatch.reset();
+
+  // Write vmStorage_ in batches of 1,000; uses a bit more memory but should be faster
+  // than just a loop of db.put(k,v).
+  count = 0;
+  std::unique_ptr<DBBatch> vmBatch = std::make_unique<DBBatch>();
+  for (const auto& [storageKey, storageValue] : this->vmStorage_) {
+    vmBatch->push_back(
+      Utils::makeBytes(bytes::join(storageKey.first, storageKey.second)),
+      storageValue,
+      DBPrefix::vmStorage
+    );
+    if (++count >= 1'000) {
+      count = 0;
+      out.putBatch(*vmBatch);
+      vmBatch = std::make_unique<DBBatch>();
+    }
+  }
+  out.putBatch(*vmBatch);
+  vmBatch.reset();
+
+  // Write contracts_ individually
+  for (const auto& [address, baseContractPtr] : this->contracts_) {
+    // Previous code parallelized contract dump generation, but we might not
+    // want to do that for two reasons:
+    // First, we are by default saving snapshots in the same machine as the
+    //  node is running (a validator node, for example) and in that case we should
+    //  strive to not degrate performance of the main node loop (this changes if we
+    //  change the best practices of snapshotting to node operators running a secondary
+    //  node exclusive for snapshotting in another physical machine).
+    // Second, if the goal is to minimize stateMutex_ contention to avoid the
+    //  consensus protocol stalling, multithreading is not a solution: as the machine
+    //  state grows, at some point it is too large anyways and no matter how many
+    //  threads you use to write the snapshot, you cannot guarantee any deadlines.
+    //  The actual solution is to either fork the process in the same machine and
+    //  then dump, or use a non-validator snapshotter, slave node in another machine.
+    out.putBatch(baseContractPtr->dump());
+  }
+}
+
+void State::loadSnapshot(const std::string& where, bool allowV1Snapshot) {
+  LOGINFO("Loading snapshot from: " + where);
+
+  // DB directory & instance (uncompressed)
+  DB in(where);
+
+  // Wipe the state (keeps ContractManager only)
+  // NOTE: already locks stateMutex_ internally
+  resetState();
+
+  std::unique_lock<std::shared_mutex> lock(stateMutex_);
+
+  // Load snapshot metadata.
+  // We tolerate snapshots in the old format which did not have snapshot metadata.
+  // Missing metadata fields are simply left unchanged.
+  if (in.has(std::string("height_"), DBPrefix::snapshotMetadata)) {
+    Bytes heightBytes = in.get(std::string("height_"), DBPrefix::snapshotMetadata);
+    height_ = UintConv::bytesToUint64(heightBytes);
+    LOGXTRACE("Snapshot height: " + std::to_string(height_));
+  } else {
+    if (allowV1Snapshot) {
+      LOGWARNING("Snapshot has no height field, leaving State height at " + std::to_string(height_));
+    } else {
+      throw DynamicException("Read corrupt snapshot; missing height_ field.");
+    }
+  }
+  if (in.has(std::string("timeMicros_"), DBPrefix::snapshotMetadata)) {
+    Bytes timeMicrosBytes = in.get(std::string("timeMicros_"), DBPrefix::snapshotMetadata);
+    timeMicros_ = UintConv::bytesToUint64(timeMicrosBytes);
+    LOGXTRACE("Snapshot timeMicros: " + std::to_string(timeMicros_));
+  } else {
+    if (allowV1Snapshot) {
+      LOGWARNING("Snapshot has no timeMicros field, leaving State timeMicros at " + std::to_string(timeMicros_));
+    } else {
+      throw DynamicException("Read corrupt snapshot; missing timeMicros_ field.");
+    }
+  }
+
+  // Load accounts_
+  uint64_t accCount = 0;
+  auto accountsFromDB = in.getBatch(DBPrefix::nativeAccounts);
+  for (const auto& dbEntry : accountsFromDB) {
+     this->accounts_.emplace(Address(dbEntry.key), dbEntry.value);
+     ++accCount;
+  }
+  LOGXTRACE("Snapshot accounts size: " + std::to_string(accCount));
+
+  // Load vmStorage_
+  uint64_t vmCount = 0;
+  for (const auto& dbEntry : in.getBatch(DBPrefix::vmStorage)) {
+    Address addr(dbEntry.key | std::views::take(ADDRESS_SIZE));
+    Hash hash(dbEntry.key | std::views::drop(ADDRESS_SIZE));
+    this->vmStorage_.emplace(StorageKeyView(addr, hash), dbEntry.value);
+    ++vmCount;
+  }
+  LOGXTRACE("Snapshot vmStorage size: " + std::to_string(vmCount));
+
+  // Load contracts_
+  auto& baseContractPtr = this->contracts_[ProtocolContractAddresses.at("ContractManager")];
+  ContractManager* cmPtr = dynamic_cast<ContractManager*>(baseContractPtr.get());
+  uint64_t ctCount = 0;
+  for (const DBEntry& contract : in.getBatch(DBPrefix::contractManager)) {
+    Address address(contract.key);
+    if (!cmPtr->loadFromDB<ContractTypes>(contract, address, in)) {
+      throw DynamicException("Read corrupt snapshot; unknown contract: " + StrConv::bytesToString(contract.value));
+    }
+    ++ctCount;
+  }
+  LOGXTRACE("Snapshot contracts size: " + std::to_string(ctCount));
+
+  // State sanity check
+  // Check if all found contracts in the accounts_ map really have code or are C++ contracts
+  for (const auto& [addr, acc] : this->accounts_) {
+    contractSanityCheck(addr, *acc);
+  }
+}
 
 void State::addBalance(const Address& addr) {
   std::unique_lock lock(this->stateMutex_);
@@ -153,7 +338,6 @@ Bytes State::ethCall(EncodedStaticCallMessage& msg) {
 
     return ContractHost(
       this->vm_,
-      this->dumpManager_,
       this->blockchain_.storage(),
       randomSeed,
       context
@@ -176,7 +360,6 @@ int64_t State::estimateGas(EncodedMessageVariant msg) {
 
   ContractHost host(
     this->vm_,
-    this->dumpManager_,
     blockchain_.storage(),
     randomSeed,
     context
@@ -296,7 +479,7 @@ bool State::validateTransactionInternal(const TxBlock& tx, bool affectsMempool, 
   //   the State is presented transactions in a given sequence; it doesn't know which transactions
   //   have already been killed in the State's mempoolModel_ and will thus fail validation when
   //   it is time to actually process a proposed block for example.
-  bool alreadyInMempool = false;  // Flag to indicate if we found the tx in mempool and it's valid
+  bool alreadyInMempool = false; // Flag to indicate if we found the tx in mempool and it's valid
   if (stateFromIt != mempoolModel_.end()) {
     uint64_t nonce64 = static_cast<uint64_t>(tx.getNonce());
     stateNonceIt = stateFromIt->second.find(nonce64);
@@ -664,7 +847,6 @@ void State::processTransaction(
 
     ContractHost host(
       this->vm_,
-      this->dumpManager_,
       blockchain_.storage(),
       randomSeed,
       context);

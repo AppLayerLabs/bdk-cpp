@@ -11,7 +11,7 @@ See the LICENSE.txt file in the project root for more information.
 
 #include "../../utils/uintconv.h"
 #include "../../utils/strconv.h"
-/*
+
 Pebble::Pebble(const Address& address, const DB& db)
   : DynamicContract(address, db), ERC721(address, db), ERC721URIStorage(address, db), Ownable(address, db),
     maxSupply_(this), tokenIds_(this), tokenRarity_(this),
@@ -60,7 +60,6 @@ Pebble::Pebble(const Address& address, const DB& db)
   this->minters_.enableRegister();
   this->authorizer_.enableRegister();
 }
-*/
 
 Pebble::Pebble(const uint256_t& maxSupply, const Address& address, const Address& creator, const uint64_t& chainId)
   : DynamicContract("Pebble", address, creator, chainId),
@@ -107,7 +106,7 @@ Pebble::Pebble(const uint256_t& maxSupply, const Address& address, const Address
   this->authorizer_.enableRegister();
   this->minters_.enableRegister();
 }
-/*
+
 DBBatch Pebble::dump() const {
   // We need to dump all the data from the parent classes as well.
   DBBatch batch = ERC721URIStorage::dump();
@@ -136,7 +135,6 @@ DBBatch Pebble::dump() const {
   batch.push_back(StrConv::stringToBytes("authorizer_"), this->authorizer_.get().asBytes(), this->getDBPrefix());
   return batch;
 }
-*/
 
 Address Pebble::update_(const Address& to, const uint256_t& tokenId, const Address& auth) {
   ERC721URIStorage::update_(to, tokenId, auth);

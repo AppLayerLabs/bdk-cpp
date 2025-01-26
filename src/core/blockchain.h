@@ -15,7 +15,6 @@ See the LICENSE.txt file in the project root for more information.
 #include "storage.h"
 #include "../net/http/httpserver.h"
 #include "../net/http/noderpcinterface.h"
-#include "typedefs.h"
 
 /**
  * A BDK node.
@@ -39,7 +38,7 @@ See the LICENSE.txt file in the project root for more information.
  * file-backed data structures (flat files or the dump-to-fresh-speedb system)
  * (iii) the list of contract types/templates that exist, since that pertains
  * to the binary itself, and should be built statically in RAM on startup (const)
- * (it is OK-ish to store, in db_, the range of block heights for which a
+ * (it is OK-ish to store in Storage the range of block heights for which a
  * template is or isn't available, while keeping in mind that these are really
  * consensus parameters, that is, changing these means the protocol is forked).
  * What we are going to store in the node db:
@@ -89,8 +88,6 @@ class Blockchain : public CometListener, public NodeRPCInterface, public Log::Lo
     Storage storage_; ///< BDK persistent store front-end.
     HTTPServer http_; ///< HTTP server.
 
-    DB db_; ///< FIXME: remove this; Blockchain should not have any DB objects, ever. Use Storage as front-end if you really must.
-
     std::vector<CometValidatorUpdate> validators_; ///< Up-to-date CometBFT validator set.
 
     std::unordered_map<Address, uint64_t, SafeHash> validatorAddrs_; /// Up-to-date map of CometBFT validator address to index in validators_.
@@ -115,6 +112,10 @@ class Blockchain : public CometListener, public NodeRPCInterface, public Log::Lo
     // Since we cache FinalizedBlock's here, we will also use this as the back-end for
     // the GetTx() / GetTxBy...() methods.
     FinalizedBlockCache fbCache_;
+
+    bool syncing_ = false; ///< Updated by Blockchain::incomingBlock() when syncingToHeight > height.
+
+    uint64_t persistStateSkipCount_ = 0; ///< Count of non-syncing_ Blockchain::persistState() calls that skipped saveSnapshot().
 
     /**
      * Helper for BDK RPC services, fetches a CometBFT block via CometBFT RPC.
@@ -252,6 +253,11 @@ class Blockchain : public CometListener, public NodeRPCInterface, public Log::Lo
      */
     void setGetTxCacheSize(const uint64_t cacheSize);
 
+    /**
+     * Save the current machine state to <blockchainPath>/snapshots/<current-State-height>.
+     */
+    void saveSnapshot();
+
     void start(); ///< Start the blockchain node.
 
     void stop(); ///< Stop the blockchain node.
@@ -315,10 +321,6 @@ class Blockchain : public CometListener, public NodeRPCInterface, public Log::Lo
     State& state() { return this->state_; }
     Storage& storage() { return this->storage_; }
     HTTPServer& http() { return this->http_; }
-
-    // FIXME: REMOVE db_
-    DB& db() { return this->db_; }
-
     ///@}
 };
 

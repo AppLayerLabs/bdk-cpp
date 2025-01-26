@@ -94,7 +94,7 @@ class ERC721URIStorage : virtual public ERC721 {
     }
 
     /// Dump method
-    //DBBatch dump() const override;
+    DBBatch dump() const override;
 };
 
 #endif // ERC721URISTORAGE_H

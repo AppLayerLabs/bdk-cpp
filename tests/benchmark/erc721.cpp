@@ -92,7 +92,7 @@ namespace TERC721BENCHMARK {
       // Check totalSupply
       REQUIRE(sdk.callViewFunction(erc721Address, &ERC721Test::totalSupply) == iterations);
       // Dump the state
-      sdk.getState().saveToDB();
+      sdk.saveSnapshot();
     }
 
     // TODO: AddressSanitizer heap-use-after-free here for some reason, someone plz fix it
@@ -145,7 +145,7 @@ namespace TERC721BENCHMARK {
       // Check totalSupply
       REQUIRE(sdk.callViewFunction(erc721Address, &ERC721Test::totalSupply) == iterations);
       // Dump the state
-      sdk.getState().saveToDB();
+      sdk.saveSnapshot();
     }
   }
 }

@@ -8,7 +8,7 @@ See the LICENSE.txt file in the project root for more information.
 #ifndef SDKTESTSUITE_H
 #define SDKTESTSUITE_H
 
-#include "../src/core/blockchain.h" // net/http/httpserver.h, consensus.h -> state.h -> rdpos.h -> net/p2p/managernormal.h, (utils/tx.h -> ecdsa.h -> utils.h -> libs/json.hpp -> tuple), (dump.h -> utils/db.h, storage.h -> options.h)
+#include "../src/core/blockchain.h" // net/http/httpserver.h, consensus.h -> state.h
 
 #include "../src/utils/evmcconv.h"
 #include "../src/utils/uintconv.h"
@@ -95,6 +95,10 @@ class SDKTestSuite : public Blockchain {
     uint64_t advanceChainHeight_ = 0;
     std::set<Hash> advanceChainPendingTxs_;
 
+    // List of accounts that need test balances is built on ctor, but needs to be set
+    // on initChain() since State ctor now force-resets accounts_.
+    std::vector<TestAccount> testAccounts_;
+
   public:
 
     // long-name getters (expected by existing test code)
@@ -137,16 +141,10 @@ class SDKTestSuite : public Blockchain {
       const std::string instanceId = "",
       const std::vector<TestAccount>& accounts = {}
     )
-      : Blockchain(options, options.getRootPath(), instanceId)
+      : Blockchain(options, options.getRootPath(), instanceId),
+        testAccounts_(accounts)
     {
-      // We need to give some tokens to the chainOwner and to all the
-      //  `accounts` that were passed in so they can pay for test contract
-      //  deployment, etc.
-      state_.addBalance(options_.getChainOwner());
-      for (const TestAccount& account : accounts) {
-        state_.addBalance(account.address);
-      }
-      // SimpleContract doesn't call start(), so we must start.
+      // Existing testcases like SimpleContract don't call start(), so the ctor must start().
       start();
     }
 

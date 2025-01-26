@@ -70,7 +70,7 @@ namespace TDEXV2 {
 
         // Dump to database
         options = std::make_unique<Options>(sdk.getOptions());
-        sdk.getState().saveToDB();
+        sdk.saveSnapshot();
       }
 
       // SDKTestSuite should automatically load the state from the DB if we construct it with an Options object
@@ -116,7 +116,7 @@ namespace TDEXV2 {
         }
         // Dump to database
         options = std::make_unique<Options>(sdk.getOptions());
-        sdk.getState().saveToDB();
+        sdk.saveSnapshot();
       }
 
       // SDKTestSuite should automatically load the state from the DB if we construct it with an Options object

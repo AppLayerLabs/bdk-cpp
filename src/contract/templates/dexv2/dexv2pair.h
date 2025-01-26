@@ -93,9 +93,9 @@ class DEXV2Pair : public ERC20 {
      * @param address The address where the contract will be deployed.
      * @param db Reference to the database object.
     */
-    //DEXV2Pair(
-    //  const Address& address, const DB& db
-    //);
+    DEXV2Pair(
+      const Address& address, const DB& db
+    );
 
     /**
      * Constructor to be used when creating a new contract.
@@ -228,7 +228,7 @@ class DEXV2Pair : public ERC20 {
       );
     }
     /// Dump method
-    //DBBatch dump() const override;
+    DBBatch dump() const override;
 };
 
 #endif // DEXV2PAIR_H

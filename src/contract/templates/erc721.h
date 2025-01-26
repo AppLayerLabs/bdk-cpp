@@ -171,7 +171,7 @@ public:
    * @param address The address where the contract will be deployed.
    * @param db Reference to the database object.
    */
-  //ERC721(const Address &address, const DB& db);
+  ERC721(const Address &address, const DB& db);
 
   /**
    * Constructor to be used when creating a new contract.
@@ -356,7 +356,7 @@ public:
   }
 
    /// Dump method
-   //DBBatch dump() const override;
+   DBBatch dump() const override;
 };
 
 #endif // ERC721_H

@@ -42,7 +42,7 @@ class ERC721Test : public ERC721 {
      * @param address The address where the contract will be deployed.
      * @param db Reference to the database object.
      */
-    //ERC721Test(const Address &address, const DB& db);
+    ERC721Test(const Address &address, const DB& db);
 
     /**
      * Constructor to be used when creating a new contract.
@@ -102,7 +102,7 @@ class ERC721Test : public ERC721 {
     }
 
     /// Dump method
-    //DBBatch dump() const override;
+    DBBatch dump() const override;
 };
 
 #endif // ERC721_TEST

@@ -56,7 +56,7 @@ class RandomnessTest : public DynamicContract {
     * @param address The address of the contract.
     * @param db The database to use.
     */
-//    RandomnessTest(const Address& address, const DB& db);
+    RandomnessTest(const Address& address, const DB& db);
 
     ~RandomnessTest() override; ///< Destructor.
 
@@ -78,7 +78,7 @@ class RandomnessTest : public DynamicContract {
     }
 
     /// Dump method
-    //DBBatch dump() const override;
+    DBBatch dump() const override;
 };
 
 #endif  // THROWTESTB_H

@@ -16,29 +16,72 @@ See the LICENSE.txt file in the project root for more information.
 #include "../utils/logger.h"
 #include "../utils/safehash.h"
 
-#include "typedefs.h"
+/// Mempool model to help validate multiple txs with same from account and various nonce values.
+using MempoolModel =
+  std::unordered_map<
+    Address, // From Address -->
+    std::map<
+      uint64_t, // Nonce (of from address) -->
+      std::unordered_map<
+        Hash, // Transaction hash (for a from address and nonce) -->
+        std::pair<
+          uint256_t, // Minimum balance (max fee) required by this transaction.
+          bool // Eject? `true` if tx should be removed from the mempool on next CheckTx().
+        >
+      , SafeHash>
+    >
+  , SafeHash>;
+
+using MempoolModelIt = MempoolModel::iterator;
+
+using MempoolModelNonceIt =
+  std::map<
+    uint64_t,
+    std::unordered_map<
+      Hash,
+      std::pair<
+        uint256_t,
+        bool>
+      , SafeHash>
+  , SafeHash>::iterator;
+
+using MempoolModelHashIt =
+  std::unordered_map<
+    Hash,
+    std::pair<
+      uint256_t,
+      bool
+    >
+  , SafeHash>::iterator;
 
 class Blockchain;
 class FinalizedBlock;
 
+#include "typedefs.h"
+
 /// Abstraction of the blockchain's current state at the current block.
-// FIXME/TODO: reimplement periodic state saving
-class State : /*public Dumpable,*/ public Log::LogicalLocationProvider {
+class State : public Log::LogicalLocationProvider {
   private:
     Blockchain& blockchain_; ///< Parent Blockchain object
+    MempoolModel mempoolModel_; ///< Mempool model that transparently tracks all transactions seen via validateTransactionInternal().
+    static std::once_flag stateRegisterContractsFlag; ///< Ensures contract registration happens only once
 
-    DumpManager dumpManager_;
-    //DumpWorker dumpWorker_; // FIXME
+    // Binary state (dynamic infrastructure for the machine side that is independent of a blockchain)
+    CreateContractFuncsType createContractFuncs_; ///< Functions to create contracts.
 
     // Machine state
     mutable std::shared_mutex stateMutex_; ///< Mutex for managing read/write access to the state object.
     uint64_t height_; ///< This is the simulation timestamp the State machine is at.
     uint64_t timeMicros_; ///< This is the wallclock timestamp the State machine is at, in microseconds since epoch.
     evmc_vm* vm_; ///< Pointer to the EVMC VM.
-    boost::unordered_flat_map<Address, std::unique_ptr<BaseContract>, SafeHash, SafeCompare> contracts_; ///< Map with information about blockchain contracts (Address -> Contract).
+    ContractsContainerType contracts_; ///< Map with information about blockchain contracts (Address -> Contract).
     boost::unordered_flat_map<StorageKey, Hash, SafeHash, SafeCompare> vmStorage_; ///< Map with the storage of the EVM.
     boost::unordered_flat_map<Address, NonNullUniquePtr<Account>, SafeHash, SafeCompare> accounts_; ///< Map with information about blockchain accounts (Address -> Account).
-    MempoolModel mempoolModel_; ///< Mempool model that transparently tracks all transactions seen via validateTransactionInternal().
+
+    /**
+     * Helper for static contract registration step.
+     */
+    static void registerContracts();
 
     /**
      * Helper that cleans up an entry from mempoolModel_.
@@ -104,27 +147,47 @@ class State : /*public Dumpable,*/ public Log::LogicalLocationProvider {
     std::string getLogicalLocation() const override;
 
     /**
-     * FIXME: snapshot saving should always be done in a NEW database dir ("snapshot file")
-     * Should not even be named "DB". The database driver is an implementation detail of
-     *   the feature, which is a state snapshotting tool. Should be named snapshot or checkpoint,
-     *   not "DB".
-     * This should be instead named something like:
-     *    saveSnapshot()
-     * Which is aware of its *current* height, and saves to a new database at that height.
-     * Insead of constantly updating a snapshot DB dir whose height number is some
-     *   arbitrary height number from the past (from when the node was instantiated.
-     * 
-     * FIXME/TODO: also implement a loadSnapshot(const uint64_t height = 0) that loads the
-     *  saved snapshot at a given height, or if 0, load the latest one.
-     * 
-     * FIXME/TODO: other snapshot management functions: list, count, getLatestHeight,
-     *    delete/prune, check snapshot integrity, etc.
+     * Helper for testing.
      */
-    void saveToDB() const { this->dumpManager_.dumpToDB(); }
+    size_t getContractsSize() {
+      std::shared_lock lock(this->stateMutex_);
+      return contracts_.size();
+    }
 
-    // ----------------------------------------------------------------------
-    // STATE FUNCTIONS
-    // ----------------------------------------------------------------------
+    /**
+     * Resets the machine state to its default, bare-minimum state.
+     * This wipes accounts_, contracts_, vmStorage_ and then inserts the
+     * ContractManager in accounts_ and contracts_.
+     * @param height Value to initialize height to (default: 0).
+     * @param timeMicros Value to initialize timeMicros to (default: 0).
+     */
+    void resetState(uint64_t height = 0, uint64_t timeMicros = 0);
+
+    /**
+     * Initializes the state to genesis state.
+     * Genesis state is known only after the ABCI InitChain call.
+     * @param initialHeight Genesis height (0 is the default start-from-scratch, no-blocks value).
+     * @param initialTimeEpochSeconds Genesis timestamp in seconds since epoch.
+     * @param genesisSnapshot Optional snapshot directory location with genesis state to load ("" if none).
+     */
+    void initChain(
+      uint64_t initialHeight, uint64_t initialTimeEpochSeconds,
+      std::string genesisSnapshot = ""
+    );
+
+    /**
+     * Write the entire consensus machine state held in RAM to persistent storage.
+     * May throw on errors.
+     * @param where New speedb directory name the snapshot will be written to.
+     */
+    void saveSnapshot(const std::string& where);
+
+    /**
+     * Read the entire consensus machine state held in persistent storage to RAM.
+     * May throw on errors.
+     * @param where Existing speedb directory name the snapshot will be read from.
+     */
+    void loadSnapshot(const std::string& where, bool allowV1Snapshot = false);
 
     /**
      * Get the blockchain block height currently reflected by this machine state.
@@ -229,8 +292,6 @@ class State : /*public Dumpable,*/ public Log::LogicalLocationProvider {
 
     /// Get a list of Addresss which are EVM contracts.
     std::vector<Address> getEvmContracts() const;
-
-    //DBBatch dump() const final; ///< State dumping function.
 
     /**
      * Get the code section of a given contract.

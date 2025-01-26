@@ -26,7 +26,7 @@ namespace TERC721Test {
         REQUIRE(sdk.callViewFunction(ERC721Address, &ERC721Test::tokenIdCounter) == 0);
         // Dump to database
         options = std::make_unique<Options>(sdk.getOptions());
-        sdk.getState().saveToDB();
+        sdk.saveSnapshot();
       }
 
       // SDKTestSuite should automatically load the state from the DB if we construct it with an Options object
@@ -56,7 +56,7 @@ namespace TERC721Test {
         REQUIRE(owner == sdk.getChainOwnerAccount().address);
         // Dump to database
         options = std::make_unique<Options>(sdk.getOptions());
-        sdk.getState().saveToDB();
+        sdk.saveSnapshot();
       }
 
       // SDKTestSuite should automatically load the state from the DB if we construct it with an Options object

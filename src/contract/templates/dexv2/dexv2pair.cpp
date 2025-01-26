@@ -11,7 +11,6 @@ See the LICENSE.txt file in the project root for more information.
 #include "../../../utils/uintconv.h"
 #include "../../../utils/strconv.h"
 
-/*
 DEXV2Pair::DEXV2Pair(const Address& address, const DB& db
 ) : ERC20(address, db), factory_(this), token0_(this), token1_(this),
   reserve0_(this), reserve1_(this), blockTimestampLast_(this),
@@ -49,7 +48,6 @@ DEXV2Pair::DEXV2Pair(const Address& address, const DB& db
   this->price1CumulativeLast_.enableRegister();
   this->kLast_.enableRegister();
 }
-*/
 
 DEXV2Pair::DEXV2Pair(
   const Address& address, const Address& creator, const uint64_t& chainId
@@ -263,7 +261,6 @@ void DEXV2Pair::sync() {
   );
 }
 
-/*
 DBBatch DEXV2Pair::dump() const {
   // We have to dump the tokens as well
   DBBatch dbBatch = BaseContract::dump();
@@ -282,4 +279,4 @@ DBBatch DEXV2Pair::dump() const {
   dbBatch.push_back(StrConv::stringToBytes("kLast_"), UintConv::uint256ToBytes(this->kLast_.get()), this->getDBPrefix());
   return dbBatch;
 }
-*/
+

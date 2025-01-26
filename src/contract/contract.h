@@ -8,7 +8,9 @@ See the LICENSE.txt file in the project root for more information.
 #ifndef CONTRACT_H
 #define CONTRACT_H
 
-#include "../core/dump.h" // core/storage.h, utils/db.h -> utils.h -> strings.h, libs/json.hpp -> cstdint, memory, string, tuple
+#include "../utils/address.h"
+#include "../utils/hash.h"
+#include "../utils/db.h"
 
 #include "../utils/uintconv.h"
 #include "../utils/strconv.h"
@@ -56,8 +58,14 @@ class ContractLocals : public ContractGlobals {
     friend class ContractHost;
 };
 
-/// Base class for all contracts.
-class BaseContract : public ContractLocals, public Dumpable {
+/**
+ * Base class for all contracts.
+ * NOTE: All contracts know how to serialize themselves by overriding dump() and
+ * how to deserialize themselves by taking a DB& in one of their constructor and
+ * loading their instance data from the DB (given the contract instance address,
+ * which is the instance key in the DB file).
+ */
+class BaseContract : public ContractLocals {
   private:
     const Address contractAddress_;  ///< Address where the contract is deployed.
     const Bytes dbPrefix_;     ///< Prefix for the contract DB.
@@ -89,7 +97,14 @@ class BaseContract : public ContractLocals, public Dumpable {
         contractName_(contractName), contractCreator_(creator), contractChainId_(chainId) {
     }
 
-    DBBatch dump() const override {
+    /**
+     * Generate a speedb write delta with global/absolute keys that contain
+     * the entire state of this contract instance such that the instance's
+     * state can be completely restored just by reading the key/value pairs
+     * inserted by this delta.
+     * @return A DBBatch object containing the write delta.
+     */
+    virtual DBBatch dump() const {
       DBBatch batch;
       batch.push_back(StrConv::stringToBytes("contractName_"), StrConv::stringToBytes(contractName_), this->getDBPrefix());
       batch.push_back(StrConv::stringToBytes("contractAddress_"), contractAddress_, this->getDBPrefix());

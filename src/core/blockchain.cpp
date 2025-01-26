@@ -97,20 +97,6 @@ void Blockchain::FinalizedBlockCache::evictIndices(const std::shared_ptr<const F
 Blockchain::Blockchain(const std::string& blockchainPath, std::string instanceId)
   : instanceId_(instanceId),
     options_(Options::fromFile(blockchainPath)), // build the Options object from the blockchainPath/options.json file (or binarydefaults)
-
-    // FIXME/TODO: Remove this db_ member and fix all downstream code that depends on it for whatever reason.
-    // It makes no sense to tie a Blockchain & State instance to the permanent store of some block height
-    // forever just because we constructed the node at that time.
-    // The Blockchain class should NOT have a DB object that is the "best db at some height". That makes no sense.
-    // If we are using a database to write the machine state at some block height, that DB instance is
-    // created on-the-fly at the time the machine state snapshot is read or written; there is no reason
-    // to keep an instance of that snapshot.
-    // We should NOT bind Blockchain/State instances to one snapshot. The machine state snapshot file is
-    // only accessed when we want to either read or write a snapshot.
-    // In case Blockchain/State and the contract system need a backing DB that is not relative to some
-    // block height, use Storage instead.
-    db_(std::get<0>(DumpManager::getBestStateDBPath(options_))),
-
     comet_(this, instanceId, options_),
     state_(*this),
     storage_(*this),
@@ -124,20 +110,6 @@ Blockchain::Blockchain(const std::string& blockchainPath, std::string instanceId
 Blockchain::Blockchain(const Options& options, const std::string& blockchainPath, std::string instanceId)
   : instanceId_(instanceId),
     options_(options), // copy the given Options object
-
-    // FIXME/TODO: Remove this db_ member and fix all downstream code that depends on it for whatever reason.
-    // It makes no sense to tie a Blockchain & State instance to the permanent store of some block height
-    // forever just because we constructed the node at that time.
-    // The Blockchain class should NOT have a DB object that is the "best db at some height". That makes no sense.
-    // If we are using a database to write the machine state at some block height, that DB instance is
-    // created on-the-fly at the time the machine state snapshot is read or written; there is no reason
-    // to keep an instance of that snapshot.
-    // We should NOT bind Blockchain/State instances to one snapshot. The machine state snapshot file is
-    // only accessed when we want to either read or write a snapshot.
-    // In case Blockchain/State and the contract system need a backing DB that is not relative to some
-    // block height, use Storage instead.
-    db_(std::get<0>(DumpManager::getBestStateDBPath(options_))),
-
     comet_(this, instanceId, options_),
     state_(*this),
     storage_(*this),
@@ -201,9 +173,48 @@ void Blockchain::setGetTxCacheSize(const uint64_t cacheSize) {
   txCache_.resize(cacheSize);
 }
 
+void Blockchain::saveSnapshot() {
+  // TODO: Snapshotting should be done by a forked process.
+  // Later, we can add support for snapshotting using a non-validator node, potentially on
+  // another machine (a snapshotting worker that keeps the protocol going but knows how
+  // to cache FinalizedBlock objects for later execution while it is dumping -- something
+  // you cannot afford to do if you are a live validator node).
+  uint64_t currentHeight = state_.getHeight();
+  if (currentHeight == 0) {
+    return; // genesis state, nothing to save
+  }
+  try {
+    // Ensure we can find or create the snapshots root; skip if we can't
+    std::filesystem::path snapshotsRoot = options_.getRootPath() + std::string("/snapshots/");
+    if (!std::filesystem::exists(snapshotsRoot) || !std::filesystem::is_directory(snapshotsRoot)) {
+      if (!std::filesystem::create_directory(snapshotsRoot)) {
+        throw DynamicException("Failed to create snapshots directory " + snapshotsRoot.string());
+      }
+    }
+    // Snapshot (DB) dir will be <bdk-root-dir>/snapshots/<heightnum>/
+    std::filesystem::path snapshotDir = snapshotsRoot / std::to_string(currentHeight);
+    // Skip snapshot generation if the snapshot dir for the current height already exists
+    if (std::filesystem::exists(snapshotDir)) {
+      throw DynamicException("Skipping saveSnapshot (directory already exists): " + snapshotDir.string());
+    }
+    // Write the snapshot
+    state_.saveSnapshot(snapshotDir);
+  } catch (std::exception& ex) {
+    LOGERROR(
+      "Cannot save snapshot for height " + std::to_string(currentHeight) +
+      ": " + std::string(ex.what())
+    );
+  }
+}
+
 void Blockchain::start() {
   // Initialize necessary modules
   LOGINFOP("Starting BDK Node...");
+
+  // FIXME/TODO: control start()/stop() cycle (no two starts or two stops, ...)
+  // FIXME/TODO: reset all Blockchain (State, ...) state on start()
+  syncing_ = false;
+  persistStateSkipCount_ = 0;
 
   // FIXME/TODO: use cometbft seed-node/PEX to implement discoverynode
   // just setting the relevant config.toml options via Options::cometBFT::config.toml::xxx
@@ -455,30 +466,41 @@ void Blockchain::initChain(
   const uint64_t genesisTime, const std::string& chainId, const Bytes& initialAppState, const uint64_t initialHeight,
   const std::vector<CometValidatorUpdate>& initialValidators, Bytes& appHash
 ) {
-  // TODO: Ensure atoi(chainId) == this->options_.getChainID() (should be the case)
+  try {
+    // Ensure Init chain ID matches Options chain ID
+    uint64_t providedChainId = std::stoull(chainId);
+    if (providedChainId != this->options_.getChainID()) {
+      throw DynamicException(
+        "initChain(): Chain ID " + std::to_string(providedChainId) +
+        " does not match Options chain ID " + std::to_string(this->options_.getChainID())
+      );
+    }
+  } catch (const std::exception& e) {
+    throw DynamicException("initChain(): Invalid chain ID: " + std::string(e.what()));
+  }
 
   // For now, the validator set is fixed on genesis and never changes.
   // TODO: When we get to validator set changes via governance, validators_ will have to be
   //   updated via incomingBlock(validatorUpdates).
+  // TODO: When loading snapshots, will need to load the validator set at that height as well
+  //   and, maybe, a partial (or total?) history of validator set transitions if that is needed.
   setValidators(initialValidators);
 
   // Initialize the machine state on InitChain.
-  // State is not RAII. We are not creating the State instance here.
-  // State is created in a pre-comet-consensus, default state given by the BDK, and is initialized here to actual
-  //   comet genesis state.
-  // TODO: replace this with a call to a private initState() function (Blockchain is friend of State).
-  std::unique_lock<std::shared_mutex> lock(state_.stateMutex_);
-
-  // Unfortunately, CometBFT set the state height counter to the height for which you
-  // are waiting a block for. The default initial height is 1, not 0 (0 is invalid in
-  // cometBFT). However, we do use height 0 to mean the state is at genesis and waiting
-  // for the first actual block (with height 1), so we need to fix this on our side.
-  state_.height_ = initialHeight - 1;
-
-  LOGDEBUG("Blockchain::initChain(): Height = " + std::to_string(initialHeight));
-  state_.timeMicros_ = genesisTime * 1'000'000; // genesisTime is in seconds, so convert to microseconds
-  // TODO: If we have support for initialAppState, apply it here, or load it from a BDK side channel
-  //   like a genesis State dump/snapshot.
+  // NOTE: State height counting is skewed +1 in ABCI Init for some reason.
+  //   The genesis.json "initial height" value of 0 is invalid; 1 is the minimum.
+  //   This seemingly only applies to ABCI Init; height behaves as expected
+  //   elsewhere (0 == chain/state after 0 blocks, 1 == chain/state after 1 block, etc.)
+  // NOTE: BDK doesn't use CometBFT's initial_app_state from genesis.json.
+  //   Instead, it checks for /snapshots/0; if it exists, pass the snapshot location to
+  //   state_.initChain().
+  std::string genesisSnapshot = "";
+  std::filesystem::path snapshot0 = options_.getRootPath() + std::string("/snapshots/0");
+  if (std::filesystem::exists(snapshot0) && std::filesystem::is_directory(snapshot0)) {
+    genesisSnapshot = snapshot0.string();
+    LOGINFO("Found genesis snapshot: " + genesisSnapshot);
+  }
+  state_.initChain(initialHeight - 1, genesisTime, genesisSnapshot);
 }
 
 void Blockchain::checkTx(const Bytes& tx, const bool recheck, int64_t& gasWanted, bool& accept) {
@@ -503,6 +525,9 @@ void Blockchain::incomingBlock(
   std::vector<CometExecTxResult>& txResults, std::vector<CometValidatorUpdate>& validatorUpdates
 ) {
   try {
+    // Update syncing status (don't persist state to disk while syncing (?))
+    syncing_ = syncingToHeight > block->height;
+
     // The factory method should construct a FinalizedBlock which is then
     // automatically moved into the shared_ptr, as it is a temporary.
     std::shared_ptr<const FinalizedBlock> fbPtr =
@@ -686,11 +711,15 @@ void Blockchain::validateBlockProposal(const CometBlock& block, bool& accept) {
 }
 
 void Blockchain::getCurrentState(uint64_t& height, Bytes& appHash, std::string& appSemVer, uint64_t& appVersion) {
-  // TODO: return our machine state
-  //       state_.height_, the state root hash, and version info
+  // NOTE: genesis height is 0 here
+  //       all heights for the Comet driver user are based at 0==genesis
   height = state_.getHeight();
 
-  // FIXME/TODO: fetch the state root hash (account state hash? not the same?)
+  // REVIEW: Will we use a state root? This can be set to the randomness chain block hash
+  //   when we have that implemented.
+  // NOTE: This value should not change if the state doesn't change, because a new appHash generates
+  //   extra activity in CometBFT. However, an active blockchain would change the apphash in every
+  //   block height in any case.
   appHash = Hash().asBytes();
 
   // TODO/REVIEW: Not sure if we should set the BDK version here, since behavior might not change
@@ -698,28 +727,78 @@ void Blockchain::getCurrentState(uint64_t& height, Bytes& appHash, std::string& 
   appSemVer = "1.0.0";
 
   // TODO: This for sure just changes (is incremented) when we change the behavior in a new BDK release
+  //       This should be taken from some constant, not hardcoded to 0 here.
   appVersion = 0;
 }
 
 void Blockchain::persistState(uint64_t& height) {
-  // TODO: Right here we decide whether the state dump trigger is met (block height
-  // for state snapshotting is reached), lock the machine state globally and exclusively,
-  // then write the entire snapshot for this block height.
-  // This should be done by a forked process that disables everything and just writes
-  // to a temp/private snapshot directory that then gets placed in the snapshots dir
-  // if it is successful, and then exits.
-  // Later, we can add support for snapshotting using a non-validator node, potentially on
-  // another machine (a snapshotting worker that keeps the protocol going but knows how
-  // to cache FinalizedBlock objects for later execution while it is dumping -- something
-  // you cannot afford to do if you are a live validator node).
-
-  // TODO: automatic block history pruning
+  // Set the retain-block-height outparam
+  // TODO: block history pruning based on a BDK option
   height = 0;
+
+  // Trigger snapshotting every X blocks (non-syncing)
+  if (!syncing_) {
+    if (++persistStateSkipCount_ > options_.getStateDumpTrigger()) {
+      persistStateSkipCount_ = 0;
+      saveSnapshot();
+    }
+  }
 }
 
 void Blockchain::currentCometBFTHeight(const uint64_t height) {
-  // TODO: here, we must ensure that our state_.height_ CANNOT be greater than height
-  //       it must either be exactly height, or if < height, we'll need to ask for blocks to be replayed
+  // NOTE: We will use this one-time Comet driver callback, which runs *before* we run CometBFT
+  // as a node (it takes the `height` param from cometbft inspect) to prepare the State at the
+  // optimal height from a snapshot, so when CometBFT starts and connects to the app via ABCI,
+  // the application is already at the best available height.
+  //
+  // Here, we must ensure that our state_.height_ CANNOT be greater than the given height param,
+  //   which is the block height of the last block in cometbft's block store.
+  // state_.height_ must either be exactly height, or if < height, cometbft will replay blocks.
+  try {
+    std::filesystem::path snapshotsRoot = options_.getRootPath() + std::string("/snapshots/");
+    if (std::filesystem::exists(snapshotsRoot) && std::filesystem::is_directory(snapshotsRoot)) {
+      // List all available snapshot directories
+      std::vector<uint64_t> availableHeights;
+      for (const auto& entry : std::filesystem::directory_iterator(snapshotsRoot)) {
+        if (entry.is_directory()) {
+          std::string dirname = entry.path().filename().string();
+          try {
+            uint64_t snapshotHeight = std::stoull(dirname);
+            // app state cannot be ahead cometbft's block store, otherwise cometbft panics.
+            if (snapshotHeight <= height) {
+              availableHeights.push_back(snapshotHeight);
+            }
+          } catch (const std::exception& ex) {
+          }
+        }
+      }
+      // Try to load a snapshot from the list, most recent (that is <= `height`) first
+      if (!availableHeights.empty()) {
+        // Sort the heights in descending order to prioritize the most recent snapshots
+        std::sort(availableHeights.begin(), availableHeights.end(), std::greater<uint64_t>());
+        for (const auto& snapshotHeight : availableHeights) {
+          std::filesystem::path snapshotDir = snapshotsRoot / std::to_string(snapshotHeight);
+          try {
+            LOGINFO("Loading snapshot for height " + std::to_string(snapshotHeight));
+            state_.loadSnapshot(snapshotDir);
+            LOGINFO("Successfully loaded snapshot for height " + std::to_string(snapshotHeight));
+            break;
+          } catch (const std::exception& ex) {
+            LOGERROR(
+              "Failed to load snapshot for height " + std::to_string(snapshotHeight) +
+              ": " + std::string(ex.what())
+            );
+          }
+        }
+      } else {
+        LOGINFO("No snapshots available in the snapshots directory with height <= " + std::to_string(height) + ".");
+      }
+    } else {
+      LOGINFO("Snapshots root directory does not exist. No snapshots to load.");
+    }
+  } catch (const std::exception& ex) {
+    LOGERROR("Error searching & loading an initial snapshot: " + std::string(ex.what()));
+  }
 }
 
 void Blockchain::sendTransactionResult(const uint64_t tId, const bool success, const json& response, const std::string& txHash, const Bytes& tx) {

@@ -27,7 +27,7 @@ public:
     int64_t blockGasLimit,  int64_t blockNumber, int64_t blockTimestamp, int64_t txIndex,
     View<Address> blockCoinbase, View<Address> txOrigin, View<Hash> blockHash, View<Hash> txHash,
     const uint256_t& chainId, const uint256_t& txGasPrice) :
-    accounts_(accounts), storage_(storage), contracts_(contracts), newContracts_(),
+    accounts_(accounts), storage_(storage), contracts_(contracts),
     blockGasLimit_(blockGasLimit), blockNumber_(blockNumber), blockTimestamp_(blockTimestamp), txIndex_(txIndex),
     blockCoinbase_(blockCoinbase), txOrigin_(txOrigin), blockHash_(blockHash), txHash_(txHash),
     chainId_(chainId), txGasPrice_(txGasPrice) {}
@@ -83,8 +83,6 @@ public:
 
   const auto& getEvents() const { return events_; }
 
-  const auto& getNewContracts() const { return newContracts_; }
-
   void addContract(View<Address> address, std::unique_ptr<BaseContract> contract);
 
   void notifyNewContract(View<Address> address, BaseContract* contract);
@@ -119,7 +117,6 @@ private:
   uint256_t txGasPrice_;
   size_t eventIndex_ = 0;
   std::vector<Event> events_;
-  std::vector<std::pair<Address, BaseContract*>> newContracts_;
   std::stack<transactional::AnyTransactional> transactions_;
 };
 

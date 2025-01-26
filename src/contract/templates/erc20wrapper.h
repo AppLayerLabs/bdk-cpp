@@ -42,7 +42,7 @@ class ERC20Wrapper : public DynamicContract {
      * @param contractAddress The address where the contract will be deployed.
      * @param db Reference pointer to the database object.
      */
-    //ERC20Wrapper(const Address& contractAddress, const DB& db);
+    ERC20Wrapper(const Address& contractAddress, const DB& db);
 
     /**
      * Constructor for building a new contract from scratch.
@@ -116,7 +116,7 @@ class ERC20Wrapper : public DynamicContract {
     void deposit(const Address& token, const uint256_t& value);
 
     /// Dump method
-    //DBBatch dump() const override;
+    DBBatch dump() const override;
 };
 
 #endif // ERC20WRAPPER_H

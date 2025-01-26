@@ -2,7 +2,6 @@ set(CORE_HEADERS
    ${CMAKE_SOURCE_DIR}/src/core/blockchain.h
    ${CMAKE_SOURCE_DIR}/src/core/comet.h
    ${CMAKE_SOURCE_DIR}/src/core/state.h
-   ${CMAKE_SOURCE_DIR}/src/core/dump.h
    ${CMAKE_SOURCE_DIR}/src/core/storage.h
    ${CMAKE_SOURCE_DIR}/src/core/typedefs.h
   PARENT_SCOPE
@@ -12,7 +11,6 @@ set(CORE_SOURCES
    ${CMAKE_SOURCE_DIR}/src/core/blockchain.cpp
    ${CMAKE_SOURCE_DIR}/src/core/comet.cpp
    ${CMAKE_SOURCE_DIR}/src/core/state.cpp
-   ${CMAKE_SOURCE_DIR}/src/core/dump.cpp
    ${CMAKE_SOURCE_DIR}/src/core/storage.cpp
   PARENT_SCOPE
 )
