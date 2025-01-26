@@ -10,11 +10,9 @@ See the LICENSE.txt file in the project root for more information.
 
 #include <boost/multiprecision/cpp_int.hpp>
 
-#include "../bytes/view.h"
+#include "bytes.h" // Byte, Bytes, BytesArr
 
-using Byte = uint8_t; ///< Typedef for Byte.
-using Bytes = std::vector<Byte>; ///< Typedef for Bytes.
-template <std::size_t N> using BytesArr = std::array<Byte, N>; ///< Typedef for BytesArr.
+#include "../bytes/view.h"
 
 // Used internally by bytesToInt256().
 using uint256_t = boost::multiprecision::number<boost::multiprecision::cpp_int_backend<256, 256, boost::multiprecision::unsigned_magnitude, boost::multiprecision::cpp_int_check_type::checked, void>>;

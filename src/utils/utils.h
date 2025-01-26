@@ -25,6 +25,7 @@ See the LICENSE.txt file in the project root for more information.
 #include "../contract/variables/safeint.h"
 #include "../contract/variables/safeuint.h"
 
+#include "bytes.h" // Byte, Bytes
 #include "dynamicexception.h" // included by strings.h, leave it for now to avoid AddressSanitizer runtime errors - TODO: see create_view_span()
 #include "logger.h"
 #include "strings.h" // hex.h, openssl/rand.h, libs/zpp_bits.h -> algorithm, array, span, variant
@@ -38,11 +39,6 @@ class Hash;
 
 /// Typedef for json.
 using json = nlohmann::ordered_json;
-
-// TODO: duplicated in hex.h, strconv.h, evmcconv.h and (u)intconv.h, find a better way to handle this
-using Byte = uint8_t; ///< Typedef for Byte.
-using Bytes = std::vector<Byte>; ///< Typedef for Bytes.
-template <std::size_t N> using BytesArr = std::array<Byte, N>; ///< Typedef for BytesArr.
 
 /// Base case for the recursive helper - now using requires for an empty body function.
 template <size_t I = 0, typename... Tp> requires (I == sizeof...(Tp))

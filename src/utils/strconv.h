@@ -8,14 +8,11 @@ See the LICENSE.txt file in the project root for more information.
 #ifndef STRCONV_H
 #define STRCONV_H
 
-#include <cstdint> // uint8_t
 #include <string>
-#include <vector>
+
+#include "bytes.h" // Byte, Bytes, BytesArr
 
 #include "../bytes/view.h"
-
-using Byte = uint8_t; ///< Typedef for Byte.
-using Bytes = std::vector<Byte>; ///< Typedef for Bytes.
 
 /// Namespace for general string manipulation and conversion functions.
 namespace StrConv {
