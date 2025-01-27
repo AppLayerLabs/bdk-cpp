@@ -62,10 +62,10 @@ Options::Options(
 
 Options Options::fromFile(const std::string& rootPath) {
   try {
-    // Check if rootPath is valid
+    // Check if options.json exists, create a default one if not
     if (!std::filesystem::exists(rootPath + "/options.json")) {
       std::filesystem::create_directory(rootPath);
-      return Options::binaryDefaultOptions(rootPath);
+      return Options::genDefault(rootPath);
     }
 
     std::ifstream i(rootPath + "/options.json");

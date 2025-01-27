@@ -132,6 +132,7 @@ if [ "$DEPLOY" = true ]; then
   cp bdkd-discovery local_testnet_discovery
 
   # Create the JSON files for the Discovery Node, Validators and Normal Nodes
+  # TODO: do something better than this enormous wall of text
   echo '{
     "rootPath": "discoveryNode",
     "web3clientVersion": "bdk/cpp/linux_x86-64/0.2.0",
@@ -164,7 +165,74 @@ if [ "$DEPLOY" = true ]; then
         { "address": "0x00dead00665771855a34155f5e7405489df2c3c6", "balance": "100000000000000000000000000000000000000000" }
       ]
     },
-    "indexingMode" : "RPC"
+    "indexingMode" : "RPC",
+    "cometBFT": {
+      "genesis.json": {
+        "genesis_time": "2024-09-17T18:26:34.583377166Z",
+        "initial_height": "0",
+        "consensus_params": {
+          "block": {
+            "max_bytes": "22020096",
+            "max_gas": "-1"
+          },
+          "evidence": {
+            "max_age_num_blocks": "100000",
+            "max_age_duration": "172800000000000",
+            "max_bytes": "1048576"
+          },
+          "validator": {
+            "pub_key_types": [
+              "secp256k1"
+            ]
+          },
+          "version": {
+            "app": "0"
+          },
+          "abci": {
+            "vote_extensions_enable_height": "0"
+          }
+        },
+        "validators": [
+          {
+            "address": "A146C3E02DB4F8AAD5E859E35F4F7BCC094F0B13",
+            "pub_key": {
+              "type": "tendermint/PubKeySecp256k1",
+              "value": "AiA6uTAC2S62d1DcwRAAj0hSosCdkCa1aTWlXWJeFA9W"
+            },
+            "power": "10",
+            "name": "node0"
+          }
+        ],
+        "app_hash": ""
+      },
+      "node_key.json": {
+        "priv_key": {
+          "type": "tendermint/PrivKeyEd25519",
+          "value": "GKZ5kO56LhcaeRrOIefJtA2ogaPxQw+R6xBiznQD+290PZ/N5ZbBwCa9DoVA7FIeUeNofpHLtFK4UE0ACep5oA=="
+        }
+      },
+      "priv_validator_key.json": {
+        "address": "A146C3E02DB4F8AAD5E859E35F4F7BCC094F0B13",
+        "pub_key": {
+          "type": "tendermint/PubKeySecp256k1",
+          "value": "AiA6uTAC2S62d1DcwRAAj0hSosCdkCa1aTWlXWJeFA9W"
+        },
+        "priv_key": {
+          "type": "tendermint/PrivKeySecp256k1",
+          "value": "+8+j8W0W3B9H68JbLoUTieIU4aNWjsumkuU8fQPN6tY="
+        }
+      },
+      "config.toml": {
+        "p2p": {
+          "laddr": "tcp://0.0.0.0:20001",
+          "allow_duplicate_ip": true,
+          "addr_book_strict": false
+        },
+        "rpc": {
+          "laddr": "tcp://0.0.0.0:20002"
+        }
+      }
+    }
   }' >> local_testnet_discovery/discoveryNode/options.json
 
   # Create the JSON file for the Validators
@@ -206,7 +274,74 @@ if [ "$DEPLOY" = true ]; then
         "port" : 8080
       }
     ],
-    "indexingMode" : "RPC_TRACE"
+    "indexingMode" : "RPC_TRACE",
+    "cometBFT": {
+      "genesis.json": {
+        "genesis_time": "2024-09-17T18:26:34.583377166Z",
+        "initial_height": "0",
+        "consensus_params": {
+          "block": {
+            "max_bytes": "22020096",
+            "max_gas": "-1"
+          },
+          "evidence": {
+            "max_age_num_blocks": "100000",
+            "max_age_duration": "172800000000000",
+            "max_bytes": "1048576"
+          },
+          "validator": {
+            "pub_key_types": [
+              "secp256k1"
+            ]
+          },
+          "version": {
+            "app": "0"
+          },
+          "abci": {
+            "vote_extensions_enable_height": "0"
+          }
+        },
+        "validators": [
+          {
+            "address": "A146C3E02DB4F8AAD5E859E35F4F7BCC094F0B13",
+            "pub_key": {
+              "type": "tendermint/PubKeySecp256k1",
+              "value": "AiA6uTAC2S62d1DcwRAAj0hSosCdkCa1aTWlXWJeFA9W"
+            },
+            "power": "10",
+            "name": "node0"
+          }
+        ],
+        "app_hash": ""
+      },
+      "node_key.json": {
+        "priv_key": {
+          "type": "tendermint/PrivKeyEd25519",
+          "value": "GKZ5kO56LhcaeRrOIefJtA2ogaPxQw+R6xBiznQD+290PZ/N5ZbBwCa9DoVA7FIeUeNofpHLtFK4UE0ACep5oA=="
+        }
+      },
+      "priv_validator_key.json": {
+        "address": "A146C3E02DB4F8AAD5E859E35F4F7BCC094F0B13",
+        "pub_key": {
+          "type": "tendermint/PubKeySecp256k1",
+          "value": "AiA6uTAC2S62d1DcwRAAj0hSosCdkCa1aTWlXWJeFA9W"
+        },
+        "priv_key": {
+          "type": "tendermint/PrivKeySecp256k1",
+          "value": "+8+j8W0W3B9H68JbLoUTieIU4aNWjsumkuU8fQPN6tY="
+        }
+      },
+      "config.toml": {
+        "p2p": {
+          "laddr": "tcp://0.0.0.0:20001",
+          "allow_duplicate_ip": true,
+          "addr_book_strict": false
+        },
+        "rpc": {
+          "laddr": "tcp://0.0.0.0:20002"
+        }
+      }
+    }
   }' >> local_testnet_validator1/blockchain/options.json
 
   echo '{
@@ -247,7 +382,74 @@ if [ "$DEPLOY" = true ]; then
         "port" : 8080
       }
     ],
-    "indexingMode" : "RPC_TRACE"
+    "indexingMode" : "RPC_TRACE",
+    "cometBFT": {
+      "genesis.json": {
+        "genesis_time": "2024-09-17T18:26:34.583377166Z",
+        "initial_height": "0",
+        "consensus_params": {
+          "block": {
+            "max_bytes": "22020096",
+            "max_gas": "-1"
+          },
+          "evidence": {
+            "max_age_num_blocks": "100000",
+            "max_age_duration": "172800000000000",
+            "max_bytes": "1048576"
+          },
+          "validator": {
+            "pub_key_types": [
+              "secp256k1"
+            ]
+          },
+          "version": {
+            "app": "0"
+          },
+          "abci": {
+            "vote_extensions_enable_height": "0"
+          }
+        },
+        "validators": [
+          {
+            "address": "A146C3E02DB4F8AAD5E859E35F4F7BCC094F0B13",
+            "pub_key": {
+              "type": "tendermint/PubKeySecp256k1",
+              "value": "AiA6uTAC2S62d1DcwRAAj0hSosCdkCa1aTWlXWJeFA9W"
+            },
+            "power": "10",
+            "name": "node0"
+          }
+        ],
+        "app_hash": ""
+      },
+      "node_key.json": {
+        "priv_key": {
+          "type": "tendermint/PrivKeyEd25519",
+          "value": "GKZ5kO56LhcaeRrOIefJtA2ogaPxQw+R6xBiznQD+290PZ/N5ZbBwCa9DoVA7FIeUeNofpHLtFK4UE0ACep5oA=="
+        }
+      },
+      "priv_validator_key.json": {
+        "address": "A146C3E02DB4F8AAD5E859E35F4F7BCC094F0B13",
+        "pub_key": {
+          "type": "tendermint/PubKeySecp256k1",
+          "value": "AiA6uTAC2S62d1DcwRAAj0hSosCdkCa1aTWlXWJeFA9W"
+        },
+        "priv_key": {
+          "type": "tendermint/PrivKeySecp256k1",
+          "value": "+8+j8W0W3B9H68JbLoUTieIU4aNWjsumkuU8fQPN6tY="
+        }
+      },
+      "config.toml": {
+        "p2p": {
+          "laddr": "tcp://0.0.0.0:20001",
+          "allow_duplicate_ip": true,
+          "addr_book_strict": false
+        },
+        "rpc": {
+          "laddr": "tcp://0.0.0.0:20002"
+        }
+      }
+    }
   }' >> local_testnet_validator2/blockchain/options.json
 
   echo '{
@@ -288,7 +490,74 @@ if [ "$DEPLOY" = true ]; then
         "port" : 8080
       }
     ],
-    "indexingMode" : "RPC"
+    "indexingMode" : "RPC",
+    "cometBFT": {
+      "genesis.json": {
+        "genesis_time": "2024-09-17T18:26:34.583377166Z",
+        "initial_height": "0",
+        "consensus_params": {
+          "block": {
+            "max_bytes": "22020096",
+            "max_gas": "-1"
+          },
+          "evidence": {
+            "max_age_num_blocks": "100000",
+            "max_age_duration": "172800000000000",
+            "max_bytes": "1048576"
+          },
+          "validator": {
+            "pub_key_types": [
+              "secp256k1"
+            ]
+          },
+          "version": {
+            "app": "0"
+          },
+          "abci": {
+            "vote_extensions_enable_height": "0"
+          }
+        },
+        "validators": [
+          {
+            "address": "A146C3E02DB4F8AAD5E859E35F4F7BCC094F0B13",
+            "pub_key": {
+              "type": "tendermint/PubKeySecp256k1",
+              "value": "AiA6uTAC2S62d1DcwRAAj0hSosCdkCa1aTWlXWJeFA9W"
+            },
+            "power": "10",
+            "name": "node0"
+          }
+        ],
+        "app_hash": ""
+      },
+      "node_key.json": {
+        "priv_key": {
+          "type": "tendermint/PrivKeyEd25519",
+          "value": "GKZ5kO56LhcaeRrOIefJtA2ogaPxQw+R6xBiznQD+290PZ/N5ZbBwCa9DoVA7FIeUeNofpHLtFK4UE0ACep5oA=="
+        }
+      },
+      "priv_validator_key.json": {
+        "address": "A146C3E02DB4F8AAD5E859E35F4F7BCC094F0B13",
+        "pub_key": {
+          "type": "tendermint/PubKeySecp256k1",
+          "value": "AiA6uTAC2S62d1DcwRAAj0hSosCdkCa1aTWlXWJeFA9W"
+        },
+        "priv_key": {
+          "type": "tendermint/PrivKeySecp256k1",
+          "value": "+8+j8W0W3B9H68JbLoUTieIU4aNWjsumkuU8fQPN6tY="
+        }
+      },
+      "config.toml": {
+        "p2p": {
+          "laddr": "tcp://0.0.0.0:20001",
+          "allow_duplicate_ip": true,
+          "addr_book_strict": false
+        },
+        "rpc": {
+          "laddr": "tcp://0.0.0.0:20002"
+        }
+      }
+    }
   }' >> local_testnet_validator3/blockchain/options.json
 
   echo '{
@@ -329,7 +598,74 @@ if [ "$DEPLOY" = true ]; then
         "port" : 8080
       }
     ],
-    "indexingMode" : "RPC"
+    "indexingMode" : "RPC",
+    "cometBFT": {
+      "genesis.json": {
+        "genesis_time": "2024-09-17T18:26:34.583377166Z",
+        "initial_height": "0",
+        "consensus_params": {
+          "block": {
+            "max_bytes": "22020096",
+            "max_gas": "-1"
+          },
+          "evidence": {
+            "max_age_num_blocks": "100000",
+            "max_age_duration": "172800000000000",
+            "max_bytes": "1048576"
+          },
+          "validator": {
+            "pub_key_types": [
+              "secp256k1"
+            ]
+          },
+          "version": {
+            "app": "0"
+          },
+          "abci": {
+            "vote_extensions_enable_height": "0"
+          }
+        },
+        "validators": [
+          {
+            "address": "A146C3E02DB4F8AAD5E859E35F4F7BCC094F0B13",
+            "pub_key": {
+              "type": "tendermint/PubKeySecp256k1",
+              "value": "AiA6uTAC2S62d1DcwRAAj0hSosCdkCa1aTWlXWJeFA9W"
+            },
+            "power": "10",
+            "name": "node0"
+          }
+        ],
+        "app_hash": ""
+      },
+      "node_key.json": {
+        "priv_key": {
+          "type": "tendermint/PrivKeyEd25519",
+          "value": "GKZ5kO56LhcaeRrOIefJtA2ogaPxQw+R6xBiznQD+290PZ/N5ZbBwCa9DoVA7FIeUeNofpHLtFK4UE0ACep5oA=="
+        }
+      },
+      "priv_validator_key.json": {
+        "address": "A146C3E02DB4F8AAD5E859E35F4F7BCC094F0B13",
+        "pub_key": {
+          "type": "tendermint/PubKeySecp256k1",
+          "value": "AiA6uTAC2S62d1DcwRAAj0hSosCdkCa1aTWlXWJeFA9W"
+        },
+        "priv_key": {
+          "type": "tendermint/PrivKeySecp256k1",
+          "value": "+8+j8W0W3B9H68JbLoUTieIU4aNWjsumkuU8fQPN6tY="
+        }
+      },
+      "config.toml": {
+        "p2p": {
+          "laddr": "tcp://0.0.0.0:20001",
+          "allow_duplicate_ip": true,
+          "addr_book_strict": false
+        },
+        "rpc": {
+          "laddr": "tcp://0.0.0.0:20002"
+        }
+      }
+    }
   }' >> local_testnet_validator4/blockchain/options.json
 
   echo '{
@@ -370,7 +706,74 @@ if [ "$DEPLOY" = true ]; then
         "port" : 8080
       }
     ],
-    "indexingMode" : "RPC"
+    "indexingMode" : "RPC",
+    "cometBFT": {
+      "genesis.json": {
+        "genesis_time": "2024-09-17T18:26:34.583377166Z",
+        "initial_height": "0",
+        "consensus_params": {
+          "block": {
+            "max_bytes": "22020096",
+            "max_gas": "-1"
+          },
+          "evidence": {
+            "max_age_num_blocks": "100000",
+            "max_age_duration": "172800000000000",
+            "max_bytes": "1048576"
+          },
+          "validator": {
+            "pub_key_types": [
+              "secp256k1"
+            ]
+          },
+          "version": {
+            "app": "0"
+          },
+          "abci": {
+            "vote_extensions_enable_height": "0"
+          }
+        },
+        "validators": [
+          {
+            "address": "A146C3E02DB4F8AAD5E859E35F4F7BCC094F0B13",
+            "pub_key": {
+              "type": "tendermint/PubKeySecp256k1",
+              "value": "AiA6uTAC2S62d1DcwRAAj0hSosCdkCa1aTWlXWJeFA9W"
+            },
+            "power": "10",
+            "name": "node0"
+          }
+        ],
+        "app_hash": ""
+      },
+      "node_key.json": {
+        "priv_key": {
+          "type": "tendermint/PrivKeyEd25519",
+          "value": "GKZ5kO56LhcaeRrOIefJtA2ogaPxQw+R6xBiznQD+290PZ/N5ZbBwCa9DoVA7FIeUeNofpHLtFK4UE0ACep5oA=="
+        }
+      },
+      "priv_validator_key.json": {
+        "address": "A146C3E02DB4F8AAD5E859E35F4F7BCC094F0B13",
+        "pub_key": {
+          "type": "tendermint/PubKeySecp256k1",
+          "value": "AiA6uTAC2S62d1DcwRAAj0hSosCdkCa1aTWlXWJeFA9W"
+        },
+        "priv_key": {
+          "type": "tendermint/PrivKeySecp256k1",
+          "value": "+8+j8W0W3B9H68JbLoUTieIU4aNWjsumkuU8fQPN6tY="
+        }
+      },
+      "config.toml": {
+        "p2p": {
+          "laddr": "tcp://0.0.0.0:20001",
+          "allow_duplicate_ip": true,
+          "addr_book_strict": false
+        },
+        "rpc": {
+          "laddr": "tcp://0.0.0.0:20002"
+        }
+      }
+    }
   }' >> local_testnet_validator5/blockchain/options.json
 
   # Create the json file for the Normal Nodes
@@ -411,7 +814,74 @@ if [ "$DEPLOY" = true ]; then
         "port" : 8080
       }
     ],
-    "indexingMode" : "RPC"
+    "indexingMode" : "RPC",
+    "cometBFT": {
+      "genesis.json": {
+        "genesis_time": "2024-09-17T18:26:34.583377166Z",
+        "initial_height": "0",
+        "consensus_params": {
+          "block": {
+            "max_bytes": "22020096",
+            "max_gas": "-1"
+          },
+          "evidence": {
+            "max_age_num_blocks": "100000",
+            "max_age_duration": "172800000000000",
+            "max_bytes": "1048576"
+          },
+          "validator": {
+            "pub_key_types": [
+              "secp256k1"
+            ]
+          },
+          "version": {
+            "app": "0"
+          },
+          "abci": {
+            "vote_extensions_enable_height": "0"
+          }
+        },
+        "validators": [
+          {
+            "address": "A146C3E02DB4F8AAD5E859E35F4F7BCC094F0B13",
+            "pub_key": {
+              "type": "tendermint/PubKeySecp256k1",
+              "value": "AiA6uTAC2S62d1DcwRAAj0hSosCdkCa1aTWlXWJeFA9W"
+            },
+            "power": "10",
+            "name": "node0"
+          }
+        ],
+        "app_hash": ""
+      },
+      "node_key.json": {
+        "priv_key": {
+          "type": "tendermint/PrivKeyEd25519",
+          "value": "GKZ5kO56LhcaeRrOIefJtA2ogaPxQw+R6xBiznQD+290PZ/N5ZbBwCa9DoVA7FIeUeNofpHLtFK4UE0ACep5oA=="
+        }
+      },
+      "priv_validator_key.json": {
+        "address": "A146C3E02DB4F8AAD5E859E35F4F7BCC094F0B13",
+        "pub_key": {
+          "type": "tendermint/PubKeySecp256k1",
+          "value": "AiA6uTAC2S62d1DcwRAAj0hSosCdkCa1aTWlXWJeFA9W"
+        },
+        "priv_key": {
+          "type": "tendermint/PrivKeySecp256k1",
+          "value": "+8+j8W0W3B9H68JbLoUTieIU4aNWjsumkuU8fQPN6tY="
+        }
+      },
+      "config.toml": {
+        "p2p": {
+          "laddr": "tcp://0.0.0.0:20001",
+          "allow_duplicate_ip": true,
+          "addr_book_strict": false
+        },
+        "rpc": {
+          "laddr": "tcp://0.0.0.0:20002"
+        }
+      }
+    }
   }' >> local_testnet_normal1/blockchain/options.json
 
   echo '{
@@ -451,7 +921,74 @@ if [ "$DEPLOY" = true ]; then
         "port" : 8080
       }
     ],
-    "indexingMode" : "RPC"
+    "indexingMode" : "RPC",
+    "cometBFT": {
+      "genesis.json": {
+        "genesis_time": "2024-09-17T18:26:34.583377166Z",
+        "initial_height": "0",
+        "consensus_params": {
+          "block": {
+            "max_bytes": "22020096",
+            "max_gas": "-1"
+          },
+          "evidence": {
+            "max_age_num_blocks": "100000",
+            "max_age_duration": "172800000000000",
+            "max_bytes": "1048576"
+          },
+          "validator": {
+            "pub_key_types": [
+              "secp256k1"
+            ]
+          },
+          "version": {
+            "app": "0"
+          },
+          "abci": {
+            "vote_extensions_enable_height": "0"
+          }
+        },
+        "validators": [
+          {
+            "address": "A146C3E02DB4F8AAD5E859E35F4F7BCC094F0B13",
+            "pub_key": {
+              "type": "tendermint/PubKeySecp256k1",
+              "value": "AiA6uTAC2S62d1DcwRAAj0hSosCdkCa1aTWlXWJeFA9W"
+            },
+            "power": "10",
+            "name": "node0"
+          }
+        ],
+        "app_hash": ""
+      },
+      "node_key.json": {
+        "priv_key": {
+          "type": "tendermint/PrivKeyEd25519",
+          "value": "GKZ5kO56LhcaeRrOIefJtA2ogaPxQw+R6xBiznQD+290PZ/N5ZbBwCa9DoVA7FIeUeNofpHLtFK4UE0ACep5oA=="
+        }
+      },
+      "priv_validator_key.json": {
+        "address": "A146C3E02DB4F8AAD5E859E35F4F7BCC094F0B13",
+        "pub_key": {
+          "type": "tendermint/PubKeySecp256k1",
+          "value": "AiA6uTAC2S62d1DcwRAAj0hSosCdkCa1aTWlXWJeFA9W"
+        },
+        "priv_key": {
+          "type": "tendermint/PrivKeySecp256k1",
+          "value": "+8+j8W0W3B9H68JbLoUTieIU4aNWjsumkuU8fQPN6tY="
+        }
+      },
+      "config.toml": {
+        "p2p": {
+          "laddr": "tcp://0.0.0.0:20001",
+          "allow_duplicate_ip": true,
+          "addr_book_strict": false
+        },
+        "rpc": {
+          "laddr": "tcp://0.0.0.0:20002"
+        }
+      }
+    }
   }' >> local_testnet_normal2/blockchain/options.json
 
   echo '{
@@ -491,7 +1028,74 @@ if [ "$DEPLOY" = true ]; then
         "port" : 8080
       }
     ],
-    "indexingMode" : "RPC"
+    "indexingMode" : "RPC",
+    "cometBFT": {
+      "genesis.json": {
+        "genesis_time": "2024-09-17T18:26:34.583377166Z",
+        "initial_height": "0",
+        "consensus_params": {
+          "block": {
+            "max_bytes": "22020096",
+            "max_gas": "-1"
+          },
+          "evidence": {
+            "max_age_num_blocks": "100000",
+            "max_age_duration": "172800000000000",
+            "max_bytes": "1048576"
+          },
+          "validator": {
+            "pub_key_types": [
+              "secp256k1"
+            ]
+          },
+          "version": {
+            "app": "0"
+          },
+          "abci": {
+            "vote_extensions_enable_height": "0"
+          }
+        },
+        "validators": [
+          {
+            "address": "A146C3E02DB4F8AAD5E859E35F4F7BCC094F0B13",
+            "pub_key": {
+              "type": "tendermint/PubKeySecp256k1",
+              "value": "AiA6uTAC2S62d1DcwRAAj0hSosCdkCa1aTWlXWJeFA9W"
+            },
+            "power": "10",
+            "name": "node0"
+          }
+        ],
+        "app_hash": ""
+      },
+      "node_key.json": {
+        "priv_key": {
+          "type": "tendermint/PrivKeyEd25519",
+          "value": "GKZ5kO56LhcaeRrOIefJtA2ogaPxQw+R6xBiznQD+290PZ/N5ZbBwCa9DoVA7FIeUeNofpHLtFK4UE0ACep5oA=="
+        }
+      },
+      "priv_validator_key.json": {
+        "address": "A146C3E02DB4F8AAD5E859E35F4F7BCC094F0B13",
+        "pub_key": {
+          "type": "tendermint/PubKeySecp256k1",
+          "value": "AiA6uTAC2S62d1DcwRAAj0hSosCdkCa1aTWlXWJeFA9W"
+        },
+        "priv_key": {
+          "type": "tendermint/PrivKeySecp256k1",
+          "value": "+8+j8W0W3B9H68JbLoUTieIU4aNWjsumkuU8fQPN6tY="
+        }
+      },
+      "config.toml": {
+        "p2p": {
+          "laddr": "tcp://0.0.0.0:20001",
+          "allow_duplicate_ip": true,
+          "addr_book_strict": false
+        },
+        "rpc": {
+          "laddr": "tcp://0.0.0.0:20002"
+        }
+      }
+    }
   }' >> local_testnet_normal3/blockchain/options.json
 
   echo '{
@@ -531,7 +1135,74 @@ if [ "$DEPLOY" = true ]; then
         "port" : 8080
       }
     ],
-    "indexingMode" : "RPC"
+    "indexingMode" : "RPC",
+    "cometBFT": {
+      "genesis.json": {
+        "genesis_time": "2024-09-17T18:26:34.583377166Z",
+        "initial_height": "0",
+        "consensus_params": {
+          "block": {
+            "max_bytes": "22020096",
+            "max_gas": "-1"
+          },
+          "evidence": {
+            "max_age_num_blocks": "100000",
+            "max_age_duration": "172800000000000",
+            "max_bytes": "1048576"
+          },
+          "validator": {
+            "pub_key_types": [
+              "secp256k1"
+            ]
+          },
+          "version": {
+            "app": "0"
+          },
+          "abci": {
+            "vote_extensions_enable_height": "0"
+          }
+        },
+        "validators": [
+          {
+            "address": "A146C3E02DB4F8AAD5E859E35F4F7BCC094F0B13",
+            "pub_key": {
+              "type": "tendermint/PubKeySecp256k1",
+              "value": "AiA6uTAC2S62d1DcwRAAj0hSosCdkCa1aTWlXWJeFA9W"
+            },
+            "power": "10",
+            "name": "node0"
+          }
+        ],
+        "app_hash": ""
+      },
+      "node_key.json": {
+        "priv_key": {
+          "type": "tendermint/PrivKeyEd25519",
+          "value": "GKZ5kO56LhcaeRrOIefJtA2ogaPxQw+R6xBiznQD+290PZ/N5ZbBwCa9DoVA7FIeUeNofpHLtFK4UE0ACep5oA=="
+        }
+      },
+      "priv_validator_key.json": {
+        "address": "A146C3E02DB4F8AAD5E859E35F4F7BCC094F0B13",
+        "pub_key": {
+          "type": "tendermint/PubKeySecp256k1",
+          "value": "AiA6uTAC2S62d1DcwRAAj0hSosCdkCa1aTWlXWJeFA9W"
+        },
+        "priv_key": {
+          "type": "tendermint/PrivKeySecp256k1",
+          "value": "+8+j8W0W3B9H68JbLoUTieIU4aNWjsumkuU8fQPN6tY="
+        }
+      },
+      "config.toml": {
+        "p2p": {
+          "laddr": "tcp://0.0.0.0:20001",
+          "allow_duplicate_ip": true,
+          "addr_book_strict": false
+        },
+        "rpc": {
+          "laddr": "tcp://0.0.0.0:20002"
+        }
+      }
+    }
   }' >> local_testnet_normal4/blockchain/options.json
 
   echo '{
@@ -571,7 +1242,74 @@ if [ "$DEPLOY" = true ]; then
         "port" : 8080
       }
     ],
-    "indexingMode" : "RPC"
+    "indexingMode" : "RPC",
+    "cometBFT": {
+      "genesis.json": {
+        "genesis_time": "2024-09-17T18:26:34.583377166Z",
+        "initial_height": "0",
+        "consensus_params": {
+          "block": {
+            "max_bytes": "22020096",
+            "max_gas": "-1"
+          },
+          "evidence": {
+            "max_age_num_blocks": "100000",
+            "max_age_duration": "172800000000000",
+            "max_bytes": "1048576"
+          },
+          "validator": {
+            "pub_key_types": [
+              "secp256k1"
+            ]
+          },
+          "version": {
+            "app": "0"
+          },
+          "abci": {
+            "vote_extensions_enable_height": "0"
+          }
+        },
+        "validators": [
+          {
+            "address": "A146C3E02DB4F8AAD5E859E35F4F7BCC094F0B13",
+            "pub_key": {
+              "type": "tendermint/PubKeySecp256k1",
+              "value": "AiA6uTAC2S62d1DcwRAAj0hSosCdkCa1aTWlXWJeFA9W"
+            },
+            "power": "10",
+            "name": "node0"
+          }
+        ],
+        "app_hash": ""
+      },
+      "node_key.json": {
+        "priv_key": {
+          "type": "tendermint/PrivKeyEd25519",
+          "value": "GKZ5kO56LhcaeRrOIefJtA2ogaPxQw+R6xBiznQD+290PZ/N5ZbBwCa9DoVA7FIeUeNofpHLtFK4UE0ACep5oA=="
+        }
+      },
+      "priv_validator_key.json": {
+        "address": "A146C3E02DB4F8AAD5E859E35F4F7BCC094F0B13",
+        "pub_key": {
+          "type": "tendermint/PubKeySecp256k1",
+          "value": "AiA6uTAC2S62d1DcwRAAj0hSosCdkCa1aTWlXWJeFA9W"
+        },
+        "priv_key": {
+          "type": "tendermint/PrivKeySecp256k1",
+          "value": "+8+j8W0W3B9H68JbLoUTieIU4aNWjsumkuU8fQPN6tY="
+        }
+      },
+      "config.toml": {
+        "p2p": {
+          "laddr": "tcp://0.0.0.0:20001",
+          "allow_duplicate_ip": true,
+          "addr_book_strict": false
+        },
+        "rpc": {
+          "laddr": "tcp://0.0.0.0:20002"
+        }
+      }
+    }
   }' >> local_testnet_normal5/blockchain/options.json
 
   echo '{
@@ -611,87 +1349,74 @@ if [ "$DEPLOY" = true ]; then
         "port" : 8080
       }
     ],
-    "indexingMode" : "RPC"
-  }' >> local_testnet_normal6/blockchain/options.json
-
-  echo '{
-    "rootPath": "blockchain",
-    "web3clientVersion": "bdk/cpp/linux_x86-64/0.2.0",
-    "version": 1,
-    "chainID": 808080,
-    "chainOwner": "0x00dead00665771855a34155f5e7405489df2c3c6",
-    "p2pIp" : "127.0.0.1",
-    "p2pPort": 8110,
-    "httpPort": 8099,
-    "minDiscoveryConns": 11,
-    "minNormalConns": 11,
-    "maxDiscoveryConns": 200,
-    "maxNormalConns": 50,
-    "eventBlockCap": 2000,
-    "eventLogCap": 10000,
-    "stateDumpTrigger" : 1000,
-    "minValidators": 4,
-    "genesis" : {
-      "validators": [
-        "0x7588b0f553d1910266089c58822e1120db47e572",
-        "0xcabf34a268847a610287709d841e5cd590cc5c00",
-        "0x5fb516dc2cfc1288e689ed377a9eebe2216cf1e3",
-        "0x795083c42583842774febc21abb6df09e784fce5",
-        "0xbec7b74f70c151707a0bfb20fe3767c6e65499e0"
-      ],
-      "timestamp" : 1656356646000000,
-      "signer" : "0x4d48bdf34d65ef2bed2e4ee9020a7d3162b494ac31d3088153425f286f3d3c8c",
-      "balances": [
-        { "address": "0x00dead00665771855a34155f5e7405489df2c3c6", "balance": "100000000000000000000000000000000000000000" }
-      ]
-    },
-    "discoveryNodes": [
-      {
-        "address" : "127.0.0.1",
-        "port" : 8080
+    "indexingMode" : "RPC",
+    "cometBFT": {
+      "genesis.json": {
+        "genesis_time": "2024-09-17T18:26:34.583377166Z",
+        "initial_height": "0",
+        "consensus_params": {
+          "block": {
+            "max_bytes": "22020096",
+            "max_gas": "-1"
+          },
+          "evidence": {
+            "max_age_num_blocks": "100000",
+            "max_age_duration": "172800000000000",
+            "max_bytes": "1048576"
+          },
+          "validator": {
+            "pub_key_types": [
+              "secp256k1"
+            ]
+          },
+          "version": {
+            "app": "0"
+          },
+          "abci": {
+            "vote_extensions_enable_height": "0"
+          }
+        },
+        "validators": [
+          {
+            "address": "A146C3E02DB4F8AAD5E859E35F4F7BCC094F0B13",
+            "pub_key": {
+              "type": "tendermint/PubKeySecp256k1",
+              "value": "AiA6uTAC2S62d1DcwRAAj0hSosCdkCa1aTWlXWJeFA9W"
+            },
+            "power": "10",
+            "name": "node0"
+          }
+        ],
+        "app_hash": ""
+      },
+      "node_key.json": {
+        "priv_key": {
+          "type": "tendermint/PrivKeyEd25519",
+          "value": "GKZ5kO56LhcaeRrOIefJtA2ogaPxQw+R6xBiznQD+290PZ/N5ZbBwCa9DoVA7FIeUeNofpHLtFK4UE0ACep5oA=="
+        }
+      },
+      "priv_validator_key.json": {
+        "address": "A146C3E02DB4F8AAD5E859E35F4F7BCC094F0B13",
+        "pub_key": {
+          "type": "tendermint/PubKeySecp256k1",
+          "value": "AiA6uTAC2S62d1DcwRAAj0hSosCdkCa1aTWlXWJeFA9W"
+        },
+        "priv_key": {
+          "type": "tendermint/PrivKeySecp256k1",
+          "value": "+8+j8W0W3B9H68JbLoUTieIU4aNWjsumkuU8fQPN6tY="
+        }
+      },
+      "config.toml": {
+        "p2p": {
+          "laddr": "tcp://0.0.0.0:20001",
+          "allow_duplicate_ip": true,
+          "addr_book_strict": false
+        },
+        "rpc": {
+          "laddr": "tcp://0.0.0.0:20002"
+        }
       }
-    ],
-    "indexingMode" : "RPC"
-  }' >> local_testnet_normal5/blockchain/options.json
-
-  echo '{
-    "rootPath": "blockchain",
-    "web3clientVersion": "bdk/cpp/linux_x86-64/0.2.0",
-    "version": 1,
-    "chainID": 808080,
-    "chainOwner": "0x00dead00665771855a34155f5e7405489df2c3c6",
-    "p2pIp" : "127.0.0.1",
-    "p2pPort": 8111,
-    "httpPort": 8100,
-    "minDiscoveryConns": 11,
-    "minNormalConns": 11,
-    "maxDiscoveryConns": 200,
-    "maxNormalConns": 50,
-    "eventBlockCap": 2000,
-    "eventLogCap": 10000,
-    "stateDumpTrigger" : 1000,
-    "minValidators": 4,
-    "genesis" : {
-      "validators": [
-        "0x7588b0f553d1910266089c58822e1120db47e572",
-        "0xcabf34a268847a610287709d841e5cd590cc5c00",
-        "0x5fb516dc2cfc1288e689ed377a9eebe2216cf1e3",
-        "0x795083c42583842774febc21abb6df09e784fce5",
-        "0xbec7b74f70c151707a0bfb20fe3767c6e65499e0"
-      ],
-      "timestamp" : 1656356646000000,
-      "signer" : "0x4d48bdf34d65ef2bed2e4ee9020a7d3162b494ac31d3088153425f286f3d3c8c",
-      "balances": [
-        { "address": "0x00dead00665771855a34155f5e7405489df2c3c6", "balance": "100000000000000000000000000000000000000000" }
-      ]
-    },
-    "discoveryNodes": [
-      {
-        "address" : "127.0.0.1",
-        "port" : 8080
-      }
-    ],
-    "indexingMode" : "RPC"
+    }
   }' >> local_testnet_normal6/blockchain/options.json
 
   # Launch the Discovery Node through tmux
