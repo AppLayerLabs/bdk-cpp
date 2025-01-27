@@ -21,9 +21,11 @@ public:
 
     if constexpr (std::same_as<R, void>) {
       dispatchMessage(std::forward<M>(msg));
+      checkCppContractReverted();
       checkpoint.commit();
     } else {
       R result = dispatchMessage(std::forward<M>(msg));
+      checkCppContractReverted();
       checkpoint.commit();
       return result;
     }
@@ -54,11 +56,11 @@ public:
 
     switch (account.getContractType()) {
       case ContractType::CPP:
-        return dispatchCall(cppExecutor_, std::forward<decltype(msg)>(msg));
+        return dispatchCppCall(std::forward<decltype(msg)>(msg));
         break;
 
       case ContractType::EVM:
-      return dispatchCall(evmExecutor_, std::forward<decltype(msg)>(msg));
+        return dispatchEvmCall(std::forward<decltype(msg)>(msg));
         break;
 
       default:
@@ -66,8 +68,17 @@ public:
     }
   }
 
-  decltype(auto) dispatchCall(auto& executor, auto&& msg) {
-    return executor.execute(std::forward<decltype(msg)>(msg));
+  decltype(auto) dispatchCppCall(auto&& msg) {
+    try {
+      return cppExecutor_.execute(std::forward<decltype(msg)>(msg));
+    } catch (const std::exception&) {
+      cppContractReverted_ = true;
+      throw;
+    }
+  }
+
+  decltype(auto) dispatchEvmCall(auto&& msg) {
+    return evmExecutor_.execute(std::forward<decltype(msg)>(msg));
   }
 
   CppContractExecutor& cppExecutor() { return cppExecutor_; }
@@ -98,10 +109,17 @@ private:
     return address == randomGeneratorAddress;
   }
 
+  void checkCppContractReverted() const {
+    if (cppContractReverted_) [[unlikely]] {
+      throw DynamicException("Reverted due to C++ call failure");
+    }
+  }
+
   ExecutionContext& context_;
   CppContractExecutor cppExecutor_;
   EvmContractExecutor evmExecutor_;
   PrecompiledContractExecutor precompiledExecutor_;
+  bool cppContractReverted_ = false;
 };
 
 #endif // BDK_MESSAGES_MESSAGEDISPATCHER_H
