@@ -57,10 +57,10 @@ constexpr const IndexingMode IndexingMode::RPC_TRACE{2};
 /// Singleton class for global node data.
 class Options {
   private:
-    const std::string rootPath_; ///< Path to data root folder.
     const uint64_t majorSDKVersion_ = @CMAKE_PROJECT_VERSION_MAJOR@;  ///< Major version of BDK.
     const uint64_t minorSDKVersion_ = @CMAKE_PROJECT_VERSION_MINOR@;  ///< Minor version of BDK.
     const uint64_t patchSDKVersion_ = @CMAKE_PROJECT_VERSION_PATCH@;  ///< Patch version of BDK.
+    const std::string rootPath_; ///< Path to data root folder.
     const std::string web3clientVersion_; ///< String for displaying the client version (for Web3).
     const uint64_t version_;  ///< Blockchain version.
     const uint64_t chainID_;  ///< Blockchain chain ID.

@@ -584,9 +584,9 @@ void SDKTestSuite::initChain(
   // We need to give some tokens to the chainOwner and to all the
   //  `accounts` that were passed in so they can pay for test
   //  contract deployment, etc.
-  state_.addBalance(options_.getChainOwner());
+  state_.setBalance(options_.getChainOwner(), uint256_t("1000000000000000000000"));
   for (const TestAccount& account : testAccounts_) {
-    state_.addBalance(account.address);
+    state_.setBalance(account.address, uint256_t("1000000000000000000000"));
   }
 }
 

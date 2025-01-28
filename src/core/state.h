@@ -222,13 +222,6 @@ class State : public Log::LogicalLocationProvider {
     uint64_t getNativeNonce(const Address& addr) const;
 
     /**
-     * Add uint256_t("1000000000000000000000") (1,000 eth) tokens to an account.
-     * Unit testing helper only; do NOT expose e.g. via RPC, not even for testing.
-     * @param addr The account address to fund.
-     */
-    void addBalance(const Address& addr);
-
-    /**
      * Set the balance of an account.
      * Unit testing helper only; do NOT expose e.g. via RPC, not even for testing.
      * @param addr The account address that will have its balance modified.

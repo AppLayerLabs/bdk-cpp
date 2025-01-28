@@ -81,7 +81,7 @@ if [ "$ONLY_DEPLOY" = true ]; then
   fi
 fi
 
-## Clean the build folder if the user specified the --clean flag
+# Clean the build folder if the user specified the --clean flag
 if [ "$CLEAN" = true ]; then
   if [ -d "build_local_testnet" ]; then
     rm -rf build_local_testnet
@@ -101,7 +101,7 @@ fi
 mkdir local_testnet
 
 if [ "$ONLY_DEPLOY" = false ]; then
-  ## Build the project
+  # Build the project
   cd build_local_testnet
   cmake -DDEBUG=$DEBUG -DBUILD_TESTS=OFF -DBUILD_VARIABLES_TESTS=OFF ..
   make -j${CORES}
@@ -111,7 +111,7 @@ if [ "$DEPLOY" = true ]; then
   if [ "$ONLY_DEPLOY" = true ]; then
     cd build_local_testnet
   fi
-  ## Copy the bdkd and bdkd-discovery executables to the local_testnet directory
+  # Copy the bdkd and bdkd-discovery executables to the local_testnet directory
   cp src/bins/bdkd/bdkd ../local_testnet
   cp src/bins/bdkd-discovery/bdkd-discovery ../local_testnet
 
@@ -138,34 +138,12 @@ if [ "$DEPLOY" = true ]; then
     "web3clientVersion": "bdk/cpp/linux_x86-64/0.2.0",
     "version": 1,
     "chainID": 808080,
-    "chainOwner": "0x00dead00665771855a34155f5e7405489df2c3c6",
-    "p2pIp" : "127.0.0.1",
-    "p2pPort": 8080,
     "httpPort": 9999,
-    "minDiscoveryConns": 11,
-    "minNormalConns": 11,
-    "maxDiscoveryConns": 200,
-    "maxNormalConns": 50,
     "eventBlockCap": 2000,
     "eventLogCap": 10000,
-    "stateDumpTrigger" : 1000,
-    "minValidators": 4,
-    "privKey": "0000000000000000000000000000000000000000000000000000000000000000",
-    "genesis" : {
-      "validators": [
-        "0x7588b0f553d1910266089c58822e1120db47e572",
-        "0xcabf34a268847a610287709d841e5cd590cc5c00",
-        "0x5fb516dc2cfc1288e689ed377a9eebe2216cf1e3",
-        "0x795083c42583842774febc21abb6df09e784fce5",
-        "0xbec7b74f70c151707a0bfb20fe3767c6e65499e0"
-      ],
-      "timestamp" : 1656356646000000,
-      "signer" : "0x4d48bdf34d65ef2bed2e4ee9020a7d3162b494ac31d3088153425f286f3d3c8c",
-      "balances": [
-        { "address": "0x00dead00665771855a34155f5e7405489df2c3c6", "balance": "100000000000000000000000000000000000000000" }
-      ]
-    },
-    "indexingMode" : "RPC",
+    "stateDumpTrigger": 1000,
+    "chainOwner": "0x00dead00665771855a34155f5e7405489df2c3c6",
+    "indexingMode": "RPC",
     "cometBFT": {
       "genesis.json": {
         "genesis_time": "2024-09-17T18:26:34.583377166Z",
@@ -241,40 +219,12 @@ if [ "$DEPLOY" = true ]; then
     "web3clientVersion": "bdk/cpp/linux_x86-64/0.2.0",
     "version": 1,
     "chainID": 808080,
-    "chainOwner": "0x00dead00665771855a34155f5e7405489df2c3c6",
-    "p2pIp" : "127.0.0.1",
-    "p2pPort": 8081,
     "httpPort": 8090,
-    "minDiscoveryConns": 11,
-    "minNormalConns": 11,
-    "maxDiscoveryConns": 200,
-    "maxNormalConns": 50,
     "eventBlockCap": 2000,
     "eventLogCap": 10000,
-    "stateDumpTrigger" : 1000,
-    "minValidators": 4,
-    "privKey": "0xba5e6e9dd9cbd263969b94ee385d885c2d303dfc181db2a09f6bf19a7ba26759",
-    "genesis" : {
-      "validators": [
-        "0x7588b0f553d1910266089c58822e1120db47e572",
-        "0xcabf34a268847a610287709d841e5cd590cc5c00",
-        "0x5fb516dc2cfc1288e689ed377a9eebe2216cf1e3",
-        "0x795083c42583842774febc21abb6df09e784fce5",
-        "0xbec7b74f70c151707a0bfb20fe3767c6e65499e0"
-      ],
-      "timestamp" : 1656356646000000,
-      "signer" : "0x4d48bdf34d65ef2bed2e4ee9020a7d3162b494ac31d3088153425f286f3d3c8c",
-      "balances": [
-        { "address": "0x00dead00665771855a34155f5e7405489df2c3c6", "balance": "100000000000000000000000000000000000000000" }
-      ]
-    },
-    "discoveryNodes": [
-      {
-        "address" : "127.0.0.1",
-        "port" : 8080
-      }
-    ],
-    "indexingMode" : "RPC_TRACE",
+    "stateDumpTrigger": 1000,
+    "chainOwner": "0x00dead00665771855a34155f5e7405489df2c3c6",
+    "indexingMode": "RPC_TRACE",
     "cometBFT": {
       "genesis.json": {
         "genesis_time": "2024-09-17T18:26:34.583377166Z",
@@ -349,40 +299,12 @@ if [ "$DEPLOY" = true ]; then
     "web3clientVersion": "bdk/cpp/linux_x86-64/0.2.0",
     "version": 1,
     "chainID": 808080,
-    "chainOwner": "0x00dead00665771855a34155f5e7405489df2c3c6",
-    "p2pIp" : "127.0.0.1",
-    "p2pPort": 8082,
     "httpPort": 8091,
-    "minDiscoveryConns": 11,
-    "minNormalConns": 11,
-    "maxDiscoveryConns": 200,
-    "maxNormalConns": 50,
     "eventBlockCap": 2000,
     "eventLogCap": 10000,
-    "stateDumpTrigger" : 1000,
-    "minValidators": 4,
-    "privKey": "0xfd84d99aa18b474bf383e10925d82194f1b0ca268e7a339032679d6e3a201ad4",
-    "genesis" : {
-      "validators": [
-        "0x7588b0f553d1910266089c58822e1120db47e572",
-        "0xcabf34a268847a610287709d841e5cd590cc5c00",
-        "0x5fb516dc2cfc1288e689ed377a9eebe2216cf1e3",
-        "0x795083c42583842774febc21abb6df09e784fce5",
-        "0xbec7b74f70c151707a0bfb20fe3767c6e65499e0"
-      ],
-      "timestamp" : 1656356646000000,
-      "signer" : "0x4d48bdf34d65ef2bed2e4ee9020a7d3162b494ac31d3088153425f286f3d3c8c",
-      "balances": [
-        { "address": "0x00dead00665771855a34155f5e7405489df2c3c6", "balance": "100000000000000000000000000000000000000000" }
-      ]
-    },
-    "discoveryNodes": [
-      {
-        "address" : "127.0.0.1",
-        "port" : 8080
-      }
-    ],
-    "indexingMode" : "RPC_TRACE",
+    "stateDumpTrigger": 1000,
+    "chainOwner": "0x00dead00665771855a34155f5e7405489df2c3c6",
+    "indexingMode": "RPC_TRACE",
     "cometBFT": {
       "genesis.json": {
         "genesis_time": "2024-09-17T18:26:34.583377166Z",
@@ -457,40 +379,12 @@ if [ "$DEPLOY" = true ]; then
     "web3clientVersion": "bdk/cpp/linux_x86-64/0.2.0",
     "version": 1,
     "chainID": 808080,
-    "chainOwner": "0x00dead00665771855a34155f5e7405489df2c3c6",
-    "p2pIp" : "127.0.0.1",
-    "p2pPort": 8083,
     "httpPort": 8092,
-    "minDiscoveryConns": 11,
-    "minNormalConns": 11,
-    "maxDiscoveryConns": 200,
-    "maxNormalConns": 50,
     "eventBlockCap": 2000,
     "eventLogCap": 10000,
-    "stateDumpTrigger" : 1000,
-    "minValidators": 4,
-    "privKey": "0x66ce71abe0b8acd92cfd3965d6f9d80122aed9b0e9bdd3dbe018230bafde5751",
-    "genesis" : {
-      "validators": [
-        "0x7588b0f553d1910266089c58822e1120db47e572",
-        "0xcabf34a268847a610287709d841e5cd590cc5c00",
-        "0x5fb516dc2cfc1288e689ed377a9eebe2216cf1e3",
-        "0x795083c42583842774febc21abb6df09e784fce5",
-        "0xbec7b74f70c151707a0bfb20fe3767c6e65499e0"
-      ],
-      "timestamp" : 1656356646000000,
-      "signer" : "0x4d48bdf34d65ef2bed2e4ee9020a7d3162b494ac31d3088153425f286f3d3c8c",
-      "balances": [
-        { "address": "0x00dead00665771855a34155f5e7405489df2c3c6", "balance": "100000000000000000000000000000000000000000" }
-      ]
-    },
-    "discoveryNodes": [
-      {
-        "address" : "127.0.0.1",
-        "port" : 8080
-      }
-    ],
-    "indexingMode" : "RPC",
+    "stateDumpTrigger": 1000,
+    "chainOwner": "0x00dead00665771855a34155f5e7405489df2c3c6",
+    "indexingMode": "RPC",
     "cometBFT": {
       "genesis.json": {
         "genesis_time": "2024-09-17T18:26:34.583377166Z",
@@ -565,40 +459,12 @@ if [ "$DEPLOY" = true ]; then
     "web3clientVersion": "bdk/cpp/linux_x86-64/0.2.0",
     "version": 1,
     "chainID": 808080,
-    "chainOwner": "0x00dead00665771855a34155f5e7405489df2c3c6",
-    "p2pIp" : "127.0.0.1",
-    "p2pPort": 8084,
     "httpPort": 8093,
-    "minDiscoveryConns": 11,
-    "minNormalConns": 11,
-    "maxDiscoveryConns": 200,
-    "maxNormalConns": 50,
     "eventBlockCap": 2000,
     "eventLogCap": 10000,
-    "stateDumpTrigger" : 1000,
-    "minValidators": 4,
-    "privKey": "0x856aeb3b9c20a80d1520a2406875f405d336e09475f43c478eb4f0dafb765fe7",
-    "genesis" : {
-      "validators": [
-        "0x7588b0f553d1910266089c58822e1120db47e572",
-        "0xcabf34a268847a610287709d841e5cd590cc5c00",
-        "0x5fb516dc2cfc1288e689ed377a9eebe2216cf1e3",
-        "0x795083c42583842774febc21abb6df09e784fce5",
-        "0xbec7b74f70c151707a0bfb20fe3767c6e65499e0"
-      ],
-      "timestamp" : 1656356646000000,
-      "signer" : "0x4d48bdf34d65ef2bed2e4ee9020a7d3162b494ac31d3088153425f286f3d3c8c",
-      "balances": [
-        { "address": "0x00dead00665771855a34155f5e7405489df2c3c6", "balance": "100000000000000000000000000000000000000000" }
-      ]
-    },
-    "discoveryNodes": [
-      {
-        "address" : "127.0.0.1",
-        "port" : 8080
-      }
-    ],
-    "indexingMode" : "RPC",
+    "stateDumpTrigger": 1000,
+    "chainOwner": "0x00dead00665771855a34155f5e7405489df2c3c6",
+    "indexingMode": "RPC",
     "cometBFT": {
       "genesis.json": {
         "genesis_time": "2024-09-17T18:26:34.583377166Z",
@@ -673,40 +539,12 @@ if [ "$DEPLOY" = true ]; then
     "web3clientVersion": "bdk/cpp/linux_x86-64/0.2.0",
     "version": 1,
     "chainID": 808080,
-    "chainOwner": "0x00dead00665771855a34155f5e7405489df2c3c6",
-    "p2pIp" : "127.0.0.1",
-    "p2pPort": 8085,
     "httpPort": 8094,
-    "minDiscoveryConns": 11,
-    "minNormalConns": 11,
-    "maxDiscoveryConns": 200,
-    "maxNormalConns": 50,
     "eventBlockCap": 2000,
     "eventLogCap": 10000,
-    "stateDumpTrigger" : 1000,
-    "minValidators": 4,
-    "privKey": "0x81f288dd776f4edfe256d34af1f7d719f511559f19115af3e3d692e741faadc6",
-    "genesis" : {
-      "validators": [
-        "0x7588b0f553d1910266089c58822e1120db47e572",
-        "0xcabf34a268847a610287709d841e5cd590cc5c00",
-        "0x5fb516dc2cfc1288e689ed377a9eebe2216cf1e3",
-        "0x795083c42583842774febc21abb6df09e784fce5",
-        "0xbec7b74f70c151707a0bfb20fe3767c6e65499e0"
-      ],
-      "timestamp" : 1656356646000000,
-      "signer" : "0x4d48bdf34d65ef2bed2e4ee9020a7d3162b494ac31d3088153425f286f3d3c8c",
-      "balances": [
-        { "address": "0x00dead00665771855a34155f5e7405489df2c3c6", "balance": "100000000000000000000000000000000000000000" }
-      ]
-    },
-    "discoveryNodes": [
-      {
-        "address" : "127.0.0.1",
-        "port" : 8080
-      }
-    ],
-    "indexingMode" : "RPC",
+    "stateDumpTrigger": 1000,
+    "chainOwner": "0x00dead00665771855a34155f5e7405489df2c3c6",
+    "indexingMode": "RPC",
     "cometBFT": {
       "genesis.json": {
         "genesis_time": "2024-09-17T18:26:34.583377166Z",
@@ -782,39 +620,12 @@ if [ "$DEPLOY" = true ]; then
     "web3clientVersion": "bdk/cpp/linux_x86-64/0.2.0",
     "version": 1,
     "chainID": 808080,
-    "chainOwner": "0x00dead00665771855a34155f5e7405489df2c3c6",
-    "p2pIp" : "127.0.0.1",
-    "p2pPort": 8086,
     "httpPort": 8095,
-    "minDiscoveryConns": 11,
-    "minNormalConns": 11,
-    "maxDiscoveryConns": 200,
-    "maxNormalConns": 50,
     "eventBlockCap": 2000,
     "eventLogCap": 10000,
-    "stateDumpTrigger" : 1000,
-    "minValidators": 4,
-    "genesis" : {
-      "validators": [
-        "0x7588b0f553d1910266089c58822e1120db47e572",
-        "0xcabf34a268847a610287709d841e5cd590cc5c00",
-        "0x5fb516dc2cfc1288e689ed377a9eebe2216cf1e3",
-        "0x795083c42583842774febc21abb6df09e784fce5",
-        "0xbec7b74f70c151707a0bfb20fe3767c6e65499e0"
-      ],
-      "timestamp" : 1656356646000000,
-      "signer" : "0x4d48bdf34d65ef2bed2e4ee9020a7d3162b494ac31d3088153425f286f3d3c8c",
-      "balances": [
-        { "address": "0x00dead00665771855a34155f5e7405489df2c3c6", "balance": "100000000000000000000000000000000000000000" }
-      ]
-    },
-    "discoveryNodes": [
-      {
-        "address" : "127.0.0.1",
-        "port" : 8080
-      }
-    ],
-    "indexingMode" : "RPC",
+    "stateDumpTrigger": 1000,
+    "chainOwner": "0x00dead00665771855a34155f5e7405489df2c3c6",
+    "indexingMode": "RPC",
     "cometBFT": {
       "genesis.json": {
         "genesis_time": "2024-09-17T18:26:34.583377166Z",
@@ -889,39 +700,12 @@ if [ "$DEPLOY" = true ]; then
     "web3clientVersion": "bdk/cpp/linux_x86-64/0.2.0",
     "version": 1,
     "chainID": 808080,
-    "chainOwner": "0x00dead00665771855a34155f5e7405489df2c3c6",
-    "p2pIp" : "127.0.0.1",
-    "p2pPort": 8087,
     "httpPort": 8096,
-    "minDiscoveryConns": 11,
-    "minNormalConns": 11,
-    "maxDiscoveryConns": 200,
-    "maxNormalConns": 50,
     "eventBlockCap": 2000,
     "eventLogCap": 10000,
-    "stateDumpTrigger" : 1000,
-    "minValidators": 4,
-    "genesis" : {
-      "validators": [
-        "0x7588b0f553d1910266089c58822e1120db47e572",
-        "0xcabf34a268847a610287709d841e5cd590cc5c00",
-        "0x5fb516dc2cfc1288e689ed377a9eebe2216cf1e3",
-        "0x795083c42583842774febc21abb6df09e784fce5",
-        "0xbec7b74f70c151707a0bfb20fe3767c6e65499e0"
-      ],
-      "timestamp" : 1656356646000000,
-      "signer" : "0x4d48bdf34d65ef2bed2e4ee9020a7d3162b494ac31d3088153425f286f3d3c8c",
-      "balances": [
-        { "address": "0x00dead00665771855a34155f5e7405489df2c3c6", "balance": "100000000000000000000000000000000000000000" }
-      ]
-    },
-    "discoveryNodes": [
-      {
-        "address" : "127.0.0.1",
-        "port" : 8080
-      }
-    ],
-    "indexingMode" : "RPC",
+    "stateDumpTrigger": 1000,
+    "chainOwner": "0x00dead00665771855a34155f5e7405489df2c3c6",
+    "indexingMode": "RPC",
     "cometBFT": {
       "genesis.json": {
         "genesis_time": "2024-09-17T18:26:34.583377166Z",
@@ -996,39 +780,12 @@ if [ "$DEPLOY" = true ]; then
     "web3clientVersion": "bdk/cpp/linux_x86-64/0.2.0",
     "version": 1,
     "chainID": 808080,
-    "chainOwner": "0x00dead00665771855a34155f5e7405489df2c3c6",
-    "p2pIp" : "127.0.0.1",
-    "p2pPort": 8088,
     "httpPort": 8097,
-    "minDiscoveryConns": 11,
-    "minNormalConns": 11,
-    "maxDiscoveryConns": 200,
-    "maxNormalConns": 50,
     "eventBlockCap": 2000,
     "eventLogCap": 10000,
-    "stateDumpTrigger" : 1000,
-    "minValidators": 4,
-    "genesis" : {
-      "validators": [
-        "0x7588b0f553d1910266089c58822e1120db47e572",
-        "0xcabf34a268847a610287709d841e5cd590cc5c00",
-        "0x5fb516dc2cfc1288e689ed377a9eebe2216cf1e3",
-        "0x795083c42583842774febc21abb6df09e784fce5",
-        "0xbec7b74f70c151707a0bfb20fe3767c6e65499e0"
-      ],
-      "timestamp" : 1656356646000000,
-      "signer" : "0x4d48bdf34d65ef2bed2e4ee9020a7d3162b494ac31d3088153425f286f3d3c8c",
-      "balances": [
-        { "address": "0x00dead00665771855a34155f5e7405489df2c3c6", "balance": "100000000000000000000000000000000000000000" }
-      ]
-    },
-    "discoveryNodes": [
-      {
-        "address" : "127.0.0.1",
-        "port" : 8080
-      }
-    ],
-    "indexingMode" : "RPC",
+    "stateDumpTrigger": 1000,
+    "chainOwner": "0x00dead00665771855a34155f5e7405489df2c3c6",
+    "indexingMode": "RPC",
     "cometBFT": {
       "genesis.json": {
         "genesis_time": "2024-09-17T18:26:34.583377166Z",
@@ -1103,39 +860,12 @@ if [ "$DEPLOY" = true ]; then
     "web3clientVersion": "bdk/cpp/linux_x86-64/0.2.0",
     "version": 1,
     "chainID": 808080,
-    "chainOwner": "0x00dead00665771855a34155f5e7405489df2c3c6",
-    "p2pIp" : "127.0.0.1",
-    "p2pPort": 8089,
     "httpPort": 8098,
-    "minDiscoveryConns": 11,
-    "minNormalConns": 11,
-    "maxDiscoveryConns": 200,
-    "maxNormalConns": 50,
     "eventBlockCap": 2000,
     "eventLogCap": 10000,
-    "stateDumpTrigger" : 1000,
-    "minValidators": 4,
-    "genesis" : {
-      "validators": [
-        "0x7588b0f553d1910266089c58822e1120db47e572",
-        "0xcabf34a268847a610287709d841e5cd590cc5c00",
-        "0x5fb516dc2cfc1288e689ed377a9eebe2216cf1e3",
-        "0x795083c42583842774febc21abb6df09e784fce5",
-        "0xbec7b74f70c151707a0bfb20fe3767c6e65499e0"
-      ],
-      "timestamp" : 1656356646000000,
-      "signer" : "0x4d48bdf34d65ef2bed2e4ee9020a7d3162b494ac31d3088153425f286f3d3c8c",
-      "balances": [
-        { "address": "0x00dead00665771855a34155f5e7405489df2c3c6", "balance": "100000000000000000000000000000000000000000" }
-      ]
-    },
-    "discoveryNodes": [
-      {
-        "address" : "127.0.0.1",
-        "port" : 8080
-      }
-    ],
-    "indexingMode" : "RPC",
+    "stateDumpTrigger": 1000,
+    "chainOwner": "0x00dead00665771855a34155f5e7405489df2c3c6",
+    "indexingMode": "RPC",
     "cometBFT": {
       "genesis.json": {
         "genesis_time": "2024-09-17T18:26:34.583377166Z",
@@ -1210,39 +940,12 @@ if [ "$DEPLOY" = true ]; then
     "web3clientVersion": "bdk/cpp/linux_x86-64/0.2.0",
     "version": 1,
     "chainID": 808080,
-    "chainOwner": "0x00dead00665771855a34155f5e7405489df2c3c6",
-    "p2pIp" : "127.0.0.1",
-    "p2pPort": 8110,
     "httpPort": 8099,
-    "minDiscoveryConns": 11,
-    "minNormalConns": 11,
-    "maxDiscoveryConns": 200,
-    "maxNormalConns": 50,
     "eventBlockCap": 2000,
     "eventLogCap": 10000,
-    "stateDumpTrigger" : 1000,
-    "minValidators": 4,
-    "genesis" : {
-      "validators": [
-        "0x7588b0f553d1910266089c58822e1120db47e572",
-        "0xcabf34a268847a610287709d841e5cd590cc5c00",
-        "0x5fb516dc2cfc1288e689ed377a9eebe2216cf1e3",
-        "0x795083c42583842774febc21abb6df09e784fce5",
-        "0xbec7b74f70c151707a0bfb20fe3767c6e65499e0"
-      ],
-      "timestamp" : 1656356646000000,
-      "signer" : "0x4d48bdf34d65ef2bed2e4ee9020a7d3162b494ac31d3088153425f286f3d3c8c",
-      "balances": [
-        { "address": "0x00dead00665771855a34155f5e7405489df2c3c6", "balance": "100000000000000000000000000000000000000000" }
-      ]
-    },
-    "discoveryNodes": [
-      {
-        "address" : "127.0.0.1",
-        "port" : 8080
-      }
-    ],
-    "indexingMode" : "RPC",
+    "stateDumpTrigger": 1000,
+    "chainOwner": "0x00dead00665771855a34155f5e7405489df2c3c6",
+    "indexingMode": "RPC",
     "cometBFT": {
       "genesis.json": {
         "genesis_time": "2024-09-17T18:26:34.583377166Z",
@@ -1317,39 +1020,12 @@ if [ "$DEPLOY" = true ]; then
     "web3clientVersion": "bdk/cpp/linux_x86-64/0.2.0",
     "version": 1,
     "chainID": 808080,
-    "chainOwner": "0x00dead00665771855a34155f5e7405489df2c3c6",
-    "p2pIp" : "127.0.0.1",
-    "p2pPort": 8111,
     "httpPort": 8100,
-    "minDiscoveryConns": 11,
-    "minNormalConns": 11,
-    "maxDiscoveryConns": 200,
-    "maxNormalConns": 50,
     "eventBlockCap": 2000,
     "eventLogCap": 10000,
-    "stateDumpTrigger" : 1000,
-    "minValidators": 4,
-    "genesis" : {
-      "validators": [
-        "0x7588b0f553d1910266089c58822e1120db47e572",
-        "0xcabf34a268847a610287709d841e5cd590cc5c00",
-        "0x5fb516dc2cfc1288e689ed377a9eebe2216cf1e3",
-        "0x795083c42583842774febc21abb6df09e784fce5",
-        "0xbec7b74f70c151707a0bfb20fe3767c6e65499e0"
-      ],
-      "timestamp" : 1656356646000000,
-      "signer" : "0x4d48bdf34d65ef2bed2e4ee9020a7d3162b494ac31d3088153425f286f3d3c8c",
-      "balances": [
-        { "address": "0x00dead00665771855a34155f5e7405489df2c3c6", "balance": "100000000000000000000000000000000000000000" }
-      ]
-    },
-    "discoveryNodes": [
-      {
-        "address" : "127.0.0.1",
-        "port" : 8080
-      }
-    ],
-    "indexingMode" : "RPC",
+    "stateDumpTrigger": 1000,
+    "chainOwner": "0x00dead00665771855a34155f5e7405489df2c3c6",
+    "indexingMode": "RPC",
     "cometBFT": {
       "genesis.json": {
         "genesis_time": "2024-09-17T18:26:34.583377166Z",

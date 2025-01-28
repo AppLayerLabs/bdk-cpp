@@ -100,8 +100,8 @@ namespace TBlockchain {
       TestAccount accA = TestAccount::newRandomAccount();
       TestAccount accAA = TestAccount::newRandomAccount();
 
-      blockchain.state().addBalance(accA.address); // +1,000 eth
-      blockchain.state().addBalance(accAA.address); // +1,000 eth
+      blockchain.state().setBalance(accA.address, uint256_t("1000000000000000000000")); // +1,000 eth
+      blockchain.state().setBalance(accAA.address, uint256_t("1000000000000000000000")); // +1,000 eth
 
       uint256_t accAbal0 = blockchain.state().getNativeBalance(accA.address);
       uint256_t accAAbal0 = blockchain.state().getNativeBalance(accAA.address);

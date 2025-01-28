@@ -66,6 +66,10 @@ void State::initChain(
     //   params supplied to this call and that we set in resetState() above.
     loadSnapshot(genesisSnapshot, true);
   }
+
+  // FOR TESTING ONLY: give the chain owner 10000 APPL
+  // TODO: this may not be the best solution, review this later
+  this->setBalance(this->blockchain_.opt().getChainOwner(), uint256_t("1000000000000000000000"));
 }
 
 std::string State::getLogicalLocation() const {
@@ -296,11 +300,6 @@ void State::loadSnapshot(const std::string& where, bool allowV1Snapshot) {
   for (const auto& [addr, acc] : this->accounts_) {
     contractSanityCheck(addr, *acc);
   }
-}
-
-void State::addBalance(const Address& addr) {
-  std::unique_lock lock(this->stateMutex_);
-  this->accounts_[addr]->balance += uint256_t("1000000000000000000000");
 }
 
 void State::setBalance(const Address& addr, const uint256_t& balance) {
