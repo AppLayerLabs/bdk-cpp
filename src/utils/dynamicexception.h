@@ -10,6 +10,7 @@ See the LICENSE.txt file in the project root for more information.
 
 #include <chrono> // ctime
 #include <sstream> // ostringstream
+#include <iomanip> // put_time
 
 /// Abstraction of a custom exception class for dynamic message building and timestamping.
 class DynamicException : public std::exception {
