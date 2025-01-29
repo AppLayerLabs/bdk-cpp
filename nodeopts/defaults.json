@@ -8,7 +8,7 @@
     "eventLogCap": 10000,
     "stateDumpTrigger": 1000,
     "chainOwner": "0x00dead00665771855a34155f5e7405489df2c3c6",
-    "chainOwnerInitialBalance": "0",
+    "chainOwnerInitialBalance": "10000000000000000000000",
     "indexingMode": "RPC",
     "cometBFT": {
       "genesis.json": {
