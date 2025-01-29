@@ -48,7 +48,7 @@ public:
       }
     }
 
-    if (isPrecompiled(msg.to())) {
+    if (precompiledExecutor_.isPrecompiled(msg.to())) {
       return precompiledExecutor_.execute(std::forward<decltype(msg)>(msg));
     }
 
@@ -102,11 +102,6 @@ private:
 
   bool isPayment(const concepts::PackedMessage auto& msg) const {
     return false;
-  }
-
-  bool isPrecompiled(View<Address> address) const {
-    constexpr Address randomGeneratorAddress = bytes::hex("0x1000000000000000000000000000100000000001");
-    return address == randomGeneratorAddress;
   }
 
   void checkCppContractReverted() const {

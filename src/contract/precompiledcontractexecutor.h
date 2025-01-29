@@ -37,6 +37,8 @@ public:
 
   RandomGen& randomGenerator() { return randomGen_; }
 
+  bool isPrecompiled(View<Address> address) const;
+
 private:
   RandomGen randomGen_;
 };
