@@ -96,7 +96,7 @@ void Blockchain::FinalizedBlockCache::evictIndices(const std::shared_ptr<const F
 
 Blockchain::Blockchain(const std::string& blockchainPath, std::string instanceId)
   : instanceId_(instanceId),
-    options_(Options::fromFile(blockchainPath)), // Build the Options object from blockchainPath/options.json (or genDefault)
+    options_(Options::fromFile(blockchainPath)), // Build the Options object from blockchainPath/options.json
     comet_(this, instanceId, options_),
     state_(*this),
     storage_(*this),

@@ -119,6 +119,12 @@ For a more detailed explanation of the project's structure, check the [docs](htt
 * If you need to clean up the build, use `cmake --build . --target clean`
   * This also cleans stale `.pb.*` files in the `proto` folder (useful for if/when Protobuf gets updated)
 
+## Configuring
+
+Before deploying, go to the `nodeopts` directory in the project's root folder - you'll find a `defaults.json` file which is the template for a node's configuration. The template has sane default values, but if you wish, you can copy it to an `options.json` file and customize it to your liking. The deploy script (see below) will use your custom config over the default one if it exists in the folder.
+
+NOTE: if you're deploying nodes manually for some reason (as in NOT using the deploy script), keep in mind you'll have to create and configure one `options.json` file for EACH different node you want to run. If that's the case, make sure that things like HTTP ports and the like are not conflicting with each other.
+
 ## Deploying
 
 Go back to the project's root directory and run `./scripts/AIO-setup.sh`. The script will deploy a local testnet with 5 Validator nodes, 6 normal nodes and 1 discovery node. All of them will be rdPoS. Run the script again to re-deploy, or call `tmux kill-server` to stop it entirely.
@@ -145,10 +151,10 @@ The deployed chain will have the following information by default:
 * ChainID: **808080**
 * Chain Owner: **0x00dead00665771855a34155f5e7405489df2c3c6**
 * Chain Owner Private Key: **0xe89ef6409c467285bcae9f80ab1cfeb3487cfe61ab28fb7d36443e1daa0c2867**
-* Chain Owner Initial Balance: **1000000000000000000000 wei**
+* Chain Owner Initial Balance: **0 wei** (this is for security purposes, if you want an initial balance please create your own `options.json` file as stated above and edit the "chainOwnerInitialBalance" to your desired value in wei)
 * Genesis Private Key: **0x4d48bdf34d65ef2bed2e4ee9020a7d3162b494ac31d3088153425f286f3d3c8c**
 * Genesis Address: **0x00dead001ae76ac3d3f282ffb8481becdee17357**
-* Genesis Timestamp: **1656356646000000**
+* Genesis Timestamp: **1726597594000000**
 * ContractManager Address: **0x0001cb47ea6d8b55fe44fdd6b1bdb579efb43e61**
 * rdPoS Address: **0xb23aa52dbeda59277ab8a962c69f5971f22904cf**
 * Default RPC URL: **http://127.0.0.1:8090**
@@ -169,3 +175,4 @@ Nodes are all deployed on the same machine, under the following ports and tmux s
 | local_testnet_normal4    | Normal    | 8089     | 8098      | XXXX                                                               |
 | local_testnet_normal5    | Normal    | 8110     | 8099      | XXXX                                                               |
 | local_testnet_normal6    | Normal    | 8111     | 8100      | XXXX                                                               |
+

@@ -1,0 +1,80 @@
+{
+    "rootPath": "blockchain",
+    "web3clientVersion": "BDK/cpp/linux_x86-64/0.2.0",
+    "version": 2,
+    "chainID": 808080,
+    "httpPort": 8081,
+    "eventBlockCap": 2000,
+    "eventLogCap": 10000,
+    "stateDumpTrigger": 1000,
+    "chainOwner": "0x00dead00665771855a34155f5e7405489df2c3c6",
+    "chainOwnerInitialBalance": "0",
+    "indexingMode": "RPC",
+    "cometBFT": {
+      "genesis.json": {
+        "genesis_time": "2024-09-17T18:26:34.583377166Z",
+        "initial_height": "0",
+        "consensus_params": {
+          "block": {
+            "max_bytes": "22020096",
+            "max_gas": "-1"
+          },
+          "evidence": {
+            "max_age_num_blocks": "100000",
+            "max_age_duration": "172800000000000",
+            "max_bytes": "1048576"
+          },
+          "validator": {
+            "pub_key_types": [
+              "secp256k1"
+            ]
+          },
+          "version": {
+            "app": "0"
+          },
+          "abci": {
+            "vote_extensions_enable_height": "0"
+          }
+        },
+        "validators": [
+          {
+            "address": "A146C3E02DB4F8AAD5E859E35F4F7BCC094F0B13",
+            "pub_key": {
+              "type": "tendermint/PubKeySecp256k1",
+              "value": "AiA6uTAC2S62d1DcwRAAj0hSosCdkCa1aTWlXWJeFA9W"
+            },
+            "power": "10",
+            "name": "node0"
+          }
+        ],
+        "app_hash": ""
+      },
+      "node_key.json": {
+        "priv_key": {
+          "type": "tendermint/PrivKeyEd25519",
+          "value": "GKZ5kO56LhcaeRrOIefJtA2ogaPxQw+R6xBiznQD+290PZ/N5ZbBwCa9DoVA7FIeUeNofpHLtFK4UE0ACep5oA=="
+        }
+      },
+      "priv_validator_key.json": {
+        "address": "A146C3E02DB4F8AAD5E859E35F4F7BCC094F0B13",
+        "pub_key": {
+          "type": "tendermint/PubKeySecp256k1",
+          "value": "AiA6uTAC2S62d1DcwRAAj0hSosCdkCa1aTWlXWJeFA9W"
+        },
+        "priv_key": {
+          "type": "tendermint/PrivKeySecp256k1",
+          "value": "+8+j8W0W3B9H68JbLoUTieIU4aNWjsumkuU8fQPN6tY="
+        }
+      },
+      "config.toml": {
+        "p2p": {
+          "laddr": "tcp://0.0.0.0:20001",
+          "allow_duplicate_ip": true,
+          "addr_book_strict": false
+        },
+        "rpc": {
+          "laddr": "tcp://0.0.0.0:20002"
+        }
+      }
+    }
+  }

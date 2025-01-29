@@ -52,3 +52,7 @@ docs/html/
 
 # Documentation
 sparq-docs
+
+# User-defined node config
+nodeopts/options.json
+

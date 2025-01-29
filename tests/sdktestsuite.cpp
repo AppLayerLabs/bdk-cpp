@@ -338,6 +338,7 @@ SDKTestSuite SDKTestSuite::createNewEnvironment(
       1,
       DEFAULT_UINT64_TEST_CHAIN_ID,
       Address(Hex::toBytes("0x00dead00665771855a34155f5e7405489df2c3c6")),
+      uint256_t(0),
       SDKTestSuite::getTestPort(), // CHANGED: the HTTPPort (RPC port) needs to be unique as well
       2000,
       10000,
@@ -556,6 +557,7 @@ Options SDKTestSuite::getOptionsForTest(
     1,
     8080,
     Address(Hex::toBytes("0x00dead00665771855a34155f5e7405489df2c3c6")),
+    uint256_t(0),
     9999,
     2000,
     10000,

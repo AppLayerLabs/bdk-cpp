@@ -20,14 +20,9 @@ See the LICENSE.txt file in the project root for more information.
 
 // Only need to register contract templates once
 std::once_flag State::stateRegisterContractsFlag;
-void State::registerContracts() {
-  ContractFactory::registerContracts<ContractTypes>();
-}
+void State::registerContracts() { ContractFactory::registerContracts<ContractTypes>(); }
 
-State::State(Blockchain& blockchain)
-  : blockchain_(blockchain),
-    vm_(evmc_create_evmone())
-{
+State::State(Blockchain& blockchain) : blockchain_(blockchain), vm_(evmc_create_evmone()) {
   // Register all contract templates in this binary at the ContractFactory
   std::call_once(stateRegisterContractsFlag, &State::registerContracts);
 
@@ -45,13 +40,10 @@ State::State(Blockchain& blockchain)
   resetState();
 }
 
-State::~State() {
-  evmc_destroy(this->vm_);
-}
+State::~State() { evmc_destroy(this->vm_); }
 
 void State::initChain(
-  uint64_t initialHeight, uint64_t initialTimeEpochSeconds,
-  std::string genesisSnapshot
+  uint64_t initialHeight, uint64_t initialTimeEpochSeconds, std::string genesisSnapshot
 ) {
   LOGDEBUG("State::initChain(): Height (BDK, -1) = " + std::to_string(initialHeight));
 
@@ -67,14 +59,12 @@ void State::initChain(
     loadSnapshot(genesisSnapshot, true);
   }
 
-  // FOR TESTING ONLY: give the chain owner 10000 APPL
-  // TODO: this may not be the best solution, review this later
-  this->setBalance(this->blockchain_.opt().getChainOwner(), uint256_t("1000000000000000000000"));
+  // If set in options, give the chain owner its initial balance
+  uint256_t chainOwnerBalance = this->blockchain_.opt().getChainOwnerInitialBalance();
+  if (chainOwnerBalance > 0) this->setBalance(this->blockchain_.opt().getChainOwner(), chainOwnerBalance);
 }
 
-std::string State::getLogicalLocation() const {
-  return blockchain_.getLogicalLocation();
-}
+std::string State::getLogicalLocation() const { return blockchain_.getLogicalLocation(); }
 
 void State::contractSanityCheck(const Address& addr, const Account& acc) {
   switch (acc.contractType) {
@@ -143,10 +133,8 @@ void State::resetState(uint64_t height, uint64_t timeMicros) {
 }
 
 void State::saveSnapshot(const std::string& where) {
-
   // FIXME: Fork the process so we don't hog stateMutex_ and kill validator nodes
   //        (it should be way faster than creating a deep copy of a State instance)
-
   LOGINFO("Saving snapshot to: " + where);
 
   // DB directory & instance (uncompressed)
@@ -894,3 +882,4 @@ uint64_t State::getNativeNonce(const Address& addr) const {
   if (it == this->accounts_.end()) return 0;
   return it->second->nonce;
 }
+

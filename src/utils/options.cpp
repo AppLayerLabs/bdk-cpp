@@ -26,13 +26,15 @@ IndexingMode::IndexingMode(std::string_view mode) {
 Options::Options(
   const std::string& rootPath, const std::string& web3clientVersion,
   const uint64_t& version, const uint64_t& chainID, const Address& chainOwner,
-  const uint16_t& httpPort, const uint64_t& eventBlockCap, const uint64_t& eventLogCap,
+  const uint256_t& chainOwnerInitialBalance, const uint16_t& httpPort,
+  const uint64_t& eventBlockCap, const uint64_t& eventLogCap,
   const uint64_t& stateDumpTrigger, IndexingMode indexingMode, const json& cometBFT
 ) : rootPath_(rootPath),
     web3clientVersion_(web3clientVersion),
     version_(version),
     chainID_(chainID),
     chainOwner_(chainOwner),
+    chainOwnerInitialBalance_(chainOwnerInitialBalance),
     httpPort_(httpPort),
     eventBlockCap_(eventBlockCap),
     eventLogCap_(eventLogCap),
@@ -47,6 +49,7 @@ Options::Options(
   options["version"] = version;
   options["chainID"] = chainID;
   options["chainOwner"] = chainOwner.hex(true);
+  options["chainOwnerInitialBalance"] = chainOwnerInitialBalance.str();
   options["httpPort"] = httpPort;
   options["eventBlockCap"] = eventBlockCap;
   options["eventLogCap"] = eventLogCap;
@@ -62,10 +65,9 @@ Options::Options(
 
 Options Options::fromFile(const std::string& rootPath) {
   try {
-    // Check if options.json exists, create a default one if not
+    // Check if options.json exists, throw if not
     if (!std::filesystem::exists(rootPath + "/options.json")) {
-      std::filesystem::create_directory(rootPath);
-      return Options::genDefault(rootPath);
+      throw DynamicException("Config file does not exist: " + rootPath + "/options.json");
     }
 
     std::ifstream i(rootPath + "/options.json");
@@ -79,6 +81,7 @@ Options Options::fromFile(const std::string& rootPath) {
       options["version"].get<uint64_t>(),
       options["chainID"].get<uint64_t>(),
       Address(Hex::toBytes(options["chainOwner"].get<std::string>())),
+      uint256_t(options["chainOwnerInitialBalance"].get<std::string>()),
       options["httpPort"].get<uint64_t>(),
       options["eventBlockCap"].get<uint64_t>(),
       options["eventLogCap"].get<uint64_t>(),
