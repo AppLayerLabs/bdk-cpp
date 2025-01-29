@@ -12,15 +12,33 @@ Bytes PrecompiledContractExecutor::execute(EncodedStaticCallMessage& msg) {
     return Utils::makeBytes(UintConv::uint256ToBytes(std::invoke(randomGen_)));
   }
 
-  if (msg.to() == ECRECOVER_ADDRESS) {
-    msg.gas().use(ECRECOVER_CALL_COST);
-    const auto [hash, v, r, s] = ABI::Decoder::decodeData<Hash, uint8_t, Hash, Hash>(msg.input());
-    return ABI::Encoder::encodeData(ecrecover(hash, v, r, s));
-  }
+  // assuming isPrecompiled() was already called
+  switch (msg.to()[19]) {
+    case 0x01: {
+      msg.gas().use(ECRECOVER_CALL_COST);
+      const auto [hash, v, r, s] = ABI::Decoder::decodeData<Hash, uint8_t, Hash, Hash>(msg.input());
+      return ABI::Encoder::encodeData(ecrecover(hash, v, r, s));
+    }
 
-  throw DynamicException("Precompiled contract not found");
+    case 0x02: {
+      const uint64_t dynamicGasCost = ((msg.input().size() + 31) / 32) * 12;
+      msg.gas().use(60 + dynamicGasCost);
+      return ABI::Encoder::encodeData(sha256(msg.input()));
+    }
+
+    default:
+      throw DynamicException("Precompiled contract not found");
+  }
 }
 
 bool PrecompiledContractExecutor::isPrecompiled(View<Address> address) const {
-  return address == RANDOM_GENERATOR_ADDRESS || address == ECRECOVER_ADDRESS;
+  if (address == RANDOM_GENERATOR_ADDRESS) {
+    return true;
+  }
+
+  if (std::ranges::any_of(address | std::views::take(19), [] (Byte b) { return b != 0; })) {
+    return false;
+  }
+
+  return address[19] <= 0x02;
 }

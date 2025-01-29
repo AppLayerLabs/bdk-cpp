@@ -6,4 +6,6 @@
 
 Address ecrecover(View<Hash> hash, uint8_t v, View<Hash> r, View<Hash> s);
 
+Hash sha256(View<Bytes> data);
+
 #endif // BDK_CONTRACT_PRECOMPILES_H
