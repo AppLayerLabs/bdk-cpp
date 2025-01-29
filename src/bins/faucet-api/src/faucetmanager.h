@@ -17,6 +17,7 @@ See the LICENSE.txt file in the project root for more information.
 #include "libs/BS_thread_pool_light.hpp"
 #include <shared_mutex>
 #include <mutex>
+#include "utils/safehash.h"
 
 /// Helper struct that abstracts a worker account.
 struct WorkerAccount {
