@@ -23,7 +23,15 @@ Bytes PrecompiledContractExecutor::execute(EncodedStaticCallMessage& msg) {
     case 0x02: {
       const uint64_t dynamicGasCost = ((msg.input().size() + 31) / 32) * 12;
       msg.gas().use(60 + dynamicGasCost);
-      return ABI::Encoder::encodeData(sha256(msg.input()));
+      return Utils::makeBytes(sha256(msg.input()));
+    }
+
+    case 0x03: {
+      const uint64_t dynamicGasCost = ((msg.input().size() + 31) / 32) * 120;
+      msg.gas().use(600 + dynamicGasCost);
+      // for some reason, it works when we encode as Address and decode as Bytes20
+      // but it would make more sense if we encode and decode as Bytes20
+      return ABI::Encoder::encodeData<Address>(Address(ripemd160(msg.input())));
     }
 
     default:
@@ -40,5 +48,5 @@ bool PrecompiledContractExecutor::isPrecompiled(View<Address> address) const {
     return false;
   }
 
-  return address[19] <= 0x02;
+  return address[19] <= 0x03;
 }
