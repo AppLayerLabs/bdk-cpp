@@ -63,6 +63,7 @@ class Blockchain : public CometListener, public NodeRPCInterface, public Log::Lo
 
     /**
      * RAM cache of FinalizedBlock objects.
+     * NOTE: This class is thread-safe.
      */
     class FinalizedBlockCache
     {
@@ -89,9 +90,11 @@ class Blockchain : public CometListener, public NodeRPCInterface, public Log::Lo
     Storage storage_; ///< BDK persistent store front-end.
     HTTPServer http_; ///< HTTP server.
 
+    // TODO: Encapsulate validator set tracking in a (thread-safe) class (e.g. ValidatorSet).
+    //       We'll be tracking a lot more information about validators when we make the set mutable.
     std::vector<CometValidatorUpdate> validators_; ///< Up-to-date CometBFT validator set.
-
     std::unordered_map<Address, uint64_t, SafeHash> validatorAddrs_; /// Up-to-date map of CometBFT validator address to index in validators_.
+    std::mutex validatorMutex_; ///< Protects validators_ and validatorAddrs_
 
     // FIXME/TODO: Need to query for the last block and fill this in on boot.
     //             (That initial block query will also feed the fbCache_).
@@ -113,6 +116,16 @@ class Blockchain : public CometListener, public NodeRPCInterface, public Log::Lo
     // Since we cache FinalizedBlock's here, we will also use this as the back-end for
     // the GetTx() / GetTxBy...() methods.
     FinalizedBlockCache fbCache_;
+
+    // Cache of pending transactions (substitutes for access to the mempool, for
+    // answering RPC queries).
+    // We don't actually have access to the CometBFT mempool, but since CometBFT only
+    // removes transactions from its mempool when we return false from CheckTx or the
+    // transaction is included in a block, we can mirror it exactly from our side.
+    std::unordered_map<Hash, std::shared_ptr<TxBlock>, SafeHash> mempool_;
+
+    std::shared_mutex mempoolMutex_; ///< Mutex protecting mempool_.
+
 
     bool syncing_ = false; ///< Updated by Blockchain::incomingBlock() when syncingToHeight > height.
     uint64_t persistStateSkipCount_ = 0; ///< Count of non-syncing_ Blockchain::persistState() calls that skipped saveSnapshot().
@@ -323,6 +336,14 @@ class Blockchain : public CometListener, public NodeRPCInterface, public Log::Lo
      * @return A tuple with the found shared_ptr<TxBlock>, transaction index in the block, and block height.
      */
     Blockchain::GetTxResultType getTxByBlockNumberAndIndex(uint64_t blockHeight, uint64_t blockIndex);
+
+    /**
+     * Get an uncofirmed transaction from our mirror mempool.
+     * @param txHash Hash of the transaction.alignas
+     * @return An empty pointer if it is not in the mirror mempool, or a shared_ptr to a TxBlock of the
+     * pending transaction if it was found.
+     */
+    std::shared_ptr<TxBlock> getUnconfirmedTx(const Hash& txHash);
 
     ///@{
     /** Getter. */

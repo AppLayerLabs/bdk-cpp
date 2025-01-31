@@ -230,16 +230,6 @@ class State : public Log::LogicalLocationProvider {
     void setBalance(const Address& addr, const uint256_t& balance);
 
     /**
-     * Validate the next block given the current state and its transactions.
-     * The block will be rejected if there are invalid transactions in it
-     * (e.g. invalid signature, insufficient balance, etc.) or if its height
-     * is not exactly the current state machine's height plus one.
-     * @param block The block to validate.
-     * @return `true` if the block is validated successfully, `false` otherwise.
-     */
-    bool validateNextBlock(const FinalizedBlock& block);
-
-    /**
      * Apply a block to the current machine state (does NOT validate it first).
      * @param block The block to process.
      * @param succeeded Empty outparam vector of tx execution success status.

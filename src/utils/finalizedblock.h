@@ -29,6 +29,7 @@ See the LICENSE.txt file in the project root for more information.
  */
 
 #include "merkle.h" // tx.h -> ecdsa.h -> utils.h -> strings.h, (logger.h -> future), bytes/join.h
+#include "safehash.h"
 
 class CometBlock;
 
@@ -121,8 +122,14 @@ class FinalizedBlock {
 
     /**
      * Build a FinalizedBlock from a CometBlock.
+     * @param block The CometBlock object to use as source.
+     * @param mempoolPtr If not nullptr, pointer to the Blockchain mirror mempool to reuse
+     * its parsed TxBlock objects and insert them into FinalizedBlock::txs_, and also remove
+     * them from the mirror mempool as these txs are no longer unconfirmed.
      */
-    static FinalizedBlock fromCometBlock(const CometBlock& block);
+    static FinalizedBlock fromCometBlock(
+      const CometBlock& block, std::unordered_map<Hash, std::shared_ptr<TxBlock>, SafeHash>* mempoolPtr = nullptr
+    );
 
     /**
      * Build a FinalizedBlock from a CometBFT block query response.

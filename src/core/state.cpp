@@ -714,36 +714,6 @@ bool State::validateTransactionInternal(const TxBlock& tx, bool affectsMempool, 
   return true;
 }
 
-bool State::validateNextBlock(const FinalizedBlock& block) {
-  // NOTE: We don't have to validate the low-level block at consensus level since that's
-  // now done by CometBFT. We just need to check if the transactions make sense for our
-  // machine and its current state.
-
-  // The block must be proposing up dates for the next machine simulation time (height + 1)
-  if (block.getNHeight() != this->height_ + 1) {
-    LOGERROR(
-      "Block height doesn't match, expected " + std::to_string(this->height_ + 1) +
-      " got " + std::to_string(block.getNHeight())
-    );
-    return false;
-  }
-
-  // Validate all transactions using the current machine state and starting with a blank
-  //  mempool model, so all transactions have to be valid as they are seen in the sequence
-  //  they are given in the block.
-  MempoolModel mm;
-  for (const auto& txPtr : block.getTxs()) {
-    const auto& tx = *txPtr;
-    if (!validateTransactionInternal(tx, false, &mm)) {
-      LOGERROR("Transaction " + tx.hash().hex().get() + " within block is invalid");
-      return false;
-    }
-  }
-
-  LOGTRACE("Block " + block.getHash().hex().get() + " is valid. (Sanity Check Passed)");
-  return true;
-}
-
 void State::processBlock(const FinalizedBlock& block, std::vector<bool>& succeeded, std::vector<uint64_t>& gasUsed) {
   std::unique_lock lock(this->stateMutex_);
 

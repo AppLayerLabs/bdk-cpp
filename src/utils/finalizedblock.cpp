@@ -13,7 +13,9 @@ See the LICENSE.txt file in the project root for more information.
 
 #include "../libs/base64.hpp"
 
-FinalizedBlock FinalizedBlock::fromCometBlock(const CometBlock& block) {
+FinalizedBlock FinalizedBlock::fromCometBlock(
+  const CometBlock& block, std::unordered_map<Hash, std::shared_ptr<TxBlock>, SafeHash>* mempoolPtr
+) {
 
   // proposerAddr is optional in CometBlock
   Address proposerAddr;
@@ -30,14 +32,33 @@ FinalizedBlock FinalizedBlock::fromCometBlock(const CometBlock& block) {
   uint64_t requiredChainId = 0; // FIXME
 
   // compute txs here txblocks
-  SLOGTRACE("Deserializing transactions...");
   std::vector<std::shared_ptr<TxBlock>> txs;
   uint64_t txCount = block.txs.size();
-  for (uint64_t i = 0; i < txCount; i++) {
-    // We can skip signature verification because fromCometBlock() is called from
-    // the FinalizedBlock ABCI callback. If the block is finalized, then all transactions
-    // have long been all checked for signature validity upstream.
-    txs.push_back(std::make_shared<TxBlock>(block.txs[i], requiredChainId, false));
+  if (mempoolPtr == nullptr) {
+    SLOGTRACE("Deserializing transactions...");
+    for (uint64_t i = 0; i < txCount; i++) {
+      // We can skip signature verification because fromCometBlock() is called from
+      // the FinalizedBlock ABCI callback. If the block is finalized, then all transactions
+      // have long been all checked for signature validity upstream.
+      txs.push_back(std::make_shared<TxBlock>(block.txs[i], requiredChainId, false));
+    }
+  } else {
+    SLOGTRACE("Moving transactions from the mirror mempool...");
+    for (uint64_t i = 0; i < txCount; i++) {
+      Hash txHash = Utils::sha3(block.txs[i]);
+      auto it = mempoolPtr->find(txHash);
+      if (it != mempoolPtr->end()) {
+        // Found the unconfirmed TxBlock object already built and in the mirror mempool, so reuse it
+        txs.push_back(it->second);
+        // And now remove it from the unconfirmed txs list since it has been included in a block, which is final
+        mempoolPtr->erase(it);
+      } else {
+        SLOGTRACE("WARNING! Transaction not found in mirror mempool: " + txHash.hex().get());
+        // This recomputes txHash, but since we don't really expect this to ever execute (since txs included
+        // in a new block should always have been in the mirror mempool first as unconfirmed txs), that's fine.
+        txs.push_back(std::make_shared<TxBlock>(block.txs[i], requiredChainId, false));
+      }
+    }
   }
 
   // Same merkle root value as before cometbft integration

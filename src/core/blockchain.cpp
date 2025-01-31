@@ -145,6 +145,7 @@ void Blockchain::putTx(const Hash& tx, const TxCacheValueType& val) {
 }
 
 void Blockchain::setValidators(const std::vector<CometValidatorUpdate>& newValidatorSet) {
+  std::unique_lock<std::mutex> lock(validatorMutex_);
   validators_ = newValidatorSet;
   validatorAddrs_.clear();
   for (int i = 0; i < validators_.size(); ++i) {
@@ -156,6 +157,7 @@ void Blockchain::setValidators(const std::vector<CometValidatorUpdate>& newValid
 }
 
 Address Blockchain::validatorCometAddressToEthAddress(Address validatorCometAddress) {
+  std::unique_lock<std::mutex> lock(validatorMutex_);
   auto it = validatorAddrs_.find(validatorCometAddress);
   if (it == validatorAddrs_.end()) {
     return {};
@@ -457,6 +459,15 @@ Blockchain::GetTxResultType Blockchain::getTxByBlockNumberAndIndex(uint64_t bloc
   };
 }
 
+std::shared_ptr<TxBlock> Blockchain::getUnconfirmedTx(const Hash& txHash) {
+  std::shared_lock<std::shared_mutex> lock(mempoolMutex_);
+  auto it = mempool_.find(txHash);
+  if (it != mempool_.end()) {
+    return it->second;
+  }
+  return std::shared_ptr<TxBlock>{}; // nullptr
+}
+
 // ------------------------------------------------------------------
 // CometListener
 // ------------------------------------------------------------------
@@ -511,8 +522,48 @@ void Blockchain::checkTx(const Bytes& tx, const bool recheck, int64_t& gasWanted
   // needs to know if State:: validateTransaction() is being called for CheckTx and is thus
   // determining transaction eviction from the mempool when CheckTx returns `false`.
   try {
-    TxBlock parsedTx(tx, options_.getChainID(), !recheck); // Verify signature only if it's not a recheck.
-    accept = state_.validateTransaction(parsedTx, true);
+    // Get a TxBlock
+    std::shared_ptr<TxBlock> parsedTx;
+    bool makeNew = false;
+    if (recheck) {
+      // If it's a recheck, we must already have a TxBlock on our side
+      Hash txHash = Utils::sha3(tx);
+      parsedTx = getUnconfirmedTx(txHash);
+      if (!parsedTx) {
+        // should never happen, since we should always find the TxBlock in the mempool during a recheck
+        LOGWARNING("Transaction " + txHash.hex().get() + " not found in mirror mempool during a recheck.");
+        makeNew = true;
+      }
+    } else {
+      // Not a recheck, so must parse tx Bytes into a TxBlock
+      makeNew = true;
+    }
+    if (makeNew) {
+      // Verify signature only if it's not a recheck.
+      parsedTx = std::make_shared<TxBlock>(tx, options_.getChainID(), !recheck);
+    }
+
+    // Validate the TxBlock
+    accept = state_.validateTransaction(*parsedTx, true);
+
+    // Do mirror mempool maintenance
+    if (accept) {
+       if (!recheck) {
+        // Add to our mirror mempool if the tx is accepted (is valid) and it is not a recheck.
+        // NOTE: Txs that have already been included in a finalized block necessarily need to
+        // fail validateTransaction(), since they would e.g. contain a dead account nonce, and
+        // thus wouldn't be re-included in either the CometBFT mempool or our mempool_ model.
+        std::unique_lock<std::shared_mutex> lock(mempoolMutex_);
+        mempool_[parsedTx->hash()] = parsedTx;
+       }
+    } else {
+      if (recheck) {
+        // Remove from our mirror mempool if the tx is rejected (is invalid) and it is a recheck.
+        // (If it is not a recheck, the transaction never entered the mempool, so no need to erase).4
+        std::unique_lock<std::shared_mutex> lock(mempoolMutex_);
+        mempool_.erase(parsedTx->hash());
+      }
+    }
   } catch (const std::exception& ex) {
     LOGDEBUG("ERROR: Blockchain::checkTx(): " + std::string(ex.what()));
     accept = false;
@@ -527,49 +578,56 @@ void Blockchain::incomingBlock(
     // Update syncing status (don't persist state to disk while syncing (?))
     syncing_ = syncingToHeight > block->height;
 
-    // The factory method should construct a FinalizedBlock which is then
-    // automatically moved into the shared_ptr, as it is a temporary.
-    std::shared_ptr<const FinalizedBlock> fbPtr =
-      std::make_shared<const FinalizedBlock>(
-        FinalizedBlock::fromCometBlock(*block)
+    // The factory method should construct a FinalizedBlock which is then automatically moved
+    //  into the shared_ptr, as it is a temporary.
+    // NOTE: We pass in a pointer to our mempool_, which allows FinalizedBlock::fromCometBlock()
+    //  to (i) build the FinalizedBlock instance by reusing the TxBlock objects in the mempool_
+    //  instead of parsing bytes again and (ii) doing maintenace to mempool_ for us by removing
+    //  the txs from mempool_ that are included in the block (since they are no longer unconfirmed,
+    //  they *must* be removed from mempool_).
+    // -------------------------------------------------------------------------------------
+    // FIXME/REVIEW: It might be the case that we can get away with CometBlock NOT having the
+    // tx bytes in it, and instead just having the txHashes, making the incomingBlock()
+    // call lighter. That could also mean we could move the mirror mempool to the Comet
+    // driver as well...
+    // -------------------------------------------------------------------------------------
+    std::shared_ptr<const FinalizedBlock> fbPtr;
+    {
+      std::unique_lock<std::shared_mutex> lock(mempoolMutex_);
+      fbPtr = std::make_shared<const FinalizedBlock>(
+        FinalizedBlock::fromCometBlock(*block, &mempool_)
       );
+    }
 
     // Store the incoming FinalizedBlock in latest_ and fbCache_.
     latest_.store(fbPtr);
     fbCache_.insert(fbPtr);
 
-    // Check if the block is valid
-    if (!state_.validateNextBlock(*fbPtr)) {
-      // Should never happen.
-      // REVIEW: in fact, we shouldn't even need to verify the block at this point?
-      LOGFATALP_THROW("Invalid block.");
-    } else {
-      // Advance machine state
-      std::vector<bool> succeeded;
-      std::vector<uint64_t> gasUsed;
+    // Advance machine state
+    std::vector<bool> succeeded;
+    std::vector<uint64_t> gasUsed;
 
-      // NOTE: State::processBlock() knows that it has to remove the transactions that
-      // are processed into the state from its internal mempool model.
-      state_.processBlock(*fbPtr, succeeded, gasUsed);
+    // NOTE: State::processBlock() knows that it has to remove the transactions that
+    // are processed into the state from its internal mempool model.
+    state_.processBlock(*fbPtr, succeeded, gasUsed);
 
-      for (uint32_t i = 0; i < block->txs.size(); ++i) {
-        const TxBlock& txBlock = *fbPtr->getTxs()[i];
+    for (uint32_t i = 0; i < block->txs.size(); ++i) {
+      const TxBlock& txBlock = *fbPtr->getTxs()[i];
 
-        // Fill in the txResults that get sent to cometbft for storage
-        CometExecTxResult txRes;
-        txRes.code = succeeded[i] ? 0 : 1;
-        txRes.gasUsed = gasUsed[i];
-        txRes.gasWanted = static_cast<uint64_t>(txBlock.getGasLimit());
-        //txRes.output = Bytes... FIXME: transaction execution result/return arbitrary bytes
-        //in ContractHost::execute() there's an "output" var generated in the EVM code branch,
-        //  but not in the CPP contract case branch
-        txResults.emplace_back(txRes);
+      // Fill in the txResults that get sent to cometbft for storage
+      CometExecTxResult txRes;
+      txRes.code = succeeded[i] ? 0 : 1;
+      txRes.gasUsed = gasUsed[i];
+      txRes.gasWanted = static_cast<uint64_t>(txBlock.getGasLimit());
+      //txRes.output = Bytes... FIXME: transaction execution result/return arbitrary bytes
+      //in ContractHost::execute() there's an "output" var generated in the EVM code branch,
+      //  but not in the CPP contract case branch
+      txResults.emplace_back(txRes);
 
-        // Add a txhash->(blockheight,blockindex) entry to the txCache_ so
-        // queries by txhash can find the FinalizedBlock object and thus the
-        // TxBlock object.
-        putTx(txBlock.hash(), TxCacheValueType{block->height, i});
-      }
+      // Add a txhash->(blockheight,blockindex) entry to the txCache_ so
+      // queries by txhash can find the FinalizedBlock object and thus the
+      // TxBlock object.
+      putTx(txBlock.hash(), TxCacheValueType{block->height, i});
     }
   } catch (const std::exception& ex) {
     // We need to fail the blockchain node (fatal)
@@ -1185,27 +1243,36 @@ json Blockchain::eth_sendRawTransaction(const json& request) {
 }
 
 json Blockchain::eth_getTransactionByHash(const json& request) {
-  // CometBFT does NOT index transactions in the mempool.
-  // You can't query CometBFT for an unconfirmed transaction by hash -- at all.
-  // If we want to see and return unconfirmed txs here, we need to track our
-  //   own guess about what txs are in the mempool. For example, when we receive
-  //   CheckTx calls or when we eth_sendRawTransaction we would fill that structure
-  //   with txs we know about and are likely in the mempool, and look them up there
-  //   *after* we ask CometBFT (it would be a second cache, unrelated to the txCache
-  //   that caches the CometBFT tx responses).
-  // Alternatively, we can have this solved when we implement our own mempool
-  //   (using the "nop" mempool config from CometBFT).
-
   requiresIndexing(storage_, "eth_getTransactionByHash");
 
   const auto [txHash] = parseAllParams<Hash>(request);
+  json ret;
 
+  // First, check if tx is in the mempool (so it exists but is necessarily unconfirmed)
+  std::shared_ptr<TxBlock> txOnMempool = getUnconfirmedTx(txHash);
+  if (txOnMempool) {
+    ret["blockHash"] = json::value_t::null;
+    ret["blockIndex"] = json::value_t::null;
+    ret["from"] = txOnMempool->getFrom().hex(true);
+    ret["gas"] = Hex::fromBytes(Utils::uintToBytes(txOnMempool->getGasLimit()), true).forRPC();
+    ret["gasPrice"] = Hex::fromBytes(Utils::uintToBytes(txOnMempool->getMaxFeePerGas()), true).forRPC();
+    ret["hash"] = txOnMempool->hash().hex(true);
+    ret["input"] = Hex::fromBytes(txOnMempool->getData(), true);
+    ret["nonce"] = Hex::fromBytes(Utils::uintToBytes(txOnMempool->getNonce()), true).forRPC();
+    ret["to"] = txOnMempool->getTo().hex(true);
+    ret["transactionIndex"] = json::value_t::null;
+    ret["value"] = Hex::fromBytes(Utils::uintToBytes(txOnMempool->getValue()), true).forRPC();
+    ret["v"] = Hex::fromBytes(Utils::uintToBytes(txOnMempool->getV()), true).forRPC();
+    ret["r"] = Hex::fromBytes(Utils::uintToBytes(txOnMempool->getR()), true).forRPC();
+    ret["s"] = Hex::fromBytes(Utils::uintToBytes(txOnMempool->getS()), true).forRPC();
+    return ret;
+  }
+
+  // Second, check if tx is in a block
   GetTxResultType txResult = getTx(txHash);
-
   if (txResult.txBlockPtr != nullptr) {
     Hash blockHash = getBlockHash(txResult.blockHeight);
     TxBlock& tx = *txResult.txBlockPtr;
-    json ret;
     ret["blockHash"] = blockHash.hex(true);
     ret["blockNumber"] = Hex::fromBytes(Utils::uintToBytes(txResult.blockHeight), true).forRPC();
     ret["from"] = tx.getFrom().hex(true);
@@ -1223,6 +1290,7 @@ json Blockchain::eth_getTransactionByHash(const json& request) {
     return ret;
   }
 
+  // Tx is not known
   return json::value_t::null;
 }
 
@@ -1385,23 +1453,16 @@ json Blockchain::debug_traceTransaction(const json& request) {
 json Blockchain::txpool_content(const json& request) {
   forbidParams(request);
   json result;
-  result["queued"] = json::array();
+
+  json& queued = result["queued"];
+  queued = json::array();
+
   json& pending = result["pending"];
-
   pending = json::array();
-/*
-  FIXME/TODO
-  - We can build something here that would be useful during development
-  or testing, but if an application wants to detect the actual entire mempool
-  in production (with potentially millions of transactions) then they should
-  probably *be* a node instead.
-  - CometBFT RPC: num_unconfirmed_txs, unconfirmed_txs
-  - we could also implement our own custom mempool later, meaning we would
-  already have the data to answer this in this same process.
-  - ADR 102 (RPC Companion) also potentially relevant for this (& other ETH RPC
-  method implementation decisions)
 
-  for (const auto& [hash, tx] : state.getPendingTxs()) {
+  std::shared_lock<std::shared_mutex> lock(mempoolMutex_);
+  for (const auto& [hash, txPtr] : mempool_) {
+    TxBlock& tx = *txPtr;
     json accountJson;
     json& txJson = accountJson[tx.getFrom().hex(true)][tx.getNonce().str()];
     txJson["blockHash"] = json::value_t::null;
@@ -1419,8 +1480,16 @@ json Blockchain::txpool_content(const json& request) {
     txJson["v"] = Hex::fromBytes(Utils::uintToBytes(tx.getV()), true).forRPC();
     txJson["r"] = Hex::fromBytes(Utils::uintToBytes(tx.getR()), true).forRPC();
     txJson["s"] = Hex::fromBytes(Utils::uintToBytes(tx.getS()), true).forRPC();
-    pending.push_back(std::move(accountJson));
+
+    // If the tx nonce is greater than the tx from account's nonce, it is a queued tx
+    // and should be returned in "queued". Otherwise, the tx nonce should be equal
+    // to the tx from account's nonce (can't be less than, otherwise wouldn't be in
+    // the mempool) and thus it goes in the "pending" result array.
+    if (static_cast<uint64_t>(tx.getNonce()) > state_.getNativeNonce(tx.getFrom())) {
+      queued.push_back(std::move(accountJson));
+    } else {
+      pending.push_back(std::move(accountJson));
+    }
   }
-*/
   return result;
 }
