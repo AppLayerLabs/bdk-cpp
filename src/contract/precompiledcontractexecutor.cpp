@@ -34,6 +34,12 @@ Bytes PrecompiledContractExecutor::execute(EncodedStaticCallMessage& msg) {
       return ABI::Encoder::encodeData<Address>(Address(ripemd160(msg.input())));
     }
 
+    case 0x04: {
+      const uint64_t dynamicGasCost = ((msg.input().size() + 31) / 32) * 3;
+      msg.gas().use(15 + dynamicGasCost);
+      return Bytes(msg.input());
+    }
+
     default:
       throw DynamicException("Precompiled contract not found");
   }
@@ -48,5 +54,5 @@ bool PrecompiledContractExecutor::isPrecompiled(View<Address> address) const {
     return false;
   }
 
-  return address[19] <= 0x03;
+  return address[19] <= 0x04;
 }
