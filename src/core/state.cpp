@@ -75,9 +75,6 @@ State::State(
   Utils::safePrint("Got latest block height: " + std::to_string(latestBlock->getNHeight()));
   std::unique_ptr<DBBatch> reindexedTxs = std::make_unique<DBBatch>();
   for (uint64_t nHeight = snapshotHeight + 1; nHeight <= latestBlock->getNHeight(); nHeight++) {
-    if (nHeight > 20000) {
-      break;
-    }
     auto block = this->storage_.getBlock(nHeight);
     if (this->options_.getIndexingMode() == IndexingMode::RPC || this->options_.getIndexingMode() == IndexingMode::RPC_TRACE) {
       this->storage_.reindexTransactions(*block, *reindexedTxs);
