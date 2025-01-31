@@ -144,8 +144,7 @@ void State::saveSnapshot(const std::string& where) {
   DB out(where);
 
   // Lock state while writing snapshot.
-  // TODO: Change to shared_lock, which is more correct since we just read the state here.
-  std::unique_lock<std::shared_mutex> lock(stateMutex_);
+  std::shared_lock<std::shared_mutex> lock(stateMutex_);
 
   // Write snapshot header
   std::unique_ptr<DBBatch> metaBatch = std::make_unique<DBBatch>();

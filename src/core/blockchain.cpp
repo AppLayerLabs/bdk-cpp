@@ -793,12 +793,13 @@ void Blockchain::persistState(uint64_t& height) {
   // TODO: block history pruning based on a BDK option
   height = 0;
 
-  // Trigger snapshotting every X blocks (non-syncing)
-  if (!syncing_) {
-    if (++persistStateSkipCount_ >= options_.getStateDumpTrigger()) {
-      persistStateSkipCount_ = 0;
-      saveSnapshot();
-    }
+  // Trigger snapshotting every X blocks (if syncing, do not save snapshots).
+  // If stateDumpTrigger is 0, the feature is DISABLED and the node is not generating snapshots periodically.
+  // TODO/REVIEW: We could catch a signal (like SIGUSR1) that forces snapshot generation on the next commit,
+  // so nodes could have stateDumpTrigger set to 0 and still be able to generate snapshots.
+  if (!syncing_ && options_.getStateDumpTrigger() > 0 && ++persistStateSkipCount_ >= options_.getStateDumpTrigger()) {
+    persistStateSkipCount_ = 0;
+    saveSnapshot();
   }
 }
 
