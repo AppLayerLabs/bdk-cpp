@@ -1353,7 +1353,16 @@ json Blockchain::eth_getTransactionByBlockNumberAndIndex(const json& request) {
 json Blockchain::eth_getTransactionReceipt(const json& request) {
   requiresIndexing(storage_, "eth_getTransactionReceipt");
 
-  const auto [txHash] = parseAllParams<Hash>(request);
+  // NOTE: this is a workaround for MetaMask on Firefox, for some reason it
+  // sends the "params" field enclosed in an extra array, which fails parsing,
+  // thus never returning the receipt and in turn never updating the tx status
+  // (which probably does go through in the background)
+  json req = request;
+  if (req["params"][0].is_array()) {
+    req["params"][0] = req["params"][0][0].get<std::string>();
+  }
+
+  const auto [txHash] = parseAllParams<Hash>(req);
   GetTxResultType txInfo = this->getTx(txHash);
   const std::shared_ptr<TxBlock>& tx = txInfo.txBlockPtr;
   const Hash& blockHash = getBlockHash(txInfo.blockHeight);
