@@ -338,6 +338,7 @@ SDKTestSuite SDKTestSuite::createNewEnvironment(
       1,
       DEFAULT_UINT64_TEST_CHAIN_ID,
       Address(Hex::toBytes("0x00dead00665771855a34155f5e7405489df2c3c6")),
+      uint256_t(0),
       SDKTestSuite::getTestPort(), // CHANGED: the HTTPPort (RPC port) needs to be unique as well
       2000,
       10000,
@@ -555,6 +556,7 @@ Options SDKTestSuite::getOptionsForTest(
     1,
     8080,
     Address(Hex::toBytes("0x00dead00665771855a34155f5e7405489df2c3c6")),
+    uint256_t(0),
     9999,
     2000,
     10000,
@@ -583,9 +585,9 @@ void SDKTestSuite::initChain(
   // We need to give some tokens to the chainOwner and to all the
   //  `accounts` that were passed in so they can pay for test
   //  contract deployment, etc.
-  state_.addBalance(options_.getChainOwner());
+  state_.setBalance(options_.getChainOwner(), uint256_t("1000000000000000000000"));
   for (const TestAccount& account : testAccounts_) {
-    state_.addBalance(account.address);
+    state_.setBalance(account.address, uint256_t("1000000000000000000000"));
   }
 }
 

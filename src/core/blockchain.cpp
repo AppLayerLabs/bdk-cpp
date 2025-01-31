@@ -96,7 +96,7 @@ void Blockchain::FinalizedBlockCache::evictIndices(const std::shared_ptr<const F
 
 Blockchain::Blockchain(const std::string& blockchainPath, std::string instanceId)
   : instanceId_(instanceId),
-    options_(Options::fromFile(blockchainPath)), // build the Options object from the blockchainPath/options.json file (or binarydefaults)
+    options_(Options::fromFile(blockchainPath)), // Build the Options object from blockchainPath/options.json
     comet_(this, instanceId, options_),
     state_(*this),
     storage_(*this),
@@ -1281,7 +1281,46 @@ json Blockchain::eth_getTransactionByBlockNumberAndIndex(const json& request) {
   return json::value_t::null;
 }
 
-json Blockchain::eth_getTransactionReceipt(const json& request) { return {}; }
+json Blockchain::eth_getTransactionReceipt(const json& request) {
+  requiresIndexing(storage_, "eth_getTransactionReceipt");
+
+  const auto [txHash] = parseAllParams<Hash>(request);
+  GetTxResultType txInfo = this->getTx(txHash);
+  const std::shared_ptr<TxBlock>& tx = txInfo.txBlockPtr;
+  const Hash& blockHash = getBlockHash(txInfo.blockHeight);
+  const uint64_t& txIndex = txInfo.blockIndex;
+  const uint64_t& blockHeight = txInfo.blockHeight;
+
+  if (tx != nullptr) {
+    json ret;
+
+    const TxAdditionalData txAddData = storage_.getTxAdditionalData(tx->hash())
+      .or_else([]() -> std::optional<TxAdditionalData> {
+        throw DynamicException("Unable to fetch existing transaction data");
+      }).value();
+
+    ret["transactionHash"] = tx->hash().hex(true);
+    ret["transactionIndex"] = Hex::fromBytes(Utils::uintToBytes(txIndex), true).forRPC();
+    ret["blockHash"] = blockHash.hex(true);
+    ret["blockNumber"] = Hex::fromBytes(Utils::uintToBytes(blockHeight), true).forRPC();
+    ret["from"] = tx->getFrom().hex(true);
+    ret["to"] = tx->getTo().hex(true);
+    ret["cumulativeGasUsed"] = Hex::fromBytes(Utils::uintToBytes(txAddData.gasUsed), true).forRPC(); // TODO: Fix this, cumulativeGasUsed is not the same as gasUsed
+    ret["effectiveGasPrice"] = Hex::fromBytes(Utils::uintToBytes(tx->getMaxFeePerGas()),true).forRPC();
+    ret["gasUsed"] =  Hex::fromBytes(Utils::uintToBytes(txAddData.gasUsed), true).forRPC();
+    ret["contractAddress"] = bool(txAddData.contractAddress) ? json(txAddData.contractAddress.hex(true)) : json(json::value_t::null);
+    ret["logs"] = json::array();
+    ret["logsBloom"] = Hash().hex(true);
+    ret["type"] = "0x2";
+    ret["status"] = txAddData.succeeded ? "0x1" : "0x0";
+    for (const Event& e : storage_.getEvents(blockHeight, txIndex)) {
+      ret["logs"].push_back(e.serializeForRPC());
+    }
+
+    return ret;
+  }
+  return json::value_t::null;
+}
 
 json Blockchain::eth_getUncleByBlockHashAndIndex(const json& request) {
   return json::value_t::null;

@@ -57,20 +57,21 @@ constexpr const IndexingMode IndexingMode::RPC_TRACE{2};
 /// Singleton class for global node data.
 class Options {
   private:
-    const std::string rootPath_; ///< Path to data root folder.
     const uint64_t majorSDKVersion_ = @CMAKE_PROJECT_VERSION_MAJOR@;  ///< Major version of BDK.
     const uint64_t minorSDKVersion_ = @CMAKE_PROJECT_VERSION_MINOR@;  ///< Minor version of BDK.
     const uint64_t patchSDKVersion_ = @CMAKE_PROJECT_VERSION_PATCH@;  ///< Patch version of BDK.
+    const std::string rootPath_; ///< Path to data root folder.
     const std::string web3clientVersion_; ///< String for displaying the client version (for Web3).
     const uint64_t version_;  ///< Blockchain version.
     const uint64_t chainID_;  ///< Blockchain chain ID.
     const uint16_t httpPort_; ///< HTTP server port.
     const uint64_t eventBlockCap_;  ///< Maximum block range for querying contract events.
     const uint64_t eventLogCap_;  ///< Maximum number of contract events that can be queried at once.
-    const uint64_t stateDumpTrigger_;  ///< Block number at which to dump the state. (Every X blocks dump the state)
+    const uint64_t stateDumpTrigger_;  ///< Block number at which to dump the state (every X blocks dump the state).
     const Address chainOwner_;  ///< Chain owner address (used by ContractManager for deploying contracts).
+    const uint256_t chainOwnerInitialBalance_;  ///< Initial balance in WEI for the chain owner address, applied during first init.
     const IndexingMode indexingMode_; ///< The node's indexing mode.
-    const json cometBFT_; ///< All options needed by Comet as a json object (the root key names are from the BDK)
+    const json cometBFT_; ///< All options needed by Comet as a json object (the root key names are from the BDK).
 
   public:
     /**
@@ -80,6 +81,7 @@ class Options {
      * @param version Version of the chain.
      * @param chainID Chain ID of the chain.
      * @param chainOwner Chain owner address.
+     * @param chainOwnerInitialBalance Chain owner initial balance.
      * @param httpPort HTTP server port.
      * @param eventBlockCap Block range limit for querying events.
      * @param eventLogCap Maximum number of events that can be queried.
@@ -92,6 +94,7 @@ class Options {
       const uint64_t& version,
       const uint64_t& chainID,
       const Address& chainOwner,
+      const uint256_t& chainOwnerInitialBalance,
       const uint16_t& httpPort,
       const uint64_t& eventBlockCap,
       const uint64_t& eventLogCap,
@@ -110,6 +113,7 @@ class Options {
       version_(other.version_),
       chainID_(other.chainID_),
       chainOwner_(other.chainOwner_),
+      chainOwnerInitialBalance_(other.chainOwnerInitialBalance_),
       httpPort_(other.httpPort_),
       eventBlockCap_(other.eventBlockCap_),
       eventLogCap_(other.eventLogCap_),
@@ -127,6 +131,7 @@ class Options {
     const std::string& getWeb3ClientVersion() const { return this->web3clientVersion_; }
     const uint64_t& getVersion() const { return this->version_; }
     const Address& getChainOwner() const { return this->chainOwner_; }
+    const uint256_t& getChainOwnerInitialBalance() const { return this->chainOwnerInitialBalance_; }
     const uint64_t& getChainID() const { return this->chainID_; }
     const uint16_t& getHttpPort() const { return this->httpPort_; }
     const uint64_t& getEventBlockCap() const { return this->eventBlockCap_; }
@@ -145,20 +150,12 @@ class Options {
 
     /**
      * Load an options.json file from a given path and construct the singleton object.
-     * Defaults to this->binaryDefaultOptions() if no file is found.
+     * Defaults to this->genDefault() if no file is found.
      * @param rootPath Path to data root folder.
      * @return The constructed options object.
-     * @throw DynamicException on failure.
+     * @throw DynamicException on failure (e.g. options.json does not exist).
      */
     static Options fromFile(const std::string& rootPath);
-
-    /**
-     * Load the default options defined within the optionsdefaults.cpp file
-     * Used by fromFile to generate a default options.json file if not found.
-     * Defaults to Options(rootPath, "BDK/cpp/linux_x86-64/<project-version>", 2, 8080, 8080, 8081)
-     * @return The constructed options object.
-     */
-    static Options binaryDefaultOptions(const std::string& rootPath);
 };
 
 #endif // OPTIONS_H

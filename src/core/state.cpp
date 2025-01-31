@@ -20,14 +20,9 @@ See the LICENSE.txt file in the project root for more information.
 
 // Only need to register contract templates once
 std::once_flag State::stateRegisterContractsFlag;
-void State::registerContracts() {
-  ContractFactory::registerContracts<ContractTypes>();
-}
+void State::registerContracts() { ContractFactory::registerContracts<ContractTypes>(); }
 
-State::State(Blockchain& blockchain)
-  : blockchain_(blockchain),
-    vm_(evmc_create_evmone())
-{
+State::State(Blockchain& blockchain) : blockchain_(blockchain), vm_(evmc_create_evmone()) {
   // Register all contract templates in this binary at the ContractFactory
   std::call_once(stateRegisterContractsFlag, &State::registerContracts);
 
@@ -45,13 +40,10 @@ State::State(Blockchain& blockchain)
   resetState();
 }
 
-State::~State() {
-  evmc_destroy(this->vm_);
-}
+State::~State() { evmc_destroy(this->vm_); }
 
 void State::initChain(
-  uint64_t initialHeight, uint64_t initialTimeEpochSeconds,
-  std::string genesisSnapshot
+  uint64_t initialHeight, uint64_t initialTimeEpochSeconds, std::string genesisSnapshot
 ) {
   LOGDEBUG("State::initChain(): Height (BDK, -1) = " + std::to_string(initialHeight));
 
@@ -66,11 +58,13 @@ void State::initChain(
     //   params supplied to this call and that we set in resetState() above.
     loadSnapshot(genesisSnapshot, true);
   }
+
+  // If set in options, give the chain owner its initial balance
+  uint256_t chainOwnerBalance = this->blockchain_.opt().getChainOwnerInitialBalance();
+  if (chainOwnerBalance > 0) this->setBalance(this->blockchain_.opt().getChainOwner(), chainOwnerBalance);
 }
 
-std::string State::getLogicalLocation() const {
-  return blockchain_.getLogicalLocation();
-}
+std::string State::getLogicalLocation() const { return blockchain_.getLogicalLocation(); }
 
 void State::contractSanityCheck(const Address& addr, const Account& acc) {
   switch (acc.contractType) {
@@ -298,11 +292,6 @@ void State::loadSnapshot(const std::string& where, bool allowV1Snapshot) {
   for (const auto& [addr, acc] : this->accounts_) {
     contractSanityCheck(addr, *acc);
   }
-}
-
-void State::addBalance(const Address& addr) {
-  std::unique_lock lock(this->stateMutex_);
-  this->accounts_[addr]->balance += uint256_t("1000000000000000000000");
 }
 
 void State::setBalance(const Address& addr, const uint256_t& balance) {
@@ -897,3 +886,4 @@ uint64_t State::getNativeNonce(const Address& addr) const {
   if (it == this->accounts_.end()) return 0;
   return it->second->nonce;
 }
+
