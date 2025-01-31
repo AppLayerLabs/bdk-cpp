@@ -46,8 +46,8 @@ enum OrderField {
  * 0 - const uint256_t  - id          - Sequential unique ID of the order.
  * 1 - const uint       - timestamp   - The epoch timestamp of the order's creation.
  * 2 - const Address    - owner       - The address that made the order.
- * 3 - uint256_t        - assetAmount - The amount of the asset the order has to offer (tokenA for bids, tokenB for asks).
- * 4 - const uint256_t  - assetPrice  - The unit price of the asset the order has to offer in WEI of tokenB.
+ * 3 - uint256_t        - tokenAmount - The amount of the asset the order has to offer (tokenA for bids, tokenB for asks).
+ * 4 - const uint256_t  - tokenPrice  - The unit price of the asset the order has to offer in WEI of tokenB.
  * 5 - const uint256_t  - stopLimit   - The stop limit price of the order (only for stop limit orders), in WEI.
  * 6 - const OrderSide  - side        - Whether the order originally is a bid or ask.
  * 7 - const OrderType  - type        - Whether the order originally is a market or limit.
@@ -96,8 +96,8 @@ inline bool operator>(const StopOrder& lhs, const StopOrder& rhs) {
  * 0 - const uint256_t  - id          - Sequential unique ID of the order.
  * 1 - const uint       - timestamp   - The epoch timestamp of the order's creation.
  * 2 - const Address    - owner       - The address that made the order.
- * 3 - uint256_t        - assetAmount - The amount of the asset the order has to offer (tokenA for bids, tokenB for asks).
- * 4 - const uint256_t  - assetPrice  - The unit price of the asset the order has to offer in WEI of tokenB.
+ * 3 - uint256_t        - tokenAmount - The amount of the asset the order has to offer (tokenA for bids, tokenB for asks).
+ * 4 - const uint256_t  - tokenPrice  - The unit price of the asset the order has to offer in WEI of tokenB.
  * 5 - const OrderType  - type        - Whether the order originally is a market or limit.
  */
 using Order = std::tuple<uint256_t,
@@ -163,10 +163,13 @@ private:
   SafeString tickerAssetA_;                             ///< Ticker of the first asset of the pair.
   SafeString tickerAssetB_;                             ///< Ticker of the second asset of the pair.
   SafeUint256_t spread_;                                ///< Current market spread.
+
   SafeUint256_t tickSize_;                              ///< The tick size of the order book (minimum difference between price levels). \
                                                         Should be pow(10, AssetB_.decimals() - 4), tokens MUST have at least 8 decimals.
+
   SafeUint256_t lotSize_;                               ///< The lot size of the order book (minimum difference between order amounts). \
                                                         Should be pow(10, AssetA_.decimals() - 4), tokens MUST have at least 8 decimals.
+
   SafeUint256_t lastPrice_;                             ///< The last price of the pair.
   const uint256_t precision_ = 10000;                   ///< Equivalent to 10^4, difference between tick/lot size to the actual token value
 
@@ -176,11 +179,11 @@ private:
 
   /**
    * Transfer tokens from an address to the order book contract.
-   * @param assetAddress, the address where to get the tokens from.
-   * @param assetAmount, the amount to be transferred.
+   * @param address, the address where to get the tokens from.
+   * @param amount, the amount to be transferred.
    */
-  void transferToContract(const Address& assetAddress,
-                          const uint256_t &assetAmount);
+  inline void transferToContract(const Address& address,
+                                 const uint256_t& amount);
 
   /**
    * Create a order.
@@ -188,8 +191,8 @@ private:
    * @param assetPrice, the order asset prince.
    * @return Order, the nearly created order.
    */
-  Order makeOrder(const uint256_t& assetAmount,
-                  const uint256_t& assetPrice,
+  Order makeOrder(const uint256_t& tokenAmount,
+                  const uint256_t& tokenPrice,
                   const OrderType orderType);
 
   /**
@@ -240,12 +243,28 @@ private:
   void evaluateBidOrder(Order&& bidOrder);
 
   /**
+   * Evaluate the bid order, i.e, try to find the a matching ask order and
+   * execute the order pair, if the order isn't filled the bid order is not
+   * added to bid order list.
+   * @param bidOrder, the bid order.
+   */
+  void evaluateMarketBidOrder(Order&& bidOrder);
+
+  /**
    * Evaluate the ask order, i.e, try to find the a matching bid order and
    * execute the order pair, if the order isn't filled add the ask order to
    * the ask order list (passive order).
    * @param askOrder, the ask order.
    */
   void evaluateAskOrder(Order&& askOrder);
+
+  /**
+   * Evaluate the ask order, i.e, try to find the a matching bid order and
+   * execute the order pair, if the order isn't filled add the ask order to
+   * the ask order list.
+   * @param askOrder, the ask order.
+   */
+  void evaluateMarketAskOrder(Order&& bidOrder);
 
   /**
    * Find a matching ask order for an arbitrary bid order.
@@ -278,28 +297,42 @@ private:
   uint64_t getCurrentTimestamp() const;
 
   /**
-   * Convert from lot size to token amount.
-   * @param value The value to convert.
+   * Convert token amount to token lot.
+   * @param tokenAmount, The token amount to convert.
+   * @return the computed token lot
    */
-  inline uint256_t convertLot(const uint256_t& value) const {
-    return value * lotSize_.get();
+  inline uint256_t tokensLot(const uint256_t& tokenAmount) const
+  {
+    return tokenAmount * lotSize_.get();
   }
-
-  /**
-   * Compute the token amount from the asset amount and its price.
-   * @param assetAmount, the asset amount.
-   * @param assetPrice, the asset price.
-   * @return The computed token amount
-   */
-  inline uint256_t convertToken(const uint256_t& assetAmount,
-                                const uint256_t& assetPrice) const;
 
   /**
    * Convert from tick size to token amount.
    * @param value The value to convert.
+   * @return The computed token amount
    */
-  inline uint256_t convertTick(const uint256_t& value) const {
+  inline uint256_t tokensTick(const uint256_t& value) const
+  {
     return value * tickSize_.get();
+  }
+
+  /**
+   * Compute the amount of token at the asset's price.
+   * @param assetAmount, The token asset amount.
+   * @param assetPrice, The token asset price.
+   * @return tokens to be paid regarding the asset's amount and price.
+   */
+  inline uint256_t tokensToBePaid(const uint256_t& assetAmount,
+                                  const uint256_t& assetPrice) const
+  {
+    return ((this->tokensTick(assetAmount * assetPrice)) / this->precision_);
+  }
+
+  inline bool isTickSizable(const uint256_t& tokenPrice) { return true; }
+
+  inline bool isLotSizable(const uint256_t& tokenPrice)
+  {
+    return ((tokenPrice % this->lotSize_.get()) == 0);
   }
 
   /// Call the register functions for the contract.
@@ -389,7 +422,7 @@ public:
    * Getter for all asks.
    * @return A vector with all asks.
    */
-    std::vector<Order> getAsks() const;
+  std::vector<Order> getAsks() const;
 
   /**
    * Getter for all users orders
