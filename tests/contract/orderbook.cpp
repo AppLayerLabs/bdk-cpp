@@ -133,13 +133,35 @@ namespace TORDERBOOK {
       sdk.callFunction(bidAddr, &ERC20::approve, orderBook, uint256_t("2000000000000000000"));
       // add bid order
       sdk.callFunction(orderBook, &OrderBook::addAskLimitOrder, uint256_t("100"), uint256_t("10"));
-      sdk.callFunction(orderBook, &OrderBook::addBidLimitOrder, uint256_t("100"), uint256_t("10"));
-      // get asks and bids
+      auto askAddrBalance = sdk.callViewFunction(askAddr, &ERC20::balanceOf, owner);
+      // get bids
       auto asks = sdk.callViewFunction(orderBook, &OrderBook::getAsks);
+      // verify the number of bid orders
+      REQUIRE(asks.size() == 1);
+      // get ask id
+      uint256_t id = std::get<0>(*(asks.cbegin()));
+      // delete bid order
+      sdk.callFunction(orderBook, &OrderBook::delAskLimitOrder, id);
+      sdk.callFunction(orderBook, &OrderBook::addBidLimitOrder, uint256_t("2000"), uint256_t("10000"));
+      // verify balance
+      auto bidAddrBalance = sdk.callViewFunction(bidAddr, &ERC20::balanceOf, owner);
+      // print the balance
+      std::cout << "0: askAddrBalance: " << askAddrBalance << std::endl;
+      std::cout << "0: bidAddrBalance: " << bidAddrBalance << std::endl;
+      // add ask limit order again
+      sdk.callFunction(orderBook, &OrderBook::addAskLimitOrder, uint256_t("100"), uint256_t("10"));
+      // get asks and bids
+      asks = sdk.callViewFunction(orderBook, &OrderBook::getAsks);
       auto bids = sdk.callViewFunction(orderBook, &OrderBook::getBids);
       // verify the number of bid orders
       REQUIRE(asks.size() == 0);
-      REQUIRE(bids.size() == 0);
+      REQUIRE(bids.size() == 1);
+      // verify balance
+      askAddrBalance = sdk.callViewFunction(askAddr, &ERC20::balanceOf, owner);
+      bidAddrBalance = sdk.callViewFunction(bidAddr, &ERC20::balanceOf, owner);
+      // print the balance
+      std::cout << "1: askAddrBalance: " << askAddrBalance << std::endl;
+      std::cout << "2: bidAddrBalance: " << bidAddrBalance << std::endl;
     }
 
     SECTION("Orderbook delete bid limit order") {
@@ -209,12 +231,10 @@ namespace TORDERBOOK {
       sdk.callFunction(bidAddr, &ERC20::approve, orderBook, uint256_t("2000000000000000000"));
       // add ask market order
       sdk.callFunction(orderBook, &OrderBook::addAskMarketOrder, uint256_t("100"), uint256_t("10"));
-      sdk.callFunction(orderBook, &OrderBook::addAskMarketOrder, uint256_t("100"), uint256_t("10"));
-      sdk.callFunction(orderBook, &OrderBook::addAskMarketOrder, uint256_t("100"), uint256_t("10"));
       // get asks orders
       auto asks = sdk.callViewFunction(orderBook, &OrderBook::getAsks);
       // verify the number of ask orders
-      REQUIRE(asks.size() == 3);
+      REQUIRE(asks.size() == 0);
     }
 
     SECTION("Orderbook add bid market order") {
@@ -232,15 +252,13 @@ namespace TORDERBOOK {
       sdk.callFunction(bidAddr, &ERC20::approve, orderBook, uint256_t("2000000000000000000"));
       // add bid market order
       sdk.callFunction(orderBook, &OrderBook::addBidMarketOrder, uint256_t("100"), uint256_t("10"));
-      sdk.callFunction(orderBook, &OrderBook::addBidMarketOrder, uint256_t("100"), uint256_t("10"));
-      sdk.callFunction(orderBook, &OrderBook::addBidMarketOrder, uint256_t("100"), uint256_t("10"));
       // get bids orders
       auto bids = sdk.callViewFunction(orderBook, &OrderBook::getBids);
-      // verify the number of bid orders
-      REQUIRE(bids.size() == 3);
+      // verify the number of bid market orders
+      REQUIRE(bids.size() == 0);
     }
 
-    SECTION("Orderbook add ask and bid market order to match a transaction") {
+    SECTION("Orderbook add ask limit order and bid market order to match a transaction") {
       SDKTestSuite sdk = SDKTestSuite::createNewEnvironment(testDumpPath + "/testOrderBookCreation");
       Address owner = sdk.getChainOwnerAccount().address;
       Address askAddr = sdk.deployContract<ERC20>(std::string("A_Token"), std::string("TKN_A"), uint8_t(18), uint256_t("2000000000000000000"));
@@ -254,8 +272,35 @@ namespace TORDERBOOK {
       sdk.callFunction(askAddr, &ERC20::approve, orderBook, uint256_t("2000000000000000000"));
       sdk.callFunction(bidAddr, &ERC20::approve, orderBook, uint256_t("2000000000000000000"));
       // add bid order
-      sdk.callFunction(orderBook, &OrderBook::addAskMarketOrder, uint256_t("100"), uint256_t("20"));
+      sdk.callFunction(orderBook, &OrderBook::addAskLimitOrder, uint256_t("100"), uint256_t("20"));
       sdk.callFunction(orderBook, &OrderBook::addBidMarketOrder, uint256_t("100"), uint256_t("10"));
+      // get asks and bids
+      auto asks = sdk.callViewFunction(orderBook, &OrderBook::getAsks);
+      auto bids = sdk.callViewFunction(orderBook, &OrderBook::getBids);
+      // verify the number of bid orders
+      REQUIRE(asks.size() == 0);
+      REQUIRE(bids.size() == 0);
+    }
+
+    SECTION("Orderbook add bid limit order and ask market order to match a transaction") {
+      SDKTestSuite sdk = SDKTestSuite::createNewEnvironment(testDumpPath + "/testOrderBookCreation");
+      Address owner = sdk.getChainOwnerAccount().address;
+      Address askAddr = sdk.deployContract<ERC20>(std::string("A_Token"), std::string("TKN_A"), uint8_t(18), uint256_t("2000000000000000000"));
+      Address bidAddr = sdk.deployContract<ERC20>(std::string("B_Token"), std::string("TKN_B"), uint8_t(18), uint256_t("2000000000000000000"));
+      uint8_t decA = sdk.callViewFunction(askAddr, &ERC20::decimals);
+      uint8_t decB = sdk.callViewFunction(bidAddr, &ERC20::decimals);
+      // create the contract
+      Address orderBook = sdk.deployContract<OrderBook>(askAddr, std::string("A_Token"), decA,
+                                                        bidAddr, std::string("B_Token"), decB);
+      // approve orderbook to transfer the tokens
+      sdk.callFunction(askAddr, &ERC20::approve, orderBook, uint256_t("2000000000000000000"));
+      sdk.callFunction(bidAddr, &ERC20::approve, orderBook, uint256_t("2000000000000000000"));
+      // add bid order
+      sdk.callFunction(orderBook, &OrderBook::addBidLimitOrder, uint256_t("50"), uint256_t("20"));
+      sdk.callFunction(orderBook, &OrderBook::addBidLimitOrder, uint256_t("50"), uint256_t("20"));
+      sdk.callFunction(orderBook, &OrderBook::addBidLimitOrder, uint256_t("100"), uint256_t("30"));
+      sdk.callFunction(orderBook, &OrderBook::addAskMarketOrder, uint256_t("100"), uint256_t("10"));
+      sdk.callFunction(orderBook, &OrderBook::addAskMarketOrder, uint256_t("100"), uint256_t("10"));
       // get asks and bids
       auto asks = sdk.callViewFunction(orderBook, &OrderBook::getAsks);
       auto bids = sdk.callViewFunction(orderBook, &OrderBook::getBids);
