@@ -33,8 +33,21 @@ void Storage::storeBlock(DB& db, const FinalizedBlock& block, bool indexingEnabl
       batch.push_back(TxHash, value, DBPrefix::txToBlock);
     }
   }
-
   db.putBatch(batch);
+}
+
+void Storage::reindexTransactions(const FinalizedBlock& block, DBBatch& batch) {
+  const auto& Txs = block.getTxs();
+  for (uint32_t i = 0; i < Txs.size(); i++) {
+    const auto& TxHash = Txs[i].hash();
+    const FixedBytes<44> value(
+      bytes::join(block.getHash(), UintConv::uint32ToBytes(i), UintConv::uint64ToBytes(block.getNHeight()))
+    );
+    batch.push_back(TxHash, value, DBPrefix::txToBlock);
+  }
+}
+void Storage::dumpToDisk(DBBatch &batch) {
+  blocksDb_.putBatch(batch);
 }
 
 Storage::Storage(std::string instanceIdStr, const Options& options)

@@ -73,8 +73,20 @@ State::State(
   // We can't call processNextBlock here, as it will place the block again on the storage
   Utils::safePrint("Loading state from snapshot height: " + std::to_string(snapshotHeight));
   Utils::safePrint("Got latest block height: " + std::to_string(latestBlock->getNHeight()));
+  std::unique_ptr<DBBatch> reindexedTxs = std::make_unique<DBBatch>();
   for (uint64_t nHeight = snapshotHeight + 1; nHeight <= latestBlock->getNHeight(); nHeight++) {
+    if (nHeight > 20000) {
+      break;
+    }
     auto block = this->storage_.getBlock(nHeight);
+    if (this->options_.getIndexingMode() == IndexingMode::RPC || this->options_.getIndexingMode() == IndexingMode::RPC_TRACE) {
+      this->storage_.reindexTransactions(*block, *reindexedTxs);
+    }
+    if (reindexedTxs->getPuts().size() > 25000) {
+      this->storage_.dumpToDisk(*reindexedTxs);
+      reindexedTxs = std::make_unique<DBBatch>();
+      LOGINFOP("Reindexing transactions at block " + block->getHash().hex().get() + " at height " + std::to_string(nHeight));
+    }
     LOGINFOP("Processing block " + block->getHash().hex().get() + " at height " + std::to_string(nHeight));
     // Update contract globals based on (now) latest block
     const Hash blockHash = block->getHash();
@@ -91,6 +103,10 @@ State::State(
     }
     // Process rdPoS State
     this->rdpos_.processBlock(*block);
+  }
+  if (reindexedTxs->getPuts().size() > 0) {
+    LOGINFOP("Reindexing remaining transactions");
+    this->storage_.dumpToDisk(*reindexedTxs);
   }
   this->dumpManager_.pushBack(this);
 }

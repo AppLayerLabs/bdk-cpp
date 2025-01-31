@@ -161,6 +161,14 @@ class Storage : public Log::LogicalLocationProvider {
     void putEvent(const Event& event);
 
     /**
+     * Reindex transactions to the DB
+     * if the transaction is not already indexed.
+     */
+    void reindexTransactions(const FinalizedBlock& block, DBBatch& batch);
+
+    void dumpToDisk(DBBatch& batch);
+
+    /**
      * Retrieve all events from a given range of block numbers.
      * @param fromBlock The initial block number (included).
      * @param toBlock The last block number (included).
