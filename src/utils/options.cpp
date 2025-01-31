@@ -9,6 +9,8 @@ See the LICENSE.txt file in the project root for more information.
 
 #include "dynamicexception.h"
 
+#include <fstream>
+
 IndexingMode::IndexingMode(std::string_view mode) {
   if (mode == "DISABLED") {
     value_ = DISABLED.value_;

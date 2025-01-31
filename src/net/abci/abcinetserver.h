@@ -27,10 +27,12 @@ class ABCINetServer : public std::enable_shared_from_this<ABCINetServer> {
     boost::asio::local::stream_protocol::acceptor acceptor_; ///< UNIX listen socket connection acceptor.
 
     std::mutex sessionsMutex_; ///< Serialize access to sessions_ (also protects acceptor_ so we don't need an acceptor strand).
-    std::vector<std::weak_ptr<ABCINetSession>> sessions_; ///< So we can explicitly close all sockets on stop().
+    std::vector<std::shared_ptr<ABCINetSession>> sessions_; ///< So we can explicitly close all sockets on stop().
 
     std::atomic<bool> started_; ///< If net engine was ever started.
     std::atomic<bool> stopped_; ///< If net engine was ever stopped (cannot be restarted).
+    std::atomic<bool> failed_; ///< If an I/O failure was detected.
+    std::atomic<int> sessionDestroyed_{0}; ///< Count number of ABCINetSession objects that have been deleted by ASIO.
 
     void do_accept(); ///< Accepts another incoming ABCI stream connection through acceptor_ (net handler).
 
@@ -43,18 +45,33 @@ class ABCINetServer : public std::enable_shared_from_this<ABCINetServer> {
      */
     ABCINetServer(ABCIHandler *handler, const std::string &cometUNIXSocketPath);
 
+    virtual ~ABCINetServer();
+
     /**
      * Start the ABCI net engine (only once).
+     * @return `true` if start successful, `false` on any error (already started, already stopped,
+     * can't bind acceptor).
      */
-    void start();
+    bool start();
 
     /**
      * Stop the ABCI net engine (cannot be restarted).
      */
-    void stop(const std::string &reason);
+    void stop();
 
     /**
-     * Check if the net server is running.
+     * An ABCINetSession (socket reader/writer) is notifying the ABCINetServer of an I/O failure.
+     * Marks this instance as failed, so running() returns false.
+     */
+    void failed(const std::string &reason);
+
+    /**
+     * Notifies of one ABCINetSession being destroyed.
+     */
+    void sessionDestroyed();
+
+    /**
+     * Check if the net server is running (started, not stopped, and not failed).
      */
     bool running();
 };

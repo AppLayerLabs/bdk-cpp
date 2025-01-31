@@ -24,7 +24,7 @@ class Blockchain;
 class Storage : public Log::LogicalLocationProvider {
   private:
     Blockchain& blockchain_; ///< Our parent object through which we reach the other components
-    DB blocksDb_;  ///< DB for general-purpose usage (doesn't actually hold blocks; TODO: rename)
+    DB blocksDb_; ///< DB for general-purpose usage (doesn't actually hold blocks)
     DB eventsDb_; ///< DB for events
 
   public:

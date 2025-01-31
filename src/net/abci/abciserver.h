@@ -51,15 +51,15 @@ class ABCIServer {
 
     /**
      * Stops the ABCIServer. Does nothing if already stopped.
-     * Even if the cometbft process hsa already terminated (the client), must call stop()
+     * Even if the cometbft process has already terminated (the client), must call stop()
      * eventually to shut down the threading/networking objects on our side.
      * @return `true` if the server was stopped, `false` if it was already stopped.
      */
     bool stop();
 
     /**
-     * Checks if the ABCIServer is (still) running.
-     * @return `true` if the ABCI socket connections are still being processed, `false` otherwise.
+     * Checks if the server is started and not failed.
+     * @return `true` if has an abciNetServer_ that is running() == true, `false` otherwise.
      */
     bool running();
 };

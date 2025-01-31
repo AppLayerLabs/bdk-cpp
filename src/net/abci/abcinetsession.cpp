@@ -16,8 +16,13 @@ ABCINetSession::ABCINetSession(ABCIHandler *handler, boost::asio::local::stream_
 {
 }
 
+ABCINetSession::~ABCINetSession() {
+  LOGXTRACE("~ABCINetSession()");
+  server_->sessionDestroyed();
+}
+
 void ABCINetSession::start() {
-  std::scoped_lock lock(startedMutex_);
+  std::scoped_lock lock(stateMutex_);
   if (started_) {
     return;
   }
@@ -30,15 +35,22 @@ void ABCINetSession::start() {
 }
 
 void ABCINetSession::close() {
-  boost::asio::dispatch(
-    boost::asio::bind_executor(
-      strand_,
-      std::bind(&ABCINetSession::do_close, shared_from_this())
-    )
+  std::scoped_lock lock(stateMutex_);
+  if (closing_) {
+    return;
+  }
+  closing_ = true;
+
+  boost::asio::post(
+    strand_,
+    std::bind(&ABCINetSession::do_close, shared_from_this())
   );
 }
 
 void ABCINetSession::do_close() {
+  if (closing_) {
+    return;
+  }
   if (closed_) {
     return;
   }
@@ -59,6 +71,9 @@ void ABCINetSession::do_close() {
 }
 
 void ABCINetSession::start_read_varint() {
+  if (closing_) {
+    return;
+  }
   varint_value_ = 0;
   varint_shift_ = 0;
 
@@ -69,6 +84,9 @@ void ABCINetSession::start_read_varint() {
 }
 
 void ABCINetSession::start_read_varint_byte() {
+  if (closing_) {
+    return;
+  }
   boost::asio::async_read(
     socket_,
     boost::asio::buffer(&varint_byte_, 1),
@@ -80,8 +98,11 @@ void ABCINetSession::start_read_varint_byte() {
 }
 
 void ABCINetSession::handle_read_varint_byte(boost::system::error_code ec, std::size_t length) {
+  if (closing_) {
+    return;
+  }
   if (ec) {
-    server_->stop("Error reading varint byte: " + ec.message());
+    server_->failed("Error reading varint byte: " + ec.message());
     return;
   }
 
@@ -91,7 +112,7 @@ void ABCINetSession::handle_read_varint_byte(boost::system::error_code ec, std::
   } else {
     varint_shift_ += 7;
     if (varint_shift_ >= 64) {
-      server_->stop("Varint too long");
+      server_->failed("Varint too long");
       return;
     }
     start_read_varint_byte();
@@ -99,14 +120,17 @@ void ABCINetSession::handle_read_varint_byte(boost::system::error_code ec, std::
 }
 
 void ABCINetSession::handle_read_message_length(bool success, uint64_t msg_len) {
+  if (closing_) {
+    return;
+  }
   if (!success) {
-    server_->stop("Error reading message length (failed)");
+    server_->failed("Error reading message length (failed)");
     return;
   } else if (msg_len == 0) {
-    server_->stop("Error reading message length (len==0)");
+    server_->failed("Error reading message length (len==0)");
     return;
   } else if (msg_len > COMET_ABCI_MAX_MESSAGE_SIZE) {
-    server_->stop("Error reading message length (too large; len==" + std::to_string(msg_len) + ")");
+    server_->failed("Error reading message length (too large; len==" + std::to_string(msg_len) + ")");
     return;
   }
 
@@ -127,14 +151,20 @@ void ABCINetSession::handle_read_message_length(bool success, uint64_t msg_len) 
 }
 
 void ABCINetSession::handle_read_message(boost::system::error_code ec, std::size_t length) {
+  if (closing_) {
+    return;
+  }
   if (ec) {
-    server_->stop("Error reading message data: " + ec.message());
+    server_->failed("Error reading message data: " + ec.message());
     return;
   }
   process_request();
 }
 
 void ABCINetSession::do_write_message() {
+  if (closing_) {
+    return;
+  }
   varint_buffer_.clear();
   uint64_t value = databuf_message_size_;
   while (true) {
@@ -160,8 +190,11 @@ void ABCINetSession::do_write_message() {
 }
 
 void ABCINetSession::handle_write_varint(boost::system::error_code ec, std::size_t length) {
+  if (closing_) {
+    return;
+  }
   if (ec) {
-    server_->stop("Error writing varint: " + ec.message());
+    server_->failed("Error writing varint: " + ec.message());
     return;
   }
 
@@ -176,8 +209,11 @@ void ABCINetSession::handle_write_varint(boost::system::error_code ec, std::size
 }
 
 void ABCINetSession::handle_write_message(boost::system::error_code ec, std::size_t length) {
+  if (closing_) {
+    return;
+  }
   if (ec) {
-    server_->stop("Error writing response: " + ec.message());
+    server_->failed("Error writing response: " + ec.message());
     return;
   }
 
@@ -190,7 +226,7 @@ void ABCINetSession::handle_write_message(boost::system::error_code ec, std::siz
 void ABCINetSession::process_request() {
   cometbft::abci::v1::Request request;
   if (!request.ParseFromArray(databuf_.data(), databuf_message_size_)) {
-    server_->stop("Failed to parse request");
+    server_->failed("Failed to parse request");
     return;
   }
 
@@ -331,7 +367,7 @@ void ABCINetSession::process_request() {
     default:
     {
       LOGXTRACE("Unknown Request Type (ERROR)");
-      server_->stop("Received an unknown request type");
+      server_->failed("Received an unknown request type");
       auto *exception_resp = response.mutable_exception();
       exception_resp->set_error("Unknown request type");
       break;
@@ -344,7 +380,7 @@ void ABCINetSession::process_request() {
   }
 
   if (!response.SerializeToArray(databuf_.data(), response_size)) {
-    server_->stop("Failed to serialize response");
+    server_->failed("Failed to serialize response");
     return;
   }
 

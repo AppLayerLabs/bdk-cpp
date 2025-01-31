@@ -174,8 +174,7 @@ void Blockchain::setGetTxCacheSize(const uint64_t cacheSize) {
 }
 
 void Blockchain::saveSnapshot() {
-  // TODO: Snapshotting should be done by a forked process.
-  // Later, we can add support for snapshotting using a non-validator node, potentially on
+  // TODO: Add support for snapshotting using a non-validator node, potentially on
   // another machine (a snapshotting worker that keeps the protocol going but knows how
   // to cache FinalizedBlock objects for later execution while it is dumping -- something
   // you cannot afford to do if you are a live validator node).
@@ -200,7 +199,7 @@ void Blockchain::saveSnapshot() {
     // Write the snapshot
     state_.saveSnapshot(snapshotDir);
   } catch (std::exception& ex) {
-    LOGERROR(
+    throw DynamicException(
       "Cannot save snapshot for height " + std::to_string(currentHeight) +
       ": " + std::string(ex.what())
     );
@@ -738,7 +737,7 @@ void Blockchain::persistState(uint64_t& height) {
 
   // Trigger snapshotting every X blocks (non-syncing)
   if (!syncing_) {
-    if (++persistStateSkipCount_ > options_.getStateDumpTrigger()) {
+    if (++persistStateSkipCount_ >= options_.getStateDumpTrigger()) {
       persistStateSkipCount_ = 0;
       saveSnapshot();
     }

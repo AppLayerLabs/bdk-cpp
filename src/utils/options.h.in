@@ -8,12 +8,12 @@ See the LICENSE.txt file in the project root for more information.
 #ifndef OPTIONS_H
 #define OPTIONS_H
 
-#include <boost/asio.hpp>
-#include "finalizedblock.h" // merkle.h -> tx.h -> ecdsa.h -> utils.h -> filesystem, boost/asio/ip/address.hpp
 #include "strings.h"
-#include "ecdsa.h"
+
 #include "../libs/json.hpp"
 using json = nlohmann::ordered_json;
+
+#include <filesystem>
 
 /// Helper class for setting the node's indexing mode.
 class IndexingMode {

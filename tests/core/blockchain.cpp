@@ -410,6 +410,55 @@ namespace TBlockchain {
       blockchain.buildBlockProposal(100'000'000, cometBlock, noChange, txIds);
       REQUIRE(txIds.size() == 0);
     }
+
+    // Blockchain stateDumpTrigger test
+    SECTION("BlockchainStateDumpTriggerTest") {
+      std::string testDumpPath = createTestDumpPath("BlockchainStateDumpTriggerTest");
+
+      GLOGDEBUG("TEST: creating Options for Blockchain");
+
+      int snapshotCount = 25;
+      int stateDumpTrigger = 4; // # blocks between auto snapshot save
+      int p2p_port = SDKTestSuite::getTestPort();
+      int rpc_port = SDKTestSuite::getTestPort();
+      const Options options = SDKTestSuite::getOptionsForTest(
+        testDumpPath, false, "", p2p_port, rpc_port, 0, 1, {}, 0, stateDumpTrigger, "100ms"
+      );
+
+      GLOGDEBUG("TEST: creating Blockchain with stateDumpTrigger = " + std::to_string(stateDumpTrigger));
+
+      Blockchain blockchain(options, testDumpPath);
+
+      GLOGDEBUG("TEST: starting Blockchain");
+
+      blockchain.start();
+
+      GLOGDEBUG("TEST: starting Blockchain");
+
+      // Wait until a minimum height is reached
+      while (blockchain.state().getHeight() < stateDumpTrigger * snapshotCount) {
+        GLOGDEBUG("TEST: Blockchain height = " + std::to_string(blockchain.state().getHeight()));
+        std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+      }
+
+      GLOGDEBUG("TEST: stopping Blockchain");
+
+      blockchain.stop();
+
+      // Check we have created snapshotCount snapshot directories
+      std::filesystem::path snapshotsDir = std::filesystem::path(testDumpPath) / "snapshots";
+      REQUIRE(std::filesystem::exists(snapshotsDir));
+      REQUIRE(std::filesystem::is_directory(snapshotsDir));
+      for (int i = 1; i <= snapshotCount; ++i) {
+        int expectedHeight = i * stateDumpTrigger;
+        std::filesystem::path expectedSnapshotDir = snapshotsDir / std::to_string(expectedHeight);
+        GLOGDEBUG("TEST: Checking existence of snapshot directory: " + expectedSnapshotDir.string());
+        REQUIRE(std::filesystem::exists(expectedSnapshotDir));
+        REQUIRE(std::filesystem::is_directory(expectedSnapshotDir));
+      }
+
+      GLOGDEBUG("TEST: done");
+    }
   }
 }
 

@@ -219,6 +219,12 @@ class WebsocketRPCConnection : public Log::LogicalLocationProvider {
     void rpcInterruptGetNextAsyncResponse();
 
     /**
+     * Get the number of pending async RPC requests for which we are waiting cometbft to respond.
+     * @return Number of pending async RPC requests.
+     */
+    uint64_t rpcGetPendingAsyncCount();
+
+    /**
      * Make an asynchronous (non-blocking) JSON-RPC call.
      * NOTE: If this method returns `0`, you *MUST* folow up with a call to `rpcStopConnection()` at some
      * point, since this method cannot stop the connection on its own (otherwise it would invoke the
@@ -625,6 +631,12 @@ void WebsocketRPCConnection<T>::rpcInterruptGetNextAsyncResponse() {
     }
   }
   rpcAsyncResponseCv_.notify_one();
+}
+
+template <typename T>
+uint64_t WebsocketRPCConnection<T>::rpcGetPendingAsyncCount() {
+  std::scoped_lock lock(rpcAsyncSentMutex_);
+  return rpcAsyncSent_.size();
 }
 
 template <typename T>
@@ -1186,6 +1198,7 @@ void CometImpl::cleanup() {
     //   before we close the ABCI app server.
     int waitRunningTries = 200;
     while (abciServer_->running() && --waitRunningTries > 0) {
+      LOGXTRACE("abciServer_ networking not stopped yet, waiting...");
       std::this_thread::sleep_for(std::chrono::milliseconds(20));
     }
     if (waitRunningTries) {
@@ -1952,7 +1965,10 @@ void CometImpl::workerLoopInner() {
 
     // start the ABCI server
     abciServer_ = std::make_unique<ABCIServer>(this, cometUNIXSocketPath);
-    abciServer_->start();
+    if (!abciServer_->start()) {
+      setErrorCode(CometError::ABCI_SERVER_FAILED);
+      throw DynamicException("Comet failed: ABCI server failed to start (immediate)");
+    }
 
     // the ABCI server listen socket will probably be up and running after this sleep.
     std::this_thread::sleep_for(std::chrono::seconds(1));
@@ -1960,7 +1976,7 @@ void CometImpl::workerLoopInner() {
     // if it is not running by now then it is probably because starting the ABCI server failed.
     if (!abciServer_->running()) {
       setErrorCode(CometError::ABCI_SERVER_FAILED);
-      throw DynamicException("Comet failed: ABCI server failed to start");
+      throw DynamicException("Comet failed: ABCI server failed to start (delayed)");
     }
 
     setState(CometState::STARTED_ABCI);

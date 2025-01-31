@@ -214,6 +214,7 @@ class SDKTestSuite : public Blockchain {
      * The non-validator peers, if any, are the last peers in the sequence (e.g. if numKeys == 10 and
      * numNonValidators == 3, then key indices 0..6 are validators, but keys 7..9 are excluded from the
      * validator set (but all 10 nodes are still fully connected to each other via persistent_peers).
+     * @param stateDumpTrigger Number of blocks elapsed between Blockchain::saveSnapshot() calls.
      * @return Options object set up for testing a Comet instance.
      */
     static Options getOptionsForTest(
@@ -223,7 +224,9 @@ class SDKTestSuite : public Blockchain {
       int p2pPort = -1, int rpcPort = -1,
       int keyNumber = 0, int numKeys = 1,
       std::vector<CometTestPorts> ports = {},
-      int numNonValidators = 0
+      int numNonValidators = 0,
+      int stateDumpTrigger = 1000,
+      std::string cometBFTRoundTime = "1s"
     );
 
     /**

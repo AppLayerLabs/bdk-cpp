@@ -139,16 +139,18 @@ void State::resetState(uint64_t height, uint64_t timeMicros) {
 }
 
 void State::saveSnapshot(const std::string& where) {
-
-  // FIXME: Fork the process so we don't hog stateMutex_ and kill validator nodes
-  //        (it should be way faster than creating a deep copy of a State instance)
-
   LOGINFO("Saving snapshot to: " + where);
 
-  // DB directory & instance (uncompressed)
+  // TODO: need to remove the ability of validator nodes to generate snapshots
+  //   entirely (by configuring stateDumpTrigger to -1 or something like that)
+  //   and allow snapshotting only at non-validator nodes (by queuing up FinalizedBlock's
+  //   until the snapshot generation completes).
+
+  // Create DB directory for output
   DB out(where);
 
-  // State is inaccessible while a snapshot is being written
+  // Lock state while writing snapshot.
+  // TODO: Change to shared_lock, which is more correct since we just read the state here.
   std::unique_lock<std::shared_mutex> lock(stateMutex_);
 
   // Write snapshot header

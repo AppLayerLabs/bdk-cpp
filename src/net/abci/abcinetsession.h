@@ -18,8 +18,9 @@ class ABCINetSession : public std::enable_shared_from_this<ABCINetSession> {
     std::shared_ptr<ABCINetServer> server_; ///< The ASIO-based net engine (stream socket server for all ABCI connections).
     ABCIHandler* handler_; ///< ABCI application callback receiver and handler.
 
-    std::mutex startedMutex_; ///< Mutex for protecting start_ (close_ state transition is protected by strand_).
-    bool started_ = false; ///< Set to true once this session is started (it can only be started once).
+    std::mutex stateMutex_; ///< Mutex for serializing start() and close().
+    bool started_ = false; ///< Set to true once start() is called and this session is started (it can only be started once).
+    std::atomic<bool> closing_ = false; ///< Set to true once close() is called and this session is stopped (can only be stopped once).
     std::atomic<bool> closed_ = false; ///< Set to true once this session has closed itself (means the socket is closing or closed).
 
     boost::asio::local::stream_protocol::socket socket_; ///< Socket object for reading from this established ABCI stream socket connection.
@@ -54,6 +55,8 @@ class ABCINetSession : public std::enable_shared_from_this<ABCINetSession> {
      */
     ABCINetSession(ABCIHandler* handler, boost::asio::local::stream_protocol::socket socket, std::shared_ptr<ABCINetServer> server);
 
+    virtual ~ABCINetSession();
+
     /**
      * Starts reading the first ABCI request (can only start a session once).
      */
@@ -63,6 +66,11 @@ class ABCINetSession : public std::enable_shared_from_this<ABCINetSession> {
      * Closes this ABCI session (if it hasn't yet been closed).
      */
     void close();
+
+    /**
+     * Check if running.
+     */
+    bool running() { return !closed_; }
 };
 
 #endif

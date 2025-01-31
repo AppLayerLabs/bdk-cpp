@@ -12,6 +12,16 @@ See the LICENSE.txt file in the project root for more information.
 #include "src/core/comet.h"
 #include "src/utils/clargs.h"
 #include "src/utils/options.h"
+#include "src/utils/utils.h"
+
+/**
+ * FIXME/TODO
+ * bdkd-discovery could be replaced simply by running bdkd with different options
+ * that allow it to operate as a seed node. it may not require a separate binary.
+ * if we implement e.g. cometbft seed node functionality in bdkd and our needs are
+ * met by that (implement a testcase in tests/blockchain.cpp and/or tests/comet.cpp,
+ * or elsewhere), then bdkd-discovery can be removed.
+ */
 
 std::condition_variable cv;
 std::mutex cv_m;

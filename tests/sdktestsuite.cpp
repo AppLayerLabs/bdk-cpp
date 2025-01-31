@@ -399,7 +399,9 @@ Options SDKTestSuite::getOptionsForTest(
   int p2pPort, int rpcPort,
   int keyNumber, int numKeys,
   std::vector<CometTestPorts> ports,
-  int numNonValidators
+  int numNonValidators,
+  int stateDumpTrigger,
+  std::string cometBFTRoundTime
 ) {
   // Note: all Comet instances are validators.
 
@@ -493,19 +495,16 @@ Options SDKTestSuite::getOptionsForTest(
     defaultCometBFTOptions["config.toml"]["p2p"]["persistent_peers"] = peersStr;
   }
 
-  if (stepMode) {
-    SLOGDEBUG("stepMode is set, setting step mode parameters for testing.");
-    defaultCometBFTOptions["config.toml"]["consensus"] = {
-      {"create_empty_blocks", false},
-      {"timeout_propose", "1s"},
-      {"timeout_propose_delta", "0s"},
-      {"timeout_prevote", "1s"},
-      {"timeout_prevote_delta", "0s"},
-      {"timeout_precommit", "1s"},
-      {"timeout_precommit_delta", "0s"},
-      {"timeout_commit", "0s"}
-    };
-  }
+  defaultCometBFTOptions["config.toml"]["consensus"] = {
+    {"create_empty_blocks", !stepMode}, // if stepMode == true, create_emptyBlocks == false
+    {"timeout_propose", cometBFTRoundTime},
+    {"timeout_propose_delta", "0s"},
+    {"timeout_prevote", cometBFTRoundTime},
+    {"timeout_prevote_delta", "0s"},
+    {"timeout_precommit", cometBFTRoundTime},
+    {"timeout_precommit_delta", "0s"},
+    {"timeout_commit", "0s"}
+  };
 
   // Replace "priv_validator_key.json" with the key at index keyNumber
   const CometTestKeys& testKeys = cometTestKeys[keyNumber];
@@ -559,7 +558,7 @@ Options SDKTestSuite::getOptionsForTest(
     9999,
     2000,
     10000,
-    1000,
+    stateDumpTrigger,
     IndexingMode::RPC_TRACE,
     defaultCometBFTOptions
   );

@@ -10,6 +10,7 @@ See the LICENSE.txt file in the project root for more information.
 
 #include "../utils/options.h"
 #include "../utils/bucketcache.h"
+#include "../utils/finalizedblock.h"
 #include "comet.h"
 #include "state.h"
 #include "storage.h"
@@ -35,7 +36,7 @@ See the LICENSE.txt file in the project root for more information.
  * that we have no reason to duplicate, such as blocks (OK to cache in RAM),
  * (ii) State (consistent contract checkpoints/snapshots at some execution
  * height) as those should be serialized/deserialized from/to their own
- * file-backed data structures (flat files or the dump-to-fresh-speedb system)
+ * file-backed data structures (we are using the dump-to-fresh-speedb system)
  * (iii) the list of contract types/templates that exist, since that pertains
  * to the binary itself, and should be built statically in RAM on startup (const)
  * (it is OK-ish to store in Storage the range of block heights for which a
@@ -114,7 +115,6 @@ class Blockchain : public CometListener, public NodeRPCInterface, public Log::Lo
     FinalizedBlockCache fbCache_;
 
     bool syncing_ = false; ///< Updated by Blockchain::incomingBlock() when syncingToHeight > height.
-
     uint64_t persistStateSkipCount_ = 0; ///< Count of non-syncing_ Blockchain::persistState() calls that skipped saveSnapshot().
 
     /**
@@ -255,6 +255,7 @@ class Blockchain : public CometListener, public NodeRPCInterface, public Log::Lo
 
     /**
      * Save the current machine state to <blockchainPath>/snapshots/<current-State-height>.
+     * May throw on error.
      */
     void saveSnapshot();
 
@@ -266,6 +267,15 @@ class Blockchain : public CometListener, public NodeRPCInterface, public Log::Lo
 
     uint64_t getLatestHeight() const; ///< Get the height of the lastest finalized block or 0.
 
+    /**
+     * Given a CometBFT validator address, which is backed by a secp256k1 validator
+     * private key (due to how the Comet driver configures CometBFT to use secp256k1
+     * keys), look up the current validator list, find the validator private key given
+     * the CometBFT validator address, then generate an Eth validator address from
+     * that found private key.
+     * @param validatorCometAddress The CometBFT address of one of the active validators.
+     * @return The translation of the CometBFT address into the corresponding Eth address.
+     */
     Address validatorCometAddressToEthAddress(Address validatorCometAddress);
 
     /**
