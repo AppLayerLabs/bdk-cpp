@@ -497,7 +497,7 @@ json txpool_content(const json& request, const State& state) {
     txJson["blockNumber"] = json::value_t::null;
     txJson["from"] = tx.getFrom().hex(true);
     txJson["to"] = tx.getTo().hex(true);
-    txJson["gasUsed"] = json::value_t::null;
+    txJson["gas"] = Hex::fromBytes(Utils::uintToBytes(tx.getGasLimit()), true).forRPC();
     txJson["gasPrice"] = Hex::fromBytes(Utils::uintToBytes(tx.getMaxFeePerGas()),true).forRPC();
     txJson["getMaxFeePerGas"] = Hex::fromBytes(Utils::uintToBytes(tx.getMaxFeePerGas()),true).forRPC();
     txJson["chainId"] = Hex::fromBytes(Utils::uintToBytes(tx.getChainId()),true).forRPC();
