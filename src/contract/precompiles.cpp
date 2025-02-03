@@ -58,11 +58,23 @@ void blake2f(std::span<uint64_t, 8> h, std::span<const uint64_t, 16> m,
     {10, 8, 7, 1, 2, 4, 6, 5, 15, 9, 3, 13, 11, 14, 12, 0}
   };
 
-    uint64_t v0 = h[0], v1 = h[1], v2 = h[2], v3 = h[3],
-           v4 = h[4], v5 = h[5], v6 = h[6], v7 = h[7],
-           v8 = iv[0], v9 = iv[1], v10 = iv[2], v11 = iv[3],
-           v12 = iv[4], v13 = iv[5], v14 = iv[6], v15 = iv[7];
-
+  uint64_t v0 = h[0];
+  uint64_t v1 = h[1];
+  uint64_t v2 = h[2];
+  uint64_t v3 = h[3];
+  uint64_t v4 = h[4];
+  uint64_t v5 = h[5];
+  uint64_t v6 = h[6];
+  uint64_t v7 = h[7];
+  uint64_t v8 = iv[0];
+  uint64_t v9 = iv[1];
+  uint64_t v10 = iv[2];
+  uint64_t v11 = iv[3];
+  uint64_t v12 = iv[4];
+  uint64_t v13 = iv[5];
+  uint64_t v14 = iv[6];
+  uint64_t v15 = iv[7];
+           
   v12 ^= c0;
   v13 ^= c1;
   
