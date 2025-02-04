@@ -213,19 +213,20 @@ void OrderBook::evaluateMarketBidOrder(Order&& bidOrder)
   auto& bidTokenAmount = std::get<3>(bidOrder);
   uint256_t bidTokensToBePaid = this->tokensTick(bidTokenAmount);
   // find the ask order
-  while(((matchAskOrder = findMatchAskOrder(bidOrder)) != nullptr) and
-        (bidTokensToBePaid > 0)) {
+  while(((matchAskOrder = findMatchAskOrder(bidOrder)) != nullptr) and \
+        (bidTokensToBePaid > 0) and \
+        (bidTokenAmount > 0)) {
     const auto& askOwner = std::get<2>(*matchAskOrder);
     auto& askTokenAmount = std::get<3>(*matchAskOrder);
     auto& askTokenPrice = std::get<4>(*matchAskOrder);
     // compute the tokens amount and how much must be transfer (temporary variables)
     uint256_t tokenAmount = std::min(askTokenAmount, ((bidTokensToBePaid * 10000) / askTokenPrice));
     uint256_t tokensToBePaid = this->tokensToBePaid(tokenAmount, askTokenPrice);
-    // transfer and execute
+    // transfer the tokens to the contract
     this->transferToContract(this->addressAssetB_.get(), tokensToBePaid);
     // executes the order, transfer the tokens from ask owner to bid owner
     this->executeOrder(askOwner, bidOwner, tokensToBePaid, tokenAmount);
-    // update bidTicks information
+    // update bid tokens to be paid information
     bidTokensToBePaid -= tokensToBePaid;
     // update amount information
     bidTokenAmount -= tokenAmount;
@@ -283,6 +284,7 @@ void OrderBook::evaluateAskOrder(Order&& askOrder)
   const auto& askOwner = std::get<2>(askOrder);
   auto& askTokenAmount = std::get<3>(askOrder);
   auto& askTokenPrice = std::get<4>(askOrder);
+  auto& askOrderType = std::get<5>(askOrder);
   while (((matchBidOrder = findMatchBidOrder(askOrder)) != nullptr) and \
          (askTokenAmount > 0)) {
     // get bid order attributes values
@@ -305,40 +307,8 @@ void OrderBook::evaluateAskOrder(Order&& askOrder)
     }
   }
   // handle the ask order that was not filled (remainder)
-  if (askTokenAmount > 0) {
+  if (askTokenAmount > 0 and  askOrderType != OrderType::MARKET) {
     this->insertAskOrder(askOrder);
-  }
-  // update spread and mid price
-  this->updateSpreadAndMidPrice();
-}
-
-void OrderBook::evaluateMarketAskOrder(Order&& askOrder)
-{
-  Order *matchBidOrder;
-  const auto& askOwner = std::get<2>(askOrder);
-  auto& askTokenAmount = std::get<3>(askOrder);
-
-  while (((matchBidOrder = findMatchBidOrder(askOrder)) != nullptr) and \
-         (askTokenAmount > 0)) {
-    // get bid order attributes values
-    const auto& bidOwner = std::get<2>(*matchBidOrder);
-    auto& bidTokenAmount = std::get<3>(*matchBidOrder);
-    auto& bidTokenPrice = std::get<4>(*matchBidOrder);
-    // set the token lot amount
-    uint256_t tokenAmount = std::min(askTokenAmount, bidTokenAmount);
-    // computer how much tokens much be paid
-    uint256_t tokensToBePaid = this->tokensToBePaid(tokenAmount, bidTokenPrice);
-    // executes the order, transfer the tokens from ask owner to bid owner
-    this->executeOrder(askOwner, bidOwner, tokensToBePaid, tokenAmount);
-    // update the order and lot amount
-    bidTokenAmount -= tokenAmount;
-    askTokenAmount -= tokenAmount;
-    // update the current price
-    this->updateLastPrice(bidTokenPrice);
-    // erase the bid order if was filled
-    if (bidTokenAmount == 0) {
-      this->eraseBidOrder(*matchBidOrder);
-    }
   }
   // update spread and mid price
   this->updateSpreadAndMidPrice();
@@ -486,7 +456,7 @@ void OrderBook::addAskMarketOrder(const uint256_t& tokenAmount,
     throw std::runtime_error("OrderBook::addAskMarketOrder: INSUFFICIENT_BALANCE");
   }
   this->transferToContract(this->addressAssetA_.get(), tokenLotAmount);
-  this->evaluateMarketAskOrder(std::move(this->makeOrder(tokenAmount, 0, OrderType::MARKET)));
+  this->evaluateAskOrder(std::move(this->makeOrder(tokenAmount, 0, OrderType::MARKET)));
   this->nextOrderID_++;
 }
 
