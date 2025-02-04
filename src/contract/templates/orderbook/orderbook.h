@@ -259,14 +259,6 @@ private:
   void evaluateAskOrder(Order&& askOrder);
 
   /**
-   * Evaluate the ask order, i.e, try to find the a matching bid order and
-   * execute the order pair, if the order isn't filled add the ask order to
-   * the ask order list.
-   * @param askOrder, the ask order.
-   */
-  void evaluateMarketAskOrder(Order&& bidOrder);
-
-  /**
    * Find a matching ask order for an arbitrary bid order.
    * @param bidOrder, the bid order.
    * @return A order pointer if an ask order was found, nullptr otherwise.
