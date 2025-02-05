@@ -13,7 +13,8 @@ See the LICENSE.txt file in the project root for more information.
 #include <utility>
 #include "safebase.h"
 
-// TODO: missing functions (not sure if necessary): merge, equal_range, operator==, operator<=>
+// TODO: missing functions (not sure if necessary):
+// merge, equal_range, operator==, operator<=>
 
 /**
  * Safe wrapper for std::multiset.
@@ -151,7 +152,7 @@ class SafeMultiSet : public SafeBase {
      * @param hint The hint as to where to insert the elements.
      * @param args The elements to insert.
      * @return An iterator to the last inserted element.
-     */
+n     */
     template<class... Args> std::multiset<Key>::iterator emplace_hint(
       std::multiset<Key>::const_iterator hint, Args&&... args
     ) {
@@ -248,10 +249,16 @@ class SafeMultiSet : public SafeBase {
     }
 
     /// Get the function that compares the keys (same as value_comp).
-    std::multiset<Key>::key_compare key_comp() const { check(); return tmp_->key_comp(); }
+    std::multiset<Key>::key_compare key_comp() const {
+      check();
+      return tmp_->key_comp();
+    }
 
     /// Get the function that compares the values (same as key_comp).
-    std::multiset<Key>::value_compare value_comp() const { check(); return tmp_->value_comp(); }
+    std::multiset<Key>::value_compare value_comp() const {
+      check();
+      return tmp_->value_comp();
+    }
 
     /**
      * Erase all elements that satisfy the predicate from the container.
@@ -268,10 +275,19 @@ class SafeMultiSet : public SafeBase {
     }
 
     /// Commit function.
-    void commit() override { check(); set_.clear(); set_.insert(tmp_->begin(), tmp_->end()); }
+    void commit() override {
+      check();
+      set_.clear();
+      set_.insert(tmp_->begin(), tmp_->end());
+      this->registered_ = false;
+    }
 
     /// Rollback function.
-    void revert() override { tmp_->clear(); tmp_ = nullptr; }
+    void revert() override {
+      tmp_->clear();
+      tmp_ = nullptr;
+      this->registered_ = false;
+    }
 
     /// Get the inner set (for const functions!)
     inline const std::multiset<Key>& get() const { return set_; }
