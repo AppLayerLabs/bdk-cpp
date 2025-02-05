@@ -346,7 +346,6 @@ public:
    * @param addB The address of the pair's second asset.
    * @param tickerB The ticker of the pair's second asset.
    * @param decB The decimals of the second asset.
-   * @param tickerB The ticker of the pair's second asset.
    * @param address The address of the contract.
    * @param creator The address of the creator of the contract.
    * @param chainId The chain ID.
