@@ -65,10 +65,10 @@ namespace TORDERBOOK {
       sdk.callFunction(orderBook, &OrderBook::addBidLimitOrder, uint256_t("100"), uint256_t("10"));
       sdk.callFunction(orderBook, &OrderBook::addBidLimitOrder, uint256_t("100"), uint256_t("10"));
       sdk.callFunction(orderBook, &OrderBook::addBidLimitOrder, uint256_t("100"), uint256_t("10"));
-      // get bid
-      auto bid = sdk.callViewFunction(orderBook, &OrderBook::getFirstBid);
+      // get bids
+      auto bids = sdk.callViewFunction(orderBook, &OrderBook::getBids);
       // verify the number of bid orders
-      REQUIRE(sdk.callViewFunction(orderBook, &OrderBook::getBids).size() == 3);
+      REQUIRE(bids.size() == 3);
     }
 
     SECTION("Orderbook add ask limit order") {
