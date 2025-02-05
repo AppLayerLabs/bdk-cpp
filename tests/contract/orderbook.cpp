@@ -145,9 +145,6 @@ namespace TORDERBOOK {
       sdk.callFunction(orderBook, &OrderBook::addBidLimitOrder, uint256_t("2000"), uint256_t("10000"));
       // verify balance
       auto bidAddrBalance = sdk.callViewFunction(bidAddr, &ERC20::balanceOf, owner);
-      // print the balance
-      std::cout << "0: askAddrBalance: " << askAddrBalance << std::endl;
-      std::cout << "0: bidAddrBalance: " << bidAddrBalance << std::endl;
       // add ask limit order again
       sdk.callFunction(orderBook, &OrderBook::addAskLimitOrder, uint256_t("100"), uint256_t("10"));
       // get asks and bids
@@ -156,12 +153,6 @@ namespace TORDERBOOK {
       // verify the number of bid orders
       REQUIRE(asks.size() == 0);
       REQUIRE(bids.size() == 1);
-      // verify balance
-      askAddrBalance = sdk.callViewFunction(askAddr, &ERC20::balanceOf, owner);
-      bidAddrBalance = sdk.callViewFunction(bidAddr, &ERC20::balanceOf, owner);
-      // print the balance
-      std::cout << "1: askAddrBalance: " << askAddrBalance << std::endl;
-      std::cout << "2: bidAddrBalance: " << bidAddrBalance << std::endl;
     }
 
     SECTION("Orderbook delete bid limit order") {
