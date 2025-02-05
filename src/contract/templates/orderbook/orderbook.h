@@ -474,14 +474,16 @@ public:
       OrderBook,
       const Address,
       const std::string&,
+      const uint8_t,
       const Address,
       const std::string&,
+      const uint8_t,
       const Address&,
       const Address&,
       const uint64_t&,
       DB&
       >(
-        std::vector<std::string>{ "addA", "tickerA", "addB", "tickerB"},
+        std::vector<std::string>{ "addA", "tickerA", "decA", "addB", "tickerB", "decB"},
         std::make_tuple("getNextOrderID", &OrderBook::getNextOrderID, FunctionTypes::View, std::vector<std::string>{}),
         std::make_tuple("getAddressAssetA", &OrderBook::getAddressAssetA, FunctionTypes::View, std::vector<std::string>{}),
         std::make_tuple("getAddressAssetB", &OrderBook::getAddressAssetB, FunctionTypes::View, std::vector<std::string>{}),
