@@ -183,6 +183,23 @@ PrivKey Options::getValidatorPrivKey() const {
   return PrivKey();
 }
 
+std::vector<PrivKey> Options::getExtraValidators() const {
+  // The Extra validators is stored witihin the options.json
+  // inside the "extraValidators" key
+  // It is an array of strings, each string is a private key
+  // in hex format
+  std::vector<PrivKey> extraValidators;
+  json options;
+  std::ifstream i(this->rootPath_ + "/options.json");
+  i >> options;
+  i.close();
+  if (options.contains("extraValidators") && options.at("extraValidators").is_array()) {
+    for (const auto& validator : options["extraValidators"]) {
+      extraValidators.push_back(PrivKey(Hex::toBytes(validator.get<std::string>())));
+    }
+  }
+  return extraValidators;
+}
 Options Options::fromFile(const std::string& rootPath) {
   try {
     // Check if rootPath is valid
