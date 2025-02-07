@@ -47,7 +47,6 @@ struct SafeHash {
     return functor.value; // Functor is already a hash. Just return it.
   }
 
-  // TODO/REVIEW: Don't know why this was removed, keeping for comet merge
   size_t operator()(const Hash& hash) const {
     return wyhash(std::bit_cast<const void*>(hash.data()), hash.size(), 0, _wyp);
   }

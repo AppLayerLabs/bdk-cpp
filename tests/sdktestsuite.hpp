@@ -100,13 +100,14 @@ class SDKTestSuite : public Blockchain {
     std::vector<TestAccount> testAccounts_;
 
   public:
-
-    // long-name getters (expected by existing test code)
+    ///@{
+    /* Getter. */
     Options& getOptions() { return this->options_; }
     Comet& getComet() { return this->comet_; }
     State& getState() { return this->state_; }
     Storage& getStorage() { return this->storage_; }
     HTTPServer& getHttp() { return this->http_; }
+    ///@}
 
     /// Get next P2P listen port to use in unit tests.
     static int getTestPort() {
@@ -793,20 +794,26 @@ class SDKTestSuite : public Blockchain {
       return filteredEvents;
     }
 
-    // Forward declaration for the extractor
+    // Forward declaration for the extractor.
     template <typename TFunc> struct FunctionTraits;
 
-    // Specialization for member function pointers
+    /// Specialization for member function pointers.
     template <typename TContract, typename... Args, bool... Flags>
     struct FunctionTraits<void(TContract::*)(const EventParam<Args, Flags>&...)> {
       using TupleType = typename Utils::makeTupleType<EventParam<Args, Flags>...>::type;
     };
 
     /**
-     * FIXME: Documentation
+     * Get a list of events emitted by a given transaction.
+     * @tparam TContract The contract with the function(s) that emit the desired events.
+     * @tparam Args The events' arguments.
+     * @tparam Flags The events' anonymous flags.
+     * @param txHash The hash of the transaction that emitted the events.
+     * @param anonymous (optional) If `true`, ignore event signatures as a filter. Defaults to `false`.
+     * @return A list of events.
+     * @throw DynamicException if decoding an empty event (indexed parameters only).
      */
-    template <typename TContract, typename... Args, bool... Flags>
-    auto getEventsEmittedByTxTup(
+    template <typename TContract, typename... Args, bool... Flags> auto getEventsEmittedByTxTup(
       const Hash& txHash,
       void(TContract::*func)(const EventParam<Args, Flags>&...),
       bool anonymous = false
@@ -816,7 +823,7 @@ class SDKTestSuite : public Blockchain {
 
       //if TupleType is a empty tuple, then we throw an error
       auto eventSignature = ABI::EventEncoder::encodeSignature<Args...>(
-          ContractReflectionInterface::getFunctionName(func)
+        ContractReflectionInterface::getFunctionName(func)
       );
       std::vector<Hash> topicsToFilter;
       static_assert(ABI::always_false<TupleType>, "");
@@ -826,27 +833,27 @@ class SDKTestSuite : public Blockchain {
 
       // Filter the events by the topics
       for (const auto& event : allEvents) {
-          if (topicsToFilter.size() == 0) {
-              filteredEvents.push_back(event);
-          } else {
-              if (event.getTopics().size() < topicsToFilter.size()) continue;
-              bool match = true;
-              for (uint64_t i = 0; i < topicsToFilter.size(); i++) {
-                  if (topicsToFilter[i] != event.getTopics()[i]) { match = false; break; }
-              }
-              if (match) filteredEvents.push_back(event);
+        if (topicsToFilter.size() == 0) {
+          filteredEvents.push_back(event);
+        } else {
+          if (event.getTopics().size() < topicsToFilter.size()) continue;
+          bool match = true;
+          for (uint64_t i = 0; i < topicsToFilter.size(); i++) {
+            if (topicsToFilter[i] != event.getTopics()[i]) { match = false; break; }
           }
+          if (match) filteredEvents.push_back(event);
+        }
       }
 
       // Process each filtered event to get the tuple of non-indexed arguments
       std::vector<TupleType> tuples;
       if constexpr (!std::is_same_v<TupleType, std::tuple<>>) {
-          for (const auto& event : filteredEvents) {
-              auto tuple = ABI::Decoder::decodeDataAsTuple<TupleType>::decode(event.getData());
-              tuples.push_back(tuple);
-          }
+        for (const auto& event : filteredEvents) {
+          auto tuple = ABI::Decoder::decodeDataAsTuple<TupleType>::decode(event.getData());
+          tuples.push_back(tuple);
+        }
       } else {
-          throw DynamicException("Attempted to decode an event with only indexed parameters (empty tuple).");
+        throw DynamicException("Attempted to decode an event with only indexed parameters (empty tuple).");
       }
 
       return tuples;

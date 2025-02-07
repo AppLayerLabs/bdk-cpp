@@ -422,9 +422,7 @@ namespace Utils {
    * @param vec The vector to convert.
    * @return The converted span.
    */
-  inline View<Bytes> create_view_span(const Bytes& vec) {
-    return View<Bytes>(vec.data(), vec.size());
-  }
+  View<Bytes> create_view_span(const Bytes& vec);
 
   /**
    * Convert a "subvector" to const span.
@@ -466,9 +464,7 @@ namespace Utils {
    * @param str The string to convert.
    * @return The converted span.
    */
-  inline View<Bytes> create_view_span(const std::string_view str) {
-    return View<Bytes>(reinterpret_cast<const uint8_t*>(str.data()), str.size());
-  }
+  View<Bytes> create_view_span(const std::string_view str);
 
   /**
    * Convert a substring to span.

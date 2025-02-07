@@ -18,7 +18,7 @@ See the LICENSE.txt file in the project root for more information.
 namespace TDEXV2 {
   TEST_CASE("DEXV2 Benchmark", "[benchmark]") {
     SECTION("CPP DEXV2 Swap Benchmark") {
-      SDKTestSuite sdk = SDKTestSuite::createNewEnvironment("testDEXV2LiqTokenTokenPair", {}, nullptr, IndexingMode::DISABLED);
+      SDKTestSuite sdk = SDKTestSuite::createNewEnvironment("testDEXV2LiqTokenTokenPair");
       Address tokenA = sdk.deployContract<ERC20>(std::string("TokenA"), std::string("TKNA"), uint8_t(18), uint256_t("10000000000000000000000"));
       Address tokenB = sdk.deployContract<ERC20>(std::string("TokenB"), std::string("TKNB"), uint8_t(18), uint256_t("10000000000000000000000"));
       Address wrapped = sdk.deployContract<NativeWrapper>(std::string("WSPARQ"), std::string("WSPARQ"), uint8_t(18));
@@ -60,13 +60,13 @@ namespace TDEXV2 {
         uint256_t("10000"), uint256_t(0), std::vector<Address>({ tokenA, tokenB }), owner, deadline
       );
       REQUIRE(swapTx != Hash());
-      auto txTlp = sdk.getStorage().getTx(swapTx);
+      auto txTlp = sdk.getTx(swapTx);
       TxBlock tx = *txTlp.txBlockPtr;
       evmc_tx_context txContext;
 
-      txContext.tx_origin = sdk.getChainOwnerAccount().address.toEvmcAddress();
+      txContext.tx_origin = bytes::cast<evmc::address>(sdk.getChainOwnerAccount().address);
       txContext.tx_gas_price = {};
-      txContext.block_coinbase = tx.getTo().toEvmcAddress();
+      txContext.block_coinbase = bytes::cast<evmc::address>(tx.getTo());
       txContext.block_number = 1;
       txContext.block_timestamp = 1;
       txContext.block_gas_limit = std::numeric_limits<int64_t>::max();

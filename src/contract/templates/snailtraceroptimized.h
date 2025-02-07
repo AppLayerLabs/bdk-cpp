@@ -299,9 +299,9 @@ class SnailTracerOptimized : public DynamicContract {
      * @param ray The ray to calculate the refractive from.
      * @param intersect A vector representing an intersection.
      * @param normal A vector representing the normal.
-     * @param nnt TODO
-     * @param ddn TODO
-     * @param cos2t TODO
+     * @param nnt Raytracing calculation variable.
+     * @param ddn Raytracing calculation variable.
+     * @param cos2t Raytracing calculation variable.
      * @return A vector representing the refractive.
      */
     Vector refractive(

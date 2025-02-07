@@ -10,13 +10,8 @@ See the LICENSE.txt file in the project root for more information.
 
 #include <evmc/evmc.hpp>
 
-#include "bytes.h" // Byte, Bytes, BytesArr
 #include "strings.h" // Functor
-
-#include "../bytes/view.h"
-
-// TODO: reroute this later, this is a placeholder
-using uint256_t = boost::multiprecision::number<boost::multiprecision::cpp_int_backend<256, 256, boost::multiprecision::unsigned_magnitude, boost::multiprecision::cpp_int_check_type::checked, void>>;
+#include "uintconv.h" // utils/bytes.h, bytes/view.h
 
 /// Namespace for general EVMC-related functions.
 namespace EVMCConv {

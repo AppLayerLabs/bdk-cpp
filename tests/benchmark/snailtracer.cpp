@@ -24,7 +24,7 @@ namespace TSNAILTRACERBENCHMARK {
       std::unique_ptr<Options> options = nullptr;
       Address to(Utils::randBytes(20));
 
-      SDKTestSuite sdk = SDKTestSuite::createNewEnvironment("testSnailTracerCppBenchmark", {}, nullptr, IndexingMode::DISABLED);
+      SDKTestSuite sdk = SDKTestSuite::createNewEnvironment("testSnailTracerCppBenchmark");
       // const TestAccount& from, const Address& to, const uint256_t& value, Bytes data = Bytes()
       auto snailtracerAddress = sdk.deployContract<SnailTracer>(int256_t(1024), int256_t(768));
       // Now for the funny part, we are NOT a C++ contract, but we can
@@ -40,9 +40,9 @@ namespace TSNAILTRACERBENCHMARK {
       auto& state = sdk.getState();
       evmc_tx_context txContext;
 
-      txContext.tx_origin = sdk.getChainOwnerAccount().address.toEvmcAddress();
+      txContext.tx_origin = bytes::cast<evmc::address>(sdk.getChainOwnerAccount().address);
       txContext.tx_gas_price = {};
-      txContext.block_coinbase = to.toEvmcAddress();
+      txContext.block_coinbase = bytes::cast<evmc::address>(to);
       txContext.block_number = 1;
       txContext.block_timestamp = 1;
       txContext.block_gas_limit = std::numeric_limits<int64_t>::max();
@@ -73,7 +73,7 @@ namespace TSNAILTRACERBENCHMARK {
       std::unique_ptr<Options> options = nullptr;
       Address to(Utils::randBytes(20));
 
-      auto sdk = SDKTestSuite::createNewEnvironment("testSnailTracerEvmBenchmark", {}, nullptr, IndexingMode::DISABLED);
+      auto sdk = SDKTestSuite::createNewEnvironment("testSnailTracerEvmBenchmark");
 
       auto snailtracerAddress = sdk.deployBytecode(snailTracerBytecode);
       // Create the transaction for transfer
@@ -85,9 +85,9 @@ namespace TSNAILTRACERBENCHMARK {
       auto& state = sdk.getState();
       evmc_tx_context txContext;
 
-      txContext.tx_origin = sdk.getChainOwnerAccount().address.toEvmcAddress();
+      txContext.tx_origin = bytes::cast<evmc::address>(sdk.getChainOwnerAccount().address);
       txContext.tx_gas_price = {};
-      txContext.block_coinbase = to.toEvmcAddress();
+      txContext.block_coinbase = bytes::cast<evmc::address>(to);
       txContext.block_number = 1;
       txContext.block_timestamp = 1;
       txContext.block_gas_limit = std::numeric_limits<int64_t>::max();

@@ -64,14 +64,13 @@ Account::Account(const View<Bytes>& bytes) {
 }
 
 Bytes Account::serialize() const {
-  // TODO: this could be optimized with bytes::join()?
-  Bytes ret;
-  Utils::appendBytes(ret, UintConv::uint256ToBytes(this->balance));
-  Utils::appendBytes(ret, UintConv::uint64ToBytes(this->nonce));
-  Utils::appendBytes(ret, this->codeHash);
-  ret.insert(ret.end(), char(this->contractType));
-  Utils::appendBytes(ret, this->code);
-  return ret;
+  return Utils::makeBytes(bytes::join(
+    UintConv::uint256ToBytes(this->balance),
+    UintConv::uint64ToBytes(this->nonce),
+    this->codeHash,
+    UintConv::uint8ToBytes(char(this->contractType)),
+    this->code
+  ));
 }
 
 Bytes Utils::randBytes(const int& size) {
@@ -117,9 +116,17 @@ std::string Utils::getSignalName(int signum) {
   return n;
 }
 
+View<Bytes> Utils::create_view_span(const Bytes& vec) {
+  return View<Bytes>(vec.data(), vec.size());
+}
+
 View<Bytes> Utils::create_view_span(const Bytes& vec, size_t start, size_t size) {
   if (start + size > vec.size()) throw DynamicException("Invalid range for span");
   return View<Bytes>(vec.data() + start, size);
+}
+
+View<Bytes> Utils::create_view_span(const std::string_view str) {
+  return View<Bytes>(reinterpret_cast<const uint8_t*>(str.data()), str.size());
 }
 
 View<Bytes> Utils::create_view_span(const std::string_view str, size_t start, size_t size) {

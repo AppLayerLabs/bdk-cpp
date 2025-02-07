@@ -151,14 +151,9 @@ private:
     return contractAddress;
   }
 
-  template<typename C>
-  C& getContractAs(View<Address> address) {
+  template<typename C> C& getContractAs(View<Address> address) {
     C* ptr = dynamic_cast<C*>(&context_.getContract(address));
-
-    if (ptr == nullptr) {
-      throw DynamicException("Wrong contract type"); // TODO: add more info
-    }
-
+    if (ptr == nullptr) throw DynamicException("Wrong contract type"); // TODO: add more info
     return *ptr;
   }
 

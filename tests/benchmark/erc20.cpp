@@ -35,7 +35,7 @@ namespace TERC20BENCHMARK {
       std::unique_ptr<Options> options = nullptr;
       Address to(Utils::randBytes(20));
 
-      SDKTestSuite sdk = SDKTestSuite::createNewEnvironment("testERC20CppBenchmark", {}, nullptr, IndexingMode::DISABLED);
+      SDKTestSuite sdk = SDKTestSuite::createNewEnvironment("testERC20CppBenchmark");
       // const TestAccount& from, const Address& to, const uint256_t& value, Bytes data = Bytes()
       auto erc20Address = sdk.deployContract<ERC20>(std::string("TestToken"), std::string("TST"), uint8_t(18), uint256_t("10000000000000000000000"));
       // Now for the funny part, we are NOT a C++ contract, but we can
@@ -48,7 +48,6 @@ namespace TERC20BENCHMARK {
       REQUIRE(sdk.callViewFunction(erc20Address, &ERC20::totalSupply) == uint256_t("10000000000000000000000"));
       REQUIRE(sdk.callViewFunction(erc20Address, &ERC20::balanceOf, sdk.getChainOwnerAccount().address) == uint256_t("10000000000000000000000"));
 
-
       // Create the transaction for transfer
       auto functor = UintConv::uint32ToBytes(ABI::FunctorEncoder::encode<Address, uint256_t>("transfer").value);
       Bytes transferEncoded(functor.cbegin(), functor.cend());
@@ -57,9 +56,9 @@ namespace TERC20BENCHMARK {
       auto& state = sdk.getState();
       evmc_tx_context txContext;
 
-      txContext.tx_origin = sdk.getChainOwnerAccount().address.toEvmcAddress();
+      txContext.tx_origin = bytes::cast<evmc::address>(sdk.getChainOwnerAccount().address);
       txContext.tx_gas_price = {};
-      txContext.block_coinbase = to.toEvmcAddress();
+      txContext.block_coinbase = bytes::cast<evmc::address>(to);
       txContext.block_number = 1;
       txContext.block_timestamp = 1;
       txContext.block_gas_limit = std::numeric_limits<int64_t>::max();
@@ -101,7 +100,7 @@ namespace TERC20BENCHMARK {
       std::unique_ptr<Options> options = nullptr;
       Address to(Utils::randBytes(20));
 
-      auto sdk = SDKTestSuite::createNewEnvironment("testERC20EvmBenchmark", {}, nullptr, IndexingMode::DISABLED);
+      auto sdk = SDKTestSuite::createNewEnvironment("testERC20EvmBenchmark");
 
       auto erc20Address = sdk.deployBytecode(erc20bytecode);
 
@@ -119,9 +118,9 @@ namespace TERC20BENCHMARK {
       auto& state = sdk.getState();
       evmc_tx_context txContext;
 
-      txContext.tx_origin = sdk.getChainOwnerAccount().address.toEvmcAddress();
+      txContext.tx_origin = bytes::cast<evmc::address>(sdk.getChainOwnerAccount().address);
       txContext.tx_gas_price = {};
-      txContext.block_coinbase = to.toEvmcAddress();
+      txContext.block_coinbase = bytes::cast<evmc::address>(to);
       txContext.block_number = 1;
       txContext.block_timestamp = 1;
       txContext.block_gas_limit = std::numeric_limits<int64_t>::max();
