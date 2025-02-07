@@ -38,27 +38,9 @@ namespace TSNAILTRACERBENCHMARK {
       TxBlock benchmarkTx = sdk.createNewTx(sdk.getChainOwnerAccount(), snailtracerAddress, 0, benchmarkEncoded);
 
       auto& state = sdk.getState();
-      evmc_tx_context txContext;
-
-      txContext.tx_origin = bytes::cast<evmc::address>(sdk.getChainOwnerAccount().address);
-      txContext.tx_gas_price = {};
-      txContext.block_coinbase = bytes::cast<evmc::address>(to);
-      txContext.block_number = 1;
-      txContext.block_timestamp = 1;
-      txContext.block_gas_limit = std::numeric_limits<int64_t>::max();
-      txContext.block_prev_randao = {};
-      txContext.chain_id = {};
-      txContext.block_base_fee = {};
-      txContext.blob_base_fee = {};
-      txContext.blob_hashes = nullptr;
-      txContext.blob_hashes_count = 0;
-
-      auto callInfo = benchmarkTx.txToMessage();
-      Hash randomnessHash = bytes::random();
-      int64_t leftOverGas = std::numeric_limits<int64_t>::max();
 
       auto start = std::chrono::high_resolution_clock::now();
-      state.call(callInfo, txContext, ContractType::CPP, randomnessHash, randomnessHash, randomnessHash, leftOverGas);
+      state.call(benchmarkTx);
       auto end = std::chrono::high_resolution_clock::now();
 
       long double durationInMicroseconds = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
@@ -83,27 +65,9 @@ namespace TSNAILTRACERBENCHMARK {
 
       TxBlock benchmarkTx = sdk.createNewTx(sdk.getChainOwnerAccount(), snailtracerAddress, 0, benchmarkEncoded);
       auto& state = sdk.getState();
-      evmc_tx_context txContext;
-
-      txContext.tx_origin = bytes::cast<evmc::address>(sdk.getChainOwnerAccount().address);
-      txContext.tx_gas_price = {};
-      txContext.block_coinbase = bytes::cast<evmc::address>(to);
-      txContext.block_number = 1;
-      txContext.block_timestamp = 1;
-      txContext.block_gas_limit = std::numeric_limits<int64_t>::max();
-      txContext.block_prev_randao = {};
-      txContext.chain_id = {};
-      txContext.block_base_fee = {};
-      txContext.blob_base_fee = {};
-      txContext.blob_hashes = nullptr;
-      txContext.blob_hashes_count = 0;
-
-      auto callInfo = benchmarkTx.txToMessage();
-      Hash randomnessHash = bytes::random();
-      int64_t leftOverGas = std::numeric_limits<int64_t>::max();
 
       auto start = std::chrono::high_resolution_clock::now();
-      state.call(callInfo, txContext, ContractType::EVM, randomnessHash, randomnessHash, randomnessHash, leftOverGas);
+      state.call(benchmarkTx);
       auto end = std::chrono::high_resolution_clock::now();
 
       long double durationInMicroseconds = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
@@ -114,3 +78,4 @@ namespace TSNAILTRACERBENCHMARK {
     }
   }
 }
+

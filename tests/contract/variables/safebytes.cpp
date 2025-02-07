@@ -368,7 +368,7 @@ namespace TSafeBytes {
       vec2.push_back(0x00);
       vec2.push_back(0xAA);
       uint8_t mv3 = 0xBB;
-      vec2.push_back(std::move(mv2));
+      vec2.push_back(std::move(mv3));
       vec2.emplace_back(0xCC);
       vec2.pop_back();
     }

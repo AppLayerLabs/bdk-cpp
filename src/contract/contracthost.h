@@ -125,6 +125,7 @@ class ContractHost {
       BaseContract* caller, const Address& targetAddr,
       const uint256_t& value,
       R(C::*func)(const Args&...), const Args&... args) {
+
       PackedCallMessage<decltype(func), const Args&...> msg(
         caller->getContractAddress(),
         targetAddr,

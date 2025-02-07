@@ -80,10 +80,12 @@ private:
     };
 
     auto& contract = context_.getContract(msg.to());
+
     transactional::Group guard = {
       transactional::checkpoint(contract.caller_),
       transactional::checkpoint(contract.value_)
     };
+
     Address caller(msg.from());
     uint256_t value = messageValueOrZero(msg);
 
@@ -143,7 +145,9 @@ private:
 
     auto account = context_.getAccount(msg.from());
     const Address contractAddress = generateContractAddress(account.getNonce(), msg.from());
+
     contract.ethCall(evmcMsg, &host_);
+
     if (account.getContractType() != ContractType::NOT_A_CONTRACT) {
       account.setNonce(account.getNonce() + 1);
     }
