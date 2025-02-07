@@ -1,62 +1,35 @@
 #include "precompiles.h"
-#include "utils/signature.h"
-#include "utils/ecdsa.h"
-#include <openssl/sha.h>
-#include <openssl/ripemd.h>
+#include <ranges>
+#include <algorithm>
 
-Address ecrecover(View<Hash> hash, uint8_t v, View<Hash> r, View<Hash> s) {
-  if (v == 27) {
-    v = 0;
-  } else if (v == 28) {
-    v = 1;
-  } else {
-    return Address{};
-  }
+namespace {
 
-  Signature sig;
-  *std::ranges::copy(s, std::ranges::copy(r, sig.begin()).out).out = v;
+constexpr uint64_t iv[8] = {
+  0x6A09E667F3BCC908, 0xBB67AE8584CAA73B, 0x3C6EF372FE94F82B, 0xA54FF53A5F1D36F1,
+  0x510E527FADE682D1, 0x9B05688C2B3E6C1F, 0x1F83D9ABFB41BD6B, 0x5BE0CD19137E2179
+};
 
-  const auto pubkey = Secp256k1::recover(sig, Hash(hash));
+constexpr Byte precomputed[10][16] = {
+  {0, 2, 4, 6, 1, 3, 5, 7, 8, 10, 12, 14, 9, 11, 13, 15},
+  {14, 4, 9, 13, 10, 8, 15, 6, 1, 0, 11, 5, 12, 2, 7, 3},
+  {11, 12, 5, 15, 8, 0, 2, 13, 10, 3, 7, 9, 14, 6, 1, 4},
+  {7, 3, 13, 11, 9, 1, 12, 14, 2, 5, 4, 15, 6, 10, 0, 8},
+  {9, 5, 2, 10, 0, 7, 4, 15, 14, 11, 6, 3, 1, 12, 8, 13},
+  {2, 6, 0, 8, 12, 10, 11, 3, 4, 7, 15, 1, 13, 5, 14, 9},
+  {12, 1, 14, 4, 5, 15, 13, 10, 0, 6, 9, 8, 7, 3, 2, 11},
+  {13, 7, 12, 3, 11, 14, 1, 9, 5, 15, 8, 2, 0, 4, 6, 10},
+  {6, 14, 11, 0, 15, 9, 3, 8, 12, 13, 1, 10, 2, 7, 4, 5},
+  {10, 8, 7, 1, 2, 4, 6, 5, 15, 9, 3, 13, 11, 14, 12, 0}
+};
 
-  if (!pubkey) {
-    return Address{};
-  }
-
-  return Secp256k1::toAddress(pubkey);
+constexpr size_t sizeInBytes(const std::ranges::contiguous_range auto& range) {
+  return std::ranges::size(range) * sizeof(std::ranges::range_value_t<decltype(range)>);
 }
 
-Hash sha256(View<Bytes> input) {
-  Hash output;
-  SHA256(input.data(), input.size(), output.data());
-  return output;
-}
+} // namespace
 
-Bytes20 ripemd160(View<Bytes> input) {
-  Bytes20 output;
-  RIPEMD160(input.data(), input.size(), output.data()); // TODO: this is deprecated
-  return output;
-}
-
-void blake2f(std::span<uint64_t, 8> h, std::span<const uint64_t, 16> m, 
-             uint64_t c0, uint64_t c1, bool flag, uint32_t rounds) {           
- 
-  static constexpr uint64_t iv[8] = {
-    0x6A09E667F3BCC908, 0xBB67AE8584CAA73B, 0x3C6EF372FE94F82B, 0xA54FF53A5F1D36F1,
-    0x510E527FADE682D1, 0x9B05688C2B3E6C1F, 0x1F83D9ABFB41BD6B, 0x5BE0CD19137E2179
-  };
-
-  static constexpr unsigned char precomputed[10][16] = {
-    {0, 2, 4, 6, 1, 3, 5, 7, 8, 10, 12, 14, 9, 11, 13, 15},
-    {14, 4, 9, 13, 10, 8, 15, 6, 1, 0, 11, 5, 12, 2, 7, 3},
-    {11, 12, 5, 15, 8, 0, 2, 13, 10, 3, 7, 9, 14, 6, 1, 4},
-    {7, 3, 13, 11, 9, 1, 12, 14, 2, 5, 4, 15, 6, 10, 0, 8},
-    {9, 5, 2, 10, 0, 7, 4, 15, 14, 11, 6, 3, 1, 12, 8, 13},
-    {2, 6, 0, 8, 12, 10, 11, 3, 4, 7, 15, 1, 13, 5, 14, 9},
-    {12, 1, 14, 4, 5, 15, 13, 10, 0, 6, 9, 8, 7, 3, 2, 11},
-    {13, 7, 12, 3, 11, 14, 1, 9, 5, 15, 8, 2, 0, 4, 6, 10},
-    {6, 14, 11, 0, 15, 9, 3, 8, 12, 13, 1, 10, 2, 7, 4, 5},
-    {10, 8, 7, 1, 2, 4, 6, 5, 15, 9, 3, 13, 11, 14, 12, 0}
-  };
+void precompiles::blake2f(std::span<uint64_t, 8> h, std::span<const uint64_t, 16> m, 
+  uint64_t c0, uint64_t c1, bool flag, uint32_t rounds) {
 
   uint64_t v0 = h[0];
   uint64_t v1 = h[1];
@@ -210,4 +183,42 @@ void blake2f(std::span<uint64_t, 8> h, std::span<const uint64_t, 16> m,
   h[5] ^= v5 ^ v13;
   h[6] ^= v6 ^ v14;
   h[7] ^= v7 ^ v15;
+}
+
+Bytes precompiles::blake2f(View<Bytes> input, Gas& gas) {
+  if (input.size() != 213) {
+    throw std::invalid_argument("Blake2F requires exacly 213 bytes");
+  }
+
+  std::array<uint64_t, 8> h;
+  std::array<uint64_t, 16> m;
+  std::array<uint64_t, 2> t;
+  uint8_t flag;
+  uint32_t rounds;
+
+  const Byte *in = input.data();
+
+  std::memcpy(&rounds, in, sizeof(rounds));
+  in += sizeof(rounds);
+
+  std::memcpy(&h, in, sizeInBytes(h));
+  in += sizeInBytes(h);
+
+  std::memcpy(&m, in, sizeInBytes(m));
+  in += sizeInBytes(m);
+
+  std::memcpy(&t, in, sizeInBytes(t));
+  in += sizeInBytes(t);
+
+  std::memcpy(&flag, in, sizeof(flag));
+
+  std::reverse(reinterpret_cast<Byte *>(&rounds), reinterpret_cast<Byte *>(&rounds + 1));
+
+  gas.use(rounds);
+
+  blake2f(h, m, t[0], t[1], flag, rounds);
+
+  Bytes output(sizeInBytes(h));
+  std::memcpy(output.data(), h.data(), output.size());
+  return output;
 }
