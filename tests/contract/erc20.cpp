@@ -17,7 +17,6 @@ See the LICENSE.txt file in the project root for more information.
 
 namespace TERC20 {
   TEST_CASE("ERC2O Class", "[contract][erc20]") {
-
     SECTION("ERC20 creation") {
       SDKTestSuite sdk = SDKTestSuite::createNewEnvironment("testERC20Creation");
       REQUIRE(sdk.getState().getContractsSize() == 1);
