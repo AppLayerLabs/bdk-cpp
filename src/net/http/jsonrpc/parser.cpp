@@ -50,5 +50,10 @@ namespace jsonrpc {
     if (!std::regex_match(value, numberFormat)) throw Error::invalidFormat(value);
     return uint64_t(Hex(value).getUint());
   }
+
+  std::string Parser<std::string>::operator()(const json& data) const {
+    if (!data.is_string()) throw Error::invalidType("string", data.type_name());
+    return data.get<std::string>();
+  }
 } // namespace jsonrpc
 

@@ -200,6 +200,20 @@ std::vector<PrivKey> Options::getExtraValidators() const {
   }
   return extraValidators;
 }
+
+std::unique_ptr<std::string> Options::getRPCAdminPassword() const {
+  std::unique_ptr<std::string> password = nullptr;
+  json options;
+  std::ifstream i(this->rootPath_ + "/options.json");
+  i >> options;
+  i.close();
+  if (options.contains("rpcAdminPassword") && options.at("rpcAdminPassword").is_string()) {
+    password = std::make_unique<std::string>(options["rpcAdminPassword"].get<std::string>());
+  }
+  return password;
+}
+
+
 Options Options::fromFile(const std::string& rootPath) {
   try {
     // Check if rootPath is valid

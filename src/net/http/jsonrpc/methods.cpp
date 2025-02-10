@@ -570,4 +570,25 @@ json debug_traceTransaction(const json& request, const Storage& storage) {
   return res;
 }
 
+json appl_dumpState(const json& request, State& state, const Options& options) {
+  json res;
+  auto adminPw = options.getRPCAdminPassword();
+  if (adminPw == nullptr) {
+    throw Error(-32000, "RPC Admin password not set");
+  }
+
+  // Password is stored as a string on the JSON inside the params.
+  auto [password] = parseAllParams<std::string>(request);
+  if (password != *adminPw) {
+    throw Error(-32000, "Invalid password");
+  }
+
+  auto dumpInfo = state.saveToDB();
+  const auto& [dumpedBlockHeight, serializeTime, dumpTime] = dumpInfo;
+  res["dumpedBlockHeight"] = Hex::fromBytes(Utils::uintToBytes(dumpedBlockHeight), true).forRPC();
+  res["serializeTime"] = serializeTime;
+  res["dumpTime"] = dumpTime;
+  return res;
+}
+
 } // namespace jsonrpc

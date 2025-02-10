@@ -111,6 +111,8 @@ json call(const json& request, State& state, const Storage& storage,
       result = jsonrpc::debug_traceBlockByNumber(request, storage);
     else if (method == "debug_traceTransaction")
       result = jsonrpc::debug_traceTransaction(request, storage);
+    else if (method == "appl_dumpState")
+      result = jsonrpc::appl_dumpState(request, state, options);
     else
       throw Error::methodNotAvailable(method);
 

@@ -16,7 +16,7 @@ std::string parseJsonRpcRequest(
   P2P::ManagerNormal& p2p,
   const Options& options
 ) {
-  Utils::safePrint("HTTP Request: " + body);
+  // Utils::safePrint("HTTP Request: " + body);
   json ret;
   try {
     json request = json::parse(body);
@@ -33,8 +33,8 @@ std::string parseJsonRpcRequest(
     ret["error"]["message"] = std::string("Internal error: ") + std::string(e.what());
   }
 
-  Utils::safePrint("HTTP Response: " + ret.dump());
-  Utils::safePrint("Properly returning...");
+  // Utils::safePrint("HTTP Response: " + ret.dump());
+  // Utils::safePrint("Properly returning...");
   return ret.dump();
 }
 

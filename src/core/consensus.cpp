@@ -62,7 +62,6 @@ void Consensus::validatorLoop() {
     }
     if (validatorsToSign.size() != validatorSetSize) {
       Utils::safePrint("Validator set size mismatch.");
-      std::this_thread::sleep_for(std::chrono::seconds(1));
       throw DynamicException("Validator set size mismatch.");
     }
 

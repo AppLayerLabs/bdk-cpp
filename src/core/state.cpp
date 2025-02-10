@@ -28,6 +28,11 @@ State::State(
   rdpos_(db, dumpManager_, storage, p2pManager, options)
 {
   std::unique_lock lock(this->stateMutex_);
+  if (snapshotHeight != 0) {
+    Utils::safePrint("Loading state from snapshot height: " + std::to_string(snapshotHeight));
+  }
+  auto now = std::chrono::system_clock::now();
+
   if (auto accountsFromDB = db.getBatch(DBPrefix::nativeAccounts); accountsFromDB.empty()) {
     if (snapshotHeight != 0) {
       throw DynamicException("Snapshot height is higher than 0, but no accounts found in DB");
@@ -71,7 +76,6 @@ State::State(
   // For each nHeight from snapshotHeight + 1 to latestBlock->getNHeight()
   // We need to process the block and update the state
   // We can't call processNextBlock here, as it will place the block again on the storage
-  Utils::safePrint("Loading state from snapshot height: " + std::to_string(snapshotHeight));
   Utils::safePrint("Got latest block height: " + std::to_string(latestBlock->getNHeight()));
   std::unique_ptr<DBBatch> reindexedTxs = std::make_unique<DBBatch>();
   for (uint64_t nHeight = snapshotHeight + 1; nHeight <= latestBlock->getNHeight(); nHeight++) {
@@ -106,6 +110,11 @@ State::State(
     this->storage_.dumpToDisk(*reindexedTxs);
   }
   this->dumpManager_.pushBack(this);
+  auto end = std::chrono::system_clock::now();
+  double elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end - now).count();
+  double elapsedInSeconds = elapsed / 1000;
+  Utils::safePrint("State loaded in " + std::to_string(elapsedInSeconds) + " seconds");
+
 }
 
 State::~State() { evmc_destroy(this->vm_); }

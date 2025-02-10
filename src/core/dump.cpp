@@ -31,7 +31,7 @@ std::pair<std::vector<DBBatch>, uint64_t> DumpManager::dumpState() const {
   {
     // state mutex lock
     std::unique_lock lock(stateMutex_);
-    // We can only safely get the nHeight that we are dumping after **uniquely locking** the state (making sure that no new blocks
+    // We can only safely get the nHeight that we are dumping after **uniquely locking** the state (making ASBOLUTELY sure that no new blocks
     // or state changes are happening)
     blockHeight = storage_.latest()->getNHeight();
     // Emplace DBBatch operations
@@ -66,12 +66,26 @@ std::pair<std::vector<DBBatch>, uint64_t> DumpManager::dumpState() const {
   return ret;
 }
 
-void DumpManager::dumpToDB() const {
+std::tuple<uint64_t, uint64_t, uint64_t> DumpManager::dumpToDB() const {
+  std::tuple<uint64_t, uint64_t, uint64_t> ret;
+  auto& [dumpedBlockHeight, serializeTime, dumpTime] = ret;
+  auto now = std::chrono::system_clock::now();
+  Utils::safePrint("Dumping state to DB...");
   auto toDump = this->dumpState();
+  serializeTime = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now() - now).count();
+  Utils::safePrint("Dumping state at height " + std::to_string(toDump.second) + " took " + std::to_string(serializeTime) + "ms");
   const auto& [batches, blockHeight] = toDump;
   std::string dbName = options_.getRootPath() + "/stateDb/" + std::to_string(blockHeight);
+  dumpedBlockHeight = blockHeight;
+  Utils::safePrint("Dumping the new state at height " + std::to_string(blockHeight) + " to " + dbName);
+  now = std::chrono::system_clock::now();
   DB stateDb(dbName, true); // Compressed
   for (const auto& batch : batches) stateDb.putBatch(batch);
+  dumpTime = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now() - now).count();
+  if (stateDb.close())
+    Utils::safePrint("State dumped at height " + std::to_string(blockHeight) + " took " + std::to_string(dumpTime) + "ms");
+
+  return ret;
 }
 
 DumpWorker::DumpWorker(const Options& options, const Storage& storage, DumpManager& dumpManager)

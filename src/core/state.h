@@ -117,7 +117,8 @@ class State : public Dumpable, public Log::LogicalLocationProvider {
     void dumpStartWorker() { this->dumpWorker_.startWorker(); }
     void dumpStopWorker() { this->dumpWorker_.stopWorker(); }
     size_t getDumpManagerSize() const { std::shared_lock lock(this->stateMutex_); return this->dumpManager_.size(); }
-    void saveToDB() const { this->dumpManager_.dumpToDB(); }
+    // Returns the block height of the dump and the time it took to serialize and dump to DB.
+    std::tuple<uint64_t, uint64_t, uint64_t> saveToDB() const { return this->dumpManager_.dumpToDB(); }
     ///@}
 
     // ----------------------------------------------------------------------
