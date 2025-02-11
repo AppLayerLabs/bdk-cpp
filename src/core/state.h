@@ -136,15 +136,11 @@ class State : public Log::LogicalLocationProvider {
     void contractSanityCheck(const Address& addr, const Account& acc);
 
   public:
-    /**
-     * Constructor.
-     * @throw DynamicException on any database size mismatch.
-     */
-    State(Blockchain& blockchain);
+    State(Blockchain& blockchain); ///< Constructor.
 
     ~State(); ///< Destructor.
 
-    std::string getLogicalLocation() const override;
+    std::string getLogicalLocation() const override; ///< Log helper.
 
     /**
      * Helper for testing.

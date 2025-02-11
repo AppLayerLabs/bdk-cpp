@@ -43,9 +43,6 @@ See the LICENSE.txt file in the project root for more information.
  * template is or isn't available, while keeping in mind that these are really
  * consensus parameters, that is, changing these means the protocol is forked).
  * What we are going to store in the node db:
- * - Mapping from sha3 to sha256 for every known transaction (so we can query
- * the transaction store in comet for which we will always enable indexing;
- * also note this should be pruned at the same retain-height we send to comet),
  * - Activation block height for contract templates (if absent, the contract
  * template is not yet enabled) -- this should be directly modifiable by node
  * operators when enabling new contracts (these are soft forks).
@@ -126,9 +123,11 @@ class Blockchain : public CometListener, public NodeRPCInterface, public Log::Lo
 
     std::shared_mutex mempoolMutex_; ///< Mutex protecting mempool_.
 
-
     bool syncing_ = false; ///< Updated by Blockchain::incomingBlock() when syncingToHeight > height.
+
     uint64_t persistStateSkipCount_ = 0; ///< Count of non-syncing_ Blockchain::persistState() calls that skipped saveSnapshot().
+
+    std::atomic<bool> started_ = false; ///< Flag to protect the start()/stop() cycle.
 
     /**
      * Helper for BDK RPC services, fetches a CometBFT block via CometBFT RPC.

@@ -176,10 +176,9 @@ void Blockchain::setGetTxCacheSize(const uint64_t cacheSize) {
 }
 
 void Blockchain::saveSnapshot() {
-  // TODO: Add support for snapshotting using a non-validator node, potentially on
-  // another machine (a snapshotting worker that keeps the protocol going but knows how
-  // to cache FinalizedBlock objects for later execution while it is dumping -- something
-  // you cannot afford to do if you are a live validator node).
+  // NOTE/IMPORTANT: Validator nodes should never be used to save snapshots.
+  // Must always use a dedicated snapshotter node.
+  // Setting stateDumpTrigger > 0 in Options for a validator node is probably an user error or a documentation fail.
   uint64_t currentHeight = state_.getHeight();
   if (currentHeight == 0) {
     return; // genesis state, nothing to save
@@ -209,30 +208,23 @@ void Blockchain::saveSnapshot() {
 }
 
 void Blockchain::start() {
-  // Initialize necessary modules
-  LOGINFOP("Starting BDK Node...");
+  // Simple state transition checker
+  if (started_) {
+    LOGWARNINGP("Blockchain::start(): BDK node is already started.");
+    return;
+  }
+  started_ = true;
+  LOGINFOP("Starting BDK node...");
 
-  // FIXME/TODO: control start()/stop() cycle (no two starts or two stops, ...)
-  // FIXME/TODO: reset all Blockchain (State, ...) state on start()
+  // Make sure all Blockchain state variables are reset
   syncing_ = false;
   persistStateSkipCount_ = 0;
 
-  // FIXME/TODO: use cometbft seed-node/PEX to implement discoverynode
-  // just setting the relevant config.toml options via Options::cometBFT::config.toml::xxx
-
-  // FIXME/TODO: state saver
-  // must checkpoint the entire machine State to disk synchronously (blocking)
-  // every X blocks (you can't update the state while you are writing, you must
-  // acquire an exclusive lock over the entire State during checkpointing to disk).
-  // then, needs a synchronous loadCheckpoint("DB dir/name") function as well.
-  // each checkpoint must have its own disk location (instead of writing multiple
-  // checkpoints as entries inside the same database files/dir).
-  // two ways to do this:
-  // - fork the process to duplicate memory then write to disk in the fork
-  // - run a dedicated checkpointing node together with the validator node
-  // a regular node can just be a checkpointing node itself if it can afford
-  // to get a little behind the chain or, if it wants to pay for the memory
-  // cost, it can benefit from the process fork checkpointer.
+  // If this is a restart of Blockchain, we must set State to its default,
+  // "undefined" state. This should trigger either another initChain() or a
+  // loadSnapshot() down the line, which brings us to an actual state that is
+  // valid, considering the actual genesis state (which is not known here).
+  state_.resetState();
 
   // Wait for Comet to be in RUNNING state, since that is required
   // for e.g. Comet::sendTransaction() to succeed.
@@ -244,20 +236,20 @@ void Blockchain::start() {
   }
   this->comet_.setPauseState();
 
-  // FIXME/TODO
-  // Right now we always start at state_.height_ == 0, since we don't have
-  // the state load functionality restored yet, so we are replaying from
-  // genesis all the time. In that case, we don't have to do anything here.
-  // However, when we DO implement state load and we do Blockchain::start()
-  // from a height that is greater than 0, we will have to set the latest_
-  // block here (and set it on the fbCache_ also, since that's for free)
-  // for that height > 0.
-
   // Start RPC
   this->http_.start();
 }
 
 void Blockchain::stop() {
+  // Simple state transition checker
+  if (!started_) {
+    LOGWARNINGP("Blockchain::stop(): BDK node is already stopped.");
+    return;
+  }
+  started_ = false;
+  LOGINFOP("Stopping BDK node...");
+
+  // Stop
   this->http_.stop();
   this->comet_.stop();
 }
@@ -777,7 +769,16 @@ void Blockchain::getCurrentState(uint64_t& height, Bytes& appHash, std::string& 
   // NOTE: This value should not change if the state doesn't change, because a new appHash generates
   //   extra activity in CometBFT. However, an active blockchain would change the apphash in every
   //   block height in any case.
-  appHash = Hash().asBytes();
+  //
+  //appHash = Hash().asBytes(); // 32-byte zeroed out apphash
+  // IMPORTANT:
+  //   One way to flag "we don't have appHashes" is leaving it at "" (like it is in the default
+  //   genesis.json: app_hash: ""). The other is having a 32-byte "0000000000..." hash.
+  //   Should not matter which one we pick (we can pick any value to be the app hash that
+  //   never changes since we aren't using it) as long as it is the same, otherwise we'll get
+  //   errors like "0000...0000" != "" when doing restarts and replays.
+  //
+  appHash.clear(); // using "" empty 0-byte apphash
 
   // TODO/REVIEW: Not sure if we should set the BDK version here, since behavior might not change
   // If this is for display and doesn't trigger some cometbft behavior, then this can be the BDK version
@@ -793,17 +794,43 @@ void Blockchain::persistState(uint64_t& height) {
   // TODO: block history pruning based on a BDK option
   height = 0;
 
-  // Trigger snapshotting every X blocks (if syncing, do not save snapshots).
-  // If stateDumpTrigger is 0, the feature is DISABLED and the node is not generating snapshots periodically.
+  // Trigger snapshotting every X blocks.
+  // Do not save snapshots when syncing the blockchain or if snapshotting is disabled via stateDumpTrigger == 0.
   // TODO/REVIEW: We could catch a signal (like SIGUSR1) that forces snapshot generation on the next commit,
   // so nodes could have stateDumpTrigger set to 0 and still be able to generate snapshots.
-  if (!syncing_ && options_.getStateDumpTrigger() > 0 && ++persistStateSkipCount_ >= options_.getStateDumpTrigger()) {
-    persistStateSkipCount_ = 0;
+
+  // If we are syncing or state dump is disabled, there's nothing else to do.
+  if (syncing_ || options_.getStateDumpTrigger() == 0) {
+    return;
+  }
+
+  // If the dump trigger is satisifed and we don't have a snapshot save already active (future is invalid) then start one.
+  if (++persistStateSkipCount_ >= options_.getStateDumpTrigger()) {
+    LOGXTRACE("Saving snapshot for height: " + std::to_string(state_.getHeight()));
+
+    // This can take an arbitrary amount of time, and cause CometBFT to lose connections, etc.
+    // That is OK, since this should be happening in a dedicated snapshotter node.
     saveSnapshot();
+
+    LOGXTRACE("Saved snapshot for height: " + std::to_string(state_.getHeight()));
+
+    // Reset the dump trigger skip counter.
+    persistStateSkipCount_ = 0;
+
+    // Maybe we return in time, if the snapshot is small.
+    // Probably we don't return in time, in which case CometBFT should somehow recover
+    //   from timeouts, disconnections, etc. (by attempting to reconnect) etc. or crash.
+    //   If it crashes (it shouldn't) then the Comet driver should transparently restart it.
+    // Re: disconnections, a snapshotter should have a single unconditional or persistent
+    //   peer connection to a sentry node, so it should be free to e.g. time out at Commit.
+    // REIVEW: We may need to crash the cometbft process on purpose here, or after Commit.
+    //   But let's not do this unless it's actually necessary (it shouldn't).
   }
 }
 
 void Blockchain::currentCometBFTHeight(const uint64_t height) {
+  LOGINFO("Blockchain::currentCometBFTHeight(): " + std::to_string(height));
+
   // NOTE: We will use this one-time Comet driver callback, which runs *before* we run CometBFT
   // as a node (it takes the `height` param from cometbft inspect) to prepare the State at the
   // optimal height from a snapshot, so when CometBFT starts and connects to the app via ABCI,
@@ -823,16 +850,21 @@ void Blockchain::currentCometBFTHeight(const uint64_t height) {
           try {
             uint64_t snapshotHeight = std::stoull(dirname);
             // app state cannot be ahead cometbft's block store, otherwise cometbft panics.
-            if (snapshotHeight <= height) {
+            // ALSO, it cannot be == to height (so <, not <= below), since CometBFT may attempt
+            // to replay the block that produces "height" due to how it works internally, in which
+            // case loading app state exactly at "height" would cause it to panic since it would
+            // be in the "future" then (considering the -1 height rollback CometBFT may do).
+            if (snapshotHeight < height) {
               availableHeights.push_back(snapshotHeight);
             }
           } catch (const std::exception& ex) {
           }
         }
       }
-      // Try to load a snapshot from the list, most recent (that is <= `height`) first
+      // Try to load a snapshot from the list, most recent first
       if (!availableHeights.empty()) {
         // Sort the heights in descending order to prioritize the most recent snapshots
+        // that are eligible (by being "snapshotHeight < height"; see above)
         std::sort(availableHeights.begin(), availableHeights.end(), std::greater<uint64_t>());
         for (const auto& snapshotHeight : availableHeights) {
           std::filesystem::path snapshotDir = snapshotsRoot / std::to_string(snapshotHeight);

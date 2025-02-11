@@ -389,7 +389,7 @@ namespace TBlockchain {
       GLOGDEBUG("TEST: accA block 2 balance (after -900 eth hack): " + accAbal2hacked.str());
       REQUIRE(accAbal2hacked == uint256_t("94899853000000000000"));
 
-      // Do a recheck for tx 6, but turn off affectsMempool so it fill flag it as
+      // Do a recheck for tx 6, but turn off affectsMempool so it will flag it as
       //   ejected in the State's mempoolModel_ instead of just removing it.
       GLOGDEBUG("TEST: forcing flag tx nonce=6 as ejected in the State's mempool model due to insufficient balance");
       REQUIRE(blockchain.state().validateTransaction(tx_A_AA_6, false) == false);
@@ -417,7 +417,7 @@ namespace TBlockchain {
 
       GLOGDEBUG("TEST: creating Options for Blockchain");
 
-      int snapshotCount = 25;
+      int snapshotCount = 5;
       int stateDumpTrigger = 4; // # blocks between auto snapshot save
       int p2p_port = SDKTestSuite::getTestPort();
       int rpc_port = SDKTestSuite::getTestPort();

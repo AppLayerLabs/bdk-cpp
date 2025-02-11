@@ -131,19 +131,31 @@ void ABCINetServer::stop() {
 
   LOGXTRACE("ABCINetServer::stop(): waiting for all sessions to be destroyed");
 
+  // NOTE: This CANNOT time out.
+  //       If you put a massive sleep in the ABCI Commit callback for example (to emulate
+  //       a snapshot that takes forever to complete), and concurrently you Comet::stop(),
+  //       this can take a long time to finish since the ABCINetSession will be stuck in
+  //       that massive sleep.
+  //       Now, if you don't unconditionally wait for all sessions to be destroyed here,
+  //       the NetServer will never be destroyed, since we will have called ioContext_.stop(),
+  //       and that means the shared_ptrs to the ABCINetSessions will never go away from
+  //       inside the ASIO engine.
+  //       This could be avoided by using weak_ptr instead of shared_ptr, OR, you just
+  //       wait until all sessions go away before stopping the ioContext_.
+  //
   // Here we ensure all sessions have removed themselves, meaning
   // the destructor of all of them has been called. So we don't
   // have any ABCINetSession objects dangling.
-  int tries = 200;
+  //int tries = 200;
   while (true) {
     if (sessionDestroyed_ >= sessionCount) {
       break;
     }
-    if (--tries <= 0) {
-      // Should never happen
-      LOGDEBUG("WARNING: Timed out (4s) waiting for sessions to be destroyed; sessionDestroyed_ == " + std::to_string(sessionDestroyed_));
-      break;
-    }
+    //if (--tries <= 0) {
+    //  // Should never happen
+    //  LOGDEBUG("WARNING: Timed out (4s) waiting for sessions to be destroyed; sessionDestroyed_ == " + std::to_string(sessionDestroyed_));
+    //  break;
+    //}
     std::this_thread::sleep_for(std::chrono::milliseconds(20));
   }
 

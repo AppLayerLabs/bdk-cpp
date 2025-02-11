@@ -346,7 +346,6 @@ void WebsocketRPCConnection<T>::rpcHandleAsyncRead(boost::system::error_code ec,
       }
       // REVIEW: Protect against storing stale sync responses as well.
       // Keeping eventual stale sync responses is mostly harmless:
-      // - Sync is just used for testing cometbft, not in the running state.
       // - Should be actually pretty rare for the RPC localhost connection to be continually reset and for that to cause aborted RPC calls.
       // - rpcGetSyncResponse() does not loop over a structure like rpcGetNextAsyncResponse() does so it doesn't lose any time anyways.
       // Would require a rpcSyncSent_ structure that's just a set of uint64_t.
@@ -1782,7 +1781,7 @@ void CometImpl::workerLoopInner() {
     // Below are all config.toml option values that are always forced
     configToml.insert_or_assign("abci", "socket"); // gets overwritten by --abci, and this is the default value anyway
     configToml.insert_or_assign("proxy_app", "unix://" + cometUNIXSocketPath); // gets overwritten by --proxy_app
-    configToml["storage"].as_table()->insert_or_assign("discard_abci_responses", toml::value(true));
+    configToml["storage"].as_table()->insert_or_assign("discard_abci_responses", toml::value(true)); // This "saves considerable disk space" according to CometBFT docs
     configToml["rpc"].as_table()->insert_or_assign("max_body_bytes", COMET_RPC_MAX_BODY_BYTES);
     // Since the RPC port should be made accessible for local (loopback) connections only, it can
     // accept unsafe comands if we need it to.
@@ -2183,6 +2182,10 @@ void CometImpl::workerLoopInner() {
         }, requestData);
       }
 
+      // --------------------------------------------------------------------------------
+      // If we are stopping, exit running state normally.
+      // --------------------------------------------------------------------------------
+
       if (stop_) break;
     }
 
@@ -2534,7 +2537,7 @@ CometState Comet::getState() {
 }
 
 void Comet::setPauseState(const CometState pauseState) {
-  return impl_->setPauseState(pauseState);
+  impl_->setPauseState(pauseState);
 }
 
 CometState Comet::getPauseState() {
