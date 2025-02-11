@@ -55,10 +55,12 @@ namespace P2P {
       Utils::safePrint("Received a new block at height: " + std::to_string(block.getNHeight()));
       // If we already have the block, then this message is guaranteed irrelevant.
       // We don't have it, so we check if there's a chance it will connect to our blockchain (current height + 1).
+      Utils::safePrint("Trying to see if the block exists in the storage");
       if (
         !this->storage_.blockExists(block.getHash()) &&
         block.getNHeight() == this->storage_.latest()->getNHeight() + 1
       ) {
+        Utils::safePrint("Block is not in the storage and the height is correct");
         // Block seems to have the expected height for the next block, so try to connect it
         BlockValidationStatus vStatus = this->state_.tryProcessNextBlock(std::move(block));
         switch (vStatus) {
@@ -78,6 +80,9 @@ namespace P2P {
             throw DynamicException("Erroneous block data");
             break;
         }
+      } else {
+        // Block is irrelevant to us
+        Utils::safePrint("Block is irrelevant to us");
       }
     } catch (std::exception const& ex) {
       throw DynamicException("Invalid blockBroadcast (" + std::string(ex.what()) + ")");
