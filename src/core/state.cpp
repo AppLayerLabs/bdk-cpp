@@ -197,21 +197,12 @@ void State::saveSnapshot(const std::string& where) {
   out.putBatch(*vmBatch);
   vmBatch.reset();
 
-  // Write contracts_ individually
+  // Write contracts_
   for (const auto& [address, baseContractPtr] : this->contracts_) {
-    // Previous code parallelized contract dump generation, but we might not
-    // want to do that for two reasons:
-    // First, we are by default saving snapshots in the same machine as the
-    //  node is running (a validator node, for example) and in that case we should
-    //  strive to not degrate performance of the main node loop (this changes if we
-    //  change the best practices of snapshotting to node operators running a secondary
-    //  node exclusive for snapshotting in another physical machine).
-    // Second, if the goal is to minimize stateMutex_ contention to avoid the
-    //  consensus protocol stalling, multithreading is not a solution: as the machine
-    //  state grows, at some point it is too large anyways and no matter how many
-    //  threads you use to write the snapshot, you cannot guarantee any deadlines.
-    //  The actual solution is to either fork the process in the same machine and
-    //  then dump, or use a non-validator snapshotter, slave node in another machine.
+    // REVIEW: Snapshotting should be done by a dedicated snapshotter node, and it may
+    // make sense to add parallelization here (if the snapshotter will be using a dedicated
+    // machine, for example). In that case, the number of snapshotter threads should be
+    // a command-lin, process-wide option e.g. --snapshot_threads <N>.
     out.putBatch(baseContractPtr->dump());
   }
 
