@@ -50,7 +50,9 @@ namespace P2P {
     const NodeID &nodeId, const std::shared_ptr<const Message>& message
   ) {
     try {
+      Utils::safePrint("Received block broadcast");
       auto block = BroadcastDecoder::broadcastBlock(*message, getOptions().getChainID());
+      Utils::safePrint("Received a new block at height: " + std::to_string(block.getNHeight()));
       // If we already have the block, then this message is guaranteed irrelevant.
       // We don't have it, so we check if there's a chance it will connect to our blockchain (current height + 1).
       if (

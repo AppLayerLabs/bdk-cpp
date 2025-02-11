@@ -74,6 +74,7 @@ namespace P2P {
 
   void NodeConns::incomingInfo(const NodeID& sender, const NodeInfo& info, const NodeType& nodeType) {
     std::scoped_lock lock(this->stateMutex_);
+    Utils::safePrint("Incoming info from " + toString(sender) + " with time spacing: " + std::to_string(Utils::getCurrentTimeMillisSinceEpoch() - this->nodeInfoTime_[sender]));
     this->nodeInfo_[sender] = info;
     this->nodeInfoTime_[sender] = Utils::getCurrentTimeMillisSinceEpoch();
     this->nodeType_[sender] = nodeType;
