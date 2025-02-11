@@ -230,7 +230,12 @@ void Blockchain::start() {
   // for e.g. Comet::sendTransaction() to succeed.
   this->comet_.setPauseState(CometState::RUNNING);
   this->comet_.start();
-  std::string cometErr = this->comet_.waitPauseState(10000);
+  // NOTE: We must wait forever (0) since we don't know how long it takes to load
+  //       snapshots, for example.
+  //       That also means the driver must throw an error if CometBFT fails or
+  //       any other failure happens before the RUNNING state is reached, since
+  //       an error condition raised by the driver will interrupt waitPauseState(0).
+  std::string cometErr = this->comet_.waitPauseState(0);
   if (cometErr != "") {
     throw DynamicException("Error while waiting for CometBFT: " + cometErr);
   }

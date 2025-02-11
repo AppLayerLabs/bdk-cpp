@@ -214,9 +214,22 @@ void State::saveSnapshot(const std::string& where) {
     //  then dump, or use a non-validator snapshotter, slave node in another machine.
     out.putBatch(baseContractPtr->dump());
   }
+
+  // Write an __END__ metadata key so that the loader will know the snapshot is not truncated
+  metaBatch = std::make_unique<DBBatch>();
+  metaBatch->push_back(
+    StrConv::stringToBytes("__END__"),
+    Bytes(),
+    DBPrefix::snapshotMetadata
+  );
+  out.putBatch(*metaBatch);
+  metaBatch.reset();
 }
 
 void State::loadSnapshot(const std::string& where, bool allowV1Snapshot) {
+  // NOTE: This method is called in a loop that tries the most recent snapshot first and catches exceptions,
+  // then tries the second most recent one and so on, so it's fine to just throw on error.
+
   LOGINFO("Loading snapshot from: " + where);
 
   // DB directory & instance (uncompressed)
@@ -231,6 +244,9 @@ void State::loadSnapshot(const std::string& where, bool allowV1Snapshot) {
   // Load snapshot metadata.
   // We tolerate snapshots in the old format which did not have snapshot metadata.
   // Missing metadata fields are simply left unchanged.
+  if (!in.has(std::string("__END__"), DBPrefix::snapshotMetadata)) {
+    throw DynamicException("Read corrupt snapshot; missing __END__ field (snapshot is likely truncated).");
+  }
   if (in.has(std::string("height_"), DBPrefix::snapshotMetadata)) {
     Bytes heightBytes = in.get(std::string("height_"), DBPrefix::snapshotMetadata);
     height_ = UintConv::bytesToUint64(heightBytes);

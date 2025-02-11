@@ -1933,6 +1933,7 @@ void CometImpl::workerLoopInner() {
 
     // Notify the application of the height that CometBFT has in its block store.
     // If the application is ahead of this, it will need a strategy to cope with it.
+    // NOTE: This callback may load state snapshots and take an arbitrarily long time to complete.
     listener_->currentCometBFTHeight(lastCometBFTBlockHeight_);
 
     // --------------------------------------------------------------------------------------
