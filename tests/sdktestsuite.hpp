@@ -964,7 +964,8 @@ class SDKTestSuite : public Blockchain {
       std::vector<CometExecTxResult>& txResults, std::vector<CometValidatorUpdate>& validatorUpdates
     ) override;
     virtual void buildBlockProposal(
-      const uint64_t maxTxBytes, const CometBlock& block, bool& noChange, std::vector<size_t>& txIds
+      const uint64_t maxTxBytes, const CometBlock& block, bool& noChange, std::vector<size_t>& txIds,
+      std::vector<Bytes>& injectTxs
     ) override;
     virtual void validateBlockProposal(const CometBlock& block, bool& accept) override;
     virtual void getCurrentState(uint64_t& height, Bytes& appHash, std::string& appSemVer, uint64_t& appVersion) override;

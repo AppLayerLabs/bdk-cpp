@@ -58,6 +58,8 @@ class FinalizedBlock {
 
     const std::vector<std::shared_ptr<TxBlock>> txs_; ///< List of block transactions.
 
+    const Hash randomness_; ///< Random 256-bit number included in the block.
+
   public:
     /**
      * Move Constructor.
@@ -78,7 +80,8 @@ class FinalizedBlock {
       uint64_t timestamp, // Primitive types like uint64_t can (and should) be passed by value, no &&
       uint64_t nHeight, // Same for nHeight
       std::vector<std::shared_ptr<TxBlock>>&& txs,
-      Hash&& hash
+      Hash&& hash,
+      Hash&& randomness
     ) :
       proposerAddr_(std::move(proposerAddr)),
       prevBlockHash_(std::move(prevBlockHash)),
@@ -86,7 +89,8 @@ class FinalizedBlock {
       timestamp_(timestamp),
       nHeight_(nHeight),
       txs_(std::move(txs)),
-      hash_(std::move(hash))
+      hash_(std::move(hash)),
+      randomness_(std::move(randomness))
     {
     }
 
@@ -101,7 +105,8 @@ class FinalizedBlock {
       timestamp_(block.timestamp_),
       nHeight_(block.nHeight_),
       txs_(std::move(block.txs_)),
-      hash_(std::move(block.hash_))
+      hash_(std::move(block.hash_)),
+      randomness_(std::move(block.randomness_))
     {
     }
 
@@ -116,7 +121,8 @@ class FinalizedBlock {
       timestamp_(block.timestamp_),
       nHeight_(block.nHeight_),
       txs_(block.txs_),
-      hash_(block.hash_)
+      hash_(block.hash_),
+      randomness_(block.randomness_)
     {
     }
 
@@ -146,6 +152,7 @@ class FinalizedBlock {
     const uint64_t& getNHeight() const { return this->nHeight_; }
     const std::vector<std::shared_ptr<TxBlock>>& getTxs() const { return this->txs_; }
     const Hash& getHash() const { return this->hash_; }
+    const Hash& getRandomness() const { return this->randomness_; }
     ///@}
 
     /// Equality operator. Checks the block hash.

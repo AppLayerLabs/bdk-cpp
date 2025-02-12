@@ -623,9 +623,10 @@ void SDKTestSuite::incomingBlock(
 }
 
 void SDKTestSuite::buildBlockProposal(
-  const uint64_t maxTxBytes, const CometBlock& block, bool& noChange, std::vector<size_t>& txIds
+  const uint64_t maxTxBytes, const CometBlock& block, bool& noChange, std::vector<size_t>& txIds,
+  std::vector<Bytes>& injectTxs
 ) {
-  Blockchain::buildBlockProposal(maxTxBytes, block, noChange, txIds);
+  Blockchain::buildBlockProposal(maxTxBytes, block, noChange, txIds, injectTxs);
 }
 
 void SDKTestSuite::validateBlockProposal(const CometBlock& block, bool& accept) {

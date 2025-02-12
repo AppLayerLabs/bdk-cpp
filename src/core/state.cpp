@@ -735,17 +735,7 @@ void State::processBlock(const FinalizedBlock& block, std::vector<bool>& succeed
     );
   }
 
-  // The coinbase address that gets all the block fees, etc. is the block proposer.
-  // Address derivation schemes (from the same Secp256k1 public key) differ between CometBFT and Eth.
-  // So we need to map CometBFT Address to CometValidatorUpdate (a validator public key)
-  //   and then use the validator public key to compute the correct Eth Address.
-  Address proposerEthAddr = blockchain_.validatorCometAddressToEthAddress(block.getProposerAddr());
-  ContractGlobals::coinbase_ = proposerEthAddr;
-  // LOGTRACE("Coinbase set to: " + proposerEthAddr.hex().get() + " (CometBFT Addr: " + block.getProposerAddr().hex().get() + ")");
-
-  // TODO: randomHash needs a secure random gen protocol between all validators
-  Hash randomHash; // 0
-
+  const Hash randomHash = block.getRandomness();
   const Hash blockHash = block.getHash();
   const uint64_t blockHeight = block.getNHeight();
 
@@ -753,6 +743,13 @@ void State::processBlock(const FinalizedBlock& block, std::vector<bool>& succeed
   ContractGlobals::blockHash_ = blockHash;
   ContractGlobals::blockHeight_ = blockHeight;
   ContractGlobals::blockTimestamp_ = block.getTimestamp();
+  // The coinbase address that gets all the block fees, etc. is the block proposer.
+  // Address derivation schemes (from the same Secp256k1 public key) differ between CometBFT and Eth.
+  // So we need to map CometBFT Address to CometValidatorUpdate (a validator public key)
+  //   and then use the validator public key to compute the correct Eth Address.
+  Address proposerEthAddr = blockchain_.validatorCometAddressToEthAddress(block.getProposerAddr());
+  ContractGlobals::coinbase_ = proposerEthAddr;
+  // LOGTRACE("Coinbase set to: " + proposerEthAddr.hex().get() + " (CometBFT Addr: " + block.getProposerAddr().hex().get() + ")");
 
   // Process transactions of the block within the current state
   uint64_t txIndex = 0;
