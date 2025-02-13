@@ -16,7 +16,7 @@ See the LICENSE.txt file in the project root for more information.
 // TODO: test events if/when implemented
 
 namespace TDEXV2 {
-  TEST_CASE("DEXV2 Benchmark", "[benchmark]") {
+  TEST_CASE("DEXV2 Benchmark", "[benchmark][dexv2]") {
     SECTION("CPP DEXV2 Swap Benchmark") {
       SDKTestSuite sdk = SDKTestSuite::createNewEnvironment("testDEXV2LiqTokenTokenPair");
       Address tokenA = sdk.deployContract<ERC20>(std::string("TokenA"), std::string("TKNA"), uint8_t(18), uint256_t("10000000000000000000000"));
@@ -56,9 +56,13 @@ namespace TDEXV2 {
       // Create and do a simple swap transaction
       // tokenA, tokenB, amountIn, amountOutMin, to, deadline
       // (We will use the transaction for benchmarking later)
+      std::shared_ptr<const FinalizedBlock> blockBefore = sdk.latest();
       Hash swapTx = sdk.callFunction(router, &DEXV2Router02::swapExactTokensForTokens,
         uint256_t("10000"), uint256_t(0), std::vector<Address>({ tokenA, tokenB }), owner, deadline
       );
+      std::shared_ptr<const FinalizedBlock> blockAfter = sdk.latest();
+      REQUIRE(blockAfter != blockBefore);
+      REQUIRE(sdk.latest()->getTxs().size() == 1);
       REQUIRE(swapTx != Hash());
       TxBlock tx = (*sdk.latest()->getTxs()[0]);
 
