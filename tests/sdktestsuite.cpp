@@ -106,12 +106,6 @@ int main(int argc, char* argv[]) {
   // Check cometbft engine
   Comet::checkCometBFT();
 
-  // FIXME: send this to Blockchain instance instead
-  // Avoid ManagerBase::instanceIdGen_ == 0, which produces log logical location string ""
-  //   (for production nodes that only instantiate one ManagerBase, ever, and don't need
-  //    the logical location consuming space in the log file)
-  //P2P::ManagerBase::setTesting();
-
   Utils::safePrintTest("Running Catch2...");
   int result = Catch::Session().run(catchArgs.size(), catchArgs.data());
   return result;

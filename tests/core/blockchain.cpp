@@ -15,13 +15,6 @@ See the LICENSE.txt file in the project root for more information.
 
 #include "../sdktestsuite.hpp"
 
-// FIXME: use or remove
-// Forward declaration from tests/net/http/httpjsonrpc.cpp, for usage within sending transactions
-std::string makeHTTPRequest(
-  const std::string& reqBody, const std::string& host, const std::string& port,
-  const std::string& target, const std::string& requestType, const std::string& contentType
-);
-
 /**
  * Tests for the new Blockchain class.
  * Here we are using and testing the Blockchain class itself, not the SDKTestSuite test helper subclass.
