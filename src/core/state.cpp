@@ -241,7 +241,8 @@ void State::processTransaction(
       this->dumpManager_,
       this->storage_,
       randomSeed,
-      context);
+      context,
+      this->blockObservers_);
 
     std::visit([&] (auto&& msg) {
       if constexpr (concepts::CreateMessage<decltype(msg)>) {
@@ -409,6 +410,10 @@ BlockValidationStatus State::tryProcessNextBlock(FinalizedBlock&& block) {
     Utils::safePrint("Transaction: " + tx.hash().hex().get() + " was accepted in the blockchain");
   }
 
+  for (auto& observer : blockObservers_) {
+    std::invoke(observer);
+  }
+
   // Move block to storage
   this->storage_.pushBlock(std::move(block));
   return vStatus; // BlockValidationStatus::valid
@@ -485,7 +490,8 @@ Bytes State::ethCall(EncodedStaticCallMessage& msg) {
       this->dumpManager_,
       this->storage_,
       randomSeed,
-      context
+      context,
+      this->blockObservers_
     ).execute(msg);
   } else {
     return {};
@@ -508,7 +514,8 @@ int64_t State::estimateGas(EncodedMessageVariant msg) {
     this->dumpManager_,
     this->storage_,
     randomSeed,
-    context
+    context,
+    this->blockObservers_
   );
 
   return std::visit([&host] (auto&& msg) {

@@ -34,6 +34,7 @@ class State : public Dumpable, public Log::LogicalLocationProvider {
     boost::unordered_flat_map<StorageKey, Hash, SafeHash, SafeCompare> vmStorage_; ///< Map with the storage of the EVM.
     boost::unordered_flat_map<Address, NonNullUniquePtr<Account>, SafeHash, SafeCompare> accounts_; ///< Map with information about blockchain accounts (Address -> Account).
     boost::unordered_flat_map<Hash, TxBlock, SafeHash> mempool_; ///< TxBlock mempool.
+    std::vector<std::function<void()>> blockObservers_;
 
     /**
      * Verify if a transaction can be accepted within the current state.

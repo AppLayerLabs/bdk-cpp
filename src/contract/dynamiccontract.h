@@ -626,6 +626,36 @@ class DynamicContract : public BaseContract {
       return this->host_->callCreateContract<TContract>(*this, std::forward<Args>(args)...);
     }
 
+    void onEveryNBlocks(std::invocable auto func, size_t n) {
+      if (this->host_ == nullptr) {
+        throw DynamicException("Contracts going haywire! trying add block observer without a host!");
+      }
+
+      this->host_->addBlockObserver([func = std::move(func), n, count = n] () mutable {
+        if (count == n) {
+          std::invoke(func);
+          count = 0;
+        } else {
+          ++count;
+        }
+      });
+    }
+
+    template<typename Rep, typename Period>
+    void onBlockTiming(std::invocable auto func, std::chrono::duration<Rep, Period> interval) {
+      if (this->host_ == nullptr) {
+        throw DynamicException("Contracts going haywire! trying add block observer without a host!");
+      }
+
+      this->host_->addBlockObserver([func = std::move(func), stamp = std::chrono::high_resolution_clock::now(), interval] () mutable {
+        auto now = std::chrono::high_resolution_clock::now();
+        if (std::chrono::duration_cast<std::chrono::duration<Rep, Period>>(now - stamp) > interval) {
+          std::invoke(func);
+          stamp = now;
+        }
+      });
+    }
+
     /**
      * Get the balance of a contract.
      * @param address The address of the contract.

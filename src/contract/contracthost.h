@@ -49,17 +49,20 @@ class ContractHost {
     bool mustRevert_ = true; // We always assume that we must revert until proven otherwise.
     ExecutionContext& context_;
     CallTracer<MessageDispatcher> messageHandler_;
+    std::vector<std::function<void()>>& blockObservers_;
 
   public:
     ContractHost(evmc_vm* vm,
                  DumpManager& manager,
                  Storage& storage,
                  const Hash& randomnessSeed,
-                 ExecutionContext& context) :
+                 ExecutionContext& context,
+                 std::vector<std::function<void()>>& blockObservers) :
     manager_(manager),
     storage_(storage),
     stack_(),
     context_(context),
+    blockObservers_(blockObservers),
     messageHandler_(MessageDispatcher(context_, CppContractExecutor(context_, *this), EvmContractExecutor(context_, vm, storage.getIndexingMode()), PrecompiledContractExecutor(RandomGen(randomnessSeed))), storage.getIndexingMode()) {
       messageHandler_.handler().evmExecutor().setMessageHandler(AnyEncodedMessageHandler::from(messageHandler_)); // TODO: is this really required?
     }
@@ -221,6 +224,10 @@ class ContractHost {
     void registerVariableUse(SafeBase& var) { stack_.registerVariableUse(var); }
 
     uint256_t getRandomValue();
+
+    void addBlockObserver(std::invocable auto observer) {
+      blockObservers_.emplace_back(std::move(observer));
+    }
 
 private:
   decltype(auto) dispatchMessage(auto&& msg) {

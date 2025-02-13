@@ -49,7 +49,8 @@ class StateTest : public State {
         this->dumpManager_,
         this->storage_,
         Hash(),
-        context);
+        context,
+        this->blockObservers_);
 
       Gas gas(uint64_t(tx.getGasLimit()));
 
