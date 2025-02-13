@@ -64,8 +64,15 @@ if(USE_LINT)
   set(CMAKE_CXX_CLANG_TIDY "clang-tidy;-header-filter=.;-checks=-*,abseil-*,boost-*,bugprone-*,cert-*,clang-analyzer-*,concurrency-*,cppcoreguidelines-*,hicpp-*,misc-*,modernize-*,performance-*,portability-*,readability-*")
 endif()
 
+# Set preprocessor macros based on CMake flags
 if(BUILD_TESTNET)
   add_definitions(-DBUILD_TESTNET)
+endif()
+if(BUILD_TESTS)
+  add_compile_definitions(BUILD_TESTS)
+endif()
+if(BUILD_BENCHMARK_TESTS)
+  add_compile_definitions(BUILD_BENCHMARK_TESTS)
 endif()
 
 # Echo CMake vars during config

@@ -1,13 +1,15 @@
-# TODO: split this into subfolders
+set(TESTS_HEADERS "")
+set(TESTS_SOURCES "")
 
 if(BUILD_TESTS)
-  set(TESTS_HEADERS
-    ""
-    PARENT_SCOPE
+  list(APPEND TESTS_HEADERS
+    ${CMAKE_SOURCE_DIR}/tests/sdktestsuite.hpp
+  )
+  list(APPEND TESTS_SOURCES
+    ${CMAKE_SOURCE_DIR}/tests/sdktestsuite.cpp
   )
 
-  set(TESTS_SOURCES
-    ""
+  list(APPEND TESTS_SOURCES
     ${CMAKE_SOURCE_DIR}/tests/unit/contract/abi.cpp
     ${CMAKE_SOURCE_DIR}/tests/unit/contract/contractabigenerator.cpp
     ${CMAKE_SOURCE_DIR}/tests/unit/contract/event.cpp
@@ -30,7 +32,6 @@ if(BUILD_TESTS)
     ${CMAKE_SOURCE_DIR}/tests/unit/utils/tx.cpp
     ${CMAKE_SOURCE_DIR}/tests/unit/utils/uintconv.cpp
     ${CMAKE_SOURCE_DIR}/tests/unit/utils/utils.cpp
-    ${CMAKE_SOURCE_DIR}/tests/unit/main.cpp
   )
 
   # Conditionally add variables tests based on the respective CMake flag.
@@ -51,6 +52,19 @@ if(BUILD_TESTS)
     )
   endif()
 
-  set(TESTS_SOURCES ${TESTS_SOURCES} PARENT_SCOPE)
+  # Conditionally add benchmark tests based on the respective CMake flag.
+  if(BUILD_BENCHMARK_TESTS)
+    list(APPEND TESTS_SOURCES
+      ${CMAKE_SOURCE_DIR}/tests/sdktestsuite.cpp
+      ${CMAKE_SOURCE_DIR}/tests/benchmark/erc20.cpp
+      ${CMAKE_SOURCE_DIR}/tests/benchmark/erc721.cpp
+      ${CMAKE_SOURCE_DIR}/tests/benchmark/snailtracer.cpp
+      ${CMAKE_SOURCE_DIR}/tests/benchmark/snailtraceroptimized.cpp
+      ${CMAKE_SOURCE_DIR}/tests/benchmark/uniswapv2.cpp
+    )
+  endif()
 endif()
+
+set(TESTS_HEADERS ${TESTS_HEADERS} PARENT_SCOPE)
+set(TESTS_SOURCES ${TESTS_SOURCES} PARENT_SCOPE)
 
