@@ -622,9 +622,6 @@ void Blockchain::incomingBlock(
       txRes.code = succeeded[i] ? 0 : 1;
       txRes.gasUsed = gasUsed[i];
       txRes.gasWanted = static_cast<uint64_t>(txBlock.getGasLimit());
-      //txRes.data = Bytes... FIXME: transaction execution result/return arbitrary bytes
-      //in ContractHost::execute() there's an "output" var generated in the EVM code branch,
-      //  but not in the CPP contract case branch
       txResults.emplace_back(txRes);
 
       // Add a txhash->(blockheight,blockindex) entry to the txCache_ so
@@ -635,7 +632,7 @@ void Blockchain::incomingBlock(
 
     // All raw transactions must generate a txResult entry, so append a fake result for
     //  the obligatory last raw tx, which is the randomness hash and not an actual Eth tx.
-    txResults.emplace_back(CometExecTxResult{}); // code==0, gasWanted==0, gasUsed==0, data==""
+    txResults.emplace_back(CometExecTxResult{}); // code==0, gasWanted==0, gasUsed==0
 
   } catch (const std::exception& ex) {
     // We need to fail the blockchain node (fatal)

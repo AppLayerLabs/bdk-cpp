@@ -272,11 +272,7 @@ public:
     try {
       GLOGTRACE("incomingBlock: transaction count: " + std::to_string(block->txs.size()));
       for (const Bytes& tx : block->txs) {
-        // Default tx result execution object:
-        // code: 0 (success)
-        // data: [] (zero bytes return value)
-        // gas_used = 0, gas_wanted = 0
-        CometExecTxResult txRes;
+        CometExecTxResult txRes; // Default tx result execution object: code: 0 (success)
         // parse and validate the transaction
         std::string sig, nonce, op, val;
         bool accept = parseTransaction(tx, sig, nonce, op, val);
@@ -297,8 +293,8 @@ public:
         } else if (op == "=") {
           m_ = value;
         } else if (op == "?") {
-          // Return the assertion result in 1 byte of the transaction return data
-          txRes.data.push_back(m_ == value);
+          // Reverts the transaction if the assert fails
+          txRes.code = (m_ != value);
         } else if (op == "REVERT") {
           txRes.code = 1;
         } else {
@@ -364,6 +360,9 @@ public:
 };
 
 // FIXME/TODO: must time out of all future threads so testcases will eventually cleanup/exit
+//             Or, actually, we should probably create helper classes (with or without help from macros)
+//             that do away with the std::future boilerplate we are using to wait for conditions then
+//             REQUIRE() that they are met.
 namespace TComet {
   auto createTestDumpPath = SDKTestSuite::createTestDumpPath;
   auto generateCometTestPorts = SDKTestSuite::generateCometTestPorts;
@@ -371,6 +370,9 @@ namespace TComet {
 
     // Very simple test flow that runs a single cometbft node that runs a single-validator blockchain
     //   that can thus advance with a single validator producing blocks.
+    // NOTE: This test showcases the ideal version of our std::future boilerplate for waiting for a condition to be met,
+    //       but perhaps instead of copying it everywhere we should just replace this with something shorter (we would
+    //       probably need macros that then call the REQUIRE() etc. macros within them).
     SECTION("CometBootTest") {
       std::string testDumpPath = createTestDumpPath("CometBootTest");
 
@@ -480,25 +482,33 @@ namespace TComet {
 
       GLOGDEBUG("TEST: Waiting for CometBFT InitChain");
 
+      const int initChainTimeoutSecs = 5;
       auto futureInitChain = std::async(std::launch::async, [&]() {
-        while (!cometListener.gotInitChain) {
+        auto startTime = std::chrono::steady_clock::now();
+        auto endTime = startTime + std::chrono::seconds(initChainTimeoutSecs + 1);
+        while (!cometListener.gotInitChain && std::chrono::steady_clock::now() < endTime) {
           std::this_thread::sleep_for(std::chrono::milliseconds(10));
         }
       });
-      REQUIRE(futureInitChain.wait_for(std::chrono::seconds(5)) != std::future_status::timeout);
+      REQUIRE(futureInitChain.wait_for(std::chrono::seconds(initChainTimeoutSecs)) != std::future_status::timeout);
       REQUIRE(cometListener.gotInitChain);
+      REQUIRE_NOTHROW(futureInitChain.get());
 
       // --- Wait for a FinalizeBlock ABCI callback for a few blocks ---
 
       GLOGDEBUG("TEST: Waiting for CometBFT FinalizeBlock for 3 blocks");
       const int targetHeight = 3;
+      const int finalizeBlockTimeoutSecs = 60;
       auto futureFinalizeBlock = std::async(std::launch::async, [&]() {
-        while (cometListener.finalizedHeight < targetHeight) {
+        auto startTime = std::chrono::steady_clock::now();
+        auto endTime = startTime + std::chrono::seconds(finalizeBlockTimeoutSecs + 1);
+        while (cometListener.finalizedHeight < targetHeight && std::chrono::steady_clock::now() < endTime) {
           std::this_thread::sleep_for(std::chrono::milliseconds(10));
         }
       });
-      REQUIRE(futureFinalizeBlock.wait_for(std::chrono::seconds(60)) != std::future_status::timeout);
+      REQUIRE(futureFinalizeBlock.wait_for(std::chrono::seconds(finalizeBlockTimeoutSecs)) != std::future_status::timeout);
       REQUIRE(cometListener.finalizedHeight >= targetHeight);
+      REQUIRE_NOTHROW(futureFinalizeBlock.get());
 
       // --- stop ---
 
@@ -1026,12 +1036,9 @@ namespace TComet {
       GLOGDEBUG("TEST: failAssertResult: " + failAssertResult);
       GLOGDEBUG("TEST: revertResult: " + revertResult);
 
-      // It's faster if we just assert for the expected code/data field substrings in the json string
-      REQUIRE(succeedAssertResult.find("\"data\":\"AQ==\"") != std::string::npos); // AQ== is 1 in base64 (i.e. true, assert passed)
+      // It's faster if we just assert for the expected code field substring in the json string
       REQUIRE(succeedAssertResult.find("\"code\":0,") != std::string::npos); // code == 0: not reverted
-      REQUIRE(failAssertResult.find("\"data\":\"AA==\"") != std::string::npos); // AA== is 0 in base64 (i.e. false, assert failed)
-      REQUIRE(failAssertResult.find("\"code\":0,") != std::string::npos); // code == 0: not reverted
-      REQUIRE(revertResult.find("\"data\":null") != std::string::npos); // empty return value for the revert tx
+      REQUIRE(failAssertResult.find("\"code\":1,") != std::string::npos); // code == 1: reverted
       REQUIRE(revertResult.find("\"code\":1,") != std::string::npos); // code == 1: reverted
 
       // Stop
