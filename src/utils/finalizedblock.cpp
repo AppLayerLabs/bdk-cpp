@@ -31,9 +31,19 @@ FinalizedBlock FinalizedBlock::fromCometBlock(
 
   uint64_t requiredChainId = 0; // FIXME
 
+  // the last tx is the block randomness (random hash)
+  if (block.txs.empty()) {
+    throw DynamicException("Invalid CometBlock: empty tx list (no block randomness)");
+  }
+  size_t lastTxIndex = block.txs.size()-1;
+  if (block.txs[lastTxIndex].size() != 32) {
+    throw DynamicException("Invalid CometBlock: txs[lastTxIndex].size() != 32 bytes (bad block randomness)");
+  }
+  Hash randomness = Hash(block.txs[lastTxIndex]);
+
   // compute txs here txblocks
   std::vector<std::shared_ptr<TxBlock>> txs;
-  uint64_t txCount = block.txs.size();
+  uint64_t txCount = lastTxIndex; // NOTE: last tx is skipped (block.txs.size()-1) since that is the randomHash
   if (mempoolPtr == nullptr) {
     SLOGTRACE("Deserializing transactions...");
     for (uint64_t i = 0; i < txCount; i++) {
@@ -76,7 +86,8 @@ FinalizedBlock FinalizedBlock::fromCometBlock(
     timestamp,
     nHeight,
     std::move(txs),
-    std::move(hash)
+    std::move(hash),
+    std::move(randomness)
   };
 }
 
@@ -112,11 +123,29 @@ FinalizedBlock FinalizedBlock::fromRPC(const json& ret) {
   const auto& data = block["data"];
 
   SLOGTRACE("Deserializing transactions...");
+  Hash randomness;
   uint64_t requiredChainId = 0; // FIXME
   std::vector<std::shared_ptr<TxBlock>> txs;
   if (data.contains("txs") && data["txs"].is_array()) {
     // There is data.txs in the response, so unpack the transactions
-    for (const auto& tx : data["txs"]) {
+    const auto& dataTxs = data["txs"];
+    size_t dataTxsSize = dataTxs.size();
+
+    // last Tx is the randomhash
+    if (dataTxsSize == 0) {
+      throw DynamicException("Invalid RPC block: empty tx list (no block randomness)");
+    }
+    const auto& randomHashTx = dataTxs[dataTxsSize-1]; // last tx is the randomhash tx
+    std::string randomHashBase64 = randomHashTx.get<std::string>();
+    Bytes randomHashBytes = base64::decode_into<Bytes>(randomHashBase64);
+    if (randomHashBytes.size() != 32) {
+      throw DynamicException("Invalid RPC block: last tx is not 32 bytes long (bad block randomness)");
+    }
+    randomness = Hash(randomHashBytes);
+
+    // NOTE: skip last tx (-1) since that is not a real tx but the block randomness hash
+    for (uint64_t i = 1; i < dataTxsSize-1; ++i) {
+      const auto& tx = dataTxs[i];
       if (tx.is_string()) {
         // Compute tx Bytes from the base64-encoded tx data string
         std::string txBase64 = tx.get<std::string>();
@@ -129,6 +158,8 @@ FinalizedBlock FinalizedBlock::fromRPC(const json& ret) {
         throw DynamicException("Invalid block data");
       }
     }
+  } else {
+    throw DynamicException("Invalid RPC block: no tx list (no block randomness)");
   }
 
   if (!last_block_id.contains("hash") || !last_block_id["hash"].is_string()) {
@@ -177,6 +208,7 @@ FinalizedBlock FinalizedBlock::fromRPC(const json& ret) {
     timestamp,
     nHeight,
     std::move(txs),
-    std::move(hash)
+    std::move(hash),
+    std::move(randomness)
   };
 }

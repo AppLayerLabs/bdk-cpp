@@ -104,18 +104,6 @@ class State : public Log::LogicalLocationProvider {
     bool validateTransactionInternal(const TxBlock& tx, bool affectsMempool, MempoolModel *mm = nullptr);
 
     /**
-     * FIXME/TODO:
-     * - randomnessHash passed in will be just 0 and we don't have actual support for secure
-     *   randomness. we need to implement a commit/reveal protocol between the validators
-     *   of a block that runs in parallel generates a secure and signed random number that
-     *   is used by processBlock() for that height (i.e. the CometBFT consensus is not
-     *   actually aware of this; we just commit the hash of the random block on the next
-     *   cometbft block, or maybe in the app_hash since it looks like the app_hash value
-     *   goes into the same block that generates that app hash value (that is, the app_hash
-     *   that is written in the header of a final/committed block is the hash of the state
-     *   *after* processing that block! If so, app_hash is perfect for storing the hash
-     *   of the secure, signed result of the random generation protocol for that round.
-     *
      * Process a transaction within a block. Called by processNextBlock().
      * If the process fails, any state change that this transaction would cause has to be reverted.
      * @param tx The transaction to process.

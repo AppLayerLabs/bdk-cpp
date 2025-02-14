@@ -13,13 +13,6 @@ See the LICENSE.txt file in the project root for more information.
 
 #include <filesystem>
 
-// FIXME: use or remove
-// Forward declaration from tests/net/http/httpjsonrpc.cpp, for usage within sending transactions
-std::string makeHTTPRequest(
-  const std::string& reqBody, const std::string& host, const std::string& port,
-  const std::string& target, const std::string& requestType, const std::string& contentType
-);
-
 /**
  * Tests for the new Blockchain class.
  * Here we are using and testing the Blockchain class itself, not the SDKTestSuite test helper subclass.
@@ -173,6 +166,7 @@ namespace TBlockchain {
       cometBlock.txs.push_back(tx_A_AA_1.rlpSerialize(true));
       cometBlock.txs.push_back(tx_A_AA_2.rlpSerialize(true));
       cometBlock.txs.push_back(tx_A_AA_3.rlpSerialize(true));
+      cometBlock.txs.push_back(Utils::randBytes(32)); // append a randomHash non-tx tx (required by our protocol / FinalizedBlock::fromCometBlock())
       cometBlock.hash.resize(32); // The block hash can be whatever, it's not checked.
       cometBlock.prevHash.resize(32); // The prev block hash can be whatever, it's not checked.
 
@@ -314,7 +308,8 @@ namespace TBlockchain {
       GLOGDEBUG("TEST: calling buildBlockProposal");
       bool noChange;
       std::vector<size_t> txIds;
-      blockchain.buildBlockProposal(100'000'000, cometBlock, noChange, txIds);
+      std::vector<Bytes> injectTxs;
+      blockchain.buildBlockProposal(100'000'000, cometBlock, noChange, txIds, injectTxs);
       for (const size_t txId : txIds) {
         GLOGDEBUG("TEST: proposal has included txId: " + std::to_string(txId));
       }
@@ -333,6 +328,7 @@ namespace TBlockchain {
       // Send it to processBlock() for good measure.
       succeeded.clear();
       gasUsed.clear();
+      cometBlock.txs.push_back(Utils::randBytes(32)); // append a randomHash non-tx tx (required by our protocol / FinalizedBlock::fromCometBlock())
       FinalizedBlock finBlock2 = FinalizedBlock::fromCometBlock(cometBlock);
       blockchain.state().processBlock(finBlock2, succeeded, gasUsed);
 
@@ -404,7 +400,7 @@ namespace TBlockchain {
       cometBlock.txs.push_back(tx_A_AA_6.rlpSerialize(true)); // should be excluded by block builder: flagged as ejected
       cometBlock.txs.push_back(tx_A_AA_7.rlpSerialize(true)); // should be excluded by block builder: nonce path deleted
       txIds.clear();
-      blockchain.buildBlockProposal(100'000'000, cometBlock, noChange, txIds);
+      blockchain.buildBlockProposal(100'000'000, cometBlock, noChange, txIds, injectTxs);
       REQUIRE(txIds.size() == 0);
     }
 
