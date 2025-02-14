@@ -1,6 +1,8 @@
 set(TESTS_HEADERS "")
 set(TESTS_SOURCES "")
 
+# TODO: missing the following tests: contract/evm.cpp, contract/randomness.cpp, core/state.cpp, core/storage.cpp, net/httpjsonrpc.cpp
+
 if(BUILD_TESTS)
   list(APPEND TESTS_HEADERS
     ${CMAKE_SOURCE_DIR}/tests/sdktestsuite.hpp
@@ -13,6 +15,8 @@ if(BUILD_TESTS)
     ${CMAKE_SOURCE_DIR}/tests/unit/contract/abi.cpp
     ${CMAKE_SOURCE_DIR}/tests/unit/contract/contractabigenerator.cpp
     ${CMAKE_SOURCE_DIR}/tests/unit/contract/event.cpp
+    ${CMAKE_SOURCE_DIR}/tests/unit/contract/evmcontractexecutor.cpp
+    ${CMAKE_SOURCE_DIR}/tests/unit/contract/executioncontext.cpp
     ${CMAKE_SOURCE_DIR}/tests/unit/net/httperror.cpp
     ${CMAKE_SOURCE_DIR}/tests/unit/net/jsonrpcparser.cpp
     ${CMAKE_SOURCE_DIR}/tests/unit/utils/clargs.cpp
@@ -32,6 +36,22 @@ if(BUILD_TESTS)
     ${CMAKE_SOURCE_DIR}/tests/unit/utils/tx.cpp
     ${CMAKE_SOURCE_DIR}/tests/unit/utils/uintconv.cpp
     ${CMAKE_SOURCE_DIR}/tests/unit/utils/utils.cpp
+  )
+
+  list(APPEND TESTS_SOURCES
+    #${CMAKE_SOURCE_DIR}/tests/integration/contract/calltracer.cpp # FAIL (call trace)
+    ${CMAKE_SOURCE_DIR}/tests/integration/contract/createcontract.cpp
+    ${CMAKE_SOURCE_DIR}/tests/integration/contract/dexv2.cpp
+    #${CMAKE_SOURCE_DIR}/tests/integration/contract/erc20.cpp # FAIL (events)
+    ${CMAKE_SOURCE_DIR}/tests/integration/contract/erc20wrapper.cpp
+    #${CMAKE_SOURCE_DIR}/tests/integration/contract/erc721test.cpp # FAIL (events)
+    ${CMAKE_SOURCE_DIR}/tests/integration/contract/nativewrapper.cpp
+    #${CMAKE_SOURCE_DIR}/tests/integration/contract/pebble.cpp # FAIL (events)
+    ${CMAKE_SOURCE_DIR}/tests/integration/contract/precompiles.cpp
+    #${CMAKE_SOURCE_DIR}/tests/integration/contract/simplecontract.cpp # FAIL (events)
+    ${CMAKE_SOURCE_DIR}/tests/integration/contract/throwtest.cpp
+    ${CMAKE_SOURCE_DIR}/tests/integration/core/blockchain.cpp
+    ${CMAKE_SOURCE_DIR}/tests/integration/core/comet.cpp
   )
 
   # Conditionally add variables tests based on the respective CMake flag.
@@ -55,7 +75,6 @@ if(BUILD_TESTS)
   # Conditionally add benchmark tests based on the respective CMake flag.
   if(BUILD_BENCHMARK_TESTS)
     list(APPEND TESTS_SOURCES
-      ${CMAKE_SOURCE_DIR}/tests/sdktestsuite.cpp
       ${CMAKE_SOURCE_DIR}/tests/benchmark/erc20.cpp
       ${CMAKE_SOURCE_DIR}/tests/benchmark/erc721.cpp
       ${CMAKE_SOURCE_DIR}/tests/benchmark/snailtracer.cpp
