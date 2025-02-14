@@ -605,7 +605,6 @@ evmc::Result ContractHost::callEVMContract(const evmc_message& msg) {
     recipientAccount.code.size())
   );
   this->leftoverGas_ = result.gas_left; // gas_left is not linked with leftoverGas_, we need to link it.
-  this->deduceGas(5000); // EVM contract call is 5000 gas
   result.gas_left = this->leftoverGas_; // We need to set the gas left to the leftoverGas_
   return result;
 }
