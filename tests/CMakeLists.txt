@@ -39,16 +39,16 @@ if(BUILD_TESTS)
   )
 
   list(APPEND TESTS_SOURCES
-    #${CMAKE_SOURCE_DIR}/tests/integration/contract/calltracer.cpp # FAIL (call trace)
+    ${CMAKE_SOURCE_DIR}/tests/integration/contract/calltracer.cpp
     ${CMAKE_SOURCE_DIR}/tests/integration/contract/createcontract.cpp
     ${CMAKE_SOURCE_DIR}/tests/integration/contract/dexv2.cpp
-    #${CMAKE_SOURCE_DIR}/tests/integration/contract/erc20.cpp # FAIL (events)
+    ${CMAKE_SOURCE_DIR}/tests/integration/contract/erc20.cpp
     ${CMAKE_SOURCE_DIR}/tests/integration/contract/erc20wrapper.cpp
-    #${CMAKE_SOURCE_DIR}/tests/integration/contract/erc721test.cpp # FAIL (events)
+    ${CMAKE_SOURCE_DIR}/tests/integration/contract/erc721test.cpp
     ${CMAKE_SOURCE_DIR}/tests/integration/contract/nativewrapper.cpp
-    #${CMAKE_SOURCE_DIR}/tests/integration/contract/pebble.cpp # FAIL (events)
+    ${CMAKE_SOURCE_DIR}/tests/integration/contract/pebble.cpp
     ${CMAKE_SOURCE_DIR}/tests/integration/contract/precompiles.cpp
-    #${CMAKE_SOURCE_DIR}/tests/integration/contract/simplecontract.cpp # FAIL (events)
+    ${CMAKE_SOURCE_DIR}/tests/integration/contract/simplecontract.cpp
     ${CMAKE_SOURCE_DIR}/tests/integration/contract/throwtest.cpp
     ${CMAKE_SOURCE_DIR}/tests/integration/core/blockchain.cpp
     ${CMAKE_SOURCE_DIR}/tests/integration/core/comet.cpp

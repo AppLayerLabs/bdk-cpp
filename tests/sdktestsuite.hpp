@@ -377,7 +377,7 @@ class SDKTestSuite : public Blockchain {
       );
       ret = tx.hash();
       // Check if the execution is not going to be reverted/throw
-      this->advanceChain({tx}); // timestamp,
+      this->advanceChain({tx});
       return ret;
     }
 
@@ -416,15 +416,16 @@ class SDKTestSuite : public Blockchain {
       Utils::appendBytes(
         txData, ABI::Encoder::encodeData<Args...>(std::forward<decltype(args)>(args)...)
       );
-      // Use the chain owner account if no account is provided
 
+      // Use the chain owner account if no account is provided
       TxBlock tx = this->createNewTx(
         ((!testAccount) ? this->getChainOwnerAccount() : testAccount),
         contractAddress, value, txData
       );
       ret = tx.hash();
+
       // Check if the execution is not going to be reverted/throw
-      this->advanceChain({tx}); // timestamp,
+      this->advanceChain({tx});
       return ret;
     }
 

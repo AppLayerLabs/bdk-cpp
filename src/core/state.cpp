@@ -348,10 +348,10 @@ int64_t State::estimateGas(EncodedMessageVariant msg) {
   std::unique_lock lock(this->stateMutex_);
 
   ExecutionContext context = ExecutionContext::Builder{}
-      .storage(this->vmStorage_)
-      .accounts(this->accounts_)
-      .contracts(this->contracts_)
-      .build();
+    .storage(this->vmStorage_)
+    .accounts(this->accounts_)
+    .contracts(this->contracts_)
+    .build();
 
   const Hash randomSeed = bytes::random();
 

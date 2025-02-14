@@ -185,9 +185,7 @@ void SDKTestSuite::advanceChain(std::vector<TxBlock>&& txs) {
   // (height check is so that this method does something even with an empty txs arg)
   while (true) {
     lock.lock();
-    if (advanceChainPendingTxs_.empty() && advanceChainHeight_ > startingHeight) {
-      break;
-    }
+    if (advanceChainPendingTxs_.empty() && advanceChainHeight_ > startingHeight) break;
     lock.unlock();
     std::this_thread::sleep_for(std::chrono::milliseconds(20));
   }
@@ -325,6 +323,7 @@ SDKTestSuite SDKTestSuite::createNewEnvironment(
 
     // Discovery nodes will be implemented using cometbft seed-nodes
 
+    // TODO: this should not be hardcoded but rather using templates from nodeopts, revise the whole function later
     options_ = std::make_unique<Options>(
       sdkPath,
       "BDK/cpp/linux_x86-64/0.2.0",
@@ -336,7 +335,7 @@ SDKTestSuite SDKTestSuite::createNewEnvironment(
       2000,
       10000,
       1000,
-      IndexingMode::DISABLED, // Other values actually hurt benchmarks, do not change unless really necessary
+      IndexingMode::RPC_TRACE, // Values other than DISABLED actually hurt benchmarks
       defaultCometBFTOptions
     );
   } else {
