@@ -24,7 +24,7 @@ namespace TBlockchain {
 
     // TODO: various Blockchain class RPC tests
 
-    SECTION("Blockchain Boot Test") {
+    SECTION("BlockchainBootTest") {
       std::string testDumpPath = createTestDumpPath("BlockchainBootTest");
 
       GLOGDEBUG("TEST: creating Options for Blockchain");
@@ -53,7 +53,7 @@ namespace TBlockchain {
       GLOGDEBUG("TEST: done");
     }
 
-    SECTION("Blockchain Account Nonce Test") {
+    SECTION("BlockchainAccountNonceTest") {
       // Perform various account/nonce tests (repeat nonce, nonce sequence w/ same account in same block, ...)
       std::string testDumpPath = createTestDumpPath("BlockchainAccountNonceTest");
 
@@ -404,7 +404,7 @@ namespace TBlockchain {
       REQUIRE(txIds.size() == 0);
     }
 
-    SECTION("Blockchain State Dump Trigger Test") {
+    SECTION("BlockchainStateDumpTriggerTest") {
       std::string testDumpPath = createTestDumpPath("BlockchainStateDumpTriggerTest");
 
       GLOGDEBUG("TEST: creating Options for Blockchain");

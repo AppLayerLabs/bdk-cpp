@@ -371,7 +371,7 @@ namespace TComet {
     // NOTE: This test showcases the ideal version of our std::future boilerplate for waiting for a condition to be met,
     //       but perhaps instead of copying it everywhere we should just replace this with something shorter (we would
     //       probably need macros that then call the REQUIRE() etc. macros within them).
-    SECTION("Comet Boot Test") {
+    SECTION("CometBootTest") {
       std::string testDumpPath = createTestDumpPath("CometBootTest");
 
       GLOGDEBUG("TEST: Constructing Comet");
@@ -529,8 +529,7 @@ namespace TComet {
     //       getOptionsForCometTest( path , 1 , 2 );   // instance 2 of 2
     // This is just another trivial test that ensures we can run a CometBFT blockchain
     //   with more than one validator being required to finalize and advance state.
-    SECTION("Comet Boot Test 2") {
-
+    SECTION("CometBootTest2") {
       GLOGDEBUG("TEST: Constructing two Comet instances");
 
       // get free ports to run tests on
@@ -609,7 +608,7 @@ namespace TComet {
     }
 
     // Test Comet::getBlock() --> CometListener::getBlockResult()
-    SECTION("Comet Get Block Test") {
+    SECTION("CometGetBlockTest") {
       std::string testDumpPath = createTestDumpPath("CometGetBlockTest");
 
       GLOGDEBUG("TEST: Constructing Comet");
@@ -728,7 +727,7 @@ namespace TComet {
 
     // Simple test that checks we can control block production with dispatching
     // one transaction per block while running cometbft in stepMode_ == true.
-    SECTION("Comet Tx Test") {
+    SECTION("CometTxTest") {
       std::string testDumpPath = createTestDumpPath("CometTxTest");
 
       GLOGDEBUG("TEST: Constructing Comet");
@@ -909,7 +908,7 @@ namespace TComet {
     }
 
     // Simple test that checks that failed transactions are returned to the listener.
-    SECTION("Comet Tx Fail Test") {
+    SECTION("CometTxFailTest") {
       std::string testDumpPath = createTestDumpPath("CometTxFailTest");
 
       GLOGDEBUG("TEST: Constructing Comet");
@@ -977,8 +976,7 @@ namespace TComet {
     }
 
     // Test for transaction results such as reverted transaction or transaction return data
-    SECTION("Comet Tx Result Test") {
-
+    SECTION("CometTxResultTest") {
       std::string testDumpPath = createTestDumpPath("CometTxResultTest");
 
       GLOGDEBUG("TEST: Constructing Comet");
@@ -1051,8 +1049,7 @@ namespace TComet {
     // Stop at block M and restart test with no block replay, 1 validator
     // (snapshotted state at M before shutdown reported by Info on restart)
     // Non-empty transactions and verify that it reaches the same end state
-    SECTION("Comet Restart Test") {
-
+    SECTION("CometRestartTest") {
       std::string testDumpPath = createTestDumpPath("CometRestartTest");
 
       GLOGDEBUG("TEST: Constructing Comet");
@@ -1170,8 +1167,7 @@ namespace TComet {
     // Stop at block M and restart test with block replay from M/2, 1 validator
     // (Info on restart reports block M/2 thus replays M/2+1 to M)
     // Non-empty transactions and verify that it reaches the same end state
-    SECTION("Comet Replay Test") {
-
+    SECTION("CometReplayTest") {
       std::string testDumpPath = createTestDumpPath("CometReplayTest");
 
       GLOGDEBUG("TEST: Constructing Comet");
@@ -1307,8 +1303,7 @@ namespace TComet {
 
     // Produce some blocks (without stepMode), stop, rewind to genesis and replay,
     // with app_hash computing over m_ enabled.
-    SECTION("Comet Replay App Hash Test") {
-
+    SECTION("CometReplayAppHashTest") {
       std::string testDumpPath = createTestDumpPath("CometReplayAppHashTest");
 
       GLOGDEBUG("TEST: Constructing Comet");
@@ -1417,8 +1412,7 @@ namespace TComet {
 
     // Validator produces blocks, then launch another non-validator node
     // that connects to it and syncs from some block height.
-    SECTION("Comet Sync Test") {
-
+    SECTION("CometSyncTest") {
       GLOGDEBUG("TEST: Constructing two Comet instances");
 
       // Instantiate the listener object twice, one for each running Comet instance
@@ -1603,7 +1597,7 @@ namespace TComet {
     // Change validator set to add validator 2.
     // Change validator set to remove validator 0 (now both 1 and 2 are required to advance the chain, but not 0).
     // Stop validator 0, verify that chain continues advancing normally.
-    SECTION("Comet Validator Set Test") {
+    SECTION("CometValidatorSetTest") {
       GLOGDEBUG("TEST: Constructing three Comet instances");
 
       // IMPORTANT: Catch2 REQUIRE() isn't thread-safe!
@@ -1743,8 +1737,8 @@ namespace TComet {
     }
 
     // Test Comet RPC call API
-    SECTION("Comet RPC Call Test") {
-      std::string testDumpPath = createTestDumpPath("CometRpcCallTest");
+    SECTION("CometRPCCallTest") {
+      std::string testDumpPath = createTestDumpPath("CometRPCCallTest");
 
       GLOGDEBUG("TEST: Constructing Comet");
 
@@ -1785,7 +1779,7 @@ namespace TComet {
 
     // setpriv test. setpriv is not *really* optional -- you must have setpriv in your path
     // to run the tests, otherwise this test will just fail.
-    SECTION("Comet Setpriv Test") {
+    SECTION("CometSetprivTest") {
       // setpriv must be available, if not always then at least for running tests
       boost::filesystem::path setpriv_path = boost::process::search_path("setpriv");
       REQUIRE(!setpriv_path.empty());
