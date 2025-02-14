@@ -15,7 +15,7 @@ ContractManager::ContractManager(
   const DB& db, boost::unordered_flat_map<Address, std::unique_ptr<BaseContract>, SafeHash>& contracts,
   DumpManager& manager, const Options& options
 ) : BaseContract("ContractManager", ProtocolContractAddresses.at("ContractManager"),
-  options.getChainOwner(), options.getChainID()), contracts_(contracts)
+  options.getChainOwner(), options.getChainID()), contracts_(contracts), manager_(manager)
 {
   ContractFactory::registerContracts<ContractTypes>();
   ContractFactory::addAllContractFuncs<ContractTypes>(this->createContractFuncs_);

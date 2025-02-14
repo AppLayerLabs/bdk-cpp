@@ -43,6 +43,10 @@ std::pair<std::vector<DBBatch>, uint64_t> DumpManager::dumpState() const {
     auto currentOffset = 0;
     std::vector<std::future<std::vector<DBBatch>>> futures(nThreads);
     std::vector<std::vector<DBBatch>> outputs(nThreads);
+    Utils::safePrint("this->dumpables_.size() = " + std::to_string(this->dumpables_.size()));
+    Utils::safePrint("nThreads = " + std::to_string(nThreads));
+    Utils::safePrint("requiredOffset = " + std::to_string(requiredOffset));
+    Utils::safePrint("remaining = " + std::to_string(remaining));
 
     for (decltype(futures)::size_type i = 0; i < nThreads; ++i) {
       auto nItems = requiredOffset;
@@ -80,7 +84,11 @@ std::tuple<uint64_t, uint64_t, uint64_t> DumpManager::dumpToDB() const {
   Utils::safePrint("Dumping the new state at height " + std::to_string(blockHeight) + " to " + dbName);
   now = std::chrono::system_clock::now();
   DB stateDb(dbName, true); // Compressed
-  for (const auto& batch : batches) stateDb.putBatch(batch);
+  Utils::safePrint("Total Batches to process: " + std::to_string(batches.size()));
+  for (uint64_t i = 0; i < batches.size(); i++) {
+    Utils::safePrint("Processing batch: " + std::to_string(i) + " of " + std::to_string(batches.size()));
+    stateDb.putBatch(batches[i]);
+  }
   dumpTime = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now() - now).count();
   if (stateDb.close())
     Utils::safePrint("State dumped at height " + std::to_string(blockHeight) + " took " + std::to_string(dumpTime) + "ms");

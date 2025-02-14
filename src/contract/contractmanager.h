@@ -24,6 +24,9 @@ class ContractManager : public BaseContract {
     /// Reference of currently deployed contracts.
     /// Owned by the State
     boost::unordered_flat_map<Address, std::unique_ptr<BaseContract>, SafeHash>& contracts_;
+    /// Reference to the current dump manager.
+    /// Owned by the State
+    DumpManager& manager_;
 
     /// Functions to create contracts.
     boost::unordered_flat_map<
@@ -78,9 +81,11 @@ class ContractManager : public BaseContract {
       // Here we disable this template when T is a tuple
       static_assert(!Utils::is_tuple<T>::value, "Must not be a tuple");
       if (StrConv::bytesToString(contract.value) == Utils::getRealTypeName<T>()) {
-        this->contracts_.insert(std::make_pair(
+        auto it = this->contracts_.insert(std::make_pair(
           contractAddress, std::make_unique<T>(contractAddress, db)
         ));
+        // Dont forget to register the contract on the dump manager
+        this->manager_.pushBack(it.first->second.get());
         return true;
       }
       return false;
