@@ -45,9 +45,11 @@ if(BUILD_TESTS)
     ${CMAKE_SOURCE_DIR}/tests/integration/contract/erc20.cpp
     ${CMAKE_SOURCE_DIR}/tests/integration/contract/erc20wrapper.cpp
     ${CMAKE_SOURCE_DIR}/tests/integration/contract/erc721test.cpp
+    ${CMAKE_SOURCE_DIR}/tests/integration/contract/evm.cpp
     ${CMAKE_SOURCE_DIR}/tests/integration/contract/nativewrapper.cpp
     ${CMAKE_SOURCE_DIR}/tests/integration/contract/pebble.cpp
     ${CMAKE_SOURCE_DIR}/tests/integration/contract/precompiles.cpp
+    ${CMAKE_SOURCE_DIR}/tests/integration/contract/randomness.cpp
     ${CMAKE_SOURCE_DIR}/tests/integration/contract/simplecontract.cpp
     ${CMAKE_SOURCE_DIR}/tests/integration/contract/throwtest.cpp
     ${CMAKE_SOURCE_DIR}/tests/integration/core/blockchain.cpp
