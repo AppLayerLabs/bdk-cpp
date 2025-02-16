@@ -1,8 +1,6 @@
 set(TESTS_HEADERS "")
 set(TESTS_SOURCES "")
 
-# TODO: missing the following tests: contract/evm.cpp, contract/randomness.cpp, core/state.cpp, core/storage.cpp, net/httpjsonrpc.cpp
-
 if(BUILD_TESTS)
   list(APPEND TESTS_HEADERS
     ${CMAKE_SOURCE_DIR}/tests/sdktestsuite.hpp
@@ -54,6 +52,7 @@ if(BUILD_TESTS)
     ${CMAKE_SOURCE_DIR}/tests/integration/contract/throwtest.cpp
     ${CMAKE_SOURCE_DIR}/tests/integration/core/blockchain.cpp
     ${CMAKE_SOURCE_DIR}/tests/integration/core/comet.cpp
+    ${CMAKE_SOURCE_DIR}/tests/integration/net/httpjsonrpc.cpp
   )
 
   # Conditionally add variables tests based on the respective CMake flag.

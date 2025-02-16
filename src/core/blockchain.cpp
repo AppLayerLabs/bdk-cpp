@@ -996,7 +996,6 @@ json Blockchain::getBlockJson(const FinalizedBlock *block, bool includeTransacti
   ret["parentHash"] = block->getPrevBlockHash().hex(true);
   ret["sha3Uncles"] = Hash().hex(true); // Uncles do not exist.
 
-  //ret["miner"] = Secp256k1::toAddress(block->getValidatorPubKey()).hex(true);
   ret["miner"] = validatorCometAddressToEthAddress(block->getProposerAddr()).hex(true);
 
   ret["stateRoot"] = Hash().hex(true); // No State root.
@@ -1312,7 +1311,7 @@ json Blockchain::eth_sendRawTransaction(const json& request) {
   }
 
   // Return value is the transaction sha3()
-  return json { txBlock.hash().hex(true) };
+  return txBlock.hash().hex(true);
 }
 
 json Blockchain::eth_getTransactionByHash(const json& request) {

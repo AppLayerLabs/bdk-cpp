@@ -82,8 +82,7 @@ class SDKTestSuite : public Blockchain {
       return TestAccount(PrivKey(Hex::toBytes("0xe89ef6409c467285bcae9f80ab1cfeb3487cfe61ab28fb7d36443e1daa0c2867")));
     };
 
-    // Test listen P2P port number generator needs to be in SDKTestSuite due to createNewEnvironment(),
-    //   which selects the port for the caller.
+    // Test listen P2P port number generator needs to be in SDKTestSuite due to createNewEnvironment(), which selects the port for the caller.
     // This should be used by all tests that open a node listen port, not only SDKTestSuite tests.
     static int p2pListenPortMin_;
     static int p2pListenPortMax_;
