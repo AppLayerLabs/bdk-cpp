@@ -708,6 +708,7 @@ namespace TComet {
       // Request block via RPC
       GLOGDEBUG("TEST: getBlock(" + std::to_string(getBlockHeight) + ")");
       bool success = comet.getBlock(getBlockHeight);
+      REQUIRE(success == true);
 
       // Wait for block result
       GLOGDEBUG("TEST: Wait for getBlockResult()...");

@@ -196,7 +196,8 @@ SDKTestSuite SDKTestSuite::createNewEnvironment(
   const std::string& sdkPath,
   const std::vector<TestAccount>& accounts,
   const Options* const options,
-  const std::string& instanceId
+  const std::string& instanceId,
+  const bool bench
 ) {
   if (std::filesystem::exists(sdkPath)) std::filesystem::remove_all(sdkPath);
 
@@ -323,7 +324,9 @@ SDKTestSuite SDKTestSuite::createNewEnvironment(
 
     // Discovery nodes will be implemented using cometbft seed-nodes
 
-    // TODO: this should not be hardcoded but rather using templates from nodeopts, revise the whole function later
+    // Benchmarks should have IndexingMode::DISABLED - other values actually hurt performance.
+    // If test is not a benchmark, revert back to the default of IndexingMode::RPC_TRACE
+    IndexingMode idxMode = (bench) ? IndexingMode::DISABLED : IndexingMode::RPC_TRACE;
     options_ = std::make_unique<Options>(
       sdkPath,
       "BDK/cpp/linux_x86-64/0.2.0",
@@ -335,7 +338,7 @@ SDKTestSuite SDKTestSuite::createNewEnvironment(
       2000,
       10000,
       1000,
-      IndexingMode::RPC_TRACE, // Values other than DISABLED actually hurt benchmarks
+      idxMode,
       defaultCometBFTOptions
     );
   } else {

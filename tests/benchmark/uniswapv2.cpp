@@ -18,7 +18,7 @@ See the LICENSE.txt file in the project root for more information.
 namespace TDEXV2 {
   TEST_CASE("DEXV2 Benchmark", "[benchmark][dexv2]") {
     SECTION("CPP DEXV2 Swap Benchmark") {
-      SDKTestSuite sdk = SDKTestSuite::createNewEnvironment("testDEXV2LiqTokenTokenPair");
+      SDKTestSuite sdk = SDKTestSuite::createNewEnvironment("testDEXV2LiqTokenTokenPair", {}, nullptr, "", true);
       Address tokenA = sdk.deployContract<ERC20>(std::string("TokenA"), std::string("TKNA"), uint8_t(18), uint256_t("10000000000000000000000"));
       Address tokenB = sdk.deployContract<ERC20>(std::string("TokenB"), std::string("TKNB"), uint8_t(18), uint256_t("10000000000000000000000"));
       Address wrapped = sdk.deployContract<NativeWrapper>(std::string("WSPARQ"), std::string("WSPARQ"), uint8_t(18));

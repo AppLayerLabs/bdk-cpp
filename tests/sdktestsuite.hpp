@@ -182,12 +182,14 @@ class SDKTestSuite : public Blockchain {
      * @param accounts (optional) List of accounts to initialize the blockchain with. Defaults to none (empty vector).
      * @param options (optional) Options to initialize the blockchain with. Defaults to none (nullptr).
      * @param instanceId (optional) String instance ID for logging.
+     * @param bench (optional) Whether benchmarking will be tested or not. Defaults to `false`.
      */
     static SDKTestSuite createNewEnvironment(
       const std::string& sdkPath,
       const std::vector<TestAccount>& accounts = {},
       const Options* const options = nullptr,
-      const std::string& instanceId = ""
+      const std::string& instanceId = "",
+      const bool bench = false
     );
 
     /**
