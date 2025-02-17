@@ -254,52 +254,59 @@ void SystemContract::processBlock() {
     vv.votes = validatorVotes_[i];
     old.push_back(vv);
     if (validatorVotes_[i] > 0) {
-      int256_t delta = delegationDeltas_[validator];
-      if (delta >= 0) {
-        vv.votes += delta.convert_to<uint64_t>();
-      } else {
-        delta = -delta;
-        vv.votes -= delta.convert_to<uint64_t>();
+      auto it = delegationDeltas_.find(validator);
+      if (it != delegationDeltas_.end()) {
+        int256_t delta = it->second;
+        if (delta >= 0) {
+          vv.votes += delta.convert_to<uint64_t>();
+        } else {
+          delta = -delta;
+          vv.votes -= delta.convert_to<uint64_t>();
+        }
       }
       sorted.insert(vv);
     }
   }
 
-  // rebuild validators_ & validatorVotes_
-  validators_.clear();
-  validatorVotes_.clear();
-  std::set<PubKey> elected;
-  int i = 0;
-  for (const auto& vv : sorted) {
-    validators_.push_back(vv.validator);
-    validatorVotes_.push_back(vv.votes);
-    if (i < numSlots_.get()) {
-      elected.insert(vv.validator);
+  bool changedDelegations = !delegationDeltas_.empty();
+
+  // If delegations are unchanged, no need to fix validators_ & validatorVotes_
+  if (changedDelegations) {
+
+    // rebuild validators_ & validatorVotes_
+    validators_.clear();
+    validatorVotes_.clear();
+    std::set<PubKey> elected;
+    int i = 0;
+    for (const auto& vv : sorted) {
+      validators_.push_back(vv.validator);
+      validatorVotes_.push_back(vv.votes);
+      if (i < numSlots_.get()) {
+        elected.insert(vv.validator);
+      }
+      ++i;
     }
-    ++i;
-  }
 
-  // clear delegation deltas
-  delegationDeltas_.clear();
+    // clear delegation deltas
+    delegationDeltas_.clear();
 
-  // clear irrelevant targetSlots_ entries created by unelected validators.
-  // NOTE: it = erase(it) is not compiling, so we do a deferred erase-by-key loop.
-  std::vector<PubKey> keysToErase;
-  auto it = targetSlots_.begin();
-  while (it != targetSlots_.end()) {
-    if (!elected.contains(it->first)) {
-      keysToErase.push_back(it->first);
+    // clear irrelevant targetSlots_ entries created by unelected validators.
+    // NOTE: it = erase(it) is not compiling, so we do a deferred erase-by-key loop.
+    std::vector<PubKey> keysToErase;
+    auto it = targetSlots_.begin();
+    while (it != targetSlots_.end()) {
+      if (!elected.contains(it->first)) {
+        keysToErase.push_back(it->first);
+      }
+      ++it;
     }
-    ++it;
-  }
-  for (const auto& key : keysToErase) {
-    targetSlots_.erase(key);
+    for (const auto& key : keysToErase) {
+      targetSlots_.erase(key);
+    }
   }
 
-  // Save oldNumSlots since numSlots_ may change
-  uint64_t oldNumSlots = numSlots_.get();
-
-  // Evaluate targetSlots_ to see if numSlots_ changes.
+  // Fully reevaluate targetSlots_ to see if numSlots_ changes.
+  uint64_t oldNumSlots = numSlots_.get(); // Save oldNumSlots since numSlots_ may change
   int64_t incVote = std::numeric_limits<int64_t>::max();
   int64_t decVote = std::numeric_limits<int64_t>::min();
   uint64_t incVoteCount = 0;
@@ -307,6 +314,7 @@ void SystemContract::processBlock() {
   int vIdx = 0;
   auto sit = sorted.begin();
   uint64_t electedValidatorCount = 0;
+  bool changedSlots = false;
   while (sit != sorted.end() && vIdx < numSlots_.get()) {
     ++electedValidatorCount;
     int64_t slotsVote = static_cast<int64_t>(targetSlots_[sit->validator]); // cast is OK since slotsVote < maxSlots_
@@ -323,71 +331,76 @@ void SystemContract::processBlock() {
     ++vIdx;
   }
   uint64_t quorum = ((electedValidatorCount * 2) / 3) + 1;
-  if (incVoteCount >= quorum) {
+  if (incVoteCount >= quorum && incVote != numSlots_.get()) {
     numSlots_ = static_cast<uint64_t>(incVote);
+    changedSlots = true;
     LOGXTRACE("Increased numSlots_: " + std::to_string(numSlots_.get()));
-  } else if (decVoteCount >= quorum) {
+  } else if (decVoteCount >= quorum && decVote != numSlots_.get()) {
     numSlots_ = static_cast<uint64_t>(decVote);
+    changedSlots = true;
     LOGXTRACE("Decreased numSlots_: " + std::to_string(numSlots_.get()));
   }
 
-  // Finally, compute the CometBFT validator updates
+  // Finally, compute the CometBFT validator updates if any.
+  // If neither delegations nor slots changed, then no validator set changes are possible.
+  if (changedSlots || changedDelegations) {
 
-  // For each validator that was elected previously, we may generate an update
-  for (int i = 0; i < old.size() && i < oldNumSlots; ++i) {
-    const auto& oldvv = old[i];
+    // For each validator that was elected previously, we may generate an update
+    for (int i = 0; i < old.size() && i < oldNumSlots; ++i) {
+      const auto& oldvv = old[i];
 
-    // For each old elected validator, figure out its new voting power (which is zero if its rank/index
-    //  is higher than the potentially new numSlots_ limit).
-    uint64_t newVote = 0;
-    int j = 0;
-    auto it = sorted.begin();
-    while (it != sorted.end() && j < numSlots_.get()) {
-      if (it->validator == oldvv.validator) {
-        newVote = it->votes;
-        break;
+      // For each old elected validator, figure out its new voting power (which is zero if its rank/index
+      //  is higher than the potentially new numSlots_ limit).
+      uint64_t newVote = 0;
+      int j = 0;
+      auto it = sorted.begin();
+      while (it != sorted.end() && j < numSlots_.get()) {
+        if (it->validator == oldvv.validator) {
+          newVote = it->votes;
+          break;
+        }
+        ++it;
+        ++j;
       }
-      ++it;
-      ++j;
-    }
 
-    // If the new effective voting power for the validator change, generate an update
-    if (newVote != oldvv.votes) {
-      // TODO: return another validator update:
-      //   validator: oldvv.validator
-      //   voting power: newVote
-      LOGXTRACE("Validator update (existing): " + Hash(oldvv.validator.asBytes()).hex().get());
-    }
-  }
-
-  // Generate updates for fresh elected validators (validators that had
-  // zero votes before this block and are now elected).
-  int k = 0;
-  for (const auto& vv : sorted) {
-    if (k >= numSlots_.get()) {
-      // exceeded numSlots_, reached the voted but unelected validator range
-      break;
-    }
-    ++k;
-    bool found = false;
-    int l = 0;
-    for (const auto& oldvv : old) {
-      if (l >= oldNumSlots) {
-        // exceeded oldNumSlots, reached the voted but unelected validator range
-        break;
-      }
-      ++l;
-      if (oldvv.validator == vv.validator) {
-        found = true;
-        break;
+      // If the new effective voting power for the validator change, generate an update
+      if (newVote != oldvv.votes) {
+        // TODO: return another validator update:
+        //   validator: oldvv.validator
+        //   voting power: newVote
+        LOGXTRACE("Validator update (existing): " + Hash(oldvv.validator.asBytes()).hex().get());
       }
     }
-    if (!found) {
-      // vv.validator has >0 power now, but had ==0 power before (not elected)
-      // TODO: return another validator update
-      //   validator: validator
-      //   voting power: votes
-      LOGXTRACE("Validator update (new): " + Hash(vv.validator.asBytes()).hex().get());
+
+    // Generate updates for fresh elected validators (validators that had
+    // zero votes before this block and are now elected).
+    int k = 0;
+    for (const auto& vv : sorted) {
+      if (k >= numSlots_.get()) {
+        // exceeded numSlots_, reached the voted but unelected validator range
+        break;
+      }
+      ++k;
+      bool found = false;
+      int l = 0;
+      for (const auto& oldvv : old) {
+        if (l >= oldNumSlots) {
+          // exceeded oldNumSlots, reached the voted but unelected validator range
+          break;
+        }
+        ++l;
+        if (oldvv.validator == vv.validator) {
+          found = true;
+          break;
+        }
+      }
+      if (!found) {
+        // vv.validator has >0 power now, but had ==0 power before (not elected)
+        // TODO: return another validator update
+        //   validator: validator
+        //   voting power: votes
+        LOGXTRACE("Validator update (new): " + Hash(vv.validator.asBytes()).hex().get());
+      }
     }
   }
 }
