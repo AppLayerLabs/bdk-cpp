@@ -28,7 +28,7 @@ struct ValidatorVotes {
   }
 };
 
-void SystemContract::recordDelegationDelta(const PubKey& validator, const uint64_t& delta, const bool& positive) {
+bool SystemContract::recordDelegationDelta(const PubKey& validator, const uint64_t& delta, const bool& positive) {
   // check that the current validator votes + the current delegation delta + the new delta won't
   // end outside of uint64_t range. if it is OK, record it in the intermediary int256_t.
   int256_t checker = 0;
@@ -53,12 +53,22 @@ void SystemContract::recordDelegationDelta(const PubKey& validator, const uint64
   if (checker > std::numeric_limits<uint64_t>::max() || checker < 0) {
     throw DynamicException("Delegation amount limit exceeded");
   }
+  uint64_t targetVotes = checker.convert_to<uint64_t>();
+  // No validator can have exactly the same voting power as any other
+  // If we are violating this rule with the new voting power, return false so the
+  //   caller can retry with another amount
+  for (int i = 0; i < validatorVotes_.size(); ++i) {
+    if (validatorVotes_[i] == targetVotes) {
+      return false;
+    }
+  }
   // All OK, so record it
   if (positive) {
     delegationDeltas_[validator] += delta;
   } else {
     delegationDeltas_[validator] -= delta;
   }
+  return true;
 }
 
 SystemContract::SystemContract(
@@ -149,7 +159,7 @@ void SystemContract::delegate(const PubKey& validator, const uint256_t& amount) 
   if (stakes_.find(caller) == stakes_.end()) {
     throw DynamicException("No stake");
   }
-  const uint64_t amount64 = encodeAmount(amount);
+  uint64_t amount64 = encodeAmount(amount);
   if (amount64 == 0) {
     throw DynamicException("Cannot delegate zero tokens");
   }
@@ -166,7 +176,14 @@ void SystemContract::delegate(const PubKey& validator, const uint256_t& amount) 
     // otherwise throw DynamicException("Unregistered validator")
   }
   delegations_[caller][validator] += amount64;
-  recordDelegationDelta(validator, amount64, true);
+  // Loop avoiding collision in delegation amount (which we do not support)
+  while (!recordDelegationDelta(validator, amount64, true)) {
+    if (amount64 == 1) {
+      throw DynamicException("Cannot delegate this amount (try a larger amount)");
+    }
+    --amount64;
+    delegations_[caller][validator] -= 1;
+  }
 }
 
 void SystemContract::undelegate(const PubKey& validator, const uint256_t& amount) {
@@ -177,7 +194,7 @@ void SystemContract::undelegate(const PubKey& validator, const uint256_t& amount
   if (delegations_[caller].find(validator) == delegations_[caller].end()) {
     throw DynamicException("No delegation to validator");
   }
-  const uint64_t amount64 = encodeAmount(amount);
+  uint64_t amount64 = encodeAmount(amount);
   // To undelegate initial validators (with total delegation amount == 0), the contract
   // creator can undelegate any positive amount so this check will pass.
   // (It is also possible to remove the initial validators if any voter account simply
@@ -195,7 +212,14 @@ void SystemContract::undelegate(const PubKey& validator, const uint256_t& amount
     }
   }
   stakes_[caller] += effectiveAmount;
-  recordDelegationDelta(validator, amount64, false);
+  // Loop avoiding collision in delegation amount (which we do not support)
+  while (!recordDelegationDelta(validator, amount64, false)) {
+    if (amount64 == 1) {
+      throw DynamicException("Cannot undelegate this amount (try a larger amount)");
+    }
+    --amount64;
+    delegations_[caller][validator] += 1;
+  }
 }
 
 void SystemContract::voteslots(const PubKey& validator, const uint64_t& slots) {
@@ -271,20 +295,11 @@ void SystemContract::processBlock() {
   for (const auto& key : keysToErase) {
     targetSlots_.erase(key);
   }
-  
+
   // Save oldNumSlots since numSlots_ may change
   uint64_t oldNumSlots = numSlots_.get();
 
   // Evaluate targetSlots_ to see if numSlots_ changes.
-  //2/3+1 of numSlots have a lower or greater number.
-  //foreach elected
-  // signed int incvote = int max
-  // signed int decvote = int min
-  // if vote > numslots   incvote = min(vote, incvote)   incvotecount++
-  // if vote < numslots   decvote = max(vote, decvote)   decvotecount++
-  // if (incvotecount > 2/3+1 of slots && incvote != numslots && incvote <= maxslots) numslots = incvote
-  // if (decvotecount > 2/3+1 of slots && decvote != numslots && decvote > 0) decslots = incvote
-
   int64_t incVote = std::numeric_limits<int64_t>::max();
   int64_t decVote = std::numeric_limits<int64_t>::min();
   uint64_t incVoteCount = 0;
@@ -372,6 +387,7 @@ void SystemContract::processBlock() {
       // TODO: return another validator update
       //   validator: validator
       //   voting power: votes
+      LOGXTRACE("Validator update (new): " + Hash(vv.validator.asBytes()).hex().get());
     }
   }
 }

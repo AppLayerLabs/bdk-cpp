@@ -75,8 +75,8 @@ class SystemContract : public DynamicContract {
       return uint256_t(amount64) * AMOUNT_ENCODING_SCALE;
     }
 
-    void recordDelegationDelta(const PubKey& validator, const uint64_t& delta, const bool& positive);
-  
+    bool recordDelegationDelta(const PubKey& validator, const uint64_t& delta, const bool& positive);
+
     SafeUint64_t numSlots_; /// The active number of validator slots.
     SafeUint64_t maxSlots_; /// The maximum value for numSlots_.
 
