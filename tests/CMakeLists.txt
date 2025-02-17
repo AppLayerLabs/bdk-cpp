@@ -42,6 +42,7 @@ set (TESTS_SOURCES
   ${CMAKE_SOURCE_DIR}/tests/contract/createcontract.cpp
   ${CMAKE_SOURCE_DIR}/tests/contract/pebble.cpp
   ${CMAKE_SOURCE_DIR}/tests/contract/throwtest.cpp
+  ${CMAKE_SOURCE_DIR}/tests/contract/evmcreate.cpp
   ${CMAKE_SOURCE_DIR}/tests/core/rdpos.cpp
   ${CMAKE_SOURCE_DIR}/tests/core/storage.cpp
   ${CMAKE_SOURCE_DIR}/tests/core/state.cpp

@@ -112,7 +112,12 @@ Address ContractHost::deriveContractAddress(const uint64_t& nonce, const Address
   Bytes rlp;
   rlp.insert(rlp.end(), rlpSize);
   rlp.insert(rlp.end(), address.cbegin(), address.cend());
-  rlp.insert(rlp.end(), (nonce < 0x80) ? (char)nonce : (char)0x80 + Utils::bytesRequired(nonce));
+  if (nonce < 0x80) {
+    rlp.insert(rlp.end(), static_cast<char>(nonce));
+  } else {
+    rlp.insert(rlp.end(), 0x80 + Utils::bytesRequired(nonce));
+    Utils::appendBytes(rlp, Utils::uintToBytes(nonce));
+  }
 
   return Address(Utils::sha3(rlp).view(12));
 }
