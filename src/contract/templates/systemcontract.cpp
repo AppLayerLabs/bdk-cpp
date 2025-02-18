@@ -83,10 +83,33 @@ SystemContract::SystemContract(
   const Address& address, const DB& db
 ) : DynamicContract(address, db)
 {
-  // TODO read state from DB
-  //this->owner_ = Address(db.get(std::string("owner_"), this->getDBPrefix()));
-  //this->owner_.commit();
-
+  this->numSlots_ = Utils::fromBigEndian<uint64_t>(db.get(std::string("numSlots_"), this->getDBPrefix()));
+  this->numSlots_.commit();
+  this->maxSlots_ = Utils::fromBigEndian<uint64_t>(db.get(std::string("maxSlots_"), this->getDBPrefix()));
+  this->maxSlots_.commit();
+  for (const auto& dbEntry : db.getBatch(this->getNewPrefix("targetSlots_"))) {
+    this->targetSlots_[PubKey(dbEntry.key)] = Utils::fromBigEndian<uint64_t>(dbEntry.value);
+  }
+  this->targetSlots_.commit();
+  for (const auto& dbEntry : db.getBatch(this->getNewPrefix("stakes_"))) {
+    this->stakes_[Address(dbEntry.key)] = Utils::fromBigEndian<uint64_t>(dbEntry.value);
+  }
+  this->stakes_.commit();
+  for (const auto& dbEntry : db.getBatch(this->getNewPrefix("delegations_"))) {
+    View<Bytes> valueView(dbEntry.value);
+    this->delegations_[Address(dbEntry.key)][PubKey(valueView.subspan(0, 33))] = Utils::fromBigEndian<uint64_t>(valueView.subspan(33));
+  }
+  this->delegations_.commit();
+  for (const auto& dbEntry : db.getBatch(this->getNewPrefix("validators_"))) {
+    this->validators_.push_back(PubKey(dbEntry.value));
+  }
+  this->validators_.commit();
+  for (const auto& dbEntry : db.getBatch(this->getNewPrefix("validatorVotes_"))) {
+    this->validatorVotes_.push_back(Utils::fromBigEndian<uint64_t>(dbEntry.value));
+  }
+  this->validatorVotes_.commit();
+  delegationDeltas_.clear();
+  delegationDeltas_.commit();
   doRegister();
 }
 
@@ -419,9 +442,32 @@ void SystemContract::processBlock(std::vector<std::pair<PubKey, uint64_t>>& vali
 
 DBBatch SystemContract::dump() const {
   DBBatch batch = BaseContract::dump();
-
-  // TODO: write state to db
-  //batch.push_back(StrConv::stringToBytes("owner_"), this->owner_.get().asBytes(), this->getDBPrefix());
-
+  batch.push_back(StrConv::stringToBytes("numSlots_"), UintConv::uint64ToBytes(this->numSlots_.get()), this->getDBPrefix());
+  batch.push_back(StrConv::stringToBytes("maxSlots_"), UintConv::uint64ToBytes(this->maxSlots_.get()), this->getDBPrefix());
+  for (auto it = this->targetSlots_.cbegin(); it != this->targetSlots_.cend(); ++it) {
+    batch.push_back(it->first.asBytes(), UintConv::uint64ToBytes(it->second), this->getNewPrefix("targetSlots_"));
+  }
+  for (auto it = this->stakes_.cbegin(); it != this->stakes_.cend(); ++it) {
+    batch.push_back(it->first.asBytes(), UintConv::uint64ToBytes(it->second), this->getNewPrefix("stakes_"));
+  }
+  for (auto it = this->delegations_.cbegin(); it != this->delegations_.cend(); ++it) {
+    for (auto it2 = it->second.cbegin(); it2 != it->second.cend(); ++it2) {
+      const auto& key = it->first; // Address (delegator)
+      Bytes value = it2->first.asBytes(); // PubKey (validator) = 33 bytes
+      Utils::appendBytes(value, UintConv::uint64ToBytes(it2->second)); // uint64_t (votes) = 8 bytes
+      batch.push_back(key, value, this->getNewPrefix("delegations_"));
+    }
+  }
+  for (uint32_t i = 0; i < this->validators_.size(); ++i) {
+    batch.push_back(UintConv::uint32ToBytes(i), this->validators_[i].asBytes(), this->getNewPrefix("validators_"));
+  }
+  for (uint32_t i = 0; i < this->validatorVotes_.size(); ++i) {
+    batch.push_back(UintConv::uint32ToBytes(i), UintConv::uint64ToBytes(this->validatorVotes_[i]), this->getNewPrefix("validatorVotes_"));
+  }
+  if (!delegationDeltas_.empty()) {
+    // delegationDeltas_ *must* be empty both at the start and at the end of block processing.
+    // There is *never* a valid reason to save an inconsistent state snapshot in the middle of block processing.
+    throw DynamicException("System contract is in an inconsistent state during snapshotting (delegationDeltas_ is not empty).");
+  }
   return batch;
 }

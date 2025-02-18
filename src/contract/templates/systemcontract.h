@@ -93,7 +93,7 @@ class SystemContract : public DynamicContract {
     /// Validator delegations (votes) by users.
     /// Maps voter address to delegations, where each delegation is a validator key
     /// and a 64-bit encoded delegation (vote) amount.
-    SafeUnorderedMap<Address, boost::unordered_flat_map<PubKey, uint64_t>> delegations_;
+    SafeUnorderedMap<Address, boost::unordered_flat_map<PubKey, uint64_t, SafeHash>> delegations_;
 
     /// Sorted list of all validator candidates; the first numSlots_ elements are the elected validators.
     SafeVector<PubKey> validators_;
@@ -179,8 +179,8 @@ class SystemContract : public DynamicContract {
         std::make_tuple("voteSlots", &SystemContract::voteSlots, FunctionTypes::NonPayable, std::vector<std::string>{"validatorPubKey", "slots"})
       );
 
-      // REVIEW: should we add events for validator set updates generated and numSlots changes?
-      //         I guess it wouldn't hurt to have those. Also helps testing (?)
+      // FIXME/TODO: add validator set update events (one per {validator,votes} change)
+      // FIXME/TODO: add numslots update event ({int new_numslots})
       //ContractReflectionInterface::registerContractEvents<SystemContract>(
       //);
     }
