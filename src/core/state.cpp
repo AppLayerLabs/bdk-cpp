@@ -15,6 +15,7 @@ See the LICENSE.txt file in the project root for more information.
 
 #include "../utils/uintconv.h"
 #include "bytes/random.h"
+#include "libs/base64.hpp" // To decode the base64-encoded key strings
 
 #include "blockchain.h"
 
@@ -53,7 +54,7 @@ void State::initChain(
 
   // If the genesis snapshot file param is set, load it.
   if (genesisSnapshot != "") {
-    // Allow V1 snapshots without height_ and timeMicros_
+    // Genesis snapshots can be V1 snapshots without height_ and timeMicros_
     // If these metadata fields are present, they will overwrite the height/time
     //   params supplied to this call and that we set in resetState() above.
     loadSnapshot(genesisSnapshot, true);
@@ -62,6 +63,39 @@ void State::initChain(
   // If set in options, give the chain owner its initial balance
   uint256_t chainOwnerBalance = this->blockchain_.opt().getChainOwnerInitialBalance();
   if (chainOwnerBalance > 0) this->setBalance(this->blockchain_.opt().getChainOwner(), chainOwnerBalance);
+
+  // Initial system contract params (ctor params)
+  std::vector<std::string> initialValidatorPubKeys;
+  const auto& validatorsJson = blockchain_.opt().getCometBFT()[COMET_OPTION_GENESIS_JSON]["validators"];
+  for (const auto& validator : validatorsJson) {
+    std::string validatorPubKeyBase64Str = validator["pub_key"]["value"];
+    Bytes pubBytes = base64::decode_into<Bytes>(validatorPubKeyBase64Str);
+    std::string validatorPubKey = Hex::fromBytes(pubBytes).get();
+    LOGDEBUG("Validator PubKey hex string for SystemContract: " + validatorPubKey);
+    initialValidatorPubKeys.push_back(validatorPubKey);
+  }
+  uint64_t initialNumSlots = initialValidatorPubKeys.size(); // initial numSlots will simply be the number of validators provided at genesis
+  uint64_t maxSlots = 1'000; // Set this to the global maximum numslots for BDK chains
+
+  // FIXME/TODO: Must make the SystemContract template undeployable by user code.
+  //             Only the BDK node's internal code should be able to deploy it.
+
+  LOGDEBUG("Deploying SystemContract...");
+
+  // Create SystemContract account
+  auto& systemContractAcc = *this->accounts_[ProtocolContractAddresses.at("SystemContract")];
+  systemContractAcc.nonce = 1;
+  systemContractAcc.contractType = ContractType::CPP;
+
+  // Create SystemContract contract
+  // We can only construct the SystemContract on initChain() because we need to know the genesis parameters.
+  this->contracts_[ProtocolContractAddresses.at("SystemContract")] =
+    std::make_unique<SystemContract>(
+      initialValidatorPubKeys, initialNumSlots, maxSlots,
+      ProtocolContractAddresses.at("SystemContract"), blockchain_.opt().getChainOwner(), blockchain_.opt().getChainID()
+    );
+
+  LOGDEBUG("Deployed SystemContract.");
 }
 
 std::string State::getLogicalLocation() const { return blockchain_.getLogicalLocation(); }
@@ -98,6 +132,32 @@ void State::contractSanityCheck(const Address& addr, const Account& acc) {
       LOGFATAL_THROW("Invalid contract type");
       break;
   }
+}
+
+size_t State::getUserContractsSize() {
+  std::shared_lock lock(this->stateMutex_);
+  size_t count = contracts_.size();
+  // Subtract each protocol contract that we find from the user-deployed contracts count.
+  for (const auto& pca : ProtocolContractAddresses) {
+    const Address& protocolContractAddress = pca.second;
+    if (this->contracts_.find(protocolContractAddress) != this->contracts_.end()) {
+      --count;
+    }
+  }
+  return count;
+}
+
+SystemContract* State::getSystemContract() {
+  std::shared_lock lock(this->stateMutex_);
+  if (this->contracts_.find(ProtocolContractAddresses.at("SystemContract")) == this->contracts_.end()) {
+    throw DynamicException("SystemContract not found");
+  }
+  const auto& uniquePtr = this->contracts_[ProtocolContractAddresses.at("SystemContract")];
+  if (uniquePtr.get() == nullptr) {
+    throw DynamicException("SystemContract not found (null)");
+  }
+  // dynamic_cast is not needed here; we know this is a SystemContract
+  return static_cast<SystemContract*>(uniquePtr.get());
 }
 
 void State::resetState(uint64_t height, uint64_t timeMicros) {
@@ -217,7 +277,7 @@ void State::saveSnapshot(const std::string& where) {
   metaBatch.reset();
 }
 
-void State::loadSnapshot(const std::string& where, bool allowV1Snapshot) {
+void State::loadSnapshot(const std::string& where, bool genesisSnapshot) {
   // NOTE: This method is called in a loop that tries the most recent snapshot first and catches exceptions,
   // then tries the second most recent one and so on, so it's fine to just throw on error.
 
@@ -243,7 +303,7 @@ void State::loadSnapshot(const std::string& where, bool allowV1Snapshot) {
     height_ = UintConv::bytesToUint64(heightBytes);
     LOGXTRACE("Snapshot height: " + std::to_string(height_));
   } else {
-    if (allowV1Snapshot) {
+    if (genesisSnapshot) {
       LOGWARNING("Snapshot has no height field, leaving State height at " + std::to_string(height_));
     } else {
       throw DynamicException("Read corrupt snapshot; missing height_ field.");
@@ -254,7 +314,7 @@ void State::loadSnapshot(const std::string& where, bool allowV1Snapshot) {
     timeMicros_ = UintConv::bytesToUint64(timeMicrosBytes);
     LOGXTRACE("Snapshot timeMicros: " + std::to_string(timeMicros_));
   } else {
-    if (allowV1Snapshot) {
+    if (genesisSnapshot) {
       LOGWARNING("Snapshot has no timeMicros field, leaving State timeMicros at " + std::to_string(timeMicros_));
     } else {
       throw DynamicException("Read corrupt snapshot; missing timeMicros_ field.");
@@ -297,6 +357,25 @@ void State::loadSnapshot(const std::string& where, bool allowV1Snapshot) {
   // Check if all found contracts in the accounts_ map really have code or are C++ contracts
   for (const auto& [addr, acc] : this->accounts_) {
     contractSanityCheck(addr, *acc);
+  }
+
+  // SystemContract must be present in non-genesis snapshots.
+  // SystemContract must not be present in genesis snapshots.
+  bool hasSystemContract = (
+    this->contracts_.find(ProtocolContractAddresses.at("SystemContract")) != this->contracts_.end()
+    && this->accounts_.find(ProtocolContractAddresses.at("SystemContract")) != this->accounts_.end()
+  );
+  if (genesisSnapshot && hasSystemContract) {
+    throw DynamicException("Invalid genesis snapshot (has SystemContract).");
+  }
+  if (!genesisSnapshot) {
+    if (!hasSystemContract) {
+      throw DynamicException("Invalid snapshot (missing SystemContract).");
+    }
+    // Make sure it actually loaded
+    if (this->contracts_[ProtocolContractAddresses.at("SystemContract")].get() == nullptr) {
+      throw DynamicException("Invalid snapshot (missing SystemContract: nullptr).");
+    }
   }
 }
 

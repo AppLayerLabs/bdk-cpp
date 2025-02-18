@@ -61,6 +61,7 @@ using MempoolModelHashIt =
 
 class Blockchain;
 class FinalizedBlock;
+class SystemContract;
 
 #include "typedefs.h"
 
@@ -143,12 +144,16 @@ class State : public Log::LogicalLocationProvider {
     std::string getLogicalLocation() const override; ///< Log helper.
 
     /**
-     * Helper for testing.
+     * Get the number of user-deployed contracts.
+     * @return Number of user-deployed contracts.
      */
-    size_t getContractsSize() {
-      std::shared_lock lock(this->stateMutex_);
-      return contracts_.size();
-    }
+    size_t getUserContractsSize();
+
+    /**
+     * Get the system contract.
+     * @return Pointer to SystemContract, or nullptr if SystemContract not instantiated (no initChain() or loadSnapshot() yet).
+     */
+    SystemContract* getSystemContract();
 
     /**
      * Resets the machine state to its default, bare-minimum state.
@@ -182,8 +187,9 @@ class State : public Log::LogicalLocationProvider {
      * Read the entire consensus machine state held in persistent storage to RAM.
      * May throw on errors.
      * @param where Existing speedb directory name the snapshot will be read from.
+     * @param genesisSnapshot `true` if loading a genesis snapshot, `false` otherwise.
      */
-    void loadSnapshot(const std::string& where, bool allowV1Snapshot = false);
+    void loadSnapshot(const std::string& where, bool genesisSnapshot = false);
 
     /**
      * Get the blockchain block height currently reflected by this machine state.

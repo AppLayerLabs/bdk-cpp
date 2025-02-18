@@ -20,23 +20,16 @@ See the LICENSE.txt file in the project root for more information.
  * NOTE: All token amounts are saved internally in uint64_t and multiplied by 1'000'000'000,
  * so any amounts under 0.000000001 are kept by the contract (effectively burned).
  *
- * NOTE: Maximum supported voting power or delegation is ~9.2 billion tokens: it should
- * not be possible to generate that many tokens (total) but we should do our best to
- * protect against this (it's only a problem in the current overflow protection code if
- * intermediary calculations exceed int256_t, so it's never a problem).
+ * NOTE: Maximum supported voting power or delegation is ~9.2 billion tokens (int64_t, since
+ * that's the type used by CometBFT for validator voting power): it should not be possible to
+ * generate that many tokens (total) but we should do our best to protect against this (it's
+ * only a problem in the current overflow protection code if intermediary calculations exceed
+ * int256_t, so it's never a problem).
  *
  * TODO:
  * - Contract class is fully written and compiles.
- * - Register contract class / add to the contract template variant.
- * - Auto-deploy contract on initChain() (should be a fixed contract address)
- *   has to be initChain() since that's the one that gets the genesis file.
- * - Hook Blockchain::incomingBlock() to the system contract.
- *   - normal calls to the contract generate data structure changes
- *   - the newValidators is collected by incomingBlock() at its end, if any
- *     by calling the unregistered contract method directly.
- * - Write cometValidatorUpdates to a DB prefix in the blocks db.
- *   bytes33 pub key + uint64_t value which is the score
  * - Write unit test.
+ *   - Ensure SystemContract cannot be instantiated by incoming transactions.
  * - PR branch.
  */
 class SystemContract : public DynamicContract {
@@ -146,30 +139,74 @@ class SystemContract : public DynamicContract {
       const Address& address, const Address& creator, const uint64_t& chainId
     );
 
-    /// Deposit native tokens
+    /**
+     * An user deposits native tokens into the system contract.
+     * The tx sender (caller) is the depositor, and the tx value is the amount of native tokens deposited.
+     */
     void stake();
 
-    /// Withdraw native tokens
+    /**
+     * An user withdraws native tokens from the system contract.
+     * The tx sender (caller) is requesting the withdrawal.
+     * @param amount Amount of native tokens to withdraw in wei.
+     */
     void unstake(const uint256_t& amount);
 
-    /// Vote for a validator
+    /**
+     * An user votes for a validator.
+     * The tx sender (caller) is the user that is delegating tokens to a validator key.
+     * @param validatorPubKey 33-byte Secp256k1 validador public key to vote, in hex (66 hex char string).
+     * @param amount Amount of staked tokens to delegate to the validator key.
+     */
     void delegate(const std::string& validatorPubKey, const uint256_t& amount);
 
-    /// Unvote a validator
+    /**
+     * An user unvotes from a validator.
+     * The tx sender (caller) is the user that is undelegating tokens from a validator key.
+     * @param validatorPubKey 33-byte Secp256k1 validador public key to unvote, in hex (66 hex char string).
+     * @param amount Amount of staked tokens to undelegate from the validator key.
+     */
     void undelegate(const std::string& validatorPubKey, const uint256_t& amount);
 
-    /// Validator changes a slots vote
-    /// The caller address must match the validator public key
+    /**
+     * An elected validator sets its vote for the number of validator slots.
+     * The tx sender (caller) must be the account for validatorPubKey.
+     * TODO: If we keep an account-to-pubkey reverse mapping, we don't need to take validatorPubKey as a param.
+     * @param validatorPubKey 33-byte Secp256k1 validador public key that is voting for a number of slots (must match caller account).
+     * @param slots Chosen target number of validator slots to vote for.
+     */
     void voteSlots(const std::string& validatorPubKey, const uint64_t& slots);
 
-    /// Apply processing at the end of a block.
-    /// This is an unregistered function called directly by the block processor
-    /// after all block txs are applied to the machine state.
-    void processBlock(std::vector<std::pair<PubKey, uint64_t>>& validatorDeltas);
+    /**
+     * Called by the node at the end of block processing to obtain the pending validator set delta.
+     * NOTE: Unregistered function, not callable from other contracts.
+     * @param validatorDeltas Validator set updates, which are validator public keys and their new voting powers (0 to remove).
+     */
+    void finishBlock(std::vector<std::pair<PubKey, uint64_t>>& validatorDeltas);
+
+    /**
+     * Get a reference to the ordered validator list.
+     * NOTE: Unregistered function, not callable from other contracts.
+     * @return List of all validator public keys which have delegations (may be more than the number of slots).
+     */
+    SafeVector<PubKey>& getValidators() { return validators_; }
+
+    /**
+     * Get a reference to the ordered validator delegation amounts list.
+     * NOTE: Unregistered function, not callable from other contracts.
+     * @return List of all validator delegations (may be more than the number of slots).
+     */
+    SafeVector<uint64_t>& getValidatorVotes() { return validatorVotes_; };
+
+    /**
+     * Get the current number of validator slots.
+     * NOTE: Unregistered function, not callable from other contracts.
+     * @return Current number of validator slots.
+     */
+    uint64_t getNumSlots() { return numSlots_.get(); }
 
     /// Register the contract.
     static void registerContract() {
-      // TODO: methods
       ContractReflectionInterface::registerContractMethods<SystemContract>(
         std::vector<std::string>{"initialValidators", "initialNumSlots", "maxSlots"},
         std::make_tuple("stake", &SystemContract::stake, FunctionTypes::Payable, std::vector<std::string>{}),
@@ -178,7 +215,6 @@ class SystemContract : public DynamicContract {
         std::make_tuple("undelegate", &SystemContract::undelegate, FunctionTypes::NonPayable, std::vector<std::string>{"validatorPubKey", "amount"}),
         std::make_tuple("voteSlots", &SystemContract::voteSlots, FunctionTypes::NonPayable, std::vector<std::string>{"validatorPubKey", "slots"})
       );
-
       // FIXME/TODO: add validator set update events (one per {validator,votes} change)
       // FIXME/TODO: add numslots update event ({int new_numslots})
       //ContractReflectionInterface::registerContractEvents<SystemContract>(

@@ -17,6 +17,8 @@ using namespace jsonrpc;
 
 #include "../libs/base64.hpp"
 
+#include "../contract/templates/systemcontract.h"
+
 //#define NODE_DATABASE_DIRECTORY_SUFFIX "/db/"
 
 // ------------------------------------------------------------------
@@ -486,11 +488,11 @@ void Blockchain::initChain(
     throw DynamicException("initChain(): Invalid chain ID: " + std::string(e.what()));
   }
 
-  // For now, the validator set is fixed on genesis and never changes.
-  // TODO: When we get to validator set changes via governance, validators_ will have to be
-  //   updated via incomingBlock(validatorUpdates).
-  // TODO: When loading snapshots, will need to load the validator set at that height as well
-  //   and, maybe, a partial (or total?) history of validator set transitions if that is needed.
+  // Set the initial validator set.
+  // NOTE: The SystemContract has its own idea of what the validator set is (it stores it
+  // in a pair of SafeVector, which is not as useful as the this->validators_ map). However,
+  // both Blockchain and SystemContract should see the same validator set, as the SystemContract
+  // will seed itself from Options::getCometBFT() (which must match &initialValidators).
   setValidators(initialValidators);
 
   // Initialize the machine state on InitChain.
@@ -633,6 +635,40 @@ void Blockchain::incomingBlock(
     // All raw transactions must generate a txResult entry, so append a fake result for
     //  the obligatory last raw tx, which is the randomness hash and not an actual Eth tx.
     txResults.emplace_back(CometExecTxResult{}); // code==0, gasWanted==0, gasUsed==0
+
+    // Collect validator changes accumulated in the singleton system contract
+    // and return them to CometBFT via the `validatorUpdates` outparam.
+    Bytes validatorDbLog;
+    std::vector<std::pair<PubKey, uint64_t>> validatorDeltas;
+    SystemContract* systemContractPtr = state_.getSystemContract();
+    systemContractPtr->finishBlock(validatorDeltas);
+    for (const auto& validatorDelta : validatorDeltas) {
+      CometValidatorUpdate validatorUpdate;
+      validatorUpdate.publicKey = validatorDelta.first.asBytes();
+      validatorUpdate.power = static_cast<int64_t>(validatorDelta.second);
+      validatorUpdates.push_back(validatorUpdate);
+      Utils::appendBytes(validatorDbLog, validatorUpdate.publicKey);
+      Utils::appendBytes(validatorDbLog, IntConv::int64ToBytes(validatorUpdate.power));
+    }
+    storage_.putValidatorUpdates(block->height, validatorDbLog);
+
+    // Update Blockchain's validator set view to match exactly whatever the SystemContract has
+    SafeVector<PubKey>& scValidators = systemContractPtr->getValidators();
+    SafeVector<uint64_t>& scValidatorVotes = systemContractPtr->getValidatorVotes();
+    uint64_t scNumSlots = systemContractPtr->getNumSlots();
+    if (scValidators.size() != scValidatorVotes.size() || scValidators.size() < scNumSlots) {
+      throw DynamicException("SystemContract has inconsistent validator set data");
+    }
+    std::vector<CometValidatorUpdate> newValidatorSet;
+    for (int i = 0; i < scNumSlots; ++i) {
+      newValidatorSet.emplace_back(
+        CometValidatorUpdate{
+          scValidators[i].asBytes(),
+          static_cast<int64_t>(scValidatorVotes[i])
+        }
+      );
+    }
+    setValidators(newValidatorSet);
 
   } catch (const std::exception& ex) {
     // We need to fail the blockchain node (fatal)
@@ -1170,7 +1206,6 @@ json Blockchain::eth_syncing(const json& request) {
 
 json Blockchain::eth_coinbase(const json& request) {
   forbidParams(request);
-  //return options_.getCoinbase().hex(true);
   Address coinbaseAddress;
   Bytes validatorPubKeyBytes = comet_.getValidatorPubKey();
   // PubKey may be empty in the Comet driver if configuration step hasn't completed yet.
@@ -1216,7 +1251,7 @@ json Blockchain::eth_gasPrice(const json& request) {
 
 json Blockchain::eth_feeHistory(const json& request) {
   // FIXME/TODO: We should probably just have this computed and saved in RAM as we process incoming blocks.
-  // The previous implementation wasn't doing anything (it was just returing a default value, which can be
+  // The previous implementation wasn't doing anything (it was just returning a default value, which can be
   // returned here directly as well); it was just requesting 1,024 blocks from (potentially, or at least now
   // with the new Comet-backed Blockchain::getBlock()) the backing storage, which is expensive and an attack
   // vector on the node, really, and we should just not do that.

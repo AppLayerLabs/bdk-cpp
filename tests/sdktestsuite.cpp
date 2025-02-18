@@ -201,27 +201,6 @@ SDKTestSuite SDKTestSuite::createNewEnvironment(
 ) {
   if (std::filesystem::exists(sdkPath)) std::filesystem::remove_all(sdkPath);
 
-  /*
-    TODO:
-    Default ("genesis") state such as accounts should either:
-    1 - be injected directly into the State.
-    2 - be encoded in a serialized snapshot that is included in the cometBFT
-        genesis data support.
-    Since 1 is easier, we'll do that first during integration since that's
-    mostly for testing. When serialization and deserialization of machine state
-    is added, we can upgrade it to 2.
-    For production we can just hard-code genesis state (i.e. the initial machine
-    state, such as pre-existing accounts and balances, pre-existing deployed
-    contracts at height 0, etc) in the binary -- that is, a hard-coded protocol
-    rule that is implicit.
-    In fact, since the State object and the machine have no support, currently,
-    to be anything other than genesis state (while there's no flat-file
-    serialization and deserialization implemented), then every use case such as
-    tests must inject the starting State on boot since it's always starting
-    from genesis height 0 on node boot (testcases that load or save state from/to
-    the old stateDb are just deleted for now).
-  */
-
   // Create a default options if none is provided.
   std::unique_ptr<Options> options_;
   if (options == nullptr) {
@@ -540,6 +519,8 @@ Options SDKTestSuite::getOptionsForTest(
     };
     validators.push_back(validator);
   }
+
+  // Hack the first validator key
 
   defaultCometBFTOptions["genesis.json"]["validators"] = validators;
 

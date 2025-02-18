@@ -57,8 +57,9 @@ bool SystemContract::recordDelegationDelta(const PubKey& validator, const uint64
   } else {
     checker -= delta;
   }
-  // the resulting new ranking value for the validator must fit in uint64_t
-  if (checker > std::numeric_limits<uint64_t>::max() || checker < 0) {
+  // the resulting new ranking value for the validator must fit in
+  // **int64_t** (signed) because CometBFT uses int64_t for voting power.
+  if (checker > std::numeric_limits<int64_t>::max() || checker < 0) {
     throw DynamicException("Delegation amount limit exceeded");
   }
   uint64_t targetVotes = checker.convert_to<uint64_t>();
@@ -83,6 +84,8 @@ SystemContract::SystemContract(
   const Address& address, const DB& db
 ) : DynamicContract(address, db)
 {
+  LOGDEBUG("Loading SystemContract...");
+
   this->numSlots_ = Utils::fromBigEndian<uint64_t>(db.get(std::string("numSlots_"), this->getDBPrefix()));
   this->numSlots_.commit();
   this->maxSlots_ = Utils::fromBigEndian<uint64_t>(db.get(std::string("maxSlots_"), this->getDBPrefix()));
@@ -111,6 +114,8 @@ SystemContract::SystemContract(
   delegationDeltas_.clear();
   delegationDeltas_.commit();
   doRegister();
+
+  LOGDEBUG("Loaded SystemContract.");
 }
 
 SystemContract::SystemContract(
@@ -168,7 +173,7 @@ void SystemContract::stake() {
 }
 
 void SystemContract::unstake(const uint256_t& amount) {
-  // Tx native token value transferred is the staking amount, and tx sender is the depositor.
+  // tx sender (caller) is withdrawing amount native token value
   const auto& caller = this->getCaller();
   if (stakes_.find(caller) == stakes_.end()) {
     throw DynamicException("No stake");
@@ -217,7 +222,7 @@ void SystemContract::delegate(const std::string& validatorPubKey, const uint256_
       throw DynamicException("Cannot delegate this amount (try a larger amount)");
     }
     --amount64;
-    delegations_[caller][validator] -= 1;
+    --delegations_[caller][validator];
   }
 }
 
@@ -247,14 +252,16 @@ void SystemContract::undelegate(const std::string& validatorPubKey, const uint25
       delegations_.erase(caller);
     }
   }
-  stakes_[caller] += effectiveAmount;
+  if (effectiveAmount > 0) {
+    stakes_[caller] += effectiveAmount;
+  }
   // Loop avoiding collision in delegation amount (which we do not support)
   while (!recordDelegationDelta(validator, amount64, false)) {
     if (amount64 == 1) {
       throw DynamicException("Cannot undelegate this amount (try a larger amount)");
     }
     --amount64;
-    delegations_[caller][validator] += 1;
+    ++delegations_[caller][validator];
   }
 }
 
@@ -279,7 +286,7 @@ void SystemContract::voteSlots(const std::string& validatorPubKey, const uint64_
 }
 
 // TODO: call this from incomingBlock()
-void SystemContract::processBlock(std::vector<std::pair<PubKey, uint64_t>>& validatorDeltas) {
+void SystemContract::finishBlock(std::vector<std::pair<PubKey, uint64_t>>& validatorDeltas) {
   validatorDeltas.clear();
 
   // feed updated validators_ & validatorVotes_ into a sorted validator,votes set
@@ -441,6 +448,8 @@ void SystemContract::processBlock(std::vector<std::pair<PubKey, uint64_t>>& vali
 }
 
 DBBatch SystemContract::dump() const {
+  LOGDEBUG("Saving SystemContract...");
+
   DBBatch batch = BaseContract::dump();
   batch.push_back(StrConv::stringToBytes("numSlots_"), UintConv::uint64ToBytes(this->numSlots_.get()), this->getDBPrefix());
   batch.push_back(StrConv::stringToBytes("maxSlots_"), UintConv::uint64ToBytes(this->maxSlots_.get()), this->getDBPrefix());
@@ -469,5 +478,7 @@ DBBatch SystemContract::dump() const {
     // There is *never* a valid reason to save an inconsistent state snapshot in the middle of block processing.
     throw DynamicException("System contract is in an inconsistent state during snapshotting (delegationDeltas_ is not empty).");
   }
+
+  LOGDEBUG("Saved SystemContract.");
   return batch;
 }

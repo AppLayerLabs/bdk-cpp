@@ -6,6 +6,7 @@ See the LICENSE.txt file in the project root for more information.
 */
 
 #include "libs/catch2/catch_amalgamated.hpp"
+#include "libs/base64.hpp"
 
 #include "core/blockchain.h"
 
@@ -63,6 +64,20 @@ namespace TBlockchain {
 
       Blockchain blockchain(options, testDumpPath);
 
+      // Here we have to create the CometBFT address that corresponds to the Eth address that we want the coinbase to be set to.
+      // Unfortunately this has to be valid otherwise the coinbase processing step in State::processBlock() will blow up.
+      // Fortunately, we know getOptionsForTest() will use cometTestKeys[0] for our first and only validator.
+      Bytes accValidatorPrivKeyBytes = base64::decode_into<Bytes>(cometTestKeys[0].priv_key);
+      PrivKey accValidatorPrivKey(accValidatorPrivKeyBytes);
+      Bytes accValidatorPubKeyBytes = Secp256k1::toPub(accValidatorPrivKey).asBytes();
+      Bytes accValidatorCometAddress = Comet::getCometAddressFromPubKey(accValidatorPubKeyBytes);
+      TestAccount accValidator(accValidatorPrivKey);
+
+      // Need to emulate initChain() call to force initialization of the validator set.
+      Bytes dummyBytes;
+      std::string chainIdStr = std::to_string(options.getChainID());
+      blockchain.initChain(0, chainIdStr, dummyBytes, 1, {{accValidatorPubKeyBytes, 10}}, dummyBytes);
+
       // For this test, we will not do blockchain start() and stop().
       // Instead, we will just fool Blockchain/State and inject some
       //  TxBlock and FinalizedBlock objects we create here, which is
@@ -78,14 +93,6 @@ namespace TBlockchain {
       // tx A --> AA nonce 2 X token
       // tx A --> AA nonce 3 X token
       // verify all included in block, balance of AA is now 4*X token
-
-      TestAccount accValidator = TestAccount::newRandomAccount();
-
-      // Here we have to create the CometBFT address that corresponds to the Eth address that we want the coinbase to be set to.
-      // Unfortunately this has to be valid otherwise the coinbase processing step in State::processBlock() will blow up.
-      Bytes accValidatorPubKeyBytes = Secp256k1::toPub(accValidator.privKey).asBytes();
-      blockchain.setValidators({{accValidatorPubKeyBytes, 10}}); // second arg is voting power (irrelevant)
-      Bytes accValidatorCometAddress = Comet::getCometAddressFromPubKey(accValidatorPubKeyBytes);
 
       TestAccount accA = TestAccount::newRandomAccount();
       TestAccount accAA = TestAccount::newRandomAccount();

@@ -17,11 +17,11 @@ namespace TERC20 {
   TEST_CASE("ERC20 Class", "[integration][contract][erc20]") {
     SECTION("ERC20 creation") {
       SDKTestSuite sdk = SDKTestSuite::createNewEnvironment("testERC20Creation");
-      REQUIRE(sdk.getState().getContractsSize() == 1);
+      REQUIRE(sdk.getState().getUserContractsSize() == 0);
       Address erc20 = sdk.deployContract<ERC20>(
         std::string("TestToken"), std::string("TST"), uint8_t(18), uint256_t("1000000000000000000")
       );
-      REQUIRE(sdk.getState().getContractsSize() == 2);
+      REQUIRE(sdk.getState().getUserContractsSize() == 1);
       Address owner = sdk.getChainOwnerAccount().address;
       REQUIRE(sdk.callViewFunction(erc20, &ERC20::name) == "TestToken");
       REQUIRE(sdk.callViewFunction(erc20, &ERC20::symbol) == "TST");

@@ -19,15 +19,7 @@ See the LICENSE.txt file in the project root for more information.
 
 /**
  * A BDK node.
- * This is the nexus object that brings together multiple blockchain node
- * components by composition. The lifetime of all components and the nexus
- * object are the same.
  * All components must be thread-safe.
- *
- * NOTE: If you need a testing version of a blockchain node, you should derive it
- * from this class, instead of creating another separate class. All components
- * (State, ...) are allowed to expect a mutable Blockchain& in their constructor,
- * so you may need to create a custom one to wrap the component to be tested.
  *
  * NOTE: Each Blockchain instance can have one or more file-backed DBs, which
  * will all be managed by storage_ (Storage class) to implement internal
@@ -81,10 +73,13 @@ class Blockchain : public CometListener, public NodeRPCInterface, public Log::Lo
 
     const std::string instanceId_; ///< Instance ID for logging.
 
+    // NOTE: Comet *must* be destructed (stopped) before State, hence it must be declared after it.
+    // NOTE: HTTPServer should be destructed (stopped) before Comet, hence it should be declared after it.
+
     Options options_; ///< Options singleton.
-    Comet comet_;     ///< CometBFT consensus engine driver.
-    State state_;     ///< Blockchain state.
     Storage storage_; ///< BDK persistent store front-end.
+    State state_;     ///< Blockchain state.
+    Comet comet_;     ///< CometBFT consensus engine driver.
     HTTPServer http_; ///< HTTP server.
 
     // TODO: Encapsulate validator set tracking in a (thread-safe) class (e.g. ValidatorSet).
@@ -160,12 +155,12 @@ class Blockchain : public CometListener, public NodeRPCInterface, public Log::Lo
      */
     json getBlockJson(const FinalizedBlock *block, bool includeTransactions);
 
-  public:
-
     /**
-     * TODO: This should be a private method; it's exposed for unit testing only (should use friend instead).
+     * Update the Blockchain's validator set view.
      */
     void setValidators(const std::vector<CometValidatorUpdate>& newValidatorSet);
+
+  public:
 
     /// A <TxBlock, blockIndex, blockHeight> tuple.
     struct GetTxResultType {

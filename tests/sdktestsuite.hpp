@@ -217,6 +217,7 @@ class SDKTestSuite : public Blockchain {
      * numNonValidators == 3, then key indices 0..6 are validators, but keys 7..9 are excluded from the
      * validator set (but all 10 nodes are still fully connected to each other via persistent_peers).
      * @param stateDumpTrigger Number of blocks elapsed between Blockchain::saveSnapshot() calls.
+     * @param cometBFTRoundTime CometBFT round time (for each of the 3 rounds).
      * @return Options object set up for testing a Comet instance.
      */
     static Options getOptionsForTest(
