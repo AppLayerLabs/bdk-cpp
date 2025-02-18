@@ -140,6 +140,11 @@ class SystemContract : public DynamicContract {
     );
 
     /**
+     * Destructor.
+     */
+    virtual ~SystemContract();
+
+    /**
      * An user deposits native tokens into the system contract.
      * The tx sender (caller) is the depositor, and the tx value is the amount of native tokens deposited.
      */

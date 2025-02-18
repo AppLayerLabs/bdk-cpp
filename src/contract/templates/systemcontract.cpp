@@ -11,6 +11,11 @@ See the LICENSE.txt file in the project root for more information.
 
 #include <set>
 
+// Simple protection against instantiating the SystemContract in user code.
+// SystemContract is instantiated by the BDK first, before any user code has a chance to run, which brings the instance count to 1.
+// If any e.g. tx code attempts to create a second instance, it will throw an exception and thus revert.
+std::atomic<int> systemContractInstanceCount = 0;
+
 PubKey SystemContract::pubKeyFromString(const std::string& pubKeyStr) {
   Bytes pubKeyBytes = Hex::toBytes(pubKeyStr);
   if (pubKeyBytes.size() != 33) {
@@ -86,6 +91,11 @@ SystemContract::SystemContract(
 {
   LOGDEBUG("Loading SystemContract...");
 
+  int expected = 0;
+  if (!systemContractInstanceCount.compare_exchange_strong(expected, 1)) {
+    throw DynamicException("Cannot instantiate more than one SystemContract");
+  }
+
   this->numSlots_ = Utils::fromBigEndian<uint64_t>(db.get(std::string("numSlots_"), this->getDBPrefix()));
   this->numSlots_.commit();
   this->maxSlots_ = Utils::fromBigEndian<uint64_t>(db.get(std::string("maxSlots_"), this->getDBPrefix()));
@@ -124,6 +134,11 @@ SystemContract::SystemContract(
   const Address& address, const Address& creator, const uint64_t& chainId
 ) : DynamicContract("SystemContract", address, creator, chainId)
 {
+  int expected = 0;
+  if (!systemContractInstanceCount.compare_exchange_strong(expected, 1)) {
+    throw DynamicException("Cannot instantiate more than one SystemContract");
+  }
+
   std::vector<PubKey> initialValidators;
   for (const auto& pubKeyStr : initialValidatorPubKeys) {
     initialValidators.push_back(pubKeyFromString(pubKeyStr));
@@ -157,6 +172,10 @@ SystemContract::SystemContract(
   doRegister();
 }
 
+SystemContract::~SystemContract() {
+  --systemContractInstanceCount;
+}
+
 void SystemContract::registerContractFunctions() {
   SystemContract::registerContract();
   this->registerMemberFunction("stake", &SystemContract::stake, FunctionTypes::Payable, this);
@@ -174,7 +193,7 @@ void SystemContract::stake() {
 
 void SystemContract::unstake(const uint256_t& amount) {
   // tx sender (caller) is withdrawing amount native token value
-  const auto& caller = this->getCaller();
+  const Address& caller = this->getCaller();
   if (stakes_.find(caller) == stakes_.end()) {
     throw DynamicException("No stake");
   }
@@ -195,7 +214,7 @@ void SystemContract::unstake(const uint256_t& amount) {
 
 void SystemContract::delegate(const std::string& validatorPubKey, const uint256_t& amount) {
   PubKey validator = pubKeyFromString(validatorPubKey);
-  const auto& caller = this->getCaller();
+  const Address& caller = this->getCaller();
   if (stakes_.find(caller) == stakes_.end()) {
     throw DynamicException("No stake");
   }
@@ -210,10 +229,13 @@ void SystemContract::delegate(const std::string& validatorPubKey, const uint256_
   if (stakes_[caller] == 0) {
     stakes_.erase(caller);
   }
-  if (delegations_.find(caller) == delegations_.end()) {
-    // It is only possible to delegate to a key if that key has a delegation to itself already.
-    // FIXME/TODO: here, deriving the address of validator must yield the caller address
-    // otherwise throw DynamicException("Unregistered validator")
+  Address vAddr = Secp256k1::toAddress(validator); // Generate validator's eth address from validator pub key
+  if (delegations_.find(vAddr) == delegations_.end() || delegations_[vAddr].find(validator) == delegations_[vAddr].end()) {
+    // It is only possible to delegate to a validator key if that validator key has a delegation to itself already.
+    // Since the validator does not currently have a delegation to itself, this delegation must be from self, that is, caller must be vAddr.
+    if (vAddr != caller) {
+      throw DynamicException("Unregistered validator");
+    }
   }
   delegations_[caller][validator] += amount64;
   // Loop avoiding collision in delegation amount (which we do not support)
@@ -228,7 +250,7 @@ void SystemContract::delegate(const std::string& validatorPubKey, const uint256_
 
 void SystemContract::undelegate(const std::string& validatorPubKey, const uint256_t& amount) {
   PubKey validator = pubKeyFromString(validatorPubKey);
-  const auto& caller = this->getCaller();
+  const Address& caller = this->getCaller();
   if (delegations_.find(caller) == delegations_.end()) {
     throw DynamicException("No delegations");
   }
@@ -266,9 +288,17 @@ void SystemContract::undelegate(const std::string& validatorPubKey, const uint25
 }
 
 void SystemContract::voteSlots(const std::string& validatorPubKey, const uint64_t& slots) {
+  // Validate numslots choice
+  if (slots < 1 || slots > maxSlots_.get()) {
+    throw DynamicException("Proposed slot count is invalid");
+  }
+  // Authorize caller
   PubKey validator = pubKeyFromString(validatorPubKey);
-  // FIXME/TODO: this->getCaller() address must match validator
-  // i.e. deriving the address from validator (pubkey) must == this->getCaller();
+  Address vAddr = Secp256k1::toAddress(validator); // Generate validator's eth address from validator pub key
+  if (vAddr != this->getCaller()) {
+    throw DynamicException("Caller is not the validator");
+  }
+  // Find elected validator
   bool found = false;
   for (int i = 0; i < numSlots_.get(); ++i) {
     if (validators_[i] == validator) {
@@ -279,13 +309,10 @@ void SystemContract::voteSlots(const std::string& validatorPubKey, const uint64_
   if (!found) {
     throw DynamicException("Validator not elected");
   }
-  if (slots < 1 || slots > maxSlots_.get()) {
-    throw DynamicException("Proposed slot count is invalid");
-  }
+  // Save numslots choice
   targetSlots_[validator] = slots;
 }
 
-// TODO: call this from incomingBlock()
 void SystemContract::finishBlock(std::vector<std::pair<PubKey, uint64_t>>& validatorDeltas) {
   validatorDeltas.clear();
 
