@@ -5,8 +5,8 @@ This software is distributed under the MIT License.
 See the LICENSE.txt file in the project root for more information.
 */
 
-#ifndef OWNABLE_H
-#define OWNABLE_H
+#ifndef SYSTEMCONTRACT_H
+#define SYSTEMCONTRACT_H
 
 #include "../dynamiccontract.h"
 #include "../variables/safeaddress.h"
@@ -75,6 +75,8 @@ class SystemContract : public DynamicContract {
       return uint256_t(amount64) * AMOUNT_ENCODING_SCALE;
     }
 
+    static PubKey pubKeyFromString(const std::string& pubKeyStr);
+
     bool recordDelegationDelta(const PubKey& validator, const uint64_t& delta, const bool& positive);
 
     SafeUint64_t numSlots_; /// The active number of validator slots.
@@ -107,11 +109,14 @@ class SystemContract : public DynamicContract {
     /// Delegation (vote) deltas are accumulated during block (tx) processing and applied
     /// after all txs in a block are processed, generating the new validator ranking and
     /// thus the needed validator updates for CometBFT.
+    /// This is int256_t because we need the delta to be an uint64_t in magnitude in either
+    /// direction (positive or negative). Could be int128_t as well, but int256_t matches
+    /// the intermediary type used for calculating and validating the delta.
     SafeUnorderedMap<PubKey, int256_t> delegationDeltas_;
 
   public:
     using ConstructorArguments = std::tuple<
-      std::vector<PubKey>&,
+      std::vector<std::string>&,
       const uint64_t&,
       const uint64_t&
     >;
@@ -127,7 +132,7 @@ class SystemContract : public DynamicContract {
      * Create the system contract.
      * This constructor is invoked by the node itself (class Blockchain) to create exactly
      * one instance of this contract at genesis.
-     * @param initialValidators The initial validator set. The voting power assigned on genesis
+     * @param initialValidatorPubKeys The initial validator set. The voting power assigned on genesis
      * is irrelevant as the delegation amount will be set to zero by a dummy voter address.
      * @param initialNumSlots The initial number of validator slots.
      * @param maxSlots The maximum number of validator slots.
@@ -136,7 +141,7 @@ class SystemContract : public DynamicContract {
      * @param chainId The chain ID.
      */
     SystemContract(
-      const std::vector<PubKey>& initialValidators,
+      const std::vector<std::string>& initialValidatorPubKeys,
       const uint64_t& initialNumSlots, const uint64_t& maxSlots,
       const Address& address, const Address& creator, const uint64_t& chainId
     );
@@ -148,30 +153,30 @@ class SystemContract : public DynamicContract {
     void unstake(const uint256_t& amount);
 
     /// Vote for a validator
-    void delegate(const PubKey& validator, const uint256_t& amount);
+    void delegate(const std::string& validatorPubKey, const uint256_t& amount);
 
     /// Unvote a validator
-    void undelegate(const PubKey& validator, const uint256_t& amount);
+    void undelegate(const std::string& validatorPubKey, const uint256_t& amount);
 
     /// Validator changes a slots vote
     /// The caller address must match the validator public key
-    void voteslots(const PubKey& validator, const uint64_t& slots);
+    void voteSlots(const std::string& validatorPubKey, const uint64_t& slots);
 
     /// Apply processing at the end of a block.
     /// This is an unregistered function called directly by the block processor
     /// after all block txs are applied to the machine state.
-    void processBlock();
+    void processBlock(std::vector<std::pair<PubKey, uint64_t>>& validatorDeltas);
 
     /// Register the contract.
     static void registerContract() {
       // TODO: methods
       ContractReflectionInterface::registerContractMethods<SystemContract>(
-        std::vector<std::string>{"initialValidators", "initialNumSlots", "maxSlots"}
-        // stake
-        // unstake
-        // deletate
-        // undelegate
-        // voteslots
+        std::vector<std::string>{"initialValidators", "initialNumSlots", "maxSlots"},
+        std::make_tuple("stake", &SystemContract::stake, FunctionTypes::Payable, std::vector<std::string>{}),
+        std::make_tuple("unstake", &SystemContract::unstake, FunctionTypes::NonPayable, std::vector<std::string>{"amount"}),
+        std::make_tuple("delegate", &SystemContract::delegate, FunctionTypes::NonPayable, std::vector<std::string>{"validatorPubKey", "amount"}),
+        std::make_tuple("undelegate", &SystemContract::undelegate, FunctionTypes::NonPayable, std::vector<std::string>{"validatorPubKey", "amount"}),
+        std::make_tuple("voteSlots", &SystemContract::voteSlots, FunctionTypes::NonPayable, std::vector<std::string>{"validatorPubKey", "slots"})
       );
 
       // REVIEW: should we add events for validator set updates generated and numSlots changes?
@@ -183,4 +188,4 @@ class SystemContract : public DynamicContract {
     DBBatch dump() const override; ///< Dump method.
 };
 
-#endif // OWNABLE_H
+#endif // SYSTEMCONTRACT_H

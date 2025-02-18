@@ -11,6 +11,14 @@ See the LICENSE.txt file in the project root for more information.
 
 #include <set>
 
+PubKey SystemContract::pubKeyFromString(const std::string& pubKeyStr) {
+  Bytes pubKeyBytes = Hex::toBytes(pubKeyStr);
+  if (pubKeyBytes.size() != 33) {
+    throw DynamicException("Invalid PubKey");
+  }
+  return PubKey(pubKeyBytes);
+}
+
 // Tie-breaks validators with the exact same number of votes by their public key bytes
 struct ValidatorVotes {
   PubKey    validator;
@@ -30,7 +38,7 @@ struct ValidatorVotes {
 
 bool SystemContract::recordDelegationDelta(const PubKey& validator, const uint64_t& delta, const bool& positive) {
   // check that the current validator votes + the current delegation delta + the new delta won't
-  // end outside of uint64_t range. if it is OK, record it in the intermediary int256_t.
+  // end outside of uint64_t range. if OK, save as intermediary int256_t at delegationDeltas_.
   int256_t checker = 0;
   for (int i = 0; i < validators_.size(); ++i) {
     // if validator not found, current delegated amount is 0, meaning no base value
@@ -83,11 +91,15 @@ SystemContract::SystemContract(
 }
 
 SystemContract::SystemContract(
-  const std::vector<PubKey>& initialValidators,
+  const std::vector<std::string>& initialValidatorPubKeys,
   const uint64_t& initialNumSlots, const uint64_t& maxSlots,
   const Address& address, const Address& creator, const uint64_t& chainId
 ) : DynamicContract("SystemContract", address, creator, chainId)
 {
+  std::vector<PubKey> initialValidators;
+  for (const auto& pubKeyStr : initialValidatorPubKeys) {
+    initialValidators.push_back(pubKeyFromString(pubKeyStr));
+  }
   // numSlots cannot be less than the size of the initial validator set.
   uint64_t effectiveNumSlots = std::min(initialNumSlots, initialValidators.size());
   if (effectiveNumSlots > maxSlots) {
@@ -119,12 +131,11 @@ SystemContract::SystemContract(
 
 void SystemContract::registerContractFunctions() {
   SystemContract::registerContract();
-  /*
-  this->registerMemberFunction("onlyOwner", &Ownable::onlyOwner, FunctionTypes::NonPayable, this);
-  this->registerMemberFunction("owner", &Ownable::owner, FunctionTypes::View, this);
-  this->registerMemberFunction("renounceOwnership", &Ownable::renounceOwnership, FunctionTypes::NonPayable, this);
-  this->registerMemberFunction("transferOwnership", &Ownable::transferOwnership, FunctionTypes::NonPayable, this);
-  */
+  this->registerMemberFunction("stake", &SystemContract::stake, FunctionTypes::Payable, this);
+  this->registerMemberFunction("unstake", &SystemContract::unstake, FunctionTypes::NonPayable, this);
+  this->registerMemberFunction("delegate", &SystemContract::delegate, FunctionTypes::NonPayable, this);
+  this->registerMemberFunction("undelegate", &SystemContract::undelegate, FunctionTypes::NonPayable, this);
+  this->registerMemberFunction("voteSlots", &SystemContract::voteSlots, FunctionTypes::NonPayable, this);
 }
 
 // TODO/REVIEW: rewrite as solidity deposit / fallback method?
@@ -154,7 +165,8 @@ void SystemContract::unstake(const uint256_t& amount) {
   this->sendTokens(caller, amount256);
 }
 
-void SystemContract::delegate(const PubKey& validator, const uint256_t& amount) {
+void SystemContract::delegate(const std::string& validatorPubKey, const uint256_t& amount) {
+  PubKey validator = pubKeyFromString(validatorPubKey);
   const auto& caller = this->getCaller();
   if (stakes_.find(caller) == stakes_.end()) {
     throw DynamicException("No stake");
@@ -186,7 +198,8 @@ void SystemContract::delegate(const PubKey& validator, const uint256_t& amount) 
   }
 }
 
-void SystemContract::undelegate(const PubKey& validator, const uint256_t& amount) {
+void SystemContract::undelegate(const std::string& validatorPubKey, const uint256_t& amount) {
+  PubKey validator = pubKeyFromString(validatorPubKey);
   const auto& caller = this->getCaller();
   if (delegations_.find(caller) == delegations_.end()) {
     throw DynamicException("No delegations");
@@ -222,7 +235,8 @@ void SystemContract::undelegate(const PubKey& validator, const uint256_t& amount
   }
 }
 
-void SystemContract::voteslots(const PubKey& validator, const uint64_t& slots) {
+void SystemContract::voteSlots(const std::string& validatorPubKey, const uint64_t& slots) {
+  PubKey validator = pubKeyFromString(validatorPubKey);
   // FIXME/TODO: this->getCaller() address must match validator
   // i.e. deriving the address from validator (pubkey) must == this->getCaller();
   bool found = false;
@@ -242,7 +256,9 @@ void SystemContract::voteslots(const PubKey& validator, const uint64_t& slots) {
 }
 
 // TODO: call this from incomingBlock()
-void SystemContract::processBlock() {
+void SystemContract::processBlock(std::vector<std::pair<PubKey, uint64_t>>& validatorDeltas) {
+  validatorDeltas.clear();
+
   // feed updated validators_ & validatorVotes_ into a sorted validator,votes set
   // save a copy of the validators_ & validatorVotes_ vector in old
   std::set<ValidatorVotes> sorted;
@@ -365,10 +381,8 @@ void SystemContract::processBlock() {
 
       // If the new effective voting power for the validator change, generate an update
       if (newVote != oldvv.votes) {
-        // TODO: return another validator update:
-        //   validator: oldvv.validator
-        //   voting power: newVote
         LOGXTRACE("Validator update (existing): " + Hash(oldvv.validator.asBytes()).hex().get());
+        validatorDeltas.push_back({oldvv.validator, newVote});
       }
     }
 
@@ -396,10 +410,8 @@ void SystemContract::processBlock() {
       }
       if (!found) {
         // vv.validator has >0 power now, but had ==0 power before (not elected)
-        // TODO: return another validator update
-        //   validator: validator
-        //   voting power: votes
         LOGXTRACE("Validator update (new): " + Hash(vv.validator.asBytes()).hex().get());
+        validatorDeltas.push_back({vv.validator, vv.votes});
       }
     }
   }
