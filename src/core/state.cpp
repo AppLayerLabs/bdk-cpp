@@ -25,7 +25,8 @@ State::State(
   dumpManager_(storage_, options_, this->stateMutex_),
   dumpWorker_(options_, storage_, dumpManager_),
   p2pManager_(p2pManager),
-  rdpos_(db, dumpManager_, storage, p2pManager, options)
+  rdpos_(db, dumpManager_, storage, p2pManager, options),
+  blockObservers_(vm_, dumpManager_, storage_, contracts_, accounts_, vmStorage_, options_)
 {
   std::unique_lock lock(this->stateMutex_);
   if (snapshotHeight != 0) {
@@ -257,7 +258,8 @@ void State::processTransaction(
       tx.hash(),
       txIndex,
       blockHash,
-      leftOverGas
+      leftOverGas,
+      &this->blockObservers_
     );
 
     host.execute(tx.txToMessage(), accountTo.contractType);
@@ -413,6 +415,8 @@ BlockValidationStatus State::tryProcessNextBlock(FinalizedBlock&& block) {
   for (const auto& tx : block.getTxs()) {
     Utils::safePrint("Transaction: " + tx.hash().hex().get() + " was accepted in the blockchain");
   }
+
+  blockObservers_.notify(block);
 
   // Move block to storage
   this->storage_.pushBlock(std::move(block));

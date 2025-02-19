@@ -16,6 +16,25 @@ See the LICENSE.txt file in the project root for more information.
 #include "../utils/evmcconv.h"
 #include "../utils/uintconv.h"
 
+#include "blockobservers.h"
+
+template<typename T>
+struct MemberFunctionTraits {};
+
+template<typename C, typename R, typename... Args>
+struct MemberFunctionTraits<R(C::*)(Args...)> {
+  using ReturnType = R;
+  using ClassType = C;
+  using ArgsType = std::tuple<Args...>;
+};
+
+template<typename C, typename R, typename... Args>
+struct MemberFunctionTraits<R(C::*)(Args...) const> {
+  using ReturnType = R;
+  using ClassType = C;
+  using ArgsType = std::tuple<Args...>;
+};
+
 // TODO: EVMC Static Mode Handling
 // TODO: Contract creating other contracts (EVM Factories)
 // TODO: Proper gas limit tests.
@@ -94,6 +113,7 @@ class ContractHost : public evmc::Host {
     int64_t& leftoverGas_; ///< Reference to the leftover gas from the transaction (object given by the State).
     TxAdditionalData addTxData_; ///< Additional transaction data.
     trace::CallTracer callTracer_; ///< Call tracer object.
+    BlockObservers *blockObservers_; // TODO: keep as pointer? use reference? is null valid?
 
     /**
      * Transfer a given value from one address to another.
@@ -246,7 +266,8 @@ class ContractHost : public evmc::Host {
       const Hash& txHash,
       const uint64_t txIndex,
       const Hash& blockHash,
-      int64_t& txGasLimit
+      int64_t& txGasLimit,
+      BlockObservers* blockObservers = nullptr
     ) : vm_(vm),
         manager_(manager),
         storage_(storage),
@@ -259,7 +280,8 @@ class ContractHost : public evmc::Host {
         txIndex_(txIndex),
         blockHash_(blockHash),
         leftoverGas_(txGasLimit),
-        addTxData_({.hash = txHash}) {}
+        addTxData_({.hash = txHash}),
+        blockObservers_(blockObservers) {}
 
     ContractHost(const ContractHost&) = delete; ///< Copy constructor (deleted, Rule of Zero).
     ContractHost(ContractHost&&) = delete; ///< Move constructor (deleted, Rule of Zero).
@@ -563,6 +585,62 @@ class ContractHost : public evmc::Host {
           throw DynamicException("PANIC! ContractHost::callContractFunction: Unknown contract type");
         }
       }
+    }
+
+    void addBlockObserverByCount(uint64_t blockCount, const Address& contractAddress, auto method, auto&&... args) {
+      if (blockObservers_ == nullptr) {
+        return; // should happen during estimateGas calls for example
+      }
+
+      BlockNumberObserver observer{
+        [contractAddress, method, argsTuple = std::tuple<std::decay_t<decltype(args)>...>(std::forward<decltype(args)>(args)...)] (ContractHost& host) mutable {
+          std::apply([&] (const auto&... args) {
+            host.callBlockObserver(contractAddress, method, args...);
+          }, argsTuple);
+        },
+        blockCount + currentTxContext_.block_number,
+        blockCount
+      };
+
+      blockObservers_->add(std::move(observer));
+    }
+
+    void addBlockObserverByPeriod(auto period, const Address& contractAddress, auto method, auto&&... args) {
+      if (blockObservers_ == nullptr) {
+        return; // should happen during estimateGas calls for example
+      }
+
+      uint64_t periodInMicroseconds = std::chrono::duration_cast<std::chrono::microseconds>(period).count();
+
+      BlockTimestampObserver observer{
+        [contractAddress, method, argsTuple = std::tuple<std::decay_t<decltype(args)>...>(std::forward<decltype(args)>(args)...)] (ContractHost& host) mutable {
+          std::apply([&] (const auto&... args) {
+            host.callBlockObserver(contractAddress, method, args...);
+          }, argsTuple);
+        },
+        periodInMicroseconds + currentTxContext_.block_timestamp,
+        periodInMicroseconds
+      };
+
+      blockObservers_->add(std::move(observer));
+    }
+
+    void callBlockObserver(const Address& address, auto memFunc, const auto&... args) {
+      using Contract = MemberFunctionTraits<decltype(memFunc)>::ClassType;
+
+      Contract *contract = dynamic_cast<Contract*>(this->contracts_.at(address).get());
+
+      if (contract == nullptr) {
+        return;
+      }
+
+      auto guard = contract->setHost(*this);
+
+      Address caller;
+      uint256_t value = 0;
+      this->setContractVars(contract, caller, value);
+
+      std::invoke(memFunc, *contract, args...);
     }
 
     /**

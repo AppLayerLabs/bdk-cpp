@@ -12,6 +12,7 @@ See the LICENSE.txt file in the project root for more information.
 
 #include "rdpos.h" // set, boost/unordered/unordered_flat_map.hpp
 #include "dump.h" // utils/db.h, storage.h -> utils/randomgen.h -> utils.h -> logger.h, (strings.h -> evmc/evmc.hpp), (libs/json.hpp -> boost/unordered/unordered_flat_map.hpp)
+#include "contract/blockobservers.h"
 
 // TODO: We could possibly change the bool functions into an enum function,
 // to be able to properly return each error case. We need this in order to slash invalid rdPoS blocks.
@@ -34,6 +35,7 @@ class State : public Dumpable, public Log::LogicalLocationProvider {
     boost::unordered_flat_map<StorageKey, Hash, SafeHash> vmStorage_; ///< Map with the storage of the EVM.
     boost::unordered_flat_map<Address, NonNullUniquePtr<Account>, SafeHash> accounts_; ///< Map with information about blockchain accounts (Address -> Account).
     boost::unordered_flat_map<Hash, TxBlock, SafeHash> mempool_; ///< TxBlock mempool.
+    BlockObservers blockObservers_;
 
     /**
      * Verify if a transaction can be accepted within the current state.

@@ -356,6 +356,11 @@ class DynamicContract : public BaseContract {
      */
     DynamicContract(const Address& address, const DB& db) : BaseContract(address, db) {};
 
+    auto setHost(ContractHost& host) {
+      this->host_ = &host;
+      return PointerNullifier(this->host_);
+    }
+
     /**
      * Invoke a contract function using a tuple of (from, to, gasLimit, gasPrice, value, data).
      * Automatically differs between payable and non-payable functions.
@@ -679,6 +684,38 @@ class DynamicContract : public BaseContract {
         throw DynamicException("Contracts going haywire! trying to get random number without a host!");
       }
       return host_->getRandomValue();
+    }
+  
+    /**
+     * Adds a function as a block observer which should be called at every "blockCount" blocks
+     * 
+     * @param blockCount the number of blocks between every call of the observer
+     * @param contractAddress the contract address of the function that will be called
+     * @param method a pointer to a member function of a contract
+     * @param args the arguments to be forwarded on every call of the observer
+     */
+    void addBlockObserverByCount(uint64_t blockCount, const Address& contractAddress, auto method, auto&&... args) {
+      if (this->host_ == nullptr) {
+        throw DynamicException("Contracts going haywire! trying to add block observer without a host!");
+      }
+
+      return host_->addBlockObserverByCount(blockCount, contractAddress, method, std::forward<decltype(args)>(args)...);
+    }
+
+    /**
+     * Adds a function as a block observer which should be called for every given period of time
+     * 
+     * @param period the time interval (e.g. std::chrono::seconds, std::chrono::miliseconds) between block observer calls
+     * @param contractAddress the contract address of the function that will be called
+     * @param method a pointer to a member function of a contract
+     * @param args the arguments to be forwarded on every call of the observer
+     */
+    void addBlockObserverByPeriod(auto period, const Address& contractAddress, auto method, auto&&... args) {
+      if (this->host_ == nullptr) {
+        throw DynamicException("Contracts going haywire! trying to add block observer without a host!");
+      }
+
+      return host_->addBlockObserverByPeriod(period, contractAddress, method, std::forward<decltype(args)>(args)...);
     }
 
     /**

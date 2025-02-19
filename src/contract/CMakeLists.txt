@@ -54,6 +54,7 @@ set(CONTRACT_SOURCES
   ${CMAKE_SOURCE_DIR}/src/contract/dynamiccontract.cpp
   ${CMAKE_SOURCE_DIR}/src/contract/calltracer.cpp
   ${CMAKE_SOURCE_DIR}/src/contract/event.cpp
+  ${CMAKE_SOURCE_DIR}/src/contract/blockobservers.cpp
   ${CMAKE_SOURCE_DIR}/src/contract/templates/ownable.cpp
   ${CMAKE_SOURCE_DIR}/src/contract/templates/erc20.cpp
   ${CMAKE_SOURCE_DIR}/src/contract/templates/erc721.cpp
