@@ -208,7 +208,7 @@ namespace THTTPJsonRPC {
       REQUIRE(eth_getBlockByHashResponse["result"]["transactionsRoot"] == newBestBlock.getTxMerkleRoot().hex(true));
       REQUIRE(eth_getBlockByHashResponse["result"]["stateRoot"] == Hash().hex(true));
       REQUIRE(eth_getBlockByHashResponse["result"]["receiptsRoot"] == Hash().hex(true));
-      REQUIRE(eth_getBlockByHashResponse["result"]["miner"] == sdk.validatorCometAddressToEthAddress(newBestBlock.getProposerAddr()).hex(true));
+      REQUIRE(eth_getBlockByHashResponse["result"]["miner"] == sdk.state().validatorCometAddressToEthAddress(newBestBlock.getProposerAddr()).hex(true));
       REQUIRE(eth_getBlockByHashResponse["result"]["difficulty"] == "0x1");
       REQUIRE(eth_getBlockByHashResponse["result"]["totalDifficulty"] == "0x1");
       REQUIRE(eth_getBlockByHashResponse["result"]["extraData"] == "0x0000000000000000000000000000000000000000000000000000000000000000");
@@ -249,7 +249,7 @@ namespace THTTPJsonRPC {
       REQUIRE(eth_getBlockByNumberResponse["result"]["transactionsRoot"] == newBestBlock.getTxMerkleRoot().hex(true));
       REQUIRE(eth_getBlockByNumberResponse["result"]["stateRoot"] == Hash().hex(true));
       REQUIRE(eth_getBlockByNumberResponse["result"]["receiptsRoot"] == Hash().hex(true));
-      REQUIRE(eth_getBlockByNumberResponse["result"]["miner"] == sdk.validatorCometAddressToEthAddress(newBestBlock.getProposerAddr()).hex(true));
+      REQUIRE(eth_getBlockByNumberResponse["result"]["miner"] == sdk.state().validatorCometAddressToEthAddress(newBestBlock.getProposerAddr()).hex(true));
       REQUIRE(eth_getBlockByNumberResponse["result"]["difficulty"] == "0x1");
       REQUIRE(eth_getBlockByNumberResponse["result"]["totalDifficulty"] == "0x1");
       REQUIRE(eth_getBlockByNumberResponse["result"]["extraData"] == "0x0000000000000000000000000000000000000000000000000000000000000000");

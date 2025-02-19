@@ -180,8 +180,9 @@ namespace TBlockchain {
       // Create a BDK FinalizedBlock from the fake ABCI block and send it to the machine state
       std::vector<bool> succeeded;
       std::vector<uint64_t> gasUsed;
+      std::vector<CometValidatorUpdate> validatorUpdates;
       FinalizedBlock finBlock1 = FinalizedBlock::fromCometBlock(cometBlock);
-      blockchain.state().processBlock(finBlock1, succeeded, gasUsed);
+      blockchain.state().processBlock(finBlock1, succeeded, gasUsed, validatorUpdates);
 
       REQUIRE(succeeded.size() == 4);
       REQUIRE(succeeded[0] == true);
@@ -337,7 +338,7 @@ namespace TBlockchain {
       gasUsed.clear();
       cometBlock.txs.push_back(Utils::randBytes(32)); // append a randomHash non-tx tx (required by our protocol / FinalizedBlock::fromCometBlock())
       FinalizedBlock finBlock2 = FinalizedBlock::fromCometBlock(cometBlock);
-      blockchain.state().processBlock(finBlock2, succeeded, gasUsed);
+      blockchain.state().processBlock(finBlock2, succeeded, gasUsed, validatorUpdates);
 
       // Check that the transactions picked by the block builder each have the expected outcome.
       uint256_t accAbal2 = blockchain.state().getNativeBalance(accA.address);
@@ -493,20 +494,12 @@ namespace TBlockchain {
       std::vector<CometValidatorUpdate> validatorSet;
       uint64_t height = 0;
 
-      // Ensure all nodes think there are 4 validators for a while
-      while (height < 5) {
-        for (int i = 0; i < numNodes; ++i) {
-          blockchains[i]->getValidatorSet(validatorSet, height);
-          REQUIRE(validatorSet.size() == numValidators);
-        }
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+      // Ensure all nodes see numValidator validators in the currently active validator set,
+      // which is the genesis set so it is immediately active.
+      for (int i = 0; i < numNodes; ++i) {
+        blockchains[i]->state().getValidatorSet(validatorSet, height);
+        REQUIRE(validatorSet.size() == numValidators);
       }
-
-      // FIXME: all validator set changes must be tracked as pending, then applied
-      //        this is only affecting the PENDING set
-      //        Blockchain should know precisely which validator set will come into effect when
-      //        For now, test this optimistic version (check directly with the Blockchain class)
-      //        THEN fix it so the Blockchain's view matches CometBFT's for each height.
 
       // TODO:
       // Chain owner stakes then delegates 5, 4, 3, 2, 1 tokens for nodes #0 .. #4.

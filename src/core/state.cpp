@@ -8,6 +8,7 @@ See the LICENSE.txt file in the project root for more information.
 #include <evmone/evmone.h>
 
 #include "state.h"
+#include "blockchain.h"
 
 #include "../contract/contracthost.h" // contractmanager.h
 #include "../contract/contractfactory.h" // ContractFactory
@@ -16,8 +17,6 @@ See the LICENSE.txt file in the project root for more information.
 #include "../utils/uintconv.h"
 #include "bytes/random.h"
 #include "libs/base64.hpp" // To decode the base64-encoded key strings
-
-#include "blockchain.h"
 
 // Only need to register contract templates once
 std::once_flag State::stateRegisterContractsFlag;
@@ -44,7 +43,9 @@ State::State(Blockchain& blockchain) : blockchain_(blockchain), vm_(evmc_create_
 State::~State() { evmc_destroy(this->vm_); }
 
 void State::initChain(
-  uint64_t initialHeight, uint64_t initialTimeEpochSeconds, std::string genesisSnapshot
+  uint64_t initialHeight, uint64_t initialTimeEpochSeconds,
+  const std::vector<CometValidatorUpdate>& initialValidators,
+  std::string genesisSnapshot
 ) {
   LOGDEBUG("State::initChain(): Height (BDK, -1) = " + std::to_string(initialHeight));
 
@@ -66,14 +67,22 @@ void State::initChain(
 
   // Initial system contract params (ctor params)
   std::vector<std::string> initialValidatorPubKeys;
-  const auto& validatorsJson = blockchain_.opt().getCometBFT()[COMET_OPTION_GENESIS_JSON]["validators"];
-  for (const auto& validator : validatorsJson) {
-    std::string validatorPubKeyBase64Str = validator["pub_key"]["value"];
-    Bytes pubBytes = base64::decode_into<Bytes>(validatorPubKeyBase64Str);
-    std::string validatorPubKey = Hex::fromBytes(pubBytes).get();
-    LOGDEBUG("Validator PubKey hex string for SystemContract: " + validatorPubKey);
-    initialValidatorPubKeys.push_back(validatorPubKey);
+  // // Don't need to fetch them from the Options as we get the exact same info via ABCI InitChain params
+  // const auto& validatorsJson = blockchain_.opt().getCometBFT()[COMET_OPTION_GENESIS_JSON]["validators"];
+  // for (const auto& validator : validatorsJson) {
+  //   std::string validatorPubKeyBase64Str = validator["pub_key"]["value"];
+  //   Bytes pubBytes = base64::decode_into<Bytes>(validatorPubKeyBase64Str);
+  //   std::string validatorPubKey = Hex::fromBytes(pubBytes).get();
+  //   LOGDEBUG("Validator PubKey hex string for SystemContract: " + validatorPubKey);
+  //   initialValidatorPubKeys.push_back(validatorPubKey);
+  // }
+  for (const auto& validator : initialValidators) {
+    // SystemContract takes public keys as hex strings instead of PubKey, unfortunately.
+    std::string validatorPubKeyStr = Hex::fromBytes(validator.publicKey).get();
+    initialValidatorPubKeys.push_back(validatorPubKeyStr);
+    LOGDEBUG("Validator PubKey hex string for SystemContract: " + validatorPubKeyStr);
   }
+
   uint64_t initialNumSlots = initialValidatorPubKeys.size(); // initial numSlots will simply be the number of validators provided at genesis
   uint64_t maxSlots = 1'000; // Set this to the global maximum numslots for BDK chains
 
@@ -96,6 +105,55 @@ void State::initChain(
     );
 
   LOGDEBUG("Deployed SystemContract.");
+
+  // Set the initial validator set.
+  // NOTE: The SystemContract has its own idea of what the validator set is (it stores it
+  // in a pair of SafeVector, which is not as useful as the this->validators_ map). However,
+  // both Blockchain and SystemContract should see the same validator set, as the SystemContract
+  // will seed itself from Options::getCometBFT() (which must match &initialValidators).
+  setValidators(initialValidators);
+}
+
+void State::setValidators(const std::vector<CometValidatorUpdate>& newValidatorSet) {
+  // NOTE: stateMutex_ should already be locked by caller, if necessary
+
+  // Normally, a validator set that is chosen in block H becomes active in H+2.
+  // However, if we have no validator sets, that means we are getting the genesis validator set
+  //   which is automatically active at the current State height.
+  uint64_t activationHeight = height_;
+  if (currentValidatorSet_ >= 0) {
+    // The set we are pushing at the front will be the currentValidatorSet two blocks from now.
+    activationHeight = height_ + 2;
+    // Since we pushed a new element, the current set is deeper in the deque now.
+    ++currentValidatorSet_;
+  } else {
+    // Point to the genesis set we are creating.
+    currentValidatorSet_ = 0;
+  }
+  validatorSets_.emplace_front(
+    ValidatorSet(
+      activationHeight,
+      newValidatorSet
+    )
+  );
+}
+
+Address State::validatorCometAddressToEthAddress(Address validatorCometAddress) {
+  //std::shared_lock<std::shared_mutex> lock(stateMutex_);
+  if (currentValidatorSet_ < 0) {
+    throw DynamicException("No validator set: " + std::to_string(validatorSets_.size()));
+  }
+  return validatorSets_[currentValidatorSet_].validatorCometAddressToEthAddress(validatorCometAddress);
+}
+
+// Returns the currently active validator set and the height in which it became active
+void State::getValidatorSet(std::vector<CometValidatorUpdate>& validatorSet, uint64_t& height) {
+  //std::shared_lock<std::shared_mutex> lock(stateMutex_);
+  if (currentValidatorSet_ < 0) {
+    throw DynamicException("No validator set: " + std::to_string(validatorSets_.size()));
+  }
+  validatorSet = validatorSets_[currentValidatorSet_].getValidators();
+  height = validatorSets_[currentValidatorSet_].getHeight();
 }
 
 std::string State::getLogicalLocation() const { return blockchain_.getLogicalLocation(); }
@@ -148,7 +206,11 @@ size_t State::getUserContractsSize() {
 }
 
 SystemContract* State::getSystemContract() {
-  std::shared_lock lock(this->stateMutex_);
+  std::shared_lock<std::shared_mutex> lock(stateMutex_);
+  return getSystemContractInternal();
+}
+
+SystemContract* State::getSystemContractInternal() {
   if (this->contracts_.find(ProtocolContractAddresses.at("SystemContract")) == this->contracts_.end()) {
     throw DynamicException("SystemContract not found");
   }
@@ -171,6 +233,10 @@ void State::resetState(uint64_t height, uint64_t timeMicros) {
   this->contracts_.clear();
   this->vmStorage_.clear();
   this->accounts_.clear();
+
+  // Wipe the validator set schedule
+  validatorSets_.clear();
+  currentValidatorSet_ = -1;
 
   // Create ContractManager account
   auto& contractManagerAcc = *this->accounts_[ProtocolContractAddresses.at("ContractManager")];
@@ -220,6 +286,30 @@ void State::saveSnapshot(const std::string& where) {
   );
   out.putBatch(*metaBatch);
   metaBatch.reset();
+
+  // Write the validator set schedule (all validator sets that State is keeping track of).
+  // We need this when restoring a machine state because the SystemContract only keeps
+  // the latest elected validator set (in other words, State does not delegate this
+  // responsibility to the governance contract; the governance contract can be changed
+  // to handle chain governance differently with a reduced risk of affecting the machine
+  // plus consensus engine environment in an unintended way).
+  std::unique_ptr<DBBatch> validatorBatch = std::make_unique<DBBatch>();
+  for (int i = 0; i < validatorSets_.size(); ++i) {
+    const std::vector<CometValidatorUpdate>& validators = validatorSets_[i].getValidators();
+    const uint64_t& height = validatorSets_[i].getHeight();
+    Bytes serializedValidatorSet;
+    for (int j = 0; j < validators.size(); ++j) {
+      Utils::appendBytes(serializedValidatorSet, validators[i].publicKey);
+      Utils::appendBytes(serializedValidatorSet, IntConv::int64ToBytes(validators[i].power));
+    }
+    validatorBatch->push_back(
+      UintConv::uint64ToBytes(height),
+      serializedValidatorSet,
+      DBPrefix::validatorSets
+    );
+  }
+  out.putBatch(*validatorBatch);
+  validatorBatch.reset();
 
   size_t count;
 
@@ -321,6 +411,43 @@ void State::loadSnapshot(const std::string& where, bool genesisSnapshot) {
     }
   }
 
+  // Load the validator set schedule
+  uint64_t vsetCount = 0;
+  auto vsetsFromDB = in.getBatch(DBPrefix::validatorSets);
+  currentValidatorSet_ = vsetsFromDB.size();
+  for (const auto& dbEntry : vsetsFromDB) {
+    uint64_t height = UintConv::bytesToUint64(dbEntry.key);
+    const Bytes& validatorSetBytes = dbEntry.value;
+    // A serialized Secp256k1 PubKey is 33 bytes + 8 bytes int64_t voting power = 41
+    if (validatorSetBytes.size() % 41 != 0) {
+      throw DynamicException("Read corrupt snapshot; a serialized validator set is truncated.");
+    }
+    int validatorCount = validatorSetBytes.size() / 41;
+    std::vector<CometValidatorUpdate> validators;
+    for (int i = 0; i < validatorCount; ++i) {
+      int offset = 41 * i;
+      Bytes validator(validatorSetBytes.begin() + offset, validatorSetBytes.begin() + offset + 33);
+      Bytes votesBytes(validatorSetBytes.begin() + offset + 33, validatorSetBytes.begin() + offset + 41);
+      int64_t votes = IntConv::bytesToInt64(votesBytes);
+      validators.push_back(
+        CometValidatorUpdate{
+          validator,
+          votes
+        }
+      );
+    }
+    validatorSets_.push_front(ValidatorSet(height, validators)); // DB is a sorted container, so push oldest height first
+    if (height <= height_) {
+      // This validator set is not yet one that is in the future, so it is the next candidate.
+      --currentValidatorSet_;
+    }
+    ++vsetCount;
+  }
+  if (currentValidatorSet_ == vsetsFromDB.size()) {
+    throw DynamicException("Read corrupt snapshot: no validator set is current");
+  }
+  LOGXTRACE("Validator sets size: " + std::to_string(vsetCount));
+
   // Load accounts_
   uint64_t accCount = 0;
   auto accountsFromDB = in.getBatch(DBPrefix::nativeAccounts);
@@ -366,6 +493,8 @@ void State::loadSnapshot(const std::string& where, bool genesisSnapshot) {
     && this->accounts_.find(ProtocolContractAddresses.at("SystemContract")) != this->accounts_.end()
   );
   if (genesisSnapshot && hasSystemContract) {
+    // REVIEW: We could also just explicitly ignore (skip) the SystemContract when loading a genesis snapshot,
+    //         instead of considering the whole snapshot invalid.
     throw DynamicException("Invalid genesis snapshot (has SystemContract).");
   }
   if (!genesisSnapshot) {
@@ -799,7 +928,10 @@ bool State::validateTransactionInternal(const TxBlock& tx, bool affectsMempool, 
   return true;
 }
 
-void State::processBlock(const FinalizedBlock& block, std::vector<bool>& succeeded, std::vector<uint64_t>& gasUsed) {
+void State::processBlock(
+  const FinalizedBlock& block, std::vector<bool>& succeeded, std::vector<uint64_t>& gasUsed,
+  std::vector<CometValidatorUpdate>& validatorUpdates
+) {
   std::unique_lock lock(this->stateMutex_);
 
   // NOTE: Block should already have been validated by the caller.
@@ -826,7 +958,7 @@ void State::processBlock(const FinalizedBlock& block, std::vector<bool>& succeed
   // Address derivation schemes (from the same Secp256k1 public key) differ between CometBFT and Eth.
   // So we need to map CometBFT Address to CometValidatorUpdate (a validator public key)
   //   and then use the validator public key to compute the correct Eth Address.
-  Address proposerEthAddr = blockchain_.validatorCometAddressToEthAddress(block.getProposerAddr());
+  Address proposerEthAddr = blockchain_.state().validatorCometAddressToEthAddress(block.getProposerAddr());
   ContractGlobals::coinbase_ = proposerEthAddr;
   // LOGTRACE("Coinbase set to: " + proposerEthAddr.hex().get() + " (CometBFT Addr: " + block.getProposerAddr().hex().get() + ")");
 
@@ -844,6 +976,66 @@ void State::processBlock(const FinalizedBlock& block, std::vector<bool>& succeed
 
   // Update the state height after processing
   height_ = block.getNHeight();
+
+  // Check if SystemContract has validator set updates for this block
+  std::vector<std::pair<PubKey, uint64_t>> validatorDeltas;
+  SystemContract* systemContractPtr = getSystemContractInternal();
+  systemContractPtr->finishBlock(validatorDeltas); // Collect any validator changes accumulated in the singleton system contract...
+
+  if (!validatorDeltas.empty()) {
+    // Apply validator set deltas
+    Bytes validatorDbLog;
+    for (const auto& validatorDelta : validatorDeltas) {
+      CometValidatorUpdate validatorUpdate;
+      validatorUpdate.publicKey = validatorDelta.first.asBytes();
+      validatorUpdate.power = static_cast<int64_t>(validatorDelta.second);
+      validatorUpdates.push_back(validatorUpdate); // ...and return them to CometBFT via the `validatorUpdates` outparam...
+      Utils::appendBytes(validatorDbLog, validatorUpdate.publicKey);
+      Utils::appendBytes(validatorDbLog, IntConv::int64ToBytes(validatorUpdate.power));
+    }
+    blockchain_.storage().putValidatorUpdates(height_, validatorDbLog); // ...store all validator set changes into the local DB...
+
+    // Update Blockchain's validator set view to match exactly whatever the SystemContract has
+    // NOTE: Blockchain::setValidators() gets the given newValidatorSet below, and it understands that it is
+    //       receiving that new validator set at the current state_.height_; and it also understands that
+    //       the newValidatorSet will only become active in state_.height_ + 2. So it will actually queue this
+    //       newValidatorSet for future use.
+    //       This contrasts with the SystemContract's tracking of validator sets: it is only concerned about which
+    //       validators are currently *elected*, as the SystemContract is a governance mechanism.
+    SafeVector<PubKey>& scValidators = systemContractPtr->getValidators();
+    SafeVector<uint64_t>& scValidatorVotes = systemContractPtr->getValidatorVotes();
+    uint64_t scNumSlots = systemContractPtr->getNumSlots();
+    if (scValidators.size() != scValidatorVotes.size() || scValidators.size() < scNumSlots) {
+      throw DynamicException("SystemContract has inconsistent validator set data");
+    }
+    std::vector<CometValidatorUpdate> newValidatorSet;
+    for (int i = 0; i < scNumSlots; ++i) {
+      newValidatorSet.emplace_back(
+        CometValidatorUpdate{
+          scValidators[i].asBytes(),
+          static_cast<int64_t>(scValidatorVotes[i]) // nobody is getting > 9.2 billion native token votes
+        }
+      );
+    }
+    setValidators(newValidatorSet);
+  }
+
+  // Since we have advanced the simulation height, we may need to prune validatorSets_
+  // Reverse search for the first validator set that is pending, and for each iteration,
+  //   add 1 to the count of old validatorSets_ entires to prune.
+  // Example: if no pending validator sets exist (all are active), will prune all but the front.
+  // Example: [pending pending active active active] should prune the last 2.
+  int pruneCount = -1; // Start at -1 so the last active is preserved.
+  for (auto it = validatorSets_.rbegin(); it != validatorSets_.rend(); ++it) {
+    if (it->getHeight() < height_) {
+      break; // found first pending validator set, so stop
+    }
+    ++pruneCount;
+  }
+  while (pruneCount > 0) {
+    validatorSets_.pop_back();
+    --pruneCount;
+  }
 }
 
 void State::processTransaction(

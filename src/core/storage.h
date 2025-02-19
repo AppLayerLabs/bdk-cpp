@@ -107,6 +107,8 @@ class Storage : public Log::LogicalLocationProvider {
 
     /**
      * Store validator updates.
+     * By saving all validator updates, we can reconstruct the full history of validator sets if required.
+     * This full validator update history is not saved in snapshots.
      * Validator updates are sequences of 41 bytes, where the first 33 bytes are the
      * validator's PubKey, and the following 8 bytes are the int64_t vote count.
      * @param height Block height at which the validator updates have been requested.

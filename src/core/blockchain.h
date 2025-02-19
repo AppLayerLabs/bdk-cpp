@@ -81,12 +81,6 @@ class Blockchain : public CometListener, public NodeRPCInterface, public Log::Lo
     HTTPServer http_; ///< HTTP server.
     Comet comet_;     ///< CometBFT consensus engine driver.
 
-    // TODO: Encapsulate validator set tracking in a (thread-safe) class (e.g. ValidatorSet).
-    //       We'll be tracking a lot more information about validators when we make the set mutable.
-    std::vector<CometValidatorUpdate> validators_; ///< Up-to-date CometBFT validator set.
-    std::unordered_map<Address, uint64_t, SafeHash> validatorAddrs_; /// Up-to-date map of CometBFT validator address to index in validators_.
-    std::mutex validatorMutex_; ///< Protects validators_ and validatorAddrs_
-
     // FIXME/TODO: Need to query for the last block and fill this in on boot.
     //             (That initial block query will also feed the fbCache_).
     std::atomic<std::shared_ptr<const FinalizedBlock>> latest_; ///< Pointer to the latest block in the blockchain.
@@ -153,11 +147,6 @@ class Blockchain : public CometListener, public NodeRPCInterface, public Log::Lo
      * Helper for BDK RPC services.
      */
     json getBlockJson(const FinalizedBlock *block, bool includeTransactions);
-
-    /**
-     * Update the Blockchain's validator set view.
-     */
-    void setValidators(const std::vector<CometValidatorUpdate>& newValidatorSet);
 
   public:
 
@@ -271,20 +260,7 @@ class Blockchain : public CometListener, public NodeRPCInterface, public Log::Lo
 
     std::shared_ptr<const FinalizedBlock> latest() const; ///< Get latest finalized block.
 
-    uint64_t getLatestHeight() const; ///< Get the height of the lastest finalized block or 0.
-
-    void getValidatorSet(std::vector<CometValidatorUpdate>& validatorSet, uint64_t& height); ///< Get the current validator set
-
-    /**
-     * Given a CometBFT validator address, which is backed by a secp256k1 validator
-     * private key (due to how the Comet driver configures CometBFT to use secp256k1
-     * keys), look up the current validator list, find the validator private key given
-     * the CometBFT validator address, then generate an Eth validator address from
-     * that found private key.
-     * @param validatorCometAddress The CometBFT address of one of the active validators.
-     * @return The translation of the CometBFT address into the corresponding Eth address.
-     */
-    Address validatorCometAddressToEthAddress(Address validatorCometAddress);
+    uint64_t getLatestHeight() const; ///< Get the height of the lastest finalized block, or 0 if no blocks (genesis state).
 
     /**
      * Get a block from the chain using a given hash.
