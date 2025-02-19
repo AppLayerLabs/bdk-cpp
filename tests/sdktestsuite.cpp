@@ -376,7 +376,9 @@ Options SDKTestSuite::getOptionsForTest(
   std::vector<CometTestPorts> ports,
   int numNonValidators,
   int stateDumpTrigger,
-  std::string cometBFTRoundTime
+  std::string cometBFTRoundTime,
+  std::string cometBFTTimeoutCommit,
+  int bdkHttpPort
 ) {
   // Note: all Comet instances are validators.
 
@@ -478,7 +480,7 @@ Options SDKTestSuite::getOptionsForTest(
     {"timeout_prevote_delta", "0s"},
     {"timeout_precommit", cometBFTRoundTime},
     {"timeout_precommit_delta", "0s"},
-    {"timeout_commit", "0s"}
+    {"timeout_commit", cometBFTTimeoutCommit}
   };
 
   // Replace "priv_validator_key.json" with the key at index keyNumber
@@ -533,7 +535,7 @@ Options SDKTestSuite::getOptionsForTest(
     8080,
     Address(Hex::toBytes("0x00dead00665771855a34155f5e7405489df2c3c6")),
     uint256_t(0),
-    9999,
+    bdkHttpPort,
     2000,
     10000,
     stateDumpTrigger,

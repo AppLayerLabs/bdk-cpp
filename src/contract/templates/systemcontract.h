@@ -27,9 +27,11 @@ See the LICENSE.txt file in the project root for more information.
  * int256_t, so it's never a problem).
  *
  * TODO:
+ * - Prevent SystemContract from being instantiated by incoming transactions.
+ * - Actually track pending vs. active validator sets in Blockchain.
+ *   (System contract tracks only the latest elected version and is correct).
  * - Contract class is fully written and compiles.
  * - Write unit test.
- *   - Ensure SystemContract cannot be instantiated by incoming transactions.
  * - PR branch.
  */
 class SystemContract : public DynamicContract {
@@ -138,11 +140,6 @@ class SystemContract : public DynamicContract {
       const uint64_t& initialNumSlots, const uint64_t& maxSlots,
       const Address& address, const Address& creator, const uint64_t& chainId
     );
-
-    /**
-     * Destructor.
-     */
-    virtual ~SystemContract();
 
     /**
      * An user deposits native tokens into the system contract.

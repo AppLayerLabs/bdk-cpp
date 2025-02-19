@@ -458,6 +458,74 @@ namespace TBlockchain {
 
       GLOGDEBUG("TEST: done");
     }
+
+    SECTION("BlockchainValidatorSetTest") {
+      const int numNodes = 6;
+      const int numNonValidators = 2;
+      const int numValidators = numNodes - numNonValidators;
+
+      auto ports = SDKTestSuite::generateCometTestPorts(numNodes);
+
+      // Unfortunately, BDK HTTP ports were a late addition to getOptionsForTest()
+      std::vector<int> httpPorts;
+      for (int i = 0; i < numNodes; ++i) { httpPorts.push_back(SDKTestSuite::getTestPort()); }
+
+      std::vector<Options> options;
+      for (int i = 0; i < numNodes; ++i) {
+        options.emplace_back(
+          SDKTestSuite::getOptionsForTest(
+            createTestDumpPath("BlockchainValidatorSetTest_" + std::to_string(i)), false, "",
+            ports[i].p2p, ports[i].rpc, i, numNodes, ports, numNonValidators, 0,
+            "1s", "1s", httpPorts[i]
+          )
+        );
+      }
+
+      std::vector<std::unique_ptr<Blockchain>> blockchains;
+      for (int i = 0; i < numNodes; ++i) {
+        blockchains.emplace_back(std::make_unique<Blockchain>(options[i], std::to_string(i)));
+        // NOTE: Blockchain::start() waits for CometState::RUNNING, so it blocks for a while.
+        //       This is fine (the test still works, nodes eventually manage to dial each other) but
+        //       this could be parallelized so that the test would finish faster.
+        blockchains.back()->start();
+      }
+
+      std::vector<CometValidatorUpdate> validatorSet;
+      uint64_t height = 0;
+
+      // Ensure all nodes think there are 4 validators for a while
+      while (height < 5) {
+        for (int i = 0; i < numNodes; ++i) {
+          blockchains[i]->getValidatorSet(validatorSet, height);
+          REQUIRE(validatorSet.size() == numValidators);
+        }
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+      }
+
+      // FIXME: all validator set changes must be tracked as pending, then applied
+      //        this is only affecting the PENDING set
+      //        Blockchain should know precisely which validator set will come into effect when
+      //        For now, test this optimistic version (check directly with the Blockchain class)
+      //        THEN fix it so the Blockchain's view matches CometBFT's for each height.
+
+      // TODO:
+      // Chain owner stakes then delegates 5, 4, 3, 2, 1 tokens for nodes #0 .. #4.
+      // After all transactions went through, validator set should be unchanged.
+
+      // TODO:
+      // Chain owner delegates 10 tokens for node #5
+      // After tx goes through, resulting validator set should be #5, #0, #1, #2 for the 4 slots.
+
+      // TODO:
+      // Validators #5, #0, and #1 vote to change the number of slots: 5, 5, 6
+      // After tx goes through, number of slots should change to 5, making the validator set be: #5, #0, #1, #2, #3
+
+      // TODO:
+      // Validator #1 gets fully undelegated (-4 tokens).
+      // After tx goes through, validator set should be #5, #0, #2, #3, #4
+
+      GLOGDEBUG("TEST: Validator set test finished.");
+    }
   }
 }
 

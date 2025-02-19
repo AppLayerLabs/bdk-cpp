@@ -104,7 +104,7 @@ class SDKTestSuite : public Blockchain {
       const Options& options,
       const std::string instanceId = "",
       const std::vector<TestAccount>& accounts = {}
-    ) : Blockchain(options, options.getRootPath(), instanceId), testAccounts_(accounts) {
+    ) : Blockchain(options, instanceId), testAccounts_(accounts) {
       // Existing testcases like SimpleContract don't call start(), so the ctor must start().
       start();
     }
@@ -207,8 +207,8 @@ class SDKTestSuite : public Blockchain {
      * ALL of the peers).
      * @param rootPath Root directory for the testcase.
      * @param appHash Application state hash at genesis.
-     * @param p2pPort The CometBFT P2P local port number to use.
-     * @param rpcPort The CometBFT RPC local port number to use.
+     * @param p2pPort The CometBFT P2P local port number to use (if -1, choose one randomly).
+     * @param rpcPort The CometBFT RPC local port number to use (if -1, choose one randomly).
      * @param keyNumber Index of validator key from the predefined test validator key set.
      * @param numKeys Number of validator keys to include in the genesis spec.
      * @param ports Vector of ports allocated by all peers (unused, if numKeys == 1).
@@ -218,6 +218,8 @@ class SDKTestSuite : public Blockchain {
      * validator set (but all 10 nodes are still fully connected to each other via persistent_peers).
      * @param stateDumpTrigger Number of blocks elapsed between Blockchain::saveSnapshot() calls.
      * @param cometBFTRoundTime CometBFT round time (for each of the 3 rounds).
+     * @param cometBFTTimeoutCommit CometBFT commit timeout.
+     * @param bdkHttpPort The BDK RPC local port number to use (if -1, choose one randomly).
      * @return Options object set up for testing a Comet instance.
      */
     static Options getOptionsForTest(
@@ -229,7 +231,9 @@ class SDKTestSuite : public Blockchain {
       std::vector<CometTestPorts> ports = {},
       int numNonValidators = 0,
       int stateDumpTrigger = 1000,
-      std::string cometBFTRoundTime = "1s"
+      std::string cometBFTRoundTime = "1s",
+      std::string cometBFTTimeoutCommit = "0s",
+      int bdkHttpPort = -1
     );
 
     /**

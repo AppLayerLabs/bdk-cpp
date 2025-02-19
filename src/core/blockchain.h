@@ -74,13 +74,12 @@ class Blockchain : public CometListener, public NodeRPCInterface, public Log::Lo
     const std::string instanceId_; ///< Instance ID for logging.
 
     // NOTE: Comet *must* be destructed (stopped) before State, hence it must be declared after it.
-    // NOTE: HTTPServer should be destructed (stopped) before Comet, hence it should be declared after it.
 
     Options options_; ///< Options singleton.
     Storage storage_; ///< BDK persistent store front-end.
     State state_;     ///< Blockchain state.
-    Comet comet_;     ///< CometBFT consensus engine driver.
     HTTPServer http_; ///< HTTP server.
+    Comet comet_;     ///< CometBFT consensus engine driver.
 
     // TODO: Encapsulate validator set tracking in a (thread-safe) class (e.g. ValidatorSet).
     //       We'll be tracking a lot more information about validators when we make the set mutable.
@@ -242,13 +241,12 @@ class Blockchain : public CometListener, public NodeRPCInterface, public Log::Lo
 
     /**
      * Constructor.
-     * @param options Explicit options object to use (overrides any existing options file on blockchainPath).
-     * @param blockchainPath Root filesystem path for this blockchain node reading/writing data.
+     * @param options Explicit options object to use.
      * @param instanceId Runtime object instance identifier for logging (for multi-node unit tests).
      */
-    explicit Blockchain(const Options& options, const std::string& blockchainPath, std::string instanceId = "");
+    explicit Blockchain(const Options& options, std::string instanceId = "");
 
-    ~Blockchain() = default; ///< Default destructor.
+    virtual ~Blockchain(); ///< Destructor.
 
     /**
      * Set the size of the GetTx() cache.
@@ -274,6 +272,8 @@ class Blockchain : public CometListener, public NodeRPCInterface, public Log::Lo
     std::shared_ptr<const FinalizedBlock> latest() const; ///< Get latest finalized block.
 
     uint64_t getLatestHeight() const; ///< Get the height of the lastest finalized block or 0.
+
+    void getValidatorSet(std::vector<CometValidatorUpdate>& validatorSet, uint64_t& height); ///< Get the current validator set
 
     /**
      * Given a CometBFT validator address, which is backed by a secp256k1 validator

@@ -109,7 +109,7 @@ Blockchain::Blockchain(const std::string& blockchainPath, std::string instanceId
 {
 }
 
-Blockchain::Blockchain(const Options& options, const std::string& blockchainPath, std::string instanceId)
+Blockchain::Blockchain(const Options& options, std::string instanceId)
   : instanceId_(instanceId),
     options_(options), // copy the given Options object
     comet_(this, instanceId, options_),
@@ -261,6 +261,12 @@ void Blockchain::stop() {
   this->comet_.stop();
 }
 
+Blockchain::~Blockchain() {
+  if (started_) {
+    stop();
+  }
+}
+
 std::shared_ptr<const FinalizedBlock> Blockchain::latest() const {
   return latest_.load();
 }
@@ -269,6 +275,12 @@ uint64_t Blockchain::getLatestHeight() const {
   auto latestPtr = latest_.load();
   if (!latestPtr) { return 0; }
   return latestPtr->getNHeight();
+}
+
+void Blockchain::getValidatorSet(std::vector<CometValidatorUpdate>& validatorSet, uint64_t& height) {
+  std::unique_lock<std::mutex> lock(validatorMutex_);
+  validatorSet = validators_;
+  height = state_.getHeight();
 }
 
 std::shared_ptr<const FinalizedBlock> Blockchain::getBlock(const Hash& hash) {
