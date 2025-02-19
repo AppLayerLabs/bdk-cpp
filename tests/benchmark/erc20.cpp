@@ -144,7 +144,7 @@ contract MappingManager {
       // Dump the state
       sdk.getState().saveToDB();
     }
-
+    #ifndef BUILD_TESTNET
     SECTION("CPP ERC20 generate Benchmark") {
       std::unique_ptr<Options> options = nullptr;
       Address to(Utils::randBytes(20));
@@ -339,7 +339,7 @@ contract MappingManager {
       std::cout << "EVM ERC20 Addall took " << microSecsPerCall << " microseconds per call" << std::endl;
       std::cout << "EVM Addall Total Time: " << durationInMicroseconds / 1000000 << " seconds" << std::endl;
     }
-
+    #endif // BUILD_TESTNET
     SECTION("CPP ERC20 transferFrom Benchmark") {
       std::unique_ptr<Options> options = nullptr;
       TestAccount sender = TestAccount::newRandomAccount();
