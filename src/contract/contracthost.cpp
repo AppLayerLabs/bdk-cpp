@@ -691,38 +691,40 @@ void ContractHost::emit_log(const evmc::address& addr,
                             size_t data_size,
                             const evmc::bytes32 topics[],
                             size_t topics_count) noexcept {
-  try {
-    // We need the following arguments to build a event:
-    // (std::string) name The event's name.
-    // (uint64_t) logIndex The event's position on the block.
-    // (Hash) txHash The hash of the transaction that emitted the event.
-    // (uint64_t) txIndex The position of the transaction in the block.
-    // (Hash) blockHash The hash of the block that emitted the event.
-    // (uint64_t) blockIndex The height of the block.
-    // (Address) address The address that emitted the event.
-    // (Bytes) data The event's arguments.
-    // (std::vector<Hash>) topics The event's indexed arguments.
-    // (bool) anonymous Whether the event is anonymous or not.
-    std::vector<Hash> topics_;
-    for (uint64_t i = 0; i < topics_count; i++) {
-      topics_.emplace_back(topics[i]);
+  if (storage_.getIndexingMode() == IndexingMode::RPC_TRACE) {
+    try {
+      // We need the following arguments to build a event:
+      // (std::string) name The event's name.
+      // (uint64_t) logIndex The event's position on the block.
+      // (Hash) txHash The hash of the transaction that emitted the event.
+      // (uint64_t) txIndex The position of the transaction in the block.
+      // (Hash) blockHash The hash of the block that emitted the event.
+      // (uint64_t) blockIndex The height of the block.
+      // (Address) address The address that emitted the event.
+      // (Bytes) data The event's arguments.
+      // (std::vector<Hash>) topics The event's indexed arguments.
+      // (bool) anonymous Whether the event is anonymous or not.
+      std::vector<Hash> topics_;
+      for (uint64_t i = 0; i < topics_count; i++) {
+        topics_.emplace_back(topics[i]);
+      }
+      Event event("", // EVM events do not have names
+                  this->eventIndex_,
+                  this->txHash_,
+                  this->txIndex_,
+                  this->blockHash_,
+                  this->currentTxContext_.block_number,
+                  addr,
+                  Bytes(data, data + data_size),
+                  topics_,
+                  (topics_count == 0)
+        );
+      ++this->eventIndex_;
+      this->stack_.registerEvent(std::move(event));
+    } catch (std::exception& e) {
+      this->evmcThrows_.emplace_back(e.what());
+      this->evmcThrow_ = true;
     }
-    Event event("", // EVM events do not have names
-                this->eventIndex_,
-                this->txHash_,
-                this->txIndex_,
-                this->blockHash_,
-                this->currentTxContext_.block_number,
-                addr,
-                Bytes(data, data + data_size),
-                topics_,
-                (topics_count == 0)
-      );
-    ++this->eventIndex_;
-    this->stack_.registerEvent(std::move(event));
-  } catch (std::exception& e) {
-    this->evmcThrows_.emplace_back(e.what());
-    this->evmcThrow_ = true;
   }
 }
 

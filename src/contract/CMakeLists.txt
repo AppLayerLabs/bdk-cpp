@@ -36,6 +36,11 @@ set(CONTRACT_HEADERS
   ${CMAKE_SOURCE_DIR}/src/contract/templates/dexv2/dexv2router02.h
   ${CMAKE_SOURCE_DIR}/src/contract/templates/dexv2/uq112x112.h
   ${CMAKE_SOURCE_DIR}/src/contract/templates/pebble.h
+  ${CMAKE_SOURCE_DIR}/src/contract/templates/buildthevoid.h
+  ${CMAKE_SOURCE_DIR}/src/contract/templates/btvplayer.h
+  ${CMAKE_SOURCE_DIR}/src/contract/templates/btvcommon.h
+  ${CMAKE_SOURCE_DIR}/src/contract/templates/btvenergy.h
+  ${CMAKE_SOURCE_DIR}/src/contract/templates/btvproposals.h
   ${CMAKE_SOURCE_DIR}/src/contract/templates/throwtestA.h
   ${CMAKE_SOURCE_DIR}/src/contract/templates/throwtestB.h
   ${CMAKE_SOURCE_DIR}/src/contract/templates/throwtestC.h
@@ -70,6 +75,11 @@ set(CONTRACT_SOURCES
   ${CMAKE_SOURCE_DIR}/src/contract/templates/dexv2/dexv2pair.cpp
   ${CMAKE_SOURCE_DIR}/src/contract/templates/dexv2/dexv2router02.cpp
   ${CMAKE_SOURCE_DIR}/src/contract/templates/pebble.cpp
+  ${CMAKE_SOURCE_DIR}/src/contract/templates/buildthevoid.cpp
+  ${CMAKE_SOURCE_DIR}/src/contract/templates/btvplayer.cpp
+  ${CMAKE_SOURCE_DIR}/src/contract/templates/btvcommon.cpp
+  ${CMAKE_SOURCE_DIR}/src/contract/templates/btvenergy.cpp
+  ${CMAKE_SOURCE_DIR}/src/contract/templates/btvproposals.cpp
   ${CMAKE_SOURCE_DIR}/src/contract/templates/throwtestA.cpp
   ${CMAKE_SOURCE_DIR}/src/contract/templates/throwtestB.cpp
   ${CMAKE_SOURCE_DIR}/src/contract/templates/throwtestC.cpp

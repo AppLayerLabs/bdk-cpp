@@ -31,7 +31,13 @@ void signalHandler(int signum) {
   cv.notify_one();
 }
 
+#include "src/contract/templates/btvcommon.h"
+
 int main(int argc, char* argv[]) {
+
+  std::cout << "sizeof(BTVUtils::ChunkCoord2D): " << sizeof(BTVUtils::ChunkCoord2D) << std::endl;
+
+  return 0;
   Log::logToCout = true;
   Utils::safePrint("bdkd: Blockchain Development Kit full node daemon");
   std::signal(SIGINT, signalHandler);

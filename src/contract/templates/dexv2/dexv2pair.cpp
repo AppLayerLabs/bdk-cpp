@@ -12,7 +12,7 @@ See the LICENSE.txt file in the project root for more information.
 #include "../../../utils/strconv.h"
 
 DEXV2Pair::DEXV2Pair(const Address& address, const DB& db
-) : ERC20(address, db), factory_(this), token0_(this), token1_(this),
+) : DynamicContract(address, db), ERC20(address, db), factory_(this), token0_(this), token1_(this),
   reserve0_(this), reserve1_(this), blockTimestampLast_(this),
   price0CumulativeLast_(this), price1CumulativeLast_(this), kLast_(this)
 {
@@ -51,7 +51,8 @@ DEXV2Pair::DEXV2Pair(const Address& address, const DB& db
 
 DEXV2Pair::DEXV2Pair(
   const Address& address, const Address& creator, const uint64_t& chainId
-) : ERC20("DEXV2Pair", "DEX V2", "DEX-V2", 18, 0, address, creator, chainId),
+) : DynamicContract("DEXV2Pair", address, creator, chainId),
+  ERC20("DEXV2Pair", "DEX V2", "DEX-V2", 18, 0, address, creator, chainId),
   factory_(this), token0_(this), token1_(this), reserve0_(this), reserve1_(this),
   blockTimestampLast_(this), price0CumulativeLast_(this), price1CumulativeLast_(this), kLast_(this)
 {

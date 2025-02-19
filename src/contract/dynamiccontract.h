@@ -596,9 +596,9 @@ class DynamicContract : public BaseContract {
         if (this->host_ == nullptr) {
           this->host_ = contractHost;
           PointerNullifier nullifier(this->host_);
-          return (static_cast<C*>(this)->*func)(args...);
+          return (dynamic_cast<C*>(this)->*func)(args...);
         }
-        return (static_cast<C*>(this)->*func)(args...);
+        return (dynamic_cast<C*>(this)->*func)(args...);
       } catch (const std::exception& e) {
         throw DynamicException(e.what());
       }
@@ -619,9 +619,9 @@ class DynamicContract : public BaseContract {
         if (this->host_ == nullptr) {
           this->host_ = contractHost;
           PointerNullifier nullifier(this->host_);
-          return (static_cast<C*>(this)->*func)();
+          return (dynamic_cast<C*>(this)->*func)();
         }
-        return (static_cast<C*>(this)->*func)();
+        return (dynamic_cast<C*>(this)->*func)();
       } catch (const std::exception& e) {
         throw DynamicException(e.what());
       }

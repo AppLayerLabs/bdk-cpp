@@ -66,6 +66,10 @@ struct SafeHash {
     return wyhash(std::bit_cast<const void*>(bytes.data()), bytes.size(), 0, _wyp);
   }
 
+  size_t operator()(const std::pair<int32_t, int32_t>& pair) const {
+    return wyhash(std::bit_cast<const void*>(&pair), sizeof(pair), 0, _wyp);
+  }
+
   template <typename Key, typename T> size_t operator()(const boost::unordered_flat_map<Key, T, SafeHash>& a) const {
     // TODO: replace this with wyhash somehow.
     return splitmix(std::hash<boost::unordered_flat_map<Key, T, SafeHash>>()(a));

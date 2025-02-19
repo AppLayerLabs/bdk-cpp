@@ -780,12 +780,14 @@ class ContractHost : public evmc::Host {
       const std::string& name, const Address& contract,
       const std::tuple<EventParam<Args, Flags>...>& args, bool anonymous
     ) {
-      Event event(name, // EVM events do not have names
-        this->eventIndex_, this->txHash_, this->txIndex_, this->blockHash_,
-        this->currentTxContext_.block_number, contract, args, anonymous
-      );
-      this->eventIndex_++;
-      this->stack_.registerEvent(std::move(event));
+      if (storage_.getIndexingMode() == IndexingMode::RPC_TRACE) {
+        Event event(name, // EVM events do not have names
+          this->eventIndex_, this->txHash_, this->txIndex_, this->blockHash_,
+          this->currentTxContext_.block_number, contract, args, anonymous
+        );
+        this->eventIndex_++;
+        this->stack_.registerEvent(std::move(event));
+      }
     }
 
     /**
