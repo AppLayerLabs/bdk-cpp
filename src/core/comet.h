@@ -434,17 +434,12 @@ class Comet : public Log::LogicalLocationProvider {
      * If the ethash parameter is not provided, the transaction will not be added to the transaction
      * cache at the time of its creation.
      * @param tx The raw bytes of the transaction object.
-     * @param ethHash If ethHash is nullptr, won't compute the sha3 hash and won't track the transaction
-     * in the internal tx cache. If ethHash points to a shared_ptr that is nullptr, then it will create
-     * a shared Hash and store it in ethHash, and track the transaction in the tx cache. If ethHash
-     * points to a shared_ptr that is not nullptr, the function will assume the Hash value provided is
-     * the eth hash of tx and use it when storing the tx in the tx cache.
      * @return If > 0, the ticket number for the transaction send request (unique for one Comet object
-     * instantiation), or 0 if ethHash is not nullptr, the internal tx cache is enabled, and the
-     * transaction was not sent because there's already an entry for the transaction in the cache and
-     * its height is not CometTxStatusHeight::REJECTED (which allows for the transaction to be resent).
+     * instantiation), or 0 if the internal tx cache is enabled and the transaction was not sent
+     * because there's already an entry for the transaction in the cache and its height is not
+     * CometTxStatusHeight::REJECTED (which allows for the transaction to be resent).
      */
-    uint64_t sendTransaction(const Bytes& tx /*, std::shared_ptr<Hash>* ethHash = nullptr*/);
+    uint64_t sendTransaction(const Bytes& tx);
 
     /**
      * Enqueue a request to check the status of a transaction given its hash (CometBFT hash, i.e. SHA256).

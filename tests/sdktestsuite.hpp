@@ -55,6 +55,7 @@ struct CometTestPorts {
 /// Wrapper struct for accounts used within the SDKTestSuite.
 struct TestAccount {
   const PrivKey privKey;    ///< Private key of the account.
+  const PubKey pubKey;      ///< Public key of the account.
   const Address address;    ///< Address of the account.
   TestAccount() = default;  ///< Empty Account constructor.
 
@@ -62,7 +63,11 @@ struct TestAccount {
    * Account constructor.
    * @param privKey_ Private key of the account.
    */
-  TestAccount(const PrivKey& privKey_) : privKey(privKey_), address(Secp256k1::toAddress(Secp256k1::toPub(privKey))) {}
+  TestAccount(const PrivKey& privKey_)
+    : privKey(privKey_),
+      pubKey(Secp256k1::toPub(privKey)),
+      address(Secp256k1::toAddress(pubKey))
+  {}
 
   /// Create a new random account.
   inline static TestAccount newRandomAccount() { return TestAccount(PrivKey(Utils::randBytes(32))); }
@@ -77,11 +82,6 @@ struct TestAccount {
  */
 class SDKTestSuite : public Blockchain {
   private:
-    /// Owner of the chain (0x00dead00...).
-    static TestAccount chainOwnerAccount() {
-      return TestAccount(PrivKey(Hex::toBytes("0xe89ef6409c467285bcae9f80ab1cfeb3487cfe61ab28fb7d36443e1daa0c2867")));
-    };
-
     // Test listen P2P port number generator needs to be in SDKTestSuite due to createNewEnvironment(), which selects the port for the caller.
     // This should be used by all tests that open a node listen port, not only SDKTestSuite tests.
     static int p2pListenPortMin_;
@@ -99,6 +99,11 @@ class SDKTestSuite : public Blockchain {
     std::vector<TestAccount> testAccounts_;
 
   public:
+    /// Owner of the chain (0x00dead00...).
+    static TestAccount chainOwnerAccount() {
+      return TestAccount(PrivKey(Hex::toBytes("0xe89ef6409c467285bcae9f80ab1cfeb3487cfe61ab28fb7d36443e1daa0c2867")));
+    };
+
     /// Construct a test Blockchain.
     explicit SDKTestSuite(
       const Options& options,
@@ -407,7 +412,7 @@ class SDKTestSuite : public Blockchain {
       const Address& contractAddress,
       const uint256_t& value,
       const TestAccount& testAccount,
-      const uint64_t& timestamp,
+      const uint64_t& timestamp, // FIXME: This argument seems to be unused?
       ReturnType(TContract::*func)(const Args&...),
       const Args&... args
     ) {

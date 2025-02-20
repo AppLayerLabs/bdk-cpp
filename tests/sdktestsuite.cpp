@@ -380,8 +380,6 @@ Options SDKTestSuite::getOptionsForTest(
   std::string cometBFTTimeoutCommit,
   int bdkHttpPort
 ) {
-  // Note: all Comet instances are validators.
-
   // Sanity check arguments
   if (numKeys < 1 || numKeys > cometTestKeys.size() || keyNumber < 0 || keyNumber > numKeys - 1) {
     throw DynamicException("Invalid key arguments for getOptionsForCometTest().");
@@ -534,7 +532,7 @@ Options SDKTestSuite::getOptionsForTest(
     1,
     8080,
     Address(Hex::toBytes("0x00dead00665771855a34155f5e7405489df2c3c6")),
-    uint256_t(0),
+    uint256_t("1000000000000000000000000000"), // 1 billion eth for chain owner
     bdkHttpPort,
     2000,
     10000,

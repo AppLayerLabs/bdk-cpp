@@ -50,7 +50,10 @@ bool SystemContract::recordDelegationDelta(const PubKey& validator, const uint64
   }
   // consider the vote deltas we have already accumulated in previous delegate/undelegate
   // txs processed before in this current block
-  checker += delegationDeltas_[validator];
+  auto dit = delegationDeltas_.find(validator);
+  if (dit != delegationDeltas_.end()) {
+    checker += dit->second;
+  }
   // consider the present vote delta being applied by the caller
   if (positive) {
     checker += delta;
@@ -67,7 +70,8 @@ bool SystemContract::recordDelegationDelta(const PubKey& validator, const uint64
   // If we are violating this rule with the new voting power, return false so the
   //   caller can retry with another amount
   for (int i = 0; i < validatorVotes_.size(); ++i) {
-    if (validatorVotes_[i] == targetVotes) {
+    if (validators_[i] != validator && validatorVotes_[i] == targetVotes) {
+      LOGXTRACE("New delegation delta for validator " + Hex::fromBytes(validator).get() + " collides total votes: " + std::to_string(targetVotes));
       return false;
     }
   }
@@ -77,6 +81,7 @@ bool SystemContract::recordDelegationDelta(const PubKey& validator, const uint64
   } else {
     delegationDeltas_[validator] -= delta;
   }
+  LOGXTRACE("New delegation delta for validator " + Hex::fromBytes(validator).get() + ": " + delegationDeltas_[validator].str());
   return true;
 }
 
@@ -169,7 +174,12 @@ void SystemContract::registerContractFunctions() {
 // TODO/REVIEW: rewrite as solidity deposit / fallback method?
 void SystemContract::stake() {
   // Tx native token value transferred is the staking amount, and tx sender is the depositor.
-  stakes_[this->getCaller()] += encodeAmount(this->getValue());
+  uint64_t amount = encodeAmount(this->getValue());
+  if (amount == 0) {
+    throw DynamicException("cannot deposit dust or zero");
+  }
+  stakes_[this->getCaller()] += amount;
+  LOGXTRACE("staked " + std::to_string(amount) + " for " + Hex::fromBytes(this->getCaller()).get() + ", current balance: " + std::to_string(stakes_[this->getCaller()]));
 }
 
 void SystemContract::unstake(const uint256_t& amount) {
@@ -197,6 +207,7 @@ void SystemContract::delegate(const std::string& validatorPubKey, const uint256_
   PubKey validator = pubKeyFromString(validatorPubKey);
   const Address& caller = this->getCaller();
   if (stakes_.find(caller) == stakes_.end()) {
+    LOGXTRACE("no stake entry for " + Hex::fromBytes(caller).get() + ", cannot delegate.");
     throw DynamicException("No stake");
   }
   uint64_t amount64 = encodeAmount(amount);
@@ -346,9 +357,11 @@ void SystemContract::finishBlock(std::vector<std::pair<PubKey, uint64_t>>& valid
 
     // clear irrelevant targetSlots_ entries created by unelected validators.
     // NOTE: it = erase(it) is not compiling, so we do a deferred erase-by-key loop.
+    // FIXME: targetSlots_.begin() (vs. cbegin()) causes a crash here, but it should work the same; must investigate.
+    //        NOTE: SafeUnorderedMap::iterator should be custom; should not expose the internal impl iterator.
     std::vector<PubKey> keysToErase;
-    auto it = targetSlots_.begin();
-    while (it != targetSlots_.end()) {
+    auto it = targetSlots_.cbegin();
+    while (it != targetSlots_.cend()) {
       if (!elected.contains(it->first)) {
         keysToErase.push_back(it->first);
       }
@@ -417,7 +430,7 @@ void SystemContract::finishBlock(std::vector<std::pair<PubKey, uint64_t>>& valid
         ++j;
       }
 
-      // If the new effective voting power for the validator change, generate an update
+      // If the new effective voting power for the validator changes, generate an update
       if (newVote != oldvv.votes) {
         LOGXTRACE("Validator update (existing): " + Hash(oldvv.validator.asBytes()).hex().get());
         validatorDeltas.push_back({oldvv.validator, newVote});

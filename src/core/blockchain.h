@@ -73,13 +73,12 @@ class Blockchain : public CometListener, public NodeRPCInterface, public Log::Lo
 
     const std::string instanceId_; ///< Instance ID for logging.
 
-    // NOTE: Comet *must* be destructed (stopped) before State, hence it must be declared after it.
-
+    // NOTE: Comet should be destructed (stopped) before State, hence it should be declared after it.
     Options options_; ///< Options singleton.
     Storage storage_; ///< BDK persistent store front-end.
     State state_;     ///< Blockchain state.
-    HTTPServer http_; ///< HTTP server.
     Comet comet_;     ///< CometBFT consensus engine driver.
+    HTTPServer http_; ///< HTTP server.
 
     // FIXME/TODO: Need to query for the last block and fill this in on boot.
     //             (That initial block query will also feed the fbCache_).

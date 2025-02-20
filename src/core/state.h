@@ -196,8 +196,7 @@ class State : public Log::LogicalLocationProvider {
     /**
      * Get the validator set that is currently in effect.
      * @param validatorSet Outparam with the validator set in effect.
-     * @param height Outparam with the block height in which this validator set took effect
-     * (past or present height) or will take effect (future height).
+     * @param height Outparam with the block height in which this validator set took effect.
      */
     void getValidatorSet(std::vector<CometValidatorUpdate>& validatorSet, uint64_t& height);
 

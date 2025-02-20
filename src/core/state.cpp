@@ -139,7 +139,7 @@ void State::setValidators(const std::vector<CometValidatorUpdate>& newValidatorS
 }
 
 Address State::validatorCometAddressToEthAddress(Address validatorCometAddress) {
-  //std::shared_lock<std::shared_mutex> lock(stateMutex_);
+  std::shared_lock<std::shared_mutex> lock(stateMutex_);
   if (currentValidatorSet_ < 0) {
     throw DynamicException("No validator set: " + std::to_string(validatorSets_.size()));
   }
@@ -148,7 +148,7 @@ Address State::validatorCometAddressToEthAddress(Address validatorCometAddress) 
 
 // Returns the currently active validator set and the height in which it became active
 void State::getValidatorSet(std::vector<CometValidatorUpdate>& validatorSet, uint64_t& height) {
-  //std::shared_lock<std::shared_mutex> lock(stateMutex_);
+  std::shared_lock<std::shared_mutex> lock(stateMutex_);
   if (currentValidatorSet_ < 0) {
     throw DynamicException("No validator set: " + std::to_string(validatorSets_.size()));
   }
@@ -932,6 +932,14 @@ void State::processBlock(
   const FinalizedBlock& block, std::vector<bool>& succeeded, std::vector<uint64_t>& gasUsed,
   std::vector<CometValidatorUpdate>& validatorUpdates
 ) {
+  // NOTE: validatorCometAddressToEthAddress() locks the stateMutex_, so call it before we lock it again below.
+  //       (easier than creating a xxxInternal() version of it...)
+  // The coinbase address that gets all the block fees, etc. is the block proposer.
+  // Address derivation schemes (from the same Secp256k1 public key) differ between CometBFT and Eth.
+  // So we need to map CometBFT Address to CometValidatorUpdate (a validator public key)
+  //   and then use the validator public key to compute the correct Eth Address.
+  Address proposerEthAddr = blockchain_.state().validatorCometAddressToEthAddress(block.getProposerAddr());
+
   std::unique_lock lock(this->stateMutex_);
 
   // NOTE: Block should already have been validated by the caller.
@@ -954,11 +962,6 @@ void State::processBlock(
   ContractGlobals::blockHash_ = blockHash;
   ContractGlobals::blockHeight_ = blockHeight;
   ContractGlobals::blockTimestamp_ = block.getTimestamp();
-  // The coinbase address that gets all the block fees, etc. is the block proposer.
-  // Address derivation schemes (from the same Secp256k1 public key) differ between CometBFT and Eth.
-  // So we need to map CometBFT Address to CometValidatorUpdate (a validator public key)
-  //   and then use the validator public key to compute the correct Eth Address.
-  Address proposerEthAddr = blockchain_.state().validatorCometAddressToEthAddress(block.getProposerAddr());
   ContractGlobals::coinbase_ = proposerEthAddr;
   // LOGTRACE("Coinbase set to: " + proposerEthAddr.hex().get() + " (CometBFT Addr: " + block.getProposerAddr().hex().get() + ")");
 

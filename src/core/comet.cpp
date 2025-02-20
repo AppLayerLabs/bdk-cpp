@@ -241,8 +241,6 @@ class WebsocketRPCConnection : public Log::LogicalLocationProvider {
 
     /**
      * Make a synchronous (blocking) RPC call.
-     * Should use only when inspecting the cometbft node, otherwise should always use rpcAsyncCall() instead.
-     * NOTE: SLOW, polls with sleep, locks the entire RPC engine while waiting for its response.
      * @param method RPC method name to call.
      * @param params Parameters to pass to the RPC method.
      * @param outResult Outparam set to the json response to the request.
@@ -976,7 +974,7 @@ Bytes CometImpl::getValidatorPubKey() {
   return this->validatorPubKey_;
 }
 
-uint64_t CometImpl::sendTransaction(const Bytes& tx/*, std::shared_ptr<Hash>* ethHash*/) {
+uint64_t CometImpl::sendTransaction(const Bytes& tx) {
   // Add transaction to a queue that will try to push it to our cometbft instance.
   // Queue is NEVER reset on continue; etc. it is the same node, need to deliver tx to it eventually.
   // NOTE: sendTransaction is about queuing the tx object so that it is eventually dispatched to
@@ -998,7 +996,7 @@ uint64_t CometImpl::sendTransaction(const Bytes& tx/*, std::shared_ptr<Hash>* et
   std::string encodedTx = base64::encode_into<std::string>(tx.begin(), tx.end());
   json params = { {"tx", encodedTx} };
 
-  CometRPCRequestType requestData = TxSendType{/*ethHash ? *ethHash : nullptr,*/ tx};
+  CometRPCRequestType requestData = TxSendType{tx};
 
   uint64_t requestId = rpc_.rpcAsyncCall("broadcast_tx_async", params, requestData);
   return requestId;
@@ -2565,8 +2563,8 @@ Bytes Comet::getValidatorPubKey() {
   return impl_->getValidatorPubKey();
 }
 
-uint64_t Comet::sendTransaction(const Bytes& tx/*, std::shared_ptr<Hash>* ethHash*/) {
-  return impl_->sendTransaction(tx/*, ethHash*/);
+uint64_t Comet::sendTransaction(const Bytes& tx) {
+  return impl_->sendTransaction(tx);
 }
 
 uint64_t Comet::checkTransaction(const std::string& txHash) {
