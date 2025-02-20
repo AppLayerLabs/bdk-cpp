@@ -248,6 +248,26 @@ namespace TBuildTheVoid {
         }
       }
 
+      BTVUtils::Chunk* worldChunk00 = world.getChunk({0, 0});
+      // Check if the 10x10 area at Y5 is SURFACE with NO PLACER
+      for (int x = 0; x < 10; x++) {
+        for (int z = 0; z < 10; z++) {
+          REQUIRE(worldChunk00->blocks[x][5][z].type == BTVUtils::BlockType::SURFACE);
+          REQUIRE_FALSE(worldChunk00->blocks[x][5][z].placer_.has_value());
+        }
+      }
+      // Serialize and deserialize this specific chunk
+      auto serializedChunk00 = worldChunk00->serialize();
+      auto deserializedChunk00 = BTVUtils::Chunk::deserialize(serializedChunk00);
+      REQUIRE(*worldChunk00 == deserializedChunk00);
+      // Check if the 10x10 area at Y5 is SURFACE with NO PLACER
+      for (int x = 0; x < 10; x++) {
+        for (int z = 0; z < 10; z++) {
+          REQUIRE(deserializedChunk00.blocks[x][5][z].type == BTVUtils::BlockType::SURFACE);
+          REQUIRE_FALSE(deserializedChunk00.blocks[x][5][z].placer_.has_value());
+        }
+      }
+
       auto floorDiv = [](int64_t val, int64_t size) {
         if (val >= 0) {
           return val / size;

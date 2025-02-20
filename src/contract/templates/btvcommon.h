@@ -133,6 +133,8 @@ namespace BTVUtils {
               if (blocks[x][y][z].getPlacer().has_value()) {
                 data.push_back(static_cast<uint8_t>(blocks[x][y][z].hasPlacer()));
                 Utils::appendBytes(data, (UintConv::uint64ToBytes(blocks[x][y][z].getPlacer().value())));
+              } else {
+                data.push_back(static_cast<uint8_t>(0));
               }
             }
           }
@@ -153,6 +155,8 @@ namespace BTVUtils {
                 i++;
                 chunk.blocks[x][y][z].setPlacer(UintConv::bytesToUint64(dataView.subspan(i, 8)));
                 i += 8;
+              } else {
+                i++;
               }
             }
           }
