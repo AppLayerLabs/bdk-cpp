@@ -264,7 +264,8 @@ void State::processTransaction(
       this->dumpManager_,
       this->storage_,
       randomSeed,
-      context);
+      context,
+      &blockObservers_);
 
     std::visit([&] (auto&& msg) {
       if constexpr (concepts::CreateMessage<decltype(msg)>) {

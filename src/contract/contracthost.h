@@ -165,19 +165,20 @@ class ContractHost {
       return this->dispatchMessage(std::move(msg));
     }
     
-    void addBlockObserverByCount(uint64_t blockCount, const Address& contractAddress, auto method, auto&&... args) {
+    template<typename C, typename R, typename... Args>
+    void addBlockObserverByCount(uint64_t blockCount, const Address& contractAddress, R(C::*method)(const Args&...), const Args&... args) {
       if (blockObservers_ == nullptr) {
         return; // should happen during estimateGas calls for example
       }
 
       BlockNumberObserver observer{
-        [contractAddress, method, argsTuple = std::tuple<std::decay_t<decltype(args)>...>(std::forward<decltype(args)>(args)...)] (ContractHost& host) mutable {
-          std::apply([&] (const auto&... args) {
+        [contractAddress, method, argsTuple = std::tuple<Args...>(args...)] (ContractHost& host) mutable {
+          std::apply([&] (const Args&... args) {
             Address from;
             Gas gas(5'000'000);
             uint256_t value = 0;
 
-            PackedCallMessage<decltype(method), decltype(args)...> msg(
+            PackedCallMessage<R(C::*)(const Args&...), const Args&...> msg(
               from,
               contractAddress,
               gas,
@@ -196,7 +197,8 @@ class ContractHost {
       blockObservers_->add(std::move(observer));
     }
 
-    void addBlockObserverByPeriod(auto period, const Address& contractAddress, auto method, auto&&... args) {
+    template<typename C, typename R, typename... Args>
+    void addBlockObserverByPeriod(auto period, const Address& contractAddress, R(C::*method)(const Args&...), const Args&... args) {
       if (blockObservers_ == nullptr) {
         return; // should happen during estimateGas calls for example
       }
@@ -205,12 +207,12 @@ class ContractHost {
 
       BlockTimestampObserver observer{
         [contractAddress, method, argsTuple = std::tuple<std::decay_t<decltype(args)>...>(std::forward<decltype(args)>(args)...)] (ContractHost& host) mutable {
-          std::apply([&] (const auto&... args) {
+          std::apply([&] (const Args&... args) {
             Address from;
             Gas gas(5'000'000);
             uint256_t value = 0;
 
-            PackedCallMessage<decltype(method), decltype(args)...> msg(
+            PackedCallMessage<R(C::*)(const Args&...), const Args&...> msg(
               from,
               contractAddress,
               gas,
