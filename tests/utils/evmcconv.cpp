@@ -16,7 +16,7 @@ namespace TJsonAbi {
     SECTION("EVMCConv uint256 <-> evmcUint256") {
       uint256_t i = 12345678;
       evmc::uint256be resEVMC = EVMCConv::uint256ToEvmcUint256(i);
-      REQUIRE(UintConv::bytesToUint256(bytes::View(resEVMC.bytes, 32)) == i);
+      REQUIRE(UintConv::bytesToUint256(View<Bytes>(resEVMC.bytes, 32)) == i);
       uint256_t resUINT = EVMCConv::evmcUint256ToUint256(resEVMC);
       REQUIRE(resUINT == i);
     }
@@ -27,7 +27,7 @@ namespace TJsonAbi {
       BytesArr<32> resBYTES = EVMCConv::evmcUint256ToBytes(iEVMC);
       REQUIRE(UintConv::bytesToUint256(resBYTES) == i);
       evmc::uint256be resEVMC = EVMCConv::bytesToEvmcUint256(resBYTES);
-      REQUIRE(UintConv::bytesToUint256(bytes::View(resEVMC.bytes, 32)) == i);
+      REQUIRE(UintConv::bytesToUint256(View<Bytes>(resEVMC.bytes, 32)) == i);
     }
 
     SECTION("EVMCConv getFunctor") {
@@ -53,8 +53,8 @@ namespace TJsonAbi {
       msg1.input_data = msg1Data.data();
       msg2.input_size = 16;
       msg2.input_data = msg2Data.data();
-      bytes::View get1 = EVMCConv::getFunctionArgs(msg1);
-      bytes::View get2 = EVMCConv::getFunctionArgs(msg2);
+      View<Bytes> get1 = EVMCConv::getFunctionArgs(msg1);
+      View<Bytes> get2 = EVMCConv::getFunctionArgs(msg2);
       REQUIRE(Hex::fromBytes(get1).get() == "");
       REQUIRE(Hex::fromBytes(get2).get() == "0405060708090a0b0c0d0e0f");
     }

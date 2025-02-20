@@ -143,7 +143,7 @@ namespace BTVUtils {
       static Chunk deserialize(Bytes data) {
         Chunk chunk;
         uint64_t i = 0;
-        bytes::View dataView(data);
+        View<Bytes> dataView(data);
         for (int x = 0; x < WIDTH; x++) {
           for (int y = 0; y < HEIGHT; y++) {
             for (int z = 0; z < LENGTH; z++) {

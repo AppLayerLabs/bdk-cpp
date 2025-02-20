@@ -12,6 +12,8 @@
 
 #include "../sdktestsuite.hpp"
 
+#include "../src/bytes/random.h"
+
 namespace TERC20BENCHMARK {
   /*
    *
@@ -103,29 +105,11 @@ contract MappingManager {
       Utils::appendBytes(transferEncoded, ABI::Encoder::encodeData<Address, uint256_t>(to, uint256_t("100")));
       TxBlock transferTx = sdk.createNewTx(sdk.getChainOwnerAccount(), erc20Address, 0, transferEncoded);
       auto& state = sdk.getState();
-      evmc_tx_context txContext;
-
-      txContext.tx_origin = sdk.getChainOwnerAccount().address.toEvmcAddress();
-      txContext.tx_gas_price = {};
-      txContext.block_coinbase = to.toEvmcAddress();
-      txContext.block_number = 1;
-      txContext.block_timestamp = 1;
-      txContext.block_gas_limit = std::numeric_limits<int64_t>::max();
-      txContext.block_prev_randao = {};
-      txContext.chain_id = {};
-      txContext.block_base_fee = {};
-      txContext.blob_base_fee = {};
-      txContext.blob_hashes = nullptr;
-      txContext.blob_hashes_count = 0;
-
-      auto callInfo = transferTx.txToMessage();
-      Hash randomnessHash = Hash::random();
-      int64_t leftOverGas = std::numeric_limits<int64_t>::max();
       uint64_t iterations = 2500000;
 
       auto start = std::chrono::high_resolution_clock::now();
       for (uint64_t i = 0; i < iterations; i++) {
-        state.call(callInfo, txContext, ContractType::CPP, randomnessHash, randomnessHash, randomnessHash, leftOverGas);
+        state.call(transferTx);
       }
       auto end = std::chrono::high_resolution_clock::now();
 
@@ -190,7 +174,7 @@ contract MappingManager {
       txContext.blob_hashes_count = 0;
 
       auto callInfo = transferTx.txToMessage();
-      Hash randomnessHash = Hash::random();
+      Hash randomnessHash = bytes::random();
       int64_t leftOverGas = std::numeric_limits<int64_t>::max();
       uint64_t iterations = 2500;
 
@@ -226,7 +210,7 @@ contract MappingManager {
       addAllTxContract.blob_hashes_count = 0;
 
       callInfo = addAllTx.txToMessage();
-      randomnessHash = Hash::random();
+      randomnessHash = bytes::random();
       leftOverGas = std::numeric_limits<int64_t>::max();
       iterations = 2500;
 
@@ -282,7 +266,170 @@ contract MappingManager {
       txContext.blob_hashes_count = 0;
 
       auto callInfo = transferTx.txToMessage();
-      Hash randomnessHash = Hash::random();
+      Hash randomnessHash = bytes::random();
+      int64_t leftOverGas = std::numeric_limits<int64_t>::max();
+      uint64_t iterations = 2500000;
+
+      auto start = std::chrono::high_resolution_clock::now();
+      for (uint64_t i = 0; i < iterations; i++) {
+        state.call(callInfo, txContext, ContractType::CPP, randomnessHash, randomnessHash, randomnessHash, leftOverGas);
+      }
+      auto end = std::chrono::high_resolution_clock::now();
+
+      long double durationInMicroseconds = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
+      long double microSecsPerCall = durationInMicroseconds / iterations;
+      std::cout << "CPP ERC20 transferFrom took " << microSecsPerCall << " microseconds per call" << std::endl;
+      std::cout << "CPP Total Time: " << durationInMicroseconds / 1000000 << " seconds" << std::endl;
+
+      // Check if we actually transferred the tokens.
+      uint256_t expectedToBalance = uint256_t(100) * iterations;
+      uint256_t transferredToBalance = sdk.callViewFunction(erc20Address, &ERC20::balanceOf, to);
+      uint256_t expectedFromBalance = uint256_t("10000000000000000000000") - expectedToBalance;
+      uint256_t transferredFromBalance = sdk.callViewFunction(erc20Address, &ERC20::balanceOf, sdk.getChainOwnerAccount().address);
+      REQUIRE (expectedToBalance == transferredToBalance);
+      REQUIRE (expectedFromBalance == transferredFromBalance);
+      // Dump the state
+      sdk.getState().saveToDB();
+    }
+    #ifndef BUILD_TESTNET
+    SECTION("CPP ERC20 generate Benchmark") {
+      std::unique_ptr<Options> options = nullptr;
+      Address to(Utils::randBytes(20));
+
+      SDKTestSuite sdk = SDKTestSuite::createNewEnvironment("testERC20CppBenchmark", {}, nullptr, IndexingMode::DISABLED);
+      // const TestAccount& from, const Address& to, const uint256_t& value, Bytes data = Bytes()
+      auto erc20Address = sdk.deployContract<ERC20>(std::string("TestToken"), std::string("TST"), uint8_t(18), uint256_t("10000000000000000000000"));
+      // Now for the funny part, we are NOT a C++ contract, but we can
+      // definitely take advantage of the templated ABI to interact with it
+      // as the encoding is the same
+
+      REQUIRE(sdk.callViewFunction(erc20Address, &ERC20::name) == "TestToken");
+      REQUIRE(sdk.callViewFunction(erc20Address, &ERC20::symbol) == "TST");
+      REQUIRE(sdk.callViewFunction(erc20Address, &ERC20::decimals) == 18);
+      REQUIRE(sdk.callViewFunction(erc20Address, &ERC20::totalSupply) == uint256_t("10000000000000000000000"));
+      REQUIRE(sdk.callViewFunction(erc20Address, &ERC20::balanceOf, sdk.getChainOwnerAccount().address) == uint256_t("10000000000000000000000"));
+
+
+      std::vector<Address> addresses;
+      for (uint64_t i = 0; i < 1000; i++) {
+        addresses.push_back(Address(Utils::randBytes(20)));
+      }
+
+      // Create the transaction for generate
+      auto functor = UintConv::uint32ToBytes(ABI::FunctorEncoder::encode<std::vector<Address>>("generate").value);
+      Bytes generateEncoded(functor.cbegin(), functor.cend());
+      Utils::appendBytes(generateEncoded, ABI::Encoder::encodeData<std::vector<Address>>(addresses));
+      TxBlock transferTx = sdk.createNewTx(sdk.getChainOwnerAccount(), erc20Address, 0, generateEncoded);
+      auto& state = sdk.getState();
+      evmc_tx_context txContext;
+
+      txContext.tx_origin = sdk.getChainOwnerAccount().address.toEvmcAddress();
+      txContext.tx_gas_price = {};
+      txContext.block_coinbase = to.toEvmcAddress();
+      txContext.block_number = 1;
+      txContext.block_timestamp = 1;
+      txContext.block_gas_limit = std::numeric_limits<int64_t>::max();
+      txContext.block_prev_randao = {};
+      txContext.chain_id = {};
+      txContext.block_base_fee = {};
+      txContext.blob_base_fee = {};
+      txContext.blob_hashes = nullptr;
+      txContext.blob_hashes_count = 0;
+
+      auto callInfo = transferTx.txToMessage();
+      Hash randomnessHash = bytes::random();
+      int64_t leftOverGas = std::numeric_limits<int64_t>::max();
+      uint64_t iterations = 2500;
+
+      auto start = std::chrono::high_resolution_clock::now();
+      for (uint64_t i = 0; i < iterations; i++) {
+        state.call(callInfo, txContext, ContractType::CPP, randomnessHash, randomnessHash, randomnessHash, leftOverGas);
+      }
+      auto end = std::chrono::high_resolution_clock::now();
+
+      long double durationInMicroseconds = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
+      long double microSecsPerCall = durationInMicroseconds / iterations;
+      std::cout << "CPP ERC20 Generate took " << microSecsPerCall << " microseconds per call" << std::endl;
+      std::cout << "CPP Generate Total Time: " << durationInMicroseconds / 1000000 << " seconds" << std::endl;
+
+
+      // Create the transaction for addall
+      functor = UintConv::uint32ToBytes(ABI::FunctorEncoder::encode<>("addall").value);
+      Bytes addallEncoded(functor.cbegin(), functor.cend());
+      TxBlock addAllTx = sdk.createNewTx(sdk.getChainOwnerAccount(), erc20Address, 0, addallEncoded);
+      evmc_tx_context addAllTxContract;
+
+      addAllTxContract.tx_origin = sdk.getChainOwnerAccount().address.toEvmcAddress();
+      addAllTxContract.tx_gas_price = {};
+      addAllTxContract.block_coinbase = to.toEvmcAddress();
+      addAllTxContract.block_number = 1;
+      addAllTxContract.block_timestamp = 1;
+      addAllTxContract.block_gas_limit = std::numeric_limits<int64_t>::max();
+      addAllTxContract.block_prev_randao = {};
+      addAllTxContract.chain_id = {};
+      addAllTxContract.block_base_fee = {};
+      addAllTxContract.blob_base_fee = {};
+      addAllTxContract.blob_hashes = nullptr;
+      addAllTxContract.blob_hashes_count = 0;
+
+      callInfo = addAllTx.txToMessage();
+      randomnessHash = bytes::random();
+      leftOverGas = std::numeric_limits<int64_t>::max();
+      iterations = 2500;
+
+      start = std::chrono::high_resolution_clock::now();
+      for (uint64_t i = 0; i < iterations; i++) {
+        state.call(callInfo, txContext, ContractType::CPP, randomnessHash, randomnessHash, randomnessHash, leftOverGas);
+      }
+      end = std::chrono::high_resolution_clock::now();
+
+      durationInMicroseconds = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
+      microSecsPerCall = durationInMicroseconds / iterations;
+      std::cout << "CPP ERC20 Addall took " << microSecsPerCall << " microseconds per call" << std::endl;
+      std::cout << "CPP Addall Total Time: " << durationInMicroseconds / 1000000 << " seconds" << std::endl;
+    }
+
+    SECTION("EVM generate Benchmark") {
+      std::unique_ptr<Options> options = nullptr;
+      Address to(Utils::randBytes(20));
+
+      SDKTestSuite sdk = SDKTestSuite::createNewEnvironment("testERC20CppBenchmark", {}, nullptr, IndexingMode::DISABLED);
+      // const TestAccount& from, const Address& to, const uint256_t& value, Bytes data = Bytes()
+      std::cout << "Deploying MappingManager contract" << std::endl;
+      auto erc20Address = sdk.deployBytecode(mappingContractBytescode);
+      std::cout << "Deployed MappingManager contract" << std::endl;
+      // Now for the funny part, we are NOT a C++ contract, but we can
+      // definitely take advantage of the templated ABI to interact with it
+      // as the encoding is the same
+
+      std::vector<Address> addresses;
+      for (uint64_t i = 0; i < 1000; i++) {
+        addresses.push_back(Address(Utils::randBytes(20)));
+      }
+
+      // Create the transaction for generate
+      auto functor = UintConv::uint32ToBytes(ABI::FunctorEncoder::encode<std::vector<Address>>("generate").value);
+      Bytes generateEncoded(functor.cbegin(), functor.cend());
+      Utils::appendBytes(generateEncoded, ABI::Encoder::encodeData<std::vector<Address>>(addresses));
+      TxBlock transferTx = sdk.createNewTx(sdk.getChainOwnerAccount(), erc20Address, 0, generateEncoded);
+      auto& state = sdk.getState();
+      evmc_tx_context txContext;
+
+      txContext.tx_origin = sdk.getChainOwnerAccount().address.toEvmcAddress();
+      txContext.tx_gas_price = {};
+      txContext.block_coinbase = to.toEvmcAddress();
+      txContext.block_number = 1;
+      txContext.block_timestamp = 1;
+      txContext.block_gas_limit = std::numeric_limits<int64_t>::max();
+      txContext.block_prev_randao = {};
+      txContext.chain_id = {};
+      txContext.block_base_fee = {};
+      txContext.blob_base_fee = {};
+      txContext.blob_hashes = nullptr;
+      txContext.blob_hashes_count = 0;
+
+      auto callInfo = transferTx.txToMessage();
+      Hash randomnessHash = bytes::random();
       int64_t leftOverGas = std::numeric_limits<int64_t>::max();
       uint64_t iterations = 1000;
 
@@ -322,7 +469,7 @@ contract MappingManager {
       addAllTxContract.blob_hashes_count = 0;
 
       callInfo = addAllTx.txToMessage();
-      randomnessHash = Hash::random();
+      randomnessHash = bytes::random();
       leftOverGas = std::numeric_limits<int64_t>::max();
       iterations = 1000;
 
@@ -382,7 +529,7 @@ contract MappingManager {
       txContext.blob_hashes_count = 0;
 
       auto callInfo = transferTx.txToMessage();
-      Hash randomnessHash = Hash::random();
+      Hash randomnessHash = bytes::random();
       int64_t leftOverGas = std::numeric_limits<int64_t>::max();
       uint64_t iterations = 2500000;
 
@@ -428,29 +575,11 @@ contract MappingManager {
       Utils::appendBytes(transferEncoded, ABI::Encoder::encodeData<Address, uint256_t>(to, uint256_t("100")));
       TxBlock transferTx = sdk.createNewTx(sdk.getChainOwnerAccount(), erc20Address, 0, transferEncoded);
       auto& state = sdk.getState();
-      evmc_tx_context txContext;
-
-      txContext.tx_origin = sdk.getChainOwnerAccount().address.toEvmcAddress();
-      txContext.tx_gas_price = {};
-      txContext.block_coinbase = to.toEvmcAddress();
-      txContext.block_number = 1;
-      txContext.block_timestamp = 1;
-      txContext.block_gas_limit = std::numeric_limits<int64_t>::max();
-      txContext.block_prev_randao = {};
-      txContext.chain_id = {};
-      txContext.block_base_fee = {};
-      txContext.blob_base_fee = {};
-      txContext.blob_hashes = nullptr;
-      txContext.blob_hashes_count = 0;
-
-      auto callInfo = transferTx.txToMessage();
-      Hash randomnessHash = Hash::random();
-      int64_t leftOverGas = std::numeric_limits<int64_t>::max();
       uint64_t iterations = 250000;
 
       auto start = std::chrono::high_resolution_clock::now();
       for (uint64_t i = 0; i < iterations; i++) {
-        state.call(callInfo, txContext, ContractType::EVM, randomnessHash, randomnessHash, randomnessHash, leftOverGas);
+        state.call(transferTx);
       }
       auto end = std::chrono::high_resolution_clock::now();
 

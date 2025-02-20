@@ -35,8 +35,7 @@ class ERC721Test : public ERC721 {
      * ConstructorArguments is a tuple of the contract constructor arguments in
      * the order they appear in the constructor.
      */
-    using ConstructorArguments =
-       std::tuple<const std::string &, const std::string &, const uint64_t&>;
+    using ConstructorArguments = std::tuple<const std::string &, const std::string &, const uint64_t&>;
 
     /**
      * Constructor for loading contract from DB.
@@ -77,19 +76,13 @@ class ERC721Test : public ERC721 {
     void burn(const uint256_t& tokenId);
 
     /// Getter for the tokenIdCounter_
-    uint64_t tokenIdCounter() const {
-      return tokenIdCounter_.get();
-    }
+    uint64_t tokenIdCounter() const { return tokenIdCounter_.get(); }
 
     /// Getter for the maxTokens_
-    uint64_t maxTokens() const {
-      return maxTokens_.get();
-    }
+    uint64_t maxTokens() const { return maxTokens_.get(); }
 
     /// Getter for the totalSupply_
-    uint64_t totalSupply() const {
-      return totalSupply_.get();
-    }
+    uint64_t totalSupply() const { return totalSupply_.get(); }
 
     /// Register contract class via ContractReflectionInterface.
     static void registerContract() {
@@ -110,10 +103,5 @@ class ERC721Test : public ERC721 {
     /// Dump method
     DBBatch dump() const override;
 };
-
-
-
-
-
 
 #endif // ERC721_TEST

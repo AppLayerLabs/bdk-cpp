@@ -10,6 +10,7 @@ set (TESTS_SOURCES
   ""
   ${CMAKE_SOURCE_DIR}/tests/utils/block.cpp
   ${CMAKE_SOURCE_DIR}/tests/utils/block_throw.cpp
+  ${CMAKE_SOURCE_DIR}/tests/utils/clargs.cpp
   ${CMAKE_SOURCE_DIR}/tests/utils/db.cpp
   ${CMAKE_SOURCE_DIR}/tests/utils/ecdsa.cpp
   ${CMAKE_SOURCE_DIR}/tests/utils/evmcconv.cpp
@@ -38,9 +39,12 @@ set (TESTS_SOURCES
   ${CMAKE_SOURCE_DIR}/tests/contract/simplecontract.cpp
   ${CMAKE_SOURCE_DIR}/tests/contract/evm.cpp
   ${CMAKE_SOURCE_DIR}/tests/contract/randomness.cpp
+  ${CMAKE_SOURCE_DIR}/tests/contract/precompiles.cpp
   ${CMAKE_SOURCE_DIR}/tests/contract/calltracer.cpp
   ${CMAKE_SOURCE_DIR}/tests/contract/createcontract.cpp
   ${CMAKE_SOURCE_DIR}/tests/contract/pebble.cpp
+  ${CMAKE_SOURCE_DIR}/tests/contract/executioncontext.cpp
+  ${CMAKE_SOURCE_DIR}/tests/contract/evmcontractexecutor.cpp
   ${CMAKE_SOURCE_DIR}/tests/contract/throwtest.cpp
   ${CMAKE_SOURCE_DIR}/tests/contract/evmcreate.cpp
   ${CMAKE_SOURCE_DIR}/tests/contract/btv.cpp
@@ -63,6 +67,7 @@ set (TESTS_SOURCES
 # TODO: change this when we take out boost multiprecision from the project for C23 BigInt
 if (BUILD_VARIABLES_TESTS)
   list(APPEND TESTS_SOURCES
+    ${CMAKE_SOURCE_DIR}/tests/contract/variables/reentrancyguard.cpp
     ${CMAKE_SOURCE_DIR}/tests/contract/variables/safeaddress.cpp
     ${CMAKE_SOURCE_DIR}/tests/contract/variables/safearray.cpp
     ${CMAKE_SOURCE_DIR}/tests/contract/variables/safebool.cpp

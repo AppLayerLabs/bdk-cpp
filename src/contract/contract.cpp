@@ -16,17 +16,17 @@ uint64_t ContractGlobals::blockHeight_ = 0;
 uint64_t ContractGlobals::blockTimestamp_ = 0;
 
 Address BaseContract::getOrigin() const {
-  if (this->host_ == nullptr) throw DynamicException(
-    "Contracts going haywire! Trying to get origin without a host!"
-  );
-  return this->host_->get_tx_context().tx_origin;
+  if (this->host_ == nullptr) {
+    throw DynamicException("Contracts going haywire! trying to get origin without a host!");
+  }
+  return Address(this->host_->context().getTxOrigin());
 }
 
 uint64_t BaseContract::getNonce(const Address& address) const {
-  if (this->host_ == nullptr) throw DynamicException(
-    "Contracts going haywire! Trying to get nonce without a host!"
-  );
-  return this->host_->getNonce(address);
+  if (this->host_ == nullptr) {
+    throw DynamicException("Contracts going haywire! trying to get nonce without a host!");
+  }
+  return this->host_->context().getAccount(address).getNonce();
 }
 
 void BaseContract::ethCall(const evmc_message& data, ContractHost* host) {

@@ -8,7 +8,7 @@ See the LICENSE.txt file in the project root for more information.
 #include "../../src/libs/catch2/catch_amalgamated.hpp"
 
 #include "../../src/utils/db.h" // utils.h -> strings.h, libs/json.hpp -> (filesystem, string)
-
+#include "bytes/random.h"
 #include "../../src/utils/strconv.h"
 
 using Catch::Matchers::Equals;
@@ -75,7 +75,7 @@ namespace TDB {
       DBBatch batchP;
       DBBatch batchD;
       for (int i = 0; i < 32; i++) {
-        batchP.push_back(Hash::random().asBytes(), Hash::random().asBytes(), pfx);
+        batchP.push_back(Utils::makeBytes(bytes::random(32)), Utils::makeBytes(bytes::random(32)), pfx);
         batchD.delete_key(batchP.getPuts()[i].key, pfx);
       }
       std::vector<Bytes> keys; // Reference vector for read checks
@@ -108,16 +108,30 @@ namespace TDB {
         REQUIRE(std::find(keys.begin(), keys.end(), getES.key) != keys.end());
       }
 
-      // Read (getKeys, for coverage)
+      // Read (getKeys without limits, for coverage)
+      std::vector<Bytes> getBKAll = db.getKeys(pfx);
+      for (const Bytes& b : getBKAll) {
+        REQUIRE(std::find(keys.begin(), keys.end(), b) != keys.end());
+      }
+
+      // Read (getKeys with limits, for coverage)
       std::vector<Bytes> getBK = db.getKeys(pfx, keys[0], keys[7]);
       for (const Bytes& b : getBK) {
         REQUIRE(std::find(keys.begin(), keys.end(), b) != keys.end());
       }
 
+      // Read (getLastByPrefix, for coverage)
+      Bytes getLast = db.getLastByPrefix(pfx);
+      bool found = false;
+      for (const DBEntry& getE : getB) {
+        if (getE.value == getLast) found = true;
+      }
+      REQUIRE(found);
+
       // Update
       DBBatch newPutB;
       for (int i = 0; i < 32; i++) {
-        newPutB.push_back(batchP.getPuts()[i].key, Hash::random().asBytes(), pfx);
+        newPutB.push_back(batchP.getPuts()[i].key, Utils::makeBytes(bytes::random(32)), pfx);
       }
       REQUIRE(db.putBatch(newPutB));
       // No need to pass prefix as entry.key already contains it

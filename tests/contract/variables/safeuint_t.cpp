@@ -156,17 +156,23 @@ template <int Size> struct SafeUintTester {
       SafeUint valUnder(1);
       bool hadZero1 = false;
       bool hadZero2 = false;
+      bool hadZero3 = false;
+      bool hadZero4 = false;
       bool hadOver1 = false;
       bool hadOver2 = false;
       bool hadUnder = false;
       // catch over/underflow and mul by zero
       try { valZero1 = valZero1 * UnderlyingType(0); } catch (std::domain_error& e) { hadZero1 = true; }
       try { valZero2 = valZero2 * UnderlyingType(10); } catch (std::domain_error& e) { hadZero2 = true; }
+      try { valZero2 = valZero2 * UnderlyingType(0); } catch (std::domain_error& e) { hadZero3 = true; }
+      try { valZero2 = valZero2 * int(0); } catch (std::domain_error& e) { hadZero4 = true; }
       try { valOver = valOver * UnderlyingType(2); } catch (std::overflow_error& e) { hadOver1 = true; }
       try { valOver = valOver * valOver; } catch (std::overflow_error& e) { hadOver2 = true; }
       try { valUnder = valUnder * int(-1); } catch (std::underflow_error& e) { hadUnder = true; }
       REQUIRE(hadZero1);
       REQUIRE(hadZero2);
+      REQUIRE(hadZero3);
+      REQUIRE(hadZero4);
       REQUIRE(hadOver1);
       REQUIRE(hadOver2);
       REQUIRE(hadUnder);
@@ -198,14 +204,27 @@ template <int Size> struct SafeUintTester {
 
     SECTION(std::string("SafeUint_t<") + std::to_string(Size) + "> operator/") {
       SafeUint val(UnderlyingType(42));
-      SafeUint valZero(UnderlyingType(42));
+      SafeUint valZero1(UnderlyingType(42));
+      SafeUint valZero2(UnderlyingType(0));
       SafeUint valUnder(1);
-      bool hadZero = false;
+      bool hadZero1 = false;
+      bool hadZero2 = false;
+      bool hadZero3 = false;
+      bool hadZero4 = false;
+      bool hadZero5 = false;
       bool hadUnder = false;
       // catch underflow and div by zero
-      try { valZero = valZero / UnderlyingType(0); } catch (std::domain_error& e) { hadZero = true; }
+      try { valZero1 = valZero1 / UnderlyingType(0); } catch (std::domain_error& e) { hadZero1 = true; }
+      try { valZero2 = valZero2 / UnderlyingType(2); } catch (std::domain_error& e) { hadZero2 = true; }
+      try { valZero1 = valZero1 / valZero2; } catch (std::domain_error& e) { hadZero3 = true; }
+      try { valZero2 = valZero2 / valZero1; } catch (std::domain_error& e) { hadZero4 = true; }
+      try { valZero1 = valZero1 / int(0); } catch (std::domain_error& e) { hadZero5 = true; }
       try { valUnder = valUnder / int(-1); } catch (std::domain_error& e) { hadUnder = true; }
-      REQUIRE(hadZero);
+      REQUIRE(hadZero1);
+      REQUIRE(hadZero2);
+      REQUIRE(hadZero3);
+      REQUIRE(hadZero4);
+      REQUIRE(hadZero5);
       REQUIRE(hadUnder);
       // operate with uint
       val = val / UnderlyingType(2);
@@ -233,11 +252,27 @@ template <int Size> struct SafeUintTester {
 
     SECTION(std::string("SafeUint_t<") + std::to_string(Size) + "> operator%") {
       SafeUint val(UnderlyingType(42));
-      SafeUint valZero(UnderlyingType(42));
-      bool hadZero = false;
+      SafeUint valZero1(UnderlyingType(42));
+      SafeUint valZero2(UnderlyingType(0));
+      bool hadZero1 = false;
+      bool hadZero2 = false;
+      bool hadZero3 = false;
+      bool hadZero4 = false;
+      bool hadZero5 = false;
+      bool hadZero6 = false;
       // catch mod by zero
-      try { valZero = valZero % UnderlyingType(0); } catch (std::domain_error& e) { hadZero = true; }
-      REQUIRE(hadZero);
+      try { valZero1 = valZero1 % UnderlyingType(0); } catch (std::domain_error& e) { hadZero1 = true; }
+      try { valZero2 = valZero2 % UnderlyingType(2); } catch (std::domain_error& e) { hadZero2 = true; }
+      try { valZero1 = valZero1 % valZero2; } catch (std::domain_error& e) { hadZero3 = true; }
+      try { valZero2 = valZero2 % valZero1; } catch (std::domain_error& e) { hadZero4 = true; }
+      try { valZero1 = valZero1 % int(0); } catch (std::domain_error& e) { hadZero5 = true; }
+      try { valZero2 = valZero2 % int(2); } catch (std::domain_error& e) { hadZero6 = true; }
+      REQUIRE(hadZero1);
+      REQUIRE(hadZero2);
+      REQUIRE(hadZero3);
+      REQUIRE(hadZero4);
+      REQUIRE(hadZero5);
+      REQUIRE(hadZero6);
       // operate with uint
       val = val % UnderlyingType(15);
       val.revert();
@@ -415,6 +450,25 @@ template <int Size> struct SafeUintTester {
       val = val || SafeUint(UnderlyingType(1));
       val.commit();
       REQUIRE(val == UnderlyingType(1));
+      // For coverage
+      SafeUint val0(UnderlyingType(0));
+      SafeUint val1(UnderlyingType(1));
+      REQUIRE_FALSE((val0 && val0));
+      REQUIRE_FALSE((val0 && val1));
+      REQUIRE_FALSE((val1 && val0));
+      REQUIRE((val1 && val1));
+      REQUIRE_FALSE((val0 && UnderlyingType(0)));
+      REQUIRE_FALSE((val0 && UnderlyingType(1)));
+      REQUIRE_FALSE((val1 && UnderlyingType(0)));
+      REQUIRE((val1 && UnderlyingType(1)));
+      REQUIRE_FALSE((val0 || val0));
+      REQUIRE((val0 || val1));
+      REQUIRE((val1 || val0));
+      REQUIRE((val1 || val1));
+      REQUIRE_FALSE((val0 || UnderlyingType(0)));
+      REQUIRE((val0 || UnderlyingType(1)));
+      REQUIRE((val1 || UnderlyingType(0)));
+      REQUIRE((val1 || UnderlyingType(1)));
     }
 
     SECTION(std::string("SafeUint_t<") + std::to_string(Size) + "> operator== and !=") {
@@ -654,17 +708,23 @@ template <int Size> struct SafeUintTester {
       SafeUint valUnder(1);
       bool hadZero1 = false;
       bool hadZero2 = false;
+      bool hadZero3 = false;
+      bool hadZero4 = false;
       bool hadOver1 = false;
       bool hadOver2 = false;
       bool hadUnder = false;
       // catch over/underflow and mul by zero
       try { valZero1 *= UnderlyingType(0); } catch (std::domain_error& e) { hadZero1 = true; }
       try { valZero2 *= UnderlyingType(10); } catch (std::domain_error& e) { hadZero2 = true; }
+      try { valZero2 *= UnderlyingType(0); } catch (std::domain_error& e) { hadZero3 = true; }
+      try { valZero2 *= int(0); } catch (std::domain_error& e) { hadZero4 = true; }
       try { valOver *= UnderlyingType(2); } catch (std::overflow_error& e) { hadOver1 = true; }
       try { valOver *= valOver; } catch (std::overflow_error& e) { hadOver2 = true; }
       try { valUnder *= int(-1); } catch (std::underflow_error& e) { hadUnder = true; }
       REQUIRE(hadZero1);
       REQUIRE(hadZero2);
+      REQUIRE(hadZero3);
+      REQUIRE(hadZero4);
       REQUIRE(hadOver1);
       REQUIRE(hadOver2);
       REQUIRE(hadUnder);
@@ -696,14 +756,27 @@ template <int Size> struct SafeUintTester {
 
     SECTION(std::string("SafeUint_t<") + std::to_string(Size) + "> operator/=") {
       SafeUint val(UnderlyingType(42));
-      SafeUint valZero(UnderlyingType(42));
+      SafeUint valZero1(UnderlyingType(42));
+      SafeUint valZero2(UnderlyingType(0));
       SafeUint valUnder(1);
-      bool hadZero = false;
+      bool hadZero1 = false;
+      bool hadZero2 = false;
+      bool hadZero3 = false;
+      bool hadZero4 = false;
+      bool hadZero5 = false;
       bool hadUnder = false;
       // catch underflow and div by zero
-      try { valZero /= UnderlyingType(0); } catch (std::domain_error& e) { hadZero = true; }
+      try { valZero1 /= UnderlyingType(0); } catch (std::domain_error& e) { hadZero1 = true; }
+      try { valZero2 /= UnderlyingType(2); } catch (std::domain_error& e) { hadZero2 = true; }
+      try { valZero1 /= valZero2; } catch (std::domain_error& e) { hadZero3 = true; }
+      try { valZero2 /= valZero1; } catch (std::domain_error& e) { hadZero4 = true; }
+      try { valZero1 /= int(0); } catch (std::domain_error& e) { hadZero5 = true; }
       try { valUnder /= int(-1); } catch (std::domain_error& e) { hadUnder = true; }
-      REQUIRE(hadZero);
+      REQUIRE(hadZero1);
+      REQUIRE(hadZero2);
+      REQUIRE(hadZero3);
+      REQUIRE(hadZero4);
+      REQUIRE(hadZero5);
       REQUIRE(hadUnder);
       // operate with uint
       val /= UnderlyingType(2);
@@ -731,11 +804,27 @@ template <int Size> struct SafeUintTester {
 
     SECTION(std::string("SafeUint_t<") + std::to_string(Size) + "> operator%=") {
       SafeUint val(UnderlyingType(42));
-      SafeUint valZero(UnderlyingType(42));
-      bool hadZero = false;
+      SafeUint valZero1(UnderlyingType(42));
+      SafeUint valZero2(UnderlyingType(0));
+      bool hadZero1 = false;
+      bool hadZero2 = false;
+      bool hadZero3 = false;
+      bool hadZero4 = false;
+      bool hadZero5 = false;
+      bool hadZero6 = false;
       // catch mod by zero
-      try { valZero %= UnderlyingType(0); } catch (std::domain_error& e) { hadZero = true; }
-      REQUIRE(hadZero);
+      try { valZero1 %= UnderlyingType(0); } catch (std::domain_error& e) { hadZero1 = true; }
+      try { valZero2 %= UnderlyingType(2); } catch (std::domain_error& e) { hadZero2 = true; }
+      try { valZero1 %= valZero2; } catch (std::domain_error& e) { hadZero3 = true; }
+      try { valZero2 %= valZero1; } catch (std::domain_error& e) { hadZero4 = true; }
+      try { valZero1 %= int(0); } catch (std::domain_error& e) { hadZero5 = true; }
+      try { valZero2 %= int(2); } catch (std::domain_error& e) { hadZero6 = true; }
+      REQUIRE(hadZero1);
+      REQUIRE(hadZero2);
+      REQUIRE(hadZero3);
+      REQUIRE(hadZero4);
+      REQUIRE(hadZero5);
+      REQUIRE(hadZero6);
       // operate with uint
       val %= UnderlyingType(15);
       val.revert();

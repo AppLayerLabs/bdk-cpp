@@ -5,9 +5,10 @@ This software is distributed under the MIT License.
 See the LICENSE.txt file in the project root for more information.
 */
 
-#include "../../src/libs/catch2/catch_amalgamated.hpp"
-
-#include "../../src/utils/safehash.h"
+#include "libs/catch2/catch_amalgamated.hpp"
+#include "utils/safehash.h"
+#include "bytes/hex.h"
+#include "bytes/random.h"
 
 namespace TSafeHash {
   TEST_CASE("SafeHash Struct", "[utils][safehash]") {
@@ -17,10 +18,10 @@ namespace TSafeHash {
       const std::string_view strView = "Goodbye Planet";
       const Bytes bytes = Bytes{0xDE, 0xAD, 0xBE, 0xEF};
       const BytesArr<4> bytesArr = {0xDE, 0xAD, 0xBE, 0xEF};
-      const bytes::View bytesView = Utils::create_view_span(str);
-      const Address add(std::string("0x1234567890123456789012345678901234567890"), false);
+      const View<Bytes> bytesView = Utils::create_view_span(str);
+      const Address add(bytes::hex("0x1234567890123456789012345678901234567890"));
       const Functor func{83892529};
-      const Hash hash = Hash::random();
+      const Hash hash = bytes::random();
       const TxValidator tx(Hex::toBytes("f845808026a08a4591f48d6307bb4cb8a0b0088b544d923d00bc1f264c3fdf16f946fdee0b34a077a6f6e8b3e78b45478827604f070d03060f413d823eae7fab9b139be7a41d81"), 1);
       const std::shared_ptr<std::string> ptr = std::make_shared<std::string>(str);
       const FixedBytes<4> fixed{0xDE, 0xAD, 0xBE, 0xEF};

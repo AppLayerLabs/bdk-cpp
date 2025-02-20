@@ -8,6 +8,7 @@ See the LICENSE.txt file in the project root for more information.
 #include "../../src/libs/catch2/catch_amalgamated.hpp"
 
 #include "../../src/utils/randomgen.h"
+#include "bytes/random.h"
 
 using Catch::Matchers::Equals;
 
@@ -32,9 +33,9 @@ namespace TRandomGen {
       RandomGen generator(seed);
       REQUIRE(generator.getSeed() == seed);
       auto newSeed = generator();
-      REQUIRE(generator.getSeed().toUint256() == newSeed);
+      REQUIRE(static_cast<uint256_t>(generator.getSeed()) == newSeed);
       newSeed = generator();
-      REQUIRE(generator.getSeed().toUint256() == newSeed);
+      REQUIRE(static_cast<uint256_t>(generator.getSeed()) == newSeed);
     }
 
     SECTION("RandomGen Min/Max") {
@@ -66,7 +67,7 @@ namespace TRandomGen {
     }
 
     SECTION("RandomGen randomness") {
-      Hash seed = Hash::random();
+      Hash seed = bytes::random();
       RandomGen generator(seed);
 
       std::vector<uint256_t> randoms;

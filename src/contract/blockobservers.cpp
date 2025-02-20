@@ -1,5 +1,6 @@
 #include "blockobservers.h"
 #include "contracthost.h"
+#include "bytes/random.h"
 
 BlockObservers::BlockObservers(
   evmc_vm *vm,
@@ -41,42 +42,34 @@ void BlockObservers::notifyNumberQueue(const FinalizedBlock& block) {
     blockNumberQueue_.pop();
 
     try {
-      int64_t gas = 5'000'000;
-      auto seed = Hash::random();
-      evmc_tx_context txContext;
-      Hash txHash;
+      Hash seed = bytes::random();
 
-      txContext.tx_gas_price = {};
-      txContext.tx_origin = {};
-      txContext.block_coinbase = ContractGlobals::getCoinbase().toEvmcAddress();
-      txContext.block_number = block.getNHeight();
-      txContext.block_timestamp = block.getTimestamp();
-      txContext.block_gas_limit = 10000000;
-      txContext.block_prev_randao = {};
-      txContext.chain_id = EVMCConv::uint256ToEvmcUint256(options_.getChainID());
-      txContext.block_base_fee = {};
-      txContext.blob_base_fee = {};
-      txContext.blob_hashes = nullptr;
-      txContext.blob_hashes_count = 0;
+      ExecutionContext context = ExecutionContext::Builder{}
+      .storage(vmStorage_)
+      .accounts(accounts_)
+      .contracts(contracts_)
+      .blockHash(block.getHash())
+      .txHash(Hash())
+      .txOrigin(Address())
+      .blockCoinbase(ContractGlobals::getCoinbase())
+      .txIndex(0)
+      .blockNumber(ContractGlobals::getBlockHeight())
+      .blockTimestamp(ContractGlobals::getBlockTimestamp())
+      .blockGasLimit(10'000'000)
+      .txGasPrice(0)
+      .chainId(this->options_.getChainID())
+      .build();
 
       ContractHost host(
         vm_,
         manager_,
         storage_,
         seed,
-        txContext,
-        contracts_,
-        accounts_,
-        vmStorage_,
-        txHash,
-        0,
-        block.getHash(),
-        gas,
+        context,
         this
       );
 
       std::invoke(observer.callback, host);
-
     } catch (...) {}
 
     observer.blockNumber = block.getNHeight() + observer.step;
@@ -96,42 +89,34 @@ void BlockObservers::notifyTimestampQueue(const FinalizedBlock& block) {
     blockTimestampQueue_.pop();
 
     try {
-      int64_t gas = 5'000'000;
-      auto seed = Hash::random();
-      evmc_tx_context txContext;
-      Hash txHash;
+      Hash seed = bytes::random();
 
-      txContext.tx_gas_price = {};
-      txContext.tx_origin = {};
-      txContext.block_coinbase = ContractGlobals::getCoinbase().toEvmcAddress();
-      txContext.block_number = block.getNHeight();
-      txContext.block_timestamp = block.getTimestamp();
-      txContext.block_gas_limit = 10000000;
-      txContext.block_prev_randao = {};
-      txContext.chain_id = EVMCConv::uint256ToEvmcUint256(options_.getChainID());
-      txContext.block_base_fee = {};
-      txContext.blob_base_fee = {};
-      txContext.blob_hashes = nullptr;
-      txContext.blob_hashes_count = 0;
+      ExecutionContext context = ExecutionContext::Builder{}
+      .storage(vmStorage_)
+      .accounts(accounts_)
+      .contracts(contracts_)
+      .blockHash(block.getHash())
+      .txHash(Hash())
+      .txOrigin(Address())
+      .blockCoinbase(ContractGlobals::getCoinbase())
+      .txIndex(0)
+      .blockNumber(ContractGlobals::getBlockHeight())
+      .blockTimestamp(ContractGlobals::getBlockTimestamp())
+      .blockGasLimit(10'000'000)
+      .txGasPrice(0)
+      .chainId(this->options_.getChainID())
+      .build();
 
       ContractHost host(
         vm_,
         manager_,
         storage_,
         seed,
-        txContext,
-        contracts_,
-        accounts_,
-        vmStorage_,
-        txHash,
-        0,
-        block.getHash(),
-        gas,
+        context,
         this
       );
 
       std::invoke(observer.callback, host);
-
     } catch (...) {}
 
     observer.timestamp = observer.step + block.getTimestamp();

@@ -782,7 +782,8 @@ namespace TTX {
     SECTION("TxBlock operator= (copy)") {
       // Copied from Simple Transaction 1
       TxBlock tx(Hex::toBytes("0x02f87501826e5c8402faf0808510b3a67cc282520894eb38eab2a8d5f448d7d47005b64697e159aa284e88078cbf1fc56d4f1080c080a0763458eaffb9745026fc6360443e7ff8d171824d0410d48fdf06c08c7d4a8306a031b3d8f1753acc4239ffe0584536f12095651f72a61c684ef221aaa97a315328"), 1);
-      TxBlock txCopy = tx;
+      TxBlock txCopy(Hex::toBytes("0x02f87301808405f5e100850b5b977f998252089495944f9d42e181d76bb2c7e428410533aa3fed4a88012386f1806fe51080c080a0102fc0316ef07a9be233a270cdeb692e1666710bbdb8be67bf7d896fa96c6bafa038b6cbfdeb433911da6958a9dd3ac24d4ff39f11d1b985efca6d6d79a96a62ce"), 1);
+      txCopy = tx; // "TxBlock txCopy = tx;" doesn't count as "covered" in SonarQube for some reason
       REQUIRE(txCopy.getNonce() == 28252);
       REQUIRE(txCopy.getMaxFeePerGas() == uint256_t("71733509314"));
       REQUIRE(txCopy.getMaxPriorityFeePerGas() == uint256_t("50000000"));

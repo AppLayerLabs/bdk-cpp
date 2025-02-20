@@ -21,7 +21,7 @@ BTVProposals::BTVProposals(const Address& address, const DB& db) :
   // Value = 32 bytes + 8 Bytes (Title Size) + Title + Description
   for (const auto &dbEntry : db.getBatch(this->getNewPrefix("activeProposals_"))) {
     uint64_t id = UintConv::bytesToUint64(dbEntry.key);
-    bytes::View value(dbEntry.value);
+    View<Bytes> value(dbEntry.value);
     uint256_t energy = UintConv::bytesToUint256(value.subspan(0, 32));
     uint64_t titleSize = UintConv::bytesToUint64(value.subspan(32, 8));
     std::string title = StrConv::bytesToString(value.subspan(40, titleSize));
@@ -32,7 +32,7 @@ BTVProposals::BTVProposals(const Address& address, const DB& db) :
   // Same for completed proposals
   for (const auto &dbEntry : db.getBatch(this->getNewPrefix("completedProposals_"))) {
     uint64_t id = UintConv::bytesToUint64(dbEntry.key);
-    bytes::View value(dbEntry.value);
+    View<Bytes> value(dbEntry.value);
     uint256_t energy = UintConv::bytesToUint256(value.subspan(0, 32));
     uint64_t titleSize = UintConv::bytesToUint64(value.subspan(32, 8));
     std::string title = StrConv::bytesToString(value.subspan(40, titleSize));
@@ -47,7 +47,7 @@ BTVProposals::BTVProposals(const Address& address, const DB& db) :
   // Key = Proposal ID (8 bytes) + Token ID (8 bytes)
   // Value = Energy (32 bytes)
   for (const auto &dbEntry : db.getBatch(this->getNewPrefix("proposalVotes_"))) {
-    bytes::View key(dbEntry.key);
+    View<Bytes> key(dbEntry.key);
     uint64_t proposalId = UintConv::bytesToUint64(key.subspan(0, 8));
     uint64_t tokenId = UintConv::bytesToUint64(key.subspan(8, 8));
     uint256_t energy = UintConv::bytesToUint256(dbEntry.value);

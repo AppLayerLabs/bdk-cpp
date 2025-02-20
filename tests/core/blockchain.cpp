@@ -26,7 +26,7 @@ void initialize(
   const std::string& web3clientVersion,
   const uint64_t& version,
   const uint64_t& chainId,
-  const uint64_t& wsPort,
+  const uint64_t& p2pPort,
   const uint64_t& httpPort,
   const PrivKey& privKey,
   const std::pair<std::string,uint64_t>& discoveryNodes,
@@ -34,23 +34,41 @@ void initialize(
   bool clearFolder = true
 ) {
   if (clearFolder) {
-    if (std::filesystem::exists(blockchainPath)) {
-      std::filesystem::remove_all(blockchainPath);
-    }
+    if (std::filesystem::exists(blockchainPath)) std::filesystem::remove_all(blockchainPath);
     std::filesystem::create_directories(blockchainPath);
-
     json optionsJson;
     optionsJson["rootPath"] = blockchainPath;
     optionsJson["web3clientVersion"] = web3clientVersion;
     optionsJson["version"] = version;
     optionsJson["chainID"] = chainId;
-    optionsJson["wsPort"] = wsPort;
+    optionsJson["chainOwner"] = "0x00dead00665771855a34155f5e7405489df2c3c6";
+    optionsJson["p2pIp"] = "127.0.0.1";
+    optionsJson["p2pPort"] = p2pPort;
     optionsJson["httpPort"] = httpPort;
-    if (privKey) {
-      optionsJson["privKey"] = privKey.hex();
-    }
+    optionsJson["minDiscoveryConns"] = 11;
+    optionsJson["minNormalConns"] = 11;
+    optionsJson["maxDiscoveryConns"] = 200;
+    optionsJson["maxNormalConns"] = 50;
+    optionsJson["eventBlockCap"] = 2000;
+    optionsJson["eventLogCap"] = 10000;
+    optionsJson["stateDumpTrigger"] = 1000;
+    optionsJson["minValidators"] = 4;
+    optionsJson["genesis"] = json::object();
+    optionsJson["genesis"]["validators"] = {
+      "0x7588b0f553d1910266089c58822e1120db47e572",
+      "0xcabf34a268847a610287709d841e5cd590cc5c00",
+      "0x5fb516dc2cfc1288e689ed377a9eebe2216cf1e3",
+      "0x795083c42583842774febc21abb6df09e784fce5",
+      "0xbec7b74f70c151707a0bfb20fe3767c6e65499e0"
+    };
+    optionsJson["genesis"]["timestamp"] = 1656356646000000;
+    optionsJson["genesis"]["signer"] = "0x4d48bdf34d65ef2bed2e4ee9020a7d3162b494ac31d3088153425f286f3d3c8c";
+    optionsJson["genesis"]["balances"][0]["address"] = "0x00dead00665771855a34155f5e7405489df2c3c6";
+    optionsJson["genesis"]["balances"][0]["balance"] = "1000000000000000000000";
     optionsJson["discoveryNodes"][0]["address"] = discoveryNodes.first;
     optionsJson["discoveryNodes"][0]["port"] = discoveryNodes.second;
+    optionsJson["indexingMode"] = IndexingMode::RPC.toString();
+    if (privKey) optionsJson["privKey"] = privKey.hex();
     std::ofstream optionsFile(blockchainPath + "/options.json");
     optionsFile << optionsJson.dump(2);
     optionsFile.close();
@@ -62,37 +80,28 @@ namespace TBlockchain {
   TEST_CASE("Blockchain Class", "[core][blockchain]") {
     std::string testDumpPath = Utils::getTestDumpPath();
     SECTION("Initialize Blockchain Multiple Nodes") {
-      std::shared_ptr<const Block> bestBlock;
+      std::shared_ptr<const FinalizedBlock> bestBlock;
       {
         // Initialize ManagerDiscovery
         std::vector<std::pair<boost::asio::ip::address, uint64_t>> discoveryNodes;
-        std::unique_ptr<Options> discoveryOptions = std::make_unique<Options>(
-            testDumpPath + "/statedDiscoveryNodeNetworkCapabilitiesWithTxBlockBroadcast",
-            "BDK/cpp/linux_x86-64/0.2.0",
-            1,
-            8080,
-            8100,
-            9999,
-            discoveryNodes
-        );
-        std::unique_ptr<P2P::ManagerDiscovery> p2pDiscovery = std::make_unique<P2P::ManagerDiscovery>(
-            LOCALHOST, discoveryOptions);
+        Options discoveryOptions = Options::fromFile(testDumpPath + "/statedDiscoveryNodeNetworkCapabilitiesWithTxBlockBroadcast");
+        std::unique_ptr<P2P::ManagerDiscovery> p2pDiscovery = std::make_unique<P2P::ManagerDiscovery>(LOCALHOST, discoveryOptions);
 
         // Initialize multiple blockchain nodes.
         std::unique_ptr<Blockchain> blockchain1;
-        initialize("blockchainInitializeTestNode1", "BDK/cpp/linux_x86-64/0.2.0", 8080, 8080, 8080, 8101,
+        initialize("blockchainInitializeTestNode1", "BDK/cpp/linux_x86-64/0.2.0", 1, 808080, 8080, 8101,
                    PrivKey(), {"127.0.0.1", 8100}, blockchain1);
 
         std::unique_ptr<Blockchain> blockchain2;
-        initialize("blockchainInitializeTestNode2", "BDK/cpp/linux_x86-64/0.2.0", 8080, 8080, 8081, 8102,
+        initialize("blockchainInitializeTestNode2", "BDK/cpp/linux_x86-64/0.2.0", 1, 808080, 8081, 8102,
                    PrivKey(), {"127.0.0.1", 8100}, blockchain2);
 
         std::unique_ptr<Blockchain> blockchain3;
-        initialize("blockchainInitializeTestNode3", "BDK/cpp/linux_x86-64/0.2.0", 8080, 8080, 8082, 8103,
+        initialize("blockchainInitializeTestNode3", "BDK/cpp/linux_x86-64/0.2.0", 1, 808080, 8082, 8103,
                    PrivKey(), {"127.0.0.1", 8100}, blockchain3);
 
         std::unique_ptr<Blockchain> blockchain4;
-        initialize("blockchainInitializeTestNode4", "BDK/cpp/linux_x86-64/0.2.0", 8080, 8080, 8083, 8104,
+        initialize("blockchainInitializeTestNode4", "BDK/cpp/linux_x86-64/0.2.0", 1, 808080, 8083, 8104,
                    PrivKey(), {"127.0.0.1", 8100}, blockchain4);
 
         // Start the blockchain nodes.
@@ -103,32 +112,32 @@ namespace TBlockchain {
         blockchain3->start();
         blockchain4->start();
 
-        REQUIRE(!blockchain1->getOptions()->getIsValidator());
-        REQUIRE(!blockchain2->getOptions()->getIsValidator());
-        REQUIRE(!blockchain3->getOptions()->getIsValidator());
-        REQUIRE(!blockchain4->getOptions()->getIsValidator());
+        REQUIRE(!blockchain1->getOptions().getIsValidator());
+        REQUIRE(!blockchain2->getOptions().getIsValidator());
+        REQUIRE(!blockchain3->getOptions().getIsValidator());
+        REQUIRE(!blockchain4->getOptions().getIsValidator());
 
         // Wait everyone to connect.
         auto connectFuture = std::async(std::launch::async, [&]() {
-          while (blockchain1->getP2P()->getSessionsIDs().size() != 4 ||
-                 blockchain2->getP2P()->getSessionsIDs().size() != 4 ||
-                 blockchain3->getP2P()->getSessionsIDs().size() != 4 ||
-                 blockchain4->getP2P()->getSessionsIDs().size() != 4) {
+          while (blockchain1->getP2P().getSessionsIDs().size() != 4 ||
+                 blockchain2->getP2P().getSessionsIDs().size() != 4 ||
+                 blockchain3->getP2P().getSessionsIDs().size() != 4 ||
+                 blockchain4->getP2P().getSessionsIDs().size() != 4) {
             std::this_thread::sleep_for(std::chrono::milliseconds(100));
           }
         });
 
         REQUIRE(connectFuture.wait_for(std::chrono::seconds(5)) != std::future_status::timeout);
 
-        REQUIRE(blockchain1->getP2P()->getSessionsIDs().size() == 4);
-        REQUIRE(blockchain2->getP2P()->getSessionsIDs().size() == 4);
-        REQUIRE(blockchain3->getP2P()->getSessionsIDs().size() == 4);
-        REQUIRE(blockchain4->getP2P()->getSessionsIDs().size() == 4);
+        REQUIRE(blockchain1->getP2P().getSessionsIDs().size() == 4);
+        REQUIRE(blockchain2->getP2P().getSessionsIDs().size() == 4);
+        REQUIRE(blockchain3->getP2P().getSessionsIDs().size() == 4);
+        REQUIRE(blockchain4->getP2P().getSessionsIDs().size() == 4);
 
-        bestBlock = blockchain1->getStorage()->latest();
-        REQUIRE(blockchain1->getStorage()->latest()->hash() == blockchain2->getStorage()->latest()->hash());
-        REQUIRE(blockchain1->getStorage()->latest()->hash() == blockchain3->getStorage()->latest()->hash());
-        REQUIRE(blockchain1->getStorage()->latest()->hash() == blockchain4->getStorage()->latest()->hash());
+        bestBlock = blockchain1->getStorage().latest();
+        REQUIRE(blockchain1->getStorage().latest()->getHash() == blockchain2->getStorage().latest()->getHash());
+        REQUIRE(blockchain1->getStorage().latest()->getHash() == blockchain3->getStorage().latest()->getHash());
+        REQUIRE(blockchain1->getStorage().latest()->getHash() == blockchain4->getStorage().latest()->getHash());
 
         // Stop the blockchain nodes.
         p2pDiscovery->stop();
@@ -138,10 +147,10 @@ namespace TBlockchain {
         blockchain4->stop();
       }
       std::unique_ptr<Blockchain> blockchain1;
-      initialize("blockchainInitializeTestNode1", "BDK/cpp/linux_x86-64/0.2.0", 8080, 8080, 8080, 8101,
+      initialize("blockchainInitializeTestNode1", "BDK/cpp/linux_x86-64/0.2.0", 1, 808080, 8080, 8101,
                  PrivKey(), {"127.0.0.1", 8100}, blockchain1, false);
 
-      REQUIRE(blockchain1->getStorage()->latest()->hash() == bestBlock->hash());
+      REQUIRE(blockchain1->getStorage().latest()->getHash() == bestBlock->getHash());
     }
 
     SECTION("Blockchain multiple nodes, move 10 blocks forward 1 tx per block.") {
@@ -150,72 +159,63 @@ namespace TBlockchain {
       Address targetOfTransactions = Address(Utils::randBytes(20));
       uint256_t targetBalance = 0;
       uint256_t myBalance("1000000000000000000000");
-      std::shared_ptr<const Block> bestBlock;
+      std::shared_ptr<const FinalizedBlock> bestBlock;
 
       // Create the discovery node.
       {
         std::vector<std::pair<boost::asio::ip::address, uint64_t>> discoveryNodes;
-        std::unique_ptr<Options> discoveryOptions = std::make_unique<Options>(
-            testDumpPath + "/statedDiscoveryNodeNetworkCapabilitiesWithTxBlockBroadcast",
-            "BDK/cpp/linux_x86-64/0.2.0",
-            1,
-            8080,
-            8100,
-            9999,
-            discoveryNodes
-        );
-        std::unique_ptr<P2P::ManagerDiscovery> p2pDiscovery = std::make_unique<P2P::ManagerDiscovery>(
-            LOCALHOST, discoveryOptions);
+        Options discoveryOptions = Options::fromFile(testDumpPath + "/statedDiscoveryNodeNetworkCapabilitiesWithTxBlockBroadcast");
+        std::unique_ptr<P2P::ManagerDiscovery> p2pDiscovery = std::make_unique<P2P::ManagerDiscovery>(LOCALHOST, discoveryOptions);
 
         // Create the validator nodes (5 in total)
         std::unique_ptr<Blockchain> blockchainValidator1;
-        initialize("blockchainMove10BlocksTestValidator1", "BDK/cpp/linux_x86-64/0.2.0", 8080, 8080, 8080, 8101,
+        initialize("blockchainMove10BlocksTestValidator1", "BDK/cpp/linux_x86-64/0.2.0", 1, 808080, 8080, 8101,
                    PrivKey(Hex::toBytes("0xba5e6e9dd9cbd263969b94ee385d885c2d303dfc181db2a09f6bf19a7ba26759")),
                    {"127.0.0.1", 8100}, blockchainValidator1);
 
         std::unique_ptr<Blockchain> blockchainValidator2;
-        initialize("blockchainMove10BlocksTestValidator2", "BDK/cpp/linux_x86-64/0.2.0", 8080, 8080, 8081, 8102,
+        initialize("blockchainMove10BlocksTestValidator2", "BDK/cpp/linux_x86-64/0.2.0", 1, 808080, 8081, 8102,
                    PrivKey(Hex::toBytes("0xfd84d99aa18b474bf383e10925d82194f1b0ca268e7a339032679d6e3a201ad4")),
                    {"127.0.0.1", 8100}, blockchainValidator2);
 
         std::unique_ptr<Blockchain> blockchainValidator3;
-        initialize("blockchainMove10BlocksTestValidator3", "BDK/cpp/linux_x86-64/0.2.0", 8080, 8080, 8082, 8103,
+        initialize("blockchainMove10BlocksTestValidator3", "BDK/cpp/linux_x86-64/0.2.0", 1, 808080, 8082, 8103,
                    PrivKey(Hex::toBytes("0x66ce71abe0b8acd92cfd3965d6f9d80122aed9b0e9bdd3dbe018230bafde5751")),
                    {"127.0.0.1", 8100}, blockchainValidator3);
 
         std::unique_ptr<Blockchain> blockchainValidator4;
-        initialize("blockchainMove10BlocksTestValidator4", "BDK/cpp/linux_x86-64/0.2.0", 8080, 8080, 8083, 8104,
+        initialize("blockchainMove10BlocksTestValidator4", "BDK/cpp/linux_x86-64/0.2.0", 1, 808080, 8083, 8104,
                    PrivKey(Hex::toBytes("0x856aeb3b9c20a80d1520a2406875f405d336e09475f43c478eb4f0dafb765fe7")),
                    {"127.0.0.1", 8100}, blockchainValidator4);
 
         std::unique_ptr<Blockchain> blockchainValidator5;
-        initialize("blockchainMove10BlocksTestValidator5", "BDK/cpp/linux_x86-64/0.2.0", 8080, 8080, 8084, 8105,
+        initialize("blockchainMove10BlocksTestValidator5", "BDK/cpp/linux_x86-64/0.2.0", 1, 808080, 8084, 8105,
                    PrivKey(Hex::toBytes("0x81f288dd776f4edfe256d34af1f7d719f511559f19115af3e3d692e741faadc6")),
                    {"127.0.0.1", 8100}, blockchainValidator5);
 
         // Create the normal nodes (6 in total)
         std::unique_ptr<Blockchain> blockchainNode1;
-        initialize("blockchainMove10BlocksTestNode1", "BDK/cpp/linux_x86-64/0.2.0", 8080, 8080, 8085, 8106,
+        initialize("blockchainMove10BlocksTestNode1", "BDK/cpp/linux_x86-64/0.2.0", 1, 808080, 8085, 8106,
                    PrivKey(), {"127.0.0.1", 8100}, blockchainNode1);
 
         std::unique_ptr<Blockchain> blockchainNode2;
-        initialize("blockchainMove10BlocksTestNode2", "BDK/cpp/linux_x86-64/0.2.0", 8080, 8080, 8086, 8107,
+        initialize("blockchainMove10BlocksTestNode2", "BDK/cpp/linux_x86-64/0.2.0", 1, 808080, 8086, 8107,
                    PrivKey(), {"127.0.0.1", 8100}, blockchainNode2);
 
         std::unique_ptr<Blockchain> blockchainNode3;
-        initialize("blockchainMove10BlocksTestNode3", "BDK/cpp/linux_x86-64/0.2.0", 8080, 8080, 8087, 8108,
+        initialize("blockchainMove10BlocksTestNode3", "BDK/cpp/linux_x86-64/0.2.0", 1, 808080, 8087, 8108,
                    PrivKey(), {"127.0.0.1", 8100}, blockchainNode3);
 
         std::unique_ptr<Blockchain> blockchainNode4;
-        initialize("blockchainMove10BlocksTestNode4", "BDK/cpp/linux_x86-64/0.2.0", 8080, 8080, 8088, 8109,
+        initialize("blockchainMove10BlocksTestNode4", "BDK/cpp/linux_x86-64/0.2.0", 1, 808080, 8088, 8109,
                    PrivKey(), {"127.0.0.1", 8100}, blockchainNode4);
 
         std::unique_ptr<Blockchain> blockchainNode5;
-        initialize("blockchainMove10BlocksTestNode5", "BDK/cpp/linux_x86-64/0.2.0", 8080, 8080, 8089, 8110,
+        initialize("blockchainMove10BlocksTestNode5", "BDK/cpp/linux_x86-64/0.2.0", 1, 808080, 8089, 8110,
                    PrivKey(), {"127.0.0.1", 8100}, blockchainNode5);
 
         std::unique_ptr<Blockchain> blockchainNode6;
-        initialize("blockchainMove10BlocksTestNode6", "BDK/cpp/linux_x86-64/0.2.0", 8080, 8080, 8090, 8111,
+        initialize("blockchainMove10BlocksTestNode6", "BDK/cpp/linux_x86-64/0.2.0", 1, 808080, 8090, 8111,
                    PrivKey(), {"127.0.0.1", 8100}, blockchainNode6);
 
         // Start the discovery node.
@@ -265,7 +265,7 @@ namespace TBlockchain {
               me,
               Bytes(),
               8080,
-              blockchainValidator1->getState()->getNativeNonce(me),
+              blockchainValidator1->getState().getNativeNonce(me),
               1000000000000000000,
               21000,
               1000000000,
@@ -316,91 +316,91 @@ namespace TBlockchain {
           // Wait for the new best block to be broadcasted and accepted by all nodes
           ++blocks;
           auto blockFuture = std::async(std::launch::async, [&]() {
-            while (blocks != blockchainNode1->getStorage()->latest()->getNHeight() ||
-                   blocks != blockchainNode2->getStorage()->latest()->getNHeight() ||
-                   blocks != blockchainNode3->getStorage()->latest()->getNHeight() ||
-                   blocks != blockchainNode4->getStorage()->latest()->getNHeight() ||
-                   blocks != blockchainNode5->getStorage()->latest()->getNHeight() ||
-                   blocks != blockchainNode6->getStorage()->latest()->getNHeight() ||
-                   blocks != blockchainValidator1->getStorage()->latest()->getNHeight() ||
-                   blocks != blockchainValidator2->getStorage()->latest()->getNHeight() ||
-                   blocks != blockchainValidator3->getStorage()->latest()->getNHeight() ||
-                   blocks != blockchainValidator4->getStorage()->latest()->getNHeight() ||
-                   blocks != blockchainValidator5->getStorage()->latest()->getNHeight()) {
+            while (blocks != blockchainNode1->getStorage().latest()->getNHeight() ||
+                   blocks != blockchainNode2->getStorage().latest()->getNHeight() ||
+                   blocks != blockchainNode3->getStorage().latest()->getNHeight() ||
+                   blocks != blockchainNode4->getStorage().latest()->getNHeight() ||
+                   blocks != blockchainNode5->getStorage().latest()->getNHeight() ||
+                   blocks != blockchainNode6->getStorage().latest()->getNHeight() ||
+                   blocks != blockchainValidator1->getStorage().latest()->getNHeight() ||
+                   blocks != blockchainValidator2->getStorage().latest()->getNHeight() ||
+                   blocks != blockchainValidator3->getStorage().latest()->getNHeight() ||
+                   blocks != blockchainValidator4->getStorage().latest()->getNHeight() ||
+                   blocks != blockchainValidator5->getStorage().latest()->getNHeight()) {
               std::this_thread::sleep_for(std::chrono::milliseconds(100));
             }
           });
 
           std::cout << "Before: " << std::endl;
-          std::cout << blockchainNode1->getStorage()->latest()->getNHeight() << std::endl;
-          std::cout << blockchainNode2->getStorage()->latest()->getNHeight() << std::endl;
-          std::cout << blockchainNode3->getStorage()->latest()->getNHeight() << std::endl;
-          std::cout << blockchainNode4->getStorage()->latest()->getNHeight() << std::endl;
-          std::cout << blockchainNode5->getStorage()->latest()->getNHeight() << std::endl;
-          std::cout << blockchainNode6->getStorage()->latest()->getNHeight() << std::endl;
-          std::cout << blockchainValidator1->getStorage()->latest()->getNHeight() << std::endl;
-          std::cout << blockchainValidator2->getStorage()->latest()->getNHeight() << std::endl;
-          std::cout << blockchainValidator3->getStorage()->latest()->getNHeight() << std::endl;
-          std::cout << blockchainValidator4->getStorage()->latest()->getNHeight() << std::endl;
-          std::cout << blockchainValidator5->getStorage()->latest()->getNHeight() << std::endl;
+          std::cout << blockchainNode1->getStorage().latest()->getNHeight() << std::endl;
+          std::cout << blockchainNode2->getStorage().latest()->getNHeight() << std::endl;
+          std::cout << blockchainNode3->getStorage().latest()->getNHeight() << std::endl;
+          std::cout << blockchainNode4->getStorage().latest()->getNHeight() << std::endl;
+          std::cout << blockchainNode5->getStorage().latest()->getNHeight() << std::endl;
+          std::cout << blockchainNode6->getStorage().latest()->getNHeight() << std::endl;
+          std::cout << blockchainValidator1->getStorage().latest()->getNHeight() << std::endl;
+          std::cout << blockchainValidator2->getStorage().latest()->getNHeight() << std::endl;
+          std::cout << blockchainValidator3->getStorage().latest()->getNHeight() << std::endl;
+          std::cout << blockchainValidator4->getStorage().latest()->getNHeight() << std::endl;
+          std::cout << blockchainValidator5->getStorage().latest()->getNHeight() << std::endl;
 
           std::cout << "P2P Connections Count: " << std::endl;
-          std::cout << blockchainNode1->getP2P()->getSessionsIDs().size() << std::endl;
-          std::cout << blockchainNode2->getP2P()->getSessionsIDs().size() << std::endl;
-          std::cout << blockchainNode3->getP2P()->getSessionsIDs().size() << std::endl;
-          std::cout << blockchainNode4->getP2P()->getSessionsIDs().size() << std::endl;
-          std::cout << blockchainNode5->getP2P()->getSessionsIDs().size() << std::endl;
-          std::cout << blockchainNode6->getP2P()->getSessionsIDs().size() << std::endl;
-          std::cout << blockchainValidator1->getP2P()->getSessionsIDs().size() << std::endl;
-          std::cout << blockchainValidator2->getP2P()->getSessionsIDs().size() << std::endl;
-          std::cout << blockchainValidator3->getP2P()->getSessionsIDs().size() << std::endl;
-          std::cout << blockchainValidator4->getP2P()->getSessionsIDs().size() << std::endl;
-          std::cout << blockchainValidator5->getP2P()->getSessionsIDs().size() << std::endl;
+          std::cout << blockchainNode1->getP2P().getSessionsIDs().size() << std::endl;
+          std::cout << blockchainNode2->getP2P().getSessionsIDs().size() << std::endl;
+          std::cout << blockchainNode3->getP2P().getSessionsIDs().size() << std::endl;
+          std::cout << blockchainNode4->getP2P().getSessionsIDs().size() << std::endl;
+          std::cout << blockchainNode5->getP2P().getSessionsIDs().size() << std::endl;
+          std::cout << blockchainNode6->getP2P().getSessionsIDs().size() << std::endl;
+          std::cout << blockchainValidator1->getP2P().getSessionsIDs().size() << std::endl;
+          std::cout << blockchainValidator2->getP2P().getSessionsIDs().size() << std::endl;
+          std::cout << blockchainValidator3->getP2P().getSessionsIDs().size() << std::endl;
+          std::cout << blockchainValidator4->getP2P().getSessionsIDs().size() << std::endl;
+          std::cout << blockchainValidator5->getP2P().getSessionsIDs().size() << std::endl;
 
           auto wait = blockFuture.wait_for(std::chrono::seconds(10));
           std::cout << "After: " << std::endl;
 
-          std::cout << blockchainNode1->getStorage()->latest()->getNHeight() << std::endl;
-          std::cout << blockchainNode2->getStorage()->latest()->getNHeight() << std::endl;
-          std::cout << blockchainNode3->getStorage()->latest()->getNHeight() << std::endl;
-          std::cout << blockchainNode4->getStorage()->latest()->getNHeight() << std::endl;
-          std::cout << blockchainNode5->getStorage()->latest()->getNHeight() << std::endl;
-          std::cout << blockchainNode6->getStorage()->latest()->getNHeight() << std::endl;
-          std::cout << blockchainValidator1->getStorage()->latest()->getNHeight() << std::endl;
-          std::cout << blockchainValidator2->getStorage()->latest()->getNHeight() << std::endl;
-          std::cout << blockchainValidator3->getStorage()->latest()->getNHeight() << std::endl;
-          std::cout << blockchainValidator4->getStorage()->latest()->getNHeight() << std::endl;
-          std::cout << blockchainValidator5->getStorage()->latest()->getNHeight() << std::endl;
+          std::cout << blockchainNode1->getStorage().latest()->getNHeight() << std::endl;
+          std::cout << blockchainNode2->getStorage().latest()->getNHeight() << std::endl;
+          std::cout << blockchainNode3->getStorage().latest()->getNHeight() << std::endl;
+          std::cout << blockchainNode4->getStorage().latest()->getNHeight() << std::endl;
+          std::cout << blockchainNode5->getStorage().latest()->getNHeight() << std::endl;
+          std::cout << blockchainNode6->getStorage().latest()->getNHeight() << std::endl;
+          std::cout << blockchainValidator1->getStorage().latest()->getNHeight() << std::endl;
+          std::cout << blockchainValidator2->getStorage().latest()->getNHeight() << std::endl;
+          std::cout << blockchainValidator3->getStorage().latest()->getNHeight() << std::endl;
+          std::cout << blockchainValidator4->getStorage().latest()->getNHeight() << std::endl;
+          std::cout << blockchainValidator5->getStorage().latest()->getNHeight() << std::endl;
 
           std::cout << "P2P Connections Count: " << std::endl;
-          std::cout << blockchainNode1->getP2P()->getSessionsIDs().size() << std::endl;
-          std::cout << blockchainNode2->getP2P()->getSessionsIDs().size() << std::endl;
-          std::cout << blockchainNode3->getP2P()->getSessionsIDs().size() << std::endl;
-          std::cout << blockchainNode4->getP2P()->getSessionsIDs().size() << std::endl;
-          std::cout << blockchainNode5->getP2P()->getSessionsIDs().size() << std::endl;
-          std::cout << blockchainNode6->getP2P()->getSessionsIDs().size() << std::endl;
-          std::cout << blockchainValidator1->getP2P()->getSessionsIDs().size() << std::endl;
-          std::cout << blockchainValidator2->getP2P()->getSessionsIDs().size() << std::endl;
-          std::cout << blockchainValidator3->getP2P()->getSessionsIDs().size() << std::endl;
-          std::cout << blockchainValidator4->getP2P()->getSessionsIDs().size() << std::endl;
-          std::cout << blockchainValidator5->getP2P()->getSessionsIDs().size() << std::endl;
+          std::cout << blockchainNode1->getP2P().getSessionsIDs().size() << std::endl;
+          std::cout << blockchainNode2->getP2P().getSessionsIDs().size() << std::endl;
+          std::cout << blockchainNode3->getP2P().getSessionsIDs().size() << std::endl;
+          std::cout << blockchainNode4->getP2P().getSessionsIDs().size() << std::endl;
+          std::cout << blockchainNode5->getP2P().getSessionsIDs().size() << std::endl;
+          std::cout << blockchainNode6->getP2P().getSessionsIDs().size() << std::endl;
+          std::cout << blockchainValidator1->getP2P().getSessionsIDs().size() << std::endl;
+          std::cout << blockchainValidator2->getP2P().getSessionsIDs().size() << std::endl;
+          std::cout << blockchainValidator3->getP2P().getSessionsIDs().size() << std::endl;
+          std::cout << blockchainValidator4->getP2P().getSessionsIDs().size() << std::endl;
+          std::cout << blockchainValidator5->getP2P().getSessionsIDs().size() << std::endl;
 
           REQUIRE(wait != std::future_status::timeout);
 
           // Everyone should be on the same block
-          REQUIRE(blockchainValidator1->getStorage()->latest()->getNHeight() == blocks);
-          REQUIRE(blockchainValidator1->getStorage()->latest()->hash() == blockchainValidator2->getStorage()->latest()->hash());
-          REQUIRE(blockchainValidator1->getStorage()->latest()->hash() == blockchainValidator3->getStorage()->latest()->hash());
-          REQUIRE(blockchainValidator1->getStorage()->latest()->hash() == blockchainValidator4->getStorage()->latest()->hash());
-          REQUIRE(blockchainValidator1->getStorage()->latest()->hash() == blockchainValidator5->getStorage()->latest()->hash());
-          REQUIRE(blockchainValidator1->getStorage()->latest()->hash() == blockchainNode1->getStorage()->latest()->hash());
-          REQUIRE(blockchainValidator1->getStorage()->latest()->hash() == blockchainNode2->getStorage()->latest()->hash());
-          REQUIRE(blockchainValidator1->getStorage()->latest()->hash() == blockchainNode3->getStorage()->latest()->hash());
-          REQUIRE(blockchainValidator1->getStorage()->latest()->hash() == blockchainNode4->getStorage()->latest()->hash());
-          REQUIRE(blockchainValidator1->getStorage()->latest()->hash() == blockchainNode5->getStorage()->latest()->hash());
-          REQUIRE(blockchainValidator1->getStorage()->latest()->hash() == blockchainNode6->getStorage()->latest()->hash());
+          REQUIRE(blockchainValidator1->getStorage().latest()->getNHeight() == blocks);
+          REQUIRE(blockchainValidator1->getStorage().latest()->getHash() == blockchainValidator2->getStorage().latest()->getHash());
+          REQUIRE(blockchainValidator1->getStorage().latest()->getHash() == blockchainValidator3->getStorage().latest()->getHash());
+          REQUIRE(blockchainValidator1->getStorage().latest()->getHash() == blockchainValidator4->getStorage().latest()->getHash());
+          REQUIRE(blockchainValidator1->getStorage().latest()->getHash() == blockchainValidator5->getStorage().latest()->getHash());
+          REQUIRE(blockchainValidator1->getStorage().latest()->getHash() == blockchainNode1->getStorage().latest()->getHash());
+          REQUIRE(blockchainValidator1->getStorage().latest()->getHash() == blockchainNode2->getStorage().latest()->getHash());
+          REQUIRE(blockchainValidator1->getStorage().latest()->getHash() == blockchainNode3->getStorage().latest()->getHash());
+          REQUIRE(blockchainValidator1->getStorage().latest()->getHash() == blockchainNode4->getStorage().latest()->getHash());
+          REQUIRE(blockchainValidator1->getStorage().latest()->getHash() == blockchainNode5->getStorage().latest()->getHash());
+          REQUIRE(blockchainValidator1->getStorage().latest()->getHash() == blockchainNode6->getStorage().latest()->getHash());
         }
-        bestBlock = blockchainValidator1->getStorage()->latest();
+        bestBlock = blockchainValidator1->getStorage().latest();
         // Stop the nodes
         p2pDiscovery->stop();
         blockchainValidator1->stop();
@@ -417,10 +417,10 @@ namespace TBlockchain {
       }
 
       std::unique_ptr<Blockchain> blockchainNode1;
-      initialize("blockchainMove10BlocksTestNode1", "BDK/cpp/linux_x86-64/0.2.0", 8080, 8080, 8085, 8106,
+      initialize("blockchainMove10BlocksTestNode1", "BDK/cpp/linux_x86-64/0.2.0", 1, 808080, 8085, 8106,
                  PrivKey(), {"127.0.0.1", 8100}, blockchainNode1, false);
 
-      REQUIRE(blockchainNode1->getStorage()->latest()->hash() == bestBlock->hash());
+      REQUIRE(blockchainNode1->getStorage().latest()->getHash() == bestBlock->getHash());
     }
   }
 }

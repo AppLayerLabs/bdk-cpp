@@ -9,11 +9,13 @@ See the LICENSE.txt file in the project root for more information.
 
 #include "../../src/net/p2p/encoding.h"
 
+#include "bytes/random.h"
+
 // For coverage
 namespace TP2PNodeInfo {
   TEST_CASE("P2P NodeInfo", "[p2p][nodeinfo]") {
     SECTION("NodeInfo Constructor") {
-      Hash randomBlockHash = Hash::random();
+      Hash randomBlockHash = bytes::random();
       P2P::NodeID randomId(boost::asio::ip::address::from_string("127.0.0.1"), uint16_t(8000));
       P2P::NodeInfo emptyNode;
       P2P::NodeInfo node(uint64_t(1), uint64_t(15000), uint64_t(30000), uint64_t(5), uint64_t(12345), randomBlockHash, {randomId});
@@ -34,12 +36,12 @@ namespace TP2PNodeInfo {
     }
 
     SECTION("NodeInfo operator==") {
-      Hash randomBlockHash = Hash::random();
+      Hash randomBlockHash = bytes::random();
       P2P::NodeID randomId(boost::asio::ip::address::from_string("127.0.0.1"), uint16_t(8000));
       P2P::NodeID randomId2(boost::asio::ip::address::from_string("127.0.0.2"), uint16_t(8001));
       P2P::NodeInfo node1(uint64_t(1), uint64_t(15000), uint64_t(30000), uint64_t(5), uint64_t(12345), randomBlockHash, {randomId});
       P2P::NodeInfo node2(uint64_t(1), uint64_t(15000), uint64_t(30000), uint64_t(5), uint64_t(12345), randomBlockHash, {randomId});
-      P2P::NodeInfo node3(uint64_t(2), uint64_t(1000), uint64_t(3000), uint64_t(4), uint64_t(54321), Hash::random(), {randomId2});
+      P2P::NodeInfo node3(uint64_t(2), uint64_t(1000), uint64_t(3000), uint64_t(4), uint64_t(54321), bytes::random(), {randomId2});
       REQUIRE(node1 == node2);
       REQUIRE_FALSE(node1 == node3);
     }

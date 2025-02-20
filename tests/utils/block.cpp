@@ -10,6 +10,7 @@ See the LICENSE.txt file in the project root for more information.
 #include "../../src/utils/finalizedblock.h" // merkle.h -> tx.h -> ecdsa.h -> utils.h
 
 #include "../../src/utils/uintconv.h"
+#include "bytes/random.h"
 
 using Catch::Matchers::Equals;
 
@@ -34,6 +35,20 @@ namespace TBlock {
       REQUIRE(finalizedNewBlock.getTxValidators().size() == 0);
       REQUIRE(finalizedNewBlock.getTxs().size() == 0);
       REQUIRE(finalizedNewBlock.getValidatorPubKey() == UPubKey(Hex::toBytes("046ab1f056c30ae181f92e97d0cbb73f4a8778e926c35f10f0c4d1626d8dfd51672366413809a48589aa103e1865e08bd6ddfd0559e095841eb1bd3021d9cc5e62")));
+    }
+
+    SECTION("Block operator== (coverage)") {
+      PrivKey validatorPrivKey(Hex::toBytes("0x4d5db4107d237df6a3d58ee5f70ae63d73d765d8a1214214d8a13340d0f2750d"));
+      PrivKey validatorPrivKey2(Hex::toBytes("0x4d5db4107d237df6a3d58ee5f70ae63d73d765d8a1214214d8a13340d0f2750e"));
+      Hash nPrevBlockHash(Hex::toBytes("22143e16db549af9ccfd3b746ea4a74421847fa0fe7e0e278626a4e7307ac0f6"));
+      uint64_t timestamp = 1678400201859;
+      uint64_t nHeight = 92137812;
+      FinalizedBlock blockA = FinalizedBlock::createNewValidBlock({},{}, nPrevBlockHash, timestamp, nHeight, validatorPrivKey);
+      FinalizedBlock blockB = FinalizedBlock::createNewValidBlock({},{}, nPrevBlockHash, timestamp, nHeight, validatorPrivKey2);
+      FinalizedBlock blockC = FinalizedBlock::createNewValidBlock({},{}, nPrevBlockHash, timestamp + 1, nHeight, validatorPrivKey);
+      REQUIRE(blockA == blockA);
+      REQUIRE(blockA != blockB);
+      REQUIRE(blockA != blockC);
     }
 
     SECTION("Block creation with 10 transactions") {
@@ -77,7 +92,7 @@ namespace TBlock {
       for (uint64_t i = 0; i < 64; i++) txs.emplace_back(tx);
 
       // Create and append 8
-      std::vector<Hash> randomSeeds(8, Hash::random());
+      std::vector<Hash> randomSeeds(8, bytes::random());
       Bytes randomSeed; // Concatenated random seed of block.
       for (const auto &seed : randomSeeds) randomSeed.insert(randomSeed.end(), seed.begin(), seed.end());
 
@@ -138,15 +153,15 @@ namespace TBlock {
 
     SECTION("Block with 500 dynamically created transactions and 64 dynamically created validator transactions") {
       // There is 16 TxValidator transactions, but only 8 of them are used for block randomness.
-      PrivKey blockValidatorPrivKey = PrivKey::random();
-      Hash nPrevBlockHash = Hash::random();
+      PrivKey blockValidatorPrivKey = bytes::random();
+      Hash nPrevBlockHash = bytes::random();
       uint64_t timestamp = 64545214244;
       uint64_t nHeight = 6414363551;
 
       std::vector<TxBlock> txs;
 
       for (uint64_t i = 0; i < 500; ++i) {
-        PrivKey txPrivKey = PrivKey::random();
+        PrivKey txPrivKey = bytes::random();
         Address from = Secp256k1::toAddress(Secp256k1::toUPub(txPrivKey));
         Address to(Utils::randBytes(20));
         Bytes data = Utils::randBytes(32);
@@ -170,7 +185,7 @@ namespace TBlock {
       }
 
       // Create and append 32 randomSeeds
-      std::vector<Hash> randomSeeds(32, Hash::random());
+      std::vector<Hash> randomSeeds(32, bytes::random());
       Bytes randomSeed; // Concatenated random seed of block.
       for (const auto &seed : randomSeeds) randomSeed.insert(randomSeed.end(), seed.begin(), seed.end());
 
@@ -178,7 +193,7 @@ namespace TBlock {
 
       // Create 64 TxValidator transactions, half for each type.
       for (const auto &seed : randomSeeds) {
-        PrivKey txValidatorPrivKey = PrivKey::random();
+        PrivKey txValidatorPrivKey = bytes::random();
         Address validatorAddress = Secp256k1::toAddress(Secp256k1::toUPub(txValidatorPrivKey));
         Bytes hashTxData = Hex::toBytes("0xcfffe746");
         Utils::appendBytes(hashTxData, Utils::sha3(seed));
@@ -229,8 +244,8 @@ namespace TBlock {
 
     SECTION("Block with 40000 dynamically created transactions and 256 dynamically created validator transactions") {
       // There is 16 TxValidator transactions, but only 8 of them are used for block randomness.
-      PrivKey blockValidatorPrivKey = PrivKey::random();
-      Hash nPrevBlockHash = Hash::random();
+      PrivKey blockValidatorPrivKey = bytes::random();
+      Hash nPrevBlockHash = bytes::random();
       uint64_t timestamp = 230915972837112;
       uint64_t nHeight = 239178513;
 
@@ -247,7 +262,7 @@ namespace TBlock {
         uint64_t coreJobs = nJobPerCore[i];
         futures.push_back(std::async(std::launch::async, [&txs, &txLock, coreJobs, i] {
           for (uint64_t j = 0; j < coreJobs; ++j) {
-            PrivKey txPrivKey = PrivKey::random();
+            PrivKey txPrivKey = bytes::random();
             Address from = Secp256k1::toAddress(Secp256k1::toUPub(txPrivKey));
             Address to(Utils::randBytes(20));
             Bytes data = Utils::randBytes(32);
@@ -279,7 +294,7 @@ namespace TBlock {
 
 
       // Create and append 32 randomSeeds
-      std::vector<Hash> randomSeeds(128, Hash::random());
+      std::vector<Hash> randomSeeds(128, bytes::random());
       Bytes randomSeed; // Concatenated random seed of block.
       for (const auto &seed : randomSeeds) Utils::appendBytes(randomSeed, seed);
 
@@ -287,7 +302,7 @@ namespace TBlock {
 
       // Create 64 TxValidator transactions, half for each type.
       for (const auto &seed : randomSeeds) {
-        PrivKey txValidatorPrivKey = PrivKey::random();
+        PrivKey txValidatorPrivKey = bytes::random();
         Address validatorAddress = Secp256k1::toAddress(Secp256k1::toUPub(txValidatorPrivKey));
         Bytes hashTxData = Hex::toBytes("0xcfffe746");
         Utils::appendBytes(hashTxData, Utils::sha3(seed));

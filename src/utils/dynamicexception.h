@@ -8,6 +8,7 @@ See the LICENSE.txt file in the project root for more information.
 #ifndef DYNAMIC_EXCEPTION_H
 #define DYNAMIC_EXCEPTION_H
 
+#include <iomanip> // put_time
 #include <chrono> // ctime
 #include <sstream> // ostringstream
 #include <iomanip> // put_time

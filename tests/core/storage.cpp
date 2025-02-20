@@ -10,6 +10,8 @@ See the LICENSE.txt file in the project root for more information.
 #include "../../src/utils/uintconv.h"
 
 #include "../blockchainwrapper.hpp" // blockchain.h -> consensus.h -> state.h -> dump.h -> (storage.h -> utils/options.h), utils/db.h
+#include "bytes/random.h"
+#include "bytes/hex.h"
 
 const std::vector<Hash> validatorPrivKeysStorage {
   Hash(Hex::toBytes("0x0a0415d68a5ec2df57aab65efc2a7231b59b029bae7ff1bd2e40df9af96418c8")),
@@ -24,7 +26,7 @@ const std::vector<Hash> validatorPrivKeysStorage {
 
 // Random transaction
 TxBlock createRandomTx(const uint64_t& requiredChainId) {
-  PrivKey txPrivKey = PrivKey::random();
+  PrivKey txPrivKey = bytes::random();
   Address from = Secp256k1::toAddress(Secp256k1::toUPub(txPrivKey));
   Address to(Utils::randBytes(20));
   Bytes data = Utils::randBytes(32);
@@ -44,10 +46,10 @@ std::pair<std::vector<TxValidator>, Bytes> createRandomTxValidatorList(uint64_t 
   Bytes randomnessStr;
   ret.first.reserve(N);
 
-  std::vector<Hash> seeds(N, Hash::random());
+  std::vector<Hash> seeds(N, bytes::random());
   for (const auto& seed : seeds) {
     Utils::appendBytes(ret.second, seed);
-    PrivKey txValidatorPrivKey = PrivKey::random();
+    PrivKey txValidatorPrivKey = bytes::random();
     Address validatorAddress = Secp256k1::toAddress(Secp256k1::toUPub(txValidatorPrivKey));
     Bytes hashTxData = Hex::toBytes("0xcfffe746");
     Utils::appendBytes(hashTxData, Utils::sha3(seed));
@@ -73,7 +75,7 @@ std::pair<std::vector<TxValidator>, Bytes> createRandomTxValidatorList(uint64_t 
 }
 
 FinalizedBlock createRandomBlock(uint64_t txCount, uint64_t validatorCount, uint64_t nHeight, Hash prevHash, const uint64_t& requiredChainId) {
-  PrivKey blockValidatorPrivKey = PrivKey::random();
+  PrivKey blockValidatorPrivKey = bytes::random();
   uint64_t timestamp = 230915972837111; // Timestamp doesn't really matter.
 
   std::vector<TxBlock> txs;
@@ -113,6 +115,54 @@ namespace TStorage {
       REQUIRE(genesis->getTxs().size() == 0);
       REQUIRE(genesis->getValidatorPubKey() == UPubKey(Hex::toBytes("04eb4c1da10ca5f1e52d1cba87f627931b5a980dba6d910d6aa756db62fc71ea78db1a18a2c364fb348bb28e0b0a3c6563a0522626eecfe32cdab30746365f5747")));
       REQUIRE(Secp256k1::toAddress(genesis->getValidatorPubKey()) == Address(Hex::toBytes("0x00dead00665771855a34155f5e7405489df2c3c6")));
+    }
+
+    SECTION("Storage topicsMatch") {
+      Hash txHash = bytes::random();
+      Hash blockHash = bytes::random();
+      std::vector<Hash> topics = {bytes::random(), bytes::random(), bytes::random(), bytes::random(), bytes::random()};
+      Address add(bytes::hex("0x1234567890123456789012345678901234567890"));
+      Bytes data{0xDE, 0xAD, 0xBE, 0xEF};
+      Event e("myEvent", 0, txHash, 1, blockHash, 2, add, data, topics, false);
+      REQUIRE(Storage::topicsMatch(e, topics));
+
+      // For coverage
+      REQUIRE(Storage::topicsMatch(e, {})); // Empty topics
+      topics.push_back(bytes::random());
+      REQUIRE_FALSE(Storage::topicsMatch(e, topics)); // Event has fewer topics than required
+      topics.pop_back();
+      topics[0] = bytes::random();
+      REQUIRE_FALSE(Storage::topicsMatch(e, topics)); // Event has wrong topics
+    }
+
+    SECTION("Storage getEvents") {
+      auto blockchainWrapper = initialize(validatorPrivKeysStorage, PrivKey(), 8080, true, "StorageGetEvents");
+      Address add(bytes::hex("0x1234567890123456789012345678901234567890"));
+      Bytes data{0xDE, 0xAD, 0xBE, 0xEF};
+      std::vector<std::vector<Hash>> topics;
+      std::vector<Event> events;
+      for (int i = 0; i < 5; i++) {
+        topics.push_back({bytes::random(), bytes::random(), bytes::random()});
+        events.push_back(Event(
+          "event" + std::to_string(i), 0, bytes::random(), 0, bytes::random(), i, add, data, topics[i], false
+        ));
+        blockchainWrapper.storage.putEvent(events[i]);
+      }
+
+      REQUIRE_THROWS(blockchainWrapper.storage.getEvents(1000000, 0, add, {})); // Querying too many blocks
+      std::vector<Event> got = blockchainWrapper.storage.getEvents(0, 3, add, {});
+      for (int i = 0; i < 3; i++) {
+        REQUIRE(got[i].getName() == events[i].getName());
+        REQUIRE(got[i].getLogIndex() == events[i].getLogIndex());
+        REQUIRE(got[i].getTxHash() == events[i].getTxHash());
+        REQUIRE(got[i].getTxIndex() == events[i].getTxIndex());
+        REQUIRE(got[i].getBlockHash() == events[i].getBlockHash());
+        REQUIRE(got[i].getBlockIndex() == events[i].getBlockIndex());
+        REQUIRE(got[i].getAddress() == events[i].getAddress());
+        REQUIRE(got[i].getData() == events[i].getData());
+        REQUIRE(got[i].getTopics() == topics[i]);
+        REQUIRE(got[i].isAnonymous() == events[i].isAnonymous());
+      }
     }
 
     SECTION("10 Blocks forward with destructor test") {

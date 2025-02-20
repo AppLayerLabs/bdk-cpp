@@ -25,7 +25,7 @@ ERC20::ERC20(const Address& address, const DB& db)
     this->balances_[Address(dbEntry.key)] = Utils::fromBigEndian<uint256_t>(dbEntry.value);
   }
   for (const auto& dbEntry : db.getBatch(this->getNewPrefix("allowed_"))) {
-    bytes::View key(dbEntry.key);
+    View<Bytes> key(dbEntry.key);
     Address owner(key.subspan(0,20));
     Address spender(key.subspan(20));
     this->allowed_[owner][spender] = UintConv::bytesToUint256(dbEntry.value);

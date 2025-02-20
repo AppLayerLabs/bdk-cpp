@@ -40,7 +40,7 @@ class ContractGlobals {
 
 /// Class that maintains local variables for contracts.
 class ContractLocals : public ContractGlobals {
-  private:
+  public: // TODO: revert this to private
     // TODO: DONT RELY ON ContractLocals, INSTEAD, USE CONTRACTHOST TO STORE LOCALS
     mutable Address caller_;  ///< Who sent the transaction.
     mutable uint256_t value_; ///< Value sent within the transaction.
@@ -106,19 +106,19 @@ class BaseContract : public ContractLocals, public Dumpable {
     BaseContract(const Address &address, const DB& db) :
       contractAddress_(address),
       dbPrefix_([&]() {
-       Bytes prefix = DBPrefix::contracts;
-       prefix.reserve(prefix.size() + address.size());
-       prefix.insert(prefix.end(), address.cbegin(), address.cend());
-       return prefix;
+        Bytes prefix = DBPrefix::contracts;
+        prefix.reserve(prefix.size() + address.size());
+        prefix.insert(prefix.end(), address.cbegin(), address.cend());
+        return prefix;
       }()),
       contractName_([&]() {
-       return StrConv::bytesToString(db.get(std::string("contractName_"), dbPrefix_));
+        return StrConv::bytesToString(db.get(std::string("contractName_"), dbPrefix_));
       }()),
       contractCreator_([&]() {
-       return Address(db.get(std::string("contractCreator_"), dbPrefix_));
+        return Address(db.get(std::string("contractCreator_"), dbPrefix_));
       }()),
       contractChainId_([&]() {
-       return UintConv::bytesToUint64(db.get(std::string("contractChainId_"), dbPrefix_));
+        return UintConv::bytesToUint64(db.get(std::string("contractChainId_"), dbPrefix_));
       }())
     {}
 

@@ -8,7 +8,10 @@ See the LICENSE.txt file in the project root for more information.
 #include "methods.h"
 
 #include "blocktag.h"
-#include "variadicparser.h" // parser.h -> ranges, utils/utils.h -> libs/json.hpp
+#include "variadicparser.h"
+#include "../../../core/storage.h"
+#include "../../../core/state.h"
+#include "bytes/cast.h"
 
 #include "../../../utils/evmcconv.h"
 
@@ -69,11 +72,10 @@ json getBlockJson(const FinalizedBlock* block, bool includeTransactions) {
   return ret;
 }
 
-std::pair<Bytes, evmc_message> parseEvmcMessage(const json& request, const Storage& storage, bool recipientRequired) {
-  std::pair<Bytes, evmc_message> res{};
+static std::tuple<Address, Address, Gas, uint256_t, Bytes> parseMessage(const json& request, const Storage& storage, bool recipientRequired) {
+  std::tuple<Address, Address, Gas, uint256_t, Bytes> result;
 
-  Bytes& buffer = res.first;
-  evmc_message& msg = res.second;
+  auto& [from, to, gas, value, data] = result;
 
   const auto [txJson, optionalBlockNumber] = parseAllParams<json, std::optional<BlockTagOrNumber>>(request);
 
@@ -83,30 +85,19 @@ std::pair<Bytes, evmc_message> parseEvmcMessage(const json& request, const Stora
   //if (optionalBlockNumber.has_value() && !optionalBlockNumber->isLatest(storage))
   //  throw Error(-32601, "Only the latest block is supported");
 
-  msg.sender = parseIfExists<Address>(txJson, "from")
-    .transform([] (const Address& addr) { return addr.toEvmcAddress(); })
-    .value_or(evmc::address{});
+  from = parseIfExists<Address>(txJson, "from").value_or(Address{});
 
-  if (recipientRequired)
-    msg.recipient = parse<Address>(txJson.at("to")).toEvmcAddress();
-  else
-    msg.recipient = parseIfExists<Address>(txJson, "to")
-      .transform([] (const Address& addr) { return addr.toEvmcAddress(); })
-      .value_or(evmc::address{});
+  to = recipientRequired
+    ? parse<Address>(txJson.at("to"))
+    : parseIfExists<Address>(txJson, "to").value_or(Address{});
 
-  msg.gas = parseIfExists<uint64_t>(txJson, "gas").value_or(10000000);
-  parseIfExists<uint64_t>(txJson, "gasPrice"); // gas price ignored as chain is fixed at 1 GWEI
+  gas = Gas(parseIfExists<uint64_t>(txJson, "gas").value_or(10'000'000));
 
-  msg.value = parseIfExists<uint64_t>(txJson, "value")
-    .transform([] (uint64_t val) { return EVMCConv::uint256ToEvmcUint256(uint256_t(val)); })
-    .value_or(evmc::uint256be{});
+  value = parseIfExists<uint256_t>(txJson, "value").value_or(0);
 
-  buffer = parseIfExists<Bytes>(txJson, "data").value_or(Bytes{});
+  data = parseIfExists<Bytes>(txJson, "data").value_or(Bytes{});
 
-  msg.input_size = buffer.size();
-  msg.input_data = buffer.empty() ? nullptr : buffer.data();
-
-  return res;
+  return result;
 }
 
 // ========================================================================
@@ -199,25 +190,25 @@ json eth_blockNumber(const json& request, const Storage& storage) {
 }
 
 json eth_call(const json& request, const Storage& storage, State& state) {
-  auto [buffer, callInfo] = parseEvmcMessage(request, storage, true);
-  callInfo.kind = EVMC_CALL;
-  callInfo.flags = 0;
-  callInfo.depth = 0;
-  return Hex::fromBytes(state.ethCall(callInfo), true);
+  auto [from, to, gas, value, data] = parseMessage(request, storage, true);
+  EncodedStaticCallMessage msg(from, to, gas, data);
+  return Hex::fromBytes(state.ethCall(msg));
 }
 
 json eth_estimateGas(const json& request, const Storage& storage, State& state) {
-  auto [buffer, callInfo] = parseEvmcMessage(request, storage, false);
-  callInfo.flags = 0;
-  callInfo.depth = 0;
+  auto [from, to, gas, value, data] = parseMessage(request, storage, false);
 
-  // TODO: "kind" is uninitialized if recipient is not zeroes
-  if (evmc::is_zero(callInfo.recipient))
-    callInfo.kind = EVMC_CREATE;
+  uint64_t gasUsed;
 
-  const auto usedGas = state.estimateGas(callInfo);
+  if (to == Address()) {
+    EncodedCreateMessage msg(from, gas, value, data);
+    gasUsed = state.estimateGas(msg);
+  } else {
+    EncodedCallMessage msg(from, to, gas, value, data);
+    gasUsed = state.estimateGas(msg);
+  }
 
-  return Hex::fromBytes(Utils::uintToBytes(static_cast<uint64_t>(usedGas)), true).forRPC();
+  return Hex::fromBytes(Utils::uintToBytes(static_cast<uint64_t>(gasUsed)), true).forRPC();
 }
 
 json eth_gasPrice(const json& request) {

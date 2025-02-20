@@ -5,19 +5,19 @@ This software is distributed under the MIT License.
 See the LICENSE.txt file in the project root for more information.
 */
 
-#include "../../src/libs/catch2/catch_amalgamated.hpp"
-
-#include "../../src/contract/event.h"
-
-#include "../../src/bytes/view.h"
+#include "libs/catch2/catch_amalgamated.hpp"
+#include "contract/event.h"
+#include "bytes/view.h"
+#include "bytes/random.h"
+#include "bytes/hex.h"
 
 namespace TEvent {
   TEST_CASE("Event Class", "[contract][event]") {
     SECTION("Event Constructor (EVM)") {
-      Hash txHash = Hash::random();
-      Hash blockHash = Hash::random();
-      std::vector<Hash> topics = {Hash::random(), Hash::random(), Hash::random(), Hash::random(), Hash::random()};
-      Address add("0x1234567890123456789012345678901234567890", false);
+      Hash txHash = bytes::random();
+      Hash blockHash = bytes::random();
+      std::vector<Hash> topics = {bytes::random(), bytes::random(), bytes::random(), bytes::random(), bytes::random()};
+      Address add(bytes::hex("0x1234567890123456789012345678901234567890"));
       Bytes data{0xDE, 0xAD, 0xBE, 0xEF};
 
       Event e("myEvent", 0, txHash, 1, blockHash, 2, add, data, topics, false);
@@ -40,9 +40,9 @@ namespace TEvent {
     }
 
     SECTION("Event Constructor (CPP)") {
-      Hash txHash = Hash::random();
-      Hash blockHash = Hash::random();
-      Address add("0x1234567890123456789012345678901234567890", false);
+      Hash txHash = bytes::random();
+      Hash blockHash = bytes::random();
+      Address add(bytes::hex("0x1234567890123456789012345678901234567890"));
 
       // Anonymous event
       Event e1("myEvent", 0, txHash, 1, blockHash, 2, add, std::make_tuple(
@@ -129,7 +129,7 @@ namespace TEvent {
     SECTION("Event Serialization (Normal + RPC)") {
       Hash txHash(Hex::toBytes("0x53472c61f1db8612fcdd17f24b78986bfa111ea3e323522456b1a78560f2215a"));
       Hash blockHash(Hex::toBytes("0x2b9b8644330d50ffb90c5fea02b73b562dfc550ec7f8c85f643b20391a972d5f"));
-      Address add("0x1234567890123456789012345678901234567890", false);
+      Address add(bytes::hex("0x1234567890123456789012345678901234567890"));
       Event e1("myEvent", 0, txHash, 1, blockHash, 2, add, std::make_tuple(
         EventParam<std::string, true>("p1"),
         EventParam<std::string, true>("p2"),

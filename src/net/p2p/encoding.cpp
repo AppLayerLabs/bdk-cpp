@@ -16,7 +16,7 @@ namespace P2P {
   // These are shared between messages of various types that share the same encoding and decoding patterns.
   // ------------------------------------------------------------------------------------------------------------------
 
-  boost::unordered_flat_map<NodeID, NodeType, SafeHash> nodesFromMessage(bytes::View data) {
+  boost::unordered_flat_map<NodeID, NodeType, SafeHash> nodesFromMessage(View<Bytes> data) {
     boost::unordered_flat_map<NodeID, NodeType, SafeHash> nodes;
     size_t index = 0;
     while (index < data.size()) {
@@ -65,7 +65,7 @@ namespace P2P {
     }
   }
 
-  NodeInfo nodeInfoFromMessage(const bytes::View& data) {
+  NodeInfo nodeInfoFromMessage(const View<Bytes>& data) {
     uint64_t nodeVersion = UintConv::bytesToUint64(data.subspan(0, 8));
     uint64_t nodeEpoch = UintConv::bytesToUint64(data.subspan(8, 8));
     uint64_t nodeHeight = UintConv::bytesToUint64(data.subspan(16, 8));
@@ -94,7 +94,7 @@ namespace P2P {
     nodesToMessage(message, nodes);
   }
 
-  std::vector<FinalizedBlock> blocksFromMessage(const bytes::View& data, const uint64_t& requiredChainId) {
+  std::vector<FinalizedBlock> blocksFromMessage(const View<Bytes>& data, const uint64_t& requiredChainId) {
     std::vector<FinalizedBlock> blocks;
     size_t index = 0;
     while (index < data.size()) {
@@ -102,7 +102,7 @@ namespace P2P {
       uint64_t blockSize = UintConv::bytesToUint64(data.subspan(index, 8));
       index += 8;
       if (data.size() - index < blockSize) { throw DynamicException("Invalid data size (block too small)"); }
-      bytes::View blockData = data.subspan(index, blockSize);
+      View<Bytes> blockData = data.subspan(index, blockSize);
       index += blockSize;
       blocks.emplace_back(FinalizedBlock::fromBytes(blockData, requiredChainId));
     }
@@ -125,7 +125,7 @@ namespace P2P {
    * @throw DynamicException if data size is invalid.
    */
   template<typename TxType>
-  std::vector<TxType> txsFromMessage(const bytes::View& data, const uint64_t& requiredChainId) {
+  std::vector<TxType> txsFromMessage(const View<Bytes>& data, const uint64_t& requiredChainId) {
     std::vector<TxType> txs;
     size_t index = 0;
     while (index < data.size()) {
@@ -133,7 +133,7 @@ namespace P2P {
       uint32_t txSize = UintConv::bytesToUint32(data.subspan(index, 4));
       index += 4;
       if (data.size() - index < txSize) { throw DynamicException("Invalid data size (tx too small)"); }
-      bytes::View txData = data.subspan(index, txSize);
+      View<Bytes> txData = data.subspan(index, txSize);
       index += txSize;
       // Assuming requiredChainId is declared elsewhere
       txs.emplace_back(txData, requiredChainId);
@@ -179,7 +179,7 @@ namespace P2P {
 
   RequestID RequestID::random() { return RequestID(Utils::randBytes(8)); }
 
-  CommandType getCommandType(const bytes::View message) {
+  CommandType getCommandType(const View<Bytes> message) {
     if (message.size() != 2) { throw DynamicException("Invalid Command Type size." + std::to_string(message.size())); }
     uint16_t commandType = UintConv::bytesToUint16(message);
     if (commandType > commandPrefixes.size()) { throw DynamicException("Invalid command type."); }
@@ -188,7 +188,7 @@ namespace P2P {
 
   const Bytes& getCommandPrefix(const CommandType& commType) { return commandPrefixes[commType]; }
 
-  RequestType getRequestType(const bytes::View message) {
+  RequestType getRequestType(const View<Bytes> message) {
     if (message.size() != 1) { throw DynamicException("Invalid Request Type size. " + std::to_string(message.size())); }
     uint8_t requestType = UintConv::bytesToUint8(message);
     if (requestType > typePrefixes.size()) { throw DynamicException("Invalid request type."); }

@@ -9,8 +9,10 @@ See the LICENSE.txt file in the project root for more information.
 #define STATETEST_HPP
 
 #include "../src/core/state.h"
+#include "../src/bytes/random.h"
 
 #include "../src/contract/contracthost.h"
+
 
 // TestState class
 // The only purpose of this class is to be able to allow
@@ -21,37 +23,40 @@ See the LICENSE.txt file in the project root for more information.
 class StateTest : public State {
   public:
     // StateTest has the same constructor as State
-    StateTest(
-      const DB& db, Storage& storage, P2P::ManagerNormal& p2pManager,
-      const uint64_t& snapshotHeight, const Options& options
-    ) : State(db, storage, p2pManager, snapshotHeight, options) {};
+    StateTest(const DB& db, Storage& storage, P2P::ManagerNormal& p2pManager, const uint64_t& snapshotHeight, const Options& options) :
+      State(db, storage, p2pManager, snapshotHeight, options) {};
 
-    // Force a contract call regardless of the current state
-    inline void call(
-      const evmc_message& callInfo,
-      const evmc_tx_context& txContext,
-      const ContractType& type,
-      const Hash& randomness,
-      const Hash& txHash,
-      const Hash& blockHash,
-      int64_t& leftOverGas
-    ) {
+    void call(const TxBlock& tx) {
+      std::unique_lock lock(this->stateMutex_);
+      ExecutionContext context = ExecutionContext::Builder{}
+      .storage(this->vmStorage_)
+      .accounts(this->accounts_)
+      .contracts(this->contracts_)
+      .blockHash(Hash())
+      .txHash(tx.hash())
+      .txOrigin(tx.getFrom())
+      .blockCoinbase(ContractGlobals::getCoinbase())
+      .txIndex(0)
+      .blockNumber(ContractGlobals::getBlockHeight())
+      .blockTimestamp(ContractGlobals::getBlockTimestamp())
+      .blockGasLimit(10'000'000)
+      .txGasPrice(tx.getMaxFeePerGas())
+      .chainId(this->options_.getChainID())
+      .build();
+
       ContractHost host(
         this->vm_,
         this->dumpManager_,
         this->storage_,
-        randomness,
-        txContext,
-        this->contracts_,
-        this->accounts_,
-        this->vmStorage_,
-        txHash,
-        0,
-        blockHash,
-        leftOverGas
-      );
-      host.execute(callInfo, type);
-    }
+        Hash(),
+        context);
+
+      Gas gas(uint64_t(tx.getGasLimit()));
+
+      std::visit([&] (auto&& msg) {
+        host.execute(std::forward<decltype(msg)>(msg));
+      }, tx.toMessage(gas));
+    };
 };
 
 #endif // STATETEST_HPP

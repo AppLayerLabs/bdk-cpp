@@ -88,7 +88,7 @@ namespace ABI {
    */
   template<typename T> constexpr bool isDynamic() {
     if constexpr (
-      std::is_same_v<T, Bytes> || std::is_same_v<T, bytes::View> || std::is_same_v<T, std::string> || false
+      std::is_same_v<T, Bytes> || std::is_same_v<T, View<Bytes>> || std::is_same_v<T, std::string> || false
     ) return true;
     if constexpr (isVectorV<T>) return true;
     if constexpr (isTupleOfDynamicTypes<T>::value) return true;
@@ -416,7 +416,7 @@ namespace ABI {
     };
     template <> struct TypeEncoder<std::string> {
       static Bytes encode(const std::string& str) {
-        bytes::View bytes = Utils::create_view_span(str);
+        View<Bytes> bytes = Utils::create_view_span(str);
         int pad = 0;
         do { pad += 32; } while (pad < bytes.size());
         Bytes len = StrConv::padLeftBytes(Utils::uintToBytes(bytes.size()), 32);
@@ -505,6 +505,15 @@ namespace ABI {
       }
     };
 
+    // Specialization for std::pair<T, U>
+    template<typename T, typename U>
+    struct TypeEncoder<std::pair<T, U>> {
+      static Bytes encode(const std::pair<T, U>& p) {
+        using Tuple = std::tuple<const T&, const U&>;
+        return TypeEncoder<Tuple>::encode(Tuple(p.first, p.second));
+      }
+    };
+
     // Specialization for std::vector<T>
     template <typename T>
     Bytes TypeEncoder<std::vector<T>>::encode(const std::vector<T>& v) {
@@ -562,6 +571,8 @@ namespace ABI {
       result.insert(result.end(), dynamicBytes.begin(), dynamicBytes.end());
       return result;
     }
+
+    Bytes encodeError(std::string_view reason);
   }; // namespace Encoder
 
   /**
@@ -602,7 +613,7 @@ namespace ABI {
 
     template <> struct TypeEncoder<std::string> {
       static Bytes encode(const std::string& str) {
-        bytes::View bytes = Utils::create_view_span(str);
+        View<Bytes> bytes = Utils::create_view_span(str);
         int pad = 0;
         do { pad += 32; } while (pad < bytes.size());
         return StrConv::padRightBytes(bytes, pad);
@@ -736,7 +747,7 @@ namespace ABI {
      * @return The decoded data.
      * @throw std::length_error if data is too short for the type.
      */
-    uint256_t decodeUint(const bytes::View& bytes, uint64_t& index);
+    uint256_t decodeUint(const View<Bytes>& bytes, uint64_t& index);
 
     /**
      * Decode an int256.
@@ -745,12 +756,12 @@ namespace ABI {
      * @return The decoded data.
      * @throw std::length_error if data is too short for the type.
      */
-    int256_t decodeInt(const bytes::View& bytes, uint64_t& index);
+    int256_t decodeInt(const View<Bytes>& bytes, uint64_t& index);
 
     /// @cond
     // General template for bytes to type decoding
     template<typename T, typename Enable = void> struct TypeDecoder {
-      static T decode(const bytes::View&, const uint64_t&) {
+      static T decode(const View<Bytes>&, const uint64_t&) {
         static_assert(always_false<T>, "TypeName specialization for this type is not defined");
         return T();
       }
@@ -758,7 +769,7 @@ namespace ABI {
 
     // Specialization for default solidity types
     template <> struct TypeDecoder<Address> {
-      static Address decode(const bytes::View& bytes, uint64_t& index) {
+      static Address decode(const View<Bytes>& bytes, uint64_t& index) {
         if (index + 32 > bytes.size()) throw std::length_error("Data too short for address");
         auto result = Address(bytes.subspan(index + 12, 20));
         index += 32;
@@ -767,7 +778,7 @@ namespace ABI {
     };
 
     template <> struct TypeDecoder<Hash> {
-      static Hash decode(const bytes::View& bytes, uint64_t& index) {
+      static Hash decode(const View<Bytes>& bytes, uint64_t& index) {
         if (index + 32 > bytes.size()) { throw std::length_error("Data too short for hash"); }
         auto result = Hash(bytes.subspan(index, 32));
         index += 32;
@@ -776,7 +787,7 @@ namespace ABI {
     };
 
     template <> struct TypeDecoder<bool> {
-      static bool decode(const bytes::View& bytes, uint64_t& index) {
+      static bool decode(const View<Bytes>& bytes, uint64_t& index) {
         if (index + 32 > bytes.size()) throw std::length_error("Data too short for bool");
         bool result = (bytes[index + 31] == 0x01);
         index += 32;
@@ -785,7 +796,7 @@ namespace ABI {
     };
 
     template <> struct TypeDecoder<Bytes> {
-      static Bytes decode(const bytes::View& bytes, uint64_t& index) {
+      static Bytes decode(const View<Bytes>& bytes, uint64_t& index) {
         if (index + 32 > bytes.size()) throw std::length_error("Data too short for bytes");
         Bytes tmp(bytes.begin() + index, bytes.begin() + index + 32);
         uint64_t bytesStart = Utils::fromBigEndian<uint64_t>(tmp);
@@ -808,7 +819,7 @@ namespace ABI {
     };
 
     template <> struct TypeDecoder<std::string> {
-      static std::string decode(const bytes::View& bytes, uint64_t& index) {
+      static std::string decode(const View<Bytes>& bytes, uint64_t& index) {
         if (index + 32 > bytes.size()) throw std::length_error("Data too short for string 1");
         std::string tmp(bytes.begin() + index, bytes.begin() + index + 32);
         uint64_t bytesStart = Utils::fromBigEndian<uint64_t>(tmp);
@@ -845,7 +856,7 @@ namespace ABI {
       std::is_same_v<T, int224_t> || std::is_same_v<T, int232_t> || std::is_same_v<T, int240_t> ||
       std::is_same_v<T, int248_t> || std::is_same_v<T, int256_t>
     struct TypeDecoder<T> {
-      static T decode(const bytes::View& bytes, uint64_t& index) {
+      static T decode(const View<Bytes>& bytes, uint64_t& index) {
         return static_cast<T>(decodeInt(bytes, index));
       }
     };
@@ -865,21 +876,21 @@ namespace ABI {
       std::is_same_v<T, uint224_t> || std::is_same_v<T, uint232_t> || std::is_same_v<T, uint240_t> ||
       std::is_same_v<T, uint248_t> || std::is_same_v<T, uint256_t>
     struct TypeDecoder<T> {
-        static T decode(const bytes::View& bytes, uint64_t& index) {
+        static T decode(const View<Bytes>& bytes, uint64_t& index) {
           return static_cast<T>(decodeUint(bytes, index));
         }
     };
 
     // Specialization for enum types
     template <typename T> requires std::is_enum_v<T> struct TypeDecoder<T> {
-      static T decode(const bytes::View& bytes, uint64_t& index) {
+      static T decode(const View<Bytes>& bytes, uint64_t& index) {
         return static_cast<T>(decodeUint(bytes, index));
       }
     };
 
     // Forward declaration of TypeDecode<std::vector<T>> so TypeDecoder<std::tuple<Ts...>> can see it.
     template <typename T> requires isVectorV<T> struct TypeDecoder<T> {
-      static T decode(const bytes::View& bytes, uint64_t& index);
+      static T decode(const View<Bytes>& bytes, uint64_t& index);
     };
 
     /**
@@ -891,7 +902,7 @@ namespace ABI {
      * @param index The point on the encoded string to start decoding.
      * @param ret The tuple object to "return". Needs to be a reference and created outside the function due to recursion.
      */
-    template<typename TupleLike, size_t I = 0> void decodeTuple(const bytes::View& bytes, uint64_t& index, TupleLike& ret) {
+    template<typename TupleLike, size_t I = 0> void decodeTuple(const View<Bytes>& bytes, uint64_t& index, TupleLike& ret) {
       if constexpr (I < std::tuple_size_v<TupleLike>) {
         using SelectedType = typename std::tuple_element<I, TupleLike>::type;
         std::get<I>(ret) = TypeDecoder<SelectedType>::decode(bytes, index);
@@ -901,7 +912,7 @@ namespace ABI {
 
     // Specialization for std::tuple<Ts...>
     template <typename T> requires isTuple<T>::value struct TypeDecoder<T> {
-      static T decode(const bytes::View& bytes, uint64_t& index) {
+      static T decode(const View<Bytes>& bytes, uint64_t& index) {
         T ret;
         if constexpr (isTupleOfDynamicTypes<T>::value) {
           if (index + 32 > bytes.size()) throw std::length_error("Data too short for tuple of dynamic types");
@@ -920,7 +931,7 @@ namespace ABI {
     };
 
     /// Specialization for std::vector<T>
-    template <typename T> requires isVectorV<T> T TypeDecoder<T>::decode(const bytes::View& bytes, uint64_t& index) {
+    template <typename T> requires isVectorV<T> T TypeDecoder<T>::decode(const View<Bytes>& bytes, uint64_t& index) {
       using ElementType = vectorElementTypeT<T>;
       std::vector<ElementType> retVector;
 
@@ -949,7 +960,7 @@ namespace ABI {
     /// Specialization of decodeTupleHelper() for when tuple index is the last one
     template<std::size_t Index = 0, typename... Args>
     requires (Index == sizeof...(Args))
-    void decodeTupleHelper(const bytes::View&, const uint64_t&, std::tuple<Args...>&) {
+    void decodeTupleHelper(const View<Bytes>&, const uint64_t&, std::tuple<Args...>&) {
       // End of recursion, do nothing
     }
 
@@ -963,7 +974,7 @@ namespace ABI {
      */
     template<std::size_t Index = 0, typename... Args>
     requires (Index < sizeof...(Args))
-    void decodeTupleHelper(const bytes::View& encodedData, uint64_t& index, std::tuple<Args...>& tuple) {
+    void decodeTupleHelper(const View<Bytes>& encodedData, uint64_t& index, std::tuple<Args...>& tuple) {
       // TODO: Technically, we could pass std::get<Index>(tuple) as a reference to decode<>().
       // But, it is worth to reduce code readability for a few nanoseconds? Need to benchmark.
       std::get<Index>(tuple) = TypeDecoder<std::tuple_element_t<Index, std::tuple<Args...>>>::decode(encodedData, index);
@@ -978,7 +989,7 @@ namespace ABI {
      * @return A tuple with the decoded data, or an empty tuple if there's no arguments to decode.
      */
     template<typename... Args>
-    inline std::tuple<Args...> decodeData(const bytes::View& encodedData, uint64_t index = 0) {
+    inline std::tuple<Args...> decodeData(const View<Bytes>& encodedData, uint64_t index = 0) {
       if constexpr (sizeof...(Args) == 0) {
         return std::tuple<>();
       } else {
@@ -988,10 +999,12 @@ namespace ABI {
       }
     }
 
+    std::string decodeError(View<Bytes> data);
+
     /// Specialization for tuples without args.
     template<typename T> struct decodeDataAsTuple {
       /// Decode the tuple.
-      static T decode(const bytes::View&) {
+      static T decode(const View<Bytes>&) {
         static_assert(always_false<T>, "Can't use decodeDataAsTuple with a non-tuple type");
         return T();
       }
@@ -1000,7 +1013,7 @@ namespace ABI {
     /// Specialization for tuples with args.
     template<typename... Args> struct decodeDataAsTuple<std::tuple<Args...>> {
       /// Decode the tuple.
-      static std::tuple<Args...> decode(const bytes::View& encodedData) {
+      static std::tuple<Args...> decode(const View<Bytes>& encodedData) {
         if constexpr (sizeof...(Args) == 0) {
           throw std::invalid_argument("Can't decode empty tuple");
         } else {

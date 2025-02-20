@@ -20,6 +20,36 @@ namespace TUtils {
       Utils::logToFile("testing log to file");
     }
 
+    SECTION("Account struct") {
+      // Copy constructor
+      Account a(uint256_t(1000), uint64_t(0));
+      REQUIRE(a.balance == uint256_t(1000));
+      REQUIRE(a.nonce == uint64_t(0));
+      // Move constructor
+      uint256_t bal = 2000;
+      uint64_t nonce = 1;
+      Account b(std::move(bal), std::move(nonce));
+      REQUIRE(b.balance == 2000);
+      REQUIRE(b.nonce == 1);
+      // Deserialize constructor
+      Bytes ser = a.serialize();
+      Account c(ser);
+      REQUIRE(c.balance == 1000);
+      REQUIRE(c.nonce == 0);
+      // For coverage
+      ser[72] = 0xFF; // Invalid contract type
+      REQUIRE_THROWS(Account(ser));
+      ser.pop_back(); // Invalid bytes size (one less)
+      REQUIRE_THROWS(Account(ser));
+    }
+
+    SECTION("safePrint") {
+      Utils::safePrint("Fail!");
+      Log::logToCout = true;
+      Utils::safePrint("Win!");
+      Log::logToCout = false; // Other tests litter terminal output with extra info if we forget to do this
+    }
+
     SECTION("sha3") {
       std::string sha3Input = "My SHA3 Input";
       auto sha3Output = Utils::sha3(StrConv::stringToBytes(sha3Input));
@@ -76,12 +106,27 @@ namespace TUtils {
     SECTION("create_view_span") {
       Bytes b{0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f};
       std::string_view sv("abcdef");
-      bytes::View v1 = Utils::create_view_span(b, 0, 6);
-      bytes::View v2 = Utils::create_view_span(sv, 0, 6);
+      View<Bytes> v1 = Utils::create_view_span(b, 0, 6);
+      View<Bytes> v2 = Utils::create_view_span(sv, 0, 6);
       REQUIRE(Hex::fromBytes(v1).get() == "0a0b0c0d0e0f");
       REQUIRE(Hex::fromBytes(v2).get() == "616263646566");
       REQUIRE_THROWS(Utils::create_view_span(b, 0, 12));
       REQUIRE_THROWS(Utils::create_view_span(sv, 0, 12));
+    }
+
+    SECTION("readConfigFile") {
+      if (std::filesystem::exists("config.json")) {
+        std::filesystem::remove("config.json");
+      }
+      json j = Utils::readConfigFile(); // Creating from scratch
+      json j2 = Utils::readConfigFile(); // Loading from default
+      REQUIRE(j == j2);
+      REQUIRE(j["rpcport"] == 8080);
+      REQUIRE(j["p2pport"] == 8081);
+      REQUIRE(j["seedNodes"][0] == "127.0.0.1:8086");
+      REQUIRE(j["seedNodes"][1] == "127.0.0.1:8087");
+      REQUIRE(j["seedNodes"][2] == "127.0.0.1:8088");
+      REQUIRE(j["seedNodes"][3] == "127.0.0.1:8089");
     }
   }
 }

@@ -8,6 +8,11 @@ See the LICENSE.txt file in the project root for more information.
 #ifndef HASH_H
 #define HASH_H
 
+#include <memory>
+#include <boost/asio/ip/address.hpp>
+#include <boost/container_hash/hash.hpp>
+
+#include "../bytes/join.h"
 #include "../libs/wyhash.h"
 
 #include "tx.h" // ecdsa.h -> utils.h -> strings.h, bytes/join.h, boost/asio/ip/address.hpp
@@ -18,10 +23,16 @@ See the LICENSE.txt file in the project root for more information.
  * We use the highest and fastest quality hash function available for size_t (64-bit) hashes (Wyhash)
  */
 struct SafeHash {
+  using is_transparent = void;
+
   ///@{
   /** Wrapper for `splitmix()`. */
   size_t operator()(const uint64_t& i) const {
     return wyhash(std::bit_cast<const void*>(&i), sizeof(i), 0, _wyp);
+  }
+
+  size_t operator()(const uint256_t& i) const {
+    return (*this)(Hash(i));
   }
 
   size_t operator()(const std::string& str) const {
@@ -32,28 +43,8 @@ struct SafeHash {
     return wyhash(str.data(), str.size(), 0, _wyp);
   }
 
-  size_t operator()(const Bytes& bytes) const {
-    return wyhash(std::bit_cast<const void*>(bytes.data()), bytes.size(), 0, _wyp);
-  }
-
-  template <unsigned N> size_t operator()(const BytesArr<N>& bytesArr) const {
-    return wyhash(std::bit_cast<const void*>(bytesArr.data()), bytesArr.size(), 0, _wyp);
-  }
-
-  size_t operator()(const bytes::View& bytesArrView) const {
-    return wyhash(std::bit_cast<const void*>(bytesArrView.data()), bytesArrView.size(), 0, _wyp);
-  }
-
-  size_t operator()(const Address& address) const {
-    return wyhash(std::bit_cast<const void*>(address.data()), address.size(), 0, _wyp);
-  }
-
   size_t operator()(const Functor& functor) const {
     return functor.value; // Functor is already a hash. Just return it.
-  }
-
-  size_t operator()(const Hash& hash) const {
-    return wyhash(std::bit_cast<const void*>(hash.data()), hash.size(), 0, _wyp);
   }
 
   size_t operator()(const TxValidator& tx) const { return SafeHash()(tx.hash()); }
@@ -62,8 +53,15 @@ struct SafeHash {
     return SafeHash()(*ptr->get());
   }
 
-  template <unsigned N> size_t operator()(const FixedBytes<N>& bytes) const {
-    return wyhash(std::bit_cast<const void*>(bytes.data()), bytes.size(), 0, _wyp);
+  size_t operator()(View<Bytes> data) const {
+    return wyhash(data.data(), data.size(), 0, _wyp);
+  }
+
+  template<typename T, typename U>
+  size_t operator()(const std::pair<T, U>& pair) const {
+    size_t hash = (*this)(pair.first);
+    boost::hash_combine(hash, pair.second);
+    return hash;
   }
 
   size_t operator()(const std::pair<int32_t, int32_t>& pair) const {
@@ -92,6 +90,18 @@ struct SafeHash {
   ///@}
 };
 
+struct SafeCompare {
+  using is_transparent = void;
+
+  constexpr bool operator()(View<Bytes> lhs, View<Bytes> rhs) const {
+    return std::ranges::equal(lhs, rhs);
+  }
+
+  constexpr bool operator()(const std::pair<View<Bytes>, View<Bytes>>& lhs, const std::pair<View<Bytes>, View<Bytes>>& rhs) const {
+    return (*this)(lhs.first, rhs.first) && (*this)(lhs.second, rhs.second);
+  }
+};
+
 /**
  * [Fowler-Noll-Vo](https://en.wikipedia.org/wiki/Fowler%E2%80%93Noll%E2%80%93Vo_hash_function)
  * hash struct used within broadcast messages.
@@ -103,7 +113,7 @@ struct FNVHash {
    * Call operator.
    * @param s The string to hash.
    */
-  size_t operator()(bytes::View s) const {
+  size_t operator()(View<Bytes> s) const {
     size_t result = 2166136261U;
     for (auto it = s.begin(); it != s.end(); it++) result = (16777619 * result) ^ (*it);
     return result;

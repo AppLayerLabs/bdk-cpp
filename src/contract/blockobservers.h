@@ -39,9 +39,9 @@ constexpr bool operator>(const BlockTimestampObserver& lhs, const BlockTimestamp
 
 class BlockObservers {
 public:
-  using Contracts = boost::unordered_flat_map<Address, std::unique_ptr<BaseContract>, SafeHash>;
-  using Accounts = boost::unordered_flat_map<Address, NonNullUniquePtr<Account>, SafeHash>;
-  using VmStorage = boost::unordered_flat_map<StorageKey, Hash, SafeHash>;
+  using Contracts = boost::unordered_flat_map<Address, std::unique_ptr<BaseContract>, SafeHash, SafeCompare>;
+  using Accounts = boost::unordered_flat_map<Address, NonNullUniquePtr<Account>, SafeHash, SafeCompare>;
+  using VmStorage = boost::unordered_flat_map<StorageKey, Hash, SafeHash, SafeCompare>;
 
   BlockObservers(evmc_vm *vm,
     DumpManager& manager,

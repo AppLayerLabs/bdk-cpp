@@ -64,7 +64,7 @@ BytesArr<8> IntConv::int64ToBytes(const int64_t& i) {
 // BYTES TO INT
 // ==========================================================================
 
-int256_t IntConv::bytesToInt256(const bytes::View b) {
+int256_t IntConv::bytesToInt256(const View<Bytes> b) {
   if (b.size() != 32) throw DynamicException(std::string(__func__)
     + ": Invalid bytes size - expected 32, got " + std::to_string(b.size())
   );
@@ -87,7 +87,7 @@ int256_t IntConv::bytesToInt256(const bytes::View b) {
   }
 }
 
-int136_t IntConv::bytesToInt136(const bytes::View b) {
+int136_t IntConv::bytesToInt136(const View<Bytes> b) {
   if (b.size() != 17) throw DynamicException(std::string(__func__)
     + ": Invalid bytes size - expected 17, got " + std::to_string(b.size())
   );
@@ -96,7 +96,7 @@ int136_t IntConv::bytesToInt136(const bytes::View b) {
   return ret;
 }
 
-int64_t IntConv::bytesToInt64(const bytes::View b) {
+int64_t IntConv::bytesToInt64(const View<Bytes> b) {
   if (b.size() != 8) throw DynamicException(std::string(__func__)
     + ": Invalid bytes size - expected 8, got " + std::to_string(b.size())
   );

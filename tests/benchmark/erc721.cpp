@@ -59,29 +59,11 @@ namespace TERC721BENCHMARK {
       Utils::appendBytes(mintEncoded, ABI::Encoder::encodeData<Address>(to));
       TxBlock transferTx = sdk.createNewTx(sdk.getChainOwnerAccount(), erc721Address, 0, mintEncoded);
       auto& state = sdk.getState();
-      evmc_tx_context txContext;
-
-      txContext.tx_origin = sdk.getChainOwnerAccount().address.toEvmcAddress();
-      txContext.tx_gas_price = {};
-      txContext.block_coinbase = to.toEvmcAddress();
-      txContext.block_number = 1;
-      txContext.block_timestamp = 1;
-      txContext.block_gas_limit = std::numeric_limits<int64_t>::max();
-      txContext.block_prev_randao = {};
-      txContext.chain_id = {};
-      txContext.block_base_fee = {};
-      txContext.blob_base_fee = {};
-      txContext.blob_hashes = nullptr;
-      txContext.blob_hashes_count = 0;
-
-      auto callInfo = transferTx.txToMessage();
-      Hash randomnessHash = Hash::random();
-      int64_t leftOverGas = std::numeric_limits<int64_t>::max();
       uint64_t iterations = 1000000;
 
       auto start = std::chrono::high_resolution_clock::now();
       for (uint64_t i = 0; i < iterations; i++) {
-        state.call(callInfo, txContext, ContractType::CPP, randomnessHash, randomnessHash, randomnessHash, leftOverGas);
+        state.call(transferTx);
       }
       auto end = std::chrono::high_resolution_clock::now();
 
@@ -112,29 +94,11 @@ namespace TERC721BENCHMARK {
       Utils::appendBytes(mintEncoded, ABI::Encoder::encodeData<Address>(to));
       TxBlock transferTx = sdk.createNewTx(sdk.getChainOwnerAccount(), erc721Address, 0, mintEncoded);
       auto& state = sdk.getState();
-      evmc_tx_context txContext;
-
-      txContext.tx_origin = sdk.getChainOwnerAccount().address.toEvmcAddress();
-      txContext.tx_gas_price = {};
-      txContext.block_coinbase = to.toEvmcAddress();
-      txContext.block_number = 1;
-      txContext.block_timestamp = 1;
-      txContext.block_gas_limit = std::numeric_limits<int64_t>::max();
-      txContext.block_prev_randao = {};
-      txContext.chain_id = {};
-      txContext.block_base_fee = {};
-      txContext.blob_base_fee = {};
-      txContext.blob_hashes = nullptr;
-      txContext.blob_hashes_count = 0;
-
-      auto callInfo = transferTx.txToMessage();
-      Hash randomnessHash = Hash::random();
-      int64_t leftOverGas = std::numeric_limits<int64_t>::max();
       uint64_t iterations = 100000;
 
       auto start = std::chrono::high_resolution_clock::now();
       for (uint64_t i = 0; i < iterations; i++) {
-        state.call(callInfo, txContext, ContractType::EVM, randomnessHash, randomnessHash, randomnessHash, leftOverGas);
+        state.call(transferTx);
       }
       auto end = std::chrono::high_resolution_clock::now();
 

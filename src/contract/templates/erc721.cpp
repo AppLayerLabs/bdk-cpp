@@ -16,7 +16,7 @@ ERC721::ERC721(const Address& address, const DB& db
   this->name_ = StrConv::bytesToString(db.get(std::string("name_"), this->getDBPrefix()));
   this->symbol_ = StrConv::bytesToString(db.get(std::string("symbol_"), this->getDBPrefix()));
   for (const auto& dbEntry : db.getBatch(this->getNewPrefix("owners_"))) {
-    bytes::View valueView(dbEntry.value);
+    View<Bytes> valueView(dbEntry.value);
     this->owners_[Utils::fromBigEndian<uint64_t>(dbEntry.key)] = Address(valueView.subspan(0, 20));
   }
   for (const auto& dbEntry : db.getBatch(this->getNewPrefix("balances_"))) {
@@ -26,7 +26,7 @@ ERC721::ERC721(const Address& address, const DB& db
     this->tokenApprovals_[Utils::fromBigEndian<uint64_t>(dbEntry.key)] = Address(dbEntry.value);
   }
   for (const auto& dbEntry : db.getBatch(this->getNewPrefix("operatorAddressApprovals_"))) {
-    bytes::View keyView(dbEntry.key);
+    View<Bytes> keyView(dbEntry.key);
     Address owner(keyView.subspan(0, 20));
     Address operatorAddress(keyView.subspan(20));
     this->operatorAddressApprovals_[owner][operatorAddress] = dbEntry.value[0];
@@ -163,7 +163,7 @@ void ERC721::mint_(const Address& to, const uint256_t& tokenId) {
 }
 
 void ERC721::burn_(const uint256_t& tokenId) {
-  Address prevOwner = this->update_(Address(), tokenId, Address());
+  Address prevOwner = this->update_(Address(), tokenId, this->getCaller());
   if (prevOwner == Address()) {
     throw DynamicException("ERC721::burn_: inexistent token");
   }
@@ -174,7 +174,7 @@ void ERC721::transfer_(const Address& from, const Address& to, const uint256_t& 
     throw DynamicException("ERC721::transfer_: transfer to the zero address");
   }
 
-  Address prevOwner = this->update_(to, tokenId, Address());
+  Address prevOwner = this->update_(to, tokenId, this->getCaller());
   if (prevOwner == Address()) {
     throw DynamicException("ERC721::transfer_: inexistent token");
   } else if (prevOwner != from) {
@@ -257,15 +257,7 @@ bool ERC721::isApprovedForAll(const Address& owner, const Address& operatorAddre
 }
 
 void ERC721::transferFrom(const Address& from, const Address& to, const uint256_t& tokenId) {
-  if (to == Address()) {
-    throw DynamicException("ERC721::transferFrom: transfer to the zero address");
-  }
-  Address prevOwner = this->update_(to, tokenId, this->getCaller());
-  if (prevOwner == Address()) {
-    throw DynamicException("ERC721::transferFrom: inexistent token");
-  } else if (prevOwner != from) {
-    throw DynamicException("ERC721::transferFrom: incorrect owner");
-  }
+  this->transfer_(from, to, tokenId);
 }
 
 DBBatch ERC721::dump() const {

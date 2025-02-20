@@ -106,7 +106,7 @@ template <typename T> json requestMethod(std::string method, T params) {
   );
 }
 
-namespace THTTPJsonRPC{
+namespace THTTPJsonRPC {
   TEST_CASE("HTTPJsonRPC Tests", "[net][http][jsonrpc]") {
     SECTION("checkJsonRPCSpec") {
       json ok = {{"jsonrpc", "2.0"}, {"method", "myMethod"}, {"params", json::array()}};
@@ -177,6 +177,7 @@ namespace THTTPJsonRPC{
 
       blockchainWrapper.http.start();
       std::this_thread::sleep_for(std::chrono::milliseconds(100));
+      blockchainWrapper.http.start(); // Attempt to start again, for coverage (runFuture is valid)
 
       json web3_clientVersionResponse = requestMethod("web3_clientVersion", json::array());
 
@@ -299,8 +300,7 @@ namespace THTTPJsonRPC{
         {"to", "0xaaA85B2B2bD0bFdF6Bc5D0d61B6192c53818567b"},
         {"gas", "0xffffff"},
         {"gasPrice", "0x1"},
-        {"value", "0x1"},
-        {"data", "0x1"},
+        {"value", "0x1"}
       }), "latest"}));
 
       REQUIRE(eth_estimateGasResponse["result"] == "0x5208");

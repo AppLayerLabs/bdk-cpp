@@ -10,7 +10,7 @@ See the LICENSE.txt file in the project root for more information.
 
 uint256_t EVMCConv::evmcUint256ToUint256(const evmc::uint256be& x) {
   // We can use the uint256ToBytes directly as it is std::span and we can create a span from an array
-  return UintConv::bytesToUint256(bytes::View(x.bytes, 32));
+  return UintConv::bytesToUint256(View<Bytes>(x.bytes, 32));
 }
 
 evmc::uint256be EVMCConv::uint256ToEvmcUint256(const uint256_t& x) {
@@ -28,7 +28,7 @@ BytesArr<32> EVMCConv::evmcUint256ToBytes(const evmc::uint256be& x) {
   return ret;
 }
 
-evmc::uint256be EVMCConv::bytesToEvmcUint256(const bytes::View x) {
+evmc::uint256be EVMCConv::bytesToEvmcUint256(const View<Bytes> x) {
   evmc::uint256be ret;
   std::copy(x.begin(), x.end(), ret.bytes);
   return ret;
@@ -38,12 +38,12 @@ Functor EVMCConv::getFunctor(const evmc_message& msg) {
   Functor ret;
   if (msg.input_size < 4) return ret;
   // Memcpy the first 4 bytes from the input data to the function signature
-  ret.value = UintConv::bytesToUint32(bytes::View(msg.input_data, 4));
+  ret.value = UintConv::bytesToUint32(View<Bytes>(msg.input_data, 4));
   return ret;
 }
 
-bytes::View EVMCConv::getFunctionArgs(const evmc_message& msg) {
-  if (msg.input_size < 4) return bytes::View();
-  return bytes::View(msg.input_data + 4, msg.input_size - 4);
+View<Bytes> EVMCConv::getFunctionArgs(const evmc_message& msg) {
+  if (msg.input_size < 4) return View<Bytes>();
+  return View<Bytes>(msg.input_data + 4, msg.input_size - 4);
 }
 

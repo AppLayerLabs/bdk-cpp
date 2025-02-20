@@ -39,7 +39,7 @@ namespace TDEXV2 {
       Address pair;
       Address tokenA;
       Address tokenB;
-      Address chainOwner("0x00dead00665771855a34155f5e7405489df2c3c6", false);
+      Address chainOwner(bytes::hex("0x00dead00665771855a34155f5e7405489df2c3c6"));
       std::unique_ptr<Options> options;
       {
         SDKTestSuite sdk = SDKTestSuite::createNewEnvironment("testDEXV2Pair");
@@ -85,16 +85,25 @@ namespace TDEXV2 {
 
   TEST_CASE("DEXV2 Router Test", "[contract][dexv2][dexv2router]") {
     SECTION("Deploy + Dump DEXV2Router/Factory with a single pair") {
+      Address tokenA;
+      Address tokenB;
       Address wrapped;
       Address factory;
       Address router;
+      Address pair;
       std::unique_ptr<Options> options;
       {
         SDKTestSuite sdk = SDKTestSuite::createNewEnvironment("testDEXV2RouterSinglePair");
+        tokenA = sdk.deployContract<ERC20>(std::string("TokenA"), std::string("TKNA"), uint8_t(18), uint256_t("10000000000000000000000"));
+        tokenB = sdk.deployContract<ERC20>(std::string("TokenB"), std::string("TKNB"), uint8_t(18), uint256_t("10000000000000000000000"));
         wrapped = sdk.deployContract<NativeWrapper>(std::string("WSPARQ"), std::string("WSPARQ"), uint8_t(18));
         factory = sdk.deployContract<DEXV2Factory>(Address());
         router = sdk.deployContract<DEXV2Router02>(factory, wrapped);
+        sdk.callFunction(factory, &DEXV2Factory::createPair, tokenA, tokenB);
+        pair = sdk.callViewFunction(factory, &DEXV2Factory::getPairByIndex, uint64_t(0));
         for (const auto& contract : sdk.getState().getCppContracts()) {
+          if (contract.first == "TokenA") REQUIRE(contract.second == tokenA);
+          if (contract.first == "TokenB") REQUIRE(contract.second == tokenB);
           if (contract.first == "NativeWrapper") REQUIRE(contract.second == wrapped);
           if (contract.first == "DEXV2Factory")  REQUIRE(contract.second == factory);
           if (contract.first == "DEXV2Router02") REQUIRE(contract.second == router);
@@ -108,6 +117,8 @@ namespace TDEXV2 {
       // (The createNewEnvironment DELETES the DB if any is found)
       SDKTestSuite sdk(*options);
       for (const auto& contract : sdk.getState().getCppContracts()) {
+        if (contract.first == "TokenA") REQUIRE(contract.second == tokenA);
+        if (contract.first == "TokenB") REQUIRE(contract.second == tokenB);
         if (contract.first == "NativeWrapper") REQUIRE(contract.second == wrapped);
         if (contract.first == "DEXV2Factory")  REQUIRE(contract.second == factory);
         if (contract.first == "DEXV2Router02") REQUIRE(contract.second == router);
@@ -116,6 +127,23 @@ namespace TDEXV2 {
       // For coverage
       REQUIRE(sdk.callViewFunction(router, &DEXV2Router02::factory) == factory);
       REQUIRE(sdk.callViewFunction(router, &DEXV2Router02::wrappedNative) == wrapped);
+      REQUIRE(sdk.callViewFunction(factory, &DEXV2Factory::feeTo) == Address());
+      REQUIRE(sdk.callViewFunction(factory, &DEXV2Factory::feeToSetter) == Address());
+      REQUIRE(sdk.callViewFunction(factory, &DEXV2Factory::allPairsLength) == 1);
+      std::vector<Address> allPairs = sdk.callViewFunction(factory, &DEXV2Factory::allPairs);
+      REQUIRE(allPairs.size() == 1);
+      REQUIRE(allPairs[0] == pair);
+      Address add(bytes::hex("0x1234567890123456789012345678901234567890"));
+      sdk.callFunction(factory, &DEXV2Factory::setFeeTo, add);
+      sdk.callFunction(factory, &DEXV2Factory::setFeeToSetter, add);
+      REQUIRE(sdk.callViewFunction(factory, &DEXV2Factory::feeTo) == add);
+      REQUIRE(sdk.callViewFunction(factory, &DEXV2Factory::feeToSetter) == add);
+      REQUIRE(sdk.callViewFunction(factory, &DEXV2Factory::getPair, tokenA, factory) == Address());
+
+      // For coverage (createPair)
+      REQUIRE_THROWS(sdk.callFunction(factory, &DEXV2Factory::createPair, pair, pair)); // Identical addresses
+      REQUIRE_THROWS(sdk.callFunction(factory, &DEXV2Factory::createPair, Address(), pair)); // Zero address
+      REQUIRE_THROWS(sdk.callFunction(factory, &DEXV2Factory::createPair, tokenA, tokenB)); // Pair exists
     }
 
     SECTION("Deploy DEXV2 and add/remove liquidity to token/token pair") {
@@ -201,6 +229,9 @@ namespace TDEXV2 {
         tokenA, tokenB, uint256_t("5000000000000000000"),
         uint256_t(0), uint256_t("500000000000000000000"), owner, deadline // insufficient amountB (500)
       ));
+      // For coverage (sync and skim)
+      sdk.callFunction(pair, &DEXV2Pair::sync);
+      sdk.callFunction(pair, &DEXV2Pair::skim, owner);
     }
 
     SECTION("Deploy DEXV2 and add/remove liquidity to token/native pair") {
