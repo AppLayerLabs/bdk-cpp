@@ -174,12 +174,11 @@ class ContractHost {
       BlockNumberObserver observer{
         [contractAddress, method, argsTuple = std::tuple<Args...>(args...)] (ContractHost& host) mutable {
           std::apply([&] (const Args&... args) {
-            Address from;
             Gas gas(5'000'000);
             uint256_t value = 0;
 
             PackedCallMessage<R(C::*)(const Args&...), const Args&...> msg(
-              from,
+              contractAddress,
               contractAddress,
               gas,
               value,
@@ -208,12 +207,11 @@ class ContractHost {
       BlockTimestampObserver observer{
         [contractAddress, method, argsTuple = std::tuple<std::decay_t<decltype(args)>...>(std::forward<decltype(args)>(args)...)] (ContractHost& host) mutable {
           std::apply([&] (const Args&... args) {
-            Address from;
             Gas gas(5'000'000);
             uint256_t value = 0;
 
             PackedCallMessage<R(C::*)(const Args&...), const Args&...> msg(
-              from,
+              contractAddress,
               contractAddress,
               gas,
               value,
