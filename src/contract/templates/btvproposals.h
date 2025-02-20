@@ -71,7 +71,7 @@ class BTVProposals : public virtual DynamicContract, public Ownable {
         const Address &, const Address &, const uint64_t &,
         const std::unique_ptr<DB> &
       >(
-        std::vector<std::string>{""},
+        std::vector<std::string>{},
         std::make_tuple("createProposal", &BTVProposals::createProposal, FunctionTypes::NonPayable, std::vector<std::string>{"title", "description"}),
         std::make_tuple("voteOnProposal", &BTVProposals::voteOnProposal, FunctionTypes::NonPayable, std::vector<std::string>{"tokenId", "proposalId", "energy"}),
         std::make_tuple("removeVote", &BTVProposals::removeVote, FunctionTypes::NonPayable, std::vector<std::string>{"tokenId", "proposalId", "energy"}),
