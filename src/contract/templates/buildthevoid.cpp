@@ -66,7 +66,7 @@ BuildTheVoid::BuildTheVoid(const Address &address, const DB &db) :
     BTVUtils::ChunkCoord2D chunkCoords;
     chunkCoords.first = IntConv::bytesToInt32(keyView.subspan(0, 4));
     chunkCoords.second = IntConv::bytesToInt32(keyView.subspan(4, 4));
-    this->world_.getChunks().emplace(chunkCoords, BTVUtils::Chunk::deserialize(dbEntry.value));
+    this->world_.getChunks()[chunkCoords] = BTVUtils::Chunk::deserialize(dbEntry.value);
   }
 
   this->playerContract_.commit();

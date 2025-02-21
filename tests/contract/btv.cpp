@@ -1370,7 +1370,9 @@ namespace TBuildTheVoid {
           REQUIRE(playerEnergy == energyValue - uint256_t("1000000000000000000")); // 1.00 NRG
           REQUIRE(lastUpdate == sdk.getLatestBlock()->getTimestamp());
           REQUIRE(sdk.callViewFunction(energyContract, &BTVEnergy::balanceOf, btvContract) == energyValue);
-
+          REQUIRE(playerX == 4);
+          REQUIRE(playerY == 6);
+          REQUIRE(playerZ == 5);
         }
         {
           // Finally, logout the player
@@ -1410,6 +1412,15 @@ namespace TBuildTheVoid {
       SDKTestSuite sdk(*options);
 
       auto newSpawnChunk = BTVUtils::Chunk::deserialize(sdk.callViewFunction(btvContract, &BuildTheVoid::getChunk, 0, 0));
+      // Block 4,8,4 must be a WALL
+      REQUIRE(newSpawnChunk.blocks[4][8][4].type == BTVUtils::BlockType::WALL);
+      // And a 10x10 SURFACE platform at Y=5
+      for (int x = 0; x < 10; x++) {
+        for (int z = 0; z < 10; z++) {
+          REQUIRE(newSpawnChunk.blocks[x][5][z].type == BTVUtils::BlockType::SURFACE);
+          REQUIRE_FALSE(newSpawnChunk.blocks[x][5][z].placer_.has_value());
+        }
+      }
       REQUIRE (spawnChunk == newSpawnChunk);
 
 
