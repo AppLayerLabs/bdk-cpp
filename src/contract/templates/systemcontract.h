@@ -73,7 +73,7 @@ class SystemContract : public DynamicContract {
 
     static PubKey pubKeyFromString(const std::string& pubKeyStr);
 
-    bool recordDelegationDelta(const PubKey& validator, const uint64_t& delta, const bool& positive);
+    void recordDelegationDelta(const PubKey& validator, const uint64_t& delta, const bool& positive);
 
     SafeUint64_t numSlots_; /// The active number of validator slots.
     SafeUint64_t maxSlots_; /// The maximum value for numSlots_.
@@ -177,7 +177,6 @@ class SystemContract : public DynamicContract {
     /**
      * An elected validator sets its vote for the number of validator slots.
      * The tx sender (caller) must be the account for validatorPubKey.
-     * TODO: If we keep an account-to-pubkey reverse mapping, we don't need to take validatorPubKey as a param.
      * @param validatorPubKey 33-byte Secp256k1 validador public key that is voting for a number of slots (must match caller account).
      * @param slots Chosen target number of validator slots to vote for.
      */

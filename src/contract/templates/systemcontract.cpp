@@ -36,7 +36,7 @@ struct ValidatorVotes {
   }
 };
 
-bool SystemContract::recordDelegationDelta(const PubKey& validator, const uint64_t& delta, const bool& positive) {
+void SystemContract::recordDelegationDelta(const PubKey& validator, const uint64_t& delta, const bool& positive) {
   // check that the current validator votes + the current delegation delta + the new delta won't
   // end outside of uint64_t range. if OK, save as intermediary int256_t at delegationDeltas_.
   int256_t checker = 0;
@@ -72,7 +72,6 @@ bool SystemContract::recordDelegationDelta(const PubKey& validator, const uint64
   } else {
     delegationDeltas_[validator] -= delta;
   }
-  return true;
 }
 
 SystemContract::SystemContract(
@@ -218,15 +217,6 @@ void SystemContract::delegate(const std::string& validatorPubKey, const uint256_
     }
   }
   delegations_[caller][validator] += amount64;
-  // This is not needed as we imposed a total ordering based on public key binary comparison
-  // // Loop avoiding collision in delegation amount (which we do not support)
-  // while (!recordDelegationDelta(validator, amount64, true)) {
-  //  if (amount64 == 1) {
-  //    throw DynamicException("Cannot delegate this amount (try a larger amount)");
-  //  }
-  //  --amount64;
-  //  --delegations_[caller][validator];
-  //}
   recordDelegationDelta(validator, amount64, true);
 }
 
@@ -259,15 +249,6 @@ void SystemContract::undelegate(const std::string& validatorPubKey, const uint25
   if (effectiveAmount > 0) {
     stakes_[caller] += effectiveAmount;
   }
-  // This is not needed as we imposed a total ordering based on public key binary comparison
-  // // Loop avoiding collision in delegation amount (which we do not support)
-  // while (!recordDelegationDelta(validator, amount64, false)) {
-  //   if (amount64 == 1) {
-  //     throw DynamicException("Cannot undelegate this amount (try a larger amount)");
-  //   }
-  //   --amount64;
-  //   ++delegations_[caller][validator];
-  // }
   recordDelegationDelta(validator, amount64, false);
 }
 
