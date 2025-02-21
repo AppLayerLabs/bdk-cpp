@@ -60,6 +60,15 @@ BytesArr<8> IntConv::int64ToBytes(const int64_t& i) {
   return ret;
 }
 
+BytesArr<4> IntConv::int32ToBytes(const int32_t& i) {
+  BytesArr<4> ret = {0};
+  std::memcpy(&ret[0], &i, 4);
+  #if __BYTE_ORDER == __LITTLE_ENDIAN
+    std::reverse(ret.begin(), ret.end());
+  #endif
+  return ret;
+}
+
 // ==========================================================================
 // BYTES TO INT
 // ==========================================================================
@@ -108,3 +117,14 @@ int64_t IntConv::bytesToInt64(const View<Bytes> b) {
   return ret;
 }
 
+int32_t IntConv::bytesToInt32(const View<Bytes> b) {
+  if (b.size() != 4) throw DynamicException(std::string(__func__)
+    + ": Invalid bytes size - expected 4, got " + std::to_string(b.size())
+  );
+  int32_t ret = 0;
+  std::memcpy(&ret, b.data(), 4);
+  #if __BYTE_ORDER == __LITTLE_ENDIAN
+    return __builtin_bswap32(ret);
+  #endif
+  return ret;
+}

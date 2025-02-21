@@ -35,31 +35,51 @@ namespace BTVUtils {
      * World positioning struct
      */
     struct WorldBlockPos {
-      int32_t x; // global X
-      int32_t y; // global Y (vertical)
-      int32_t z; // global Z
+      int32_t x = 0; // global X
+      int32_t y = 0; // global Y (vertical)
+      int32_t z = 0; // global Z
       bool operator==(const WorldBlockPos &) const = default;
     };
 
     struct LocalBlockPos {
       // chunk coordinates (2D, i.e. chunkX, chunkZ)
-      int32_t cx;
-      int32_t cy;
+      int32_t cx = 0;
+      int32_t cy = 0;
       // local positions within that chunk
-      int32_t x;
-      int32_t y;
-      int32_t z;
+      int32_t x = 0;
+      int32_t y = 0;
+      int32_t z = 0;
       bool operator==(const LocalBlockPos &) const = default;
+    };
+
+    using PlayerInformationData = std::tuple<
+        uint64_t,        // playerId
+        std::tuple<      // WorldBlockPos
+            int32_t,     // x
+            int32_t,     // y
+            int32_t      // z
+          >,
+        uint256_t,       // energy
+        uint64_t         // lastUpdate
+      >;
+
+    struct PlayerInformation {
+        WorldBlockPos position{0,0,0};
+        uint256_t energy = 0;
+        uint64_t lastUpdate = 0;
     };
 
     struct Block {
       BlockType type = BlockType::AIR;
       std::optional<uint64_t> placer_ = std::nullopt;
+      uint64_t modificationTimestamp = 0;
       inline const BlockType& getBlockType() const { return type; }
       inline void setBlockType(BlockType t) { type = t; }
       inline bool hasPlacer() const { return placer_.has_value(); }
       inline void setPlacer(uint64_t placer) { placer_ = placer; }
       inline std::optional<uint64_t> getPlacer() const { return placer_; }
+      inline void setModificationTimestamp(uint64_t timestamp) { modificationTimestamp = timestamp; }
+      inline const uint64_t& getModificationTimestamp() const { return modificationTimestamp; }
       bool operator==(const Block &) const = default;
     };
 
@@ -122,7 +142,7 @@ namespace BTVUtils {
       // blocks[x][y][z]
       ChunkData<WIDTH, HEIGHT, LENGTH> blocks;
 
-      Bytes serialize() {
+      Bytes serialize() const {
         Bytes data;
         for (int x = 0; x < WIDTH; x++) {
           for (int y = 0; y < HEIGHT; y++) {
@@ -136,6 +156,7 @@ namespace BTVUtils {
               } else {
                 data.push_back(static_cast<uint8_t>(0));
               }
+              Utils::appendBytes(data, (UintConv::uint64ToBytes(blocks[x][y][z].getModificationTimestamp())));
             }
           }
         }
@@ -158,12 +179,16 @@ namespace BTVUtils {
               } else {
                 i++;
               }
+              chunk.blocks[x][y][z].setModificationTimestamp(UintConv::bytesToUint64(dataView.subspan(i, 8)));
+              i += 8;
             }
           }
         }
         return chunk;
       }
       bool operator==(const Chunk &) const = default;
+      // operator=
+      Chunk& operator=(const Chunk& other) = default;
     };
 
     /**
@@ -171,6 +196,14 @@ namespace BTVUtils {
      * We'll treat 'cx' as chunk-X, 'cy' as chunk-Z
      */
     using ChunkCoord2D = std::pair<int32_t, int32_t>;
+
+    /**
+     * Check if a given block is close to another block
+     * a block is to be considered placed on the "middle" of the area based on distance
+     * For example, if distance is 1, then it will check a 3x3x3 area around the block with 'a' as the center
+     * If distance is 2, then it will check a 5x5x5 area around the block with 'a' as the center
+     */
+    bool isBlockClose(const WorldBlockPos& a, const WorldBlockPos& b, int distance);
 
     /**
      * World class
@@ -223,12 +256,16 @@ namespace BTVUtils {
         // Out of bounds check
         static bool isOutOfBounds(const LocalBlockPos& lp);
         static bool isOutOfBounds(const WorldBlockPos& wp);
+        bool hasBlockUnder(const WorldBlockPos& wp) const;
+        bool hasBlockOver(const WorldBlockPos& wp) const;
 
         // Getter for chunks
         const SafeUnorderedMap<ChunkCoord2D, Chunk>& getChunks() const;
         SafeUnorderedMap<ChunkCoord2D, Chunk>& getChunks();
         const Chunk* getChunk(const ChunkCoord2D& coord) const;
         Chunk* getChunk(const ChunkCoord2D& coord);
+        void commitAndEnable();
+        bool operator==(const World &) const = default;
     };
 }
 

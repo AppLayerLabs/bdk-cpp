@@ -64,6 +64,7 @@ namespace IntConv {
   BytesArr<32> int256ToBytes(const int256_t& i);
   BytesArr<17> int136ToBytes(const int136_t& i);
   BytesArr<8> int64ToBytes(const int64_t& i);
+  BytesArr<4> int32ToBytes(const int32_t& i);
   ///@}
 
   ///@{
@@ -76,6 +77,7 @@ namespace IntConv {
   int256_t bytesToInt256(const View<Bytes> b);
   int136_t bytesToInt136(const View<Bytes> b);
   int64_t bytesToInt64(const View<Bytes> b);
+  int32_t bytesToInt32(const View<Bytes> b);
   ///@}
 };
 

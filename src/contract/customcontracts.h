@@ -26,19 +26,20 @@ See the LICENSE.txt file in the project root for more information.
 #include "templates/btvenergy.h"
 #include "templates/btvplayer.h"
 #include "templates/btvproposals.h"
+#include "templates/buildthevoid.h"
 
 /// Typedef for the blockchain's registered contracts.
 #ifdef BUILD_TESTNET
 /// Typedef for the blockchain's registered contracts in TESTNET mode.
 using ContractTypes = std::tuple<
-  ERC20, NativeWrapper, DEXV2Pair, DEXV2Factory, DEXV2Router02, ERC721, ERC721URIStorage, Ownable, Pebble, BTVPlayer, BTVEnergy, BTVProposals
+  ERC20, NativeWrapper, DEXV2Pair, DEXV2Factory, DEXV2Router02, ERC721, ERC721URIStorage, Ownable, Pebble, BTVPlayer, BTVEnergy, BTVProposals, BuildTheVoid
 >;
 #else
 /// Typedef for the blockchain's registered contracts in normal mode.
 using ContractTypes = std::tuple<
   ERC20, ERC20Wrapper, NativeWrapper, SimpleContract, DEXV2Pair, DEXV2Factory,
   DEXV2Router02, ERC721, ThrowTestA, ThrowTestB, ThrowTestC, ERC721Test, TestThrowVars,
-  RandomnessTest, SnailTracer, SnailTracerOptimized, Pebble, BTVPlayer, BTVEnergy, BTVProposals
+  RandomnessTest, SnailTracer, SnailTracerOptimized, Pebble, BTVPlayer, BTVEnergy, BTVProposals, BuildTheVoid
 >;
 #endif
 

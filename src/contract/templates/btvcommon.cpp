@@ -2,6 +2,18 @@
 
 
 namespace BTVUtils {
+  /**
+   * Check if a given block is close to another block
+   * a block is to be considered placed on the "middle" of the area based on distance
+   * For example, if distance is 1, then it will check a 3x3x3 area around the block with 'a' as the center
+   * If distance is 2, then it will check a 5x5x5 area around the block with 'a' as the center
+   */
+  bool isBlockClose(const WorldBlockPos& a, const WorldBlockPos& b, int distance) {
+    return std::abs(a.x - b.x) <= distance &&
+           std::abs(a.y - b.y) <= distance &&
+           std::abs(a.z - b.z) <= distance;
+  }
+
   World::World() {
     const int half = NUM_CHUNKS / 2; // 32
     const int minC = -half;         // -32
@@ -11,16 +23,15 @@ namespace BTVUtils {
       for (int cy = minC; cy < maxC; cy++) {
         ChunkCoord2D cc{ (int32_t)cx, (int32_t)cy };
         Chunk chunk; // defaults to AIR
-
-        // Special case chunk(0,0): fill 10x10 area at y=5 with SURFACE
-        if (cx == 0 && cy == 0) {
-          for (int lx = 0; lx < 10; lx++) {
-            for (int lz = 0; lz < 10; lz++) {
-              chunk.blocks[lx][5][lz].type = BlockType::SURFACE;
-            }
-          }
-        }
         chunks.emplace(cc, std::move(chunk));
+      }
+    }
+    for (int lx = 0; lx < 10; lx++) {
+      for (int lz = 0; lz < 10; lz++) {
+        // Fill 10x10 area at y=5 with SURFACE
+        WorldBlockPos pos{ lx, 5, lz };
+        LocalBlockPos lpos = worldToLocal(pos);
+        chunks.at({ lpos.cx, lpos.cy }).blocks[lpos.x][lpos.y][lpos.z].type = BlockType::SURFACE;
       }
     }
   }
@@ -212,6 +223,36 @@ namespace BTVUtils {
     return World::isOutOfBounds(World::worldToLocal(wp));
   }
 
+  bool World::hasBlockUnder(const WorldBlockPos& wp) const {
+    if (isOutOfBounds(wp)) {
+      return false;
+    }
+    // Transform the world position to a local position
+    LocalBlockPos lp = worldToLocal(wp);
+    // Now, loop all the way down to the bottom, checking if there is a non-air block
+    for (int y = lp.y - 1; y >= 0; y--) {
+      if (this->chunks.at({ lp.cx, lp.cy }).blocks[lp.x][y][lp.z].type != BlockType::AIR) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  bool World::hasBlockOver(const WorldBlockPos &wp) const {
+    if (isOutOfBounds(wp)) {
+      return false;
+    }
+    // Transform the world position to a local position
+    LocalBlockPos lp = worldToLocal(wp);
+    // Now, loop all the way up to the top, checking if there is a non-air block
+    for (int y = lp.y + 1; y < Chunk::HEIGHT; y++) {
+      if (this->chunks.at({ lp.cx, lp.cy }).blocks[lp.x][y][lp.z].type != BlockType::AIR) {
+        return true;
+      }
+    }
+    return false;
+  }
+
 
   const SafeUnorderedMap<ChunkCoord2D, Chunk>& World::getChunks() const {
     return chunks;
@@ -235,5 +276,10 @@ namespace BTVUtils {
       return nullptr;
     }
     return &it->second;
+  }
+
+  void World::commitAndEnable() {
+    this->chunks.commit();
+    this->chunks.enableRegister();
   }
 };

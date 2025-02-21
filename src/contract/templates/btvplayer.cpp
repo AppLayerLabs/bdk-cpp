@@ -152,14 +152,14 @@ void BTVPlayer::addPlayerEnergy(const uint64_t &tokenId, const uint256_t &energy
 void BTVPlayer::takePlayerEnergy(const uint64_t &tokenId, const uint256_t &energy) {
   // Only the owner of the token OR the world contract can take energy from a player
   if (this->getCaller() != this->owner() && this->getCaller() != this->ownerOf(tokenId)) {
-    throw DynamicException("Caller is not the owner of the token or the world contract");
+    throw DynamicException("BTVPlayer::takePlayerEnergy: Caller is not the owner of the token or the world contract");
   }
   auto it = this->energyBalance_.find(tokenId);
   if (it == this->energyBalance_.cend()) {
-    throw DynamicException("Player does not exist");
+    throw DynamicException("BTVPlayer::takePlayerEnergy: Player does not exist");
   }
   if (it->second < energy) {
-    throw DynamicException("Not enough energy");
+    throw DynamicException("BTVPlayer::takePlayerEnergy: Not enough energy");
   }
   this->callContractFunction(this->energyContract_.get(), &ERC20::transfer, this->getContractAddress(), it->second);
   it->second -= energy;
