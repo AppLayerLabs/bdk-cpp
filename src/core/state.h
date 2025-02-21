@@ -16,10 +16,8 @@ See the LICENSE.txt file in the project root for more information.
 #include "../utils/logger.h"
 #include "../utils/safehash.h"
 
-#if defined(BUILD_TESTS) && defined(BUILD_BENCHMARK_TESTS)
-// Forward declaration. Used only for benchmarking purposes.
-class SDKTestSuite;
-#endif
+#include "typedefs.h"
+#include "comet.h"
 
 /// Mempool model to help validate multiple txs with same from account and various nonce values.
 using MempoolModel =
@@ -59,10 +57,47 @@ using MempoolModelHashIt =
     >
   , SafeHash>::iterator;
 
+#if defined(BUILD_TESTS) && defined(BUILD_BENCHMARK_TESTS)
+// Forward declaration. Used only for benchmarking purposes.
+class SDKTestSuite;
+#endif
 class Blockchain;
 class FinalizedBlock;
+class SystemContract;
 
-#include "typedefs.h"
+/// A CometBFT validator set that becomes active at a given height
+class ValidatorSet {
+  private:
+    uint64_t height_; ///< Height of the first block that this validator set actually votes on (is active, in effect).
+    std::vector<CometValidatorUpdate> validators_; ///< A CometBFT validator set.
+    std::unordered_map<Address, uint64_t, SafeHash> validatorAddrs_; /// Map of CometBFT validator address to index in validators_.
+  public:
+    uint64_t& getHeight() { return height_; }
+    const std::vector<CometValidatorUpdate>& getValidators() { return validators_; }
+    Address validatorCometAddressToEthAddress(const Address& validatorCometAddress) {
+      auto it = validatorAddrs_.find(validatorCometAddress);
+      if (it == validatorAddrs_.end()) {
+        return {};
+      }
+      const uint64_t& validatorIndex = it->second;
+      if (validatorIndex >= validators_.size()) {
+        throw DynamicException("Blockchain::validatorCometAddressToEthAddress() returned an index not in validators_.");
+      }
+      const CometValidatorUpdate& v = validators_[validatorIndex];
+      PubKey pubKey(v.publicKey); // Compressed key (33 bytes)
+      return Secp256k1::toAddress(pubKey); // Generate Eth address from validator pub key
+    }
+    ValidatorSet(const uint64_t& height, const std::vector<CometValidatorUpdate>& validators)
+      : height_(height), validators_(validators)
+    {
+      for (int i = 0; i < validators_.size(); ++i) {
+        const CometValidatorUpdate& v = validators_[i];
+        Bytes cometAddrBytes = Comet::getCometAddressFromPubKey(v.publicKey);
+        Address cometAddr(cometAddrBytes);
+        validatorAddrs_[cometAddr] = i;
+      }
+    }
+};
 
 /// Abstraction of the blockchain's current state at the current block.
 class State : public Log::LogicalLocationProvider {
@@ -82,6 +117,16 @@ class State : public Log::LogicalLocationProvider {
     ContractsContainerType contracts_; ///< Map with information about blockchain contracts (Address -> Contract).
     boost::unordered_flat_map<StorageKey, Hash, SafeHash, SafeCompare> vmStorage_; ///< Map with the storage of the EVM.
     boost::unordered_flat_map<Address, NonNullUniquePtr<Account>, SafeHash, SafeCompare> accounts_; ///< Map with information about blockchain accounts (Address -> Account).
+    int currentValidatorSet_ = -1; ///< Index in validatorSets_ of the currently active validator set, -1 means none.
+    std::deque<ValidatorSet> validatorSets_; ///< More recent set in front, oldest in back.
+
+    /**
+     * A new validator set is elected in the governance contract, so update the State with it.
+     * @param newValidatorSet Validator set that will become active in current height + 2 or, if we are in
+     * genesis state, the genesis validator set that becomes the first validator set (instantly active at
+     * starting height).
+     */
+    void setValidators(const std::vector<CometValidatorUpdate>& newValidatorSet);
 
     /**
      * Helper for static contract registration step.
@@ -128,6 +173,12 @@ class State : public Log::LogicalLocationProvider {
      */
     void contractSanityCheck(const Address& addr, const Account& acc);
 
+    /**
+     * Get the system contract. Does not acquire the stateMutex_.
+     * @return Pointer to SystemContract, or nullptr if SystemContract not instantiated (no initChain() or loadSnapshot() yet).
+     */
+    SystemContract* getSystemContractInternal();
+
     #if defined(BUILD_TESTS) && defined(BUILD_BENCHMARK_TESTS)
     // Process a transaction directly without having to put it in a block.
     // FOR TESTING PURPOSES ONLY. DO NOT COMPILE FOR PRODUCTION
@@ -143,12 +194,34 @@ class State : public Log::LogicalLocationProvider {
     std::string getLogicalLocation() const override; ///< Log helper.
 
     /**
-     * Helper for testing.
+     * Get the validator set that is currently in effect.
+     * @param validatorSet Outparam with the validator set in effect.
+     * @param height Outparam with the block height in which this validator set took effect.
      */
-    size_t getContractsSize() {
-      std::shared_lock lock(this->stateMutex_);
-      return contracts_.size();
-    }
+    void getValidatorSet(std::vector<CometValidatorUpdate>& validatorSet, uint64_t& height);
+
+    /**
+     * Given a CometBFT validator address, which is backed by a secp256k1 validator
+     * private key (due to how the Comet driver configures CometBFT to use secp256k1
+     * keys), look up the current validator list, find the validator private key given
+     * the CometBFT validator address, then generate an Eth validator address from
+     * that found private key.
+     * @param validatorCometAddress The CometBFT address of one of the active validators.
+     * @return The translation of the CometBFT address into the corresponding Eth address.
+     */
+    Address validatorCometAddressToEthAddress(Address validatorCometAddress);
+
+    /**
+     * Get the number of user-deployed contracts.
+     * @return Number of user-deployed contracts.
+     */
+    size_t getUserContractsSize();
+
+    /**
+     * Get the system contract.
+     * @return Pointer to SystemContract, or nullptr if SystemContract not instantiated (no initChain() or loadSnapshot() yet).
+     */
+    SystemContract* getSystemContract();
 
     /**
      * Resets the machine state to its default, bare-minimum state.
@@ -164,10 +237,12 @@ class State : public Log::LogicalLocationProvider {
      * Genesis state is known only after the ABCI InitChain call.
      * @param initialHeight Genesis height (0 is the default start-from-scratch, no-blocks value).
      * @param initialTimeEpochSeconds Genesis timestamp in seconds since epoch.
+     * @param initialValidators Validator set at genesis.
      * @param genesisSnapshot Optional snapshot directory location with genesis state to load ("" if none).
      */
     void initChain(
       uint64_t initialHeight, uint64_t initialTimeEpochSeconds,
+      const std::vector<CometValidatorUpdate>& initialValidators,
       std::string genesisSnapshot = ""
     );
 
@@ -182,8 +257,9 @@ class State : public Log::LogicalLocationProvider {
      * Read the entire consensus machine state held in persistent storage to RAM.
      * May throw on errors.
      * @param where Existing speedb directory name the snapshot will be read from.
+     * @param genesisSnapshot `true` if loading a genesis snapshot, `false` otherwise.
      */
-    void loadSnapshot(const std::string& where, bool allowV1Snapshot = false);
+    void loadSnapshot(const std::string& where, bool genesisSnapshot = false);
 
     /**
      * Get the blockchain block height currently reflected by this machine state.
@@ -230,9 +306,13 @@ class State : public Log::LogicalLocationProvider {
      * @param block The block to process.
      * @param succeeded Empty outparam vector of tx execution success status.
      * @param gasUsed Empty outparam vector of tx execution gas used.
+     * @param validatorUpdates Empty outparam filled in with (optional) validator updates for CometBFT.
      * @throw DynamicException on any error.
      */
-    void processBlock(const FinalizedBlock& block, std::vector<bool>& succeeded, std::vector<uint64_t>& gasUsed);
+    void processBlock(
+      const FinalizedBlock& block, std::vector<bool>& succeeded, std::vector<uint64_t>& gasUsed,
+      std::vector<CometValidatorUpdate>& validatorUpdates
+    );
 
     /**
      * Verify if a transaction can be accepted within the current state and mempool model.
@@ -266,10 +346,16 @@ class State : public Log::LogicalLocationProvider {
      */
     int64_t estimateGas(EncodedMessageVariant msg);
 
-    /// Get a list of the C++ contract addresses and names.
+    /**
+     * Get a list of the C++ contract addresses and names.
+     * NOTE: TESTING ONLY, as this iterates over ALL contracts_.
+     */
     std::vector<std::pair<std::string, Address>> getCppContracts() const;
 
-    /// Get a list of Addresss which are EVM contracts.
+    /**
+     * Get a list of Addresss which are EVM contracts.
+     * NOTE: TESTING ONLY, as this iterates over ALL accounts_.
+     */
     std::vector<Address> getEvmContracts() const;
 
     /**

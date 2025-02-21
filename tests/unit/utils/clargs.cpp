@@ -45,10 +45,19 @@ namespace TClargs {
     }
 
     SECTION("applyProcessOptions") {
+
       // Set all options except log level manually so we can focus on its coverage later
       ProcessOptions opt;
       REQUIRE_FALSE(opt.valid);
       REQUIRE_FALSE(applyProcessOptions(opt));
+
+      /*
+        Tests cannot set process options since process options are process-wide and
+        the global test suite (which is a single process) sets its own process-wide options, which
+        would then get overwritten by this, and thus break the unit test suite.
+        For the process-wide options feature to be testable, some kind of trick is needed, like
+        reversible process options (which is a bad idea; just an example).
+
       opt.valid = true;
       opt.logLevel = "";
       opt.logLineLimit = 1000;
@@ -78,6 +87,7 @@ namespace TClargs {
       REQUIRE(applyProcessOptions(opt2));
       opt2.logLevel = "?"; // Invalid log level
       REQUIRE_FALSE(applyProcessOptions(opt2));
+      */
     }
   }
 }

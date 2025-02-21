@@ -36,6 +36,7 @@ set(CONTRACT_HEADERS
   ${CMAKE_SOURCE_DIR}/src/contract/templates/dexv2/dexv2router02.h
   ${CMAKE_SOURCE_DIR}/src/contract/templates/dexv2/uq112x112.h
   ${CMAKE_SOURCE_DIR}/src/contract/templates/pebble.h
+  ${CMAKE_SOURCE_DIR}/src/contract/templates/systemcontract.h
   ${CMAKE_SOURCE_DIR}/src/contract/templates/throwtestA.h
   ${CMAKE_SOURCE_DIR}/src/contract/templates/throwtestB.h
   ${CMAKE_SOURCE_DIR}/src/contract/templates/throwtestC.h
@@ -74,6 +75,7 @@ set(CONTRACT_SOURCES
   ${CMAKE_SOURCE_DIR}/src/contract/templates/dexv2/dexv2pair.cpp
   ${CMAKE_SOURCE_DIR}/src/contract/templates/dexv2/dexv2router02.cpp
   ${CMAKE_SOURCE_DIR}/src/contract/templates/pebble.cpp
+  ${CMAKE_SOURCE_DIR}/src/contract/templates/systemcontract.cpp
   ${CMAKE_SOURCE_DIR}/src/contract/templates/throwtestA.cpp
   ${CMAKE_SOURCE_DIR}/src/contract/templates/throwtestB.cpp
   ${CMAKE_SOURCE_DIR}/src/contract/templates/throwtestC.cpp

@@ -88,7 +88,8 @@ template <typename... Tp> struct printAtExit {
  * Instead, they are deployed in the constructor of State.
  */
 const boost::unordered_flat_map<std::string, Address> ProtocolContractAddresses = {
-  {"ContractManager", Address(Hex::toBytes("0x0001cb47ea6d8b55fe44fdd6b1bdb579efb43e61"))}  // Sha3("ContractManager").substr(0,20)
+  {"ContractManager", Address(Hex::toBytes("0x0001cb47ea6d8b55fe44fdd6b1bdb579efb43e61"))}, // Sha3("ContractManager").substr(0,20)
+  {"SystemContract",  Address(Hex::toBytes("0x0d6e210bae00b550db133853c1e4a96484717512"))}  // Sha3("SystemContract").substr(0,20)
 };
 
 /**

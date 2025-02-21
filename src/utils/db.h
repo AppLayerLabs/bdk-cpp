@@ -26,6 +26,8 @@ namespace DBPrefix {
   const Bytes txToAdditionalData = { 0x00, 0x0A }; ///< "txToAdditionalData" = "000A"
   const Bytes txToCallTrace =      { 0x00, 0x0B }; ///< "txToCallTrace" = "000B"
   const Bytes snapshotMetadata =   { 0x00, 0x0C }; ///< "snapshotMetadata" = "000C"
+  const Bytes validatorUpdates =   { 0x00, 0x0D }; ///< "validatorUpdates" = "000D"
+  const Bytes validatorSets =      { 0x00, 0x0E }; ///< "validatorSets" = "000E"
 };
 
 /// Struct for a database connection/endpoint.

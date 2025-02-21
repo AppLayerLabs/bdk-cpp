@@ -41,6 +41,12 @@ class Storage : public Log::LogicalLocationProvider {
     std::string getLogicalLocation() const override; ///< Log helper.
 
     /**
+     * Get the indexing mode of the storage.
+     * @returns The indexing mode of the storage.
+     */
+    IndexingMode getIndexingMode() const;
+
+    /**
      * Stores additional transaction data
      * @param txData The additional transaction data
      */
@@ -92,18 +98,23 @@ class Storage : public Log::LogicalLocationProvider {
     std::vector<Event> getEvents(uint64_t blockIndex, uint64_t txIndex) const;
 
     /**
-     * Get the indexing mode of the storage.
-     * @returns The indexing mode of the storage.
-     */
-    IndexingMode getIndexingMode() const;
-
-    /**
      * Helper function for checking if an event has certain topics.
      * @param event The event to check.
      * @param topics A list of topics to check for.
      * @return `true` if all topics match (or if no topics were provided), `false` otherwise.
      */
     static bool topicsMatch(const Event& event, const std::vector<Hash>& topics);
+
+    /**
+     * Store validator updates.
+     * By saving all validator updates, we can reconstruct the full history of validator sets if required.
+     * This full validator update history is not saved in snapshots.
+     * Validator updates are sequences of 41 bytes, where the first 33 bytes are the
+     * validator's PubKey, and the following 8 bytes are the int64_t vote count.
+     * @param height Block height at which the validator updates have been requested.
+     * @param validatorUpdates Pre-encoded validator updates to store.
+     */
+    void putValidatorUpdates(uint64_t height, Bytes validatorUpdates);
 };
 
 #endif  // STORAGE_H

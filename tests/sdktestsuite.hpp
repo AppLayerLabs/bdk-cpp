@@ -55,6 +55,7 @@ struct CometTestPorts {
 /// Wrapper struct for accounts used within the SDKTestSuite.
 struct TestAccount {
   const PrivKey privKey;    ///< Private key of the account.
+  const PubKey pubKey;      ///< Public key of the account.
   const Address address;    ///< Address of the account.
   TestAccount() = default;  ///< Empty Account constructor.
 
@@ -62,7 +63,11 @@ struct TestAccount {
    * Account constructor.
    * @param privKey_ Private key of the account.
    */
-  TestAccount(const PrivKey& privKey_) : privKey(privKey_), address(Secp256k1::toAddress(Secp256k1::toPub(privKey))) {}
+  TestAccount(const PrivKey& privKey_)
+    : privKey(privKey_),
+      pubKey(Secp256k1::toPub(privKey)),
+      address(Secp256k1::toAddress(pubKey))
+  {}
 
   /// Create a new random account.
   inline static TestAccount newRandomAccount() { return TestAccount(PrivKey(Utils::randBytes(32))); }
@@ -77,11 +82,6 @@ struct TestAccount {
  */
 class SDKTestSuite : public Blockchain {
   private:
-    /// Owner of the chain (0x00dead00...).
-    static TestAccount chainOwnerAccount() {
-      return TestAccount(PrivKey(Hex::toBytes("0xe89ef6409c467285bcae9f80ab1cfeb3487cfe61ab28fb7d36443e1daa0c2867")));
-    };
-
     // Test listen P2P port number generator needs to be in SDKTestSuite due to createNewEnvironment(), which selects the port for the caller.
     // This should be used by all tests that open a node listen port, not only SDKTestSuite tests.
     static int p2pListenPortMin_;
@@ -99,12 +99,17 @@ class SDKTestSuite : public Blockchain {
     std::vector<TestAccount> testAccounts_;
 
   public:
+    /// Owner of the chain (0x00dead00...).
+    static TestAccount chainOwnerAccount() {
+      return TestAccount(PrivKey(Hex::toBytes("0xe89ef6409c467285bcae9f80ab1cfeb3487cfe61ab28fb7d36443e1daa0c2867")));
+    };
+
     /// Construct a test Blockchain.
     explicit SDKTestSuite(
       const Options& options,
       const std::string instanceId = "",
       const std::vector<TestAccount>& accounts = {}
-    ) : Blockchain(options, options.getRootPath(), instanceId), testAccounts_(accounts) {
+    ) : Blockchain(options, instanceId), testAccounts_(accounts) {
       // Existing testcases like SimpleContract don't call start(), so the ctor must start().
       start();
     }
@@ -171,6 +176,9 @@ class SDKTestSuite : public Blockchain {
       if (std::filesystem::exists(testDumpPath)) {
         std::filesystem::remove_all(testDumpPath);
       }
+      if (std::filesystem::exists(testDumpPath)) {
+        throw DynamicException("Failed to delete old test dump path: " + testDumpPath);
+      }
       std::filesystem::create_directories(testDumpPath);
       GLOGDEBUG("Test dump path: " + testDumpPath);
       return testDumpPath;
@@ -207,8 +215,8 @@ class SDKTestSuite : public Blockchain {
      * ALL of the peers).
      * @param rootPath Root directory for the testcase.
      * @param appHash Application state hash at genesis.
-     * @param p2pPort The CometBFT P2P local port number to use.
-     * @param rpcPort The CometBFT RPC local port number to use.
+     * @param p2pPort The CometBFT P2P local port number to use (if -1, choose one randomly).
+     * @param rpcPort The CometBFT RPC local port number to use (if -1, choose one randomly).
      * @param keyNumber Index of validator key from the predefined test validator key set.
      * @param numKeys Number of validator keys to include in the genesis spec.
      * @param ports Vector of ports allocated by all peers (unused, if numKeys == 1).
@@ -217,6 +225,9 @@ class SDKTestSuite : public Blockchain {
      * numNonValidators == 3, then key indices 0..6 are validators, but keys 7..9 are excluded from the
      * validator set (but all 10 nodes are still fully connected to each other via persistent_peers).
      * @param stateDumpTrigger Number of blocks elapsed between Blockchain::saveSnapshot() calls.
+     * @param cometBFTRoundTime CometBFT round time (for each of the 3 rounds).
+     * @param cometBFTTimeoutCommit CometBFT commit timeout.
+     * @param bdkHttpPort The BDK RPC local port number to use (if -1, choose one randomly).
      * @return Options object set up for testing a Comet instance.
      */
     static Options getOptionsForTest(
@@ -228,7 +239,9 @@ class SDKTestSuite : public Blockchain {
       std::vector<CometTestPorts> ports = {},
       int numNonValidators = 0,
       int stateDumpTrigger = 1000,
-      std::string cometBFTRoundTime = "1s"
+      std::string cometBFTRoundTime = "1s",
+      std::string cometBFTTimeoutCommit = "0s",
+      int bdkHttpPort = -1
     );
 
     /**
@@ -402,7 +415,7 @@ class SDKTestSuite : public Blockchain {
       const Address& contractAddress,
       const uint256_t& value,
       const TestAccount& testAccount,
-      const uint64_t& timestamp,
+      const uint64_t& timestamp, // FIXME: This argument seems to be unused?
       ReturnType(TContract::*func)(const Args&...),
       const Args&... args
     ) {

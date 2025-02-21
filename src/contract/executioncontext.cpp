@@ -87,7 +87,7 @@ void ExecutionContext::transferBalance(View<Address> fromAddress, View<Address> 
   auto recipient = getAccount(toAddress);
 
   if (sender.getBalance() < amount) {
-    throw DynamicException("insufficient founds");
+    throw DynamicException("ExecutionContext::transferBalance(): insufficient funds");
   }
 
   sender.setBalance(sender.getBalance() - amount);

@@ -201,27 +201,6 @@ SDKTestSuite SDKTestSuite::createNewEnvironment(
 ) {
   if (std::filesystem::exists(sdkPath)) std::filesystem::remove_all(sdkPath);
 
-  /*
-    TODO:
-    Default ("genesis") state such as accounts should either:
-    1 - be injected directly into the State.
-    2 - be encoded in a serialized snapshot that is included in the cometBFT
-        genesis data support.
-    Since 1 is easier, we'll do that first during integration since that's
-    mostly for testing. When serialization and deserialization of machine state
-    is added, we can upgrade it to 2.
-    For production we can just hard-code genesis state (i.e. the initial machine
-    state, such as pre-existing accounts and balances, pre-existing deployed
-    contracts at height 0, etc) in the binary -- that is, a hard-coded protocol
-    rule that is implicit.
-    In fact, since the State object and the machine have no support, currently,
-    to be anything other than genesis state (while there's no flat-file
-    serialization and deserialization implemented), then every use case such as
-    tests must inject the starting State on boot since it's always starting
-    from genesis height 0 on node boot (testcases that load or save state from/to
-    the old stateDb are just deleted for now).
-  */
-
   // Create a default options if none is provided.
   std::unique_ptr<Options> options_;
   if (options == nullptr) {
@@ -397,10 +376,10 @@ Options SDKTestSuite::getOptionsForTest(
   std::vector<CometTestPorts> ports,
   int numNonValidators,
   int stateDumpTrigger,
-  std::string cometBFTRoundTime
+  std::string cometBFTRoundTime,
+  std::string cometBFTTimeoutCommit,
+  int bdkHttpPort
 ) {
-  // Note: all Comet instances are validators.
-
   // Sanity check arguments
   if (numKeys < 1 || numKeys > cometTestKeys.size() || keyNumber < 0 || keyNumber > numKeys - 1) {
     throw DynamicException("Invalid key arguments for getOptionsForCometTest().");
@@ -499,7 +478,7 @@ Options SDKTestSuite::getOptionsForTest(
     {"timeout_prevote_delta", "0s"},
     {"timeout_precommit", cometBFTRoundTime},
     {"timeout_precommit_delta", "0s"},
-    {"timeout_commit", "0s"}
+    {"timeout_commit", cometBFTTimeoutCommit}
   };
 
   // Replace "priv_validator_key.json" with the key at index keyNumber
@@ -541,6 +520,8 @@ Options SDKTestSuite::getOptionsForTest(
     validators.push_back(validator);
   }
 
+  // Hack the first validator key
+
   defaultCometBFTOptions["genesis.json"]["validators"] = validators;
 
   defaultCometBFTOptions["genesis.json"]["app_hash"] = appHash;
@@ -551,8 +532,8 @@ Options SDKTestSuite::getOptionsForTest(
     1,
     8080,
     Address(Hex::toBytes("0x00dead00665771855a34155f5e7405489df2c3c6")),
-    uint256_t(0),
-    9999,
+    uint256_t("1000000000000000000000000000"), // 1 billion eth for chain owner
+    bdkHttpPort,
     2000,
     10000,
     stateDumpTrigger,

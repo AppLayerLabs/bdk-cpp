@@ -148,3 +148,7 @@ std::vector<Event> Storage::getEvents(uint64_t blockIndex, uint64_t txIndex) con
   return events;
 }
 
+void Storage::putValidatorUpdates(uint64_t height, Bytes validatorUpdates) {
+  blocksDb_.put(UintConv::uint64ToBytes(height), validatorUpdates, DBPrefix::validatorUpdates);
+}
+

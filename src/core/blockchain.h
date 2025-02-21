@@ -19,15 +19,7 @@ See the LICENSE.txt file in the project root for more information.
 
 /**
  * A BDK node.
- * This is the nexus object that brings together multiple blockchain node
- * components by composition. The lifetime of all components and the nexus
- * object are the same.
  * All components must be thread-safe.
- *
- * NOTE: If you need a testing version of a blockchain node, you should derive it
- * from this class, instead of creating another separate class. All components
- * (State, ...) are allowed to expect a mutable Blockchain& in their constructor,
- * so you may need to create a custom one to wrap the component to be tested.
  *
  * NOTE: Each Blockchain instance can have one or more file-backed DBs, which
  * will all be managed by storage_ (Storage class) to implement internal
@@ -81,17 +73,12 @@ class Blockchain : public CometListener, public NodeRPCInterface, public Log::Lo
 
     const std::string instanceId_; ///< Instance ID for logging.
 
+    // NOTE: Comet should be destructed (stopped) before State, hence it should be declared after it.
     Options options_; ///< Options singleton.
-    Comet comet_;     ///< CometBFT consensus engine driver.
-    State state_;     ///< Blockchain state.
     Storage storage_; ///< BDK persistent store front-end.
+    State state_;     ///< Blockchain state.
+    Comet comet_;     ///< CometBFT consensus engine driver.
     HTTPServer http_; ///< HTTP server.
-
-    // TODO: Encapsulate validator set tracking in a (thread-safe) class (e.g. ValidatorSet).
-    //       We'll be tracking a lot more information about validators when we make the set mutable.
-    std::vector<CometValidatorUpdate> validators_; ///< Up-to-date CometBFT validator set.
-    std::unordered_map<Address, uint64_t, SafeHash> validatorAddrs_; /// Up-to-date map of CometBFT validator address to index in validators_.
-    std::mutex validatorMutex_; ///< Protects validators_ and validatorAddrs_
 
     // FIXME/TODO: Need to query for the last block and fill this in on boot.
     //             (That initial block query will also feed the fbCache_).
@@ -129,6 +116,10 @@ class Blockchain : public CometListener, public NodeRPCInterface, public Log::Lo
 
     std::atomic<bool> started_ = false; ///< Flag to protect the start()/stop() cycle.
 
+    std::mutex incomingBlockLockMutex_; ///< For locking/unlocking block processing.
+
+    std::atomic<bool> incomingBlockLock_ = false; ///< `true` if incomingBlock() is locked.
+
     /**
      * Helper for BDK RPC services, fetches a CometBFT block via CometBFT RPC.
      */
@@ -161,11 +152,6 @@ class Blockchain : public CometListener, public NodeRPCInterface, public Log::Lo
     json getBlockJson(const FinalizedBlock *block, bool includeTransactions);
 
   public:
-
-    /**
-     * TODO: This should be a private method; it's exposed for unit testing only (should use friend instead).
-     */
-    void setValidators(const std::vector<CometValidatorUpdate>& newValidatorSet);
 
     /// A <TxBlock, blockIndex, blockHeight> tuple.
     struct GetTxResultType {
@@ -247,13 +233,30 @@ class Blockchain : public CometListener, public NodeRPCInterface, public Log::Lo
 
     /**
      * Constructor.
-     * @param options Explicit options object to use (overrides any existing options file on blockchainPath).
-     * @param blockchainPath Root filesystem path for this blockchain node reading/writing data.
+     * @param options Explicit options object to use.
      * @param instanceId Runtime object instance identifier for logging (for multi-node unit tests).
      */
-    explicit Blockchain(const Options& options, const std::string& blockchainPath, std::string instanceId = "");
+    explicit Blockchain(const Options& options, std::string instanceId = "");
 
-    ~Blockchain() = default; ///< Default destructor.
+    virtual ~Blockchain(); ///< Destructor.
+
+    /**
+     * Lock block processing.
+     * Prevents incomingBlock() Comet callback from executing or being in execution after this call.
+     * Blockchain::state().getHeight() will only return a non-changing value after this call.
+     */
+    void lockBlockProcessing();
+
+    /**
+     * Cancels lockBlockProcessing(), unlocking incomingBlock().
+     */
+    void unlockBlockProcessing();
+
+    /**
+     * Get number of unconfirmed txs in the CometBFT mempool.
+     * @return Integer value returned by RPC num_unconfirmed_txs in result::num_txs, or -1 on error.
+     */
+    int getNumUnconfirmedTxs();
 
     /**
      * Set the size of the GetTx() cache.
@@ -278,18 +281,7 @@ class Blockchain : public CometListener, public NodeRPCInterface, public Log::Lo
 
     std::shared_ptr<const FinalizedBlock> latest() const; ///< Get latest finalized block.
 
-    uint64_t getLatestHeight() const; ///< Get the height of the lastest finalized block or 0.
-
-    /**
-     * Given a CometBFT validator address, which is backed by a secp256k1 validator
-     * private key (due to how the Comet driver configures CometBFT to use secp256k1
-     * keys), look up the current validator list, find the validator private key given
-     * the CometBFT validator address, then generate an Eth validator address from
-     * that found private key.
-     * @param validatorCometAddress The CometBFT address of one of the active validators.
-     * @return The translation of the CometBFT address into the corresponding Eth address.
-     */
-    Address validatorCometAddressToEthAddress(Address validatorCometAddress);
+    uint64_t getLatestHeight() const; ///< Get the height of the lastest finalized block, or 0 if no blocks (genesis state).
 
     /**
      * Get a block from the chain using a given hash.

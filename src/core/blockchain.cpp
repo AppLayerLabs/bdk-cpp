@@ -17,6 +17,8 @@ using namespace jsonrpc;
 
 #include "../libs/base64.hpp"
 
+#include "../contract/templates/systemcontract.h"
+
 //#define NODE_DATABASE_DIRECTORY_SUFFIX "/db/"
 
 // ------------------------------------------------------------------
@@ -107,7 +109,7 @@ Blockchain::Blockchain(const std::string& blockchainPath, std::string instanceId
 {
 }
 
-Blockchain::Blockchain(const Options& options, const std::string& blockchainPath, std::string instanceId)
+Blockchain::Blockchain(const Options& options, std::string instanceId)
   : instanceId_(instanceId),
     options_(options), // copy the given Options object
     comet_(this, instanceId, options_),
@@ -118,6 +120,25 @@ Blockchain::Blockchain(const Options& options, const std::string& blockchainPath
     fbCache_(FINALIZEDBLOCK_CACHE_SIZE),
     blockHeightToHashCache_(BLOCK_HASH_CACHE_SIZE)
 {
+}
+
+void Blockchain::lockBlockProcessing() {
+  std::scoped_lock lock(incomingBlockLockMutex_);
+  incomingBlockLock_ = true;
+}
+
+void Blockchain::unlockBlockProcessing() {
+  incomingBlockLock_ = false;
+}
+
+int Blockchain::getNumUnconfirmedTxs() {
+  json ret;
+  if (comet_.rpcSyncCall("num_unconfirmed_txs", {}, ret)) {
+    if (ret.contains("result") && ret["result"].contains("n_txs")) {
+      return std::stoi(ret["result"]["n_txs"].get<std::string>());
+    }
+  }
+  return -1;
 }
 
 bool Blockchain::getBlockRPC(const Hash& blockHash, json& ret) {
@@ -142,33 +163,6 @@ bool Blockchain::getTxRPC(const Hash& txHash, json& ret) {
 
 void Blockchain::putTx(const Hash& tx, const TxCacheValueType& val) {
   txCache_.put(tx, val);
-}
-
-void Blockchain::setValidators(const std::vector<CometValidatorUpdate>& newValidatorSet) {
-  std::unique_lock<std::mutex> lock(validatorMutex_);
-  validators_ = newValidatorSet;
-  validatorAddrs_.clear();
-  for (int i = 0; i < validators_.size(); ++i) {
-    const CometValidatorUpdate& v = validators_[i];
-    Bytes cometAddrBytes = Comet::getCometAddressFromPubKey(v.publicKey);
-    Address cometAddr(cometAddrBytes);
-    validatorAddrs_[cometAddr] = i;
-  }
-}
-
-Address Blockchain::validatorCometAddressToEthAddress(Address validatorCometAddress) {
-  std::unique_lock<std::mutex> lock(validatorMutex_);
-  auto it = validatorAddrs_.find(validatorCometAddress);
-  if (it == validatorAddrs_.end()) {
-    return {};
-  }
-  const uint64_t& validatorIndex = it->second;
-  if (validatorIndex >= validators_.size()) {
-    throw DynamicException("Blockchain::validatorCometAddressToEthAddress() returned an index not in validators_.");
-  }
-  const CometValidatorUpdate& v = validators_[validatorIndex];
-  PubKey pubKey(v.publicKey); // Compressed key (33 bytes)
-  return Secp256k1::toAddress(pubKey); // Generate Eth address from validator pub key
 }
 
 void Blockchain::setGetTxCacheSize(const uint64_t cacheSize) {
@@ -257,6 +251,12 @@ void Blockchain::stop() {
   // Stop
   this->http_.stop();
   this->comet_.stop();
+}
+
+Blockchain::~Blockchain() {
+  if (started_) {
+    stop();
+  }
 }
 
 std::shared_ptr<const FinalizedBlock> Blockchain::latest() const {
@@ -486,13 +486,6 @@ void Blockchain::initChain(
     throw DynamicException("initChain(): Invalid chain ID: " + std::string(e.what()));
   }
 
-  // For now, the validator set is fixed on genesis and never changes.
-  // TODO: When we get to validator set changes via governance, validators_ will have to be
-  //   updated via incomingBlock(validatorUpdates).
-  // TODO: When loading snapshots, will need to load the validator set at that height as well
-  //   and, maybe, a partial (or total?) history of validator set transitions if that is needed.
-  setValidators(initialValidators);
-
   // Initialize the machine state on InitChain.
   // NOTE: State height counting is skewed +1 in ABCI Init for some reason.
   //   The genesis.json "initial height" value of 0 is invalid; 1 is the minimum.
@@ -507,7 +500,7 @@ void Blockchain::initChain(
     genesisSnapshot = snapshot0.string();
     LOGINFO("Found genesis snapshot: " + genesisSnapshot);
   }
-  state_.initChain(initialHeight - 1, genesisTime, genesisSnapshot);
+  state_.initChain(initialHeight - 1, genesisTime, initialValidators, genesisSnapshot);
 }
 
 void Blockchain::checkTx(const Bytes& tx, const bool recheck, int64_t& gasWanted, bool& accept) {
@@ -571,6 +564,11 @@ void Blockchain::incomingBlock(
   const uint64_t syncingToHeight, std::unique_ptr<CometBlock> block, Bytes& appHash,
   std::vector<CometExecTxResult>& txResults, std::vector<CometValidatorUpdate>& validatorUpdates
 ) {
+  std::scoped_lock lock(incomingBlockLockMutex_);
+  while (incomingBlockLock_) {
+    std::this_thread::sleep_for(std::chrono::milliseconds(20));
+  }
+
   try {
     // Update syncing status (don't persist state to disk while syncing (?))
     syncing_ = syncingToHeight > block->height;
@@ -600,13 +598,15 @@ void Blockchain::incomingBlock(
     latest_.store(fbPtr);
     fbCache_.insert(fbPtr);
 
-    // Advance machine state
-    std::vector<bool> succeeded;
-    std::vector<uint64_t> gasUsed;
-
+    // Advance machine state (does ++state_.height_)
+    // Block processing will also generate the validator set updates, since both the
+    //   SystemContract and the validator set schedule (pending and active validator
+    //   sets) are tracked by the State.
     // NOTE: State::processBlock() knows that it has to remove the transactions that
     // are processed into the state from its internal mempool model.
-    state_.processBlock(*fbPtr, succeeded, gasUsed);
+    std::vector<bool> succeeded;
+    std::vector<uint64_t> gasUsed;
+    state_.processBlock(*fbPtr, succeeded, gasUsed, validatorUpdates);
 
     // The last raw tx in the block is not an actual transaction, so it doesn't get an
     // actual tx result generated by processBlock() (which operates on TxBlock objs only).
@@ -996,7 +996,7 @@ json Blockchain::getBlockJson(const FinalizedBlock *block, bool includeTransacti
   ret["parentHash"] = block->getPrevBlockHash().hex(true);
   ret["sha3Uncles"] = Hash().hex(true); // Uncles do not exist.
 
-  ret["miner"] = validatorCometAddressToEthAddress(block->getProposerAddr()).hex(true);
+  ret["miner"] = state_.validatorCometAddressToEthAddress(block->getProposerAddr()).hex(true);
 
   ret["stateRoot"] = Hash().hex(true); // No State root.
   ret["transactionsRoot"] = block->getTxMerkleRoot().hex(true);
@@ -1170,7 +1170,6 @@ json Blockchain::eth_syncing(const json& request) {
 
 json Blockchain::eth_coinbase(const json& request) {
   forbidParams(request);
-  //return options_.getCoinbase().hex(true);
   Address coinbaseAddress;
   Bytes validatorPubKeyBytes = comet_.getValidatorPubKey();
   // PubKey may be empty in the Comet driver if configuration step hasn't completed yet.
@@ -1216,7 +1215,7 @@ json Blockchain::eth_gasPrice(const json& request) {
 
 json Blockchain::eth_feeHistory(const json& request) {
   // FIXME/TODO: We should probably just have this computed and saved in RAM as we process incoming blocks.
-  // The previous implementation wasn't doing anything (it was just returing a default value, which can be
+  // The previous implementation wasn't doing anything (it was just returning a default value, which can be
   // returned here directly as well); it was just requesting 1,024 blocks from (potentially, or at least now
   // with the new Comet-backed Blockchain::getBlock()) the backing storage, which is expensive and an attack
   // vector on the node, really, and we should just not do that.
