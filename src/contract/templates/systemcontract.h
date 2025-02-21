@@ -26,8 +26,6 @@ See the LICENSE.txt file in the project root for more information.
  * generate that many tokens (total) but we should do our best to protect against this (it's
  * only a problem in the current overflow protection code if intermediary calculations exceed
  * int256_t, so it's never a problem).
- *
- * TODO: Prevent SystemContract from being instantiated by incoming transactions.
  */
 class SystemContract : public DynamicContract {
   private:

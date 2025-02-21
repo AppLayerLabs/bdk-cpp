@@ -76,9 +76,6 @@ void State::initChain(
   uint64_t initialNumSlots = initialValidatorPubKeys.size(); // initial numSlots will simply be the number of validators provided at genesis
   uint64_t maxSlots = 1'000; // Set this to the global maximum numslots for BDK chains
 
-  // FIXME/TODO: Must make the SystemContract template undeployable by user code.
-  //             Only the BDK node's internal code should be able to deploy it.
-
   LOGTRACE("Deploying SystemContract...");
 
   // Create SystemContract account
@@ -340,7 +337,7 @@ void State::saveSnapshot(const std::string& where) {
     // REVIEW: Snapshotting should be done by a dedicated snapshotter node, and it may
     // make sense to add parallelization here (if the snapshotter will be using a dedicated
     // machine, for example). In that case, the number of snapshotter threads should be
-    // a command-lin, process-wide option e.g. --snapshot_threads <N>.
+    // a command-line, process-wide option e.g. --snapshot_threads <N>.
     out.putBatch(baseContractPtr->dump());
   }
 
@@ -461,7 +458,7 @@ void State::loadSnapshot(const std::string& where, bool genesisSnapshot) {
   uint64_t ctCount = 0;
   for (const DBEntry& contract : in.getBatch(DBPrefix::contractManager)) {
     Address address(contract.key);
-    if (!cmPtr->loadFromDB<ContractTypes>(contract, address, in)) {
+    if (!cmPtr->loadFromDB<PersistedContractTypes>(contract, address, in)) {
       throw DynamicException("Read corrupt snapshot; unknown contract: " + StrConv::bytesToString(contract.value));
     }
     ++ctCount;

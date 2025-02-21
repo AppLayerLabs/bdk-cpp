@@ -346,10 +346,16 @@ class State : public Log::LogicalLocationProvider {
      */
     int64_t estimateGas(EncodedMessageVariant msg);
 
-    /// Get a list of the C++ contract addresses and names.
+    /**
+     * Get a list of the C++ contract addresses and names.
+     * NOTE: TESTING ONLY, as this iterates over ALL contracts_.
+     */
     std::vector<std::pair<std::string, Address>> getCppContracts() const;
 
-    /// Get a list of Addresss which are EVM contracts.
+    /**
+     * Get a list of Addresss which are EVM contracts.
+     * NOTE: TESTING ONLY, as this iterates over ALL accounts_.
+     */
     std::vector<Address> getEvmContracts() const;
 
     /**

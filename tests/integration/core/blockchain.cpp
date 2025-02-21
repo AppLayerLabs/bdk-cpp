@@ -82,6 +82,8 @@ void blockchainSendNativeTokens(
 ) {
   Bytes txData;
   Gas gas(1'000'000'000);
+  // TODO/REVIEW: is this "estimateGas" reverting or does it have the same problem
+  //              as blockchainCallCpp() above?
   const uint64_t gasUsed = 10'000 + blockchain.state().estimateGas(
     EncodedCallMessage(fromAccount.address, toAddress, gas, value, txData)
   );
@@ -126,6 +128,24 @@ namespace TBlockchain {
   TEST_CASE("Blockchain Class", "[integration][core][blockchain]") {
     std::string testDumpPath = Utils::getTestDumpPath();
 
+    // Check that we can't deploy SystemContract twice in Blockchain
+    // (SDKTestSuite is a Blockchain subclass)
+    SECTION("BlockchainSystemContractSingletonTest") {
+      SDKTestSuite sdk = SDKTestSuite::createNewEnvironment("BlockchainSystemContractSingletonTest");
+      // The constructor arguments can be whatever that won't make the actual class ctor itself throw.
+      std::vector<std::string> initialValidatorPubKeys = {"030000000000000000000000000000000000000000000000000000000000000000"};
+      uint64_t initialNumSlots = 12;
+      uint64_t maxSlots = 34;
+      // If `SystemContract` is added to the `ContractTypes` tuple (in `customcontracts.h`) then this does NOT throw.
+      // Which means that not including `SystemContract` in `ContractTypes` is sufficient to render it undeployable by transactions.
+      GLOGDEBUG("TEST: trying to spawn a SystemContract");
+      REQUIRE_THROWS(
+        sdk.deployContract<SystemContract>(initialValidatorPubKeys, initialNumSlots, maxSlots)
+      );
+      GLOGDEBUG("TEST: finished trying to spawn a SystemContract");
+    }
+
+    // SystemContract integration test with Blockchain
     SECTION("BlockchainValidatorSetTest") {
       const int numNodes = 6;
       const int numNonValidators = 2;
@@ -488,7 +508,7 @@ namespace TBlockchain {
       }
       GLOGDEBUG("TEST: Validator set test finished.");
     }
-/*
+
     SECTION("BlockchainBootTest") {
       std::string testDumpPath = createTestDumpPath("BlockchainBootTest");
 
@@ -923,7 +943,6 @@ namespace TBlockchain {
 
       GLOGDEBUG("TEST: done");
     }
-*/
   }
 }
 
