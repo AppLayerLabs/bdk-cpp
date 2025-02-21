@@ -176,6 +176,9 @@ class SDKTestSuite : public Blockchain {
       if (std::filesystem::exists(testDumpPath)) {
         std::filesystem::remove_all(testDumpPath);
       }
+      if (std::filesystem::exists(testDumpPath)) {
+        throw DynamicException("Failed to delete old test dump path: " + testDumpPath);
+      }
       std::filesystem::create_directories(testDumpPath);
       GLOGDEBUG("Test dump path: " + testDumpPath);
       return testDumpPath;

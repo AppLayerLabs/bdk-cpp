@@ -13,6 +13,7 @@ See the LICENSE.txt file in the project root for more information.
 #include "../variables/safeunorderedmap.h"
 #include "../variables/safevector.h"
 #include "../variables/safeint.h"
+#include "../variables/safebool.h"
 
 /**
  * Chain governor contract
@@ -81,6 +82,9 @@ class SystemContract : public DynamicContract {
     /// If a number different to numSlots_ is agreed by >2/3 of votes in
     /// targetSlots_, then that number will be the new numSlots_.
     SafeUnorderedMap<PubKey, uint64_t> targetSlots_;
+
+    /// Optimization: avoid recomputing targetSlots_ if no voteSlots() called.
+    SafeBool targetSlotsModified_;
 
     /// Liquid deposits by users.
     SafeUnorderedMap<Address, uint64_t> stakes_;

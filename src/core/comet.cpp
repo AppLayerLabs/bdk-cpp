@@ -1294,7 +1294,7 @@ void CometImpl::doStartCometBFT(
     //   that is passed as an arg to setpriv, along with the arguments to forward to cometbft.
     //   however, and that is the point of using setpriv, the resulting cometbft process will receive a SIGTERM
     //   if its parent process (this BDK node process) dies, so that we don't get a dangling cometbft in that case.
-    SLOGDEBUG("Launching cometbft via setpriv --pdeathsig SIGTERM");
+    SLOGTRACE("Launching cometbft via setpriv --pdeathsig SIGTERM");
     exec_path = setpriv_exec_path;
     exec_args = {
       "setpriv",
@@ -1308,7 +1308,7 @@ void CometImpl::doStartCometBFT(
 
   std::string argsString;
   for (const auto& arg : exec_args) { argsString += arg + " "; }
-  SLOGDEBUG("Launching " + exec_path.string() + " with arguments: " + argsString);
+  SLOGTRACE("Launching " + exec_path.string() + " with arguments: " + argsString);
 
   // Launch the process
   auto bpout = std::make_shared<boost::process::ipstream>();
@@ -1320,7 +1320,7 @@ void CometImpl::doStartCometBFT(
       boost::process::std_err > *bperr
   );
   std::string pidStr = std::to_string(process->id());
-  SLOGDEBUG("Launched cometbft with PID: " + pidStr);
+  SLOGTRACE("Launched cometbft with PID: " + pidStr);
 
   // Spawn two detached threads to pump stdout and stderr to bdk.log.
   // They should go away naturally when process is terminated.
@@ -1338,7 +1338,7 @@ void CometImpl::doStartCometBFT(
     }
     // remove trailing \n so that e.g. the node id from cometbft show-node-id is exactly processStdout without a need to trim it.
     if (processStdout) { if (!processStdout->empty()) { processStdout->pop_back(); } }
-    GLOGDEBUG("cometbft stdout stream pump thread finished, cometbft pid = " + pidStr);
+    GLOGTRACE("cometbft stdout stream pump thread finished, cometbft pid = " + pidStr);
     if (processDone) { *processDone = true; } // if actually interested in reading processStderr_ you can just e.g. sleep(1s) first
   });
   std::thread stderr_thread([bperr, pidStr, processStderr]() {
@@ -1348,13 +1348,14 @@ void CometImpl::doStartCometBFT(
         GLOGXTRACE("[cometbft stderr]: " + line);
         *processStderr += line + '\n';
       } else {
-        // If cometbft generates stderr messages, we probably want to see it during regular debugging,
-        // even if we aren't tracing normal cometbft output.
-        GLOGDEBUG("[cometbft stderr]: " + line);
+        // Leaving cometbft output to TRACE is probably optimal.
+        // This makes DEBUG logs far less verbose (when the bug is unrelated to consensus traffic).
+        // NOTE: CometBFT WAL log messages are sent to stderr.
+        GLOGTRACE("[cometbft stderr]: " + line);
       }
     }
     if (processStderr) { if (!processStderr->empty()) { processStderr->pop_back(); } }
-    GLOGDEBUG("cometbft stderr stream pump thread finished, cometbft pid = " + pidStr);
+    GLOGTRACE("cometbft stderr stream pump thread finished, cometbft pid = " + pidStr);
   });
   stdout_thread.detach();
   stderr_thread.detach();
@@ -1363,14 +1364,14 @@ void CometImpl::doStartCometBFT(
 void CometImpl::doStopCometBFT(std::unique_ptr<boost::process::child>& process) {
   // if process is running then we will send SIGTERM to it and if needed SIGKILL
   if (process) {
-    SLOGDEBUG("Terminating CometBFT process");
+    SLOGTRACE("Terminating CometBFT process");
     // terminate the process
     pid_t pid = process->id();
     try {
       process->terminate(); // SIGTERM (graceful termination, equivalent to terminal CTRL+C/SIGINT)
-      SLOGDEBUG("Process with PID " + std::to_string(pid) + " terminated");
+      SLOGTRACE("Process with PID " + std::to_string(pid) + " terminated");
       process->wait();  // Ensure the process is fully terminated
-      SLOGDEBUG("Process with PID " + std::to_string(pid) + " joined");
+      SLOGTRACE("Process with PID " + std::to_string(pid) + " joined");
     } catch (const std::exception& ex) {
       // This is bad, and if it actually happens, we need to be able to do something else here to ensure the process disappears
       //   because we don't want a process using the data directory and using the socket ports.
@@ -1390,12 +1391,12 @@ void CometImpl::doStopCometBFT(std::unique_ptr<boost::process::child>& process) 
       }
     }
     process.reset(); // this signals that we are ready to call startCometBFT() again
-    SLOGDEBUG("CometBFT process terminated");
+    SLOGTRACE("CometBFT process terminated");
   }
 }
 
 void CometImpl::workerLoop() {
-  LOGDEBUG("Comet worker thread: started");
+  LOGTRACE("Comet worker thread: started");
   // So basically we take every exception that can be thrown in the inner worker loop and if
   //   we catch one it means the Comet driver goes into TERMINATED state and we record the
   //   error condition as an error message.
@@ -1406,27 +1407,27 @@ void CometImpl::workerLoop() {
   // the state. Note that you *cannot* reenter Comet via Comet::stop() from that callback!
   try {
     workerLoopInner();
-    LOGDEBUG("Comet worker thread: finishing normally (calling cleanup)");
+    LOGTRACE("Comet worker thread: finishing normally (calling cleanup)");
     cleanup();
-    LOGDEBUG("Comet worker thread: finished normally (cleanup done, setting FINISHED state)");
+    LOGTRACE("Comet worker thread: finished normally (cleanup done, setting FINISHED state)");
     setState(CometState::FINISHED); // state transition callback CANNOT reenter Comet::stop()
   } catch (const std::exception& ex) {
     setError("Exception caught in comet worker thread: " + std::string(ex.what()));
-    LOGDEBUG("Comet worker thread: finishing with error (calling cleanup)");
+    LOGTRACE("Comet worker thread: finishing with error (calling cleanup)");
     cleanup();
-    LOGDEBUG("Comet worker thread: finished with error (cleanup done, setting TERMINATED state)");
+    LOGTRACE("Comet worker thread: finished with error (cleanup done, setting TERMINATED state)");
     setState(CometState::TERMINATED); // state transition callback CANNOT reenter Comet::stop()
   }
 }
 
 void CometImpl::workerLoopInner() {
 
-  LOGDEBUG("Comet worker: started");
+  LOGTRACE("Comet worker: started");
 
   // If we are stopping, then quit
   while (!stop_) {
 
-    LOGDEBUG("Comet worker: start loop");
+    LOGTRACE("Comet worker: start loop");
 
     // --------------------------------------------------------------------------------------
     // If this is a continue; and we are restarting the cometbft workerloop, ensure that any
@@ -1437,7 +1438,7 @@ void CometImpl::workerLoopInner() {
 
     cleanup();
 
-    LOGDEBUG("Comet worker: running configuration step");
+    LOGTRACE("Comet worker: running configuration step");
 
     // --------------------------------------------------------------------------------------
     // Run configuration step (writes to the comet/config/* files before running cometbft)
@@ -1481,14 +1482,14 @@ void CometImpl::workerLoopInner() {
 
     const std::string cometUNIXSocketPath = cometPath + "abci.sock";
 
-    LOGDEBUG("Options RootPath: " + options_.getRootPath());
+    LOGINFO("Options RootPath: " + options_.getRootPath());
 
     const json& opt = options_.getCometBFT();
 
     if (opt.is_null()) {
       LOGWARNING("Configuration option cometBFT is null.");
     } else {
-      LOGDEBUG("Configuration option cometBFT: " + opt.dump());
+      LOGTRACE("Configuration option cometBFT: " + opt.dump());
     }
 
     bool hasGenesis = opt.contains(COMET_OPTION_GENESIS_JSON);
@@ -1551,7 +1552,7 @@ void CometImpl::workerLoopInner() {
       throw DynamicException("CometBFT config option p2p::laddr is empty (or isn't a string).");
     } else {
       std::string p2pLaddr = configTomlJSON["p2p"]["laddr"];
-      LOGINFO("CometBFT config option p2p::laddr found: " + p2pLaddr);
+      LOGTRACE("CometBFT config option p2p::laddr found: " + p2pLaddr);
       size_t lastColonPos = p2pLaddr.find_last_of(':');
       if (lastColonPos == std::string::npos || lastColonPos + 1 >= p2pLaddr.size()) {
         setErrorCode(CometError::CONFIG);
@@ -1571,7 +1572,7 @@ void CometImpl::workerLoopInner() {
       throw DynamicException("CometBFT config option rpc::laddr is empty (or isn't a string).");
     } else {
       std::string rpcLaddr = configTomlJSON["rpc"]["laddr"];
-      LOGINFO("CometBFT config option rpc::laddr found: " + rpcLaddr);
+      LOGTRACE("CometBFT config option rpc::laddr found: " + rpcLaddr);
       size_t lastColonPos = rpcLaddr.find_last_of(':');
       if (lastColonPos == std::string::npos || lastColonPos + 1 >= rpcLaddr.size()) {
         setErrorCode(CometError::CONFIG);
@@ -1614,7 +1615,7 @@ void CometImpl::workerLoopInner() {
       }
     }
     genesisJSON["chain_id"] = forceCometBFTChainId;
-    LOGDEBUG("CometBFT chain_id set to '" + forceCometBFTChainId + "' (BDK chainID option).");
+    LOGTRACE("CometBFT chain_id set to '" + forceCometBFTChainId + "' (BDK chainID option).");
 
     // --------------------------------------------------------------------------------------
     // BDK root path must be set up before the Comet worker is started.
@@ -1630,7 +1631,7 @@ void CometImpl::workerLoopInner() {
     //   cometbft init. It will be created with all required options with standard values.
 
     if (!std::filesystem::exists(cometPath)) {
-      LOGDEBUG("Comet worker: creating comet directory");
+      LOGTRACE("Comet worker: creating comet directory");
 
       // run cometbft init cometPath to create the cometbft directory with default configs
       runCometBFT({ "init", "--home=" + cometPath, "-k=secp256k1"});
@@ -1648,7 +1649,7 @@ void CometImpl::workerLoopInner() {
       throw DynamicException("CometBFT home directory is broken: it doesn't have a config/ subdirectory");
     }
 
-    LOGDEBUG("Comet worker: comet directory exists");
+    LOGTRACE("Comet worker: comet directory exists");
 
     // --------------------------------------------------------------------------------------
     // Comet home directory exists; check its configuration is consistent with the current
@@ -1688,7 +1689,7 @@ void CometImpl::workerLoopInner() {
         std::string validatorPubKeyStr = pubKeyObject["value"].get<std::string>();
         std::scoped_lock(this->validatorPubKeyMutex_);
         validatorPubKey_ = base64::decode_into<Bytes>(validatorPubKeyStr);
-        LOGINFO("Validator public key is: " + Hex::fromBytes(validatorPubKey_).get());
+        LOGINFO("Validator public key: " + Hex::fromBytes(validatorPubKey_).get());
       } else {
         setErrorCode(CometError::FATAL);
         throw DynamicException("Cannot open comet privValidatorKey file for writing: " + cometConfigPrivValidatorKeyPath);
@@ -1776,7 +1777,7 @@ void CometImpl::workerLoopInner() {
             setErrorCode(CometError::CONFIG);
             throw DynamicException("Unsupported config JSON value type '" + configType + "' for key: " + logKey);
           }
-          LOGINFO("Setting " + configType + " config: " + logKey + " = " + valueStr);
+          LOGTRACE("Setting " + configType + " config: " + logKey + " = " + valueStr);
         }
       }
     }
@@ -1807,11 +1808,9 @@ void CometImpl::workerLoopInner() {
       throw DynamicException("Failed to close file properly: " + cometConfigTomlPath);
     }
 
-    LOGDEBUG("Comet setting configured");
-
     setState(CometState::CONFIGURED);
 
-    LOGDEBUG("Comet set configured");
+    LOGTRACE("Comet configured");
 
     // --------------------------------------------------------------------------------------
     // Check if quitting
@@ -1820,10 +1819,12 @@ void CometImpl::workerLoopInner() {
     // --------------------------------------------------------------------------------------
     // Run cometbft inspect and check that everything is as expected.
 
+    LOGTRACE("Inspecting comet");
+
     setState(CometState::INSPECTING_COMET);
 
     // Run cometbft show-node-id to figure out what the node ID is
-    LOGDEBUG("Fetching own cometbft node-id...");
+    LOGTRACE("Fetching own cometbft node-id...");
 
     std::string showNodeIdStdout;
     try {
@@ -1838,7 +1839,7 @@ void CometImpl::workerLoopInner() {
       throw DynamicException("Got a cometbft node-id of unexpected size (!= 40 hex chars): [" + showNodeIdStdout + "]");
     }
 
-    LOGDEBUG("Got comet node ID: [" + showNodeIdStdout + "]");
+    LOGINFO("Node ID: " + showNodeIdStdout);
     std::unique_lock<std::mutex> lock(this->nodeIdMutex_);
     this->nodeId_ = showNodeIdStdout;
     this->nodeIdMutex_.unlock();
@@ -1850,7 +1851,7 @@ void CometImpl::workerLoopInner() {
     // Any error thrown will close the running cometbft inspect since it's tracked by process_, just like
     //   cometbft start (regular node) is.
 
-    LOGDEBUG("Starting cometbft inspect");
+    LOGTRACE("Starting cometbft inspect");
 
     // start cometbft inspect
     try {
@@ -1864,7 +1865,7 @@ void CometImpl::workerLoopInner() {
       throw DynamicException("Exception caught when trying to run cometbft inspect: " + std::string(ex.what()));
     }
 
-    LOGDEBUG("Starting RPC connection (inspect)");
+    LOGTRACE("Starting RPC connection (inspect)");
 
     // start RPC connection
     int inspectRpcTries = 50; //5s
@@ -1875,10 +1876,10 @@ void CometImpl::workerLoopInner() {
         inspectRpcSuccess = true;
         break;
       }
-      LOGDEBUG("Retrying RPC connection (inspect): " + std::to_string(inspectRpcTries));
+      LOGTRACE("Retrying RPC connection (inspect): " + std::to_string(inspectRpcTries));
     }
 
-    LOGDEBUG("Done starting RPC connection");
+    LOGTRACE("Done starting RPC connection");
 
     // Check if quitting
     if (stop_) break;
@@ -1889,13 +1890,13 @@ void CometImpl::workerLoopInner() {
     }
 
     json insRes;
-    LOGDEBUG("Making sample RPC call");
+    LOGTRACE("Making sample RPC call");
     if (!rpc_.rpcSyncCall("header", json::object(), insRes)) {
       setErrorCode(CometError::RPC_CALL_FAILED);
       throw DynamicException("ERROR: cometbft inspect RPC header call failed: " + insRes.dump());
     }
 
-    LOGDEBUG("cometbft inspect RPC header call returned OK: "+ insRes.dump());
+    LOGTRACE("cometbft inspect RPC header call returned OK: "+ insRes.dump());
 
     // We got an inspect latest header response; parse it to figure out
     //  lastCometBFTBlockHeight_ and lastCometBFTAppHash_.
@@ -1910,7 +1911,7 @@ void CometImpl::workerLoopInner() {
     const auto& header = insRes["result"]["header"];
     if (header.is_null()) {
       // Header is null, which is valid and indicates an empty block store
-      LOGDEBUG("Header is null; block store is empty.");
+      LOGTRACE("Header is null; block store is empty.");
     } else {
       if ((!header.contains("height") || !header["height"].is_string())) {
         setErrorCode(CometError::RPC_BAD_RESPONSE);
@@ -1923,7 +1924,7 @@ void CometImpl::workerLoopInner() {
       // Got a non-empty header response, so we are past genesis in the cometbft store
       lastCometBFTBlockHeight_ = header["height"].get<std::string>().empty() ? 0 : std::stoull(header["height"].get<std::string>());
       lastCometBFTAppHash_ = header["app_hash"].get<std::string>();
-      LOGDEBUG("Parsed header successfully: Last Block Height = " + std::to_string(lastCometBFTBlockHeight_) + ", Last App Hash = " + lastCometBFTAppHash_);
+      LOGTRACE("Parsed header successfully: Last Block Height = " + std::to_string(lastCometBFTBlockHeight_) + ", Last App Hash = " + lastCometBFTAppHash_);
     }
 
     // FIXME/TODO: if we have at least one block (lastCometBFTBlockHeight_ >= 1) then
@@ -1946,10 +1947,14 @@ void CometImpl::workerLoopInner() {
     // Check if quitting
     if (stop_) break;
 
+    LOGTRACE("Inspect running (breakpoint)");
+
     setState(CometState::INSPECT_RUNNING);
 
     // --------------------------------------------------------------------------------------
     // Finished inspect step.
+
+    LOGTRACE("Finishing inspect");
 
     rpc_.rpcStopConnection();
 
@@ -1957,12 +1962,16 @@ void CometImpl::workerLoopInner() {
 
     setState(CometState::INSPECTED_COMET);
 
+    LOGTRACE("Inspected comet");
+
     // --------------------------------------------------------------------------------------
     // Check if quitting
     if (stop_) break;
 
     // --------------------------------------------------------------------------------------
     // Start our cometbft application's ABCI socket server; make sure it is started.
+
+    LOGTRACE("Starting ABCI");
 
     setState(CometState::STARTING_ABCI);
 
@@ -1984,12 +1993,16 @@ void CometImpl::workerLoopInner() {
 
     setState(CometState::STARTED_ABCI);
 
+    LOGTRACE("Started ABCI");
+
     // --------------------------------------------------------------------------------------
     // Check if quitting
     if (stop_) break;
 
     // --------------------------------------------------------------------------------------
     // Run cometbft start, passing the socket address of our ABCI server as a parameter.
+
+    LOGTRACE("Starting comet");
 
     setState(CometState::STARTING_COMET);
 
@@ -2021,12 +2034,16 @@ void CometImpl::workerLoopInner() {
 
     setState(CometState::STARTED_COMET);
 
+    LOGTRACE("Started comet");
+
     // --------------------------------------------------------------------------------------
     // Check if quitting
     if (stop_) break;
 
     // --------------------------------------------------------------------------------------
     // Test cometbft: check that the node has started successfully.
+
+    LOGTRACE("Testing comet");
 
     setState(CometState::TESTING_COMET);
 
@@ -2052,7 +2069,7 @@ void CometImpl::workerLoopInner() {
     if (stop_) break;
 
     // Start RPC connection
-    LOGDEBUG("Will connect to cometbft RPC at port: " + std::to_string(rpcPort_));
+    LOGTRACE("Will connect to cometbft RPC at port: " + std::to_string(rpcPort_));
     int rpcTries = 50; //5s
     bool rpcSuccess = false;
     while (rpcTries-- > 0 && !stop_) {
@@ -2062,7 +2079,7 @@ void CometImpl::workerLoopInner() {
         rpcSuccess = true;
         break;
       }
-      LOGDEBUG("Retrying RPC connection: " + std::to_string(rpcTries));
+      LOGTRACE("Retrying RPC connection: " + std::to_string(rpcTries));
     }
 
     // Check if quitting
@@ -2082,9 +2099,11 @@ void CometImpl::workerLoopInner() {
       setErrorCode(CometError::RPC_CALL_FAILED);
       throw DynamicException("ERROR: cometbft RPC health call failed: " + healthResult.dump());
     }
-    LOGDEBUG("cometbft RPC health call returned OK: " + healthResult.dump());
+    LOGTRACE("cometbft RPC health call returned OK: " + healthResult.dump());
 
     setState(CometState::TESTED_COMET);
+
+    LOGTRACE("Tested comet");
 
     // --------------------------------------------------------------------------------------
     // Check if quitting
@@ -2095,6 +2114,8 @@ void CometImpl::workerLoopInner() {
     // Dispatch async callbacks to the CometListener when Comet async calls are fulfilled.
 
     setState(CometState::RUNNING);
+
+    LOGTRACE("Comet is running");
 
     // NOTE: If this loop breaks for whatever reason without !stop being true, we will be
     //       in the TERMINATED state, which is there to catch bugs.
@@ -2193,6 +2214,8 @@ void CometImpl::workerLoopInner() {
       if (stop_) break;
     }
 
+    LOGTRACE("Comet is no longer running");
+
     // --------------------------------------------------------------------------------------
     // If the main loop above exits and this is reached, it is because we are shutting down.
     // Will shut down cometbft, clean up and break loop.
@@ -2207,7 +2230,7 @@ void CometImpl::workerLoopInner() {
     throw DynamicException("Comet worker: exiting (loop end reached); this is an error!");
   }
 
-  LOGDEBUG("Comet worker: exiting (quit loop)");
+  LOGTRACE("Comet worker: exiting (quit loop)");
 }
 
 // CometImpl's ABCIHandler implementation

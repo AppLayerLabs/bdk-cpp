@@ -122,6 +122,25 @@ Blockchain::Blockchain(const Options& options, std::string instanceId)
 {
 }
 
+void Blockchain::lockBlockProcessing() {
+  std::scoped_lock lock(incomingBlockLockMutex_);
+  incomingBlockLock_ = true;
+}
+
+void Blockchain::unlockBlockProcessing() {
+  incomingBlockLock_ = false;
+}
+
+int Blockchain::getNumUnconfirmedTxs() {
+  json ret;
+  if (comet_.rpcSyncCall("num_unconfirmed_txs", {}, ret)) {
+    if (ret.contains("result") && ret["result"].contains("n_txs")) {
+      return std::stoi(ret["result"]["n_txs"].get<std::string>());
+    }
+  }
+  return -1;
+}
+
 bool Blockchain::getBlockRPC(const Hash& blockHash, json& ret) {
   Bytes hx = Hex::toBytes(blockHash.hex());
   std::string encodedHexBytes = base64::encode_into<std::string>(hx.begin(), hx.end());
@@ -545,6 +564,11 @@ void Blockchain::incomingBlock(
   const uint64_t syncingToHeight, std::unique_ptr<CometBlock> block, Bytes& appHash,
   std::vector<CometExecTxResult>& txResults, std::vector<CometValidatorUpdate>& validatorUpdates
 ) {
+  std::scoped_lock lock(incomingBlockLockMutex_);
+  while (incomingBlockLock_) {
+    std::this_thread::sleep_for(std::chrono::milliseconds(20));
+  }
+
   try {
     // Update syncing status (don't persist state to disk while syncing (?))
     syncing_ = syncingToHeight > block->height;

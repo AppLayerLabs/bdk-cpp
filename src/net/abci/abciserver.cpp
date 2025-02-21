@@ -9,9 +9,9 @@ ABCIServer::ABCIServer(ABCIHandler *handler, const std::string& cometUNIXSocketP
 }
 
 ABCIServer::~ABCIServer() {
-  LOGDEBUG("~ABCIServer(): stopping");
+  LOGXTRACE("~ABCIServer(): stopping");
   stop();
-  LOGDEBUG("~ABCIServer(): stopped");
+  LOGXTRACE("~ABCIServer(): stopped");
 }
 
 const std::string ABCIServer::getSocketPath() {

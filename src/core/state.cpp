@@ -47,7 +47,7 @@ void State::initChain(
   const std::vector<CometValidatorUpdate>& initialValidators,
   std::string genesisSnapshot
 ) {
-  LOGDEBUG("State::initChain(): Height (BDK, -1) = " + std::to_string(initialHeight));
+  LOGTRACE("State::initChain(): Height (BDK, -1) = " + std::to_string(initialHeight));
 
   // Reset the State (accounts, vmstorage, contracts) and set the genesis
   // starting height and timeMicros (time-in-microseconds) for this State.
@@ -67,20 +67,10 @@ void State::initChain(
 
   // Initial system contract params (ctor params)
   std::vector<std::string> initialValidatorPubKeys;
-  // // Don't need to fetch them from the Options as we get the exact same info via ABCI InitChain params
-  // const auto& validatorsJson = blockchain_.opt().getCometBFT()[COMET_OPTION_GENESIS_JSON]["validators"];
-  // for (const auto& validator : validatorsJson) {
-  //   std::string validatorPubKeyBase64Str = validator["pub_key"]["value"];
-  //   Bytes pubBytes = base64::decode_into<Bytes>(validatorPubKeyBase64Str);
-  //   std::string validatorPubKey = Hex::fromBytes(pubBytes).get();
-  //   LOGDEBUG("Validator PubKey hex string for SystemContract: " + validatorPubKey);
-  //   initialValidatorPubKeys.push_back(validatorPubKey);
-  // }
   for (const auto& validator : initialValidators) {
     // SystemContract takes public keys as hex strings instead of PubKey, unfortunately.
     std::string validatorPubKeyStr = Hex::fromBytes(validator.publicKey).get();
     initialValidatorPubKeys.push_back(validatorPubKeyStr);
-    LOGDEBUG("Validator PubKey hex string for SystemContract: " + validatorPubKeyStr);
   }
 
   uint64_t initialNumSlots = initialValidatorPubKeys.size(); // initial numSlots will simply be the number of validators provided at genesis
@@ -89,7 +79,7 @@ void State::initChain(
   // FIXME/TODO: Must make the SystemContract template undeployable by user code.
   //             Only the BDK node's internal code should be able to deploy it.
 
-  LOGDEBUG("Deploying SystemContract...");
+  LOGTRACE("Deploying SystemContract...");
 
   // Create SystemContract account
   auto& systemContractAcc = *this->accounts_[ProtocolContractAddresses.at("SystemContract")];
@@ -103,8 +93,6 @@ void State::initChain(
       initialValidatorPubKeys, initialNumSlots, maxSlots,
       ProtocolContractAddresses.at("SystemContract"), blockchain_.opt().getChainOwner(), blockchain_.opt().getChainID()
     );
-
-  LOGDEBUG("Deployed SystemContract.");
 
   // Set the initial validator set.
   // NOTE: The SystemContract has its own idea of what the validator set is (it stores it
@@ -129,10 +117,6 @@ void State::setValidators(const std::vector<CometValidatorUpdate>& newValidatorS
   } else {
     // Point to the genesis set we are creating.
     currentValidatorSet_ = 0;
-  }
-  LOGDEBUG("NEW VALIDATOR SET: " + std::to_string(activationHeight));
-  for (const auto& v : newValidatorSet) {
-    LOGDEBUG("  " + Hex::fromBytes(v.publicKey).get() + " = " + std::to_string(v.power));
   }
   validatorSets_.emplace_front(
     ValidatorSet(
@@ -989,7 +973,6 @@ void State::processBlock(
   SystemContract* systemContractPtr = getSystemContractInternal();
   systemContractPtr->finishBlock(validatorDeltas); // Collect any validator changes accumulated in the singleton system contract...
   if (!validatorDeltas.empty()) {
-    LOGDEBUG("Got validatorDeltas: " + std::to_string(validatorDeltas.size()));
     // Apply validator set deltas
     Bytes validatorDbLog;
     for (const auto& validatorDelta : validatorDeltas) {
@@ -1027,14 +1010,6 @@ void State::processBlock(
     setValidators(newValidatorSet);
   }
 
-  // *********************************************************
-  // FIXME: validatorsets_ is not working
-  // -- print "processblock() height == X"
-  // -- print validatorsets_ size and activation heights of all elements [x,y,z...]
-  // -- print what you are doing to the currentvalidatorset_ and the activation height that it is pointing to
-  // why is getvalidatorset returning 0 and not the new one?
-  // *********************************************************
-
   // Since we have advanced the simulation height, we may need to prune validatorSets_
   // Reverse search for the first validator set that is pending, and for each iteration,
   //   add 1 to the count of old validatorSets_ entries to prune.
@@ -1042,7 +1017,7 @@ void State::processBlock(
   // Example: [pending pending active active active] should prune the last 2.
   int pruneCount = -1; // Start at -1 so the last active is preserved.
   for (auto it = validatorSets_.rbegin(); it != validatorSets_.rend(); ++it) {
-    if (it->getHeight() < height_) {
+    if (it->getHeight() > height_) {
       break; // found first pending validator set, so stop
     }
     ++pruneCount;

@@ -22,12 +22,12 @@ bool HTTPServer::run() {
   std::vector<std::thread> v;
   v.reserve(4 - 1);
   for (int i = 4 - 1; i > 0; i--) v.emplace_back([this]() { this->ioc_.run(); });
-  LOGINFO(std::string("HTTP Server Started at port: ") + std::to_string(port_));
+  LOGTRACE(std::string("HTTP server started at port: ") + std::to_string(port_));
   this->ioc_.run();
 
   // If we get here, it means we got a SIGINT or SIGTERM. Block until all the threads exit
   for (std::thread& t : v) t.join();
-  LOGINFO("HTTP Server Stopped");
+  LOGTRACE("HTTP server stopped");
   return true;
 }
 

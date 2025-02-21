@@ -116,6 +116,10 @@ class Blockchain : public CometListener, public NodeRPCInterface, public Log::Lo
 
     std::atomic<bool> started_ = false; ///< Flag to protect the start()/stop() cycle.
 
+    std::mutex incomingBlockLockMutex_; ///< For locking/unlocking block processing.
+
+    std::atomic<bool> incomingBlockLock_ = false; ///< `true` if incomingBlock() is locked.
+
     /**
      * Helper for BDK RPC services, fetches a CometBFT block via CometBFT RPC.
      */
@@ -235,6 +239,24 @@ class Blockchain : public CometListener, public NodeRPCInterface, public Log::Lo
     explicit Blockchain(const Options& options, std::string instanceId = "");
 
     virtual ~Blockchain(); ///< Destructor.
+
+    /**
+     * Lock block processing.
+     * Prevents incomingBlock() Comet callback from executing or being in execution after this call.
+     * Blockchain::state().getHeight() will only return a non-changing value after this call.
+     */
+    void lockBlockProcessing();
+
+    /**
+     * Cancels lockBlockProcessing(), unlocking incomingBlock().
+     */
+    void unlockBlockProcessing();
+
+    /**
+     * Get number of unconfirmed txs in the CometBFT mempool.
+     * @return Integer value returned by RPC num_unconfirmed_txs in result::num_txs, or -1 on error.
+     */
+    int getNumUnconfirmedTxs();
 
     /**
      * Set the size of the GetTx() cache.
