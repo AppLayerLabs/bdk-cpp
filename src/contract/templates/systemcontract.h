@@ -27,13 +27,7 @@ See the LICENSE.txt file in the project root for more information.
  * only a problem in the current overflow protection code if intermediary calculations exceed
  * int256_t, so it's never a problem).
  *
- * TODO:
- * - Prevent SystemContract from being instantiated by incoming transactions.
- * - Actually track pending vs. active validator sets in Blockchain.
- *   (System contract tracks only the latest elected version and is correct).
- * - Contract class is fully written and compiles.
- * - Write unit test.
- * - PR branch.
+ * TODO: Prevent SystemContract from being instantiated by incoming transactions.
  */
 class SystemContract : public DynamicContract {
   private:

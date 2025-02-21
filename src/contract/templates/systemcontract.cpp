@@ -11,6 +11,8 @@ See the LICENSE.txt file in the project root for more information.
 
 #include <set>
 
+// REVIEW: Should we make a PubKey an actual ABI type instead? (that is, a
+// type that can be used as a parameter type for registerd CPP contract methods)
 PubKey SystemContract::pubKeyFromString(const std::string& pubKeyStr) {
   Bytes pubKeyBytes = Hex::toBytes(pubKeyStr);
   if (pubKeyBytes.size() != 33) {

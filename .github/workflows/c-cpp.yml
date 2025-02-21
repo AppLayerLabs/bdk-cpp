@@ -5,10 +5,12 @@ on:
     branches:
       - main
       - development
+      - halley
   pull_request:
     branches:
       - main
       - development
+      - halley
 
 jobs:
   build_test_and_analyse:
