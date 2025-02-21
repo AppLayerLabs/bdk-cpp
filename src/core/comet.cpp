@@ -1331,7 +1331,9 @@ void CometImpl::doStartCometBFT(
         GLOGXTRACE("[cometbft stdout]: " + line);
         *processStdout += line + '\n';
       } else {
-        GLOGDEBUG("[cometbft stdout]: " + line);
+        // Leaving cometbft output to TRACE is probably optimal.
+        // This makes DEBUG logs far less verbose (when the bug is unrelated to consensus traffic).
+        GLOGTRACE("[cometbft stdout]: " + line);
       }
     }
     // remove trailing \n so that e.g. the node id from cometbft show-node-id is exactly processStdout without a need to trim it.
@@ -1346,6 +1348,8 @@ void CometImpl::doStartCometBFT(
         GLOGXTRACE("[cometbft stderr]: " + line);
         *processStderr += line + '\n';
       } else {
+        // If cometbft generates stderr messages, we probably want to see it during regular debugging,
+        // even if we aren't tracing normal cometbft output.
         GLOGDEBUG("[cometbft stderr]: " + line);
       }
     }

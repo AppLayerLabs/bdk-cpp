@@ -25,7 +25,7 @@ struct ValidatorVotes {
   uint64_t  votes;
   bool operator<(const ValidatorVotes& other) const {
     if (votes != other.votes) {
-      return votes < other.votes;
+      return votes > other.votes; // Must actually sort biggest votes first
     }
     for (size_t i = 0; i < 33; ++i) { // 33 = PubKey byte size
       if (validator[i] != other.validator[i]) {
@@ -66,22 +66,24 @@ bool SystemContract::recordDelegationDelta(const PubKey& validator, const uint64
     throw DynamicException("Delegation amount limit exceeded");
   }
   uint64_t targetVotes = checker.convert_to<uint64_t>();
+  // This is not needed as we imposed a total ordering based on public key binary comparison
+  //
   // No validator can have exactly the same voting power as any other
   // If we are violating this rule with the new voting power, return false so the
   //   caller can retry with another amount
-  for (int i = 0; i < validatorVotes_.size(); ++i) {
-    if (validators_[i] != validator && validatorVotes_[i] == targetVotes) {
-      LOGXTRACE("New delegation delta for validator " + Hex::fromBytes(validator).get() + " collides total votes: " + std::to_string(targetVotes));
-      return false;
-    }
-  }
+  //for (int i = 0; i < validatorVotes_.size(); ++i) {
+  //  if (validators_[i] != validator && validatorVotes_[i] == targetVotes) {
+  //    LOGDEBUG("New delegation delta for validator " + Hex::fromBytes(validator).get() + " collides total votes: " + std::to_string(targetVotes));
+  //    return false;
+  //  }
+  //}
   // All OK, so record it
   if (positive) {
     delegationDeltas_[validator] += delta;
   } else {
     delegationDeltas_[validator] -= delta;
   }
-  LOGXTRACE("New delegation delta for validator " + Hex::fromBytes(validator).get() + ": " + delegationDeltas_[validator].str());
+  LOGDEBUG("New delegation delta for validator " + Hex::fromBytes(validator).get() + ": " + delegationDeltas_[validator].str());
   return true;
 }
 
@@ -179,7 +181,7 @@ void SystemContract::stake() {
     throw DynamicException("cannot deposit dust or zero");
   }
   stakes_[this->getCaller()] += amount;
-  LOGXTRACE("staked " + std::to_string(amount) + " for " + Hex::fromBytes(this->getCaller()).get() + ", current balance: " + std::to_string(stakes_[this->getCaller()]));
+  LOGDEBUG("staked " + std::to_string(amount) + " for " + Hex::fromBytes(this->getCaller()).get() + ", current balance: " + std::to_string(stakes_[this->getCaller()]));
 }
 
 void SystemContract::unstake(const uint256_t& amount) {
@@ -207,7 +209,7 @@ void SystemContract::delegate(const std::string& validatorPubKey, const uint256_
   PubKey validator = pubKeyFromString(validatorPubKey);
   const Address& caller = this->getCaller();
   if (stakes_.find(caller) == stakes_.end()) {
-    LOGXTRACE("no stake entry for " + Hex::fromBytes(caller).get() + ", cannot delegate.");
+    LOGDEBUG("no stake entry for " + Hex::fromBytes(caller).get() + ", cannot delegate.");
     throw DynamicException("No stake");
   }
   uint64_t amount64 = encodeAmount(amount);
@@ -230,14 +232,16 @@ void SystemContract::delegate(const std::string& validatorPubKey, const uint256_
     }
   }
   delegations_[caller][validator] += amount64;
-  // Loop avoiding collision in delegation amount (which we do not support)
-  while (!recordDelegationDelta(validator, amount64, true)) {
-    if (amount64 == 1) {
-      throw DynamicException("Cannot delegate this amount (try a larger amount)");
-    }
-    --amount64;
-    --delegations_[caller][validator];
-  }
+  // This is not needed as we imposed a total ordering based on public key binary comparison
+  // // Loop avoiding collision in delegation amount (which we do not support)
+  // while (!recordDelegationDelta(validator, amount64, true)) {
+  //  if (amount64 == 1) {
+  //    throw DynamicException("Cannot delegate this amount (try a larger amount)");
+  //  }
+  //  --amount64;
+  //  --delegations_[caller][validator];
+  //}
+  recordDelegationDelta(validator, amount64, true);
 }
 
 void SystemContract::undelegate(const std::string& validatorPubKey, const uint256_t& amount) {
@@ -269,14 +273,16 @@ void SystemContract::undelegate(const std::string& validatorPubKey, const uint25
   if (effectiveAmount > 0) {
     stakes_[caller] += effectiveAmount;
   }
-  // Loop avoiding collision in delegation amount (which we do not support)
-  while (!recordDelegationDelta(validator, amount64, false)) {
-    if (amount64 == 1) {
-      throw DynamicException("Cannot undelegate this amount (try a larger amount)");
-    }
-    --amount64;
-    ++delegations_[caller][validator];
-  }
+  // This is not needed as we imposed a total ordering based on public key binary comparison
+  // // Loop avoiding collision in delegation amount (which we do not support)
+  // while (!recordDelegationDelta(validator, amount64, false)) {
+  //   if (amount64 == 1) {
+  //     throw DynamicException("Cannot undelegate this amount (try a larger amount)");
+  //   }
+  //   --amount64;
+  //   ++delegations_[caller][validator];
+  // }
+  recordDelegationDelta(validator, amount64, false);
 }
 
 void SystemContract::voteSlots(const std::string& validatorPubKey, const uint64_t& slots) {
@@ -306,39 +312,67 @@ void SystemContract::voteSlots(const std::string& validatorPubKey, const uint64_
 }
 
 void SystemContract::finishBlock(std::vector<std::pair<PubKey, uint64_t>>& validatorDeltas) {
+
+  // Only run one of these at a time
+  static std::mutex printMutex; std::unique_lock<std::mutex> lk(printMutex);
+
   validatorDeltas.clear();
 
-  // feed updated validators_ & validatorVotes_ into a sorted validator,votes set
-  // save a copy of the validators_ & validatorVotes_ vector in old
-  std::set<ValidatorVotes> sorted;
+  LOGDEBUG("Enter finishBlock()");
+
+  // stores a copy of the validators_ & validatorVotes_ vector
   std::vector<ValidatorVotes> old;
+
+  // complete working map of all voted validators and their vote totals
+  std::map<PubKey, int256_t> votedValidators;
+
+  // This iterates over ALL validators that have votes (delegations).
+  // (including 0 votes, which is the special case for genesis validators).
   for (int i = 0; i < validators_.size(); ++i) {
+
+    // Working backup of validators_ and validatorVotes_
+    // `old` is used as basis to compute the validator update list that is sent to cometbft
     const auto& validator = validators_[i];
     ValidatorVotes vv;
     vv.validator = validator;
     vv.votes = validatorVotes_[i];
     old.push_back(vv);
-    if (validatorVotes_[i] > 0) {
-      auto it = delegationDeltas_.find(validator);
-      if (it != delegationDeltas_.end()) {
-        int256_t delta = it->second;
-        if (delta >= 0) {
-          vv.votes += delta.convert_to<uint64_t>();
-        } else {
-          delta = -delta;
-          vv.votes -= delta.convert_to<uint64_t>();
-        }
-      }
-      sorted.insert(vv);
-    }
+
+    // intialize the global vote map with all validators that already had votes
+    votedValidators[validator] = validatorVotes_[i];
   }
 
-  bool changedDelegations = !delegationDeltas_.empty();
+  // Apply all the vote deltas for this block on top of the voting totals that were already in effect.
+  // If a validator did not have any votes, a new key will be inserted in votedValidators.
+  auto dit = delegationDeltas_.cbegin();
+  while (dit != delegationDeltas_.cend()) {
+    votedValidators[dit->first] += dit->second;
+    ++dit;
+  }
+
+  // Use votedValidators to build the `sorted` set, which will sort the
+  // validators based on voting power with a total order, breaking ties
+  // on the validator public key content.
+  std::set<ValidatorVotes> sorted;
+  for (const auto& [validator, votes] : votedValidators) {
+    sorted.insert(
+      ValidatorVotes{
+        validator,
+        static_cast<uint64_t>(votes)
+      }
+    );
+  }
 
   // If delegations are unchanged, no need to fix validators_ & validatorVotes_
+  bool changedDelegations = !delegationDeltas_.empty();
   if (changedDelegations) {
+    LOGDEBUG("Got delegationDeltas_: " + std::to_string(delegationDeltas_.size()));
+
+    // done using delegation deltas, so clear them for the next block
+    delegationDeltas_.clear();
 
     // rebuild validators_ & validatorVotes_
+    // computes an ancillary `elected` set for targetSlots_ recalculation
     validators_.clear();
     validatorVotes_.clear();
     std::set<PubKey> elected;
@@ -347,13 +381,11 @@ void SystemContract::finishBlock(std::vector<std::pair<PubKey, uint64_t>>& valid
       validators_.push_back(vv.validator);
       validatorVotes_.push_back(vv.votes);
       if (i < numSlots_.get()) {
+        LOGDEBUG("Elected: " + Hex::fromBytes(vv.validator).get());
         elected.insert(vv.validator);
       }
       ++i;
     }
-
-    // clear delegation deltas
-    delegationDeltas_.clear();
 
     // clear irrelevant targetSlots_ entries created by unelected validators.
     // NOTE: it = erase(it) is not compiling, so we do a deferred erase-by-key loop.
@@ -384,15 +416,18 @@ void SystemContract::finishBlock(std::vector<std::pair<PubKey, uint64_t>>& valid
   bool changedSlots = false;
   while (sit != sorted.end() && vIdx < numSlots_.get()) {
     ++electedValidatorCount;
-    int64_t slotsVote = static_cast<int64_t>(targetSlots_[sit->validator]); // cast is OK since slotsVote < maxSlots_
-    if (slotsVote > numSlots_.get()) {
-      incVote = std::min(incVote, slotsVote);
-      incVote = std::min(incVote, static_cast<int64_t>(maxSlots_.get())); // ensure whatever maxSlots_ is cannot be exceeded
-      ++incVoteCount;
-    } else if (slotsVote < numSlots_.get()) {
-      decVote = std::max(decVote, slotsVote);
-      // already protected against slotsVote == 0 on vote submission
-      ++decVoteCount;
+    auto tit = targetSlots_.find(sit->validator);
+    if (tit != targetSlots_.end()) {
+      int64_t slotsVote = static_cast<int64_t>(tit->second); // cast is OK since slotsVote < maxSlots_
+      if (slotsVote > numSlots_.get()) {
+        incVote = std::min(incVote, slotsVote);
+        incVote = std::min(incVote, static_cast<int64_t>(maxSlots_.get())); // ensure whatever maxSlots_ is cannot be exceeded
+        ++incVoteCount;
+      } else if (slotsVote < numSlots_.get()) {
+        decVote = std::max(decVote, slotsVote);
+        // already protected against slotsVote == 0 on vote submission
+        ++decVoteCount;
+      }
     }
     ++sit;
     ++vIdx;
@@ -401,11 +436,11 @@ void SystemContract::finishBlock(std::vector<std::pair<PubKey, uint64_t>>& valid
   if (incVoteCount >= quorum && incVote != numSlots_.get()) {
     numSlots_ = static_cast<uint64_t>(incVote);
     changedSlots = true;
-    LOGXTRACE("Increased numSlots_: " + std::to_string(numSlots_.get()));
+    LOGDEBUG("Increased numSlots_: " + std::to_string(numSlots_.get()));
   } else if (decVoteCount >= quorum && decVote != numSlots_.get()) {
     numSlots_ = static_cast<uint64_t>(decVote);
     changedSlots = true;
-    LOGXTRACE("Decreased numSlots_: " + std::to_string(numSlots_.get()));
+    LOGDEBUG("Decreased numSlots_: " + std::to_string(numSlots_.get()));
   }
 
   // Finally, compute the CometBFT validator updates if any.
@@ -432,7 +467,7 @@ void SystemContract::finishBlock(std::vector<std::pair<PubKey, uint64_t>>& valid
 
       // If the new effective voting power for the validator changes, generate an update
       if (newVote != oldvv.votes) {
-        LOGXTRACE("Validator update (existing): " + Hash(oldvv.validator.asBytes()).hex().get());
+        LOGDEBUG("Validator update (existing): " + Hex::fromBytes(oldvv.validator).get());
         validatorDeltas.push_back({oldvv.validator, newVote});
       }
     }
@@ -461,11 +496,13 @@ void SystemContract::finishBlock(std::vector<std::pair<PubKey, uint64_t>>& valid
       }
       if (!found) {
         // vv.validator has >0 power now, but had ==0 power before (not elected)
-        LOGXTRACE("Validator update (new): " + Hash(vv.validator.asBytes()).hex().get());
+        LOGDEBUG("Validator update (new): " + Hex::fromBytes(vv.validator).get());
         validatorDeltas.push_back({vv.validator, vv.votes});
       }
     }
   }
+
+  LOGDEBUG("Exit finishBlock()");
 }
 
 DBBatch SystemContract::dump() const {

@@ -130,6 +130,10 @@ void State::setValidators(const std::vector<CometValidatorUpdate>& newValidatorS
     // Point to the genesis set we are creating.
     currentValidatorSet_ = 0;
   }
+  LOGDEBUG("NEW VALIDATOR SET: " + std::to_string(activationHeight));
+  for (const auto& v : newValidatorSet) {
+    LOGDEBUG("  " + Hex::fromBytes(v.publicKey).get() + " = " + std::to_string(v.power));
+  }
   validatorSets_.emplace_front(
     ValidatorSet(
       activationHeight,
@@ -984,8 +988,8 @@ void State::processBlock(
   std::vector<std::pair<PubKey, uint64_t>> validatorDeltas;
   SystemContract* systemContractPtr = getSystemContractInternal();
   systemContractPtr->finishBlock(validatorDeltas); // Collect any validator changes accumulated in the singleton system contract...
-
   if (!validatorDeltas.empty()) {
+    LOGDEBUG("Got validatorDeltas: " + std::to_string(validatorDeltas.size()));
     // Apply validator set deltas
     Bytes validatorDbLog;
     for (const auto& validatorDelta : validatorDeltas) {
@@ -1023,9 +1027,17 @@ void State::processBlock(
     setValidators(newValidatorSet);
   }
 
+  // *********************************************************
+  // FIXME: validatorsets_ is not working
+  // -- print "processblock() height == X"
+  // -- print validatorsets_ size and activation heights of all elements [x,y,z...]
+  // -- print what you are doing to the currentvalidatorset_ and the activation height that it is pointing to
+  // why is getvalidatorset returning 0 and not the new one?
+  // *********************************************************
+
   // Since we have advanced the simulation height, we may need to prune validatorSets_
   // Reverse search for the first validator set that is pending, and for each iteration,
-  //   add 1 to the count of old validatorSets_ entires to prune.
+  //   add 1 to the count of old validatorSets_ entries to prune.
   // Example: if no pending validator sets exist (all are active), will prune all but the front.
   // Example: [pending pending active active active] should prune the last 2.
   int pruneCount = -1; // Start at -1 so the last active is preserved.
@@ -1039,6 +1051,9 @@ void State::processBlock(
     validatorSets_.pop_back();
     --pruneCount;
   }
+
+  // After pruning validatorSets_, the currentValidatorSet_ is simply the last one.
+  currentValidatorSet_ = validatorSets_.size() - 1;
 }
 
 void State::processTransaction(
