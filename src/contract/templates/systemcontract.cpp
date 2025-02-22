@@ -162,7 +162,6 @@ void SystemContract::registerContractFunctions() {
   this->registerMemberFunction("voteSlots", &SystemContract::voteSlots, FunctionTypes::NonPayable, this);
 }
 
-// TODO/REVIEW: rewrite as solidity deposit / fallback method?
 void SystemContract::stake() {
   // Tx native token value transferred is the staking amount, and tx sender is the depositor.
   uint64_t amount = encodeAmount(this->getValue());

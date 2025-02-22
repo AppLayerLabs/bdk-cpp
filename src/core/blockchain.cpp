@@ -326,7 +326,7 @@ Hash Blockchain::getBlockHash(const uint64_t height) {
   // getBlockHash() is currently used by the BDK RPC endpoint impls to return
   // the block hash in a transaction query. Since getTxByBlockNumberAndIndex()
   // internally will retrieve the full block and feed the fbCache() and then
-  // feed the blockHeightToHashCache_, the following getBlockHah() call made
+  // feed the blockHeightToHashCache_, the following getBlockHash() call made
   // by the eth_getTransactionByBlockNumberAndIndex() will indeed find a hit
   // in the blockHeightToHashCache_ above. So we currently never hit this
   // condition here.
@@ -836,8 +836,6 @@ void Blockchain::persistState(uint64_t& height) {
 
   // Trigger snapshotting every X blocks.
   // Do not save snapshots when syncing the blockchain or if snapshotting is disabled via stateDumpTrigger == 0.
-  // TODO/REVIEW: We could catch a signal (like SIGUSR1) that forces snapshot generation on the next commit,
-  // so nodes could have stateDumpTrigger set to 0 and still be able to generate snapshots.
 
   // If we are syncing or state dump is disabled, there's nothing else to do.
   if (syncing_ || options_.getStateDumpTrigger() == 0) {
@@ -941,7 +939,6 @@ void Blockchain::rpcAsyncCallResult(const uint64_t tId, const bool success, cons
 }
 
 void Blockchain::cometStateTransition(const CometState newState, const CometState oldState) {
-  // TODO: trace log
 }
 
 // ------------------------------------------------------------------

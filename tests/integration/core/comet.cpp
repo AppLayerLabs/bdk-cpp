@@ -1556,11 +1556,6 @@ namespace TComet {
       //   as if it had loaded a BDK app state DB/snapshot.
       // NOTE: These will be simply ignored, since cometbft height is 0 (this is a fresh node).
       //       TestMachine will force its h_ to genesis when it is notified of this.
-      // TODO: In a future version, the Comet driver will use cometbft state sync,
-      //       snapshots, light-client verification, etc. instead and this test will
-      //       actually start the node1 instance from comet1StartHeight and its current
-      //       comet1StartMachineMemoryValue and comet1StartAppHash, without reverting to
-      //       genesis state.
       cometListener1.h_ = comet1StartHeight;
       cometListener1.m_ = comet1StartMachineMemoryValue;
       cometListener1.appHash_ = comet1StartAppHash;

@@ -86,6 +86,13 @@ class TxBlock {
      */
     void serializeVRS(Bytes& ret, const uint64_t& reqBytesR, const uint64_t& reqBytesS) const;
 
+    /**
+     * Serialize the transaction to a string in RLP format. [EIP-155](https://eips.ethereum.org/EIPS/eip-155) compatible.
+     * @param includeSig If `true`, includes the transaction signature (v/r/s).
+     * @return The serialized transaction string.
+     */
+    Bytes rlpSerializeInternal(bool includeSig) const;
+
   public:
     /**
      * Raw constructor.
@@ -158,19 +165,15 @@ class TxBlock {
     /**
      * Calculates the size of the transaction in bytes.
      * Uses the same methods as rlpSerialize() to calculate the size, without actually serializing the transaction.
-     * Does NOT have a option without signature, as the signature is always included in the serialized size.
-     * Serialization without the signature only happens **internally**.
      * @return The size of the serialized transaction.
      */
     uint64_t rlpSize() const;
 
     /**
      * Serialize the transaction to a string in RLP format. [EIP-155](https://eips.ethereum.org/EIPS/eip-155) compatible.
-     * @param includeSig (optional) If `true`, includes the transaction signature (v/r/s). Defaults to `true`.
      * @return The serialized transaction string.
-     * TODO: Serialization without signatures only happens INSIDE the constructor, perhaps we should make a private method for that.
      */
-    Bytes rlpSerialize(bool includeSig = true) const;
+    Bytes rlpSerialize() const { return rlpSerializeInternal(true); }
 
     /**
      * Convert a TxBlock to a evmc_message object.

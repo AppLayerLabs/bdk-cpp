@@ -246,11 +246,6 @@ void State::resetState(uint64_t height, uint64_t timeMicros) {
 void State::saveSnapshot(const std::string& where) {
   LOGINFO("Saving snapshot to: " + where);
 
-  // TODO: need to remove the ability of validator nodes to generate snapshots
-  //   entirely (by configuring stateDumpTrigger to -1 or something like that)
-  //   and allow snapshotting only at non-validator nodes (by queuing up FinalizedBlock's
-  //   until the snapshot generation completes).
-
   // Create DB directory for output
   DB out(where);
 

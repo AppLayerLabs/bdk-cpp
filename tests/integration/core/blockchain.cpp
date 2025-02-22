@@ -653,10 +653,10 @@ namespace TBlockchain {
       cometBlock.height = 1;
       cometBlock.timeNanos = 1;
       cometBlock.proposerAddr = accValidatorCometAddress;
-      cometBlock.txs.push_back(tx_A_AA_0.rlpSerialize(true));
-      cometBlock.txs.push_back(tx_A_AA_1.rlpSerialize(true));
-      cometBlock.txs.push_back(tx_A_AA_2.rlpSerialize(true));
-      cometBlock.txs.push_back(tx_A_AA_3.rlpSerialize(true));
+      cometBlock.txs.push_back(tx_A_AA_0.rlpSerialize());
+      cometBlock.txs.push_back(tx_A_AA_1.rlpSerialize());
+      cometBlock.txs.push_back(tx_A_AA_2.rlpSerialize());
+      cometBlock.txs.push_back(tx_A_AA_3.rlpSerialize());
       cometBlock.txs.push_back(Utils::randBytes(32)); // append a randomHash non-tx tx (required by our protocol / FinalizedBlock::fromCometBlock())
       cometBlock.hash.resize(32); // The block hash can be whatever, it's not checked.
       cometBlock.prevHash.resize(32); // The prev block hash can be whatever, it's not checked.
@@ -790,11 +790,11 @@ namespace TBlockchain {
       cometBlock.height = 2;
       cometBlock.timeNanos = 2;
       cometBlock.txs.clear();
-      cometBlock.txs.push_back(tx_A_AA_3_PastNonce.rlpSerialize(true)); // should be excluded by block builder
-      cometBlock.txs.push_back(tx_A_AA_4_PresentNonce.rlpSerialize(true)); // should be excluded by block builder
-      cometBlock.txs.push_back(tx_A_AA_4_PresentNonce_MoreProfitable.rlpSerialize(true));
-      cometBlock.txs.push_back(tx_A_AA_5_FutureNonce.rlpSerialize(true));
-      cometBlock.txs.push_back(tx_A_AA_7_MissingNonce6.rlpSerialize(true)); // should be excluded by block builder
+      cometBlock.txs.push_back(tx_A_AA_3_PastNonce.rlpSerialize()); // should be excluded by block builder
+      cometBlock.txs.push_back(tx_A_AA_4_PresentNonce.rlpSerialize()); // should be excluded by block builder
+      cometBlock.txs.push_back(tx_A_AA_4_PresentNonce_MoreProfitable.rlpSerialize());
+      cometBlock.txs.push_back(tx_A_AA_5_FutureNonce.rlpSerialize());
+      cometBlock.txs.push_back(tx_A_AA_7_MissingNonce6.rlpSerialize()); // should be excluded by block builder
 
       // Call buildBlockProposal
       GLOGDEBUG("TEST: calling buildBlockProposal");
@@ -889,8 +889,8 @@ namespace TBlockchain {
       cometBlock.height = 2;
       cometBlock.timeNanos = 2;
       cometBlock.txs.clear();
-      cometBlock.txs.push_back(tx_A_AA_6.rlpSerialize(true)); // should be excluded by block builder: flagged as ejected
-      cometBlock.txs.push_back(tx_A_AA_7.rlpSerialize(true)); // should be excluded by block builder: nonce path deleted
+      cometBlock.txs.push_back(tx_A_AA_6.rlpSerialize()); // should be excluded by block builder: flagged as ejected
+      cometBlock.txs.push_back(tx_A_AA_7.rlpSerialize()); // should be excluded by block builder: nonce path deleted
       txIds.clear();
       blockchain.buildBlockProposal(100'000'000, cometBlock, noChange, txIds, injectTxs);
       REQUIRE(txIds.size() == 0);

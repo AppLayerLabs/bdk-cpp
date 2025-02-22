@@ -5,8 +5,6 @@ This software is distributed under the MIT License.
 See the LICENSE.txt file in the project root for more information.
 */
 
-// TODO: split the SDKTestSuite impl from the "main" part of the tests (if possible)
-
 #include "libs/catch2/catch_amalgamated.hpp"
 
 #include "utils/clargs.h" // ProcessOptions

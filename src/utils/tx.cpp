@@ -55,15 +55,12 @@ TxBlock::TxBlock(const View<Bytes> bytes, const uint64_t& requiredChainId, bool 
 
   // Reconstruct transaction sender address
   Signature sig = Secp256k1::makeSig(this->r_, this->s_, this->v_);
-  Hash msgHash = Utils::sha3(this->rlpSerialize(false)); // Do not include signature in hash
+  Hash msgHash = Utils::sha3(this->rlpSerializeInternal(false)); // Do not include signature in hash
   UPubKey key = Secp256k1::recover(sig, msgHash);
   if (!key) {
     throw DynamicException("Invalid tx signature - cannot recover public key");
   }
   this->from_ = Secp256k1::toAddress(key);
-
-  // No need to recreate the byte stream to get the txhash
-  //this->hash_ = Utils::sha3(this->rlpSerialize(true)); // Include signature in hash
   this->hash_ = Utils::sha3(bytes);
 }
 
@@ -79,7 +76,7 @@ TxBlock::TxBlock(
     throw DynamicException("Private key does not match sender address (from)");
   }
 
-  Hash msgHash = Utils::sha3(this->rlpSerialize(false)); // Do not include signature
+  Hash msgHash = Utils::sha3(this->rlpSerializeInternal(false)); // Do not include signature
   Signature sig = Secp256k1::sign(msgHash, privKey);
   this->r_ = UintConv::bytesToUint256(sig.view(0, 32));
   this->s_ = UintConv::bytesToUint256(sig.view(32,32));
@@ -91,7 +88,7 @@ TxBlock::TxBlock(
   if (!Secp256k1::verifySig(this->r_, this->s_, this->v_)) {
     throw DynamicException("Invalid tx signature - doesn't fit elliptic curve verification");
   }
-  this->hash_ = Utils::sha3(this->rlpSerialize(true)); // Include signature
+  this->hash_ = Utils::sha3(this->rlpSerializeInternal(true)); // Include signature
 }
 
 void TxBlock::parseChainId(View<Bytes> txData, uint64_t& index) {
@@ -310,7 +307,7 @@ uint64_t TxBlock::rlpSize() const {
   return total_size;
 }
 
-Bytes TxBlock::rlpSerialize(bool includeSig) const {
+Bytes TxBlock::rlpSerializeInternal(bool includeSig) const {
   Bytes ret = { 0x02 };
   uint64_t total_size = 0;
   uint64_t reqBytesChainId = Utils::bytesRequired(this->chainId_);

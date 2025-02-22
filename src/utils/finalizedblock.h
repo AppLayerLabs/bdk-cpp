@@ -33,11 +33,6 @@ See the LICENSE.txt file in the project root for more information.
 
 class CometBlock;
 
-// REVIEW/TODO: We may want to create a class to represent a standard ETH1
-//       block header, that can be predictably hashed with sha3(), and that is
-//       deterministically derived from a FinalizedBlock, which in turn is
-//       always derived from a CometBlock (NEW: or a json block RPC query response).
-
 /// Abstraction of a finalized block. Members are purposefully const due to the immutable nature of the structure.
 class FinalizedBlock {
   private:

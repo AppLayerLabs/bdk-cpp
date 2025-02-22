@@ -2518,8 +2518,7 @@ void CometImpl::query(const cometbft::abci::v1::QueryRequest& req, cometbft::abc
   //       inclusion proofs (more specifically, tx execution receipt proofs, since Ethereum
   //       includes reverted transactions in blocks and thus in the tx merkle root hash).
 
-  // TODO:
-  // - Implement query for peer ID/IP rejection/filter (e.g. an IP address blacklist).
+  // TODO: Implement query for peer ID/IP rejection/filter (e.g. an IP address blacklist).
 }
 
 // NOTE: If we want to support snapshot sharing, we'll do that by zipping, splicing,
