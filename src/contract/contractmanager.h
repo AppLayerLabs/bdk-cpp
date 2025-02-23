@@ -46,6 +46,9 @@ class ContractManager : public BaseContract {
      */
     std::vector<std::tuple<std::string, Address>> getDeployedContracts() const;
 
+    // Temporary variable to allow the proper execution of evmEthCall
+    bool executed_ = false;
+
     /**
      * Get all deployed contracts from a specific creator address.
      * function getDeployedContractsForCreator(Address creator) public view returns (Contract[] memory) {

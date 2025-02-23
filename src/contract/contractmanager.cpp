@@ -80,10 +80,15 @@ void ContractManager::ethCall(const evmc_message& callInfo, ContractHost* host) 
              this->contracts_,
              this->getContractChainId(),
              this->host_);
+  this->executed_ = true;
 }
 
 Bytes ContractManager::evmEthCall(const evmc_message& callInfo, ContractHost* host) {
   this->ethCall(callInfo, host);
+  if (this->executed_) {
+    this->executed_ = false;
+    return Bytes();
+  }
   auto functor = EVMCConv::getFunctor(callInfo);
   if (functor.value == 2862220943) return ABI::Encoder::encodeData(this->getDeployedContracts());
   // This hash is equivalent to "function getDeployedContractsForCreator(address creator) public view returns (Contract[] memory) {}"
