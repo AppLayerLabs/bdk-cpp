@@ -73,7 +73,7 @@ void ContractManager::ethCall(const evmc_message& callInfo, ContractHost* host) 
   // Call the function on this->createContractFuncs_
   auto it = this->createContractFuncs_.find(functor);
   if (it == this->createContractFuncs_.end()) {
-    throw DynamicException("ContractManager: Invalid function call");
+    return;
   }
   it->second(callInfo,
             generateContractAddress(this->host_->context().getAccount(caller).getNonce(), caller),
@@ -84,6 +84,16 @@ void ContractManager::ethCall(const evmc_message& callInfo, ContractHost* host) 
 
 Bytes ContractManager::evmEthCall(const evmc_message& callInfo, ContractHost* host) {
   this->ethCall(callInfo, host);
+  auto functor = EVMCConv::getFunctor(callInfo);
+  if (functor.value == 2862220943) return ABI::Encoder::encodeData(this->getDeployedContracts());
+  // This hash is equivalent to "function getDeployedContractsForCreator(address creator) public view returns (Contract[] memory) {}"
+  // 0x73474f5a == uint32_t(1934053210)
+  if (functor.value == 1934053210) {
+    auto args = EVMCConv::getFunctionArgs(callInfo);
+    auto [addr] = ABI::Decoder::decodeData<Address>(args);
+    return ABI::Encoder::encodeData(this->getDeployedContractsForCreator(addr));
+  }
+  throw DynamicException("ContractManager: Invalid function call");
   return Bytes();
 }
 

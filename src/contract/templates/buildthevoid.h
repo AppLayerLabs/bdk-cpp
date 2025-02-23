@@ -94,7 +94,7 @@ class BuildTheVoid : virtual public DynamicContract, virtual public Ownable {
         const uint64_t &,
         DB&
       >(
-        std::vector<std::string>{""},
+        std::vector<std::string>{},
         std::make_tuple("setPlayerContract", &BuildTheVoid::setPlayerContract, FunctionTypes::NonPayable, std::vector<std::string>{"playerContract"}),
         std::make_tuple("setEnergyContract", &BuildTheVoid::setEnergyContract, FunctionTypes::NonPayable, std::vector<std::string>{"energyContract"}),
         std::make_tuple("forceUpdate", &BuildTheVoid::forceUpdate, FunctionTypes::NonPayable, std::vector<std::string>{}),
