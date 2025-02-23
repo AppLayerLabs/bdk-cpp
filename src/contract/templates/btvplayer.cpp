@@ -12,6 +12,7 @@ BTVPlayer::BTVPlayer(const Address &address, const DB &db) :
   playerNames_(this),
   playerToTokens_(this),
   energyBalance_(this),
+  addressToPlayers_(this),
   tokenCounter_(this) {
 
   this->proposalContract_ = Address(db.get(std::string("proposalContract_"), this->getDBPrefix()));
@@ -26,6 +27,9 @@ BTVPlayer::BTVPlayer(const Address &address, const DB &db) :
   for (const auto &dbEntry : db.getBatch(this->getNewPrefix("energyBalance_"))) {
     this->energyBalance_[UintConv::bytesToUint64(dbEntry.key)] = UintConv::bytesToUint256(dbEntry.value);
   }
+  for (const auto &dbEntry : db.getBatch(this->getNewPrefix("addressToPlayers_"))) {
+    this->addressToPlayers_[Address(dbEntry.key)].insert(UintConv::bytesToUint64(dbEntry.value));
+  }
   this->tokenCounter_ = UintConv::bytesToUint256(db.get(std::string("tokenCounter_"), this->getDBPrefix()));
   this->energyContract_.commit();
   this->proposalContract_.commit();
@@ -33,6 +37,7 @@ BTVPlayer::BTVPlayer(const Address &address, const DB &db) :
   this->playerNames_.commit();
   this->playerToTokens_.commit();
   this->energyBalance_.commit();
+  this->addressToPlayers_.commit();
   this->tokenCounter_.commit();
 
   this->registerContractFunctions();
@@ -43,6 +48,7 @@ BTVPlayer::BTVPlayer(const Address &address, const DB &db) :
   this->playerNames_.enableRegister();
   this->playerToTokens_.enableRegister();
   this->energyBalance_.enableRegister();
+  this->addressToPlayers_.enableRegister();
   this->tokenCounter_.enableRegister();
 }
 
@@ -56,6 +62,7 @@ BTVPlayer::BTVPlayer(const std::string &erc721_name, const std::string &erc721_s
   playerNames_(this),
   playerToTokens_(this),
   energyBalance_(this),
+  addressToPlayers_(this),
   tokenCounter_(this) {
   #ifdef BUILD_TESTNET
     if (creator != Address(Hex::toBytes("0xc2f2ba5051975004171e6d4781eeda927e884024"))) {
@@ -68,6 +75,7 @@ BTVPlayer::BTVPlayer(const std::string &erc721_name, const std::string &erc721_s
   this->playerNames_.commit();
   this->playerToTokens_.commit();
   this->energyBalance_.commit();
+  this->addressToPlayers_.commit();
   this->tokenCounter_.commit();
   this->registerContractFunctions();
   this->proposalContract_.enableRegister();
@@ -76,8 +84,26 @@ BTVPlayer::BTVPlayer(const std::string &erc721_name, const std::string &erc721_s
   this->playerNames_.enableRegister();
   this->playerToTokens_.enableRegister();
   this->energyBalance_.enableRegister();
+  this->addressToPlayers_.enableRegister();
   this->tokenCounter_.enableRegister();
 }
+
+Address BTVPlayer::update_(const Address &to, const uint256_t &tokenId, const Address &auth) {
+  auto prevAddress = ERC721::update_(to, tokenId, auth);
+  // We only need to update the addressToPlayers_ map if the token is being transferred
+  if (prevAddress != to) {
+    auto it = this->addressToPlayers_.find(prevAddress);
+    if (it != this->addressToPlayers_.cend()) {
+      it->second.erase(static_cast<uint64_t>(tokenId));
+      if (it->second.empty()) {
+        this->addressToPlayers_.erase(prevAddress);
+      }
+    }
+    this->addressToPlayers_[to].insert(static_cast<uint64_t>(tokenId));
+  }
+  return prevAddress;
+}
+
 
 std::string BTVPlayer::getPlayerName(const uint64_t &tokenId) const {
   auto it = this->playerToTokens_.find(tokenId);
@@ -165,6 +191,15 @@ void BTVPlayer::takePlayerEnergy(const uint64_t &tokenId, const uint256_t &energ
   it->second -= energy;
 }
 
+std::vector<uint64_t> BTVPlayer::getPlayerTokens(const Address& player) const {
+  auto it = this->addressToPlayers_.find(player);
+  if (it == this->addressToPlayers_.cend()) {
+    return {};
+  }
+  std::vector<uint64_t> tokens(it->second.cbegin(), it->second.cend());
+  return tokens;
+}
+
 void BTVPlayer::createProposal(const uint64_t &tokenId, const std::string &title, const std::string &description) {
   if (this->getCaller() != this->ownerOf(tokenId)) {
     throw DynamicException("BTVPlayer::createProposal: caller is not the owner of the token");
@@ -223,6 +258,7 @@ void BTVPlayer::registerContractFunctions() {
   this->registerMemberFunction("getPlayerEnergy", &BTVPlayer::getPlayerEnergy, FunctionTypes::View, this);
   this->registerMemberFunction("addPlayerEnergy", &BTVPlayer::addPlayerEnergy, FunctionTypes::NonPayable, this);
   this->registerMemberFunction("takePlayerEnergy", &BTVPlayer::takePlayerEnergy, FunctionTypes::NonPayable, this);
+  this->registerMemberFunction("getPlayerTokens", &BTVPlayer::getPlayerTokens, FunctionTypes::View, this);
   this->registerMemberFunction("createProposal", &BTVPlayer::createProposal, FunctionTypes::NonPayable, this);
   this->registerMemberFunction("voteOnProposal", &BTVPlayer::voteOnProposal, FunctionTypes::NonPayable, this);
   this->registerMemberFunction("removeVote", &BTVPlayer::removeVote, FunctionTypes::NonPayable, this);
@@ -246,6 +282,11 @@ DBBatch BTVPlayer::dump() const {
   }
   for (auto it = this->energyBalance_.cbegin(); it != this->energyBalance_.cend(); ++it) {
     dbBatch.push_back(UintConv::uint64ToBytes(it->first), UintConv::uint256ToBytes(it->second), this->getNewPrefix("energyBalance_"));
+  }
+  for (auto it = this->addressToPlayers_.cbegin(); it != this->addressToPlayers_.cend(); ++it) {
+    for (const auto& tokenId : it->second) {
+      dbBatch.push_back(it->first, UintConv::uint64ToBytes(tokenId), this->getNewPrefix("addressToPlayers_"));
+    }
   }
   dbBatch.push_back(StrConv::stringToBytes("tokenCounter_"), UintConv::uint256ToBytes(this->tokenCounter_.get()), this->getDBPrefix());
   return dbBatch;

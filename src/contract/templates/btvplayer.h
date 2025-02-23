@@ -21,9 +21,15 @@ class BTVPlayer : public virtual ERC721, public virtual Ownable {
     SafeUnorderedMap<std::string, uint64_t> playerNames_;
     SafeUnorderedMap<uint64_t, std::string> playerToTokens_;
     SafeUnorderedMap<uint64_t, uint256_t> energyBalance_;
+    SafeUnorderedMap<Address, std::unordered_set<uint64_t>> addressToPlayers_;
     SafeUint256_t tokenCounter_;
 
     void registerContractFunctions() override;
+
+  protected:
+
+    // Override ERC721::update_ to add player to addressToPlayers_ map
+    Address update_(const Address& to, const uint256_t& tokenId, const Address& auth) override;
 
   public:
     /**
@@ -52,10 +58,12 @@ class BTVPlayer : public virtual ERC721, public virtual Ownable {
     uint256_t getPlayerEnergy(const uint64_t& tokenId) const;
     void addPlayerEnergy(const uint64_t& tokenId, const uint256_t& energy);
     void takePlayerEnergy(const uint64_t& tokenId, const uint256_t& energy);
+    std::vector<uint64_t> getPlayerTokens(const Address& player) const;
 
     void createProposal(const uint64_t& tokenId, const std::string& title, const std::string& description);
     void voteOnProposal(const uint64_t& tokenId, const uint64_t& proposalId, const uint256_t& energy);
     void removeVote(const uint64_t& tokenId, const uint64_t& proposalId, const uint256_t& energy);
+
 
     void approveProposalSpend();
 
@@ -81,6 +89,7 @@ class BTVPlayer : public virtual ERC721, public virtual Ownable {
         std::make_tuple("getPlayerEnergy", &BTVPlayer::getPlayerEnergy, FunctionTypes::View, std::vector<std::string>{"tokenId"}),
         std::make_tuple("addPlayerEnergy", &BTVPlayer::addPlayerEnergy, FunctionTypes::NonPayable, std::vector<std::string>{"tokenId", "energy"}),
         std::make_tuple("takePlayerEnergy", &BTVPlayer::takePlayerEnergy, FunctionTypes::NonPayable, std::vector<std::string>{"tokenId", "energy"}),
+        std::make_tuple("getPlayerTokens", &BTVPlayer::getPlayerTokens, FunctionTypes::View, std::vector<std::string>{"player"}),
         std::make_tuple("createProposal", &BTVPlayer::createProposal, FunctionTypes::NonPayable, std::vector<std::string>{"tokenId", "title", "description"}),
         std::make_tuple("voteOnProposal", &BTVPlayer::voteOnProposal, FunctionTypes::NonPayable, std::vector<std::string>{"tokenId", "proposalId", "energy"}),
         std::make_tuple("removeVote", &BTVPlayer::removeVote, FunctionTypes::NonPayable, std::vector<std::string>{"tokenId", "proposalId", "energy"}),

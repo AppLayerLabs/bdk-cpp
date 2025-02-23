@@ -21,6 +21,8 @@ namespace TBuildTheVoid {
       Address playerAddress = Address();
       Address energyAddress = Address();
       Address proposalAddress = Address();
+      Address transferDest1 = Address(Utils::randBytes(20));
+      Address transferDest2 = Address(Utils::randBytes(20));
       {
         SDKTestSuite sdk = SDKTestSuite::createNewEnvironment("testERC20CreationEVM");
         options = std::make_unique<Options>(sdk.getOptions());
@@ -161,6 +163,23 @@ namespace TBuildTheVoid {
         REQUIRE(sdk.callViewFunction(energyAddress, &BTVEnergy::balanceOf, playerAddress) == uint256_t("90000000000000000000"));
         REQUIRE(sdk.callViewFunction(energyAddress, &BTVEnergy::balanceOf, proposalAddress) == uint256_t("10000000000000000000"));
 
+        // Try getting the player list of the chain owner
+        auto playerListOfChainOwner = sdk.callViewFunction(playerAddress, &BTVPlayer::getPlayerTokens, sdk.getChainOwnerAccount().address);
+        REQUIRE(playerListOfChainOwner.size() == 2);
+        REQUIRE(std::find(playerListOfChainOwner.begin(), playerListOfChainOwner.end(), uint64_t(0)) != playerListOfChainOwner.end());
+        REQUIRE(std::find(playerListOfChainOwner.begin(), playerListOfChainOwner.end(), uint64_t(1)) != playerListOfChainOwner.end());
+
+        // Transfer the player to another address
+        sdk.callFunction(playerAddress, &BTVPlayer::transferFrom, sdk.getChainOwnerAccount().address, transferDest1, uint256_t(0));
+        sdk.callFunction(playerAddress, &BTVPlayer::transferFrom, sdk.getChainOwnerAccount().address, transferDest2, uint256_t(1));
+
+        playerListOfChainOwner = sdk.callViewFunction(playerAddress, &BTVPlayer::getPlayerTokens, sdk.getChainOwnerAccount().address);
+        auto playerListOfTransferDest1 = sdk.callViewFunction(playerAddress, &BTVPlayer::getPlayerTokens, transferDest1);
+        auto playerListOfTransferDest2 = sdk.callViewFunction(playerAddress, &BTVPlayer::getPlayerTokens, transferDest2);
+        REQUIRE(playerListOfChainOwner.size() == 0);
+        REQUIRE(playerListOfTransferDest1.size() == 1);
+        REQUIRE(playerListOfTransferDest2.size() == 1);
+
         sdk.getState().saveToDB();
       }
       // Load the SDKTestSuite again using the same environment
@@ -172,11 +191,11 @@ namespace TBuildTheVoid {
       REQUIRE(sdk.callViewFunction(playerAddress, &BTVPlayer::getPlayerName, uint64_t(0)) == "Alice");
       REQUIRE(sdk.callViewFunction(playerAddress, &BTVPlayer::getPlayerEnergy, uint64_t(0)) == uint256_t("90000000000000000000"));
       REQUIRE(sdk.callViewFunction(playerAddress, &BTVPlayer::playerExists, std::string("Alice")) == true);
-      REQUIRE(sdk.callViewFunction(playerAddress, &BTVPlayer::ownerOf, uint256_t(0)) == sdk.getChainOwnerAccount().address);
+      REQUIRE(sdk.callViewFunction(playerAddress, &BTVPlayer::ownerOf, uint256_t(0)) == transferDest1);
 
       REQUIRE(sdk.callViewFunction(playerAddress, &BTVPlayer::getPlayerEnergy, uint64_t(1)) == uint256_t("0"));
       REQUIRE(sdk.callViewFunction(playerAddress, &BTVPlayer::playerExists, std::string("Bob")) == true);
-      REQUIRE(sdk.callViewFunction(playerAddress, &BTVPlayer::ownerOf, uint256_t(1)) == sdk.getChainOwnerAccount().address);
+      REQUIRE(sdk.callViewFunction(playerAddress, &BTVPlayer::ownerOf, uint256_t(1)) == transferDest2);
 
       REQUIRE(sdk.callViewFunction(energyAddress, &BTVEnergy::name) == "Energy");
       REQUIRE(sdk.callViewFunction(energyAddress, &BTVEnergy::symbol) == "NRG");
@@ -193,6 +212,13 @@ namespace TBuildTheVoid {
       REQUIRE(std::get<0>(proposals[0]) == uint256_t("100000000000000000000"));
       REQUIRE(std::get<1>(proposals[0]) == "Test Proposal");
       REQUIRE(std::get<2>(proposals[0]) == "This is a test proposal");
+
+      auto playerListOfChainOwner = sdk.callViewFunction(playerAddress, &BTVPlayer::getPlayerTokens, sdk.getChainOwnerAccount().address);
+      auto playerListOfTransferDest1 = sdk.callViewFunction(playerAddress, &BTVPlayer::getPlayerTokens, transferDest1);
+      auto playerListOfTransferDest2 = sdk.callViewFunction(playerAddress, &BTVPlayer::getPlayerTokens, transferDest2);
+      REQUIRE(playerListOfChainOwner.size() == 0);
+      REQUIRE(playerListOfTransferDest1.size() == 1);
+      REQUIRE(playerListOfTransferDest2.size() == 1);
     }
 
     SECTION("BuildTheVoid Test Chunk/World") {
