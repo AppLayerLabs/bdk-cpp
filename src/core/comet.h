@@ -232,8 +232,10 @@ class CometListener {
      * computing state (i.e. feeding it to Comet via stored historical data that it has computed in the past or that it has
      * obtained off-band). The application is free to block this callback for any amount of time.
      * @param height The current head height in the cometbft block store (the height that the cometbft node/db is at).
+     * @param lastBlock Full CometBFT RPC response to a 'block' query for 'height' (full block data at height), or
+     * a default, empty json::object() if no block (e.g. height is 0).
      */
-    virtual void currentCometBFTHeight(const uint64_t height) {
+    virtual void currentCometBFTHeight(const uint64_t height, const json& lastBlock) {
     }
 
     /**

@@ -71,10 +71,9 @@ FinalizedBlock FinalizedBlock::fromCometBlock(
     }
   }
 
-  // Same merkle root value as before cometbft integration
   auto txMerkleRoot = Merkle(txs).getRoot();
 
-  uint64_t timestamp = block.timeNanos / 1000; // FinalizedBlock uses microseconds
+  uint64_t timestamp = block.timeNanos / 1000; // FinalizedBlock uses microseconds, so convert nanos to micros
   uint64_t nHeight = block.height;
 
   Hash hash(block.hash);
@@ -92,33 +91,33 @@ FinalizedBlock FinalizedBlock::fromCometBlock(
 }
 
 FinalizedBlock FinalizedBlock::fromRPC(const json& ret) {
-  if (ret.is_object() && ret.contains("result") && ret["result"].is_object()) {
-    throw DynamicException("Invalid block data");
+  if (!ret.is_object() || !ret.contains("result") || !ret["result"].is_object()) {
+    throw DynamicException("Invalid block data (result)");
   }
   const auto& result = ret["result"];
 
   if (!result.contains("block_id") || !result["block_id"].is_object()) {
-    throw DynamicException("Invalid block data");
+    throw DynamicException("Invalid block data (block_id)");
   }
   const auto& block_id = result["block_id"];
 
   if (!result.contains("block") || !result["block"].is_object()) {
-    throw DynamicException("Invalid block data");
+    throw DynamicException("Invalid block data (block)");
   }
   const auto& block = result["block"];
 
   if (!block.contains("header") || !block["header"].is_object()) {
-    throw DynamicException("Invalid block data");
+    throw DynamicException("Invalid block data (header)");
   }
   const auto& header = block["header"];
 
   if (!header.contains("last_block_id") || !header["last_block_id"].is_object()) {
-    throw DynamicException("Invalid block data");
+    throw DynamicException("Invalid block data (last_block_id)");
   }
   const auto& last_block_id = header["last_block_id"];
 
   if (!block.contains("data") || !block["data"].is_object()) {
-    throw DynamicException("Invalid block data");
+    throw DynamicException("Invalid block data (data)");
   }
   const auto& data = block["data"];
 
@@ -155,7 +154,7 @@ FinalizedBlock FinalizedBlock::fromRPC(const json& ret) {
         // from CometBFT node storage; signatures for all txs have been validated long ago.
         txs.push_back(std::make_shared<TxBlock>(txBytes, requiredChainId, false));
       } else {
-        throw DynamicException("Invalid block data");
+        throw DynamicException("Invalid block data (tx)");
       }
     }
   } else {
@@ -163,42 +162,42 @@ FinalizedBlock FinalizedBlock::fromRPC(const json& ret) {
   }
 
   if (!last_block_id.contains("hash") || !last_block_id["hash"].is_string()) {
-    throw DynamicException("Invalid block data");
+    throw DynamicException("Invalid block data (last_block_id hash)");
   }
 
   std::string lastBlockHashStr = last_block_id["hash"].get<std::string>();
-  Hash prevBlockHash(Hex::toBytes(lastBlockHashStr)); // may be "" (for block at height == 1)
+  Hash prevBlockHash;
+  if (!lastBlockHashStr.empty()) { // may be "" (for block at height == 1)
+    prevBlockHash = Hash(Hex::toBytes(lastBlockHashStr));
+  }
 
   if (!header.contains("proposer_address") || !header["proposer_address"].is_string()) {
-    throw DynamicException("Invalid block data");
+    throw DynamicException("Invalid block data (proposer_address)");
   }
 
   std::string proposerAddrStr = header["proposer_address"].get<std::string>();
   Address proposerAddr(Hex::toBytes(proposerAddrStr));
 
   if (!header.contains("height") || !header["height"].is_string()) {
-    throw DynamicException("Invalid block data");
+    throw DynamicException("Invalid block data (height)");
   }
 
   uint64_t nHeight = std::stoull(header["height"].get<std::string>());
 
-  if (!header.contains("timestamp") || !header["timestamp"].is_string()) {
-    throw DynamicException("Invalid block data");
+  if (!header.contains("time") || !header["time"].is_string()) {
+    throw DynamicException("Invalid block data (time)");
   }
 
-  uint64_t timestamp = Utils::stringToNanos(header["timestamp"].get<std::string>());
+  uint64_t timestamp = Utils::stringToNanos(header["time"].get<std::string>());
   timestamp /= 1000; // FinalizedBlock uses microseconds, so convert nanos to micros
 
   if (!block_id.contains("hash") || !block_id["hash"].is_string()) {
-    throw DynamicException("Invalid block data");
+    throw DynamicException("Invalid block data (block_id hash)");
   }
   std::string blockIdHashStr = block_id["hash"].get<std::string>();
 
   Hash hash(Hex::toBytes(blockIdHashStr));
 
-  //----
-
-  // Same merkle root value as before cometbft integration
   auto txMerkleRoot = Merkle(txs).getRoot();
 
   return {

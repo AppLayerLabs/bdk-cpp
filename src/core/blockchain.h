@@ -80,9 +80,14 @@ class Blockchain : public CometListener, public NodeRPCInterface, public Log::Lo
     Comet comet_;     ///< CometBFT consensus engine driver.
     HTTPServer http_; ///< HTTP server.
 
-    // FIXME/TODO: Need to query for the last block and fill this in on boot.
-    //             (That initial block query will also feed the fbCache_).
-    std::atomic<std::shared_ptr<const FinalizedBlock>> latest_; ///< Pointer to the latest block in the blockchain.
+    // Pointer to the "latest" block in the blockchain.
+    // This is not necessarily the latest block in CometBFT's block store. Rather, it is the
+    // block that matches State::getHeight(); e.g. if the machine height is 20 but the CometBFT
+    // block store has 100 blocks from genesis, latest_ will point to block 20.
+    // In other words, this is the last processed block by the current State.
+    // Since the State cannot be ahead of the CometBFT block store, this is guaranteed to exist
+    // (unless the machine height is 0, that is, genesis).
+    std::atomic<std::shared_ptr<const FinalizedBlock>> latest_;
 
     // Cache of transaction hash to (block height, block index).
     // It is too expensive to clean up these mappings every time we get a FinalizedBlock
@@ -180,7 +185,7 @@ class Blockchain : public CometListener, public NodeRPCInterface, public Log::Lo
     virtual void validateBlockProposal(const CometBlock& block, bool& accept) override;
     virtual void getCurrentState(uint64_t& height, Bytes& appHash, std::string& appSemVer, uint64_t& appVersion) override;
     virtual void persistState(uint64_t& height) override;
-    virtual void currentCometBFTHeight(const uint64_t height) override;
+    virtual void currentCometBFTHeight(const uint64_t height, const json& lastBlock) override;
     virtual void sendTransactionResult(const uint64_t tId, const bool success, const json& response, const std::string& txHash, const Bytes& tx) override;
     virtual void checkTransactionResult(const uint64_t tId, const bool success, const json& response, const std::string& txHash) override;
     virtual void rpcAsyncCallResult(const uint64_t tId, const bool success, const json& response, const std::string& method, const json& params) override;

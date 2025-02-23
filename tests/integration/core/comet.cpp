@@ -193,7 +193,7 @@ public:
    * TODO: allow TestMachine to store snapshots (i.e. values of m_) for all heights it processes and let tests use
    * them as they need it.
    */
-  void currentCometBFTHeight(const uint64_t height) override {
+  void currentCometBFTHeight(const uint64_t height, const json& lastBlock) override {
     if (h_ > height) {
       // comply by resetting to genesis
       GLOGDEBUG("TEST: TestMachine: currentCometBFTHeight " + std::to_string(height) + " > " + std::to_string(h_));

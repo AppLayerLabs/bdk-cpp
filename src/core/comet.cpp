@@ -1891,7 +1891,7 @@ void CometImpl::workerLoopInner() {
     }
 
     json insRes;
-    LOGTRACE("Making sample RPC call");
+    LOGTRACE("Making header RPC call");
     if (!rpc_.rpcSyncCall("header", json::object(), insRes)) {
       setErrorCode(CometError::RPC_CALL_FAILED);
       throw DynamicException("ERROR: cometbft inspect RPC header call failed: " + insRes.dump());
@@ -1925,21 +1925,64 @@ void CometImpl::workerLoopInner() {
       // Got a non-empty header response, so we are past genesis in the cometbft store
       lastCometBFTBlockHeight_ = header["height"].get<std::string>().empty() ? 0 : std::stoull(header["height"].get<std::string>());
       lastCometBFTAppHash_ = header["app_hash"].get<std::string>();
-      LOGTRACE("Parsed header successfully: Last Block Height = " + std::to_string(lastCometBFTBlockHeight_) + ", Last App Hash = " + lastCometBFTAppHash_);
+      LOGTRACE("Parsed header successfully; last block height: " + std::to_string(lastCometBFTBlockHeight_) + ", last app_hash = " + lastCometBFTAppHash_);
     }
-
-    // FIXME/TODO: if we have at least one block (lastCometBFTBlockHeight_ >= 1) then
-    //             call the inspect "blockchain" method with minheight==maxheight==lastCometBFTBlockHeight_
-    //             and get the block hash of the last block from the block_metas
-    //             and save it in lastCometBFTBlockHash_ and lastCometBFTBlockHashHeight_
 
     // Check if quitting
     if (stop_) break;
 
+    // If there is at least one block (lastCometBFTBlockHeight_ >= 1) then retrieve the
+    // last block (full data), update lastCometBFTBlockHash_ and lastCometBFTBlockHashHeight_,
+    // and then pass on the full block json response to the application.
+    //
+    // NOTE: Here we could also just use the more lightweight "blockchain" RPC endpoint instead
+    // of retrieving the full block, which is less data to load (since no tx data), and then avoid
+    // passing the full lastBlock into currentCometBFTHeight() which probably isn't needed (odds
+    // are currentCometBFTHeight() will load a different, earlier full block if it needs one, since
+    // it has to probably find and load a snapshot that is earlier than lastCometBFTBlockHeight_,
+    // due to how CometBFT tends to roll back its own consensus by -1 height when it reboots).
+    // On the other hand, it doesn't really hurt (loading 1 extra block is fine), and this works
+    // as a way to update lastCometBFTBlockHash_ and lastCometBFTBlockHashHeight_.
+    json lastBlock;
+    if (lastCometBFTBlockHeight_ > 0) {
+      // If there's at least one block, retrieve the full block, update our last block hash tracker,
+      // then pass the full block data to currentCometBFTHeight.
+      json params = { {"height", std::to_string(lastCometBFTBlockHeight_)} };
+      LOGTRACE("Making block RPC call for height: " + std::to_string(lastCometBFTBlockHeight_));
+      if (!rpcSyncCall("block", params, lastBlock)) {
+        setErrorCode(CometError::RPC_CALL_FAILED);
+        // We can dump lastBlock here because it is a failed response (don't dump a successful json
+        // response for full block data since that includes all txs, which could be huge).
+        throw DynamicException("ERROR: cometbft inspect RPC block call failed: " + lastBlock.dump());
+      }
+      if (!lastBlock.is_object() || !lastBlock.contains("result") || !lastBlock["result"].is_object()) {
+        setErrorCode(CometError::RPC_BAD_RESPONSE);
+        throw DynamicException("Invalid or missing 'result' in cometbft inspect block response.");
+      }
+      if (!lastBlock["result"].contains("block_id")) {
+        setErrorCode(CometError::RPC_BAD_RESPONSE);
+        throw DynamicException("Invalid or missing 'block_id' in cometbft inspect block response.");
+      }
+      const auto& block_id = lastBlock["result"]["block_id"];
+      if ((!block_id.contains("hash") || !block_id["hash"].is_string())) {
+        setErrorCode(CometError::RPC_BAD_RESPONSE);
+        throw DynamicException("Missing or invalid 'hash' in block: ");
+      }
+      std::string hashStr = block_id["hash"].get<std::string>();
+      try {
+        lastCometBFTBlockHash_ = Hex(hashStr).bytes();
+      } catch (const std::exception& ex) {
+        setErrorCode(CometError::RPC_BAD_RESPONSE);
+        throw DynamicException("Invalid 'hash' in block: " + hashStr);
+      }
+      lastCometBFTBlockHashHeight_ = lastCometBFTBlockHeight_;
+      LOGTRACE("Parsed block successfully; last block hash: " + hashStr);
+    }
+
     // Notify the application of the height that CometBFT has in its block store.
     // If the application is ahead of this, it will need a strategy to cope with it.
     // NOTE: This callback may load state snapshots and take an arbitrarily long time to complete.
-    listener_->currentCometBFTHeight(lastCometBFTBlockHeight_);
+    listener_->currentCometBFTHeight(lastCometBFTBlockHeight_, lastBlock);
 
     // --------------------------------------------------------------------------------------
     // Intermediary hold state that the app can setPauseState() at and then use the RPC

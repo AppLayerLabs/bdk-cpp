@@ -615,8 +615,8 @@ void SDKTestSuite::persistState(uint64_t& height) {
   Blockchain::persistState(height);
 }
 
-void SDKTestSuite::currentCometBFTHeight(const uint64_t height) {
-  Blockchain::currentCometBFTHeight(height);
+void SDKTestSuite::currentCometBFTHeight(const uint64_t height, const json& lastBlock) {
+  Blockchain::currentCometBFTHeight(height, lastBlock);
 }
 
 void SDKTestSuite::sendTransactionResult(const uint64_t tId, const bool success, const json& response, const std::string& txHash, const Bytes& tx) {

@@ -860,7 +860,7 @@ void Blockchain::persistState(uint64_t& height) {
   }
 }
 
-void Blockchain::currentCometBFTHeight(const uint64_t height) {
+void Blockchain::currentCometBFTHeight(const uint64_t height, const json& lastBlock) {
   LOGINFO("Blockchain::currentCometBFTHeight(): " + std::to_string(height));
 
   // NOTE: We will use this one-time Comet driver callback, which runs *before* we run CometBFT
@@ -920,6 +920,34 @@ void Blockchain::currentCometBFTHeight(const uint64_t height) {
     }
   } catch (const std::exception& ex) {
     LOGERROR("Error searching & loading an initial snapshot: " + std::string(ex.what()));
+  }
+
+  // Initialize Blockchain::latest_ with the full block data of to the last processed block
+  // (the block whose height matches the current machine state height, not necessarily the latest block
+  // available in the CometBFT block store, which may be ahead of that).
+  if (state_.getHeight() > 0) {
+    std::string stateHeightStr = std::to_string(state_.getHeight());
+    if (state_.getHeight() == height) {
+      // If at this point the State height exactly matches the last CometBFT height for some lucky
+      // reason, then we can just use lastBlock, which should not be empty since height > 0.
+      LOGTRACE("Last CometBFT block matches state height: " + stateHeightStr);
+      latest_ = std::make_shared<const FinalizedBlock>(
+        FinalizedBlock::fromRPC(lastBlock)
+      );
+    } else {
+      // State is not a genesis and "height" was useless, so we need to fetch a different block.
+      json blockRes;
+      json params = { {"height", stateHeightStr} };
+      LOGTRACE("Retrieving CometBFT block for state height: " + stateHeightStr);
+      if (!comet_.rpcSyncCall("block", params, blockRes)) {
+        throw DynamicException("ERROR: cometbft RPC block call failed: " + blockRes.dump());
+      }
+      latest_ = std::make_shared<const FinalizedBlock>(
+        FinalizedBlock::fromRPC(blockRes)
+      );
+    }
+  } else {
+    LOGTRACE("State height is 0 (genesis), no latest block to load.");
   }
 }
 
