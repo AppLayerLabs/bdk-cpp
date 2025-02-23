@@ -305,9 +305,10 @@ class Blockchain : public CometListener, public NodeRPCInterface, public Log::Lo
     /**
      * Get the block hash given a block height.
      * @param height The block height.
+     * @param forceRPC Bypass all local caches and force getting the block hash from CometBFT.
      * @return The block hash, or an empty hash if can't find it.
      */
-    Hash getBlockHash(const uint64_t height);
+    Hash getBlockHash(const uint64_t height, bool forceRPC = false);
 
     /**
      * Get a transaction from the chain using a given hash.

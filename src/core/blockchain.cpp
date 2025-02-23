@@ -307,32 +307,74 @@ std::shared_ptr<const FinalizedBlock> Blockchain::getBlock(uint64_t height) {
   return bp;
 }
 
-Hash Blockchain::getBlockHash(const uint64_t height) {
-  std::shared_ptr<const FinalizedBlock> bp = fbCache_.getByHeight(height);
-  if (bp) {
-    return bp->getHash();
-  }
-  // We don't want to load the entire block on the fbCache_ just to figure out the
-  // block hash for the block height.
-  // First, check in the block height --> block hash cache.
-  std::optional<Hash> hashOpt = blockHeightToHashCache_.get(height);
-  if (hashOpt) {
-    return *hashOpt;
+Hash Blockchain::getBlockHash(const uint64_t height, bool forceRPC) {
+  if (!forceRPC) {
+    std::shared_ptr<const FinalizedBlock> bp = fbCache_.getByHeight(height);
+    if (bp) {
+      return bp->getHash();
+    }
+
+    // We don't want to load the entire block on the fbCache_ just to figure out the
+    // block hash for the block height.
+    // First, check in the block height --> block hash cache.
+    std::optional<Hash> hashOpt = blockHeightToHashCache_.get(height);
+    if (hashOpt) {
+      return *hashOpt;
+    }
   }
 
-  // TODO: Use the cheaper 'blockchain' CometBFT RPC endpoint to figure out the
-  // block hash and then use it to feed the block height --> block hash cache.
-  //
-  // getBlockHash() is currently used by the BDK RPC endpoint impls to return
-  // the block hash in a transaction query. Since getTxByBlockNumberAndIndex()
-  // internally will retrieve the full block and feed the fbCache() and then
-  // feed the blockHeightToHashCache_, the following getBlockHash() call made
-  // by the eth_getTransactionByBlockNumberAndIndex() will indeed find a hit
-  // in the blockHeightToHashCache_ above. So we currently never hit this
-  // condition here.
-  // However, for completeness at least, we should query the CometBFT RPC
-  // 'blockchain' endpoint and try to fetch the block hash from the block
-  // height (should be in a 'block_metas' field in the RPC response).
+  // Query the "blockchain" RPC endpoint, which does not give us the full block, but
+  // rather just block headers. Crucially, the "blockchain" endpoint actually gives
+  // us the block_id (the actual block hash for the block height).
+  json params = json::array();
+  std::string heightStr = std::to_string(height);
+  params[0] = heightStr;
+  params[1] = heightStr;
+  json ret;
+  if (comet_.rpcSyncCall("blockchain", params, ret)) {
+    if (ret.is_object() && ret.contains("result") && ret["result"].is_object()) {
+      const auto& result = ret["result"];
+      if (result.contains("block_metas") && result["block_metas"].is_array()) {
+        const auto& block_metas = result["block_metas"];
+        if (block_metas.size() > 1) {
+          // This would only happen if our request params are badly formatted, as
+          // CometBFT seems to return a whole page of latest block headers when it can't understand the
+          // minheight and maxheight params.
+          LOGERROR("getBlockHash() blockchain headers RPC response size is not 1: " + std::to_string(block_metas.size()));
+        } else if (block_metas.size() == 1) {
+          if (block_metas[0].contains("block_id") && block_metas[0]["block_id"].is_object()) {
+            // Double-check that block_metas[0].header.height matches the height we want
+            try {
+              std::string returnedHeightStr = block_metas[0]["header"]["height"].get<std::string>();
+              if (returnedHeightStr != heightStr) {
+                LOGERROR("getBlockHash() blockchain headers RPC response for height " + heightStr + " returned wrong height: " + returnedHeightStr);
+                return Hash();
+              }
+            } catch (const std::exception& ex) {
+              LOGERROR("getBlockHash(): Error parsing block header height: " + std::string(ex.what()));
+              return Hash();
+            }
+            // Finally, try to get the block_id.hash and return it
+            const auto& block_id = block_metas[0]["block_id"];
+            if (block_id.contains("hash") && block_id["hash"].is_string()) {
+              try {
+                Hash blockHash = Hash(Hex(block_id["hash"].get<std::string>()).bytes());
+                blockHeightToHashCache_.put(height, blockHash); // Feed the block height to block hash cache
+                return blockHash;
+              } catch (const std::exception& ex) {
+                LOGERROR("getBlockHash(): Error parsing block hash: " + std::string(ex.what()));
+              }
+            }
+          }
+        } else {
+          // block_metas is empty; probably asked for a nonexistent height in the block store.
+          LOGTRACE("getBlockHash(): no block header found for height: " + heightStr);
+        }
+      }
+    }
+  } else {
+    LOGERROR("getBlockHash(): blockchain headers RPC request failed.");
+  }
 
   // Just return an empty hash if we can't figure it out.
   return Hash();
