@@ -580,12 +580,6 @@ void Blockchain::incomingBlock(
     //  instead of parsing bytes again and (ii) doing maintenace to mempool_ for us by removing
     //  the txs from mempool_ that are included in the block (since they are no longer unconfirmed,
     //  they *must* be removed from mempool_).
-    // -------------------------------------------------------------------------------------
-    // FIXME/REVIEW: It might be the case that we can get away with CometBlock NOT having the
-    // tx bytes in it, and instead just having the txHashes, making the incomingBlock()
-    // call lighter. That could also mean we could move the mirror mempool to the Comet
-    // driver as well...
-    // -------------------------------------------------------------------------------------
     std::shared_ptr<const FinalizedBlock> fbPtr;
     {
       std::unique_lock<std::shared_mutex> lock(mempoolMutex_);

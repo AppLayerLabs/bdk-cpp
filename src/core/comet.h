@@ -11,9 +11,6 @@ See the LICENSE.txt file in the project root for more information.
 #include "../utils/options.h"
 #include "../utils/logger.h"
 
-#include <unordered_set>
-#include <vector>
-
 /// Comet driver states
 enum class CometState {
   STOPPED          =  0, ///< Comet is in stopped state (no worker thread started)

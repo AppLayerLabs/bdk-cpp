@@ -192,8 +192,6 @@ public:
    * snapshot that we kept to match that "height" then we just reset to genesis.
    * TODO: allow TestMachine to store snapshots (i.e. values of m_) for all heights it processes and let tests use
    * them as they need it.
-   * TODO: this callback should also forward the current validator set here because that's also state that the application
-   * needs to be aware of.
    */
   void currentCometBFTHeight(const uint64_t height) override {
     if (h_ > height) {

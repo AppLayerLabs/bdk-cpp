@@ -7,9 +7,10 @@ See the LICENSE.txt file in the project root for more information.
 
 #include "comet.h"
 
-#include "../utils/logger.h"
-#include "../utils/safehash.h"
 #include "../libs/toml.hpp"
+#include "../libs/base64.hpp"
+
+#include "../utils/utils.h"
 
 #include "../net/abci/abciserver.h"
 #include "../net/abci/abcihandler.h"
@@ -17,8 +18,6 @@ See the LICENSE.txt file in the project root for more information.
 #include <boost/asio.hpp>
 #include <boost/beast.hpp>
 #include <boost/beast/websocket.hpp>
-
-#include "../libs/base64.hpp"
 
 #include <cryptopp/sha.h>
 #include <cryptopp/ripemd.h>
@@ -1609,8 +1608,10 @@ void CometImpl::workerLoopInner() {
       // Ideally, the "chain_id" key should not even be there.
       if (genesisJSON["chain_id"].is_string()) {
         std::string discardedCometChainId = genesisJSON["chain_id"];
-        LOGWARNING("CometBFT chain_id option is set to '" + discardedCometChainId + "'; will be overwritten by BDK chainID option.");
-      } else {
+        if (discardedCometChainId.size() > 0) { // setting it to an empty string is just another way to say it is unset
+          LOGWARNING("CometBFT chain_id option is set to '" + discardedCometChainId + "'; will be overwritten by BDK chainID option.");
+        }
+      } else if (!genesisJSON["chain_id"].is_null()) { // if it is null, it is effectively unset
         LOGWARNING("CometBFT chain_id option is set (to a non-string value); will be overwritten by BDK chainID option.");
       }
     }
