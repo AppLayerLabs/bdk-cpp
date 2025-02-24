@@ -232,9 +232,7 @@ void BuildTheVoid::setPlayerContract(const Address& playerContract) {
 void BuildTheVoid::forceUpdate() {
   this->onlyOwner();
   // Actually registers on the blockobserver
-  std::cout << "xiii" << std::endl;
   this->addBlockObserverByCount(0, &BuildTheVoid::selfcallUpdate);
-  std::cout << "throw??" << std::endl;
   // this->selfcallUpdate();
 }
 

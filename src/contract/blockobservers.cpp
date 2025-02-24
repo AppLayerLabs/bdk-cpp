@@ -35,13 +35,13 @@ void BlockObservers::notifyNumberQueue(const FinalizedBlock& block) {
   if (blockNumberQueue_.empty()) {
     return;
   }
-
+  uint64_t indexCount = 0;
   while (blockNumberQueue_.top().blockNumber <= block.getNHeight()) {
     BlockNumberObserver observer = blockNumberQueue_.top();
     blockNumberQueue_.pop();
 
     try {
-      Hash seed = bytes::random();
+      const Hash randomSeed(UintConv::uint256ToBytes((static_cast<uint256_t>(block.getBlockRandomness()) + indexCount)));
 
       ExecutionContext context = ExecutionContext::Builder{}
       .storage(vmStorage_)
@@ -51,7 +51,7 @@ void BlockObservers::notifyNumberQueue(const FinalizedBlock& block) {
       .txHash(Hash())
       .txOrigin(Address())
       .blockCoinbase(ContractGlobals::getCoinbase())
-      .txIndex(0)
+      .txIndex((block.getTxs().size() == 0 ) ? block.getTxs().size() : block.getTxs().size() + indexCount)
       .blockNumber(ContractGlobals::getBlockHeight())
       .blockTimestamp(ContractGlobals::getBlockTimestamp())
       .blockGasLimit(10'000'000)
@@ -63,12 +63,13 @@ void BlockObservers::notifyNumberQueue(const FinalizedBlock& block) {
         vm_,
         manager_,
         storage_,
-        seed,
+        randomSeed,
         context,
         this
       );
 
       std::invoke(observer.callback, host);
+      ++indexCount;
     } catch (...) {}
 
     observer.blockNumber = block.getNHeight() + observer.step;
@@ -86,10 +87,9 @@ void BlockObservers::notifyTimestampQueue(const FinalizedBlock& block) {
     BlockTimestampObserver observer = blockTimestampQueue_.top();
     
     blockTimestampQueue_.pop();
-
+    uint64_t indexCount;
     try {
-      Hash seed = bytes::random();
-
+      const Hash randomSeed(UintConv::uint256ToBytes((static_cast<uint256_t>(block.getBlockRandomness()) + indexCount)));
       ExecutionContext context = ExecutionContext::Builder{}
       .storage(vmStorage_)
       .accounts(accounts_)
@@ -98,9 +98,9 @@ void BlockObservers::notifyTimestampQueue(const FinalizedBlock& block) {
       .txHash(Hash())
       .txOrigin(Address())
       .blockCoinbase(ContractGlobals::getCoinbase())
-      .txIndex(0)
+      .txIndex((block.getTxs().size() == 0 ) ? block.getTxs().size() : block.getTxs().size() + indexCount)
       .blockNumber(ContractGlobals::getBlockHeight())
-      .blockTimestamp(ContractGlobals::getBlockTimestamp())sc
+      .blockTimestamp(ContractGlobals::getBlockTimestamp())
       .blockGasLimit(10'000'000)
       .txGasPrice(0)
       .chainId(this->options_.getChainID())
@@ -110,12 +110,12 @@ void BlockObservers::notifyTimestampQueue(const FinalizedBlock& block) {
         vm_,
         manager_,
         storage_,
-        block.getBlockRandomness(),
+        randomSeed,
         context,
         this
       );
-
       std::invoke(observer.callback, host);
+      ++indexCount;
     } catch (...) {}
 
     observer.timestamp = observer.step + block.getTimestamp();

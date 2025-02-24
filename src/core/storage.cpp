@@ -235,7 +235,6 @@ void Storage::putEvent(const Event& event) {
     UintConv::uint64ToBytes(event.getLogIndex()),
     event.getAddress()
   ));
-  std::cout << "adding event: " << event.getName() << " at " << event.getTxHash().hex().get() << " block index: " << event.getBlockIndex() << " tx index: " << event.getTxIndex() << std::endl;
   eventsDb_.put(key, StrConv::stringToBytes(event.serializeToJson()), DBPrefix::events);
 }
 
@@ -271,7 +270,6 @@ std::vector<Event> Storage::getEvents(uint64_t fromBlock, uint64_t toBlock, cons
 }
 
 std::vector<Event> Storage::getEvents(uint64_t blockIndex, uint64_t txIndex) const {
-  std::cout << "trying to get event at block index and tx index: " << blockIndex << " " << txIndex << std::endl;
   std::vector<Event> events;
   for (
     Bytes fetchBytes = Utils::makeBytes(bytes::join(
@@ -282,7 +280,6 @@ std::vector<Event> Storage::getEvents(uint64_t blockIndex, uint64_t txIndex) con
     if (events.size() >= options_.getEventLogCap()) break;
     events.emplace_back(StrConv::bytesToString(entry.value));
   }
-  std::cout << "got " << events.size() << " events" << std::endl;
   return events;
 }
 

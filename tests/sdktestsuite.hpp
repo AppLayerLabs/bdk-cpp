@@ -999,20 +999,13 @@ class SDKTestSuite {
       std::vector<Event> filteredEvents;
       auto allEvents = this->getEvents(txHash);
 
-      // Filter the events by the topics
-      std::cout << "topics to filter: " << topicsToFilter.size() << std::endl;
-      if (topicsToFilter.size() == 1) {
-        std::cout << "topics to filter: " << topicsToFilter[0].hex().get() << std::endl;
-      }
       for (const auto& event : allEvents) {
         if (topicsToFilter.size() == 0) {
           filteredEvents.push_back(event);
         } else {
-          std::cout << "event.getTopics().size(): " << event.getTopics().size() << std::endl;
           if (event.getTopics().size() < topicsToFilter.size()) continue;
           bool match = true;
           for (uint64_t i = 0; i < topicsToFilter.size(); i++) {
-            std::cout << "Trying to match " << topicsToFilter[i].hex().get() << " with " << event.getTopics()[i].hex().get() << std::endl;
             if (topicsToFilter[i] != event.getTopics()[i]) { match = false; break; }
           }
           if (match) filteredEvents.push_back(event);
