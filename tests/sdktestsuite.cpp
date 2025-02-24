@@ -128,9 +128,13 @@ int main(int argc, char* argv[]) {
  * Comet interface to send a deploy-contract transaction, then synchronously wait for it to be
  * accepted, and only then return from here with the address of the successful deployment.
  *
- * using advancechain to test revert means instead looking at a call transaction and cheching its
- * status afterwards, ultimately (can also run the tx blob and metadata(sig, gas payer balance + gas limit) past
- * basic transaction checking first etc).
+ * NOTE: There is a way to e.g. force multiple transactions in a block, for testing purposes;
+ * see Blockchain::lockBlockProcessing() and Blockchain::unlockBlockProcessing(), and the
+ * Blockchain class tests that make use of these. But basically, you can prevent incomingBlock()
+ * from returning across the entire simulated network, which effectively pauses block production.
+ * You can follow this up with monitoring the 'num_unconfirmed_txs' CometBFT RPC endpoint
+ * (see: Blockchain::getNumUnconfirmedTxs()) to know when all mempools have caught all of the
+ * transactions that you want for the next block before unlocking incomingBlock() across all nodes.
  *
  * TODO: We can, actually, replace actually using CometBFT with a mock that is much faster.
  * All we need to do is something like what is done in tests/core/blockchain.cpp, where
@@ -138,7 +142,7 @@ int main(int argc, char* argv[]) {
  * we also create FinalizedBlock instances from these mocked CometBlock instances, etc.
  * We just need to maintain the mock when e.g. CometBlock changes, etc.
  * The question is just how we can refactor SDKTestSuite to ALSO allow for using CometBFT (it
- * would be selected in the SDKTestSuite constructor).
+ * could be selected in the SDKTestSuite constructor -- or maybe just write another tester class).
  */
 
 // Getter for `chainOwnerAccount_`.
