@@ -1249,7 +1249,7 @@ namespace TBuildTheVoid {
         }
 
         auto updateTx = sdk.callFunction(btvContract, &BuildTheVoid::forceUpdate);
-        auto energyCreationEvent = sdk.getEventsEmittedByTx(updateTx, &BuildTheVoid::BlockChanged);
+        auto energyCreationEvent = sdk.getEventsEmittedByAddress(btvContract, &BuildTheVoid::BlockChanged);
         REQUIRE(energyCreationEvent.size() == 1);
         auto data = ABI::Decoder::decodeData<uint64_t, int32_t, int32_t, int32_t, BTVUtils::BlockType, uint64_t>(energyCreationEvent[0].getData());
         const auto& [energyPlacerId, energyX, energyY, energyZ, blockType, timestamp] = data;
@@ -1358,6 +1358,7 @@ namespace TBuildTheVoid {
         uint256_t energyValue;
         {
           auto claimTx = sdk.callFunction(btvContract, &BuildTheVoid::claimEnergy, uint64_t(0), energyX, energyY, energyZ);
+          std::cout << "Claimed Energy: " << claimTx.hex().get() << std::endl;
           auto claimEvent = sdk.getEventsEmittedByTx(claimTx, &BuildTheVoid::ClaimedEnergy);
           REQUIRE(claimEvent.size() == 1);
           auto claimData = ABI::Decoder::decodeData<uint64_t, uint256_t>(claimEvent[0].getData());

@@ -665,6 +665,7 @@ namespace ABI {
      */
     template <typename... Args> static Hash encodeSignature(const std::string& funcSig) {
       std::string fullSig = funcSig + "(" + FunctorEncoder::listArgumentTypes<Args...>() + ")";
+      std::cout << "encodeSignature full sig: " << fullSig << " hash " << Utils::sha3(Utils::create_view_span(fullSig)).hex().get() << std::endl;
       return Utils::sha3(Utils::create_view_span(fullSig));
     }
 

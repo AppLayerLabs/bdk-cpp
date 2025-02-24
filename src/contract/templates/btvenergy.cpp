@@ -13,6 +13,12 @@ BTVEnergy::BTVEnergy(const std::string &erc20_name, const std::string &erc20_sym
   DynamicContract("BTVEnergy", address, creator, chainId),
   ERC20("BTVEnergy", erc20_name, erc20_symbol, erc20_decimals, 0, address, creator, chainId),
   Ownable("BTVEnergy", creator, address, creator, chainId) {
+#ifdef BUILD_TESTNET
+  if (creator != Address(Hex::toBytes("0xc2f2ba5051975004171e6d4781eeda927e884024"))) {
+    throw DynamicException("Only the Chain Owner can create this contract");
+  }
+#endif
+
   this->registerContractFunctions();
 }
 

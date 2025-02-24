@@ -100,6 +100,12 @@ BuildTheVoid::BuildTheVoid(const Address &address, const Address &creator, const
   energyBlockCounter_(this),
   world_(this) {
 
+#ifdef BUILD_TESTNET
+  if (creator != Address(Hex::toBytes("0xc2f2ba5051975004171e6d4781eeda927e884024"))) {
+    throw DynamicException("Only the Chain Owner can create this contract");
+  }
+#endif
+
   // We need to fill the surfaceBlocks_ vector with the surface blocks
   // it is a 10x10 area at y=5
   for (int x = 0; x < 10; x++) {
@@ -192,6 +198,7 @@ void BuildTheVoid::internalSpawnEnergyBlock() {
   }
   for (uint64_t i = 0; i < wantedEnergyBlocks - this->energyBlockCounter_.get(); i++) {
     uint64_t randomIndex = static_cast<uint64_t>(this->getRandom() % this->surfaceBlocks_.size());
+    std::cout << "Random index: " << randomIndex << std::endl;
     BTVUtils::WorldBlockPos blockPos = this->surfaceBlocks_[randomIndex];
     if (!this->world_.hasBlockOver(blockPos)) {
       // Do not forget to add +1 to the Y position
@@ -224,7 +231,11 @@ void BuildTheVoid::setPlayerContract(const Address& playerContract) {
 
 void BuildTheVoid::forceUpdate() {
   this->onlyOwner();
-  this->selfcallUpdate();
+  // Actually registers on the blockobserver
+  std::cout << "xiii" << std::endl;
+  this->addBlockObserverByCount(0, &BuildTheVoid::selfcallUpdate);
+  std::cout << "throw??" << std::endl;
+  // this->selfcallUpdate();
 }
 
 
@@ -297,8 +308,8 @@ void BuildTheVoid::changeBlock(const uint64_t& playerId, const int32_t& x, const
   }
   // Get the block itself
   auto block = this->world_.getBlock(BTVUtils::WorldBlockPos{x, y, z});
-  if (block->type == BTVUtils::BlockType::SURFACE) {
-    throw DynamicException("BuildTheVoid::changeBlock: Cannot change a surface block");
+  if (block->type == BTVUtils::BlockType::SURFACE || block->type == BTVUtils::BlockType::ENERGYCHEST) {
+    throw DynamicException("BuildTheVoid::changeBlock: Cannot change a surface or energy block");
   }
   // Check if the block has ownership
   if (block->placer_.has_value()) {
@@ -373,6 +384,8 @@ void BuildTheVoid::claimEnergy(const uint64_t &playerId, const int32_t& x, const
     block->modificationTimestamp = this->getBlockTimestamp();
     it->second.energy += randomEnergyValue;
     it->second.lastUpdate = this->getBlockTimestamp();
+    std::cout << "energyBlockCounter_: " << this->energyBlockCounter_.get() << std::endl;
+    --this->energyBlockCounter_;
     // Do not forget to mint the ERC20 tokens to ourselves! players playing the game have their energy stored in the contract
     // and it is sent back when they logout
     this->callContractFunction(this->energyContract_.get(), &BTVEnergy::mint, this->getContractAddress(), randomEnergyValue);

@@ -190,7 +190,7 @@ class ContractHost {
           }, argsTuple);
         },
         blockCount + context_.getBlockNumber(),
-        blockCount
+        (blockCount == 0) ? 1 : blockCount
       };
 
       blockObservers_->add(std::move(observer));

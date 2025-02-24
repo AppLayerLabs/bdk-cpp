@@ -38,7 +38,6 @@ void BlockObservers::notifyNumberQueue(const FinalizedBlock& block) {
 
   while (blockNumberQueue_.top().blockNumber <= block.getNHeight()) {
     BlockNumberObserver observer = blockNumberQueue_.top();
-
     blockNumberQueue_.pop();
 
     try {
@@ -101,7 +100,7 @@ void BlockObservers::notifyTimestampQueue(const FinalizedBlock& block) {
       .blockCoinbase(ContractGlobals::getCoinbase())
       .txIndex(0)
       .blockNumber(ContractGlobals::getBlockHeight())
-      .blockTimestamp(ContractGlobals::getBlockTimestamp())
+      .blockTimestamp(ContractGlobals::getBlockTimestamp())sc
       .blockGasLimit(10'000'000)
       .txGasPrice(0)
       .chainId(this->options_.getChainID())
@@ -111,7 +110,7 @@ void BlockObservers::notifyTimestampQueue(const FinalizedBlock& block) {
         vm_,
         manager_,
         storage_,
-        seed,
+        block.getBlockRandomness(),
         context,
         this
       );

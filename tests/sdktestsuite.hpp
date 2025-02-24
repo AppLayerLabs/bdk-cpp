@@ -849,7 +849,7 @@ class SDKTestSuite {
       std::vector<Event> filteredEvents;
       // Specifically filter events from the most recent 2000 blocks
       uint64_t lastBlock = this->storage_.latest()->getNHeight();
-      uint64_t firstBlock = (lastBlock - 2000 >= 0) ? lastBlock - 2000 : 0;
+      uint64_t firstBlock = (lastBlock > 2000) ? lastBlock - 2000 : 0;
       auto allEvents = this->getEvents(firstBlock, lastBlock, address, {});
 
       // Filter the events by the topics
@@ -1000,13 +1000,19 @@ class SDKTestSuite {
       auto allEvents = this->getEvents(txHash);
 
       // Filter the events by the topics
+      std::cout << "topics to filter: " << topicsToFilter.size() << std::endl;
+      if (topicsToFilter.size() == 1) {
+        std::cout << "topics to filter: " << topicsToFilter[0].hex().get() << std::endl;
+      }
       for (const auto& event : allEvents) {
         if (topicsToFilter.size() == 0) {
           filteredEvents.push_back(event);
         } else {
+          std::cout << "event.getTopics().size(): " << event.getTopics().size() << std::endl;
           if (event.getTopics().size() < topicsToFilter.size()) continue;
           bool match = true;
           for (uint64_t i = 0; i < topicsToFilter.size(); i++) {
+            std::cout << "Trying to match " << topicsToFilter[i].hex().get() << " with " << event.getTopics()[i].hex().get() << std::endl;
             if (topicsToFilter[i] != event.getTopics()[i]) { match = false; break; }
           }
           if (match) filteredEvents.push_back(event);

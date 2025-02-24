@@ -32,7 +32,6 @@ class BTVEnergy : public virtual ERC20, public virtual Ownable {
       const uint64_t &chainId
     );
 
-
     void mint(const Address &to, const uint256_t &value);
     void burn(const Address &from, const uint256_t &value);
 

@@ -13,6 +13,8 @@ BTVProposals::BTVProposals(const Address& address, const DB& db) :
   energyContract_(this),
   proposalVotes_(this),
   proposalPrice_(this) {
+
+
   this->proposalCount_ = UintConv::bytesToUint64(db.get(std::string("proposalCount_"), this->getDBPrefix()));
 
   // A proposal is stored in the DB in the following format:
@@ -83,6 +85,12 @@ BTVProposals::BTVProposals(const Address &address, const Address &creator, const
   energyContract_(this),
   proposalVotes_(this),
   proposalPrice_(this) {
+
+#ifdef BUILD_TESTNET
+  if (creator != Address(Hex::toBytes("0xc2f2ba5051975004171e6d4781eeda927e884024"))) {
+    throw DynamicException("Only the Chain Owner can create this contract");
+  }
+#endif
 
   this->proposalCount_.commit();
   this->activeProposals_.commit();
