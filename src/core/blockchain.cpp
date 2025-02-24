@@ -48,23 +48,26 @@ Blockchain::FinalizedBlockCache::FinalizedBlockCache(size_t capacity)
 {
 }
 
-void Blockchain::FinalizedBlockCache::insert(std::shared_ptr<const FinalizedBlock> x) {
-  std::lock_guard<std::mutex> lock(mutex_);
-  if (!x) {
+void Blockchain::FinalizedBlockCache::insert(std::shared_ptr<const FinalizedBlock> block) {
+  if (!block) {
     return;
   }
-  auto& slot = ring_[nextInsertPos_];
-  if (slot) {
-    evictIndices(slot);
+  std::unique_lock<std::shared_mutex> lock(mutex_);
+  auto& ringBlock = ring_[nextInsertPos_];
+  if (ringBlock) {
+    // Remove the height and hash indices that are currently pointing to the shared_ptr
+    // that's going to be overwritten by `block`.
+    byHeight_.erase(ringBlock->getNHeight());
+    byHash_.erase(ringBlock->getHash());
   }
-  slot = x;
-  byHeight_[x->getNHeight()] = x;
-  byHash_[x->getHash()] = x;
+  ringBlock = block;
+  byHeight_[block->getNHeight()] = block;
+  byHash_[block->getHash()] = block;
   nextInsertPos_ = (nextInsertPos_ + 1) % capacity_;
 }
 
 std::shared_ptr<const FinalizedBlock> Blockchain::FinalizedBlockCache::getByHeight(uint64_t height) {
-  std::lock_guard<std::mutex> lock(mutex_);
+  std::shared_lock<std::shared_mutex> lock_(mutex_);
   auto it = byHeight_.find(height);
   if (it != byHeight_.end()) {
     return it->second;
@@ -73,7 +76,7 @@ std::shared_ptr<const FinalizedBlock> Blockchain::FinalizedBlockCache::getByHeig
 }
 
 std::shared_ptr<const FinalizedBlock> Blockchain::FinalizedBlockCache::getByHash(const Hash& hash) {
-  std::lock_guard<std::mutex> lock(mutex_);
+  std::shared_lock<std::shared_mutex> lock_(mutex_);
   auto it = byHash_.find(hash);
   if (it != byHash_.end()) {
     return it->second;
@@ -81,15 +84,13 @@ std::shared_ptr<const FinalizedBlock> Blockchain::FinalizedBlockCache::getByHash
   return nullptr;
 }
 
-void Blockchain::FinalizedBlockCache::evictIndices(const std::shared_ptr<const FinalizedBlock>& x) {
-  auto itHeight = byHeight_.find(x->getNHeight());
-  if (itHeight != byHeight_.end() && itHeight->second == x) {
-    byHeight_.erase(itHeight);
-  }
-  auto itHash = byHash_.find(x->getHash());
-  if (itHash != byHash_.end() && itHash->second == x) {
-    byHash_.erase(itHash);
-  }
+void Blockchain::FinalizedBlockCache::clear() {
+  std::unique_lock<std::shared_mutex> lock_(mutex_);
+  nextInsertPos_ = 0;
+  ring_.clear();
+  ring_.resize(capacity_);
+  byHeight_.clear();
+  byHash_.clear();
 }
 
 // ------------------------------------------------------------------
@@ -201,6 +202,17 @@ void Blockchain::saveSnapshot() {
   }
 }
 
+void Blockchain::cleanup() {
+  syncing_ = false;
+  persistStateSkipCount_ = 0;
+  latest_.store(nullptr);
+  txCache_.clear();
+  blockHeightToHashCache_.clear();
+  fbCache_.clear();
+  mempool_.clear();
+  state_.resetState(); // Invalidate app state; it becomes valid after initChain() or loadSnapshot().
+}
+
 void Blockchain::start() {
   // Simple state transition checker
   if (started_) {
@@ -210,15 +222,8 @@ void Blockchain::start() {
   started_ = true;
   LOGINFOP("Starting BDK node...");
 
-  // Make sure all Blockchain state variables are reset
-  syncing_ = false;
-  persistStateSkipCount_ = 0;
-
-  // If this is a restart of Blockchain, we must set State to its default,
-  // "undefined" state. This should trigger either another initChain() or a
-  // loadSnapshot() down the line, which brings us to an actual state that is
-  // valid, considering the actual genesis state (which is not known here).
-  state_.resetState();
+  // Blockchain state should already be reset, but ensure
+  cleanup();
 
   // Wait for Comet to be in RUNNING state, since that is required
   // for e.g. Comet::sendTransaction() to succeed.
@@ -251,6 +256,9 @@ void Blockchain::stop() {
   // Stop
   this->http_.stop();
   this->comet_.stop();
+
+  // Clean up state (frees resources)
+  cleanup();
 }
 
 Blockchain::~Blockchain() {

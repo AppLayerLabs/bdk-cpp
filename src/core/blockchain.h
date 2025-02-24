@@ -66,17 +66,17 @@ class Blockchain : public CometListener, public NodeRPCInterface, public Log::Lo
     {
     public:
       explicit FinalizedBlockCache(size_t capacity);
-      void insert(std::shared_ptr<const FinalizedBlock> x);
+      void insert(std::shared_ptr<const FinalizedBlock> block);
       std::shared_ptr<const FinalizedBlock> getByHeight(uint64_t height);
       std::shared_ptr<const FinalizedBlock> getByHash(const Hash& hash);
+      void clear();
     private:
-      void evictIndices(const std::shared_ptr<const FinalizedBlock>& x);
       std::vector<std::shared_ptr<const FinalizedBlock>> ring_;
       size_t nextInsertPos_;
       size_t capacity_;
       std::map<uint64_t, std::shared_ptr<const FinalizedBlock>> byHeight_;
       std::unordered_map<Hash, std::shared_ptr<const FinalizedBlock>, SafeHash> byHash_;
-      std::mutex mutex_;
+      std::shared_mutex mutex_;
     };
 
     const std::string instanceId_; ///< Instance ID for logging.
@@ -179,6 +179,11 @@ class Blockchain : public CometListener, public NodeRPCInterface, public Log::Lo
      * Helper for BDK RPC services.
      */
     json getBlockJson(const FinalizedBlock *block, bool includeTransactions);
+
+    /**
+     * Reset all Blockchain state.
+     */
+    void cleanup();
 
   public:
 
