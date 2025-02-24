@@ -21,6 +21,14 @@ See the LICENSE.txt file in the project root for more information.
  * A BDK node.
  * All components must be thread-safe.
  *
+ * TODO: Should create a BlockchainListener that receives events from the
+ * Blockchain class. During normal node operation, it would be null, but it
+ * would be useful for testing; e.g. a validatorSetChange() notification.
+ * The listener callback methods could also take outparams, allowing the
+ * listener in the testcase to react to callbacks and control the node.
+ * This could be paired with a testing interface (something like
+ * Blockchain::tester() that would return the node's testing interface).
+ *
  * NOTE: Each Blockchain instance can have one or more file-backed DBs, which
  * will all be managed by storage_ (Storage class) to implement internal
  * features as needed. However, these should not store:
@@ -126,23 +134,39 @@ class Blockchain : public CometListener, public NodeRPCInterface, public Log::Lo
     std::atomic<bool> incomingBlockLock_ = false; ///< `true` if incomingBlock() is locked.
 
     /**
-     * Helper for BDK RPC services, fetches a CometBFT block via CometBFT RPC.
+     * Given a block JSON obtained via CometBFT RPC, store it in the relevant caches.
+     * @param block The full CometBFT block in JSON format.
+     * @return Pointer to the (now cached) FinalizedBlock built from parsing `block`.
+     */
+    std::shared_ptr<const FinalizedBlock> cacheBlock(const json& block);
+
+    /**
+     * Fetch a CometBFT block via CometBFT RPC by hash.
+     * @param blockHash The block hash (eth sha3).
+     * @param ret Outparam set to the JSON response.
+     * @return `true` if the request was successful, `false` if it failed.
      */
     bool getBlockRPC(const Hash& blockHash, json& ret);
 
     /**
-     * Helper for BDK RPC services, fetches a CometBFT block via CometBFT RPC.
+     * Fetch a CometBFT block via CometBFT RPC by height.
+     * @param blockHeight The block height.
+     * @param ret Outparam set to the JSON response.
+     * @return `true` if the request was successful, `false` if it failed.
      */
     bool getBlockRPC(const uint64_t blockHeight, json& ret);
 
     /**
-     * Helper for BDK RPC services, fetches a CometBFT tx via CometBFT RPC.
+     * Fetch a CometBFT transaction via CometBFT RPC.
+     * @param txHash The transaction hash (eth sha3).
      */
     bool getTxRPC(const Hash& txHash, json& ret);
 
     /**
      * Stores a mapping of transaction hash (sha3) to block height and index
      * within the block in the txChache_.
+     * @param tx Transaction hash.
+     * @param val Block height and transaction index within that block.
      */
     void putTx(const Hash& tx, const TxCacheValueType& val);
 
@@ -291,16 +315,18 @@ class Blockchain : public CometListener, public NodeRPCInterface, public Log::Lo
     /**
      * Get a block from the chain using a given hash.
      * @param hash The block hash to get.
+     * @param retPtr If not null, forces an RPC request (bypasses fbCache_) and returns the full JSON response.
      * @return A pointer to the found block, or `nullptr` if block is not found.
      */
-    std::shared_ptr<const FinalizedBlock> getBlock(const Hash& hash);
+    std::shared_ptr<const FinalizedBlock> getBlock(const Hash& hash, json* retPtr = nullptr);
 
     /**
      * Get a block from the chain using a given height.
      * @param height The block height to get.
+     * @param retPtr If not null, forces an RPC request (bypasses fbCache_) and returns the full JSON response.
      * @return A pointer to the found block, or `nullptr` if block is not found.
      */
-    std::shared_ptr<const FinalizedBlock> getBlock(uint64_t height);
+    std::shared_ptr<const FinalizedBlock> getBlock(uint64_t height, json* retPtr = nullptr);
 
     /**
      * Get the block hash given a block height.

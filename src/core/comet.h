@@ -226,11 +226,9 @@ class CometListener {
     }
 
     /**
-     * Notification of what the cometbft block store height is. If the application is ahead, it can bring itself to a height
-     * that is equal or lower than this, or it can prepare to report a correct app_hash and validator set changes after
-     * each incomingBlock() callback that it will get with a height that is lower or equal than its current heigh without
-     * computing state (i.e. feeding it to Comet via stored historical data that it has computed in the past or that it has
-     * obtained off-band). The application is free to block this callback for any amount of time.
+     * Notification of what the cometbft block store height is. If the application is ahead, it must bring itself to a height
+     * that is lower (not equal) than `height`, as CometBFT may roll back its running height by -1 relative to its block store
+     * when it actually starts up. The application is free to block this callback for any amount of time.
      * @param height The current head height in the cometbft block store (the height that the cometbft node/db is at).
      * @param lastBlock Full CometBFT RPC response to a 'block' query for 'height' (full block data at height), or
      * a default, empty json::object() if no block (e.g. height is 0).

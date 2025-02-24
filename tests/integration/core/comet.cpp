@@ -190,8 +190,6 @@ public:
   /**
    * Unfortunately, cometbft cannot be behind the application state, and by default if we don't have an app state
    * snapshot that we kept to match that "height" then we just reset to genesis.
-   * TODO: allow TestMachine to store snapshots (i.e. values of m_) for all heights it processes and let tests use
-   * them as they need it.
    */
   void currentCometBFTHeight(const uint64_t height, const json& lastBlock) override {
     if (h_ > height) {

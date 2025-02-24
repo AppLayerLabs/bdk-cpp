@@ -269,42 +269,60 @@ uint64_t Blockchain::getLatestHeight() const {
   return latestPtr->getNHeight();
 }
 
-std::shared_ptr<const FinalizedBlock> Blockchain::getBlock(const Hash& hash) {
-  std::shared_ptr<const FinalizedBlock> bp = fbCache_.getByHash(hash);
-  if (bp) {
-    return bp;
-  }
-  // Not cached in RAM; retrieve via cometbft RPC
-  json ret;
-  if (!getBlockRPC(hash, ret)) {
-    return {};
-  }
-  // If the JSON response is invalid, fromRPC() will throw
-  bp = std::make_shared<const FinalizedBlock>(FinalizedBlock::fromRPC(ret));
-  // Feed the cache (since the cache object itself doesn't know about the data source)
+std::shared_ptr<const FinalizedBlock> Blockchain::cacheBlock(const json& block) {
+  // If the JSON response is invalid, fromRPC() will throw.
+  std::shared_ptr<const FinalizedBlock> bp = std::make_shared<const FinalizedBlock>(FinalizedBlock::fromRPC(block));
   fbCache_.insert(bp);
-  // Feed the blockHeightToHash cache as well
   blockHeightToHashCache_.put(bp->getNHeight(), bp->getHash());
   return bp;
 }
 
-std::shared_ptr<const FinalizedBlock> Blockchain::getBlock(uint64_t height) {
-  std::shared_ptr<const FinalizedBlock> bp = fbCache_.getByHeight(height);
-  if (bp) {
+std::shared_ptr<const FinalizedBlock> Blockchain::getBlock(const Hash& hash, json* retPtr) {
+  std::shared_ptr<const FinalizedBlock> bp = fbCache_.getByHash(hash);
+  // If there's a cached entry, return it.
+  // (Unless retPtr is set, in which case a RPC request is forced)
+  if (bp && !retPtr) {
     return bp;
   }
-  // Not cached in RAM; retrieve via cometbft RPC
-  json ret;
-  if (!getBlockRPC(height, ret)) {
+  // Not cached, or bypassing cache; retrieve via cometbft RPC
+  json blockJson;
+  json* blockJsonPtr = &blockJson;
+  if (retPtr) {
+    blockJsonPtr = retPtr;
+  }
+  if (!getBlockRPC(hash, *blockJsonPtr)) {
     return {};
   }
-  // If the JSON response is invalid, fromRPC() will throw
-  bp = std::make_shared<const FinalizedBlock>(FinalizedBlock::fromRPC(ret));
-  // Feed the cache (since the cache object itself doesn't know about the data source)
-  fbCache_.insert(bp);
-  // Feed the blockHeightToHash cache as well
-  blockHeightToHashCache_.put(bp->getNHeight(), bp->getHash());
-  return bp;
+  if (bp) {
+    // Don't need to cacheBlock() if it was already in the fbCache_.
+    return bp;
+  }
+  // Did not have a FinalizedBlock, so create one from the JSON, cache it, and return it here.
+  return cacheBlock(*blockJsonPtr);
+}
+
+std::shared_ptr<const FinalizedBlock> Blockchain::getBlock(uint64_t height, json* retPtr) {
+  std::shared_ptr<const FinalizedBlock> bp = fbCache_.getByHeight(height);
+  // If there's a cached entry, return it.
+  // (Unless retPtr is set, in which case a RPC request is forced)
+  if (bp && !retPtr) {
+    return bp;
+  }
+  // Not cached, or bypassing cache; retrieve via cometbft RPC
+  json blockJson;
+  json* blockJsonPtr = &blockJson;
+  if (retPtr) {
+    blockJsonPtr = retPtr;
+  }
+  if (!getBlockRPC(height, *blockJsonPtr)) {
+    return {};
+  }
+  if (bp) {
+    // Don't need to cacheBlock() if it was already in the fbCache_.
+    return bp;
+  }
+  // Did not have a FinalizedBlock, so create one from the JSON, cache it, and return it here.
+  return cacheBlock(*blockJsonPtr);
 }
 
 Hash Blockchain::getBlockHash(const uint64_t height, bool forceRPC) {
@@ -464,11 +482,7 @@ Blockchain::GetTxResultType Blockchain::getTxByBlockHashAndIndex(const Hash& blo
     if (!getBlockRPC(blockHash, ret)) {
       return {};
     }
-    // If the ret JSON is invalid, fromRPC() will throw
-    bp = std::make_shared<const FinalizedBlock>(FinalizedBlock::fromRPC(ret));
-    fbCache_.insert(bp);
-    // Feed the blockHeightToHash cache as well
-    blockHeightToHashCache_.put(bp->getNHeight(), bp->getHash());
+    cacheBlock(ret);
   }
   return {
     bp->getTxs()[blockIndex],
@@ -485,11 +499,7 @@ Blockchain::GetTxResultType Blockchain::getTxByBlockNumberAndIndex(uint64_t bloc
     if (!getBlockRPC(blockHeight, ret)) {
       return {};
     }
-    // If the ret JSON is invalid, fromRPC() will throw
-    bp = std::make_shared<const FinalizedBlock>(FinalizedBlock::fromRPC(ret));
-    fbCache_.insert(bp);
-    // Feed the blockHeightToHash cache as well
-    blockHeightToHashCache_.put(bp->getNHeight(), bp->getHash());
+    cacheBlock(ret);
   }
   return {
     bp->getTxs()[blockIndex],
@@ -973,20 +983,16 @@ void Blockchain::currentCometBFTHeight(const uint64_t height, const json& lastBl
       // If at this point the State height exactly matches the last CometBFT height for some lucky
       // reason, then we can just use lastBlock, which should not be empty since height > 0.
       LOGTRACE("Last CometBFT block matches state height: " + stateHeightStr);
-      latest_ = std::make_shared<const FinalizedBlock>(
-        FinalizedBlock::fromRPC(lastBlock)
-      );
+      cacheBlock(lastBlock);
+      latest_ = getBlock(height);
     } else {
       // State is not a genesis and "height" was useless, so we need to fetch a different block.
-      json blockRes;
-      json params = { {"height", stateHeightStr} };
       LOGTRACE("Retrieving CometBFT block for state height: " + stateHeightStr);
-      if (!comet_.rpcSyncCall("block", params, blockRes)) {
+      json blockRes;
+      latest_ = getBlock(state_.getHeight(), &blockRes);
+      if (latest_.load() == nullptr) {
         throw DynamicException("ERROR: cometbft RPC block call failed: " + blockRes.dump());
       }
-      latest_ = std::make_shared<const FinalizedBlock>(
-        FinalizedBlock::fromRPC(blockRes)
-      );
     }
   } else {
     LOGTRACE("State height is 0 (genesis), no latest block to load.");

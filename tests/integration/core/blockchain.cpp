@@ -686,7 +686,7 @@ namespace TBlockchain {
       }
 
       std::this_thread::sleep_for(std::chrono::milliseconds(3000)); // this should be more than enough
-      GLOGDEBUG("Test: start first delegations");
+      GLOGDEBUG("TEST: Start first delegations");
 
       // Nodes #0 .. #4 delegate 5, 4, 3, 2, 1 for themselves, respectively
       // This results in nodes #0, #1, #2, #3 elected, since there are 4 validator slots (set on genesis)
@@ -711,9 +711,9 @@ namespace TBlockchain {
       //       is modified (or not) by the system contract when it receives delegate calls.
       //       it could be that the system contract changed but the blockchain validator set wasn't notified, but
       //       this check won't catch that kind of bug here.
-      GLOGDEBUG("Test: end first delegations");
+      GLOGDEBUG("TEST: End first delegations");
       std::this_thread::sleep_for(std::chrono::milliseconds(5'000)); // we actually need to wait for H+2 activation!
-      GLOGDEBUG("Test: checking that the exact same validator keys are still elected (order and voting power is OK to change)");
+      GLOGDEBUG("TEST: Checking that the exact same validator keys are still elected (order and voting power is OK to change)");
       for (int i = 0; i < 5; ++i) {
         std::vector<CometValidatorUpdate> validatorSet;
         uint64_t validatorSetHeight = 0;
@@ -731,7 +731,7 @@ namespace TBlockchain {
       }
 
       // Delegates 10 tokens for node #5
-      GLOGDEBUG("Test: delegating to node 5, should push node 3 out and be (5, 0, 1, 2)");
+      GLOGDEBUG("TEST: Delegating to node 5, should push node 3 out and be (5, 0, 1, 2)");
       blockchainCallCpp(
         *blockchains[0], // use node 0 to call (could be any node)
         nodeAccs[5],
@@ -744,7 +744,7 @@ namespace TBlockchain {
 
       // After tx goes through, resulting validator set should be #5, #0, #1, #2 for the 4 slots (node #3 gets pushed out)
       std::this_thread::sleep_for(std::chrono::milliseconds(5'000)); // we actually need to wait for H+2 activation!
-      GLOGDEBUG("Test: checking node 5 pushes node 3 out (5, 0, 1, 2)");
+      GLOGDEBUG("TEST: Checking node 5 pushes node 3 out (5, 0, 1, 2)");
       for (int i = 0; i < 5; ++i) {
         std::vector<CometValidatorUpdate> validatorSet;
         uint64_t validatorSetHeight = 0;
@@ -762,7 +762,7 @@ namespace TBlockchain {
       }
 
       // Node #3 is no longer elected, so it cannot vote for slots
-      GLOGDEBUG("Test: node #3 votes for 4 slots (vote should not be accepted since node #3 is no longer elected)");
+      GLOGDEBUG("TEST: Node #3 votes for 4 slots (vote should not be accepted since node #3 is no longer elected)");
       blockchainCallCpp(
         *blockchains[0], // use node 0 to call (could be any node)
         nodeAccs[3],
@@ -774,7 +774,7 @@ namespace TBlockchain {
       );
 
       // Validators #5, #0 vote to change number of slots to 5, 5
-      GLOGDEBUG("Test: nodes #5 and #0 vote for 5 slots");
+      GLOGDEBUG("TEST: Nodes #5 and #0 vote for 5 slots");
       blockchainCallCpp(
         *blockchains[0], // use node 0 to call (could be any node)
         nodeAccs[5],
@@ -797,7 +797,7 @@ namespace TBlockchain {
       // If node #3's vote is considered (which is an error), it will change to 4 after all three votes go through since there are 4 slots and 3 votes (>2/3)
       // So we expect the number of slots to not change.
       std::this_thread::sleep_for(std::chrono::milliseconds(5'000)); // we actually need to wait for H+2 activation!
-      GLOGDEBUG("Test: checking number of slots is unchanged across the entire network");
+      GLOGDEBUG("TEST: Checking number of slots is unchanged across the entire network");
       for (int i = 0; i < 5; ++i) {
         std::vector<CometValidatorUpdate> validatorSet;
         uint64_t validatorSetHeight = 0;
@@ -806,7 +806,7 @@ namespace TBlockchain {
       }
 
       // Node #1 vote to change the number of slots to 6
-      GLOGDEBUG("Test: nodes #1 votes for 6 slots");
+      GLOGDEBUG("TEST: Node #1 votes for 6 slots");
       blockchainCallCpp(
         *blockchains[0], // use node 0 to call (could be any node)
         nodeAccs[1],
@@ -819,7 +819,7 @@ namespace TBlockchain {
 
       // After tx goes through, number of slots should change to 5, making the validator set be: #5, #0, #1, #2, #3
       std::this_thread::sleep_for(std::chrono::milliseconds(5'000)); // we actually need to wait for H+2 activation!
-      GLOGDEBUG("Test: checking number of slots changed to 5 and elected validators are 5, 0, 1, 2, 3 (in order)");
+      GLOGDEBUG("TEST: Checking number of slots changed to 5 and elected validators are 5, 0, 1, 2, 3 (in order)");
       for (int i = 0; i < 5; ++i) {
         std::vector<CometValidatorUpdate> validatorSet;
         uint64_t validatorSetHeight = 0;
@@ -833,7 +833,7 @@ namespace TBlockchain {
       }
 
       // Validator #1 gets fully undelegated (-4 tokens).
-      GLOGDEBUG("Test: fully undelegating from node 1, should push node 1 out and be (5, 0, 2, 3, 4)");
+      GLOGDEBUG("TEST: Fully undelegating from node 1, should push node 1 out and be (5, 0, 2, 3, 4)");
       blockchainCallCpp(
         *blockchains[0], // use node 0 to call (could be any node)
         nodeAccs[1],
@@ -846,7 +846,7 @@ namespace TBlockchain {
 
       // After tx goes through, validator set should be #5, #0, #2, #3, #4
       std::this_thread::sleep_for(std::chrono::milliseconds(5'000)); // we actually need to wait for H+2 activation!
-      GLOGDEBUG("Test: checking elected validators are 5, 0, 2, 3, 4 (in order)");
+      GLOGDEBUG("TEST: Checking elected validators are 5, 0, 2, 3, 4 (in order)");
       for (int i = 0; i < 5; ++i) {
         std::vector<CometValidatorUpdate> validatorSet;
         uint64_t validatorSetHeight = 0;
@@ -862,13 +862,13 @@ namespace TBlockchain {
 
       // for the next test, we need to lock block finalization (incomingBlock() on the entire network, which will essentially stall
       // block proposal and thus mempool tx selection for blocks). we need this because we need all CPP calls below to go in the same block.
-      GLOGDEBUG("TEST: locking block processing across entire network");
+      GLOGDEBUG("TEST: Locking block processing across entire network");
       for (int i = 0; i < numNodes; ++i) {
         blockchains[i]->lockBlockProcessing();
       }
 
       // set decrease numslot votes: 1, 1, 2, 3, 4 by sending 5 voteSlots txs
-      GLOGDEBUG("Test: elected validators will vote for numslots decrease: 1,1,2,3,4 (doesn't matter which validator votes what)");
+      GLOGDEBUG("TEST: Elected validators will vote for numslots decrease: 1,1,2,3,4 (doesn't matter which validator votes what)");
       blockchainCallCpp(
         *blockchains[0], // use node 0 to call (could be any node)
         nodeAccs[0],
@@ -916,7 +916,7 @@ namespace TBlockchain {
       );
 
       // wait a little bit to ensure all 5 voteSlots txs above can enter all mempools
-      GLOGDEBUG("TEST: waiting for all 5 txs to enter mempools across the entire network");
+      GLOGDEBUG("TEST: Waiting for all 5 txs to enter mempools across the entire network");
       int decvoteTxsTimeout = 11;
       while (--decvoteTxsTimeout > 0) { // 10 iterations = 10s
         int ok = 0;
@@ -932,28 +932,100 @@ namespace TBlockchain {
       }
       REQUIRE(decvoteTxsTimeout > 0);
 
+      // Before unlocking block processing, store the current validators_hash and next_validators_hash at node 0
+      // to use as a baseline before the validator set changes.
+      uint64_t height0 = blockchains[0]->state().getHeight();
+      json block0;
+      blockchains[0]->getBlock(height0, &block0);
+      std::string validatorsHash0 = block0["result"]["block"]["header"]["validators_hash"].get<std::string>();
+      std::string nextValidatorsHash0 = block0["result"]["block"]["header"]["next_validators_hash"].get<std::string>();
+      GLOGDEBUG("TEST: validators_hash at node 0, before validator set changes: " + validatorsHash0);
+      GLOGDEBUG("TEST: next_validators_hash at node 0, before validator set changes: " + nextValidatorsHash0);
+      REQUIRE(validatorsHash0 == nextValidatorsHash0);
+
       // now that the txs are in all mempools, unlock block processing so all the 5 txs can go to the same prepareproposal (block)
       // by whatever validator gets picked as the next proposer.
       // this works because holding up the FinalizeBlock ABCI callback across the entire network will prevent the next proposer
       // from advancing to the PrepareProposal step, which includes flushing the mempool into the next block (since it's just a
       // tiny amount of tx data and blocks tolerate megabytes of data, it's 100% odds that all of them go in the next block).
-      GLOGDEBUG("TEST: unlocking block processing across entire network");
+      GLOGDEBUG("TEST: Unlocking block processing across entire network");
       for (int i = 0; i < numNodes; ++i) {
         blockchains[i]->unlockBlockProcessing();
       }
 
-      // should reduce to 3, not 4, since 2/3 threshold is met by 3 (the vote on 4 is skipped)
-      std::this_thread::sleep_for(std::chrono::milliseconds(5'000)); // we actually need to wait for H+2 activation!
-      GLOGDEBUG("Test: checking elected validators are 5, 0, 2 (in order)");
-      for (int i = 0; i < 5; ++i) {
-        std::vector<CometValidatorUpdate> validatorSet;
-        uint64_t validatorSetHeight = 0;
-        blockchains[i]->state().getValidatorSet(validatorSet, validatorSetHeight);
-        REQUIRE(validatorSet.size() == 3); // decrease slots vote should have evaluated to 3
-        REQUIRE(PubKey(validatorSet[0].publicKey) == nodeAccs[5].pubKey);
-        REQUIRE(PubKey(validatorSet[1].publicKey) == nodeAccs[0].pubKey);
-        REQUIRE(PubKey(validatorSet[2].publicKey) == nodeAccs[2].pubKey);
+      // This time, we are going to busy loop and monitor the evolution of the next_validators_hash and validators_hash
+      // in the subsequent blocks, instead of just sleeping. When we detect the validator set change, we let it proceed
+      // to the assertion that the validator set changed the way we wanted it to.
+      int phase = 0;
+      uint64_t voteSlotsInclusionHeight = 0;
+      uint64_t nextValidatorsHashChangeHeight = 0;
+      uint64_t validatorsHashChangeHeight = 0;
+      uint64_t prevHeight0 = height0;
+      while (phase < 3) {
+        // Use blockchain[0] to check network state (it's replicated, so it doesn't matter which one we use).
+        height0 = blockchains[0]->state().getHeight();
+        if (height0 != prevHeight0) {
+          std::string prevValidatorsHash0 = validatorsHash0;
+          std::string prevNextValidatorsHash0 = nextValidatorsHash0;
+          prevHeight0 = height0;
+          blockchains[0]->getBlock(height0, &block0);
+          validatorsHash0 = block0["result"]["block"]["header"]["validators_hash"].get<std::string>();
+          nextValidatorsHash0 = block0["result"]["block"]["header"]["next_validators_hash"].get<std::string>();
+          if (phase == 0) {
+            // Figure out whether we are in the block that actually got the voteSlots transactions,
+            // which do cause a change in the validator set at height+2 from its own height.
+            size_t txCount = block0["result"]["block"]["data"]["txs"].size();
+            if (txCount > 1) {
+              // If there's more than one transaction in the raw json block (which is the
+              // randomgen non-transaction), then we must find more than the expected
+              // voteSlots transactions.
+              REQUIRE(txCount > 5); // Must find 6 txs (5 voteSlots + 1 randomgen) in the same block.
+              voteSlotsInclusionHeight = height0;
+              GLOGDEBUG("TEST: All voteSlots transactions included in block at height " + std::to_string(voteSlotsInclusionHeight));
+              REQUIRE(validatorsHash0 == prevValidatorsHash0);
+              REQUIRE(nextValidatorsHash0 == prevNextValidatorsHash0);
+              ++phase;
+            }
+          } else if (phase == 1) {
+            REQUIRE(validatorsHash0 == prevValidatorsHash0); // This will hold if our polling is not missing blocks
+            if (nextValidatorsHash0 != prevNextValidatorsHash0) {
+              // The next_validator_hash field changes in H+1
+              nextValidatorsHashChangeHeight = height0;
+              GLOGDEBUG("TEST: next_validators_hash change detected at height " + std::to_string(nextValidatorsHashChangeHeight));
+              GLOGDEBUG("TEST: validators_hash at node 0 (unchanged): " + validatorsHash0);
+              GLOGDEBUG("TEST: next_validators_hash at node 0 is now: " + nextValidatorsHash0);
+              REQUIRE(nextValidatorsHashChangeHeight == voteSlotsInclusionHeight + 1);
+              ++phase;
+            }
+          } else if (phase == 2) {
+            REQUIRE(nextValidatorsHash0 == prevNextValidatorsHash0);
+            if (validatorsHash0 != prevValidatorsHash0) {
+              // Then the validator_hash field changes in H+2
+              validatorsHashChangeHeight = height0;
+              GLOGDEBUG("TEST: validators_hash change detected at height " + std::to_string(validatorsHashChangeHeight));
+              GLOGDEBUG("TEST: validators_hash at node 0 is now: " + validatorsHash0);
+              GLOGDEBUG("TEST: next_validators_hash at node 0 (unchanged): " + nextValidatorsHash0);
+              REQUIRE(validatorsHashChangeHeight == nextValidatorsHashChangeHeight + 1);
+              ++phase; // quit loop and continue
+            }
+          }
+        }
+        // This sleep works because we are using a large timeout_commit (500ms >> 10ms)
+        // to space out block production. It is very unlikely that our polling will miss a block.
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
       }
+
+      // should reduce to 3, not 4, since 2/3 threshold is met by 3 (the vote on 4 is skipped)
+      // no need for a massive sleep this time because we manually checked for the full validator set
+      // transition (H, H+1, H+2) above for node 0 (checking node 0 is enough).
+      GLOGDEBUG("TEST: Checking elected validators are 5, 0, 2 (in order) at node #0.");
+      std::vector<CometValidatorUpdate> validatorSet;
+      uint64_t validatorSetHeight = 0;
+      blockchains[0]->state().getValidatorSet(validatorSet, validatorSetHeight);
+      REQUIRE(validatorSet.size() == 3); // decrease slots vote should have evaluated to 3
+      REQUIRE(PubKey(validatorSet[0].publicKey) == nodeAccs[5].pubKey);
+      REQUIRE(PubKey(validatorSet[1].publicKey) == nodeAccs[0].pubKey);
+      REQUIRE(PubKey(validatorSet[2].publicKey) == nodeAccs[2].pubKey);
       GLOGDEBUG("TEST: Validator set test finished.");
     }
   }
