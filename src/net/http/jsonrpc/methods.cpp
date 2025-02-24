@@ -192,7 +192,7 @@ json eth_blockNumber(const json& request, const Storage& storage) {
 json eth_call(const json& request, const Storage& storage, State& state) {
   auto [from, to, gas, value, data] = parseMessage(request, storage, true);
   EncodedStaticCallMessage msg(from, to, gas, data);
-  return Hex::fromBytes(state.ethCall(msg), true).forRPC();
+  return Hex::fromBytes(state.ethCall(msg), true);
 }
 
 json eth_estimateGas(const json& request, const Storage& storage, State& state) {
