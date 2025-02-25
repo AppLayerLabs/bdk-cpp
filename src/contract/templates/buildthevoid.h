@@ -85,6 +85,7 @@ class BuildTheVoid : virtual public DynamicContract, virtual public Ownable {
     std::vector<BTVUtils::PlayerInformationData> getActivePlayers() const;
     std::vector<BTVUtils::PlayerInformationData> getInnactivePlayers() const;
     std::vector<BTVUtils::PlayerInformationData> getDeadPlayers() const;
+    BTVUtils::PlayerStatus getPlayerStatus(const uint64_t& playerId) const;
 
     /// Register contract class via ContractReflectionInterface.
     static void registerContract() {
@@ -109,7 +110,8 @@ class BuildTheVoid : virtual public DynamicContract, virtual public Ownable {
         std::make_tuple("getEnergyContract", &BuildTheVoid::getEnergyContract, FunctionTypes::View, std::vector<std::string>{}),
         std::make_tuple("getActivePlayers", &BuildTheVoid::getActivePlayers, FunctionTypes::View, std::vector<std::string>{}),
         std::make_tuple("getInnactivePlayers", &BuildTheVoid::getInnactivePlayers, FunctionTypes::View, std::vector<std::string>{}),
-        std::make_tuple("getDeadPlayers", &BuildTheVoid::getDeadPlayers, FunctionTypes::View, std::vector<std::string>{})
+        std::make_tuple("getDeadPlayers", &BuildTheVoid::getDeadPlayers, FunctionTypes::View, std::vector<std::string>{}),
+        std::make_tuple("getPlayerStatus", &BuildTheVoid::getPlayerStatus, FunctionTypes::View, std::vector<std::string>{"playerId"})
       );
       ContractReflectionInterface::registerContractEvents<BuildTheVoid>(
         std::make_tuple("PlayerMoved", false, &BuildTheVoid::PlayerMoved, std::vector<std::string>{"playerId", "x", "y", "z"}),

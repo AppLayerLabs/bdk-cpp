@@ -63,6 +63,13 @@ namespace BTVUtils {
         uint64_t         // lastUpdate
       >;
 
+    enum class PlayerStatus {
+      NEVER_JOINED,
+      INACTIVE,
+      ACTIVE,
+      DEAD
+    };
+
     struct PlayerInformation {
         WorldBlockPos position{0,0,0};
         uint256_t energy = 0;

@@ -152,6 +152,7 @@ void BuildTheVoid::registerContractFunctions() {
   this->registerMemberFunction("getActivePlayers", &BuildTheVoid::getActivePlayers, FunctionTypes::View, this);
   this->registerMemberFunction("getInnactivePlayers", &BuildTheVoid::getInnactivePlayers, FunctionTypes::View, this);
   this->registerMemberFunction("getDeadPlayers", &BuildTheVoid::getDeadPlayers, FunctionTypes::View, this);
+  this->registerMemberFunction("getPlayerStatus", &BuildTheVoid::getPlayerStatus, FunctionTypes::View, this);
 }
 
 void BuildTheVoid::approve() {
@@ -388,6 +389,7 @@ void BuildTheVoid::claimEnergy(const uint64_t &playerId, const int32_t& x, const
     // and it is sent back when they logout
     this->callContractFunction(this->energyContract_.get(), &BTVEnergy::mint, this->getContractAddress(), randomEnergyValue);
     this->ClaimedEnergy(playerId, randomEnergyValue);
+    this->BlockChanged(playerId, x, y, z, static_cast<uint8_t>(BTVUtils::BlockType::AIR), block->modificationTimestamp);
   } else {
     throw DynamicException("BuildTheVoid::claimEnergy: Player is too far away from the energy block");
   }
@@ -432,6 +434,20 @@ std::vector<BTVUtils::PlayerInformationData> BuildTheVoid::getDeadPlayers() cons
   }
   return players;
 }
+
+BTVUtils::PlayerStatus BuildTheVoid::getPlayerStatus(const uint64_t &playerId) const {
+  if (this->activePlayers_.contains(playerId)) {
+    return BTVUtils::PlayerStatus::ACTIVE;
+  }
+  if (this->inactivePlayers_.contains(playerId)) {
+    return BTVUtils::PlayerStatus::INACTIVE;
+  }
+  if (this->deadPlayers_.contains(playerId)) {
+    return BTVUtils::PlayerStatus::DEAD;
+  }
+  return BTVUtils::PlayerStatus::NEVER_JOINED;
+}
+
 
 DBBatch BuildTheVoid::dump() const {
   DBBatch dbBatch = Ownable::dump();
