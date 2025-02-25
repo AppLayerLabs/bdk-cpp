@@ -28,27 +28,6 @@ See the LICENSE.txt file in the project root for more information.
  * listener in the testcase to react to callbacks and control the node.
  * This could be paired with a testing interface (something like
  * Blockchain::tester() that would return the node's testing interface).
- *
- * NOTE: Each Blockchain instance can have one or more file-backed DBs, which
- * will all be managed by storage_ (Storage class) to implement internal
- * features as needed. However, these should not store:
- * (i) any data that the consensus engine (cometbft) already stores and
- * that we have no reason to duplicate, such as blocks (OK to cache in RAM),
- * (ii) State (consistent contract checkpoints/snapshots at some execution
- * height) as those should be serialized/deserialized from/to their own
- * file-backed data structures (we are using the dump-to-fresh-speedb system)
- * (iii) the list of contract types/templates that exist, since that pertains
- * to the binary itself, and should be built statically in RAM on startup (const)
- * (it is OK-ish to store in Storage the range of block heights for which a
- * template is or isn't available, while keeping in mind that these are really
- * consensus parameters, that is, changing these means the protocol is forked).
- * What we are going to store in the node db:
- * - Activation block height for contract templates (if absent, the contract
- * template is not yet enabled) -- this should be directly modifiable by node
- * operators when enabling new contracts (these are soft forks).
- * - Events (we will keep these in the BDK to retain control and speed it up)
- * - Any State metadata we may need (e.g. name of latest state snapshot file
- * that was saved, and the last executed, locally seen, final block height).
  */
 class Blockchain : public CometListener, public NodeRPCInterface, public Log::LogicalLocationProvider {
   protected: // protected is correct; don't change.
@@ -88,49 +67,20 @@ class Blockchain : public CometListener, public NodeRPCInterface, public Log::Lo
     Comet comet_;     ///< CometBFT consensus engine driver.
     HTTPServer http_; ///< HTTP server.
 
-    // Pointer to the "latest" block in the blockchain.
-    // This is not necessarily the latest block in CometBFT's block store. Rather, it is the
-    // block that matches State::getHeight(); e.g. if the machine height is 20 but the CometBFT
-    // block store has 100 blocks from genesis, latest_ will point to block 20.
-    // In other words, this is the last processed block by the current State.
-    // Since the State cannot be ahead of the CometBFT block store, this is guaranteed to exist
-    // (unless the machine height is 0, that is, genesis).
-    std::atomic<std::shared_ptr<const FinalizedBlock>> latest_;
+    std::atomic<std::shared_ptr<const FinalizedBlock>> latest_; ///< Pointer to the "latest" block in the blockchain.
+    BucketCache<Hash, TxCacheValueType, SafeHash> txCache_; ///< Cache of transaction hash to (block height, block index).
+    BucketCache<uint64_t, Hash, SafeHash> blockHeightToHashCache_; ///< Block height to block hash cache.
+    FinalizedBlockCache fbCache_; ///< RAM finalized block/tx cache.
 
-    // Cache of transaction hash to (block height, block index).
-    // It is too expensive to clean up these mappings every time we get a FinalizedBlock
-    // evicted from fbCache_. Instead, we just oversize the buckets in txCache_ to make sure
-    // they can hold more entries than what will be ever present in the fbCache_.
-    BucketCache<Hash, TxCacheValueType, SafeHash> txCache_;
-
-    // Block height to block hash cache
-    BucketCache<uint64_t, Hash, SafeHash> blockHeightToHashCache_;
-
-    // RAM finalized block/tx cache
-    // We will be doing miscellaneous queries for blocks and assembling FinalizedBlock
-    // objects from the query results. We need to cache the FinalizedBlock objects,
-    // otherwise series of calls to e.g. getTxByBlockHashAndIndex() will be slow.
-    // Since we cache FinalizedBlock's here, we will also use this as the back-end for
-    // the GetTx() / GetTxBy...() methods.
-    FinalizedBlockCache fbCache_;
-
-    // Cache of pending transactions (substitutes for access to the mempool, for
-    // answering RPC queries).
-    // We don't actually have access to the CometBFT mempool, but since CometBFT only
-    // removes transactions from its mempool when we return false from CheckTx or the
-    // transaction is included in a block, we can mirror it exactly from our side.
-    std::unordered_map<Hash, std::shared_ptr<TxBlock>, SafeHash> mempool_;
-
+    std::unordered_map<Hash, std::shared_ptr<TxBlock>, SafeHash> mempool_; ///< Cache of pending transactions.
     std::shared_mutex mempoolMutex_; ///< Mutex protecting mempool_.
 
     bool syncing_ = false; ///< Updated by Blockchain::incomingBlock() when syncingToHeight > height.
-
     uint64_t persistStateSkipCount_ = 0; ///< Count of non-syncing_ Blockchain::persistState() calls that skipped saveSnapshot().
 
     std::atomic<bool> started_ = false; ///< Flag to protect the start()/stop() cycle.
 
     std::mutex incomingBlockLockMutex_; ///< For locking/unlocking block processing.
-
     std::atomic<bool> incomingBlockLock_ = false; ///< `true` if incomingBlock() is locked.
 
     /**
@@ -256,23 +206,28 @@ class Blockchain : public CometListener, public NodeRPCInterface, public Log::Lo
     virtual json debug_traceTransaction(const json& request) override;
     virtual json txpool_content(const json& request) override;
 
-    std::string getLogicalLocation() const override { return instanceId_; }
+    std::string getLogicalLocation() const override { return instanceId_; } ///< Log helper.
 
     /**
      * Constructor.
      * @param blockchainPath Root filesystem path for this blockchain node reading/writing data.
      * @param instanceId Runtime object instance identifier for logging (for multi-node unit tests).
+     * @param seedMode `true` to run in seed mode (discovery node).
      */
-    explicit Blockchain(const std::string& blockchainPath, std::string instanceId = "");
+    explicit Blockchain(const std::string& blockchainPath, std::string instanceId = "", bool seedMode = false);
 
     /**
      * Constructor.
      * @param options Explicit options object to use.
      * @param instanceId Runtime object instance identifier for logging (for multi-node unit tests).
+     * @param seedMode `true` to run in seed mode (discovery node).
      */
-    explicit Blockchain(const Options& options, std::string instanceId = "");
+    explicit Blockchain(const Options& options,  std::string instanceId = "", bool seedMode = false);
 
-    virtual ~Blockchain(); ///< Destructor.
+    /**
+     * Destructor; ensures node is stopped.
+     */
+    virtual ~Blockchain();
 
     /**
      * Lock block processing.
@@ -309,13 +264,36 @@ class Blockchain : public CometListener, public NodeRPCInterface, public Log::Lo
      */
     void saveSnapshot();
 
-    void start(); ///< Start the blockchain node.
+    /**
+     * Start the blockchain node. If already running, does nothing.
+     * @throws DynamicException if the node fails to start for whatever reason.
+     */
+    void start();
 
-    void stop(); ///< Stop the blockchain node.
+    /**
+     * Stop the blockchain node. If not running, does nothing.
+     */
+    void stop();
 
-    std::shared_ptr<const FinalizedBlock> latest() const; ///< Get latest finalized block.
+    /**
+     * Interrupt the blockchain node.
+     * This is safe to call from a signal handler.
+     * NOTE: Calling stop() later is still required to properly stop the node.
+     */
+    void interrupt();
 
-    uint64_t getLatestHeight() const; ///< Get the height of the lastest finalized block, or 0 if no blocks (genesis state).
+    /**
+     * Get the latest block processed into the current blockchain state.
+     * @return The last block that was processed to generate the current state; note that it is
+     * not necessarily the most recent block available in the backing CometBFT block store.
+     */
+    std::shared_ptr<const FinalizedBlock> latest() const;
+
+    /**
+     * Get the height of the lastest finalized block.
+     * @return Height of the latest block, or 0 if no blocks (i.e. blockchain is in genesis state).
+     */
+    uint64_t getLatestHeight() const;
 
     /**
      * Get a block from the chain using a given hash.

@@ -814,6 +814,7 @@ class CometImpl : public ABCIHandler, public Log::LogicalLocationProvider {
     CometListener* listener_; ///< Comet class application event listener/handler
     const std::string instanceIdStr_; ///< Identifier for logging
     const Options options_; ///< Copy of the supplied Options.
+    const json configToml_; ///< Additional CometBFT configuration options to force when the driver is started.
 
     std::unique_ptr<ABCIServer> abciServer_; ///< TCP server for cometbft ABCI connection
 
@@ -870,7 +871,7 @@ class CometImpl : public ABCIHandler, public Log::LogicalLocationProvider {
   public:
 
     std::string getLogicalLocation() const override { return instanceIdStr_; } ///< Log instance
-    CometImpl(CometListener* listener, std::string instanceIdStr, const Options& options);
+    CometImpl(CometListener* listener, std::string instanceIdStr, const Options& options, json configToml = nullptr);
     virtual ~CometImpl();
     bool getStatus();
     const std::string& getErrorStr();
@@ -882,6 +883,7 @@ class CometImpl : public ABCIHandler, public Log::LogicalLocationProvider {
     std::string getNodeID();
     Bytes getValidatorPubKey();
     bool start();
+    void interrupt();
     bool stop();
     static void runCometBFT(const std::vector<std::string>& cometArgs, std::string* outStdout = nullptr, std::string* outStderr = nullptr);
     static void checkCometBFT();
@@ -915,9 +917,9 @@ class CometImpl : public ABCIHandler, public Log::LogicalLocationProvider {
     virtual void verify_vote_extension(const cometbft::abci::v1::VerifyVoteExtensionRequest& req, cometbft::abci::v1::VerifyVoteExtensionResponse* res);
 };
 
-CometImpl::CometImpl(CometListener* listener, std::string instanceIdStr, const Options& options)
-  : listener_(listener), instanceIdStr_(instanceIdStr), options_(options), rpc_(instanceIdStr),
-    processDone_(std::make_shared<std::atomic<bool>>(false))
+CometImpl::CometImpl(CometListener* listener, std::string instanceIdStr, const Options& options, json configToml)
+  : listener_(listener), instanceIdStr_(instanceIdStr), options_(options), configToml_(configToml),
+    rpc_(instanceIdStr), processDone_(std::make_shared<std::atomic<bool>>(false))
 {
 }
 
@@ -957,6 +959,12 @@ std::string CometImpl::waitPauseState(uint64_t timeoutMillis) {
     }
     if (this->pauseState_ == this->state_ || this->pauseState_ == CometState::NONE) {
       return ""; // succeed if the pause state is reached or if pause is disabled (set to NONE)
+    }
+    if (this->state_ >= CometState::FINISHED) {
+      // FINISHED or TERMINATED state
+      // worker thread is done, no other state will be achieved in this start/stop cycle
+      // so that's a "timeout" even if timeoutMillis is set to 0 (wait forever).
+      return "TIMEOUT";
     }
     std::this_thread::sleep_for(std::chrono::milliseconds(20));
   }
@@ -1071,6 +1079,13 @@ bool CometImpl::start() {
   setState(CometState::STARTED);
   this->loopFuture_ = std::async(std::launch::async, &CometImpl::workerLoop, this);
   return true;
+}
+
+void CometImpl::interrupt() {
+  // NOTE: This causes the worker loop to eventually exit, which causes a FINISHED or TERMINATED
+  // state, and that will interrupt any thread that was stuck in waitPauseState() as well.
+  // User still needs to call stop() to join with the worker thread and wipe the loopFuture_.
+  this->stop_ = true;
 }
 
 bool CometImpl::stop() {
@@ -1277,33 +1292,53 @@ void CometImpl::doStartCometBFT(
   if (cometbft_exec_path.empty()) {
     throw DynamicException("cometbft executable not found in current directory or system PATH");
   }
+  SLOGTRACE("cometbft exec path: " + cometbft_exec_path.string());
 
-  // Search for setpriv in the PATH
+  // Search for setsid, which is used to prevent cometbft from receiving SIGINT (CTRL+C from terminal).
+  boost::filesystem::path setsid_exec_path = boost::process::search_path("setsid");
+  if (setsid_exec_path.empty()) {
+    SLOGWARNING("setsid utility not found in system PATH (usually found at /usr/bin/setsid). cometbft child process will not be protected from SIGINT (e.g. terminal CTRL+C).");
+  } else {
+    SLOGTRACE("setsid exec path: " + cometbft_exec_path.string());
+  }
+
+  // Search for setpriv, which is used to make sure cometbft receives SIGTERM if the BDK process exits or is killed
   boost::filesystem::path setpriv_exec_path = boost::process::search_path("setpriv");
   if (setpriv_exec_path.empty()) {
     // setpriv not found, so just run cometbft directly, which is less good and requires the node
     // operator to run its own watchdog or handle dangling cometbft processes.
     SLOGWARNING("setpriv utility not found in system PATH (usually found at /usr/bin/setpriv). cometbft child process will not be automatically terminated if this BDK node process crashes.");
-    exec_path = cometbft_exec_path;
-    exec_args = cometArgs;
   } else {
-    // setpriv found, so use it to send SIGTERM to cometbft if this BDK node process (parent process) dies
-    // note that setpriv replaces its executable image with that of the process given in its args, in this
-    //   case, cometbft. so the PID of the setpriv child process will be the same PID of the cometbft process
-    //   that is passed as an arg to setpriv, along with the arguments to forward to cometbft.
-    //   however, and that is the point of using setpriv, the resulting cometbft process will receive a SIGTERM
-    //   if its parent process (this BDK node process) dies, so that we don't get a dangling cometbft in that case.
-    SLOGTRACE("Launching cometbft via setpriv --pdeathsig SIGTERM");
-    exec_path = setpriv_exec_path;
-    exec_args = {
-      "setpriv",
-      "--pdeathsig", "SIGTERM",
-      "--",
-      cometbft_exec_path.string()
-    };
-    // append cometbft args after the setpriv args
-    exec_args.insert(exec_args.end(), cometArgs.begin(), cometArgs.end());
+    SLOGTRACE("setpriv exec path: " + setpriv_exec_path.string());
   }
+
+  // Set the exec_path depending on which one of the three executables we will run directly.
+  // (the others that follow, if any, are parameters, since setsid and setpriv take programs as arguments).
+  if (!setsid_exec_path.empty()) {
+    exec_path = setsid_exec_path;
+    if (!setpriv_exec_path.empty()) {
+      exec_args = {
+        setpriv_exec_path.string(),
+        "--pdeathsig", "SIGTERM",
+        "--"
+      };
+    }
+    exec_args.push_back(cometbft_exec_path.string());
+  } else {
+    if (!setpriv_exec_path.empty()) {
+      exec_path = setpriv_exec_path;
+      exec_args = {
+        "--pdeathsig", "SIGTERM",
+        "--",
+        cometbft_exec_path.string()
+      };
+    } else {
+      exec_path = cometbft_exec_path;
+    }
+  }
+
+  // CometBFT arguments are always arguments, and pushed at the end
+  exec_args.insert(exec_args.end(), cometArgs.begin(), cometArgs.end());
 
   std::string argsString;
   for (const auto& arg : exec_args) { argsString += arg + " "; }
@@ -1313,11 +1348,12 @@ void CometImpl::doStartCometBFT(
   auto bpout = std::make_shared<boost::process::ipstream>();
   auto bperr = std::make_shared<boost::process::ipstream>();
   process = std::make_unique<boost::process::child>(
-      exec_path,
-      boost::process::args(exec_args),
-      boost::process::std_out > *bpout,
-      boost::process::std_err > *bperr
+    exec_path,
+    boost::process::args(exec_args),
+    boost::process::std_out > *bpout,
+    boost::process::std_err > *bperr
   );
+
   std::string pidStr = std::to_string(process->id());
   SLOGTRACE("Launched cometbft with PID: " + pidStr);
 
@@ -1483,7 +1519,7 @@ void CometImpl::workerLoopInner() {
 
     LOGINFO("Options RootPath: " + options_.getRootPath());
 
-    const json& opt = options_.getCometBFT();
+    json opt = options_.getCometBFT();
 
     if (opt.is_null()) {
       LOGWARNING("Configuration option cometBFT is null.");
@@ -1502,6 +1538,33 @@ void CometImpl::workerLoopInner() {
     bool hasNodeKey = opt.contains(COMET_OPTION_NODE_KEY_JSON);
     json nodeKeyJSON = json::object();
     if (hasNodeKey) nodeKeyJSON = opt[COMET_OPTION_NODE_KEY_JSON];
+
+    // If configToml_ options to force isn't null, we need apply them here.
+    if (!configToml_.is_null()) {
+      LOGTRACE("CometBFT config.toml overrides: " + configToml_.dump());
+      // Need opt to not be null
+      if (opt.is_null()) {
+        opt = {};
+      }
+      if (!opt.contains(COMET_OPTION_CONFIG_TOML)) {
+        // Did not have a "config.toml" key, so just create it with the entire override
+        opt[COMET_OPTION_CONFIG_TOML] = configToml_;
+      } else {
+        // Apply configToml_ on top of the existing "config.toml" config object
+        LOGXTRACE("Config.toml option before applying forced options: " + opt[COMET_OPTION_CONFIG_TOML].dump());
+        std::function<void(json&, const json&)> mergeJsonObjectFn = [&](json& target, const json& source) {
+          for (auto& [key, value] : source.items()) {
+            if (target.contains(key) && target[key].is_object() && value.is_object()) {
+              mergeJsonObjectFn(target[key], value);
+            } else {
+              target[key] = value;
+            }
+          }
+        };
+        mergeJsonObjectFn(opt[COMET_OPTION_CONFIG_TOML], configToml_);
+        LOGXTRACE("Config.toml option after applying forced options: " + opt[COMET_OPTION_CONFIG_TOML].dump());
+      }
+    }
 
     bool hasConfigToml = opt.contains(COMET_OPTION_CONFIG_TOML);
     json configTomlJSON = json::object();
@@ -2028,6 +2091,8 @@ void CometImpl::workerLoopInner() {
 
     // the ABCI server listen socket will probably be up and running after this sleep.
     std::this_thread::sleep_for(std::chrono::seconds(1));
+
+    if (stop_) break;
 
     // if it is not running by now then it is probably because starting the ABCI server failed.
     if (!abciServer_->running()) {
@@ -2587,10 +2652,10 @@ void CometImpl::verify_vote_extension(const cometbft::abci::v1::VerifyVoteExtens
 // Comet class
 // ---------------------------------------------------------------------------------------
 
-Comet::Comet(CometListener* listener, std::string instanceIdStr, const Options& options)
+Comet::Comet(CometListener* listener, std::string instanceIdStr, const Options& options, const json configToml)
   : instanceIdStr_(instanceIdStr)
 {
-  impl_ = std::make_unique<CometImpl>(listener, instanceIdStr, options);
+  impl_ = std::make_unique<CometImpl>(listener, instanceIdStr, options, configToml);
 }
 
 Comet::~Comet() {
@@ -2655,6 +2720,10 @@ uint64_t Comet::rpcAsyncCall(const std::string& method, const json& params) {
 
 bool Comet::start() {
   return impl_->start();
+}
+
+void Comet::interrupt() {
+  impl_->interrupt();
 }
 
 bool Comet::stop() {

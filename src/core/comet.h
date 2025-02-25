@@ -27,8 +27,8 @@ enum class CometState {
   TESTING_COMET    = 11, ///< Starting to test cometbft connection
   TESTED_COMET     = 12, ///< Finished cometbft connection test; all tests passed
   RUNNING          = 13, ///< Comet is running
-  TERMINATED       = 14, ///< Comet worker somehow ran out of work (this is always an error)
-  FINISHED         = 15, ///< Comet worker loop quit (stopped for some explicit reason)
+  FINISHED         = 14, ///< Comet worker loop quit (stopped for some explicit reason)
+  TERMINATED       = 15, ///< Comet worker somehow ran out of work (this is always an error)
   NONE             = 16  ///< Dummy state to disable state stepping
 };
 
@@ -349,13 +349,15 @@ class Comet : public Log::LogicalLocationProvider {
      *     }
      *   }
      * NOTE: Some values in config.toml are hardcoded in the Comet driver and are
-     * overwritten irrespective of what's specified in cometBFT::
+     * overwritten irrespective of what's specified in cometBFT::config.toml options.
      * @param listener Pointer to an object of a class that implements the CometListener interface
-     *                 and that will receive event callbacks from this Comet instance.
+     * and that will receive event callbacks from this Comet instance.
      * @param instanceIdStr Instance ID string to use for logging.
+     * @param configToml Optional CometBFT config.toml configs to force inside the driver (these
+     * will override any options given throgh options::cometBFT::config.toml).
      * @param options Reference to the Options singleton.
      */
-    explicit Comet(CometListener* listener, std::string instanceIdStr, const Options& options);
+    explicit Comet(CometListener* listener, std::string instanceIdStr, const Options& options, const json configToml = nullptr);
 
     /**
      * Destructor; ensures all subordinate jobs are stopped.
@@ -477,6 +479,15 @@ class Comet : public Log::LogicalLocationProvider {
      * @return `true` if started, `false` if it was already started (need to call stop() first).
      */
     bool start();
+
+    /**
+     * Quickly signal the driver that it will be interrupted; safe to call from a signal handler.
+     * This prevents a thread that is running start() from erroring out due to cometbft being
+     * terminated (which is what happens when you CTRL+C a process in a terminal running the Comet
+     * driver, which is in the same foreground process group as the child cometbft process).
+     * NOTE: This is not a substitute for calling stop().
+     */
+    void interrupt();
 
     /**
      * Stop the consensus engine loop; sets the pause state to CometState::NONE and clears out

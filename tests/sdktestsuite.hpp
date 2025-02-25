@@ -228,20 +228,24 @@ class SDKTestSuite : public Blockchain {
      * @param cometBFTRoundTime CometBFT round time (for each of the 3 rounds).
      * @param cometBFTTimeoutCommit CometBFT commit timeout.
      * @param bdkHttpPort The BDK RPC local port number to use (if -1, choose one randomly).
+     * @param defaultConfigTomlOptions JSON object with the default state for the cometBFT::config.toml key.
      * @return Options object set up for testing a Comet instance.
      */
     static Options getOptionsForTest(
       const std::string rootPath,
       const bool stepMode = false,
       const std::string appHash = "",
-      int p2pPort = -1, int rpcPort = -1,
-      int keyNumber = 0, int numKeys = 1,
-      std::vector<CometTestPorts> ports = {},
-      int numNonValidators = 0,
-      int stateDumpTrigger = 1000,
-      std::string cometBFTRoundTime = "1s",
-      std::string cometBFTTimeoutCommit = "0s",
-      int bdkHttpPort = -1
+      int p2pPort = -1,
+      int rpcPort = -1,
+      const int keyNumber = 0,
+      const int numKeys = 1,
+      const std::vector<CometTestPorts> ports = {},
+      const int numNonValidators = 0,
+      const int stateDumpTrigger = 1000,
+      const std::string cometBFTRoundTime = "1s",
+      const std::string cometBFTTimeoutCommit = "0s",
+      int bdkHttpPort = -1,
+      const json defaultConfigTomlOptions = {}
     );
 
     /**

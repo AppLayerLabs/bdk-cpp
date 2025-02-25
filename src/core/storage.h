@@ -22,6 +22,30 @@ class Blockchain;
  * Interface to the DB instances of a BDK node.
  */
 class Storage : public Log::LogicalLocationProvider {
+
+  /*
+  * NOTE: Each Blockchain instance can have one or more file-backed DBs, which
+  * will all be managed by storage_ (Storage class) to implement internal
+  * features as needed. However, these should not store:
+  * (i) any data that the consensus engine (cometbft) already stores and
+  * that we have no reason to duplicate, such as blocks (OK to cache in RAM),
+  * (ii) State (consistent contract checkpoints/snapshots at some execution
+  * height) as those should be serialized/deserialized from/to their own
+  * file-backed data structures (we are using the dump-to-fresh-speedb system)
+  * (iii) the list of contract types/templates that exist, since that pertains
+  * to the binary itself, and should be built statically in RAM on startup (const)
+  * (it is OK-ish to store in Storage the range of block heights for which a
+  * template is or isn't available, while keeping in mind that these are really
+  * consensus parameters, that is, changing these means the protocol is forked).
+  * What we are going to store in the node db:
+  * - Activation block height for contract templates (if absent, the contract
+  * template is not yet enabled) -- this should be directly modifiable by node
+  * operators when enabling new contracts (these are soft forks).
+  * - Events (we will keep these in the BDK to retain control and speed it up)
+  * - Any State metadata we may need (e.g. name of latest state snapshot file
+  * that was saved, and the last executed, locally seen, final block height).
+  */
+
   private:
     Blockchain& blockchain_; ///< Our parent object through which we reach the other components
     DB blocksDb_; ///< DB for general-purpose usage (doesn't actually hold blocks)

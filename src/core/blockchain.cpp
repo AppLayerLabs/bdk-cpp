@@ -97,29 +97,21 @@ void Blockchain::FinalizedBlockCache::clear() {
 // Blockchain
 // ------------------------------------------------------------------
 
-Blockchain::Blockchain(const std::string& blockchainPath, std::string instanceId)
+Blockchain::Blockchain(const Options& options, std::string instanceId, bool seedMode)
   : instanceId_(instanceId),
-    options_(Options::fromFile(blockchainPath)), // Build the Options object from blockchainPath/options.json
-    comet_(this, instanceId, options_),
-    state_(*this),
-    storage_(*this),
-    http_(options_.getHttpPort(), *this, instanceId),
-    txCache_(TX_CACHE_SIZE),
-    fbCache_(FINALIZEDBLOCK_CACHE_SIZE),
-    blockHeightToHashCache_(BLOCK_HASH_CACHE_SIZE)
-{
-}
-
-Blockchain::Blockchain(const Options& options, std::string instanceId)
-  : instanceId_(instanceId),
-    options_(options), // copy the given Options object
-    comet_(this, instanceId, options_),
+    options_(options),
+    comet_(this, instanceId, options_, json::parse(std::string(R"({"p2p": {"seed_mode": )") + (seedMode ? "true" : "false") + "}}")),
     state_(*this),
     storage_(*this),
     http_(options_.getHttpPort(), *this),
     txCache_(TX_CACHE_SIZE),
     fbCache_(FINALIZEDBLOCK_CACHE_SIZE),
     blockHeightToHashCache_(BLOCK_HASH_CACHE_SIZE)
+{
+}
+
+Blockchain::Blockchain(const std::string& blockchainPath, std::string instanceId, bool seedMode)
+  : Blockchain(Options::fromFile(blockchainPath), instanceId, seedMode)
 {
 }
 
@@ -259,6 +251,23 @@ void Blockchain::stop() {
 
   // Clean up state (frees resources)
   cleanup();
+}
+
+void Blockchain::interrupt() {
+  // If setsid is not available for the Comet driver, this helps, because
+  // without setsid, CTRL+C (SIGINT) from a terminal gets propagated to
+  // the cometbft child process (could also be prevented by changing
+  // the process group of the child process, but that requires using
+  // posix_spawn() directly instead of relying on Boost::Process).
+  // By notifying the Comet driver that it is stopping, it will know to
+  // not error out just because cometbft is terminating itself unexpectedly.
+  // Also note that if you do "kill -SIGINT <pid>" for this process, that
+  // will never cause cometbft to receive SIGINT as well. That only happens
+  // with CTRL+C to the terminal, since that sends SIGINT to the entire
+  // foreground process group, which includes child processes by default.
+  // Finally, note that cometbft being terminated via CTRL+C or the Comet
+  // driver exiting with errors is harmless, but looks bad and is confusing.
+  comet_.interrupt();
 }
 
 Blockchain::~Blockchain() {

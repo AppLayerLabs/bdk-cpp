@@ -373,14 +373,17 @@ Options SDKTestSuite::getOptionsForTest(
   const std::string rootPath,
   const bool stepMode,
   const std::string appHash,
-  int p2pPort, int rpcPort,
-  int keyNumber, int numKeys,
-  std::vector<CometTestPorts> ports,
-  int numNonValidators,
-  int stateDumpTrigger,
-  std::string cometBFTRoundTime,
-  std::string cometBFTTimeoutCommit,
-  int bdkHttpPort
+  int p2pPort,
+  int rpcPort,
+  const int keyNumber,
+  const int numKeys,
+  const std::vector<CometTestPorts> ports,
+  const int numNonValidators,
+  const int stateDumpTrigger,
+  const std::string cometBFTRoundTime,
+  const std::string cometBFTTimeoutCommit,
+  int bdkHttpPort,
+  const json defaultConfigTomlOptions
 ) {
   // Sanity check arguments
   if (numKeys < 1 || numKeys > cometTestKeys.size() || keyNumber < 0 || keyNumber > numKeys - 1) {
@@ -396,6 +399,9 @@ Options SDKTestSuite::getOptionsForTest(
   }
   if (rpcPort < 0) {
     rpcPort = SDKTestSuite::getTestPort();
+  }
+  if (bdkHttpPort < 0) {
+    bdkHttpPort = SDKTestSuite::getTestPort();
   }
 
   // a default cometBFT options structure (validators and privValidatorKey to be filled in)
@@ -437,6 +443,8 @@ Options SDKTestSuite::getOptionsForTest(
       "config.toml": {}
     }
   )");
+
+  defaultCometBFTOptions["config.toml"] = defaultConfigTomlOptions;
 
   defaultCometBFTOptions["config.toml"]["p2p"] = {
     {"laddr", "tcp://0.0.0.0:" + std::to_string(p2pPort)},

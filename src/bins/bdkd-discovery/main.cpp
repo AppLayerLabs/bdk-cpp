@@ -5,41 +5,29 @@ This software is distributed under the MIT License.
 See the LICENSE.txt file in the project root for more information.
 */
 
-#include <csignal>
-#include <condition_variable>
-#include <iostream>
-
-#include "src/core/comet.h"
+#include "src/core/blockchain.h"
 #include "src/utils/clargs.h"
-#include "src/utils/options.h"
-#include "src/utils/utils.h"
 
-/**
- * FIXME/TODO
- * bdkd-discovery could be replaced simply by running bdkd with different options
- * that allow it to operate as a seed node. it may not require a separate binary.
- * if we implement e.g. cometbft seed node functionality in bdkd and our needs are
- * met by that (implement a testcase in tests/blockchain.cpp and/or tests/comet.cpp,
- * or elsewhere), then bdkd-discovery can be removed.
- */
-
+std::mutex mut;
 std::condition_variable cv;
-std::mutex cv_m;
 int signalCaught = 0;
+std::unique_ptr<Blockchain> blockchain = nullptr;
 
 void signalHandler(int signum) {
   {
-    std::unique_lock<std::mutex> lk(cv_m);
-    Utils::safePrint("Signal caught: " + Utils::getSignalName(signum));
+    std::unique_lock<std::mutex> lk(mut);
+    Utils::safePrint(" Signal caught: " + Utils::getSignalName(signum));
     signalCaught = signum;
+    if (blockchain) {
+      blockchain->interrupt(); // useful is setsid is not avaliable for some reason
+    }
   }
   cv.notify_one();
 }
 
-/// Executable with a discovery node for the given Options default chain.
 int main(int argc, char* argv[]) {
   Log::logToCout = true;
-  Utils::safePrint("bdkd-discovery: Blockchain Development Kit discovery node daemon");
+  SLOGINFOP("bdkd-discovery: Blockchain Development Kit discovery node daemon");
   std::signal(SIGINT, signalHandler);
   std::signal(SIGHUP, signalHandler);
 
@@ -56,40 +44,41 @@ int main(int argc, char* argv[]) {
   // Check cometbft engine
   Comet::checkCometBFT();
 
-  // Start the discovery node
-  Utils::safePrint("Main thread starting node...");
-  // Local binary path + /blockchain
+  // Start the blockchain syncing engine.
+  SLOGINFOP("Main thread starting node...");
   std::string blockchainPath = std::filesystem::current_path().string() + "/" + opt.rootPath;
   GLOGINFO("Full rootPath: " + blockchainPath);
-  const auto options = Options::fromFile(blockchainPath);
-
-  // FIXME: use cometbft seed nodes  
-  //auto p2p = std::make_unique<P2P::ManagerDiscovery>(options.getP2PIp(), options);
-  //p2p->start();
-  //std::this_thread::sleep_for(std::chrono::milliseconds(100));
-  //p2p->startDiscovery();
+  {
+    std::unique_lock<std::mutex> lock(mut);
+    blockchain = std::make_unique<Blockchain>(blockchainPath, "", true); // set CometBFT p2p.seed_mode = true
+  }
+  try {
+    blockchain->start();
+  } catch (const std::exception& ex) {
+    SLOGINFOP("Blockchain start failed: " + std::string(ex.what()));
+  }
 
   // Main thread waits for a non-zero signal code to be raised and caught
-  Utils::safePrint("Main thread waiting for interrupt signal...");
+  SLOGINFOP("Main thread waiting for interrupt signal...");
   int exitCode = 0;
   {
-    std::unique_lock<std::mutex> lk(cv_m);
-    cv.wait(lk, [] { return signalCaught != 0; });
+    std::unique_lock<std::mutex> lock(mut);
+    if (!signalCaught) {
+      cv.wait(lock, [] { return signalCaught != 0; });
+    }
     exitCode = signalCaught;
   }
-  Utils::safePrint("Main thread stopping due to interrupt signal [" + Utils::getSignalName(exitCode) + "], shutting down node...");
+  SLOGINFOP("Main thread stopping due to interrupt signal [" + Utils::getSignalName(exitCode) + "], shutting down node...");
 
   // Shut down the node
-  SLOGINFO("Received signal " + std::to_string(exitCode));
-
-  // FIXME
-  //Utils::safePrint("Main thread stopping node...");
-  //p2p->stopDiscovery();
-  //Utils::safePrint("Main thread shutting down...");
-  //p2p.reset();
-
+  SLOGINFOP("Main thread stopping node...");
+  blockchain->stop();
+  SLOGINFOP("Main thread shutting down...");
+  {
+    std::unique_lock<std::mutex> lock(mut);
+    blockchain.reset(); // Destroy the blockchain object, calling the destructor of every module and dumping to DB.
+  }
   // Return the signal code
-  Utils::safePrint("Main thread exiting with code " + std::to_string(exitCode) + ".");
+  SLOGINFOP("Main thread exiting with code " + std::to_string(exitCode) + ".");
   return exitCode;
 }
-

@@ -5,37 +5,29 @@ This software is distributed under the MIT License.
 See the LICENSE.txt file in the project root for more information.
 */
 
-#include <iostream>
-#include <filesystem>
-
-#include <csignal>
-#include <condition_variable>
-
 #include "src/core/blockchain.h"
 #include "src/utils/clargs.h"
 
-#include "src/utils/logger.h"
-
-#include "src/core/comet.h"
-
-std::unique_ptr<Blockchain> blockchain = nullptr;
-
+std::mutex mut;
 std::condition_variable cv;
-std::mutex cv_m;
 int signalCaught = 0;
+std::unique_ptr<Blockchain> blockchain = nullptr;
 
 void signalHandler(int signum) {
   {
-    std::unique_lock<std::mutex> lk(cv_m);
-    Utils::safePrint("Signal caught: " + Utils::getSignalName(signum));
+    std::unique_lock<std::mutex> lk(mut);
+    Utils::safePrint(" Signal caught: " + Utils::getSignalName(signum));
     signalCaught = signum;
+    if (blockchain) {
+      blockchain->interrupt(); // useful is setsid is not avaliable for some reason
+    }
   }
   cv.notify_one();
 }
 
 int main(int argc, char* argv[]) {
   Log::logToCout = true;
-  Utils::safePrint("bdkd: Blockchain Development Kit full node daemon");
+  SLOGINFOP("bdkd: Blockchain Development Kit full node daemon");
   std::signal(SIGINT, signalHandler);
   std::signal(SIGHUP, signalHandler);
 
@@ -53,30 +45,40 @@ int main(int argc, char* argv[]) {
   Comet::checkCometBFT();
 
   // Start the blockchain syncing engine.
-  Utils::safePrint("Main thread starting node...");
+  SLOGINFOP("Main thread starting node...");
   std::string blockchainPath = std::filesystem::current_path().string() + "/" + opt.rootPath;
   GLOGINFO("Full rootPath: " + blockchainPath);
-  blockchain = std::make_unique<Blockchain>(blockchainPath);
-  blockchain->start();
+  {
+    std::unique_lock<std::mutex> lock(mut);
+    blockchain = std::make_unique<Blockchain>(blockchainPath, "", false); // set CometBFT p2p.seed_mode = false
+  }
+  try {
+    blockchain->start();
+  } catch (const std::exception& ex) {
+    SLOGINFOP("Blockchain start failed: " + std::string(ex.what()));
+  }
 
   // Main thread waits for a non-zero signal code to be raised and caught
-  Utils::safePrint("Main thread waiting for interrupt signal...");
+  SLOGINFOP("Main thread waiting for interrupt signal...");
   int exitCode = 0;
   {
-    std::unique_lock<std::mutex> lk(cv_m);
-    cv.wait(lk, [] { return signalCaught != 0; });
+    std::unique_lock<std::mutex> lock(mut);
+    if (!signalCaught) {
+      cv.wait(lock, [] { return signalCaught != 0; });
+    }
     exitCode = signalCaught;
   }
-  Utils::safePrint("Main thread stopping due to interrupt signal [" + Utils::getSignalName(exitCode) + "], shutting down node...");
+  SLOGINFOP("Main thread stopping due to interrupt signal [" + Utils::getSignalName(exitCode) + "], shutting down node...");
 
   // Shut down the node
-  SLOGINFO("Received signal " + std::to_string(exitCode));
-  Utils::safePrint("Main thread stopping node...");
+  SLOGINFOP("Main thread stopping node...");
   blockchain->stop();
-  Utils::safePrint("Main thread shutting down...");
-  blockchain = nullptr; // Destroy the blockchain object, calling the destructor of every module and dumping to DB.
-
+  SLOGINFOP("Main thread shutting down...");
+  {
+    std::unique_lock<std::mutex> lock(mut);
+    blockchain.reset(); // Destroy the blockchain object, calling the destructor of every module and dumping to DB.
+  }
   // Return the signal code
-  Utils::safePrint("Main thread exiting with code " + std::to_string(exitCode) + ".");
+  SLOGINFOP("Main thread exiting with code " + std::to_string(exitCode) + ".");
   return exitCode;
 }
