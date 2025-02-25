@@ -554,7 +554,7 @@ int64_t State::estimateGas(EncodedMessageVariant msg) {
     const Gas& gas = msg.gas();
     const int64_t initialGas(gas);
     host.simulate(std::forward<decltype(msg)>(msg));
-    return initialGas - int64_t(gas);
+    return int64_t((initialGas - int64_t(gas)) * 1.15);
   }, std::move(msg));
 }
 
