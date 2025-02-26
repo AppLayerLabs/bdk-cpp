@@ -8,28 +8,32 @@ See the LICENSE.txt file in the project root for more information.
 #include "src/core/blockchain.h"
 #include "src/utils/clargs.h"
 
-std::mutex mut;
+std::mutex cv_m;
 std::condition_variable cv;
 int signalCaught = 0;
 std::unique_ptr<Blockchain> blockchain = nullptr;
 
 void signalHandler(int signum) {
+  bool doInterrupt = true;
   {
-    std::unique_lock<std::mutex> lk(mut);
-    Utils::safePrint(" Signal caught: " + Utils::getSignalName(signum));
-    signalCaught = signum;
-    if (blockchain) {
-      blockchain->interrupt(); // useful is setsid is not avaliable for some reason
+    std::unique_lock<std::mutex> lk(cv_m);
+    if (signalCaught != 0) {
+      // If signal was already set, do not call blockchain->interrupt() again.
+      // This guarantees "blockchain" is valid (not yet reset) when called here.
+      doInterrupt = false;
     }
+    signalCaught = signum;
+    Utils::safePrint(" Signal caught: " + Utils::getSignalName(signum));
   }
   cv.notify_one();
+  if (doInterrupt) {
+    blockchain->interrupt(); // useful if setsid happens to not be avaliable
+  }
 }
 
 int main(int argc, char* argv[]) {
   Log::logToCout = true;
   SLOGINFOP("bdkd-discovery: Blockchain Development Kit discovery node daemon");
-  std::signal(SIGINT, signalHandler);
-  std::signal(SIGHUP, signalHandler);
 
   // Parse command-line options
   ProcessOptions opt = parseCommandLineArgs(argc, argv, BDKTool::DISCOVERY_NODE);
@@ -44,15 +48,19 @@ int main(int argc, char* argv[]) {
   // Check cometbft engine
   Comet::checkCometBFT();
 
-  // Start the blockchain syncing engine.
-  SLOGINFOP("Main thread starting node...");
+  // Create Blockchain
   std::string blockchainPath = std::filesystem::current_path().string() + "/" + opt.rootPath;
-  GLOGINFO("Full rootPath: " + blockchainPath);
-  {
-    std::unique_lock<std::mutex> lock(mut);
-    blockchain = std::make_unique<Blockchain>(blockchainPath, "", true); // set CometBFT p2p.seed_mode = true
-  }
+  SLOGINFOP("Main thread creating blockchain");
+  SLOGINFOP("RootPath: " + blockchainPath);
+  blockchain = std::make_unique<Blockchain>(blockchainPath, "", true); // Force CometBFT option p2p.seed_mode = true
+
+  // Install signal handlers *after* blockchain var is set
+  std::signal(SIGINT, signalHandler);
+  std::signal(SIGHUP, signalHandler);
+
+  // Start Blockchain
   try {
+    SLOGINFOP("Starting blockchain...");
     blockchain->start();
   } catch (const std::exception& ex) {
     SLOGINFOP("Blockchain start failed: " + std::string(ex.what()));
@@ -62,22 +70,20 @@ int main(int argc, char* argv[]) {
   SLOGINFOP("Main thread waiting for interrupt signal...");
   int exitCode = 0;
   {
-    std::unique_lock<std::mutex> lock(mut);
+    std::unique_lock<std::mutex> lock(cv_m);
     if (!signalCaught) {
       cv.wait(lock, [] { return signalCaught != 0; });
     }
     exitCode = signalCaught;
   }
-  SLOGINFOP("Main thread stopping due to interrupt signal [" + Utils::getSignalName(exitCode) + "], shutting down node...");
+  SLOGINFOP("Main thread stopping due to interrupt signal: " + Utils::getSignalName(exitCode));
 
   // Shut down the node
-  SLOGINFOP("Main thread stopping node...");
+  SLOGINFOP("Main thread stopping blockchain...");
   blockchain->stop();
   SLOGINFOP("Main thread shutting down...");
-  {
-    std::unique_lock<std::mutex> lock(mut);
-    blockchain.reset(); // Destroy the blockchain object, calling the destructor of every module and dumping to DB.
-  }
+  blockchain.reset(); // Destroy the blockchain object, calling the destructor of every module and dumping to DB.
+
   // Return the signal code
   SLOGINFOP("Main thread exiting with code " + std::to_string(exitCode) + ".");
   return exitCode;

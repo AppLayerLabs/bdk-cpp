@@ -97,10 +97,15 @@ void Blockchain::FinalizedBlockCache::clear() {
 // Blockchain
 // ------------------------------------------------------------------
 
-Blockchain::Blockchain(const Options& options, std::string instanceId, bool seedMode)
+Blockchain::Blockchain(const Options& options, std::string instanceId, bool forceSeedMode)
   : instanceId_(instanceId),
     options_(options),
-    comet_(this, instanceId, options_, json::parse(std::string(R"({"p2p": {"seed_mode": )") + (seedMode ? "true" : "false") + "}}")),
+    comet_(
+      this, instanceId, options_,
+      forceSeedMode ?
+        json::parse(std::string(R"({"p2p": {"seed_mode": true}})")) // force seed_mode setting to true
+        : static_cast<json>(nullptr) // no CometBFT parameters to override
+    ),
     state_(*this),
     storage_(*this),
     http_(options_.getHttpPort(), *this),
@@ -110,8 +115,8 @@ Blockchain::Blockchain(const Options& options, std::string instanceId, bool seed
 {
 }
 
-Blockchain::Blockchain(const std::string& blockchainPath, std::string instanceId, bool seedMode)
-  : Blockchain(Options::fromFile(blockchainPath), instanceId, seedMode)
+Blockchain::Blockchain(const std::string& blockchainPath, std::string instanceId, bool forceSeedMode)
+  : Blockchain(Options::fromFile(blockchainPath), instanceId, forceSeedMode)
 {
 }
 
@@ -441,13 +446,6 @@ Blockchain::GetTxResultType Blockchain::getTx(const Hash& tx) {
   // (if the txCache_ is large enough) that we don't have a FinalizedBlock that
   // has the TxBlock we want. So we have to send an individual-transaction-by-hash
   // query to cometbft, use it to build a TxBlock and return the result tuple here.
-  //
-  // REVIEW: Think whether this standalone TxBlock that we have created here should
-  //       be cached or not, in a different, separate cache from fbCache_.
-  //       It doesn't belong to a FinalizedBlock object that is already in the fbCache_,
-  //       but maybe we should still cache it instead of just returning it here and
-  //       forgetting about it completely.
-  //
   json ret;
   if (getTxRPC(tx, ret)) {
     if (ret.is_object() && ret.contains("result") && ret["result"].is_object()) {

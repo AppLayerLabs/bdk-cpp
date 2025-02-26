@@ -535,6 +535,12 @@ namespace Utils {
    */
   std::string nanosToString(uint64_t nanosecondsSinceEpoch);
 
+  /**
+   * Read JSON file.
+   * @param jsonFile The JSON file to read.
+   * @return Parsed JSON file.
+   */
+  json readJson(const std::string& jsonFile);
 };
 
 #endif  // UTILS_H

@@ -185,3 +185,14 @@ std::string Utils::nanosToString(uint64_t nanosecondsSinceEpoch) {
   oss << "." << std::setw(9) << std::setfill('0') << ns << "Z";
   return oss.str();
 }
+
+json Utils::readJson(const std::string& jsonFile) {
+  if (!std::filesystem::exists(jsonFile)) {
+    throw DynamicException("Cannot read JSON file (not found): " + jsonFile);
+  }
+  std::ifstream i(jsonFile);
+  json jsonObj;
+  i >> jsonObj;
+  i.close();
+  return jsonObj;
+}

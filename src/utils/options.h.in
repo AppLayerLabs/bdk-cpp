@@ -157,6 +157,13 @@ class Options {
      * @throw DynamicException on failure (e.g. options.json does not exist).
      */
     static Options fromFile(const std::string& rootPath);
+
+    /**
+     * Dump this Options object to its options.json file.
+     * The path of the options.json is computed from Options::rootPath_.
+     * @return `true` if file was written, `false` if it wasn't written because it already existed.
+     */
+    bool toFile();
 };
 
 #endif // OPTIONS_H

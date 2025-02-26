@@ -504,8 +504,12 @@ class Comet : public Log::LogicalLocationProvider {
      * @param cometArgs Arguments to pass on to cometbft.
      * @param outStdout Outparam to set to all data sent to stdout (if not nullptr).
      * @param outStderr Outparam to set to all data sent to stderr (if not nullptr).
+     * @param instanceId Optional instance ID for logging.
      */
-    static void runCometBFT(const std::vector<std::string>& cometArgs, std::string* outStdout = nullptr, std::string* outStderr = nullptr);
+    static void runCometBFT(
+      const std::vector<std::string>& cometArgs, std::string* outStdout = nullptr, std::string* outStderr = nullptr,
+      std::string instanceId = ""
+    );
 
     /**
      * Check that cometbft can be found and has a version that is supported.

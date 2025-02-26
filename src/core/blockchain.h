@@ -212,17 +212,19 @@ class Blockchain : public CometListener, public NodeRPCInterface, public Log::Lo
      * Constructor.
      * @param blockchainPath Root filesystem path for this blockchain node reading/writing data.
      * @param instanceId Runtime object instance identifier for logging (for multi-node unit tests).
-     * @param seedMode `true` to run in seed mode (discovery node).
+     * @param forceSeedMode `true` forces it to run in seed mode (discovery node); `false` leaves the
+     * default specified in the CometBFT config option (which by default sets seed_mode = false).
      */
-    explicit Blockchain(const std::string& blockchainPath, std::string instanceId = "", bool seedMode = false);
+    explicit Blockchain(const std::string& blockchainPath, std::string instanceId = "", bool forceSeedMode = false);
 
     /**
      * Constructor.
      * @param options Explicit options object to use.
      * @param instanceId Runtime object instance identifier for logging (for multi-node unit tests).
-     * @param seedMode `true` to run in seed mode (discovery node).
+     * @param forceSeedMode `true` forces it to run in seed mode (discovery node); `false` leaves the
+     * default specified in the CometBFT config option (which by default sets seed_mode = false).
      */
-    explicit Blockchain(const Options& options,  std::string instanceId = "", bool seedMode = false);
+    explicit Blockchain(const Options& options,  std::string instanceId = "", bool forceSeedMode = false);
 
     /**
      * Destructor; ensures node is stopped.

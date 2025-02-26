@@ -45,7 +45,7 @@ FinalizedBlock FinalizedBlock::fromCometBlock(
   std::vector<std::shared_ptr<TxBlock>> txs;
   uint64_t txCount = lastTxIndex; // NOTE: last tx is skipped (block.txs.size()-1) since that is the randomHash
   if (mempoolPtr == nullptr) {
-    SLOGTRACE("Deserializing transactions...");
+    // Deserializing transactions
     for (uint64_t i = 0; i < txCount; i++) {
       // We can skip signature verification because fromCometBlock() is called from
       // the FinalizedBlock ABCI callback. If the block is finalized, then all transactions
@@ -53,7 +53,7 @@ FinalizedBlock FinalizedBlock::fromCometBlock(
       txs.push_back(std::make_shared<TxBlock>(block.txs[i], requiredChainId, false));
     }
   } else {
-    SLOGTRACE("Moving transactions from the mirror mempool...");
+    // Moving transactions from the mirror mempool
     for (uint64_t i = 0; i < txCount; i++) {
       Hash txHash = Utils::sha3(block.txs[i]);
       auto it = mempoolPtr->find(txHash);
@@ -121,7 +121,7 @@ FinalizedBlock FinalizedBlock::fromRPC(const json& ret) {
   }
   const auto& data = block["data"];
 
-  SLOGTRACE("Deserializing transactions...");
+  // Deserializing transactions
   Hash randomness;
   uint64_t requiredChainId = 0; // FIXME
   std::vector<std::shared_ptr<TxBlock>> txs;

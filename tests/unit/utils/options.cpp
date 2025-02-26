@@ -30,8 +30,9 @@ namespace TOptions {
         1000,
         4,
         IndexingMode::RPC,
-        json::object()  // TODO: CometBFT config here
+        {"aaa", "bbb"} // Whatever JSON data; just testing save/load
       );
+      options.toFile();
 
       Options optionsFromFile(Options::fromFile(testDumpPath + "/optionClassFromFile"));
       REQUIRE(optionsFromFile.getRootPath() == options.getRootPath());
@@ -46,7 +47,7 @@ namespace TOptions {
       REQUIRE(optionsFromFile.getEventBlockCap() == options.getEventBlockCap());
       REQUIRE(optionsFromFile.getEventLogCap() == options.getEventLogCap());
       REQUIRE(optionsFromFile.getStateDumpTrigger() == options.getStateDumpTrigger());
-      // TODO: test CometBFT output here
+      REQUIRE(optionsFromFile.getCometBFT() == options.getCometBFT());
     }
 
     SECTION("IndexingMode Coverage") {
