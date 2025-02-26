@@ -13,6 +13,7 @@ See the LICENSE.txt file in the project root for more information.
 
 #include "../utils/uintconv.h"
 #include "bytes/random.h"
+#include "../net/http/jsonrpc/error.h"
 
 State::State(
   const DB& db,
@@ -521,28 +522,32 @@ Bytes State::ethCall(EncodedStaticCallMessage& msg) {
 int64_t State::estimateGas(EncodedMessageVariant msg) {
   std::unique_lock lock(this->stateMutex_);
 
-  ExecutionContext context = ExecutionContext::Builder{}
-      .storage(this->vmStorage_)
-      .accounts(this->accounts_)
-      .contracts(this->contracts_)
-      .build();
+  try {
+    ExecutionContext context = ExecutionContext::Builder{}
+    .storage(this->vmStorage_)
+    .accounts(this->accounts_)
+    .contracts(this->contracts_)
+    .build();
 
-  const Hash randomSeed = bytes::random();
+    const Hash randomSeed = bytes::random();
 
-  ContractHost host(
-    this->vm_,
-    this->dumpManager_,
-    this->storage_,
-    randomSeed,
-    context
-  );
+    ContractHost host(
+      this->vm_,
+      this->dumpManager_,
+      this->storage_,
+      randomSeed,
+      context
+    );
 
-  return std::visit([&host] (auto&& msg) {
-    const Gas& gas = msg.gas();
-    const int64_t initialGas(gas);
-    host.simulate(std::forward<decltype(msg)>(msg));
-    return int64_t((initialGas - int64_t(gas)) * 1.15);
-  }, std::move(msg));
+    return std::visit([&host] (auto&& msg) {
+      const Gas& gas = msg.gas();
+      const int64_t initialGas(gas);
+      host.simulate(std::forward<decltype(msg)>(msg));
+      return int64_t((initialGas - int64_t(gas)) * 1.15);
+    }, std::move(msg));
+  } catch (std::exception& e) {
+    throw jsonrpc::ExecutionError(-32603, std::string("Internal error: ") + e.what(), Hex::fromBytes(ABI::Encoder::encodeError(e.what()),true));
+  }
 }
 
 std::vector<std::pair<std::string, Address>> State::getCppContracts() const {

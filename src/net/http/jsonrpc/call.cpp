@@ -117,7 +117,10 @@ json call(const json& request, State& state, const Storage& storage,
       throw Error::methodNotAvailable(method);
 
     ret["result"] = std::move(result);
-
+  } catch (const ExecutionError& err) {
+    ret["error"]["code"] = err.code();
+    ret["error"]["message"] = err.message();
+    ret["error"]["data"] = err.data();
   } catch (const Error& err) {
     ret["error"]["code"] = err.code();
     ret["error"]["message"] = err.message();
