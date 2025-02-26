@@ -153,6 +153,7 @@ void BuildTheVoid::registerContractFunctions() {
   this->registerMemberFunction("getInnactivePlayers", &BuildTheVoid::getInnactivePlayers, FunctionTypes::View, this);
   this->registerMemberFunction("getDeadPlayers", &BuildTheVoid::getDeadPlayers, FunctionTypes::View, this);
   this->registerMemberFunction("getPlayerStatus", &BuildTheVoid::getPlayerStatus, FunctionTypes::View, this);
+  this->registerBlockObserver("selfcallUpdate", 1, &BuildTheVoid::selfcallUpdate, this);
 }
 
 void BuildTheVoid::approve() {
@@ -232,8 +233,6 @@ void BuildTheVoid::setPlayerContract(const Address& playerContract) {
 
 void BuildTheVoid::forceUpdate() {
   this->onlyOwner();
-  // Actually registers on the blockobserver
-  this->addBlockObserverByCount(0, &BuildTheVoid::selfcallUpdate);
   // this->selfcallUpdate();
 }
 

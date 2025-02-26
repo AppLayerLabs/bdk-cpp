@@ -64,6 +64,7 @@ namespace TSimpleContract {
       tuple = sdk.callViewFunction(simpleContract, &SimpleContract::getTuple);
       REQUIRE(std::get<0>(tuple) == "AnotherName");
       REQUIRE(std::get<1>(tuple) == 999999999);
+      REQUIRE(sdk.callViewFunction(simpleContract, &SimpleContract::getCount) == 3);
 
       auto nameEvent = sdk.getEventsEmittedByTx(nameTx, &SimpleContract::nameChanged,
         std::make_tuple(EventParam<std::string, true>("TryThisName"))

@@ -131,6 +131,7 @@ namespace ContractFactory {
       auto contract = createContractWithTuple<TContract, ConstructorArguments>(
         Address(callInfo.sender), derivedAddress, chainId, decodedData
       );
+      host->addContractObservers(*contract);
       host->context().addContract(derivedAddress, std::move(contract));
     }
 

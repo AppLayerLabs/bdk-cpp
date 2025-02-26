@@ -17,6 +17,9 @@ See the LICENSE.txt file in the project root for more information.
 class ContractHost;
 class State;
 
+class BlockNumberObserver;
+class BlockTimestampObserver;
+
 /// Class that maintains global variables for contracts.
 class ContractGlobals {
   protected:
@@ -176,6 +179,10 @@ class BaseContract : public ContractLocals, public Dumpable {
 
     Address getOrigin() const; ///< Get the origin of the transaction.
     uint64_t getNonce(const Address& address) const; ///< Get the nonce of an address.
+
+    virtual std::span<const BlockNumberObserver> getBlockNumberObservers() const { return std::span<const BlockNumberObserver>{}; }
+
+    virtual std::span<const BlockTimestampObserver> getBlockTimestampObservers() const { return std::span<const BlockTimestampObserver>{}; }
 };
 
 #endif // CONTRACT_H

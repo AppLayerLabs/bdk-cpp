@@ -164,70 +164,9 @@ class ContractHost {
 
       return this->dispatchMessage(std::move(msg));
     }
-    
-    template<typename C, typename R, typename... Args>
-    void addBlockObserverByCount(uint64_t blockCount, const Address& contractAddress, R(C::*method)(const Args&...), const Args&... args) {
-      if (blockObservers_ == nullptr) {
-        return; // should happen during estimateGas calls for example
-      }
 
-      BlockNumberObserver observer{
-        [contractAddress, method, argsTuple = std::tuple<Args...>(args...)] (ContractHost& host) mutable {
-          std::apply([&] (const Args&... args) {
-            Gas gas(5'000'000);
-            uint256_t value = 0;
+    void addContractObservers(const BaseContract& contract);
 
-            PackedCallMessage<R(C::*)(const Args&...), const Args&...> msg(
-              contractAddress,
-              contractAddress,
-              gas,
-              value,
-              method,
-              args...);
-            
-            host.execute(msg);
-
-          }, argsTuple);
-        },
-        blockCount + context_.getBlockNumber(),
-        (blockCount == 0) ? 1 : blockCount
-      };
-
-      blockObservers_->add(std::move(observer));
-    }
-
-    template<typename C, typename R, typename... Args>
-    void addBlockObserverByPeriod(auto period, const Address& contractAddress, R(C::*method)(const Args&...), const Args&... args) {
-      if (blockObservers_ == nullptr) {
-        return; // should happen during estimateGas calls for example
-      }
-
-      uint64_t periodInMicroseconds = std::chrono::duration_cast<std::chrono::microseconds>(period).count();
-
-      BlockTimestampObserver observer{
-        [contractAddress, method, argsTuple = std::tuple<std::decay_t<decltype(args)>...>(std::forward<decltype(args)>(args)...)] (ContractHost& host) mutable {
-          std::apply([&] (const Args&... args) {
-            Gas gas(5'000'000);
-            uint256_t value = 0;
-
-            PackedCallMessage<R(C::*)(const Args&...), const Args&...> msg(
-              contractAddress,
-              contractAddress,
-              gas,
-              value,
-              method,
-              args...);
-            
-            host.execute(msg);
-
-          }, argsTuple);
-        },
-        periodInMicroseconds + context_.getBlockTimestamp(),
-        periodInMicroseconds
-      };
-
-      blockObservers_->add(std::move(observer));
-    }
 
     /**
      * Get a contract by its address.

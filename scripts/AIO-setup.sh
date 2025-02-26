@@ -25,7 +25,7 @@ CLEAN=false # Clean the build folder
 DEPLOY=true # Deploy the executables to the local_testnet folder
 ONLY_DEPLOY=false # Only deploy, do not build
 DEBUG=OFF # Build the project in debug mode
-CORES=$(grep -c ^processor /proc/cpuinfo) # Number of cores for parallel build
+CORES=12 # Number of cores for parallel build
 
 for arg in "$@"
 do

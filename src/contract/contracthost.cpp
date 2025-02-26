@@ -43,3 +43,17 @@ ContractHost::~ContractHost() {
     storage_.putCallTrace(Hash(context_.getTxHash()), messageHandler_.getCallTrace());
   }
 }
+
+void ContractHost::addContractObservers(const BaseContract& contract) {
+  if (blockObservers_ == nullptr) {
+    return;
+  }
+
+  for (const auto& observer : contract.getBlockNumberObservers()) {
+    blockObservers_->add(observer);
+  }
+
+  for (const auto& observer : contract.getBlockTimestampObservers()) {
+    blockObservers_->add(observer);
+  }
+}

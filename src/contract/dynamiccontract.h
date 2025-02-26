@@ -56,6 +56,10 @@ class DynamicContract : public BaseContract {
       Functor, std::function<Bytes(const evmc_message& callInfo)>, SafeHash
     > evmFunctions_;
 
+    std::vector<BlockNumberObserver> blockNumberObservers_;
+
+    std::vector<BlockTimestampObserver> blockTimestampObservers_;
+
     /**
      * Register a callable function (a function that is called by a transaction),
      * adding it to the callable functions map.
@@ -326,6 +330,66 @@ class DynamicContract : public BaseContract {
       const Functor& functor, const std::function<Bytes(const evmc_message& str)>& f
     ) {
       viewFunctions_[functor] = f;
+    }
+
+    template<typename C>
+    void registerBlockObserver(const std::string& funcName, uint64_t blockCount, void(C::*memFunc)(), C* instance) {
+      this->registerMemberFunction(funcName, memFunc, FunctionTypes::NonPayable, instance);
+
+      if (blockCount == 0) {
+        throw DynamicException("Block count for block observer must be greater than 0");
+      }
+
+      auto callback = [memFunc, instance] (ContractHost& host) {
+        Gas gas(5'000'000);
+        const uint256_t value = 0;
+        const Address contractAddress = instance->getContractAddress();
+
+        PackedCallMessage<void(C::*)()> msg{
+          contractAddress,
+          contractAddress,
+          gas,
+          value,
+          memFunc
+        };
+
+        host.execute(msg);
+      };
+
+      const auto currentBlockNumber = ContractGlobals::getBlockHeight();
+
+      blockNumberObservers_.emplace_back(callback, currentBlockNumber + blockCount, blockCount);
+    }
+
+    template<typename Rep, typename Period, typename C>
+    void registerBlockObserver(const std::string& funcName, std::chrono::duration<Rep, Period> period, void(C::*memFunc)(), C* instance) {
+      this->registerMemberFunction(funcName, memFunc, FunctionTypes::NonPayable, instance);
+
+      auto callback = [memFunc, instance] (ContractHost& host) {
+        Gas gas(5'000'000);
+        const uint256_t value = 0;
+        const Address contractAddress = instance->getContractAddress();
+        
+        PackedCallMessage<void(C::*)()> msg{
+          contractAddress,
+          contractAddress,
+          gas,
+          value,
+          memFunc
+        };
+        
+        host.execute(msg);
+      };
+      
+      const uint64_t periodInMicroseconds = std::chrono::duration_cast<std::chrono::microseconds>(period).count();
+
+      if (periodInMicroseconds == 0) {
+        throw DynamicException("Period for block observer must be at least 1 microsecond");
+      }
+
+      const auto currentBlockTimestamp = ContractGlobals::getBlockTimestamp();
+
+      blockTimestampObservers_.emplace_back(callback, currentBlockTimestamp + periodInMicroseconds, periodInMicroseconds);
     }
 
     /**
@@ -665,36 +729,13 @@ class DynamicContract : public BaseContract {
       }
       return host_->getRandomValue();
     }
-  
-    /**
-     * Adds a function as a block observer which should be called at every "blockCount" blocks
-     * 
-     * @param blockCount the number of blocks between every call of the observer
-     * @param method a pointer to a member function of a contract
-     * @param args the arguments to be forwarded on every call of the observer
-     */
-    void addBlockObserverByCount(uint64_t blockCount, auto method, auto&&... args) {
-      if (this->host_ == nullptr) {
-        throw DynamicException("Contracts going haywire! trying to add block observer without a host!");
-      }
 
-      return host_->addBlockObserverByCount(blockCount, this->getContractAddress(), method, std::forward<decltype(args)>(args)...);
+    std::span<const BlockNumberObserver> getBlockNumberObservers() const override {
+      return blockNumberObservers_;
     }
 
-    /**
-     * Adds a function as a block observer which should be called for every given period of time
-     * 
-     * @param period the time interval (e.g. std::chrono::seconds, std::chrono::miliseconds) between block observer calls
-     * @param contractAddress the contract address of the function that will be called
-     * @param method a pointer to a member function of a contract
-     * @param args the arguments to be forwarded on every call of the observer
-     */
-    void addBlockObserverByPeriod(auto period, auto method, auto&&... args) {
-      if (this->host_ == nullptr) {
-        throw DynamicException("Contracts going haywire! trying to add block observer without a host!");
-      }
-
-      return host_->addBlockObserverByPeriod(period, this->getContractAddress(), method, std::forward<decltype(args)>(args)...);
+    std::span<const BlockTimestampObserver> getBlockTimestampObservers() const override {
+      return blockTimestampObservers_;
     }
 
     /**

@@ -111,7 +111,8 @@ class BuildTheVoid : virtual public DynamicContract, virtual public Ownable {
         std::make_tuple("getActivePlayers", &BuildTheVoid::getActivePlayers, FunctionTypes::View, std::vector<std::string>{}),
         std::make_tuple("getInnactivePlayers", &BuildTheVoid::getInnactivePlayers, FunctionTypes::View, std::vector<std::string>{}),
         std::make_tuple("getDeadPlayers", &BuildTheVoid::getDeadPlayers, FunctionTypes::View, std::vector<std::string>{}),
-        std::make_tuple("getPlayerStatus", &BuildTheVoid::getPlayerStatus, FunctionTypes::View, std::vector<std::string>{"playerId"})
+        std::make_tuple("getPlayerStatus", &BuildTheVoid::getPlayerStatus, FunctionTypes::View, std::vector<std::string>{"playerId"}),
+        std::make_tuple("selfcallUpdate", &BuildTheVoid::selfcallUpdate, FunctionTypes::NonPayable, std::vector<std::string>{})
       );
       ContractReflectionInterface::registerContractEvents<BuildTheVoid>(
         std::make_tuple("PlayerMoved", false, &BuildTheVoid::PlayerMoved, std::vector<std::string>{"playerId", "x", "y", "z"}),
