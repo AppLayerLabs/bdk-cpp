@@ -235,11 +235,15 @@ void Storage::putEvent(const Event& event) {
     UintConv::uint64ToBytes(event.getLogIndex()),
     event.getAddress()
   ));
+  Utils::safePrint("Placing event: " + event.getName() + " at block: " + std::to_string(event.getBlockIndex()) + " tx: " + std::to_string(event.getTxIndex()) + " log: " + std::to_string(event.getLogIndex()));
   eventsDb_.put(key, StrConv::stringToBytes(event.serializeToJson()), DBPrefix::events);
 }
 
 std::vector<Event> Storage::getEvents(uint64_t fromBlock, uint64_t toBlock, const Address& address, const std::vector<Hash>& topics) const {
   if (toBlock < fromBlock) std::swap(fromBlock, toBlock);
+
+  Utils::safePrint("Getting events from block " + std::to_string(fromBlock) + " to " + std::to_string(toBlock) + " from contract " + address.hex().get());
+  for (const auto& topic : topics) Utils::safePrint("Topic: " + topic.hex().get());
 
   if (uint64_t count = toBlock - fromBlock + 1; count > options_.getEventBlockCap()) {
     throw std::out_of_range(
@@ -254,17 +258,27 @@ std::vector<Event> Storage::getEvents(uint64_t fromBlock, uint64_t toBlock, cons
   const Bytes startBytes = Utils::makeBytes(UintConv::uint64ToBytes(fromBlock));
   const Bytes endBytes = Utils::makeBytes(UintConv::uint64ToBytes(toBlock));
 
-  for (Bytes key : eventsDb_.getKeys(DBPrefix::events, startBytes, endBytes)) {
+  Utils::safePrint("Start bytes: " + Hex::fromBytes(startBytes).get());
+  Utils::safePrint("End bytes: " + Hex::fromBytes(endBytes).get());
+  auto dbKeys = eventsDb_.getKeys(DBPrefix::events, startBytes, endBytes);
+  Utils::safePrint("Keys size: " + std::to_string(keys.size()));
+
+  for (Bytes key : dbKeys) {
     uint64_t nHeight = UintConv::bytesToUint64(Utils::create_view_span(key, 0, 8));
     Address currentAddress(Utils::create_view_span(key, 24, 20));
-    if (fromBlock > nHeight || toBlock < nHeight) continue;
+    if (fromBlock > nHeight || toBlock < nHeight) {
+      Utils::safePrint("Block not in range, skipping");
+      continue;
+    }
     if (address == currentAddress || address == Address()) keys.push_back(std::move(key));
   }
 
-  for (DBEntry item : eventsDb_.getBatch(DBPrefix::events, keys)) {
-    if (events.size() >= options_.getEventLogCap()) break;
-    Event event(StrConv::bytesToString(item.value));
-    if (topicsMatch(event, topics)) events.push_back(std::move(event));
+  if (!keys.empty()) {
+    for (DBEntry item : eventsDb_.getBatch(DBPrefix::events, keys)) {
+      if (events.size() >= options_.getEventLogCap()) break;
+      Event event(StrConv::bytesToString(item.value));
+      if (topicsMatch(event, topics)) events.push_back(std::move(event));
+    }
   }
   return events;
 }
