@@ -92,7 +92,11 @@ private:
     contract.caller_ = caller;
     contract.value_ = value;
 
-    return contract.evmEthCall(evmcMsg, &host_);
+    if constexpr (concepts::StaticCallMessage<decltype(msg)>) {
+      return contract.ethCallView(evmcMsg, &host_);
+    } else {
+      return contract.evmEthCall(evmcMsg, &host_);
+    }
   }
 
   Address createContract(concepts::CreateMessage auto&& msg) {
