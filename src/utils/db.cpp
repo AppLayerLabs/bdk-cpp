@@ -76,7 +76,10 @@ std::vector<Bytes> DB::getKeys(const Bytes& pfx, const Bytes& start, const Bytes
   if (!end.empty()) Utils::appendBytes(endBytes, end);
   rocksdb::Slice startSlice(reinterpret_cast<const char*>(startBytes.data()), startBytes.size());
   rocksdb::Slice endSlice(reinterpret_cast<const char*>(endBytes.data()), endBytes.size());
-  for (it->Seek(startSlice); it->Valid() && this->opts_.comparator->Compare(it->key(), endSlice) <= 0; it->Next()) {
+  for (it->Seek(startSlice); it->Valid(); it->Next()) {
+    if (this->opts_.comparator->Compare(it->key(), endSlice) > 0) {
+      if (!it->key().starts_with(endSlice)) break;
+    }
     rocksdb::Slice keySlice = it->key();
     keySlice.remove_prefix(pfx.size());
     ret.emplace_back(keySlice.data(), keySlice.data() + keySlice.size());
