@@ -12,6 +12,7 @@ See the LICENSE.txt file in the project root for more information.
 
 #include "contract.h" // core/dump.h -> utils/db.h
 
+#include "blockobservers.h"
 #include "../utils/strconv.h"
 
 /**
@@ -65,8 +66,8 @@ class ContractManager : public BaseContract {
      * @return `true` if the contract exists in the database, `false` otherwise.
      */
     template <typename Tuple, std::size_t... Is>
-    bool loadFromDBHelper(const auto& contract, const Address& contractAddress, const DB& db, std::index_sequence<Is...>) {
-      return (loadFromDBT<std::tuple_element_t<Is, Tuple>>(contract, contractAddress, db) || ...);
+    bool loadFromDBHelper(const auto& contract, const Address& contractAddress, const DB& db, BlockObservers& observer, std::index_sequence<Is...>) {
+      return (loadFromDBT<std::tuple_element_t<Is, Tuple>>(contract, contractAddress, db, observer) || ...);
     }
 
     /**
@@ -78,13 +79,19 @@ class ContractManager : public BaseContract {
      * @return `true` if the contract exists in the database, `false` otherwise.
      */
     template <typename T>
-    bool loadFromDBT(const auto& contract, const Address& contractAddress, const DB& db) {
+    bool loadFromDBT(const auto& contract, const Address& contractAddress, const DB& db, BlockObservers& observer) {
       // Here we disable this template when T is a tuple
       static_assert(!Utils::is_tuple<T>::value, "Must not be a tuple");
       if (StrConv::bytesToString(contract.value) == Utils::getRealTypeName<T>()) {
         auto it = this->contracts_.insert(std::make_pair(
           contractAddress, std::make_unique<T>(contractAddress, db)
         ));
+        for (const auto& blockObserver : it.first->second->getBlockNumberObservers()) {
+          observer.add(blockObserver);
+        }
+        for (const auto& timestampObserver : it.first->second->getBlockTimestampObservers()) {
+          observer.add(timestampObserver);
+        }
         // Dont forget to register the contract on the dump manager
         this->manager_.pushBack(it.first->second.get());
         return true;
@@ -101,10 +108,10 @@ class ContractManager : public BaseContract {
      * @return `true` if the contract exists in the database, `false` otherwise.
      */
     template <typename Tuple> requires Utils::is_tuple<Tuple>::value bool loadFromDB(
-      const auto& contract, const Address& contractAddress, const DB& db
+      const auto& contract, const Address& contractAddress, const DB& db, BlockObservers& observer
     ) {
       return loadFromDBHelper<Tuple>(
-        contract, contractAddress, db, std::make_index_sequence<std::tuple_size<Tuple>::value>{}
+        contract, contractAddress, db, observer, std::make_index_sequence<std::tuple_size<Tuple>::value>{}
       );
     }
 
@@ -120,6 +127,7 @@ class ContractManager : public BaseContract {
     ContractManager(const DB& db,
                     boost::unordered_flat_map<Address, std::unique_ptr<BaseContract>, SafeHash, SafeCompare>& contracts,
                     DumpManager& manager,
+                    BlockObservers& observer,
                     const Options& options);
 
     ~ContractManager() override; ///< Destructor. Automatically saves contracts to the database before wiping them.

@@ -13,7 +13,7 @@ See the LICENSE.txt file in the project root for more information.
 
 ContractManager::ContractManager(
   const DB& db, boost::unordered_flat_map<Address, std::unique_ptr<BaseContract>, SafeHash, SafeCompare>& contracts,
-  DumpManager& manager, const Options& options
+  DumpManager& manager, BlockObservers& observer, const Options& options
 ) : BaseContract("ContractManager", ProtocolContractAddresses.at("ContractManager"),
   options.getChainOwner(), options.getChainID()), contracts_(contracts), manager_(manager)
 {
@@ -22,7 +22,7 @@ ContractManager::ContractManager(
   // Load Contracts from DB
   for (const DBEntry& contract : db.getBatch(DBPrefix::contractManager)) {
     Address address(contract.key);
-    if (!this->loadFromDB<ContractTypes>(contract, address, db)) {
+    if (!this->loadFromDB<ContractTypes>(contract, address, db, observer)) {
       throw DynamicException("Unknown contract: " + StrConv::bytesToString(contract.value));
     }
   }

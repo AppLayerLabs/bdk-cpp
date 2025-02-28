@@ -74,7 +74,7 @@ State::State(
   ContractGlobals::blockTimestamp_ = snapshotBlock->getTimestamp();
   // Insert the contract manager into the contracts_ map.
   this->contracts_[ProtocolContractAddresses.at("ContractManager")] = std::make_unique<ContractManager>(
-    db, this->contracts_, this->dumpManager_ ,this->options_
+    db, this->contracts_, this->dumpManager_ ,this->blockObservers_, this->options_
   );
 
   // State sanity check, lets check if all found contracts in the accounts_ map really have code or are C++ contracts
