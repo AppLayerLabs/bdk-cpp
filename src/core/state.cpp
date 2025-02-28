@@ -64,14 +64,14 @@ State::State(
   }
 
   auto latestBlock = this->storage_.latest();
-  // Insert the contract manager into the contracts_ map.
-  this->contracts_[ProtocolContractAddresses.at("ContractManager")] = std::make_unique<ContractManager>(
-    db, this->contracts_, this->dumpManager_ ,this->options_
-  );
   ContractGlobals::coinbase_ = Secp256k1::toAddress(latestBlock->getValidatorPubKey());
   ContractGlobals::blockHash_ = latestBlock->getHash();
   ContractGlobals::blockHeight_ = latestBlock->getNHeight();
   ContractGlobals::blockTimestamp_ = latestBlock->getTimestamp();
+  // Insert the contract manager into the contracts_ map.
+  this->contracts_[ProtocolContractAddresses.at("ContractManager")] = std::make_unique<ContractManager>(
+    db, this->contracts_, this->dumpManager_ ,this->options_
+  );
 
   // State sanity check, lets check if all found contracts in the accounts_ map really have code or are C++ contracts
   for (const auto& [addr, acc] : this->accounts_) contractSanityCheck(addr, *acc);
@@ -88,6 +88,10 @@ State::State(
   std::unique_ptr<DBBatch> reindexedTxs = std::make_unique<DBBatch>();
   for (uint64_t nHeight = snapshotHeight + 1; nHeight <= latestBlock->getNHeight(); nHeight++) {
     auto block = this->storage_.getBlock(nHeight);
+    ContractGlobals::coinbase_ = Secp256k1::toAddress(block->getValidatorPubKey());
+    ContractGlobals::blockHash_ = block->getHash();
+    ContractGlobals::blockHeight_ = block->getNHeight();
+    ContractGlobals::blockTimestamp_ = block->getTimestamp();
     if (this->options_.getIndexingMode() == IndexingMode::RPC || this->options_.getIndexingMode() == IndexingMode::RPC_TRACE) {
       this->storage_.reindexTransactions(*block, *reindexedTxs);
     }
