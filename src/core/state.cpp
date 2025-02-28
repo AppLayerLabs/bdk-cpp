@@ -64,10 +64,14 @@ State::State(
   }
 
   auto latestBlock = this->storage_.latest();
-  ContractGlobals::coinbase_ = Secp256k1::toAddress(latestBlock->getValidatorPubKey());
-  ContractGlobals::blockHash_ = latestBlock->getHash();
-  ContractGlobals::blockHeight_ = latestBlock->getNHeight();
-  ContractGlobals::blockTimestamp_ = latestBlock->getTimestamp();
+  auto snapshotBlock = this->storage_.getBlock(snapshotHeight);
+  if (snapshotBlock == nullptr) {
+    throw DynamicException("Snapshot block not found!?");
+  }
+  ContractGlobals::coinbase_ = Secp256k1::toAddress(snapshotBlock->getValidatorPubKey());
+  ContractGlobals::blockHash_ = snapshotBlock->getHash();
+  ContractGlobals::blockHeight_ = snapshotBlock->getNHeight();
+  ContractGlobals::blockTimestamp_ = snapshotBlock->getTimestamp();
   // Insert the contract manager into the contracts_ map.
   this->contracts_[ProtocolContractAddresses.at("ContractManager")] = std::make_unique<ContractManager>(
     db, this->contracts_, this->dumpManager_ ,this->options_
