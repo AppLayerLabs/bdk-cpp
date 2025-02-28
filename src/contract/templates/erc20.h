@@ -45,8 +45,18 @@ class ERC20 : virtual public DynamicContract {
      * Updates both balance of the address and total supply of the ERC-20 token.
      * @param address The account that will receive the created tokens.
      * @param value The amount of tokens that will be created.
+     * OBS: DOES NOT EMIT A EVENT
      */
     void mintValue_(const Address& address, const uint256_t& value);
+
+    /**
+     * Mint new tokens and assign them to the specified address.
+     * Updates both balance of the address and total supply of the ERC-20 token.
+     * @param address The account that will receive the created tokens.
+     * @param value The amount of tokens that will be created.
+     * Same as mintValue_, but EMITS A EVENT, used outside the constructor
+     */
+    void mint_(const Address& address, const uint256_t& value);
 
     /**
      * Burn tokens from the specified address.

@@ -157,7 +157,7 @@ class SimpleContract : public DynamicContract {
         SimpleContract, const std::string&, const uint256_t&, const std::tuple<std::string, uint256_t>&,
         const Address&, const Address&, const uint64_t&, const DB&
       >(
-        std::vector<std::string>{"name_", "number_", "tuple_", "count_"},
+        std::vector<std::string>{"name_", "number_", "tuple_"},
         std::make_tuple("setName", &SimpleContract::setName, FunctionTypes::NonPayable, std::vector<std::string>{"argName"}),
         std::make_tuple("setNames", &SimpleContract::setNames, FunctionTypes::NonPayable, std::vector<std::string>{"argName"}),
         std::make_tuple("setNumber", &SimpleContract::setNumber, FunctionTypes::NonPayable, std::vector<std::string>{"argNumber"}),
