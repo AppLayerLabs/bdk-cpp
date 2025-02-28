@@ -191,16 +191,19 @@ void BuildTheVoid::internalLogoutPlayer() {
 }
 
 void BuildTheVoid::internalSpawnEnergyBlock() {
+  Utils::safePrint("Spawning energy block");
   // For every 100 blocks, we spawn an energy block
   // The energy block is spawned on top of a surface block
   // Surface blocks are described in the surfaceBlocks_ vector
   uint64_t wantedEnergyBlocks = this->surfaceBlocks_.size() / 100;
+  Utils::safePrint("Wanted energy blocks: " + std::to_string(wantedEnergyBlocks));
   if (this->energyBlockCounter_.get() >= wantedEnergyBlocks) {
     return;
   }
+  Utils::safePrint("Energy block counter: " + std::to_string(this->energyBlockCounter_.get()));
   for (uint64_t i = 0; i < wantedEnergyBlocks - this->energyBlockCounter_.get(); i++) {
     uint64_t randomIndex = static_cast<uint64_t>(this->getRandom() % this->surfaceBlocks_.size());
-    std::cout << "Random index: " << randomIndex << std::endl;
+    Utils::safePrint("Trying to spawn a energy block at " + std::to_string(randomIndex));
     BTVUtils::WorldBlockPos blockPos = this->surfaceBlocks_[randomIndex];
     if (!this->world_.hasBlockOver(blockPos)) {
       // Do not forget to add +1 to the Y position

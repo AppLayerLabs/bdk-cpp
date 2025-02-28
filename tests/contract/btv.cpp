@@ -1221,10 +1221,13 @@ namespace TBuildTheVoid {
         energyContract = sdk.deployContract<BTVEnergy>(std::string("Energy"), std::string("NRG"), uint8_t(18));
         proposalContract = sdk.deployContract<BTVProposals>();
         btvContract = sdk.deployContract<BuildTheVoid>();
-
-
         // Set proper ownership of the contracts
+        std::cout << "Deploying energy" << std::endl;
+
         sdk.callFunction(energyContract, &BTVEnergy::transferOwnership, btvContract);
+        auto energyCreationTimestamp = sdk.getLatestBlock()->getTimestamp();
+        std::cout << "Energy deployed" << std::endl;
+
         sdk.callFunction(playerContract, &BTVPlayer::setEnergyContract, energyContract);
         sdk.callFunction(playerContract, &BTVPlayer::setProposalContract, proposalContract);
         sdk.callFunction(playerContract, &BTVPlayer::setWorldContract, btvContract);
@@ -1261,7 +1264,7 @@ namespace TBuildTheVoid {
         REQUIRE(energyZ >= 0);
         REQUIRE(energyZ < 10);
         REQUIRE(blockType == BTVUtils::BlockType::ENERGYCHEST);
-        REQUIRE(timestamp == sdk.getLatestBlock()->getTimestamp());
+        REQUIRE(timestamp == energyCreationTimestamp);
 
         // Now, lets create (mint) a new player
         sdk.callFunction(playerContract, &BTVPlayer::mintPlayer, std::string("Alice"), sdk.getChainOwnerAccount().address);
