@@ -33,9 +33,11 @@ void BlockObservers::notify(const FinalizedBlock& block) {
 
 void BlockObservers::notifyNumberQueue(const FinalizedBlock& block) {
   if (blockNumberQueue_.empty()) {
+    Utils::safePrint("EMPTY BLOCK NUMBER QUEUE");
     return;
   }
   uint64_t indexCount = 0;
+  Utils::safePrint("BlockObservers::notifyNumberQueue: blockNumberQueue_.top().blockNumber: " + std::to_string(blockNumberQueue_.top().blockNumber) + " block.getNHeight(): " + std::to_string(block.getNHeight()));
   while (blockNumberQueue_.top().blockNumber <= block.getNHeight()) {
     BlockNumberObserver observer = blockNumberQueue_.top();
     blockNumberQueue_.pop();

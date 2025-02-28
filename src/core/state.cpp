@@ -118,6 +118,7 @@ State::State(
       this->processTransaction(tx, blockHash, txIndex, block->getBlockRandomness());
       txIndex++;
     }
+    blockObservers_.notify(*block);
     // Process rdPoS State
     this->rdpos_.processBlock(*block);
   }
