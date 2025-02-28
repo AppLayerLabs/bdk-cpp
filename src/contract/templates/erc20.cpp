@@ -123,6 +123,12 @@ void ERC20::mintValue_(const Address& address, const uint256_t& value) {
   // this->Transfer(Address(), address, value);
 }
 
+void ERC20::mint_(const Address& address, const uint256_t& value) {
+  balances_[address] += value;
+  totalSupply_ += value;
+  this->Transfer(Address(), address, value);
+}
+
 void ERC20::burnValue_(const Address& address, const uint256_t& value) {
   balances_[address] -= value;
   totalSupply_ -= value;

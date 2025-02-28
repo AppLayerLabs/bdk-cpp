@@ -26,6 +26,7 @@ set(CONTRACT_HEADERS
   ${CMAKE_SOURCE_DIR}/src/contract/templates/erc721test.h
   ${CMAKE_SOURCE_DIR}/src/contract/templates/erc721uristorage.h
   ${CMAKE_SOURCE_DIR}/src/contract/templates/erc20wrapper.h
+  ${CMAKE_SOURCE_DIR}/src/contract/templates/mintableerc20.h
   ${CMAKE_SOURCE_DIR}/src/contract/templates/nativewrapper.h
   ${CMAKE_SOURCE_DIR}/src/contract/templates/simplecontract.h
   ${CMAKE_SOURCE_DIR}/src/contract/templates/snailtracer.h
@@ -67,6 +68,7 @@ set(CONTRACT_SOURCES
   ${CMAKE_SOURCE_DIR}/src/contract/precompiledcontractexecutor.cpp
   ${CMAKE_SOURCE_DIR}/src/contract/templates/ownable.cpp
   ${CMAKE_SOURCE_DIR}/src/contract/templates/erc20.cpp
+  ${CMAKE_SOURCE_DIR}/src/contract/templates/mintableerc20.cpp
   ${CMAKE_SOURCE_DIR}/src/contract/templates/erc721.cpp
   ${CMAKE_SOURCE_DIR}/src/contract/templates/erc721test.cpp
   ${CMAKE_SOURCE_DIR}/src/contract/templates/erc721uristorage.cpp
