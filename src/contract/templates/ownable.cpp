@@ -15,7 +15,7 @@ Ownable::Ownable(
 {
 #ifdef BUILD_TESTNET
   auto key = db.get(std::string("owner_"), this->getDBPrefix());
-  if (key.empty()) {
+  if (!key.empty()) {
     this->owner_ = Address(key);
   } else {
     Utils::safePrint("Ownable::Ownable for contract " + this->getContractName() + ": Owner not found in DB, setting to this->getContractCreator(): " + this->getContractCreator().hex().get());
