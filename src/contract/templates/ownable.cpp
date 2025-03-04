@@ -13,7 +13,19 @@ Ownable::Ownable(
   const Address& address, const DB& db
 ) : DynamicContract(address, db), owner_(this)
 {
+#ifdef BUILD_TESTNET
+  auto key = db.get(std::string("owner_"), this->getDBPrefix());
+  if (key.empty()) {
+    this->owner_ = Address(key);
+  } else {
+    Utils::safePrint("Ownable::Ownable for contract " + this->getContractName() + ": Owner not found in DB, setting to this->getContractCreator(): " + this->getContractCreator().hex().get());
+    this->owner_ = this->getContractCreator();
+  }
+#endif
+#ifndef BUILD_TESTNET
   this->owner_ = Address(db.get(std::string("owner_"), this->getDBPrefix()));
+#endif
+
   this->owner_.commit();
   Ownable::registerContractFunctions();
   this->owner_.enableRegister();
