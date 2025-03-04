@@ -299,7 +299,6 @@ json eth_getTransactionCount(const json& request, const Storage& storage, const 
 
 json eth_getCode(const json& request, const Storage& storage, const State& state) {
   const auto [address, block] = parseAllParams<Address, BlockTagOrNumber>(request);
-
   // Same reasoning as on parseEvmcMessage (Metamask not keeping up)
   // if (!block.isLatest(storage))
   //  throw DynamicException("Only the latest block is supported");

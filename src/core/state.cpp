@@ -583,6 +583,17 @@ Bytes State::getContractCode(const Address &addr) const {
   if (it == this->accounts_.end()) {
     return {};
   }
+  // If its a PRECOMPILE contract, we need to return "PrecompileContract-CONTRACTNAME"
+  // yes, inside a Bytes object, not a string object.
+  if (it->second->contractType == ContractType::CPP) {
+    auto contractIt = this->contracts_.find(addr);
+    if (contractIt == this->contracts_.end()) {
+      return {};
+    }
+    std::string precompileContract = "PrecompileContract-";
+    precompileContract.append(contractIt->second->getContractName());
+    return {precompileContract.begin(), precompileContract.end()};
+  }
   return it->second->code;
 }
 
