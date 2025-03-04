@@ -83,6 +83,7 @@ std::string Hex::forRPC() const {
   // Check for leading zeroes!
   size_t i = 2;
   while (retHex[i] == '0') retHex.erase(i, 1);
+  if (retHex == "0x") retHex = "0x0"; // '0x' is not a valid hex
   return retHex;
 };
 

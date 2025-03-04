@@ -303,7 +303,8 @@ json eth_getCode(const json& request, const Storage& storage, const State& state
   // Same reasoning as on parseEvmcMessage (Metamask not keeping up)
   // if (!block.isLatest(storage))
   //  throw DynamicException("Only the latest block is supported");
-  return Hex::fromBytes(state.getContractCode(address), true);
+
+  return Hex::fromBytes(state.getContractCode(address), true).forRPC();
 }
 
 json eth_sendRawTransaction(const json& request, uint64_t chainId, State& state, P2P::ManagerNormal& p2p) {
