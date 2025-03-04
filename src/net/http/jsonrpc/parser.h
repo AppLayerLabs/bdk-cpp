@@ -167,7 +167,6 @@ namespace jsonrpc {
    */
   template<typename T> auto parseArray(const json& data) {
     if (!data.is_array()) {
-      std::cout << "Ih ala eh gey kkkkkkkkk" << std::endl;
       throw Error::invalidType("array", data.type_name());
     }
     return data | std::views::transform([] (const json& elem) -> T { return Parser<T>{}(elem); });
