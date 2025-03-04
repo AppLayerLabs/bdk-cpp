@@ -57,6 +57,12 @@ class ContractManager : public BaseContract {
     std::vector<std::tuple<std::string, Address>> getDeployedContractsForCreator(const Address& creator) const;
 
     /**
+     * Get the information of a specific contract.
+     * function getContractInfo(address addr) external view returns (ContractInfo memory);
+     */
+    std::tuple<bool, std::string> getContractInfo(const Address& addr) const;
+
+    /**
      * Helper function to load all contracts from the database.
      * @tparam Tuple The tuple of contracts to load.
      * @tparam Is The indices of the tuple.

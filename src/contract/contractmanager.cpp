@@ -65,6 +65,14 @@ std::vector<std::tuple<std::string, Address>> ContractManager::getDeployedContra
   return contracts;
 }
 
+std::tuple<bool, std::string> ContractManager::getContractInfo(const Address& addr) const {
+  auto it = this->contracts_.find(addr);
+  if (it == this->contracts_.end()) {
+    return std::make_tuple(false, "");
+  }
+  return std::make_tuple(true, it->second->getContractName());
+}
+
 void ContractManager::ethCall(const evmc_message& callInfo, ContractHost* host) {
   this->host_ = host;
   PointerNullifier nullifier(this->host_);
@@ -90,6 +98,8 @@ Bytes ContractManager::evmEthCall(const evmc_message& callInfo, ContractHost* ho
     return Bytes();
   }
   auto functor = EVMCConv::getFunctor(callInfo);
+  // This hash is equivalent to "function getDeployedContracts() public view returns (Contract[] memory) {}"
+  // 0xaa9a068f == uint32_t(2862220943);
   if (functor.value == 2862220943) return ABI::Encoder::encodeData(this->getDeployedContracts());
   // This hash is equivalent to "function getDeployedContractsForCreator(address creator) public view returns (Contract[] memory) {}"
   // 0x73474f5a == uint32_t(1934053210)
@@ -97,6 +107,13 @@ Bytes ContractManager::evmEthCall(const evmc_message& callInfo, ContractHost* ho
     auto args = EVMCConv::getFunctionArgs(callInfo);
     auto [addr] = ABI::Decoder::decodeData<Address>(args);
     return ABI::Encoder::encodeData(this->getDeployedContractsForCreator(addr));
+  }
+  // This hash is equivalent to "function getContractInfo(address addr) external view returns (ContractInfo memory)"
+  // 0xcd481e51 = uint32_t(3444055633)
+  if (functor.value == 3444055633) {
+    auto args = EVMCConv::getFunctionArgs(callInfo);
+    auto [addr] = ABI::Decoder::decodeData<Address>(args);
+    return ABI::Encoder::encodeData(this->getContractInfo(addr));
   }
   throw DynamicException("ContractManager: Invalid function call");
   return Bytes();
@@ -114,6 +131,13 @@ Bytes ContractManager::ethCallView(const evmc_message& callInfo, ContractHost* h
     auto args = EVMCConv::getFunctionArgs(callInfo);
     auto [addr] = ABI::Decoder::decodeData<Address>(args);
     return ABI::Encoder::encodeData(this->getDeployedContractsForCreator(addr));
+  }
+  // This hash is equivalent to "function getContractInfo(address addr) external view returns (ContractInfo memory)"
+  // 0xcd481e51 = uint32_t(3444055633)
+  if (functor.value == 3444055633) {
+    auto args = EVMCConv::getFunctionArgs(callInfo);
+    auto [addr] = ABI::Decoder::decodeData<Address>(args);
+    return ABI::Encoder::encodeData(this->getContractInfo(addr));
   }
   throw DynamicException("Invalid function call");
 }
