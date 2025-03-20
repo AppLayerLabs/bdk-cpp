@@ -127,6 +127,7 @@ namespace BTVServer {
             {"playerId", playerId}
           };
         }
+        jsonRpcResponse["result"].push_back(eventUpdate);
       }
     } catch (std::exception &e) {
       Printer::safePrint("Error while processing response: " + std::string(e.what()) + " with message " + reqBody);
