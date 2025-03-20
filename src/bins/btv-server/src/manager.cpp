@@ -201,6 +201,10 @@ namespace BTVServer {
         }
       } catch (std::exception &e) {
         Printer::safePrint("Error while processing player request: " + std::string(e.what()) + " with message " + msg + " with size " + std::to_string(msg.size()) + " disconnecting player");
+        if (auto realSession = session.lock()) {
+          realSession->stop();
+          this->players_.erase(realSession->getId());
+        }
       }
     });
   }
@@ -251,7 +255,7 @@ namespace BTVServer {
     // We need to request ALL the chunks from the blockchain
     // That means a range (x, y) from (-32, -32) to (31, 31)
     auto now = std::chrono::system_clock::now();
-/*
+
     for (int x = -32; x < 32; x++) {
       Printer::safePrint("Requesting chunks for x = " + std::to_string(x) + " total Y: 64");
       json requestArr = json::array();
@@ -281,7 +285,7 @@ namespace BTVServer {
           throw std::runtime_error("Chunk was not received");
         }
       }
-    } */
+    }
     auto after = std::chrono::system_clock::now();
     Printer::safePrint("Time taken to request all 4096 chunks: " + std::to_string(std::chrono::duration_cast<std::chrono::milliseconds>(after - now).count()) + "ms");
     Printer::safePrint("Getting the latest block from the network");
