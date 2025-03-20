@@ -53,6 +53,14 @@ struct SafeHash {
     return SafeHash()(*ptr->get());
   }
 
+  template <typename T> size_t operator()(const std::unique_ptr<T>& ptr) const {
+    return SafeHash()(*ptr->get());
+  }
+
+  template <typename T> size_t operator()(const std::weak_ptr<T>& ptr) const {
+    return SafeHash()(*ptr.lock().get());
+  }
+
   size_t operator()(View<Bytes> data) const {
     return wyhash(data.data(), data.size(), 0, _wyp);
   }
