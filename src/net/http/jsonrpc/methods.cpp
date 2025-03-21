@@ -248,31 +248,39 @@ json eth_feeHistory(const json& request, const Storage& storage) {
 }
 
 json eth_getLogs(const json& request, const Storage& storage) {
+  EventsDB::Filters filters;
   const auto [logsObj] = parseAllParams<json>(request);
-  const auto getBlockByHash = [&storage] (const Hash& hash) { return getBlockNumber(storage, hash); };
+  
 
-  const std::optional<Hash> blockHash = parseIfExists<Hash>(logsObj, "blockHash");
+  filters.blockHash = parseIfExists<Hash>(logsObj, "blockHash");
 
-  const uint64_t fromBlock = parseIfExists<BlockTagOrNumber>(logsObj, "fromBlock")
-    .transform([&storage](const BlockTagOrNumber& b) { return b.number(storage); })
-    .or_else([&blockHash, &getBlockByHash]() { return blockHash.and_then(getBlockByHash); })
-    .value_or(ContractGlobals::getBlockHeight());
+  filters.fromBlock = parseIfExists<BlockTagOrNumber>(logsObj, "fromBlock")
+    .transform([&storage](const BlockTagOrNumber& b) { return b.number(storage); });
 
-  const uint64_t toBlock = parseIfExists<BlockTagOrNumber>(logsObj, "toBlock")
-    .transform([&storage](const BlockTagOrNumber& b) { return b.number(storage); })
-    .or_else([&blockHash, &getBlockByHash]() { return blockHash.and_then(getBlockByHash); })
-    .value_or(ContractGlobals::getBlockHeight());
+  filters.toBlock = parseIfExists<BlockTagOrNumber>(logsObj, "toBlock")
+    .transform([&storage](const BlockTagOrNumber& b) { return b.number(storage); });
 
-  const std::optional<Address> address = parseIfExists<Address>(logsObj, "address");
+  filters.address = parseIfExists<Address>(logsObj, "address");
 
-  const std::vector<Hash> topics = parseArrayIfExists<Hash>(logsObj, "topics")
-    .transform([](auto&& arr) { return makeVector<Hash>(std::forward<decltype(arr)>(arr)); })
-    .value_or(std::vector<Hash>{});
+  const auto topics = parseArrayIfExists<json>(logsObj, "topics");
+
+  if (topics.has_value()) {
+    for (const json& topic : topics.value()) {
+      if (topic.is_null()) {
+        filters.topics.emplace_back(std::vector<Hash>{});
+      } else if (topic.is_array()) {
+        filters.topics.emplace_back(makeVector<Hash>(parseArray<Hash>(topic)));
+      } else {
+        filters.topics.emplace_back(std::vector<Hash>{parse<Hash>(topic)});
+      }
+    }
+  }
 
   json result = json::array();
 
-  for (const auto& event : storage.getEvents(fromBlock, toBlock, address.value_or(Address{}), topics))
+  for (const auto& event : storage.events().getEvents(filters)) {
     result.push_back(event.serializeForRPC());
+  }
 
   return result;
 }
@@ -459,9 +467,9 @@ json eth_getTransactionReceipt(const json& request, const Storage& storage) {
     ret["logsBloom"] = Hash().hex(true);
     ret["type"] = "0x2";
     ret["status"] = txAddData.succeeded ? "0x1" : "0x0";
-    for (const Event& e : storage.getEvents(blockHeight, txIndex)) {
-      ret["logs"].push_back(e.serializeForRPC());
-    }
+    // for (const Event& e : storage.getEvents(blockHeight, txIndex)) {
+    //   ret["logs"].push_back(e.serializeForRPC());
+    // }
     return ret;
   }
   return json::value_t::null;

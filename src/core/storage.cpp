@@ -52,7 +52,7 @@ void Storage::dumpToDisk(DBBatch &batch) {
 
 Storage::Storage(std::string instanceIdStr, const Options& options)
   : blocksDb_(options.getRootPath() + "/blocksDb/"),  // Uncompressed
-    eventsDb_(options.getRootPath() + "/eventsDb/", true),  // Compressed
+    eventsDb_(options.getRootPath() + "/eventsDb/"),
     options_(options), instanceIdStr_(std::move(instanceIdStr))
 {
   // Initialize the blockchain if latest block doesn't exist.
@@ -226,66 +226,3 @@ std::optional<TxAdditionalData> Storage::getTxAdditionalData(const Hash& txHash)
   in(txData).or_throw();
   return txData;
 }
-
-
-void Storage::putEvent(const Event& event) {
-  const Bytes key = Utils::makeBytes(bytes::join(
-    UintConv::uint64ToBytes(event.getBlockIndex()),
-    UintConv::uint64ToBytes(event.getTxIndex()),
-    UintConv::uint64ToBytes(event.getLogIndex()),
-    event.getAddress()
-  ));
-  eventsDb_.put(key, StrConv::stringToBytes(event.serializeToJson()), DBPrefix::events);
-}
-
-std::vector<Event> Storage::getEvents(uint64_t fromBlock, uint64_t toBlock, const Address& address, const std::vector<Hash>& topics) const {
-  if (toBlock < fromBlock) std::swap(fromBlock, toBlock);
-
-  if (uint64_t count = toBlock - fromBlock + 1; count > options_.getEventBlockCap()) {
-    throw std::out_of_range(
-      "Block range too large for event querying! Max allowed is " +
-      std::to_string(this->options_.getEventBlockCap())
-    );
-  }
-
-  std::vector<Event> events;
-  std::vector<Bytes> keys;
-
-  const Bytes startBytes = Utils::makeBytes(UintConv::uint64ToBytes(fromBlock));
-  const Bytes endBytes = Utils::makeBytes(UintConv::uint64ToBytes(toBlock));
-
-  auto dbKeys = eventsDb_.getKeys(DBPrefix::events, startBytes, endBytes);
-
-  for (Bytes key : dbKeys) {
-    uint64_t nHeight = UintConv::bytesToUint64(Utils::create_view_span(key, 0, 8));
-    Address currentAddress(Utils::create_view_span(key, 24, 20));
-    if (fromBlock > nHeight || toBlock < nHeight) {
-      continue;
-    }
-    if (address == currentAddress || address == Address()) keys.push_back(std::move(key));
-  }
-
-  if (!keys.empty()) {
-    for (DBEntry item : eventsDb_.getBatch(DBPrefix::events, keys)) {
-      if (events.size() >= options_.getEventLogCap()) break;
-      Event event(StrConv::bytesToString(item.value));
-      if (topicsMatch(event, topics)) events.push_back(std::move(event));
-    }
-  }
-  return events;
-}
-
-std::vector<Event> Storage::getEvents(uint64_t blockIndex, uint64_t txIndex) const {
-  std::vector<Event> events;
-  for (
-    Bytes fetchBytes = Utils::makeBytes(bytes::join(
-      DBPrefix::events, UintConv::uint64ToBytes(blockIndex), UintConv::uint64ToBytes(txIndex)
-    ));
-    DBEntry entry : eventsDb_.getBatch(fetchBytes)
-  ) {
-    if (events.size() >= options_.getEventLogCap()) break;
-    events.emplace_back(StrConv::bytesToString(entry.value));
-  }
-  return events;
-}
-

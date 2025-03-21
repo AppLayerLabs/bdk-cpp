@@ -9,6 +9,7 @@ See the LICENSE.txt file in the project root for more information.
 #define STORAGE_H
 
 #include "../utils/db.h"
+#include "../utils/eventsdb.h"
 #include "../utils/randomgen.h" // utils.h
 #include "../utils/safehash.h" // tx.h -> ecdsa.h -> utils.h -> bytes/join.h, strings.h -> libs/zpp_bits.h
 #include "../utils/options.h"
@@ -26,7 +27,7 @@ class Storage : public Log::LogicalLocationProvider {
   private:
     std::atomic<std::shared_ptr<const FinalizedBlock>> latest_; ///< Pointer to the latest block in the blockchain.
     DB blocksDb_;  ///< Database object that contains all the blockchain blocks
-    DB eventsDb_; ///< DB exclusive to events (should be removed in future)
+    EventsDB eventsDb_; ///< DB exclusive to events
     const Options& options_;  ///< Reference to the options singleton.
     const std::string instanceIdStr_; ///< Identifier for logging
 
@@ -154,37 +155,18 @@ class Storage : public Log::LogicalLocationProvider {
      */
     std::optional<trace::Call> getCallTrace(const Hash& txHash) const;
 
-    /**
-     * Store an event.
-     * @param event The event to be stored.
-     */
-    void putEvent(const Event& event);
-
+    
     /**
      * Reindex transactions to the DB
      * if the transaction is not already indexed.
      */
     void reindexTransactions(const FinalizedBlock& block, DBBatch& batch);
-
+    
     void dumpToDisk(DBBatch& batch);
 
-    /**
-     * Retrieve all events from a given range of block numbers.
-     * @param fromBlock The initial block number (included).
-     * @param toBlock The last block number (included).
-     * @param address The address that emitted the events.
-     * @param topics The event's topics.
-     * @return The requested events if existent, or an empty vector otherwise.
-     */
-    std::vector<Event> getEvents(uint64_t fromBlock, uint64_t toBlock, const Address& address, const std::vector<Hash>& topics) const;
+    EventsDB& events() { return eventsDb_; }
 
-    /**
-     * Retrieve all events from given block index and transaction index.
-     * @param blockIndex The number of the block that contains the transaction.
-     * @param txIndex The transaction index within the block.
-     * @return The requested events if existent, or an empty vector otherwise.
-     */
-    std::vector<Event> getEvents(uint64_t blockIndex, uint64_t txIndex) const;
+    const EventsDB& events() const { return eventsDb_; }
 
     /**
      * Get the indexing mode of the storage.

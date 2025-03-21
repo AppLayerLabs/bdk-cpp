@@ -110,6 +110,7 @@ find_package(Keccak REQUIRED)
 find_package(Scrypt REQUIRED)
 find_package(Secp256k1 REQUIRED)
 find_package(Speedb REQUIRED)
+find_package(SQLiteCpp REQUIRED)
 
 # Add catch2 as a library
 add_library(catch2
@@ -160,7 +161,7 @@ target_link_libraries(bdk_lib PRIVATE
   ${EVMC_INSTRUCTIONS_LIBRARY} ${EVMC_LOADER_LIBRARY} ${EVMONE_LIBRARY}
   ${CRYPTOPP_LIBRARIES} ${SCRYPT_LIBRARY} ${SECP256K1_LIBRARY}
   ${ETHASH_LIBRARY} ${KECCAK_LIBRARY} ${SPEEDB_LIBRARY}
-  ${Boost_LIBRARIES} ${OPENSSL_LIBRARIES} -l:liblz4.a
+  ${Boost_LIBRARIES} ${OPENSSL_LIBRARIES} -l:liblz4.a SQLiteCpp
 )
 
 add_subdirectory(src/bins)

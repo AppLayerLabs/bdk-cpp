@@ -1,0 +1,28 @@
+#ifndef BDK_EVENTSDB_H
+#define BDK_EVENTSDB_H
+
+#include "utils.h"
+#include "contract/event.h"
+#include "SQLiteCpp/SQLiteCpp.h"
+
+class EventsDB {
+public:
+  struct Filters {
+    std::optional<int64_t> fromBlock;
+    std::optional<int64_t> toBlock;
+    std::optional<Hash> blockHash;
+    std::optional<Address> address;
+    std::vector<std::vector<Hash>> topics;
+  };
+
+  explicit EventsDB(const std::filesystem::path& path);
+
+  std::vector<Event> getEvents(const Filters& filters) const;
+
+  void putEvent(const Event& event);
+
+private:
+  SQLite::Database db_;
+};
+
+#endif // BDK_EVENTSDB_H

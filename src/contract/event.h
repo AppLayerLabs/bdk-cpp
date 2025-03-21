@@ -24,7 +24,6 @@ class Event {
   using serialize = zpp::bits::members<10>; ///< Typedef for the serialization struct.
 
   private:
-    std::string name_;          ///< Event name.
     uint64_t logIndex_;         ///< Position of the event inside the block it was emitted from.
     Hash txHash_;               ///< Hash of the transaction that emitted the event.
     uint64_t txIndex_;          ///< Position of the transaction inside the block the event was emitted from.
@@ -52,12 +51,12 @@ class Event {
      * @param topics The event's indexed arguments.
      * @param anonymous Whether the event is anonymous or not.
      */
-    Event(const std::string& name, uint64_t logIndex, const Hash& txHash, uint64_t txIndex,
-          const Hash& blockHash, uint64_t blockIndex, Address address, const Bytes& data,
-          const std::vector<Hash>& topics, bool anonymous) :
-          name_(name), logIndex_(logIndex), txHash_(txHash), txIndex_(txIndex),
+    Event(uint64_t logIndex, const Hash& txHash, uint64_t txIndex,
+          const Hash& blockHash, uint64_t blockIndex, Address address, Bytes data,
+          std::vector<Hash> topics, bool anonymous) :
+          logIndex_(logIndex), txHash_(txHash), txIndex_(txIndex),
           blockHash_(blockHash), blockIndex_(blockIndex), address_(address),
-          data_(data), topics_(topics), anonymous_(anonymous) {}
+          data_(std::move(data)), topics_(std::move(topics)), anonymous_(anonymous) {}
 
     /**
      * Constructor for C++ events.
@@ -78,7 +77,7 @@ class Event {
       const Hash& blockHash, uint64_t blockIndex, Address address,
       const std::tuple<EventParam<Args, Flags>...>& params,
       bool anonymous = false
-    ) : name_(name), logIndex_(logIndex), txHash_(txHash), txIndex_(txIndex),
+    ) : logIndex_(logIndex), txHash_(txHash), txIndex_(txIndex),
         blockHash_(blockHash), blockIndex_(blockIndex), address_(address), anonymous_(anonymous) {
       // Get the event's signature
       auto eventSignature = ABI::EventEncoder::encodeSignature<Args...>(name);
@@ -111,9 +110,6 @@ class Event {
       }
     }
 
-    Event(const Event&) = default; ///< Copy constructor.
-    Event(Event&&) = default; ///< Move constructor.
-
     /**
      * Constructor from deserialization.
      * @param jsonstr The JSON string to deserialize.
@@ -122,7 +118,6 @@ class Event {
 
     ///@{
     /** Getter. */
-    const std::string& getName() const { return this->name_; }
     const uint64_t& getLogIndex() const { return this->logIndex_; }
     const Hash& getTxHash() const { return this->txHash_; }
     const uint64_t& getTxIndex() const { return this->txIndex_; }
