@@ -104,7 +104,7 @@ namespace BTVServer {
             {"timestamp", timestamp}
           };
           // We also need to update the world!
-          this->worldMutex_.lock();
+          std::unique_lock lock(this->worldMutex_);
           auto block = this->world_.getBlock(BTVUtils::WorldBlockPos{x, y, z});
           block->setBlockType(static_cast<BTVUtils::BlockType>(blockType));
           block->setPlacer(playerId);
@@ -187,7 +187,7 @@ namespace BTVServer {
             if (x < -32 || x > 31 || y < -32 || y > 31) {
               throw std::runtime_error("Invalid x or y");
             }
-            this->worldMutex_.lock_shared();
+            std::shared_lock lock(this->worldMutex_);
             BTVUtils::Chunk chunk = *this->world_.getChunk({x, y});
             json chunkJson = {
               {"x", x},
