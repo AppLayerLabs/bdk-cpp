@@ -1,6 +1,24 @@
 #include "common.h"
-  
+
 Address generateContractAddress(uint64_t nonce, View<Address> address) {
+#ifdef BUILD_TESTNET
+  // TODO: Make forkable
+  uint8_t rlpSize = 0xc0;
+  rlpSize += 20;
+  rlpSize += (nonce < 0x80) ? 1 : 1 + Utils::bytesRequired(nonce);
+  Bytes rlp;
+  rlp.insert(rlp.end(), rlpSize);
+  rlp.insert(rlp.end(), address.cbegin(), address.cend());
+  if (nonce < 0x80) {
+    rlp.insert(rlp.end(), static_cast<char>(nonce));
+  } else {
+    rlp.insert(rlp.end(), 0x80 + Utils::bytesRequired(nonce));
+    Utils::appendBytes(rlp, Utils::uintToBytes(nonce));
+  }
+
+  return Address(Utils::sha3(rlp).view(12));
+#else
+
   Bytes payload;
   payload.push_back(0x80 + 20);
   payload.insert(payload.end(), address.cbegin(), address.cend());
@@ -25,6 +43,7 @@ Address generateContractAddress(uint64_t nonce, View<Address> address) {
 
   auto hash = Utils::sha3(rlp);
   return Address(hash.view(12));  // skip first 12 bytes, keep last 20
+#endif
 }
 
 
