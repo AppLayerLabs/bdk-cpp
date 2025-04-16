@@ -43,5 +43,6 @@ set(UTILS_SOURCES
   ${CMAKE_SOURCE_DIR}/src/utils/evmcconv.cpp
   ${CMAKE_SOURCE_DIR}/src/utils/intconv.cpp
   ${CMAKE_SOURCE_DIR}/src/utils/uintconv.cpp
+  ${CMAKE_SOURCE_DIR}/src/utils/eventsdb.cpp
   PARENT_SCOPE
 )

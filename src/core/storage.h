@@ -12,6 +12,7 @@ See the LICENSE.txt file in the project root for more information.
 #include "../utils/randomgen.h" // utils.h
 #include "../utils/safehash.h" // tx.h -> ecdsa.h -> utils.h -> bytes/join.h, strings.h -> libs/zpp_bits.h
 #include "../utils/options.h"
+#include "../utils/eventsdb.h"
 
 #include "../contract/calltracer.h"
 #include "../contract/event.h"
@@ -49,7 +50,7 @@ class Storage : public Log::LogicalLocationProvider {
   private:
     Blockchain& blockchain_; ///< Our parent object through which we reach the other components
     DB blocksDb_; ///< DB for general-purpose usage (doesn't actually hold blocks)
-    DB eventsDb_; ///< DB for events
+    EventsDB eventsDb_; ///< DB exclusive to events
 
   public:
     /**
@@ -98,30 +99,6 @@ class Storage : public Log::LogicalLocationProvider {
     std::optional<trace::Call> getCallTrace(const Hash& txHash) const;
 
     /**
-     * Store an event.
-     * @param event The event to be stored.
-     */
-    void putEvent(const Event& event);
-
-    /**
-     * Retrieve all events from a given range of block numbers.
-     * @param fromBlock The initial block number (included).
-     * @param toBlock The last block number (included).
-     * @param address The address that emitted the events.
-     * @param topics The event's topics.
-     * @return The requested events if existent, or an empty vector otherwise.
-     */
-    std::vector<Event> getEvents(uint64_t fromBlock, uint64_t toBlock, const Address& address, const std::vector<Hash>& topics) const;
-
-    /**
-     * Retrieve all events from given block index and transaction index.
-     * @param blockIndex The number of the block that contains the transaction.
-     * @param txIndex The transaction index within the block.
-     * @return The requested events if existent, or an empty vector otherwise.
-     */
-    std::vector<Event> getEvents(uint64_t blockIndex, uint64_t txIndex) const;
-
-    /**
      * Helper function for checking if an event has certain topics.
      * @param event The event to check.
      * @param topics A list of topics to check for.
@@ -139,6 +116,11 @@ class Storage : public Log::LogicalLocationProvider {
      * @param validatorUpdates Pre-encoded validator updates to store.
      */
     void putValidatorUpdates(uint64_t height, Bytes validatorUpdates);
+
+
+    EventsDB& events() { return eventsDb_; }
+
+    const EventsDB& events() const { return eventsDb_; }
 };
 
 #endif  // STORAGE_H

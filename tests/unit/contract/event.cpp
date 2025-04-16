@@ -22,8 +22,7 @@ namespace TEvent {
       Address add(bytes::hex("0x1234567890123456789012345678901234567890"));
       Bytes data{0xDE, 0xAD, 0xBE, 0xEF};
 
-      Event e("myEvent", 0, txHash, 1, blockHash, 2, add, data, topics, false);
-      REQUIRE(e.getName() == "myEvent");
+      Event e(0, txHash, 1, blockHash, 2, add, data, topics, false);  
       REQUIRE(e.getLogIndex() == 0);
       REQUIRE(e.getTxHash() == txHash);
       REQUIRE(e.getTxIndex() == 1);
@@ -54,7 +53,6 @@ namespace TEvent {
         EventParam<std::string, true>("p4"),
         EventParam<std::string, true>("p5")
       ), true);
-      REQUIRE(e1.getName() == "myEvent");
       REQUIRE(e1.getLogIndex() == 0);
       REQUIRE(e1.getTxHash() == txHash);
       REQUIRE(e1.getTxIndex() == 1);
@@ -74,7 +72,6 @@ namespace TEvent {
         EventParam<std::string, true>("p4"),
         EventParam<std::string, true>("p5")
       ), false);
-      REQUIRE(e2.getName() == "myEvent");
       REQUIRE(e2.getLogIndex() == 0);
       REQUIRE(e2.getTxHash() == txHash);
       REQUIRE(e2.getTxIndex() == 1);
@@ -95,7 +92,6 @@ namespace TEvent {
       Event e1(e1Str);
       Event e2(e2Str);
 
-      REQUIRE(e1.getName() == "myEvent");
       REQUIRE(e1.getLogIndex() == 0);
       REQUIRE(e1.getTxHash().hex(true).get() == "0x05846d60d5b92b068c28a9017831e29827243bd4f642734977dcb111ccd40425");
       REQUIRE(e1.getTxIndex() == 1);
@@ -111,7 +107,6 @@ namespace TEvent {
       REQUIRE(e1.isAnonymous() == true);
       REQUIRE(e1.getSelector() == Hash());
 
-      REQUIRE(e2.getName() == "myEvent");
       REQUIRE(e2.getLogIndex() == 0);
       REQUIRE(e2.getTxHash().hex(true).get() == "0x05846d60d5b92b068c28a9017831e29827243bd4f642734977dcb111ccd40425");
       REQUIRE(e2.getTxIndex() == 1);
@@ -147,7 +142,6 @@ namespace TEvent {
       REQUIRE(e1Json.dump() == "{\"address\":\"0x1234567890123456789012345678901234567890\",\"blockHash\":\"0x2b9b8644330d50ffb90c5fea02b73b562dfc550ec7f8c85f643b20391a972d5f\",\"blockNumber\":\"0x0000000000000002\",\"data\":\"0x\",\"logIndex\":\"0x0000000000000000\",\"removed\":false,\"topics\":[\"0x386cc2513b9e8b9e78a0792c33d6f69798774e0fa5424d3042fdd0fe7647420b\",\"0x260e065801cba6ca065f28640c3d94ef235f67db5431448aae1a51af7214efaf\",\"0xc30a3ae685bfcb917dceb41e4afed5342f332572d5b3a8212679077685c494cb\",\"0xff05acda0d6ef15409d713cb0f124d2c3a3fd95b33af096109172229d5c8671a\"],\"transactionHash\":\"0x53472c61f1db8612fcdd17f24b78986bfa111ea3e323522456b1a78560f2215a\",\"transactionIndex\":\"0x0000000000000001\"}");
 
       Event e2(e1Str);
-      REQUIRE(e2.getName() == "myEvent");
       REQUIRE(e2.getLogIndex() == 0);
       REQUIRE(e2.getTxHash() == txHash);
       REQUIRE(e2.getTxIndex() == 1);

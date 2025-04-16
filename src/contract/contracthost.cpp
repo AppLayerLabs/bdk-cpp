@@ -31,7 +31,7 @@ ContractHost::~ContractHost() {
     // NOTE: With a bit of work, we could possibly get rid of event logging on our side
     //       and use CometBFT event/log DB and indexing for this. But it's fine as it is.
     for (const auto& event : context_.getEvents()) {
-      this->storage_.putEvent(event);
+      this->storage_.events().putEvent(event);
     }
     // This clears the context_ so it has to be the last step
     context_.commit();

@@ -690,10 +690,21 @@ class SDKTestSuite : public Blockchain {
      * @return A list of matching events, limited by the block and/or log caps set above.
      */
     std::vector<Event> getEvents(
-      const uint64_t& fromBlock, const uint64_t& toBlock,
+      uint64_t fromBlock, uint64_t toBlock,
       const Address& address, const std::vector<Hash>& topics
-    ) {
-      return this->storage_.getEvents(fromBlock, toBlock, address, topics);
+    ) const {
+      std::vector<std::vector<Hash>> topicsFilter;
+      topicsFilter.reserve(topics.size());
+
+      std::transform(topics.begin(), topics.end(), std::back_inserter(topicsFilter),
+        [] (const Hash& hash) { return std::vector<Hash>{hash}; });
+
+      return storage_.events().getEvents({
+        .fromBlock = fromBlock,
+        .toBlock = toBlock,
+        .address = address,
+        .topics = topicsFilter
+      });
     }
 
     /**
@@ -704,8 +715,10 @@ class SDKTestSuite : public Blockchain {
      * @param txIndex The index of the transaction to look for events.
      * @return A list of matching events, limited by the block and/or log caps set above.
      */
-    std::vector<Event> getEvents(const uint64_t& blockIndex, const uint64_t& txIndex) {
-      return this->storage_.getEvents(blockIndex, txIndex);
+    std::vector<Event> getEvents(uint64_t blockIndex, uint64_t txIndex) const {
+      std::vector<Event> events = storage_.events().getEvents({ .fromBlock = blockIndex, .toBlock = blockIndex });
+      std::erase_if(events, [txIndex] (const Event& event) { return event.getTxIndex() != txIndex; });
+      return events;
     }
 
     /**
@@ -713,8 +726,10 @@ class SDKTestSuite : public Blockchain {
      * @param txHash The hash of the transaction to look for events.
      */
     std::vector<Event> getEvents(const Hash& txHash) {
-      GetTxResultType tx = this->getTx(txHash);
-      return this->storage_.getEvents(tx.blockHeight, tx.blockIndex);
+      auto blockhash = this->getBlockHash(this->getTx(txHash).blockHeight);
+      std::vector<Event> events = storage_.events().getEvents({ .blockHash = blockhash });
+      std::erase_if(events, [&txHash] (const Event& event) { return event.getTxHash() != txHash; });
+      return events;
     }
 
     /**
