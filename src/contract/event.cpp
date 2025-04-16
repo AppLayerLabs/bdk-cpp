@@ -12,7 +12,6 @@ See the LICENSE.txt file in the project root for more information.
 
 Event::Event(const std::string& jsonstr) {
   json obj = json::parse(jsonstr);
-  this->name_ = obj["name"].get<std::string>();
   this->logIndex_ = obj["logIndex"].get<uint64_t>();
   this->txHash_ = Hash(Hex::toBytes(std::string_view(obj["txHash"].get<std::string>()).substr(2)));
   this->txIndex_ = obj["txIndex"].get<uint64_t>();
@@ -28,7 +27,6 @@ std::string Event::serializeToJson() const {
   json topicArr = json::array();
   for (const Hash& b : this->topics_) topicArr.push_back(b.hex(true).get());
   json obj = {
-    {"name", this->name_},
     {"logIndex", this->logIndex_},
     {"txHash", this->txHash_.hex(true).get()},
     {"txIndex", this->txIndex_},
@@ -46,15 +44,15 @@ json Event::serializeForRPC() const {
   std::vector<std::string> topicStr;
   for (const Hash& b : this->topics_) topicStr.push_back(b.hex(true).get());
   json obj = {
-    {"address", this->address_.hex(true).get()},
+    {"address", Address::checksum(this->address_)},
     {"blockHash", this->blockHash_.hex(true).get()},
-    {"blockNumber", Hex::fromBytes(UintConv::uint64ToBytes(this->blockIndex_), true).get()},
+    {"blockNumber", this->blockIndex_},
     {"data", Hex::fromBytes(this->data_, true).get()},
-    {"logIndex", Hex::fromBytes(UintConv::uint64ToBytes(this->logIndex_), true).get()},
+    {"logIndex", this->logIndex_},
     {"removed", false}, // We don't fake/alter events like Ethereum does
     {"topics", topicStr},
     {"transactionHash", this->txHash_.hex(true).get()},
-    {"transactionIndex", Hex::fromBytes(UintConv::uint64ToBytes(this->txIndex_), true).get()}
+    {"transactionIndex", this->txIndex_}
   };
   return obj;
 }

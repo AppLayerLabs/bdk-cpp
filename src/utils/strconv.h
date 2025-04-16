@@ -76,7 +76,7 @@ namespace StrConv {
    * @return The converted bytes as a string.
    */
   template<typename T> inline std::string bytesToString(const T& bytes) {
-    return std::string(bytes.cbegin(), bytes.cend());
+    return std::string(bytes.begin(), bytes.end());
   }
 
   /**
