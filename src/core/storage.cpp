@@ -52,7 +52,7 @@ void Storage::dumpToDisk(DBBatch &batch) {
 
 Storage::Storage(std::string instanceIdStr, const Options& options)
   : blocksDb_(options.getRootPath() + "/blocksDb/"),  // Uncompressed
-    eventsDb_(options.getRootPath() + "/eventsDb/", true),  // Compressed
+    eventsDb_(options.getRootPath() + "/newEventsDb/"),
     options_(options), instanceIdStr_(std::move(instanceIdStr))
 {
   // Initialize the blockchain if latest block doesn't exist.
@@ -69,6 +69,22 @@ Storage::Storage(std::string instanceIdStr, const Options& options)
 
   latest_ = std::make_shared<const FinalizedBlock>(FinalizedBlock::fromBytes(latestBlockBytes, this->options_.getChainID()));
   LOGINFO("Latest block successfully loaded");
+
+  // If the legacy events folder exists, migrate them to the new folder
+  std::filesystem::path legacyEventsPath(options.getRootPath() + "/eventsDb/");
+  if (std::filesystem::exists(legacyEventsPath)) {
+    DB legacyEvents(legacyEventsPath);
+
+    for (uint64_t block = 0; block <= latest_.load()->getNHeight(); block++) {
+      for (const Event& event : getEventsLegacy(legacyEvents, block, block, Address(), {})) {
+        eventsDb_.putEvent(event);
+      }
+    }
+
+    legacyEvents.close();
+
+    std::filesystem::rename(legacyEventsPath, options.getRootPath() + "/legacyEventsDb/");
+  }
 }
 
 void Storage::initializeBlockchain() {
@@ -227,18 +243,7 @@ std::optional<TxAdditionalData> Storage::getTxAdditionalData(const Hash& txHash)
   return txData;
 }
 
-
-void Storage::putEvent(const Event& event) {
-  const Bytes key = Utils::makeBytes(bytes::join(
-    UintConv::uint64ToBytes(event.getBlockIndex()),
-    UintConv::uint64ToBytes(event.getTxIndex()),
-    UintConv::uint64ToBytes(event.getLogIndex()),
-    event.getAddress()
-  ));
-  eventsDb_.put(key, StrConv::stringToBytes(event.serializeToJson()), DBPrefix::events);
-}
-
-std::vector<Event> Storage::getEvents(uint64_t fromBlock, uint64_t toBlock, const Address& address, const std::vector<Hash>& topics) const {
+std::vector<Event> Storage::getEventsLegacy(const DB& legacyEventsDB, uint64_t fromBlock, uint64_t toBlock, const Address& address, const std::vector<Hash>& topics) const {
   if (toBlock < fromBlock) std::swap(fromBlock, toBlock);
 
   if (uint64_t count = toBlock - fromBlock + 1; count > options_.getEventBlockCap()) {
@@ -254,7 +259,7 @@ std::vector<Event> Storage::getEvents(uint64_t fromBlock, uint64_t toBlock, cons
   const Bytes startBytes = Utils::makeBytes(UintConv::uint64ToBytes(fromBlock));
   const Bytes endBytes = Utils::makeBytes(UintConv::uint64ToBytes(toBlock));
 
-  auto dbKeys = eventsDb_.getKeys(DBPrefix::events, startBytes, endBytes);
+  auto dbKeys = legacyEventsDB.getKeys(DBPrefix::events, startBytes, endBytes);
 
   for (Bytes key : dbKeys) {
     uint64_t nHeight = UintConv::bytesToUint64(Utils::create_view_span(key, 0, 8));
@@ -266,7 +271,7 @@ std::vector<Event> Storage::getEvents(uint64_t fromBlock, uint64_t toBlock, cons
   }
 
   if (!keys.empty()) {
-    for (DBEntry item : eventsDb_.getBatch(DBPrefix::events, keys)) {
+    for (DBEntry item : legacyEventsDB.getBatch(DBPrefix::events, keys)) {
       if (events.size() >= options_.getEventLogCap()) break;
       Event event(StrConv::bytesToString(item.value));
       if (topicsMatch(event, topics)) events.push_back(std::move(event));
@@ -274,18 +279,3 @@ std::vector<Event> Storage::getEvents(uint64_t fromBlock, uint64_t toBlock, cons
   }
   return events;
 }
-
-std::vector<Event> Storage::getEvents(uint64_t blockIndex, uint64_t txIndex) const {
-  std::vector<Event> events;
-  for (
-    Bytes fetchBytes = Utils::makeBytes(bytes::join(
-      DBPrefix::events, UintConv::uint64ToBytes(blockIndex), UintConv::uint64ToBytes(txIndex)
-    ));
-    DBEntry entry : eventsDb_.getBatch(fetchBytes)
-  ) {
-    if (events.size() >= options_.getEventLogCap()) break;
-    events.emplace_back(StrConv::bytesToString(entry.value));
-  }
-  return events;
-}
-

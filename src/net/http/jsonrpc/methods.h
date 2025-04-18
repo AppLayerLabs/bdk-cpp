@@ -182,7 +182,7 @@ namespace jsonrpc {
   json eth_estimateGas(const json& request, const Storage& storage, State& state);
   json eth_gasPrice(const json& request);
   json eth_feeHistory(const json& request, const Storage& storage);
-  json eth_getLogs(const json& request, const Storage& storage);
+  json eth_getLogs(const json& request, const Storage& storage, const Options& options);
   json eth_getBalance(const json& request, const Storage& storage, const State& state);
   json eth_getTransactionCount(const json& request, const Storage& storage, const State& state);
   json eth_getCode(const json& request, const Storage& storage, const State& state);

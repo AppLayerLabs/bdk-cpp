@@ -33,7 +33,7 @@ ContractHost::~ContractHost() {
     }
 
     for (const auto& event : context_.getEvents()) {
-      this->storage_.putEvent(event);
+      this->storage_.events().putEvent(event);
     }
 
     context_.commit();

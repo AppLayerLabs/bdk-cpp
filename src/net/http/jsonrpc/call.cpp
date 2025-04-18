@@ -86,7 +86,7 @@ json call(const json& request, State& state, const Storage& storage,
     else if (method == "eth_feeHistory")
       result = jsonrpc::eth_feeHistory(request, storage);
     else if (method == "eth_getLogs")
-      result = jsonrpc::eth_getLogs(request, storage);
+      result = jsonrpc::eth_getLogs(request, storage, options);
     else if (method == "eth_getBalance")
       result = jsonrpc::eth_getBalance(request, storage, state);
     else if (method == "eth_getTransactionCount")

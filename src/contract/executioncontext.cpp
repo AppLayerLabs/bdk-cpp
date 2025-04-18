@@ -6,7 +6,7 @@ void ExecutionContext::addEvent(Event event) {
 }
 
 void ExecutionContext::addEvent(View<Address> address, View<Bytes> data, std::vector<Hash> topics) {
-  this->addEvent(Event("", events_.size(), txHash_, txIndex_, blockHash_, blockNumber_, Address(address), Bytes(data), std::move(topics), !topics.empty()));
+  this->addEvent(Event(events_.size(), txHash_, txIndex_, blockHash_, blockNumber_, Address(address), Bytes(data), std::move(topics), !topics.empty()));
 }
 
 
