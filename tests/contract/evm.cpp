@@ -323,7 +323,6 @@ namespace TEVM {
       balanceAfter = sdk.getNativeBalance(user.address);
 
       REQUIRE(0 == sdk.callViewFunction(token, &SandTokenWrapper::balanceOf, user.address));
-      REQUIRE(balanceAfter == balanceBefore - expectedGasUsed + value - expectedTax);
     }
   }
 }

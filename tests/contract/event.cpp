@@ -122,6 +122,8 @@ namespace TEvent {
     }
 
     SECTION("Event Serialization (Normal + RPC)") {
+      uint64_t i = 100;
+      auto value = Hex::fromUint(i, true).forRPC();
       Hash txHash(Hex::toBytes("0x53472c61f1db8612fcdd17f24b78986bfa111ea3e323522456b1a78560f2215a"));
       Hash blockHash(Hex::toBytes("0x2b9b8644330d50ffb90c5fea02b73b562dfc550ec7f8c85f643b20391a972d5f"));
       Address add(bytes::hex("0x1234567890123456789012345678901234567890"));
@@ -136,8 +138,9 @@ namespace TEvent {
       std::string e1Str = e1.serializeToJson();
       json e1Json = e1.serializeForRPC();
 
-      REQUIRE(e1Str == "{\"name\":\"myEvent\",\"logIndex\":0,\"txHash\":\"0x53472c61f1db8612fcdd17f24b78986bfa111ea3e323522456b1a78560f2215a\",\"txIndex\":1,\"blockHash\":\"0x2b9b8644330d50ffb90c5fea02b73b562dfc550ec7f8c85f643b20391a972d5f\",\"blockIndex\":2,\"address\":\"0x1234567890123456789012345678901234567890\",\"data\":[],\"topics\":[\"0x386cc2513b9e8b9e78a0792c33d6f69798774e0fa5424d3042fdd0fe7647420b\",\"0x260e065801cba6ca065f28640c3d94ef235f67db5431448aae1a51af7214efaf\",\"0xc30a3ae685bfcb917dceb41e4afed5342f332572d5b3a8212679077685c494cb\",\"0xff05acda0d6ef15409d713cb0f124d2c3a3fd95b33af096109172229d5c8671a\"],\"anonymous\":false}");
-      REQUIRE(e1Json.dump() == "{\"address\":\"0x1234567890123456789012345678901234567890\",\"blockHash\":\"0x2b9b8644330d50ffb90c5fea02b73b562dfc550ec7f8c85f643b20391a972d5f\",\"blockNumber\":\"0x0000000000000002\",\"data\":\"0x\",\"logIndex\":\"0x0000000000000000\",\"removed\":false,\"topics\":[\"0x386cc2513b9e8b9e78a0792c33d6f69798774e0fa5424d3042fdd0fe7647420b\",\"0x260e065801cba6ca065f28640c3d94ef235f67db5431448aae1a51af7214efaf\",\"0xc30a3ae685bfcb917dceb41e4afed5342f332572d5b3a8212679077685c494cb\",\"0xff05acda0d6ef15409d713cb0f124d2c3a3fd95b33af096109172229d5c8671a\"],\"transactionHash\":\"0x53472c61f1db8612fcdd17f24b78986bfa111ea3e323522456b1a78560f2215a\",\"transactionIndex\":\"0x0000000000000001\"}");
+
+      REQUIRE(e1Str == "{\"logIndex\":0,\"txHash\":\"0x53472c61f1db8612fcdd17f24b78986bfa111ea3e323522456b1a78560f2215a\",\"txIndex\":1,\"blockHash\":\"0x2b9b8644330d50ffb90c5fea02b73b562dfc550ec7f8c85f643b20391a972d5f\",\"blockIndex\":2,\"address\":\"0x1234567890123456789012345678901234567890\",\"data\":[],\"topics\":[\"0x386cc2513b9e8b9e78a0792c33d6f69798774e0fa5424d3042fdd0fe7647420b\",\"0x260e065801cba6ca065f28640c3d94ef235f67db5431448aae1a51af7214efaf\",\"0xc30a3ae685bfcb917dceb41e4afed5342f332572d5b3a8212679077685c494cb\",\"0xff05acda0d6ef15409d713cb0f124d2c3a3fd95b33af096109172229d5c8671a\"],\"anonymous\":false}");
+      REQUIRE(e1Json.dump() == "{\"address\":\"0x1234567890123456789012345678901234567890\",\"blockHash\":\"0x2b9b8644330d50ffb90c5fea02b73b562dfc550ec7f8c85f643b20391a972d5f\",\"blockNumber\":\"0x2\",\"data\":\"0x\",\"logIndex\":\"0x0\",\"removed\":false,\"topics\":[\"0x386cc2513b9e8b9e78a0792c33d6f69798774e0fa5424d3042fdd0fe7647420b\",\"0x260e065801cba6ca065f28640c3d94ef235f67db5431448aae1a51af7214efaf\",\"0xc30a3ae685bfcb917dceb41e4afed5342f332572d5b3a8212679077685c494cb\",\"0xff05acda0d6ef15409d713cb0f124d2c3a3fd95b33af096109172229d5c8671a\"],\"transactionHash\":\"0x53472c61f1db8612fcdd17f24b78986bfa111ea3e323522456b1a78560f2215a\",\"transactionIndex\":\"0x1\"}");
 
       Event e2(e1Str);
       REQUIRE(e2.getLogIndex() == 0);

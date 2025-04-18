@@ -92,12 +92,7 @@ namespace TEVMCreate {
         newContractSize = sdk.getState().getEvmContracts().size();
         REQUIRE (newContractSize == contractSize + 1);
 
-        std::cout << "newContractSize: " << newContractSize << std::endl;
-
         sdk.callFunction(contractAddress, &SolFactory::createCreate2);
-
-
-
       }
     }
   }

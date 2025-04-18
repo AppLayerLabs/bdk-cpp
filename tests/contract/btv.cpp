@@ -1222,11 +1222,9 @@ namespace TBuildTheVoid {
         proposalContract = sdk.deployContract<BTVProposals>();
         btvContract = sdk.deployContract<BuildTheVoid>();
         // Set proper ownership of the contracts
-        std::cout << "Deploying energy" << std::endl;
 
         sdk.callFunction(energyContract, &BTVEnergy::transferOwnership, btvContract);
         auto energyCreationTimestamp = sdk.getLatestBlock()->getTimestamp();
-        std::cout << "Energy deployed" << std::endl;
 
         sdk.callFunction(playerContract, &BTVPlayer::setEnergyContract, energyContract);
         sdk.callFunction(playerContract, &BTVPlayer::setProposalContract, proposalContract);
@@ -1361,7 +1359,6 @@ namespace TBuildTheVoid {
         uint256_t energyValue;
         {
           auto claimTx = sdk.callFunction(btvContract, &BuildTheVoid::claimEnergy, uint64_t(0), energyX, energyY, energyZ);
-          std::cout << "Claimed Energy: " << claimTx.hex().get() << std::endl;
           auto claimEvent = sdk.getEventsEmittedByTx(claimTx, &BuildTheVoid::ClaimedEnergy);
           REQUIRE(claimEvent.size() == 1);
           auto claimData = ABI::Decoder::decodeData<uint64_t, uint256_t>(claimEvent[0].getData());
@@ -1435,7 +1432,6 @@ namespace TBuildTheVoid {
         REQUIRE_THROWS(sdk.callFunction(btvContract, &BuildTheVoid::changeBlock, uint64_t(0), int32_t(5), int32_t(8), int32_t(5), BTVUtils::BlockType::WALL));
 
         spawnChunk = BTVUtils::Chunk::deserialize(sdk.callViewFunction(btvContract, &BuildTheVoid::getChunk, 0, 0));
-        std::cout << "Ok" << std::endl;
         sdk.getState().saveToDB();
       }
 
