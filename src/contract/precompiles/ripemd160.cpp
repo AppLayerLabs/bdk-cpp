@@ -1,6 +1,6 @@
 #include "precompiles.h"
 #include "utils/address.h"
-#include <openssl/ripemd.h>
+#include "ripemd160.hpp"
 #include "contract/abi.h"
 
 namespace {
@@ -16,6 +16,6 @@ constexpr uint64_t gasRequired(size_t size) {
 Bytes precompiles::ripemd160(View<Bytes> input, Gas& gas) {
   gas.use(gasRequired(input.size()));
   Bytes output(OUTPUT_SIZE);
-  RIPEMD160(input.data(), input.size(), output.data());
+  RIPEMD160::ripemd160(input.data(), input.size(), output.data());
   return output;
 }

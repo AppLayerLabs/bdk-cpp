@@ -31,6 +31,12 @@ const PrecompilesTest testData[] = {
     .gas = Gas(720)
   },
   {
+    .precompile = &precompiles::ripemd160,
+    .input = StrConv::stringToBytes("aaaaaaaaa"),
+    .output = Utils::makeBytes(bytes::hex("d3b9ee61b83094737d0ba58db0e521c11b319aaa")),
+    .gas = Gas(720)
+  },
+  {
     .precompile = &precompiles::ecrecover,
     .input = Utils::makeBytes(bytes::hex("0x18c547e4f7b0f325ad1e56f57e26c745b09a3e503d86e00e5255ff7f715d3d1c000000000000000000000000000000000000000000000000000000000000001c73b1693892219d736caba55bdb67216e485557ea6b6af75f37096c9aa6a5a75feeb940b1d03b21e36b0e47e79769f095fe2ab855bd91e3a38756b7d75a9c4549")),
     .output = Utils::makeBytes(bytes::hex("0x000000000000000000000000a94f5374fce5edbc8e2a8697c15331677e6ebf0b")),
@@ -263,6 +269,13 @@ TEST_CASE("Precompiles", "[contract][precompiles]") {
       const Bytes20 expectedOutput = bytes::hex("0x1f853832265d16cb91fa64938c2f421fac8f6a87");
 
       REQUIRE(output == expectedOutput);
+
+      const Bytes strInput = StrConv::stringToBytes("aaaaaaaaa");
+
+      const Bytes20 strOutput = sdk.callViewFunction(contract, &PrecompilesCaller::callRIPEMD160, strInput);
+      const Bytes20 expectedStrOutput = bytes::hex("0xd3b9ee61b83094737d0ba58db0e521c11b319aaa");
+
+      REQUIRE(strOutput == expectedStrOutput);
     }
 
     {

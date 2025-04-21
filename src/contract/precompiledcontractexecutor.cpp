@@ -26,6 +26,7 @@ Bytes PrecompiledContractExecutor::execute(EncodedStaticCallMessage& msg) {
       const uint64_t dynamicGasCost = ((msg.input().size() + 31) / 32) * 3;
       msg.gas().use(15 + dynamicGasCost);
       return Bytes(msg.input());
+      return Bytes(msg.input());
     }
 
     case 0x05: 
