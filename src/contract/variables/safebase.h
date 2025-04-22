@@ -46,7 +46,7 @@ class SafeBase {
     inline bool isRegistered() const { return this->registered_; }
 
     /// Register the use of the variable within the contract.
-    void markAsUsed() {
+    void  markAsUsed() {
       if (this->owner_ != nullptr && !this->registered_ && this->shouldRegister_) {
         registerVariableUse(*owner_, *this);
         this->registered_ = true;
