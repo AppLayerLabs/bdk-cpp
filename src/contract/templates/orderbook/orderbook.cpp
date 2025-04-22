@@ -513,8 +513,8 @@ Order OrderBook::getFirstAsk() const
 std::vector<Order> OrderBook::getBids() const
 {
   std::vector<Order> ret;
-  for (const auto& bid : this->bids_) {
-    ret.push_back(bid);
+  for (auto it = this->bids_.cbegin(); it != this->bids_.cend(); ++it) {
+    ret.push_back(*it);
   }
   return ret;
 }
@@ -522,8 +522,8 @@ std::vector<Order> OrderBook::getBids() const
 std::vector<Order> OrderBook::getAsks() const
 {
   std::vector<Order> ret;
-  for (const auto& ask : this->asks_) {
-    ret.push_back(ask);
+  for (auto it = this->asks_.cbegin(); it != this->asks_.cend(); ++it) {
+    ret.push_back(*it);
   }
   return ret;
 }
@@ -537,17 +537,17 @@ OrderBook::getUserOrders(const Address& user) const
   auto& bids = std::get<0>(ret);
   auto& asks = std::get<1>(ret);
   auto& stops = std::get<2>(ret);
-  for (const auto& ask : this->asks_) {
-    const auto& askAddress = std::get<2>(ask);
-    if (askAddress == user) asks.push_back(ask);
+  for (auto it = this->asks_.cbegin(); it != this->asks_.cend(); ++it) {
+    const auto& askAddress = std::get<2>(*it);
+    if (askAddress == user) asks.push_back(*it);
   }
-  for (const auto& bid : this->bids_) {
-    const auto& bidAddress = std::get<2>(bid);
-    if (bidAddress == user) bids.push_back(bid);
+  for (auto it = this->bids_.cbegin(); it != this->bids_.cend(); ++it) {
+    const auto& bidAddress = std::get<2>(*it);
+    if (bidAddress == user) bids.push_back(*it);
   }
-  for (const auto& stop : this->stops_) {
-    const auto& stopAddress = std::get<2>(stop);
-    if (stopAddress == user) stops.push_back(stop);
+  for (auto it = this->stops_.cbegin(); it != this->stops_.cend(); ++it) {
+    const auto& stopAddress = std::get<2>(*it);
+    if (stopAddress == user) stops.push_back(*it);
   }
   return ret;
 }
