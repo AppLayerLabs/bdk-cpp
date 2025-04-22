@@ -75,12 +75,15 @@ Storage::Storage(std::string instanceIdStr, const Options& options)
   if (std::filesystem::exists(legacyEventsPath)) {
     DB legacyEvents(legacyEventsPath);
 
+    auto transaction = eventsDb_.transaction();
+
     for (uint64_t block = 0; block <= latest_.load()->getNHeight(); block++) {
       for (const Event& event : getEventsLegacy(legacyEvents, block, block, Address(), {})) {
         eventsDb_.putEvent(event);
       }
     }
 
+    transaction.commit();
     legacyEvents.close();
 
     std::filesystem::rename(legacyEventsPath, options.getRootPath() + "/legacyEventsDb/");

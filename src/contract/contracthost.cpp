@@ -32,10 +32,13 @@ ContractHost::~ContractHost() {
       this->manager_.pushBack(dynamic_cast<Dumpable*>(contract));
     }
 
+    auto transaction = this->storage_.events().transaction();
+
     for (const auto& event : context_.getEvents()) {
       this->storage_.events().putEvent(event);
     }
 
+    transaction.commit();
     context_.commit();
   }
 
