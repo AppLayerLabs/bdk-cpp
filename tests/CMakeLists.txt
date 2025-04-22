@@ -46,6 +46,7 @@ set (TESTS_SOURCES
   ${CMAKE_SOURCE_DIR}/tests/contract/executioncontext.cpp
   ${CMAKE_SOURCE_DIR}/tests/contract/evmcontractexecutor.cpp
   ${CMAKE_SOURCE_DIR}/tests/contract/throwtest.cpp
+  ${CMAKE_SOURCE_DIR}/tests/contract/orderbook.cpp
   ${CMAKE_SOURCE_DIR}/tests/contract/evmcreate.cpp
   ${CMAKE_SOURCE_DIR}/tests/contract/btv.cpp
   ${CMAKE_SOURCE_DIR}/tests/core/rdpos.cpp
