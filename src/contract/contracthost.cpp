@@ -30,9 +30,11 @@ ContractHost::~ContractHost() {
     // Metadata persistence: event logs
     // NOTE: With a bit of work, we could possibly get rid of event logging on our side
     //       and use CometBFT event/log DB and indexing for this. But it's fine as it is.
+    auto transaction = this->storage_.events().transaction();
     for (const auto& event : context_.getEvents()) {
       this->storage_.events().putEvent(event);
     }
+    transaction.commit();
     // This clears the context_ so it has to be the last step
     context_.commit();
   }

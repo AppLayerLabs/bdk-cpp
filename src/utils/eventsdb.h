@@ -22,6 +22,8 @@ public:
 
   void putEvent(const Event& event);
 
+  SQLite::Transaction transaction();
+
 private:
   SQLite::Database db_;
 };

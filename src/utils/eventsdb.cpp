@@ -213,3 +213,5 @@ std::vector<Event> EventsDB::getEvents(const EventsDB::Filters& filters) const {
 
   return events;
 }
+
+SQLite::Transaction EventsDB::transaction() { return SQLite::Transaction(db_); }
