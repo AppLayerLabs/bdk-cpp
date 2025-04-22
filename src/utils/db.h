@@ -160,7 +160,8 @@ class DB {
       keyTmp.reserve(pfx.size() + key.size());
       keyTmp.insert(keyTmp.end(), key.begin(), key.end());
       rocksdb::Slice keySlice(reinterpret_cast<const char*>(keyTmp.data()), keyTmp.size());
-      for (it->Seek(keySlice); it->Valid(); it->Next()) {
+      it->Seek(keySlice);
+      if (it->Valid()) {
         if (it->key() == keySlice) { it.reset(); return true; }
       }
       it.reset();

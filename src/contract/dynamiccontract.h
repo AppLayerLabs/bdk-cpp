@@ -56,6 +56,10 @@ class DynamicContract : public BaseContract {
       Functor, std::function<Bytes(const evmc_message& callInfo)>, SafeHash
     > evmFunctions_;
 
+    std::vector<BlockNumberObserver> blockNumberObservers_;
+
+    std::vector<BlockTimestampObserver> blockTimestampObservers_;
+
     /**
      * Register a callable function (a function that is called by a transaction),
      * adding it to the callable functions map.
@@ -328,6 +332,66 @@ class DynamicContract : public BaseContract {
       viewFunctions_[functor] = f;
     }
 
+    template<typename C>
+    void registerBlockObserver(const std::string& funcName, uint64_t blockCount, void(C::*memFunc)(), C* instance) {
+      this->registerMemberFunction(funcName, memFunc, FunctionTypes::NonPayable, instance);
+
+      if (blockCount == 0) {
+        throw DynamicException("Block count for block observer must be greater than 0");
+      }
+
+      auto callback = [memFunc, instance] (ContractHost& host) {
+        Gas gas(5'000'000);
+        const uint256_t value = 0;
+        const Address contractAddress = instance->getContractAddress();
+
+        PackedCallMessage<void(C::*)()> msg{
+          contractAddress,
+          contractAddress,
+          gas,
+          value,
+          memFunc
+        };
+
+        host.execute(msg);
+      };
+
+      const auto currentBlockNumber = ContractGlobals::getBlockHeight();
+
+      blockNumberObservers_.emplace_back(callback, currentBlockNumber + blockCount, blockCount);
+    }
+
+    template<typename Rep, typename Period, typename C>
+    void registerBlockObserver(const std::string& funcName, std::chrono::duration<Rep, Period> period, void(C::*memFunc)(), C* instance) {
+      this->registerMemberFunction(funcName, memFunc, FunctionTypes::NonPayable, instance);
+
+      auto callback = [memFunc, instance] (ContractHost& host) {
+        Gas gas(5'000'000);
+        const uint256_t value = 0;
+        const Address contractAddress = instance->getContractAddress();
+        
+        PackedCallMessage<void(C::*)()> msg{
+          contractAddress,
+          contractAddress,
+          gas,
+          value,
+          memFunc
+        };
+        
+        host.execute(msg);
+      };
+      
+      const uint64_t periodInMicroseconds = std::chrono::duration_cast<std::chrono::microseconds>(period).count();
+
+      if (periodInMicroseconds == 0) {
+        throw DynamicException("Period for block observer must be at least 1 microsecond");
+      }
+
+      const auto currentBlockTimestamp = ContractGlobals::getBlockTimestamp();
+
+      blockTimestampObservers_.emplace_back(callback, currentBlockTimestamp + periodInMicroseconds, periodInMicroseconds);
+    }
+
     /**
      * Template function for calling the register functions.
      * Should be called by the derived class.
@@ -355,6 +419,11 @@ class DynamicContract : public BaseContract {
      * @param db Reference to the database object.
      */
     DynamicContract(const Address& address, const DB& db) : BaseContract(address, db) {};
+
+    auto setHost(ContractHost& host) {
+      this->host_ = &host;
+      return PointerNullifier(this->host_);
+    }
 
     /**
      * Invoke a contract function using a tuple of (from, to, gasLimit, gasPrice, value, data).
@@ -586,7 +655,7 @@ class DynamicContract : public BaseContract {
         this->host_ = contractHost;
       }
 
-      return (static_cast<C*>(this)->*func)(args...);
+      return (dynamic_cast<C*>(this)->*func)(args...);
     }
 
     /**
@@ -604,9 +673,9 @@ class DynamicContract : public BaseContract {
         if (this->host_ == nullptr) {
           this->host_ = contractHost;
           PointerNullifier nullifier(this->host_);
-          return (static_cast<C*>(this)->*func)();
+          return (dynamic_cast<C*>(this)->*func)();
         }
-        return (static_cast<C*>(this)->*func)();
+        return (dynamic_cast<C*>(this)->*func)();
       } catch (const std::exception& e) {
         throw DynamicException(e.what());
       }
@@ -659,6 +728,14 @@ class DynamicContract : public BaseContract {
         throw DynamicException("Contracts going haywire! trying to get random number without a host!");
       }
       return host_->getRandomValue();
+    }
+
+    std::span<const BlockNumberObserver> getBlockNumberObservers() const override {
+      return blockNumberObservers_;
+    }
+
+    std::span<const BlockTimestampObserver> getBlockTimestampObservers() const override {
+      return blockTimestampObservers_;
     }
 
     /**

@@ -49,6 +49,9 @@ namespace ABI {
   /// Forward declaration for std::vector<T>.
   template<typename T> struct isTupleOfDynamicTypes<std::vector<T>>;
 
+  /// Forward delcaration for std::array<T>
+  template<typename T, size_t N> struct isTupleOfDynamicTypes<std::array<T, N>>;
+
   /// Type trait to check if T is a std::vector (defaults to false for types without args).
   template <typename T> struct isVector : std::false_type {};
 
@@ -57,6 +60,15 @@ namespace ABI {
 
   /// Helper variable template for is_vector.
   template <typename T> inline constexpr bool isVectorV = isVector<T>::value;
+
+  /// Type trait to check if T is a std::array (defaults to false for types without args).
+  template <typename T> struct isArray : std::false_type {};
+
+  /// Type trait to check if T is a std::array (defaults to true for types with args).
+  template <typename... Args, size_t N> struct isArray<std::array<Args..., N>> : std::true_type {};
+
+  /// Helper variable template for is_array.
+  template <typename T> inline constexpr bool isArrayV = isArray<T>::value;
 
   /// vectorElementType trait to get the element type of a vector.
   template <typename T> struct vectorElementType {};
@@ -68,6 +80,17 @@ namespace ABI {
 
   /// Helper alias template for vector_element_type.
   template <typename T> using vectorElementTypeT = typename vectorElementType<T>::type;
+
+  /// arrayElementType trait to get the element type of a arrayu.
+  template <typename T> struct arrayElementType {};
+
+  /// Getter for the element type of a array.
+  template <typename... Args, size_t N> struct arrayElementType<std::array<Args..., N>> {
+    using type = typename std::array<Args..., N>::value_type; ///< The element type of the aray.
+  };
+
+  /// Helper alias template for array_element_type.
+  template <typename T> using arrayElementTypeT = typename arrayElementType<T>::type;
 
   /// Helper to check if a type is a std::tuple (defaults to false for types without args).
   template <typename T> struct isTuple : std::false_type {};
@@ -91,6 +114,7 @@ namespace ABI {
       std::is_same_v<T, Bytes> || std::is_same_v<T, View<Bytes>> || std::is_same_v<T, std::string> || false
     ) return true;
     if constexpr (isVectorV<T>) return true;
+    if constexpr(isArrayV<T>) return true;
     if constexpr (isTupleOfDynamicTypes<T>::value) return true;
     return false;
   }
@@ -118,6 +142,14 @@ namespace ABI {
    * @tparam T Any type.
    */
   template<typename T> struct isTupleOfDynamicTypes<std::vector<T>> {
+    static constexpr bool value = isTupleOfDynamicTypes<T>::value; ///< For every type in T, check if it is dynamic. If it is, return true.
+  };
+
+  /**
+   * Check if a std::array contain a tuple of dynamic types.
+   * @tparam T Any type.
+   */
+  template<typename T, size_t N> struct isTupleOfDynamicTypes<std::array<T, N>> {
     static constexpr bool value = isTupleOfDynamicTypes<T>::value; ///< For every type in T, check if it is dynamic. If it is, return true.
   };
 
@@ -247,6 +279,8 @@ namespace ABI {
     template<> struct TypeName<std::string> { static std::string get() { return "string"; }};
     template<> struct TypeName<Hash> { static std::string get() { return "bytes32"; }};
 
+    template<size_t N> struct TypeName<FixedBytes<N>> { static std::string get() { return "bytes" + std::to_string(N); } };
+
     /// Enum types are encoded as uint8_t
     template<typename T>
     requires std::is_enum_v<T> struct TypeName<T> {
@@ -291,6 +325,15 @@ namespace ABI {
      * @tparam T The vector type.
      */
     template<typename T> struct TypeName<std::vector<T>> {
+      /// Get the type name.
+      static std::string get() { return TypeName<T>::get() + "[]"; }
+    };
+
+    /**
+     * TypeName specialization for std::array.
+     * @tparam T The vector type.
+     */
+    template<typename T, size_t N> struct TypeName<std::array<T, N>> {
       /// Get the type name.
       static std::string get() { return TypeName<T>::get() + "[]"; }
     };
@@ -414,6 +457,17 @@ namespace ABI {
         return len;
       }
     };
+
+    template <size_t N> struct TypeEncoder<FixedBytes<N>> {
+      static_assert(N <= 32);
+
+      static Bytes encode(const FixedBytes<N>& bytes) {
+        Bytes result(32);
+        std::ranges::copy(bytes, result.begin());
+        return result;
+      }
+    };
+
     template <> struct TypeEncoder<std::string> {
       static Bytes encode(const std::string& str) {
         View<Bytes> bytes = Utils::create_view_span(str);
@@ -481,6 +535,11 @@ namespace ABI {
       static Bytes encode(const std::vector<T>& v);
     };
 
+    // Forward declaration of TypeEncode<std::array<T>> so TypeEncoder<std::tuple<Ts...>> can see it.
+    template <typename T, size_t N> struct TypeEncoder<std::array<T, N>> {
+      static Bytes encode(const std::array<T, N>& v);
+    };
+
     // Specialization for std::tuple<T>
     template <typename... Ts> struct TypeEncoder<std::tuple<Ts...>> {
       static Bytes encode(const std::tuple<Ts...>& t) {
@@ -544,6 +603,38 @@ namespace ABI {
         return result;
       }
     };
+
+    // Specialization for std::array<T, N>
+    template <typename T, size_t N>
+    Bytes TypeEncoder<std::array<T, N>>::encode(const std::array<T, N>& v) {
+      Bytes result;
+      uint64_t nextOffset = 32 * v.size();  // First 32 bytes are the length of the dynamic array
+      if constexpr (isDynamic<T>()) {
+        // If the array is dynamic, we need to account the offsets of each tuple
+        Bytes dynamicData;
+        Bytes dynamicOffSets;
+
+        // Encode each item within the array
+        for (const auto& t : v) {
+          append(dynamicOffSets, UintConv::uint256ToBytes(nextOffset));
+          Bytes dynamicBytes = TypeEncoder<T>::encode(t);  // We're calling the encode function specialized for the T type.
+          nextOffset += dynamicBytes.size();
+          dynamicData.insert(dynamicData.end(), dynamicBytes.begin(), dynamicBytes.end());
+        }
+
+        // Add the array length, dynamic offsets and dynamic data
+        append(result, StrConv::padLeftBytes(Utils::uintToBytes(v.size()), 32));
+        append(result, dynamicOffSets);
+        result.insert(result.end(), dynamicData.begin(), dynamicData.end());
+        return result;
+      } else {
+        // Add array length and append
+        append(result, StrConv::padLeftBytes(Utils::uintToBytes(v.size()), 32));
+        for (const auto& t : v) append(result, TypeEncoder<T>::encode(t));
+        return result;
+      }
+    };
+
     ///@endcond
 
     /**
@@ -670,6 +761,11 @@ namespace ABI {
       static Bytes encode(const std::vector<T>& v);
     };
 
+    // Forward declaration of TypeEncode<std::array<T, N>> so TypeEncoder<std::tuple<Ts...>> can see it.
+    template <typename T, size_t N> struct TypeEncoder<std::array<T, N>> {
+      static Bytes encode(const std::array<T,N>& v);
+    };
+
     /// Specialization for std::tuple<T>
     template <typename... Ts> struct TypeEncoder<std::tuple<Ts...>> {
       static Bytes encode(const std::tuple<Ts...>& t) {
@@ -690,6 +786,13 @@ namespace ABI {
       for (const T& item : v) append(result, TypeEncoder<T>::encode(item));
       return result;
     };
+    // Specialization for std::array<T,N>
+    template <typename T, size_t N> Bytes TypeEncoder<std::array<T,N>>::encode(const std::array<T,N>& v) {
+      Bytes result;
+      for (const T& item : v) append(result, TypeEncoder<T>::encode(item));
+      return result;
+    };
+
     ///@endcond
 
     /**
@@ -706,7 +809,7 @@ namespace ABI {
         return Utils::sha3(Utils::create_view_span(item));
       }
       Bytes result = TypeEncoder<T>::encode(item);
-      if constexpr (isTuple<T>::value || isVector<T>::value) {
+      if constexpr (isTuple<T>::value || isVector<T>::value || isArray<T>::value) {
         return Utils::sha3(result); // If it is a dynamic type, hash the encoded result.
       }
       return Hash(result);
@@ -818,6 +921,19 @@ namespace ABI {
       }
     };
 
+    template<size_t N> struct TypeDecoder<FixedBytes<N>> {
+      static_assert(N <= 32);
+
+      static FixedBytes<N> decode(const View<Bytes>& bytes, uint64_t& index) {
+        if (index + 32 > bytes.size())
+          throw std::length_error("Data too short for bytes");
+
+        FixedBytes<N> result;
+        std::ranges::copy(bytes.subspan(index, N), result.begin());
+        return result;
+      }
+    };
+
     template <> struct TypeDecoder<std::string> {
       static std::string decode(const View<Bytes>& bytes, uint64_t& index) {
         if (index + 32 > bytes.size()) throw std::length_error("Data too short for string 1");
@@ -893,6 +1009,11 @@ namespace ABI {
       static T decode(const View<Bytes>& bytes, uint64_t& index);
     };
 
+    // Forward declaration of TypeDecode<std::array<T,N>> so TypeDecoder<std::tuple<Ts...>> can see it.
+    template <typename T> requires isArrayV<T> struct TypeDecoder<T> {
+      static T decode(const View<Bytes>& bytes, uint64_t& index);
+    };
+
     /**
      * Decode a packed std::tuple<Args...> individually.
      * Takes advantage of std::tuple_element and template recursion to parse all items within the given tuple.
@@ -954,6 +1075,35 @@ namespace ABI {
         retVector.emplace_back(TypeDecoder<ElementType>::decode(view, newIndex)); // Hic sunt recursis
       }
       return retVector;
+    };
+
+    /// Specialization for std::array<T,N>
+    template <typename T> requires isArrayV<T> T TypeDecoder<T>::decode(const View<Bytes>& bytes, uint64_t& index) {
+      using ElementType = arrayElementTypeT<T>;
+      // Get the size of the array
+      constexpr size_t argumentArrSize = std::tuple_size_v<T>;
+      std::array<ElementType, argumentArrSize> retArray;
+
+      // Get array offset
+      if (index + 32 > bytes.size()) throw std::length_error("Data too short for array");
+      Bytes tmp(bytes.begin() + index, bytes.begin() + index + 32);
+      uint64_t arrayStart = Utils::fromBigEndian<uint64_t>(tmp);
+      index += 32;
+
+      // Get array length
+      tmp.clear();
+      if (arrayStart + 32 > bytes.size()) throw std::length_error("Data too short for array");
+      tmp.insert(tmp.end(), bytes.begin() + arrayStart, bytes.begin() + arrayStart + 32);
+      uint64_t arrayLength = Utils::fromBigEndian<uint64_t>(tmp);
+
+      if (arrayLength != argumentArrSize) throw std::length_error("Array length does not match the expected size");
+      if (arrayStart + 32 > bytes.size()) throw std::length_error("Data too short for array");
+      uint64_t newIndex = 0;
+      auto view = bytes.subspan(arrayStart + 32);
+      for (uint64_t i = 0; i < arrayLength; i++) {
+        retArray[i] = TypeDecoder<ElementType>::decode(view, newIndex); // Hic sunt recursis
+      }
+      return retArray;
     };
     ///@endcond
 

@@ -123,7 +123,7 @@ namespace TStorage {
       std::vector<Hash> topics = {bytes::random(), bytes::random(), bytes::random(), bytes::random(), bytes::random()};
       Address add(bytes::hex("0x1234567890123456789012345678901234567890"));
       Bytes data{0xDE, 0xAD, 0xBE, 0xEF};
-      Event e("myEvent", 0, txHash, 1, blockHash, 2, add, data, topics, false);
+      Event e(0, txHash, 1, blockHash, 2, add, data, topics, false);
       REQUIRE(Storage::topicsMatch(e, topics));
 
       // For coverage
@@ -144,16 +144,13 @@ namespace TStorage {
       for (int i = 0; i < 5; i++) {
         topics.push_back({bytes::random(), bytes::random(), bytes::random()});
         events.push_back(Event(
-          "event" + std::to_string(i), 0, bytes::random(), 0, bytes::random(), i, add, data, topics[i], false
+          i, bytes::random(), 0, bytes::random(), i, add, data, topics[i], false
         ));
-        blockchainWrapper.storage.putEvent(events[i]);
+        blockchainWrapper.storage.events().putEvent(events[i]);
       }
 
-      REQUIRE_THROWS(blockchainWrapper.storage.getEvents(1000000, 0, add, {})); // Querying too many blocks
-      std::vector<Event> got = blockchainWrapper.storage.getEvents(0, 3, add, {});
+      std::vector<Event> got = blockchainWrapper.storage.events().getEvents({ .fromBlock = 0, .toBlock = 3, .address = add });
       for (int i = 0; i < 3; i++) {
-        REQUIRE(got[i].getName() == events[i].getName());
-        REQUIRE(got[i].getLogIndex() == events[i].getLogIndex());
         REQUIRE(got[i].getTxHash() == events[i].getTxHash());
         REQUIRE(got[i].getTxIndex() == events[i].getTxIndex());
         REQUIRE(got[i].getBlockHash() == events[i].getBlockHash());

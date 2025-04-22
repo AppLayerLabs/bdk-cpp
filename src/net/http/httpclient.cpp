@@ -49,16 +49,17 @@ std::string HTTPSyncClient::makeHTTPRequest(const std::string& reqBody) {
 
   boost::beast::flat_buffer buffer;
   // Declare a container to hold the response
-  http::response<http::dynamic_body> res;
-
+  http::response_parser<http::dynamic_body> parser;
+  parser.body_limit((std::numeric_limits<std::uint64_t>::max)());
   // Receive the HTTP response
-  http::read(stream, buffer, res, ec);
+  http::read(stream, buffer, parser, ec);
   if (ec) throw DynamicException("Error while reading the HTTP response: " + ec.message() + " " + std::to_string(ec.value()));
 
   // Write only the body answer to output
+  const auto& body = parser.get().body();
   return {
-    boost::asio::buffers_begin(res.body().data()),
-    boost::asio::buffers_end(res.body().data())
+    boost::asio::buffers_begin(body.data()),
+    boost::asio::buffers_end(body.data())
   };
 }
 

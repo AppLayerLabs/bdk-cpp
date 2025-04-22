@@ -63,7 +63,8 @@ class DumpManager : public Log::LogicalLocationProvider {
     std::pair<std::vector<DBBatch>, uint64_t> dumpState() const;
 
     /// Dump the state to DB.
-    void dumpToDB() const;
+    /// Returns 0 - Block Height, 1 - Time taken to serialize, 2 - Time taken to dump to DB
+    std::tuple<uint64_t, uint64_t, uint64_t> dumpToDB() const;
 
     /// Get the size of the dupables list.
     size_t size() const { return this->dumpables_.size(); }

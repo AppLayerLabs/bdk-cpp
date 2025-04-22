@@ -348,18 +348,6 @@ class SDKTestSuite {
     }
 
     /**
-     * Get all events emitted under a given transaction.
-     * @param txHash The hash of the transaction to look for events.
-     * @return a vector of events emitted by the transaction.
-     */
-    const std::vector<Event> getEvents(const Hash& tx) const {
-      auto txBlock = this->storage_.getTx(tx);
-      return this->storage_.getEvents(
-        std::get<3>(txBlock), std::get<2>(txBlock)
-      );
-    }
-
-    /**
      * Get the latest accepted block.
      * @return A pointer to the latest accepted block.
      */
@@ -799,9 +787,22 @@ class SDKTestSuite {
      * @return A list of matching events, limited by the block and/or log caps set above.
      */
     std::vector<Event> getEvents(
-      const uint64_t& fromBlock, const uint64_t& toBlock,
+      uint64_t fromBlock, uint64_t toBlock,
       const Address& address, const std::vector<Hash>& topics
-    ) { return this->storage_.getEvents(fromBlock, toBlock, address, topics); }
+    ) const {
+      std::vector<std::vector<Hash>> topicsFilter;
+      topicsFilter.reserve(topics.size());
+
+      std::transform(topics.begin(), topics.end(), std::back_inserter(topicsFilter), 
+        [] (const Hash& hash) { return std::vector<Hash>{hash}; });
+
+      return storage_.events().getEvents({
+        .fromBlock = fromBlock,
+        .toBlock = toBlock,
+        .address = address,
+        .topics = topicsFilter
+      });
+    }
 
     /**
      * Overload of getEvents() used by "eth_getTransactionReceipts", where
@@ -811,16 +812,20 @@ class SDKTestSuite {
      * @param txIndex The index of the transaction to look for events.
      * @return A list of matching events, limited by the block and/or log caps set above.
      */
-    std::vector<Event> getEvents(const uint64_t& blockIndex, const uint64_t& txIndex
-    ) { return this->storage_.getEvents(blockIndex, txIndex); }
+    std::vector<Event> getEvents(uint64_t blockIndex, uint64_t txIndex) const {
+      std::vector<Event> events = storage_.events().getEvents({ .fromBlock = blockIndex, .toBlock = blockIndex });
+      std::erase_if(events, [txIndex] (const Event& event) { return event.getTxIndex() != txIndex; });
+      return events;
+    }
 
     /**
      * Get all events emitted by a given confirmed transaction.
      * @param txHash The hash of the transaction to look for events.
      */
-    std::vector<Event> getEvents(const Hash& txHash) {
-      auto tx = this->storage_.getTx(txHash);
-      return this->storage_.getEvents(std::get<3>(tx), std::get<2>(tx));
+    std::vector<Event> getEvents(const Hash& txHash) const {
+      std::vector<Event> events = storage_.events().getEvents({ .blockHash = std::get<1>(storage_.getTx(txHash)) });
+      std::erase_if(events, [&txHash] (const Event& event) { return event.getTxHash() != txHash; });
+      return events;
     }
 
     /**
@@ -849,7 +854,7 @@ class SDKTestSuite {
       std::vector<Event> filteredEvents;
       // Specifically filter events from the most recent 2000 blocks
       uint64_t lastBlock = this->storage_.latest()->getNHeight();
-      uint64_t firstBlock = (lastBlock - 2000 >= 0) ? lastBlock - 2000 : 0;
+      uint64_t firstBlock = (lastBlock > 2000) ? lastBlock - 2000 : 0;
       auto allEvents = this->getEvents(firstBlock, lastBlock, address, {});
 
       // Filter the events by the topics
@@ -999,7 +1004,6 @@ class SDKTestSuite {
       std::vector<Event> filteredEvents;
       auto allEvents = this->getEvents(txHash);
 
-      // Filter the events by the topics
       for (const auto& event : allEvents) {
         if (topicsToFilter.size() == 0) {
           filteredEvents.push_back(event);

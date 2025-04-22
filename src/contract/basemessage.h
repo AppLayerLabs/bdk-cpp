@@ -105,15 +105,6 @@ private:
   View<Address> codeAddress_;
 };
 
-class CallerField {
-public:
-  explicit constexpr CallerField(const BaseContract& caller) : caller_(caller) {}
-  constexpr const BaseContract& caller() const { return caller_; }
-
-private:
-  const BaseContract& caller_;
-};
-
 template<typename M>
 class MethodField {
 public:

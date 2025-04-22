@@ -12,6 +12,7 @@ See the LICENSE.txt file in the project root for more information.
 
 #include "rdpos.h" // set, boost/unordered/unordered_flat_map.hpp
 #include "dump.h" // utils/db.h, storage.h -> utils/randomgen.h -> utils.h -> logger.h, (strings.h -> evmc/evmc.hpp), (libs/json.hpp -> boost/unordered/unordered_flat_map.hpp)
+#include "contract/blockobservers.h"
 
 // TODO: We could possibly change the bool functions into an enum function,
 // to be able to properly return each error case. We need this in order to slash invalid rdPoS blocks.
@@ -34,6 +35,7 @@ class State : public Dumpable, public Log::LogicalLocationProvider {
     boost::unordered_flat_map<StorageKey, Hash, SafeHash, SafeCompare> vmStorage_; ///< Map with the storage of the EVM.
     boost::unordered_flat_map<Address, NonNullUniquePtr<Account>, SafeHash, SafeCompare> accounts_; ///< Map with information about blockchain accounts (Address -> Account).
     boost::unordered_flat_map<Hash, TxBlock, SafeHash> mempool_; ///< TxBlock mempool.
+    BlockObservers blockObservers_;
 
     /**
      * Verify if a transaction can be accepted within the current state.
@@ -117,7 +119,8 @@ class State : public Dumpable, public Log::LogicalLocationProvider {
     void dumpStartWorker() { this->dumpWorker_.startWorker(); }
     void dumpStopWorker() { this->dumpWorker_.stopWorker(); }
     size_t getDumpManagerSize() const { std::shared_lock lock(this->stateMutex_); return this->dumpManager_.size(); }
-    void saveToDB() const { this->dumpManager_.dumpToDB(); }
+    // Returns the block height of the dump and the time it took to serialize and dump to DB.
+    std::tuple<uint64_t, uint64_t, uint64_t> saveToDB() const { return this->dumpManager_.dumpToDB(); }
     ///@}
 
     // ----------------------------------------------------------------------

@@ -42,12 +42,6 @@ public:
   decltype(auto) dispatchMessage(concepts::CallMessage auto&& msg) {
     transferFunds(msg);
 
-    if constexpr (concepts::EncodedMessage<decltype(msg)>) {
-      if (isPayment(msg)) {
-        return Bytes();
-      }
-    }
-
     if (precompiledExecutor_.isPrecompiled(msg.to())) {
       return precompiledExecutor_.execute(std::forward<decltype(msg)>(msg));
     }
@@ -62,10 +56,15 @@ public:
       case ContractType::EVM:
         return dispatchEvmCall(std::forward<decltype(msg)>(msg));
         break;
-
-      default:
-        throw DynamicException("Attempt to invoke non-contract or inexistent address");
     }
+
+    if constexpr (concepts::EncodedMessage<decltype(msg)>) {
+      if (isPayment(msg)) {
+        return Bytes();
+      }
+    }
+
+    throw DynamicException("Attempt to invoke non-contract or inexistent address");
   }
 
   decltype(auto) dispatchCppCall(auto&& msg) {

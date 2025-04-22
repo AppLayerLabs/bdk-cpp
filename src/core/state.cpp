@@ -13,6 +13,7 @@ See the LICENSE.txt file in the project root for more information.
 
 #include "../utils/uintconv.h"
 #include "bytes/random.h"
+#include "../net/http/jsonrpc/error.h"
 
 State::State(
   const DB& db,
@@ -26,9 +27,15 @@ State::State(
   dumpManager_(storage_, options_, this->stateMutex_),
   dumpWorker_(options_, storage_, dumpManager_),
   p2pManager_(p2pManager),
-  rdpos_(db, dumpManager_, storage, p2pManager, options)
+  rdpos_(db, dumpManager_, storage, p2pManager, options),
+  blockObservers_(vm_, dumpManager_, storage_, contracts_, accounts_, vmStorage_, options_)
 {
   std::unique_lock lock(this->stateMutex_);
+  if (snapshotHeight != 0) {
+    Utils::safePrint("Loading state from snapshot height: " + std::to_string(snapshotHeight));
+  }
+  auto now = std::chrono::system_clock::now();
+
   if (auto accountsFromDB = db.getBatch(DBPrefix::nativeAccounts); accountsFromDB.empty()) {
     if (snapshotHeight != 0) {
       throw DynamicException("Snapshot height is higher than 0, but no accounts found in DB");
@@ -57,14 +64,18 @@ State::State(
   }
 
   auto latestBlock = this->storage_.latest();
+  auto snapshotBlock = this->storage_.getBlock(snapshotHeight);
+  if (snapshotBlock == nullptr) {
+    throw DynamicException("Snapshot block not found!?");
+  }
+  ContractGlobals::coinbase_ = Secp256k1::toAddress(snapshotBlock->getValidatorPubKey());
+  ContractGlobals::blockHash_ = snapshotBlock->getHash();
+  ContractGlobals::blockHeight_ = snapshotBlock->getNHeight();
+  ContractGlobals::blockTimestamp_ = snapshotBlock->getTimestamp();
   // Insert the contract manager into the contracts_ map.
   this->contracts_[ProtocolContractAddresses.at("ContractManager")] = std::make_unique<ContractManager>(
-    db, this->contracts_, this->dumpManager_ ,this->options_
+    db, this->contracts_, this->dumpManager_ ,this->blockObservers_, this->options_
   );
-  ContractGlobals::coinbase_ = Secp256k1::toAddress(latestBlock->getValidatorPubKey());
-  ContractGlobals::blockHash_ = latestBlock->getHash();
-  ContractGlobals::blockHeight_ = latestBlock->getNHeight();
-  ContractGlobals::blockTimestamp_ = latestBlock->getTimestamp();
 
   // State sanity check, lets check if all found contracts in the accounts_ map really have code or are C++ contracts
   for (const auto& [addr, acc] : this->accounts_) contractSanityCheck(addr, *acc);
@@ -77,10 +88,22 @@ State::State(
   // For each nHeight from snapshotHeight + 1 to latestBlock->getNHeight()
   // We need to process the block and update the state
   // We can't call processNextBlock here, as it will place the block again on the storage
-  Utils::safePrint("Loading state from snapshot height: " + std::to_string(snapshotHeight));
   Utils::safePrint("Got latest block height: " + std::to_string(latestBlock->getNHeight()));
+  std::unique_ptr<DBBatch> reindexedTxs = std::make_unique<DBBatch>();
   for (uint64_t nHeight = snapshotHeight + 1; nHeight <= latestBlock->getNHeight(); nHeight++) {
     auto block = this->storage_.getBlock(nHeight);
+    ContractGlobals::coinbase_ = Secp256k1::toAddress(block->getValidatorPubKey());
+    ContractGlobals::blockHash_ = block->getHash();
+    ContractGlobals::blockHeight_ = block->getNHeight();
+    ContractGlobals::blockTimestamp_ = block->getTimestamp();
+    if (this->options_.getIndexingMode() == IndexingMode::RPC || this->options_.getIndexingMode() == IndexingMode::RPC_TRACE) {
+      this->storage_.reindexTransactions(*block, *reindexedTxs);
+    }
+    if (reindexedTxs->getPuts().size() > 25000) {
+      this->storage_.dumpToDisk(*reindexedTxs);
+      reindexedTxs = std::make_unique<DBBatch>();
+      LOGINFOP("Reindexing transactions at block " + block->getHash().hex().get() + " at height " + std::to_string(nHeight));
+    }
     LOGINFOP("Processing block " + block->getHash().hex().get() + " at height " + std::to_string(nHeight));
     // Update contract globals based on (now) latest block
     const Hash blockHash = block->getHash();
@@ -95,10 +118,20 @@ State::State(
       this->processTransaction(tx, blockHash, txIndex, block->getBlockRandomness());
       txIndex++;
     }
+    blockObservers_.notify(*block);
     // Process rdPoS State
     this->rdpos_.processBlock(*block);
   }
+  if (reindexedTxs->getPuts().size() > 0) {
+    LOGINFOP("Reindexing remaining transactions");
+    this->storage_.dumpToDisk(*reindexedTxs);
+  }
   this->dumpManager_.pushBack(this);
+  auto end = std::chrono::system_clock::now();
+  double elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end - now).count();
+  double elapsedInSeconds = elapsed / 1000;
+  Utils::safePrint("State loaded in " + std::to_string(elapsedInSeconds) + " seconds");
+
 }
 
 State::~State() { evmc_destroy(this->vm_); }
@@ -241,7 +274,8 @@ void State::processTransaction(
       this->dumpManager_,
       this->storage_,
       randomSeed,
-      context);
+      context,
+      &blockObservers_);
 
     std::visit([&] (auto&& msg) {
       if constexpr (concepts::CreateMessage<decltype(msg)>) {
@@ -409,6 +443,8 @@ BlockValidationStatus State::tryProcessNextBlock(FinalizedBlock&& block) {
     Utils::safePrint("Transaction: " + tx.hash().hex().get() + " was accepted in the blockchain");
   }
 
+  blockObservers_.notify(block);
+
   // Move block to storage
   this->storage_.pushBlock(std::move(block));
   return vStatus; // BlockValidationStatus::valid
@@ -495,28 +531,32 @@ Bytes State::ethCall(EncodedStaticCallMessage& msg) {
 int64_t State::estimateGas(EncodedMessageVariant msg) {
   std::unique_lock lock(this->stateMutex_);
 
-  ExecutionContext context = ExecutionContext::Builder{}
-      .storage(this->vmStorage_)
-      .accounts(this->accounts_)
-      .contracts(this->contracts_)
-      .build();
+  try {
+    ExecutionContext context = ExecutionContext::Builder{}
+    .storage(this->vmStorage_)
+    .accounts(this->accounts_)
+    .contracts(this->contracts_)
+    .build();
 
-  const Hash randomSeed = bytes::random();
+    const Hash randomSeed = bytes::random();
 
-  ContractHost host(
-    this->vm_,
-    this->dumpManager_,
-    this->storage_,
-    randomSeed,
-    context
-  );
+    ContractHost host(
+      this->vm_,
+      this->dumpManager_,
+      this->storage_,
+      randomSeed,
+      context
+    );
 
-  return std::visit([&host] (auto&& msg) {
-    const Gas& gas = msg.gas();
-    const int64_t initialGas(gas);
-    host.simulate(std::forward<decltype(msg)>(msg));
-    return initialGas - int64_t(gas);
-  }, std::move(msg));
+    return std::visit([&host] (auto&& msg) {
+      const Gas& gas = msg.gas();
+      const int64_t initialGas(gas);
+      host.simulate(std::forward<decltype(msg)>(msg));
+      return int64_t((initialGas - int64_t(gas)) * 1.15);
+    }, std::move(msg));
+  } catch (std::exception& e) {
+    throw jsonrpc::ExecutionError(-32603, std::string("Internal error: ") + e.what(), Hex::fromBytes(ABI::Encoder::encodeError(e.what()),true));
+  }
 }
 
 std::vector<std::pair<std::string, Address>> State::getCppContracts() const {
@@ -542,6 +582,17 @@ Bytes State::getContractCode(const Address &addr) const {
   auto it = this->accounts_.find(addr);
   if (it == this->accounts_.end()) {
     return {};
+  }
+  // If its a PRECOMPILE contract, we need to return "PrecompileContract-CONTRACTNAME"
+  // yes, inside a Bytes object, not a string object.
+  if (it->second->contractType == ContractType::CPP) {
+    auto contractIt = this->contracts_.find(addr);
+    if (contractIt == this->contracts_.end()) {
+      return {};
+    }
+    std::string precompileContract = "PrecompileContract-";
+    precompileContract.append(contractIt->second->getContractName());
+    return {precompileContract.begin(), precompileContract.end()};
   }
   return it->second->code;
 }

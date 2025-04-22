@@ -49,6 +49,7 @@ check_libs() {
 ETHASH_VERSION="1.0.1"
 EVMONE_VERSION="0.11.0"
 SPEEDB_VERSION="2.8.0"
+SQLITECPP_VERSION="3.3.2"
 
 # ===========================================================================
 # SCRIPT STARTS HERE
@@ -102,6 +103,7 @@ HAS_EVMC_INSTRUCTIONS=$(check_lib "libevmc-instructions.a")
 HAS_EVMC_LOADER=$(check_lib "libevmc-loader.a")
 HAS_EVMONE=$(check_lib "libevmone.a")
 HAS_SPEEDB=$(check_lib "libspeedb.a")
+HAS_SQLITECPP=$(check_lib "libSQLiteCpp.a")
 
 if [ "${1:-}" == "--check" ]; then
   echo "-- Required toolchain binaries:"
@@ -144,6 +146,7 @@ if [ "${1:-}" == "--check" ]; then
   echo -n "libevmc-loader: " && [ -n "$HAS_EVMC_LOADER" ] && echo "$HAS_EVMC_LOADER" || echo "not found"
   echo -n "libevmone: " && [ -n "$HAS_EVMONE" ] && echo "$HAS_EVMONE" || echo "not found"
   echo -n "libspeedb: " && [ -n "$HAS_SPEEDB" ] && echo "$HAS_SPEEDB" || echo "not found"
+  echo -n "libSQLiteCpp: " && [ -n "$HAS_SQLITECPP" ] && echo "$HAS_SQLITECPP" || echo "not found"
 elif [ "${1:-}" == "--install" ]; then
   # Anti-anti-sudo prevention
   if [ $(id -u) -ne 0 ]; then
@@ -214,6 +217,13 @@ elif [ "${1:-}" == "--install" ]; then
       -DWITH_LZ4=ON ..
     cmake --build . -- -j$(nproc) && cmake --install .
   fi
+  if [ -z "$HAS_SQLITECPP" ]; then
+    echo "-- Installing SQLiteCpp..."
+    cd /usr/local/src && git clone --depth 1 --branch "${SQLITECPP_VERSION}" https://github.com/SRombauts/SQLiteCpp
+    cd SQLiteCpp && mkdir build && cd build
+    cmake -DCMAKE_INSTALL_PREFIX="/usr/local" -DCMAKE_BUILD_TYPE=Release ..
+    cmake --build . -- -j$(nproc) && cmake --install .
+  fi
   echo "-- Dependencies installed"
 elif [ "${1:-}" == "--cleanext" ]; then
   # Anti-anti-sudo prevention
@@ -247,6 +257,13 @@ elif [ "${1:-}" == "--cleanext" ]; then
     rm -r "/usr/local/src/speedb"
     rm -r "/usr/local/include/rocksdb"
     rm "/usr/local/lib/libspeedb.a"
+  fi
+  if [ -n "$HAS_SQLITECPP" ]; then
+    echo "-- Uninstalling SQLiteCpp..."
+    rm "/usr/local/lib/libSQLiteCpp.a"
+    rm "/usr/local/lib/libsqlite3.a"
+    rm -r "/usr/local/include/SQLiteCpp"
+    rm -r "/usr/local/src/SQLiteCpp"
   fi
   echo "-- External dependencies cleaned, please reinstall them later with --install"
 fi

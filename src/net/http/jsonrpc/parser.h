@@ -63,7 +63,12 @@ namespace jsonrpc {
     uint64_t operator()(const json& data) const;  ///< Function call operator.
   };
 
+  /// Specialization
+  template<> struct Parser<std::string> {
+    std::string operator()(const json& data) const;  ///< Function call operator.
     /// Specialization.
+  };
+
   template<> struct Parser<uint256_t> {
     uint256_t operator()(const json& data) const;  ///< Function call operator.
   };
@@ -161,7 +166,9 @@ namespace jsonrpc {
    * @throw Error if the json can not be parsed to the specified type due to incorrect type or format.
    */
   template<typename T> auto parseArray(const json& data) {
-    if (!data.is_array()) throw Error::invalidType("array", data.type_name());
+    if (!data.is_array()) {
+      throw Error::invalidType("array", data.type_name());
+    }
     return data | std::views::transform([] (const json& elem) -> T { return Parser<T>{}(elem); });
   }
 
@@ -177,7 +184,7 @@ namespace jsonrpc {
   template<typename T, typename K> auto parseArrayIfExists(const json& data, const K& key)
   -> std::optional<std::invoke_result_t<decltype(parseArray<T>), const json&>> {
     if (!data.contains(key)) return std::nullopt;
-    return parseArray<T>(data);
+    return parseArray<T>(data.at(key));
   }
 
 } // namespace jsonrpc

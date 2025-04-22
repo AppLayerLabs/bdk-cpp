@@ -33,7 +33,7 @@ ContractHost::~ContractHost() {
     }
 
     for (const auto& event : context_.getEvents()) {
-      this->storage_.putEvent(event);
+      this->storage_.events().putEvent(event);
     }
 
     context_.commit();
@@ -41,5 +41,19 @@ ContractHost::~ContractHost() {
 
   if (messageHandler_.hasCallTrace()) {
     storage_.putCallTrace(Hash(context_.getTxHash()), messageHandler_.getCallTrace());
+  }
+}
+
+void ContractHost::addContractObservers(const BaseContract& contract) {
+  if (blockObservers_ == nullptr) {
+    return;
+  }
+
+  for (const auto& observer : contract.getBlockNumberObservers()) {
+    blockObservers_->add(observer);
+  }
+
+  for (const auto& observer : contract.getBlockTimestampObservers()) {
+    blockObservers_->add(observer);
   }
 }

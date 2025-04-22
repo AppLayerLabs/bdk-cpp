@@ -52,15 +52,15 @@ std::vector<DBEntry> DB::getBatch(
     it.reset();
     return ret;
   }
-
   // Search for specific entries from keys
-  for (it->Seek(pfx); it->Valid() && it->key().starts_with(pfx); it->Next()) {
-    auto keySlice = it->key();
-    keySlice.remove_prefix(pfx.size());
-    for (const Bytes& key : keys) {
-      if (keySlice == rocksdb::Slice(reinterpret_cast<const char*>(key.data()), key.size())) {
-        ret.emplace_back(Bytes(keySlice.data(), keySlice.data() + keySlice.size()), Bytes(it->value().data(), it->value().data() + it->value().size()));
-      }
+  for (const auto& key : keys) {
+    Bytes newPfx = bytesPfx;
+    Utils::appendBytes(newPfx, key);
+    rocksdb::Slice newPfxSlice(reinterpret_cast<const char*>(newPfx.data()), newPfx.size());
+    for (it->Seek(newPfxSlice); it->Valid() && it->key().starts_with(newPfxSlice); it->Next()) {
+      auto keySlice = it->key();
+      keySlice.remove_prefix(newPfx.size());
+      ret.emplace_back(Bytes(keySlice.data(), keySlice.data() + keySlice.size()), Bytes(it->value().data(), it->value().data() + it->value().size()));
     }
   }
   it.reset();
@@ -76,7 +76,10 @@ std::vector<Bytes> DB::getKeys(const Bytes& pfx, const Bytes& start, const Bytes
   if (!end.empty()) Utils::appendBytes(endBytes, end);
   rocksdb::Slice startSlice(reinterpret_cast<const char*>(startBytes.data()), startBytes.size());
   rocksdb::Slice endSlice(reinterpret_cast<const char*>(endBytes.data()), endBytes.size());
-  for (it->Seek(startSlice); it->Valid() && this->opts_.comparator->Compare(it->key(), endSlice) <= 0; it->Next()) {
+  for (it->Seek(startSlice); it->Valid(); it->Next()) {
+    if (this->opts_.comparator->Compare(it->key(), endSlice) > 0) {
+      if (!it->key().starts_with(endSlice)) break;
+    }
     rocksdb::Slice keySlice = it->key();
     keySlice.remove_prefix(pfx.size());
     ret.emplace_back(keySlice.data(), keySlice.data() + keySlice.size());

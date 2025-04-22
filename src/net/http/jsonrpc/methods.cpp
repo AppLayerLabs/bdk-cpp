@@ -192,7 +192,7 @@ json eth_blockNumber(const json& request, const Storage& storage) {
 json eth_call(const json& request, const Storage& storage, State& state) {
   auto [from, to, gas, value, data] = parseMessage(request, storage, true);
   EncodedStaticCallMessage msg(from, to, gas, data);
-  return Hex::fromBytes(state.ethCall(msg));
+  return Hex::fromBytes(state.ethCall(msg), true);
 }
 
 json eth_estimateGas(const json& request, const Storage& storage, State& state) {
@@ -247,32 +247,47 @@ json eth_feeHistory(const json& request, const Storage& storage) {
   return ret;
 }
 
-json eth_getLogs(const json& request, const Storage& storage) {
-  const auto [logsObj] = parseAllParams<json>(request);
-  const auto getBlockByHash = [&storage] (const Hash& hash) { return getBlockNumber(storage, hash); };
+json eth_getLogs(const json& request, const Storage& storage, const Options& options) {
+  EventsDB::Filters filters;
 
-  const std::optional<Hash> blockHash = parseIfExists<Hash>(logsObj, "blockHash");
+  const auto [params] = parseAllParams<json>(request);
 
-  const uint64_t fromBlock = parseIfExists<BlockTagOrNumber>(logsObj, "fromBlock")
-    .transform([&storage](const BlockTagOrNumber& b) { return b.number(storage); })
-    .or_else([&blockHash, &getBlockByHash]() { return blockHash.and_then(getBlockByHash); })
-    .value_or(ContractGlobals::getBlockHeight());
+  filters.blockHash = parseIfExists<Hash>(params, "blockHash");
 
-  const uint64_t toBlock = parseIfExists<BlockTagOrNumber>(logsObj, "toBlock")
-    .transform([&storage](const BlockTagOrNumber& b) { return b.number(storage); })
-    .or_else([&blockHash, &getBlockByHash]() { return blockHash.and_then(getBlockByHash); })
-    .value_or(ContractGlobals::getBlockHeight());
+  filters.fromBlock = parseIfExists<BlockTagOrNumber>(params, "fromBlock")
+    .transform([&storage](const BlockTagOrNumber& b) { return b.number(storage); });
 
-  const std::optional<Address> address = parseIfExists<Address>(logsObj, "address");
+  filters.toBlock = parseIfExists<BlockTagOrNumber>(params, "toBlock")
+    .transform([&storage](const BlockTagOrNumber& b) { return b.number(storage); });
 
-  const std::vector<Hash> topics = parseArrayIfExists<Hash>(logsObj, "topics")
-    .transform([](auto&& arr) { return makeVector<Hash>(std::forward<decltype(arr)>(arr)); })
-    .value_or(std::vector<Hash>{});
+  filters.address = parseIfExists<Address>(params, "address");
+
+  const auto topics = parseArrayIfExists<json>(params, "topics");
+
+  if (topics.has_value()) {
+    for (const json& topic : topics.value()) {
+      if (topic.is_null()) {
+        filters.topics.emplace_back(std::vector<Hash>{});
+      } else if (topic.is_array()) {
+        filters.topics.emplace_back(makeVector<Hash>(parseArray<Hash>(topic)));
+      } else {
+        filters.topics.emplace_back(std::vector<Hash>{parse<Hash>(topic)});
+      }
+    }
+  }
+
+  const uint64_t fromBlock = filters.fromBlock.value_or(0);
+  const uint64_t toBlock = filters.toBlock.value_or(storage.latest()->getNHeight());
+
+  if (toBlock - fromBlock + 1 > options.getEventBlockCap()) {
+    Error(-32000, "too many block requested");
+  }
 
   json result = json::array();
 
-  for (const auto& event : storage.getEvents(fromBlock, toBlock, address.value_or(Address{}), topics))
+  for (const auto& event : storage.events().getEvents(filters)) {
     result.push_back(event.serializeForRPC());
+  }
 
   return result;
 }
@@ -299,12 +314,10 @@ json eth_getTransactionCount(const json& request, const Storage& storage, const 
 
 json eth_getCode(const json& request, const Storage& storage, const State& state) {
   const auto [address, block] = parseAllParams<Address, BlockTagOrNumber>(request);
-
   // Same reasoning as on parseEvmcMessage (Metamask not keeping up)
   // if (!block.isLatest(storage))
   //  throw DynamicException("Only the latest block is supported");
-
-  return Hex::fromBytes(state.getContractCode(address), true).forRPC();
+  return Hex::fromBytes(state.getContractCode(address), true);
 }
 
 json eth_sendRawTransaction(const json& request, uint64_t chainId, State& state, P2P::ManagerNormal& p2p) {
@@ -461,9 +474,10 @@ json eth_getTransactionReceipt(const json& request, const Storage& storage) {
     ret["logsBloom"] = Hash().hex(true);
     ret["type"] = "0x2";
     ret["status"] = txAddData.succeeded ? "0x1" : "0x0";
-    for (const Event& e : storage.getEvents(blockHeight, txIndex)) {
+    for (const Event& e : storage.events().getEvents({ .fromBlock = blockHeight, .toBlock = blockHeight, .txIndex = txIndex })) {
       ret["logs"].push_back(e.serializeForRPC());
     }
+
     return ret;
   }
   return json::value_t::null;
@@ -488,7 +502,7 @@ json txpool_content(const json& request, const State& state) {
     txJson["blockNumber"] = json::value_t::null;
     txJson["from"] = tx.getFrom().hex(true);
     txJson["to"] = tx.getTo().hex(true);
-    txJson["gasUsed"] = json::value_t::null;
+    txJson["gas"] = Hex::fromBytes(Utils::uintToBytes(tx.getGasLimit()), true).forRPC();
     txJson["gasPrice"] = Hex::fromBytes(Utils::uintToBytes(tx.getMaxFeePerGas()),true).forRPC();
     txJson["getMaxFeePerGas"] = Hex::fromBytes(Utils::uintToBytes(tx.getMaxFeePerGas()),true).forRPC();
     txJson["chainId"] = Hex::fromBytes(Utils::uintToBytes(tx.getChainId()),true).forRPC();
@@ -558,6 +572,27 @@ json debug_traceTransaction(const json& request, const Storage& storage) {
 
   res = callTrace->toJson();
 
+  return res;
+}
+
+json appl_dumpState(const json& request, State& state, const Options& options) {
+  json res;
+  auto adminPw = options.getRPCAdminPassword();
+  if (adminPw == nullptr) {
+    throw Error(-32000, "RPC Admin password not set");
+  }
+
+  // Password is stored as a string on the JSON inside the params.
+  auto [password] = parseAllParams<std::string>(request);
+  if (password != *adminPw) {
+    throw Error(-32000, "Invalid password");
+  }
+
+  auto dumpInfo = state.saveToDB();
+  const auto& [dumpedBlockHeight, serializeTime, dumpTime] = dumpInfo;
+  res["dumpedBlockHeight"] = Hex::fromBytes(Utils::uintToBytes(dumpedBlockHeight), true).forRPC();
+  res["serializeTime"] = serializeTime;
+  res["dumpTime"] = dumpTime;
   return res;
 }
 

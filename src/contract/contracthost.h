@@ -16,6 +16,7 @@
 #include "packedmessages.h"
 #include "calltracer.h"
 #include "costs.h"
+#include "blockobservers.h"
 
 // TODO: EVMC Static Mode Handling
 // TODO: Contract creating other contracts (EVM Factories)
@@ -49,17 +50,20 @@ class ContractHost {
     bool mustRevert_ = true; // We always assume that we must revert until proven otherwise.
     ExecutionContext& context_;
     CallTracer<MessageDispatcher> messageHandler_;
+    BlockObservers *blockObservers_;
 
   public:
     ContractHost(evmc_vm* vm,
                  DumpManager& manager,
                  Storage& storage,
                  const Hash& randomnessSeed,
-                 ExecutionContext& context) :
+                 ExecutionContext& context,
+                 BlockObservers *blockObservers = nullptr) :
     manager_(manager),
     storage_(storage),
     stack_(),
     context_(context),
+    blockObservers_(blockObservers),
     messageHandler_(MessageDispatcher(context_, CppContractExecutor(context_, *this), EvmContractExecutor(context_, vm, storage.getIndexingMode()), PrecompiledContractExecutor(RandomGen(randomnessSeed))), storage.getIndexingMode()) {
       messageHandler_.handler().evmExecutor().setMessageHandler(AnyEncodedMessageHandler::from(messageHandler_)); // TODO: is this really required?
     }
@@ -105,7 +109,6 @@ class ContractHost {
         caller->getContractAddress(),
         targetAddr,
         this->getCurrentGas(),
-        *caller,
         func,
         args...);
       
@@ -135,7 +138,6 @@ class ContractHost {
         targetAddr,
         this->getCurrentGas(),
         value,
-        *caller,
         func,
         args...);
 
@@ -157,12 +159,14 @@ class ContractHost {
         caller.getContractAddress(),
         this->getCurrentGas(),
         value,
-        caller,
         std::forward<decltype(args)>(args)...
       );
 
       return this->dispatchMessage(std::move(msg));
     }
+
+    void addContractObservers(const BaseContract& contract);
+
 
     /**
      * Get a contract by its address.

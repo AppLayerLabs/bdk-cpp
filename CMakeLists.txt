@@ -61,6 +61,7 @@ set(BUILD_DISCOVERY ON CACHE BOOL "Build helper discovery node program")
 set(BUILD_TOOLS OFF CACHE BOOL "Build tools related to subnet")
 set(BUILD_TESTNET OFF CACHE BOOL "Build the project for testnet")
 set(BUILD_BENCHMARK OFF CACHE BOOL "Build with the benchmark tests")
+set(BUILD_BTVSERVER OFF CACHE BOOL "Build the BTV (Build the Void) websocket server")
 set(BUILD_VARIABLES_TESTS ON CACHE BOOL "Build tests for SafeVar (Contract variables)")
 set(USE_LINT OFF CACHE BOOL "Run linter on compile (clang-tidy)")
 if(USE_LINT)
@@ -110,6 +111,7 @@ find_package(Keccak REQUIRED)
 find_package(Scrypt REQUIRED)
 find_package(Secp256k1 REQUIRED)
 find_package(Speedb REQUIRED)
+find_package(SQLiteCpp REQUIRED)
 
 # Add catch2 as a library
 add_library(catch2
@@ -160,7 +162,7 @@ target_link_libraries(bdk_lib PRIVATE
   ${EVMC_INSTRUCTIONS_LIBRARY} ${EVMC_LOADER_LIBRARY} ${EVMONE_LIBRARY}
   ${CRYPTOPP_LIBRARIES} ${SCRYPT_LIBRARY} ${SECP256K1_LIBRARY}
   ${ETHASH_LIBRARY} ${KECCAK_LIBRARY} ${SPEEDB_LIBRARY}
-  ${Boost_LIBRARIES} ${OPENSSL_LIBRARIES} -l:liblz4.a
+  ${Boost_LIBRARIES} ${OPENSSL_LIBRARIES} -l:liblz4.a SQLiteCpp
 )
 
 add_subdirectory(src/bins)

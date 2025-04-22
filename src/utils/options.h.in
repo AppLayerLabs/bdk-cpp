@@ -266,6 +266,8 @@ class Options {
     const std::vector<std::pair<Address, uint256_t>>& getGenesisBalances() const { return this->genesisBalances_; }
     const std::vector<Address>& getGenesisValidators() const { return this->genesisValidators_; }
     IndexingMode getIndexingMode() const { return indexingMode_; }
+    std::vector<PrivKey> getExtraValidators() const;
+    std::unique_ptr<std::string> getRPCAdminPassword() const;
     ///@}
 
     /// Get the full SDK version as a SemVer string ("x.y.z").

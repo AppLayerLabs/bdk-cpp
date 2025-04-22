@@ -53,6 +53,14 @@ struct SafeHash {
     return SafeHash()(*ptr->get());
   }
 
+  template <typename T> size_t operator()(const std::unique_ptr<T>& ptr) const {
+    return SafeHash()(*ptr->get());
+  }
+
+  template <typename T> size_t operator()(const std::weak_ptr<T>& ptr) const {
+    return SafeHash()(*ptr.lock().get());
+  }
+
   size_t operator()(View<Bytes> data) const {
     return wyhash(data.data(), data.size(), 0, _wyp);
   }
@@ -62,6 +70,10 @@ struct SafeHash {
     size_t hash = (*this)(pair.first);
     boost::hash_combine(hash, pair.second);
     return hash;
+  }
+
+  size_t operator()(const std::pair<int32_t, int32_t>& pair) const {
+    return wyhash(std::bit_cast<const void*>(&pair), sizeof(pair), 0, _wyp);
   }
 
   template <typename Key, typename T> size_t operator()(const boost::unordered_flat_map<Key, T, SafeHash>& a) const {

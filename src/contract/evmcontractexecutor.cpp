@@ -121,7 +121,8 @@ static void createContractImpl(auto& msg, ExecutionContext& context, View<Addres
 }
 
 Bytes EvmContractExecutor::execute(EncodedCallMessage& msg) {
-  msg.gas().use(EVM_CONTRACT_CALL_COST);
+  // msg.gas().use(EVM_CONTRACT_CALL_COST); When executing a EVM contract
+  // We let the VM handle the gas usage
   auto depthGuard = transactional::copy(depth_); // TODO: checkpoint (and deprecate copy)
   ++depth_;
 
@@ -132,7 +133,8 @@ Bytes EvmContractExecutor::execute(EncodedCallMessage& msg) {
 }
 
 Bytes EvmContractExecutor::execute(EncodedStaticCallMessage& msg) {
-  msg.gas().use(EVM_CONTRACT_CALL_COST);
+  // msg.gas().use(EVM_CONTRACT_CALL_COST); When executing a EVM contract
+  // We let the VM handle the gas usage
   View<Bytes> code = context_.getAccount(msg.to()).getCode();
 
   auto depthGuard = transactional::copy(depth_);
@@ -143,7 +145,8 @@ Bytes EvmContractExecutor::execute(EncodedStaticCallMessage& msg) {
 }
 
 Bytes EvmContractExecutor::execute(EncodedDelegateCallMessage& msg) {
-  msg.gas().use(EVM_CONTRACT_CALL_COST);
+  // msg.gas().use(EVM_CONTRACT_CALL_COST); When executing a EVM contract
+  // We let the VM handle the gas usage
   auto depthGuard = transactional::copy(depth_);
   ++depth_;
 

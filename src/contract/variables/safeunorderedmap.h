@@ -64,7 +64,10 @@ template <typename Key, typename T> class SafeUnorderedMap : public SafeBase {
      */
     const typename boost::unordered_flat_map<Key, T, SafeHash>::iterator find(const Key& key) {
       auto it = this->value_.find(key);
-      if (it != this->value_.end()) this->copy_.try_emplace((*it).first, std::in_place, (*it).second);
+      if (it != this->value_.end()) {
+        this->copy_.try_emplace((*it).first, std::in_place, (*it).second);
+        this->markAsUsed();
+      }
       return it;
     }
 

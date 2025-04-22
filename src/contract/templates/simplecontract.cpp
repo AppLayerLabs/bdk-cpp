@@ -19,21 +19,24 @@ SimpleContract::SimpleContract(
   const Address& creator,
   const uint64_t& chainId
 ) : DynamicContract("SimpleContract", address, creator, chainId),
-  name_(this), number_(this), tuple_(this)
+  name_(this), number_(this), tuple_(this), count_(this)
 {
   this->name_ = name;
   this->number_ = number;
   this->tuple_ = tuple;
+  this->count_ = 0;
 
   this->name_.commit();
   this->number_.commit();
   this->tuple_.commit();
+  this->count_.commit();
 
   registerContractFunctions();
 
   this->name_.enableRegister();
   this->number_.enableRegister();
   this->tuple_.enableRegister();
+  this->count_.enableRegister();
 }
 
 SimpleContract::SimpleContract(
@@ -46,16 +49,19 @@ SimpleContract::SimpleContract(
     StrConv::bytesToString(db.get(std::string("tuple_name"), this->getDBPrefix())),
     UintConv::bytesToUint256(db.get(std::string("tuple_number"), this->getDBPrefix()))
   );
+  this->count_ = 0;
 
   this->name_.commit();
   this->number_.commit();
   this->tuple_.commit();
+  this->count_.commit();
 
   registerContractFunctions();
 
   this->name_.enableRegister();
   this->number_.enableRegister();
   this->tuple_.enableRegister();
+  this->count_.enableRegister();
 }
 
 SimpleContract::~SimpleContract() {};
@@ -202,6 +208,10 @@ std::tuple<std::string, uint256_t> SimpleContract::getTuple() const {
   return std::make_tuple(get<0>(this->tuple_), get<1>(this->tuple_));
 }
 
+uint256_t SimpleContract::getCount() const { return this->count_.get(); }
+
+void SimpleContract::onBlockNumber() { ++count_; }
+
 void SimpleContract::registerContractFunctions() {
   registerContract();
   this->registerMemberFunction("setName", &SimpleContract::setName, FunctionTypes::NonPayable, this);
@@ -222,6 +232,8 @@ void SimpleContract::registerContractFunctions() {
   this->registerMemberFunction("getNamesAndNumbersInTuple", &SimpleContract::getNamesAndNumbersInTuple, FunctionTypes::View, this);
   this->registerMemberFunction("getNamesAndNumbersInArrayOfArrays", &SimpleContract::getNamesAndNumbersInArrayOfArrays, FunctionTypes::View, this);
   this->registerMemberFunction("getTuple", &SimpleContract::getTuple, FunctionTypes::View, this);
+  this->registerMemberFunction("getCount", &SimpleContract::getCount, FunctionTypes::View, this);
+  this->registerBlockObserver("onBlockNumber", 1, &SimpleContract::onBlockNumber, this);
 }
 
 DBBatch SimpleContract::dump() const {
@@ -230,6 +242,7 @@ DBBatch SimpleContract::dump() const {
   dbBatch.push_back(StrConv::stringToBytes("number_"), UintConv::uint256ToBytes(this->number_.get()), this->getDBPrefix());
   dbBatch.push_back(StrConv::stringToBytes("tuple_name"), StrConv::stringToBytes(get<0>(this->tuple_)), this->getDBPrefix());
   dbBatch.push_back(StrConv::stringToBytes("tuple_number"), UintConv::uint256ToBytes(get<1>(this->tuple_)), this->getDBPrefix());
+  dbBatch.push_back(StrConv::stringToBytes("count_"), UintConv::uint256ToBytes(this->count_.get()), this->getDBPrefix());
   return dbBatch;
 }
 

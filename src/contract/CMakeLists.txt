@@ -26,6 +26,7 @@ set(CONTRACT_HEADERS
   ${CMAKE_SOURCE_DIR}/src/contract/templates/erc721test.h
   ${CMAKE_SOURCE_DIR}/src/contract/templates/erc721uristorage.h
   ${CMAKE_SOURCE_DIR}/src/contract/templates/erc20wrapper.h
+  ${CMAKE_SOURCE_DIR}/src/contract/templates/mintableerc20.h
   ${CMAKE_SOURCE_DIR}/src/contract/templates/nativewrapper.h
   ${CMAKE_SOURCE_DIR}/src/contract/templates/simplecontract.h
   ${CMAKE_SOURCE_DIR}/src/contract/templates/snailtracer.h
@@ -37,6 +38,11 @@ set(CONTRACT_HEADERS
   ${CMAKE_SOURCE_DIR}/src/contract/templates/dexv2/uq112x112.h
   ${CMAKE_SOURCE_DIR}/src/contract/templates/orderbook/orderbook.h
   ${CMAKE_SOURCE_DIR}/src/contract/templates/pebble.h
+  ${CMAKE_SOURCE_DIR}/src/contract/templates/buildthevoid.h
+  ${CMAKE_SOURCE_DIR}/src/contract/templates/btvplayer.h
+  ${CMAKE_SOURCE_DIR}/src/contract/templates/btvcommon.h
+  ${CMAKE_SOURCE_DIR}/src/contract/templates/btvenergy.h
+  ${CMAKE_SOURCE_DIR}/src/contract/templates/btvproposals.h
   ${CMAKE_SOURCE_DIR}/src/contract/templates/throwtestA.h
   ${CMAKE_SOURCE_DIR}/src/contract/templates/throwtestB.h
   ${CMAKE_SOURCE_DIR}/src/contract/templates/throwtestC.h
@@ -55,13 +61,19 @@ set(CONTRACT_SOURCES
   ${CMAKE_SOURCE_DIR}/src/contract/dynamiccontract.cpp
   ${CMAKE_SOURCE_DIR}/src/contract/trace/call.cpp
   ${CMAKE_SOURCE_DIR}/src/contract/event.cpp
+  ${CMAKE_SOURCE_DIR}/src/contract/blockobservers.cpp
   ${CMAKE_SOURCE_DIR}/src/contract/common.cpp
   ${CMAKE_SOURCE_DIR}/src/contract/executioncontext.cpp
   ${CMAKE_SOURCE_DIR}/src/contract/evmcontractexecutor.cpp
-  ${CMAKE_SOURCE_DIR}/src/contract/precompiles.cpp
+  ${CMAKE_SOURCE_DIR}/src/contract/precompiles/ecrecover.cpp
+  ${CMAKE_SOURCE_DIR}/src/contract/precompiles/sha256.cpp
+  ${CMAKE_SOURCE_DIR}/src/contract/precompiles/ripemd160.cpp
+  ${CMAKE_SOURCE_DIR}/src/contract/precompiles/blake2f.cpp
+  ${CMAKE_SOURCE_DIR}/src/contract/precompiles/modexp.cpp
   ${CMAKE_SOURCE_DIR}/src/contract/precompiledcontractexecutor.cpp
   ${CMAKE_SOURCE_DIR}/src/contract/templates/ownable.cpp
   ${CMAKE_SOURCE_DIR}/src/contract/templates/erc20.cpp
+  ${CMAKE_SOURCE_DIR}/src/contract/templates/mintableerc20.cpp
   ${CMAKE_SOURCE_DIR}/src/contract/templates/erc721.cpp
   ${CMAKE_SOURCE_DIR}/src/contract/templates/erc721test.cpp
   ${CMAKE_SOURCE_DIR}/src/contract/templates/erc721uristorage.cpp
@@ -76,6 +88,11 @@ set(CONTRACT_SOURCES
   ${CMAKE_SOURCE_DIR}/src/contract/templates/dexv2/dexv2router02.cpp
   ${CMAKE_SOURCE_DIR}/src/contract/templates/orderbook/orderbook.cpp
   ${CMAKE_SOURCE_DIR}/src/contract/templates/pebble.cpp
+  ${CMAKE_SOURCE_DIR}/src/contract/templates/buildthevoid.cpp
+  ${CMAKE_SOURCE_DIR}/src/contract/templates/btvplayer.cpp
+  ${CMAKE_SOURCE_DIR}/src/contract/templates/btvcommon.cpp
+  ${CMAKE_SOURCE_DIR}/src/contract/templates/btvenergy.cpp
+  ${CMAKE_SOURCE_DIR}/src/contract/templates/btvproposals.cpp
   ${CMAKE_SOURCE_DIR}/src/contract/templates/throwtestA.cpp
   ${CMAKE_SOURCE_DIR}/src/contract/templates/throwtestB.cpp
   ${CMAKE_SOURCE_DIR}/src/contract/templates/throwtestC.cpp

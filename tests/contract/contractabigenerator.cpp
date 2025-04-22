@@ -25,7 +25,11 @@ TEST_CASE("ContractABIGenerator helper", "[contract][contractabigenerator]") {
     json j;
     std::ifstream i("ABI/ERC20.json");
     i >> j;
-    REQUIRE(j.size() == 11);
+    #ifdef BUILD_TESTNET
+      REQUIRE(j.size() == 11);
+    #else
+      REQUIRE(j.size() == 13);
+    #endif
 
     auto findTransferFrom = std::find(j.begin(), j.end(), EXPECTED::ERC20::transferFrom);
     REQUIRE(findTransferFrom != j.end());
@@ -116,7 +120,7 @@ TEST_CASE("ContractABIGenerator helper", "[contract][contractabigenerator]") {
     std::ifstream i("ABI/SimpleContract.json");
     i >> j;
 
-    REQUIRE(j.size() == 23);
+    REQUIRE(j.size() == 25);
     auto findSetName = std::find(j.begin(), j.end(), EXPECTED::SimpleContract::setName);
     REQUIRE(findSetName != j.end());
     auto findSetNames = std::find(j.begin(), j.end(), EXPECTED::SimpleContract::setNames);
