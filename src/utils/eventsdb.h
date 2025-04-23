@@ -4,6 +4,7 @@
 #include "utils.h"
 #include "contract/event.h"
 #include "SQLiteCpp/SQLiteCpp.h"
+#include <boost/algorithm/string/case_conv.hpp>
 
 class EventsDB {
 public:

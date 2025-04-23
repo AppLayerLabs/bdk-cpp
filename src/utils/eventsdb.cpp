@@ -102,12 +102,10 @@ void EventsDB::putEvent(const Event& event) {
 }
 
 std::vector<Event> EventsDB::getEvents(const EventsDB::Filters& filters) const {
-  std::stringstream query;
-
+  std::stringstream query; // Print current clock wall with millisecond precision
   query << "SELECT address, event_index, block_number, block_hash, tx_index,"
            "       tx_hash, data, topic_0, topic_1, topic_2, topic_3"
            "  FROM events";
-
   auto whereOrAnd = [first = true] () mutable -> std::string_view {
     if (first) {
       first = false;
@@ -118,7 +116,7 @@ std::vector<Event> EventsDB::getEvents(const EventsDB::Filters& filters) const {
   };
 
   if (filters.address.has_value()) {
-    query << whereOrAnd() << " address = ?";
+    query << whereOrAnd() << " hex(address) = ?";
   }
 
   if (filters.fromBlock.has_value()) {
@@ -154,12 +152,12 @@ std::vector<Event> EventsDB::getEvents(const EventsDB::Filters& filters) const {
   }
 
   query << " ORDER BY block_number, event_index";
-
   SQLite::Statement statement(db_, query.str());
   unsigned count = 1;
-
   if (filters.address.has_value()) {
-    statement.bind(count++, filters.address.value().data(), filters.address.value().size());
+    auto addressStr = filters.address.value().hex(false).get();
+    boost::to_upper(addressStr);
+    statement.bind(count++, addressStr);
   }
 
   if (filters.fromBlock.has_value()) {
@@ -185,7 +183,6 @@ std::vector<Event> EventsDB::getEvents(const EventsDB::Filters& filters) const {
   }
 
   std::vector<Event> events;
-
   while (statement.executeStep()) {
     auto address = blobTo<Address>(statement.getColumn(0).getBlob());
     auto eventIndex = statement.getColumn(1).getUInt();
