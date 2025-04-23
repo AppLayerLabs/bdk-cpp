@@ -179,58 +179,58 @@ private:
 
   /**
    * Transfer tokens from an address to the order book contract.
-   * @param address, the address where to get the tokens from.
-   * @param amount, the amount to be transferred.
+   * @param address the address where to get the tokens from.
+   * @param amount the amount to be transferred.
    */
   inline void transferToContract(const Address& address,
                                  const uint256_t& amount);
 
   /**
    * Create a order.
-   * @param assetAmount, the order asset amount.
-   * @param assetPrice, the order asset prince.
-   * @return Order, the nearly created order.
+   * @param tokenAmount the order asset amount.
+   * @param tokenPrice the order asset prince.
+   * @return Order the nearly created order.
    */
   Order makeOrder(const uint256_t& tokenAmount,
                   const uint256_t& tokenPrice,
-                  const OrderType orderType);
+                  const OrderType orderType) const;
 
   /**
    * Execute the order, i.e, transfer the token amount to the ask owner and
    * transfer the asset amount to the bid owner.
    *
-   * @param askOwner, the address of the ask owner.
-   * @param bidOwner, the address of the bid owner.
-   * @param bidOwner, the address of the bid owner.
-   * @param tokenAmount, the token amount to be transferred to the ask owner.
-   * @param assetAmount, the asset amount to be transferred to the bid owner.
+   * @param askOwner the address of the ask owner.
+   * @param bidOwner the address of the bid owner.
+   * @param bidOwner the address of the bid owner.
+   * @param tokenAmount the token amount to be transferred to the ask owner.
+   * @param assetAmount the asset amount to be transferred to the bid owner.
    */
   void executeOrder(const Address& askOwner,
                     const Address& bidOwner,
-                    uint256_t tokenAmount,
-                    uint256_t assetAmount);
+                    const uint256_t& tokenAmount,
+                    const uint256_t& assetAmount);
 
   /**
    * Insert an ask order to the ask order list.
-   * @param askOrder, the ask order to be inserted.
+   * @param askOrder the ask order to be inserted.
    */
-  inline void insertAskOrder(const Order& askOrder);
+  inline void insertAskOrder(Order&& askOrder);
 
   /**
    * Insert an bid order to the ask order list.
-   * @param bidOrder, the bid order to be inserted.
+   * @param bidOrder the bid order to be inserted.
    */
-  inline void insertBidOrder(const Order& bidOrder);
+  inline void insertBidOrder(Order&& bidOrder);
 
   /**
    * Erase (remove) an ask order from the ask order list.
-   * @param askOrder, the ask order to be removed.
+   * @param askOrder the ask order to be removed.
    */
   inline void eraseAskOrder(const Order& askOrder);
 
   /**
    * Erase (remove) a bid order from the bid order list.
-   * @param bidOrder, the bid order to be removed.
+   * @param bidOrder the bid order to be removed.
    */
   inline void eraseBidOrder(const Order& bidOrder);
 
@@ -238,7 +238,7 @@ private:
    * Evaluate the bid order, i.e, try to find the a matching ask order and
    * execute the order pair, if the order isn't filled add the bid order to
    * the bid order list (passive order).
-   * @param bidOrder, the bid order.
+   * @param bidOrder the bid order.
    */
   void evaluateBidOrder(Order&& bidOrder);
 
@@ -246,7 +246,7 @@ private:
    * Evaluate the bid order, i.e, try to find the a matching ask order and
    * execute the order pair, if the order isn't filled the bid order is not
    * added to bid order list.
-   * @param bidOrder, the bid order.
+   * @param bidOrder the bid order.
    */
   void evaluateMarketBidOrder(Order&& bidOrder);
 
@@ -254,20 +254,20 @@ private:
    * Evaluate the ask order, i.e, try to find the a matching bid order and
    * execute the order pair, if the order isn't filled add the ask order to
    * the ask order list (passive order).
-   * @param askOrder, the ask order.
+   * @param askOrder the ask order.
    */
   void evaluateAskOrder(Order&& askOrder);
 
   /**
    * Find a matching ask order for an arbitrary bid order.
-   * @param bidOrder, the bid order.
+   * @param bidOrder the bid order.
    * @return A order pointer if an ask order was found, nullptr otherwise.
    */
   Order* findMatchAskOrder(const Order& bidOrder);
 
   /**
    * Find a matching bid order for an arbitrary ask order.
-   * @param askOrder, the ask order.
+   * @param askOrder the ask order.
    * @return A order pointer if a bid order was found, nullptr otherwise.
    */
   Order* findMatchBidOrder(const Order& askOrder);
@@ -290,7 +290,7 @@ private:
 
   /**
    * Convert token amount to token lot.
-   * @param tokenAmount, The token amount to convert.
+   * @param tokenAmount the token amount to convert.
    * @return the computed token lot
    */
   inline uint256_t tokensLot(const uint256_t& tokenAmount) const
@@ -310,8 +310,8 @@ private:
 
   /**
    * Compute the amount of token at the asset's price.
-   * @param assetAmount, The token asset amount.
-   * @param assetPrice, The token asset price.
+   * @param assetAmount the token asset amount.
+   * @param assetPrice the token asset price.
    * @return tokens to be paid regarding the asset's amount and price.
    */
   inline uint256_t tokensToBePaid(const uint256_t& assetAmount,
@@ -320,9 +320,9 @@ private:
     return ((this->tokensTick(assetAmount * assetPrice)) / this->precision_);
   }
 
-  inline bool isTickSizable(const uint256_t& tokenPrice) { return true; }
+  static inline bool isTickSizable(const uint256_t& tokenPrice) { return true; }
 
-  inline bool isLotSizable(const uint256_t& tokenPrice)
+  inline bool isLotSizable(const uint256_t& tokenPrice) const
   {
     return ((tokenPrice % this->lotSize_.get()) == 0);
   }
@@ -427,43 +427,45 @@ public:
   /**
    * Add bid limit order to be evaluated, i.e, to be executed or be put in the
    * bid order list.
-   * @param assetAmount, the bid order asset amount.
-   * @param assetPrice, the bid order asset price.
+   * @param assetAmount the bid order asset amount.
+   * @param assetPrice the bid order asset price.
    */
   void addBidLimitOrder(const uint256_t& assetAmount,
                         const uint256_t& assetPrice);
 
   /**
    * Remove the bid order from the bid order list.
-   * @param id, the bid order identifier.
+   * @param id the bid order identifier.
    */
   void delBidLimitOrder(const uint256_t& id);
 
   /**
    * Add ask limit order to be evaluated, i.e, to be executed or be put in the
    * ask order list.
-   * @param assetAmount, the ask order asset amount.
-   * @param assetPrice, the ask order asset price.
+   * @param assetAmount the ask order asset amount.
+   * @param assetPrice the ask order asset price.
    */
   void addAskLimitOrder(const uint256_t& assetAmount,
                         const uint256_t& assetPrice);
 
   /**
    * Remove the ask order from the ask order list.
-   * @param id, the ask order identifier.
+   * @param id the ask order identifier.
    */
   void delAskLimitOrder(const uint256_t& id);
 
   /**
    * Add a market ask order to be evaluated.
-   * @param assetAmount, the market ask order asset amount.
+   * @param assetAmount the market ask order asset amount.
+   * @param assetPrice the market ask order asset price.
    */
   void addAskMarketOrder(const uint256_t& assetAmount,
                          const uint256_t& assetPrice);
 
   /**
    * Add a market bid order to be evaluated.
-   * @param assetAmount, the market bid order asset amount.
+   * @param assetAmount the market bid order asset amount.
+   * @param assetPrice the market bid order asset price.
    */
   void addBidMarketOrder(const uint256_t& assetAmount,
                          const uint256_t& assetPrice);
