@@ -73,18 +73,27 @@ Storage::Storage(std::string instanceIdStr, const Options& options)
   // If the legacy events folder exists, migrate them to the new folder
   std::filesystem::path legacyEventsPath(options.getRootPath() + "/eventsDb/");
   if (std::filesystem::exists(legacyEventsPath)) {
+    Utils::safePrint("Detected legacy event DB, migrating to new DB");
     DB legacyEvents(legacyEventsPath);
 
     auto transaction = eventsDb_.transaction();
 
     for (uint64_t block = 0; block <= latest_.load()->getNHeight(); block++) {
+      if (block % 10000 == 0) {
+        Utils::safePrint("Migrated events for block " + std::to_string(block) + " total block: " + std::to_string(latest_.load()->getNHeight()) + " current progress: " + std::to_string(block * 100 / latest_.load()->getNHeight()) + "%");
+      }
+      if (block % 200000 == 0) {
+        Utils::safePrint("Reloading SQLite DB transactions");
+        transaction->commit();
+        transaction = eventsDb_.transaction();
+      }
       for (const Event& event : getEventsLegacy(legacyEvents, block, block, Address(), {})) {
         eventsDb_.putEvent(event);
       }
     }
 
-    transaction.commit();
-    legacyEvents.close();
+    transaction->commit();
+    assert(legacyEvents.close());
 
     std::filesystem::rename(legacyEventsPath, options.getRootPath() + "/legacyEventsDb/");
   }

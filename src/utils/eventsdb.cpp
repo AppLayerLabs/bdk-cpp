@@ -214,4 +214,4 @@ std::vector<Event> EventsDB::getEvents(const EventsDB::Filters& filters) const {
   return events;
 }
 
-SQLite::Transaction EventsDB::transaction() { return SQLite::Transaction(db_); }
+std::unique_ptr<SQLite::Transaction> EventsDB::transaction() { return std::make_unique<SQLite::Transaction>(db_); }

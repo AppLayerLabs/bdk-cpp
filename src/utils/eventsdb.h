@@ -22,7 +22,7 @@ public:
 
   void putEvent(const Event& event);
 
-  SQLite::Transaction transaction();
+  std::unique_ptr<SQLite::Transaction> transaction();
 
 private:
   SQLite::Database db_;

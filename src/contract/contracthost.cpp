@@ -38,7 +38,7 @@ ContractHost::~ContractHost() {
       this->storage_.events().putEvent(event);
     }
 
-    transaction.commit();
+    transaction->commit();
     context_.commit();
   }
 
