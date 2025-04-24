@@ -102,7 +102,7 @@ json call(const json& request, State& state, const Storage& storage,
     else if (method == "eth_getTransactionByBlockNumberAndIndex")
       result = jsonrpc::eth_getTransactionByBlockNumberAndIndex(request, storage);
     else if (method == "eth_getTransactionReceipt")
-      result = jsonrpc::eth_getTransactionReceipt(request, storage);
+      result = jsonrpc::eth_getTransactionReceipt(request, storage, options);
     else if (method == "eth_getUncleByBlockHashAndIndex")
       result = jsonrpc::eth_getUncleByBlockHashAndIndex();
     else if (method == "txpool_content")

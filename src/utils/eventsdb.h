@@ -19,7 +19,7 @@ public:
 
   explicit EventsDB(const std::filesystem::path& path);
 
-  std::vector<Event> getEvents(const Filters& filters) const;
+  std::vector<Event> getEvents(const Filters& filters, const int64_t& limit) const;
 
   void putEvent(const Event& event);
 

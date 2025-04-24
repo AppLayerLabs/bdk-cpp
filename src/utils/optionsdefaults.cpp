@@ -29,6 +29,7 @@ Options Options::binaryDefaultOptions(const std::string& rootPath) {
    * chainOwner,
    * wsPort,
    * httpPort,
+   * sqlQueryLimit,
    * minDiscoveryConns,
    * minNormalConns,
    * maxDiscoveryConns,

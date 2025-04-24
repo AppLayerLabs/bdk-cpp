@@ -801,7 +801,7 @@ class SDKTestSuite {
         .toBlock = toBlock,
         .address = address,
         .topics = topicsFilter
-      });
+      }, this->options_.getEventLogCap());
     }
 
     /**
@@ -813,7 +813,7 @@ class SDKTestSuite {
      * @return A list of matching events, limited by the block and/or log caps set above.
      */
     std::vector<Event> getEvents(uint64_t blockIndex, uint64_t txIndex) const {
-      std::vector<Event> events = storage_.events().getEvents({ .fromBlock = blockIndex, .toBlock = blockIndex });
+      std::vector<Event> events = storage_.events().getEvents({ .fromBlock = blockIndex, .toBlock = blockIndex }, this->options_.getEventLogCap());
       std::erase_if(events, [txIndex] (const Event& event) { return event.getTxIndex() != txIndex; });
       return events;
     }
@@ -823,7 +823,7 @@ class SDKTestSuite {
      * @param txHash The hash of the transaction to look for events.
      */
     std::vector<Event> getEvents(const Hash& txHash) const {
-      std::vector<Event> events = storage_.events().getEvents({ .blockHash = std::get<1>(storage_.getTx(txHash)) });
+      std::vector<Event> events = storage_.events().getEvents({ .blockHash = std::get<1>(storage_.getTx(txHash)) }, this->options_.getEventLogCap());
       std::erase_if(events, [&txHash] (const Event& event) { return event.getTxHash() != txHash; });
       return events;
     }

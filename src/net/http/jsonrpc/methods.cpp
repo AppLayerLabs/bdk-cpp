@@ -279,13 +279,14 @@ json eth_getLogs(const json& request, const Storage& storage, const Options& opt
   const uint64_t fromBlock = filters.fromBlock.value_or(0);
   const uint64_t toBlock = filters.toBlock.value_or(storage.latest()->getNHeight());
 
-  if (toBlock - fromBlock + 1 > options.getEventBlockCap()) {
-    Error(-32000, "too many block requested");
+  if (!filters.blockHash.has_value() && toBlock - fromBlock + 1 > options.getEventBlockCap()) {
+    throw Error(-32000, "too many blocks, requested from: " + std::to_string(fromBlock) +
+      " to: " + std::to_string(toBlock) + " max: " + std::to_string(options.getEventBlockCap()));
   }
 
   json result = json::array();
 
-  for (const auto& event : storage.events().getEvents(filters)) {
+  for (const auto& event : storage.events().getEvents(filters, options.getEventLogCap())) {
     result.push_back(event.serializeForRPC());
   }
 
@@ -446,7 +447,7 @@ json eth_getTransactionByBlockNumberAndIndex(const json& request, const Storage&
   return json::value_t::null;
 }
 
-json eth_getTransactionReceipt(const json& request, const Storage& storage) {
+json eth_getTransactionReceipt(const json& request, const Storage& storage, const Options& options) {
   requiresIndexing(storage, "eth_getTransactionReceipt");
 
   const auto [txHash] = parseAllParams<Hash>(request);
@@ -474,7 +475,7 @@ json eth_getTransactionReceipt(const json& request, const Storage& storage) {
     ret["logsBloom"] = Hash().hex(true);
     ret["type"] = "0x2";
     ret["status"] = txAddData.succeeded ? "0x1" : "0x0";
-    for (const Event& e : storage.events().getEvents({ .fromBlock = blockHeight, .toBlock = blockHeight, .txIndex = txIndex })) {
+    for (const Event& e : storage.events().getEvents({ .fromBlock = blockHeight, .toBlock = blockHeight, .txIndex = txIndex }, options.getEventLogCap())) {
       ret["logs"].push_back(e.serializeForRPC());
     }
 

@@ -77,7 +77,7 @@ EventsDB::EventsDB(const std::filesystem::path& path) : db_(makeDatabase(path)) 
   db_.exec("CREATE INDEX IF NOT EXISTS topic_3_index ON events (topic_3)");
 }
 
-void EventsDB::putEvent(const Event& event) {
+void EventsDB::putEvent(const Event &event) {
   SQLite::Statement query(db_, "INSERT INTO events VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
 
   query.bind(1, event.getAddress().data(), event.getAddress().size());
@@ -101,11 +101,21 @@ void EventsDB::putEvent(const Event& event) {
   query.exec();
 }
 
-std::vector<Event> EventsDB::getEvents(const EventsDB::Filters& filters) const {
+std::vector<Event> EventsDB::getEvents(const EventsDB::Filters& filters, const int64_t& limit) const {
   std::stringstream query; // Print current clock wall with millisecond precision
   query << "SELECT address, event_index, block_number, block_hash, tx_index,"
            "       tx_hash, data, topic_0, topic_1, topic_2, topic_3"
            "  FROM events";
+  // decide which single index to force, in priority order:
+  if (filters.fromBlock.has_value() || filters.toBlock.has_value()) {
+    query << " INDEXED BY block_number_index";
+  }
+  else if (filters.blockHash.has_value()) {
+    query << " INDEXED BY block_hash_index";
+  }
+  else if (filters.address.has_value()) {
+    query << " INDEXED BY address_index";
+  }
   auto whereOrAnd = [first = true] () mutable -> std::string_view {
     if (first) {
       first = false;
@@ -116,7 +126,7 @@ std::vector<Event> EventsDB::getEvents(const EventsDB::Filters& filters) const {
   };
 
   if (filters.address.has_value()) {
-    query << whereOrAnd() << " hex(address) = ?";
+    query << whereOrAnd() << " address = ?";
   }
 
   if (filters.fromBlock.has_value()) {
@@ -151,13 +161,11 @@ std::vector<Event> EventsDB::getEvents(const EventsDB::Filters& filters) const {
     query << ")";
   }
 
-  query << " ORDER BY block_number, event_index";
+  query << " ORDER BY block_number, event_index " << " LIMIT ?";
   SQLite::Statement statement(db_, query.str());
   unsigned count = 1;
   if (filters.address.has_value()) {
-    auto addressStr = filters.address.value().hex(false).get();
-    boost::to_upper(addressStr);
-    statement.bind(count++, addressStr);
+    statement.bind(count++, filters.address.value().data(), filters.address.value().size());
   }
 
   if (filters.fromBlock.has_value()) {
@@ -181,6 +189,8 @@ std::vector<Event> EventsDB::getEvents(const EventsDB::Filters& filters) const {
       statement.bind(count++, filters.topics[i][j].data(), filters.topics[i][j].size());
     }
   }
+
+  statement.bind(count++, limit);
 
   std::vector<Event> events;
   while (statement.executeStep()) {
@@ -208,6 +218,7 @@ std::vector<Event> EventsDB::getEvents(const EventsDB::Filters& filters) const {
     events.emplace_back(Event(eventIndex, txHash, txIndex, blockHash, blockNumber, address, std::move(data), std::move(topics), false));
   }
 
+  Utils::safePrint("Returning events...");
   return events;
 }
 

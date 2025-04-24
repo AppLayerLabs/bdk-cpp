@@ -149,7 +149,7 @@ namespace TStorage {
         blockchainWrapper.storage.events().putEvent(events[i]);
       }
 
-      std::vector<Event> got = blockchainWrapper.storage.events().getEvents({ .fromBlock = 0, .toBlock = 3, .address = add });
+      std::vector<Event> got = blockchainWrapper.storage.events().getEvents({ .fromBlock = 0, .toBlock = 3, .address = add }, blockchainWrapper.options.getEventLogCap());
       for (int i = 0; i < 3; i++) {
         REQUIRE(got[i].getTxHash() == events[i].getTxHash());
         REQUIRE(got[i].getTxIndex() == events[i].getTxIndex());

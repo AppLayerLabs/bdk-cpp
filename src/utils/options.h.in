@@ -109,7 +109,7 @@ class Options {
     const uint16_t maxDiscoveryConns_; ///< Maximum allowed simultaneous connections for Discovery nodes.
     const uint16_t maxNormalConns_; ///< Maximum allowed simultaneous connections for Normal nodes.
     const uint64_t eventBlockCap_;  ///< Maximum block range for querying contract events.
-    const uint64_t eventLogCap_;  ///< Maximum number of contract events that can be queried at once.
+    const int64_t eventLogCap_;  ///< Maximum number of contract events that can be queried at once.
     const uint64_t stateDumpTrigger_;  ///< Block number at which to dump the state. (Every X blocks dump the state)
     const uint32_t minValidators_; ///< Minimum required number of Validators for creating and signing blocks.
     const Address chainOwner_;  ///< Chain owner address (used by ContractManager for deploying contracts).
@@ -155,7 +155,7 @@ class Options {
       const boost::asio::ip::address& p2pIp, const uint16_t& p2pPort, const uint16_t& httpPort,
       const uint16_t& minDiscoveryConns, const uint16_t& minNormalConns,
       const uint16_t& maxDiscoveryConns, const uint16_t& maxNormalConns,
-      const uint64_t& eventBlockCap, const uint64_t& eventLogCap,
+      const uint64_t& eventBlockCap, const int64_t& eventLogCap,
       const uint64_t& stateDumpTrigger,
       const uint32_t& minValidators,
       const std::vector<std::pair<boost::asio::ip::address, uint64_t>>& discoveryNodes,
@@ -198,7 +198,7 @@ class Options {
       const boost::asio::ip::address& p2pIp, const uint16_t& p2pPort, const uint16_t& httpPort,
       const uint16_t& minDiscoveryConns, const uint16_t& minNormalConns,
       const uint16_t& maxDiscoveryConns, const uint16_t& maxNormalConns,
-      const uint64_t& eventBlockCap, const uint64_t& eventLogCap,
+      const uint64_t& eventBlockCap, const int64_t& eventLogCap,
       const uint64_t& stateDumpTrigger,
       const uint32_t& minValidators,
       const std::vector<std::pair<boost::asio::ip::address, uint64_t>>& discoveryNodes,
@@ -256,7 +256,7 @@ class Options {
     const uint16_t& getMaxDiscoveryConns() const { return this->maxDiscoveryConns_; }
     const uint16_t& getMaxNormalConns() const { return this->maxNormalConns_; }
     const uint64_t& getEventBlockCap() const { return this->eventBlockCap_; }
-    const uint64_t& getEventLogCap() const { return this->eventLogCap_; }
+    const int64_t& getEventLogCap() const { return this->eventLogCap_; }
     const uint64_t& getStateDumpTrigger() const { return this->stateDumpTrigger_; }
     const uint32_t& getMinValidators() const { return this->minValidators_; }
     const Address& getCoinbase() const { return this->coinbase_; }
