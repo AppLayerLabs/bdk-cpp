@@ -26,7 +26,7 @@ Options::Options(
   const std::string& rootPath, const std::string& web3clientVersion,
   const uint64_t& version, const uint64_t& chainID, const Address& chainOwner,
   const uint256_t& chainOwnerInitialBalance, const uint16_t& httpPort,
-  const uint64_t& eventBlockCap, const uint64_t& eventLogCap,
+  const uint64_t& eventBlockCap, const int64_t& eventLogCap,
   const uint64_t& stateDumpTrigger, IndexingMode indexingMode, const json& cometBFT
 ) : rootPath_(rootPath),
     web3clientVersion_(web3clientVersion),
@@ -73,7 +73,7 @@ Options Options::fromFile(const std::string& rootPath) {
       uint256_t(options["chainOwnerInitialBalance"].get<std::string>()),
       options["httpPort"].get<uint64_t>(),
       options["eventBlockCap"].get<uint64_t>(),
-      options["eventLogCap"].get<uint64_t>(),
+      options["eventLogCap"].get<int64_t>(),
       options["stateDumpTrigger"].get<uint64_t>(),
       IndexingMode(options["indexingMode"].get<std::string>()),
       options["cometBFT"]

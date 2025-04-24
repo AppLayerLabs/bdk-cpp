@@ -66,7 +66,7 @@ class Options {
     const uint64_t chainID_;  ///< Blockchain chain ID.
     const uint16_t httpPort_; ///< HTTP server port.
     const uint64_t eventBlockCap_;  ///< Maximum block range for querying contract events.
-    const uint64_t eventLogCap_;  ///< Maximum number of contract events that can be queried at once.
+    const int64_t eventLogCap_;  ///< Maximum number of contract events that can be queried at once.
     const uint64_t stateDumpTrigger_;  ///< Block number at which to dump the state (every X blocks dump the state).
     const Address chainOwner_;  ///< Chain owner address (used by ContractManager for deploying contracts).
     const uint256_t chainOwnerInitialBalance_;  ///< Initial balance in WEI for the chain owner address, applied during first init.
@@ -98,7 +98,7 @@ class Options {
       const uint256_t& chainOwnerInitialBalance,
       const uint16_t& httpPort,
       const uint64_t& eventBlockCap,
-      const uint64_t& eventLogCap,
+      const int64_t& eventLogCap,
       const uint64_t& stateDumpTrigger,
       IndexingMode indexingMode,
       const json& cometBFT_
@@ -136,7 +136,7 @@ class Options {
     const uint64_t& getChainID() const { return this->chainID_; }
     const uint16_t& getHttpPort() const { return this->httpPort_; }
     const uint64_t& getEventBlockCap() const { return this->eventBlockCap_; }
-    const uint64_t& getEventLogCap() const { return this->eventLogCap_; }
+    const int64_t& getEventLogCap() const { return this->eventLogCap_; }
     const uint64_t& getStateDumpTrigger() const { return this->stateDumpTrigger_; }
     IndexingMode getIndexingMode() const { return indexingMode_; }
     const json& getCometBFT() const { return cometBFT_; }

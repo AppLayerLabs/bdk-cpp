@@ -1338,13 +1338,14 @@ json Blockchain::eth_getLogs(const json& request) {
   const uint64_t fromBlock = filters.fromBlock.value_or(0);
   const uint64_t toBlock = filters.toBlock.value_or(latestHeight);
 
-  if (toBlock - fromBlock + 1 > options_.getEventBlockCap()) {
-    Error(-32000, "too many block requested");
+  if (!filters.blockHash.has_value() && toBlock - fromBlock + 1 > options_.getEventBlockCap()) {
+    throw Error(-32000, "too many blocks, requested from: " + std::to_string(fromBlock) +
+      " to: " + std::to_string(toBlock) + " max: " + std::to_string(options_.getEventBlockCap()));
   }
 
   json result = json::array();
 
-  for (const auto& event : storage_.events().getEvents(filters)) {
+  for (const auto& event : storage_.events().getEvents(filters, options_.getEventLogCap())) {
     result.push_back(event.serializeForRPC());
   }
 
@@ -1550,7 +1551,7 @@ json Blockchain::eth_getTransactionReceipt(const json& request) {
     ret["logsBloom"] = Hash().hex(true);
     ret["type"] = "0x2";
     ret["status"] = txAddData.succeeded ? "0x1" : "0x0";
-    for (const Event& e : storage_.events().getEvents({ .fromBlock = blockHeight, .toBlock = blockHeight, .txIndex = txIndex })) {
+    for (const Event& e : storage_.events().getEvents({ .fromBlock = blockHeight, .toBlock = blockHeight, .txIndex = txIndex }, options_.getEventLogCap())) {
       ret["logs"].push_back(e.serializeForRPC());
     }
 
