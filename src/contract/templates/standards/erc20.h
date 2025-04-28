@@ -10,13 +10,13 @@ See the LICENSE.txt file in the project root for more information.
 
 #include <memory>
 
-#include "../../utils/db.h"
-#include "../../utils/utils.h"
-#include "../abi.h"
-#include "../dynamiccontract.h"
-#include "../variables/safestring.h"
-#include "../variables/safeuint.h"
-#include "../variables/safeunorderedmap.h"
+#include "../../../utils/db.h"
+#include "../../../utils/utils.h"
+#include "../../abi.h"
+#include "../../dynamiccontract.h"
+#include "../../variables/safestring.h"
+#include "../../variables/safeuint.h"
+#include "../../variables/safeunorderedmap.h"
 #include "contract/variables/safevector.h"
 
 /// Template for an ERC20 contract.

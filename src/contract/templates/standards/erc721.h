@@ -10,14 +10,14 @@ See the LICENSE.txt file in the project root for more information.
 
 #include <memory>
 
-#include "../../utils/contractreflectioninterface.h"
-#include "../../utils/db.h"
-#include "../../utils/utils.h"
-#include "../abi.h"
-#include "../dynamiccontract.h"
-#include "../variables/safestring.h"
-#include "../variables/safeuint.h"
-#include "../variables/safeunorderedmap.h"
+#include "../../../utils/contractreflectioninterface.h"
+#include "../../../utils/db.h"
+#include "../../../utils/utils.h"
+#include "../../abi.h"
+#include "../../dynamiccontract.h"
+#include "../../variables/safestring.h"
+#include "../../variables/safeuint.h"
+#include "../../variables/safeunorderedmap.h"
 
 /// Template for an ERC721 contract.
 /// Based on OpenZeppelin v5.0.2 ERC721 implementation.

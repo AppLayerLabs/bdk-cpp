@@ -7,7 +7,7 @@ See the LICENSE.txt file in the project root for more information.
 
 #include "erc721.h"
 
-#include "../../utils/strconv.h"
+#include "../../../utils/strconv.h"
 
 ERC721::ERC721(const Address& address, const DB& db
 ) : DynamicContract(address, db), name_(this), symbol_(this),

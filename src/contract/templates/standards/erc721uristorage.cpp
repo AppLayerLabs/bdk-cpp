@@ -7,7 +7,7 @@ See the LICENSE.txt file in the project root for more information.
 
 #include "erc721uristorage.h"
 
-#include "../../utils/strconv.h"
+#include "../../../utils/strconv.h"
 
 ERC721URIStorage::ERC721URIStorage(const Address& address, const DB& db)
   : DynamicContract(address, db),

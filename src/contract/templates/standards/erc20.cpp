@@ -7,8 +7,8 @@ See the LICENSE.txt file in the project root for more information.
 
 #include "erc20.h"
 
-#include "../../utils/uintconv.h"
-#include "../../utils/strconv.h"
+#include "../../../utils/uintconv.h"
+#include "../../../utils/strconv.h"
 
 ERC20::ERC20(const Address& address, const DB& db)
 : DynamicContract(address, db), name_(this), symbol_(this), decimals_(this),

@@ -7,7 +7,7 @@ See the LICENSE.txt file in the project root for more information.
 
 #include "../../src/libs/catch2/catch_amalgamated.hpp"
 
-#include "../../src/contract/templates/erc20.h"
+#include "../../src/contract/templates/standards/erc20.h"
 #include "../../src/contract/templates/simplecontract.h"
 #include "../../src/contract/templates/testThrowVars.h"
 

@@ -13,7 +13,7 @@
 #include <utility>
 #include <vector>
 
-#include "../erc20.h"
+#include "../standards/erc20.h"
 
 #include "../../dynamiccontract.h"
 #include "../../variables/safeuint.h"

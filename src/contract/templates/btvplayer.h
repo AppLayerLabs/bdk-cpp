@@ -8,7 +8,7 @@ See the LICENSE.txt file in the project root for more information.
 #ifndef BTVPLAYER_H
 #define BTVPLAYER_H
 
-#include "erc721uristorage.h"
+#include "standards/erc721uristorage.h"
 #include "ownable.h"
 #include "../variables/safeunorderedmap.h"
 #include "../variables/safeuint.h"

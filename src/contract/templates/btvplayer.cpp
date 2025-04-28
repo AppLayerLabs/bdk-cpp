@@ -1,5 +1,5 @@
 #include "btvplayer.h"
-#include "erc20.h"
+#include "standards/erc20.h"
 #include "btvproposals.h"
 
 BTVPlayer::BTVPlayer(const Address &address, const DB &db) :

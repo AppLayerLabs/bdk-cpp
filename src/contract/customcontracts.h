@@ -5,11 +5,11 @@ This software is distributed under the MIT License.
 See the LICENSE.txt file in the project root for more information.
 */
 
-#include "templates/erc20.h"
+#include "templates/standards/erc20.h"
 #include "templates/erc20wrapper.h"
 #include "templates/nativewrapper.h"
 #include "templates/simplecontract.h"
-#include "templates/erc721.h"
+#include "templates/standards/erc721.h"
 #include "templates/dexv2/dexv2pair.h"
 #include "templates/dexv2/dexv2factory.h"
 #include "templates/dexv2/dexv2router02.h"

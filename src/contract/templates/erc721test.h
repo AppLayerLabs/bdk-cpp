@@ -8,7 +8,7 @@ See the LICENSE.txt file in the project root for more information.
 #ifndef ERC721_TEST
 #define ERC721_TEST
 
-#include "erc721.h" // ERC721Test derives from base ERC721
+#include "standards/erc721.h" // ERC721Test derives from base ERC721
 
 /**
  * ERC721Test testing class.

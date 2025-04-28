@@ -6,7 +6,7 @@
 
 #include "../src/libs/catch2/catch_amalgamated.hpp"
 
-#include "../src/contract/templates/erc20.h"
+#include "../src/contract/templates/standards/erc20.h"
 
 #include "../src/utils/uintconv.h"
 

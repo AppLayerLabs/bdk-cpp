@@ -17,7 +17,7 @@ See the LICENSE.txt file in the project root for more information.
 #include "../contractmanager.h"
 #include "../dynamiccontract.h"
 #include "../variables/safeunorderedmap.h"
-#include "erc20.h"
+#include "standards/erc20.h"
 
 /// Template for an ERC20Wrapper contract.
 class ERC20Wrapper : public DynamicContract {
