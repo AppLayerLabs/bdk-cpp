@@ -730,9 +730,21 @@ class DynamicContract : public BaseContract {
       return host_->getRandomValue();
     }
 
-    std::span<const BlockNumberObserver> getBlockNumberObservers() const override {
-      return blockNumberObservers_;
+    /**
+     * Check if the address is a existing contract.
+     * @return
+     */
+    bool isContract(const Address& address) const {
+      if (this->host_ == nullptr) {
+        throw DynamicException("Contracts going haywire! trying to check if address is a contract without a host!");
+      }
+      return host_->context().getAccount(address).getContractType() != ContractType::NOT_A_CONTRACT;
     }
+
+
+    std::span<const BlockNumberObserver> getBlockNumberObservers() const override {
+       return blockNumberObservers_;
+     }
 
     std::span<const BlockTimestampObserver> getBlockTimestampObservers() const override {
       return blockTimestampObservers_;

@@ -7,6 +7,7 @@ See the LICENSE.txt file in the project root for more information.
 
 #include "erc721.h"
 
+#include "ierc721receiver.hpp"
 #include "../../../utils/strconv.h"
 
 ERC721::ERC721(const Address& address, const DB& db
@@ -107,6 +108,8 @@ void ERC721::registerContractFunctions() {
   this->registerMemberFunction("setApprovalForAll", &ERC721::setApprovalForAll, FunctionTypes::NonPayable, this);
   this->registerMemberFunction("isApprovedForAll", &ERC721::isApprovedForAll, FunctionTypes::View, this);
   this->registerMemberFunction("transferFrom", &ERC721::transferFrom, FunctionTypes::NonPayable, this);
+  this->registerMemberFunction("safeTransferFrom", static_cast<void(ERC721::*)(const Address&, const Address&, const uint256_t&)>(&ERC721::safeTransferFrom), FunctionTypes::NonPayable, this);
+  this->registerMemberFunction("safeTransferFrom", static_cast<void(ERC721::*)(const Address&, const Address&, const uint256_t&, const Bytes&)>(&ERC721::safeTransferFrom), FunctionTypes::NonPayable, this);
 }
 
 Address ERC721::ownerOf_(const uint256_t& tokenId) const {
@@ -248,6 +251,15 @@ void ERC721::requireMinted_(const uint256_t& tokenId) const {
   }
 }
 
+void ERC721::checkOnERC721Received_(const Address& from, const Address& to, const uint256_t& tokenId, const Bytes& data) {
+  if (this->isContract(to)) {
+    auto result = this->callContractFunction(to, &IERC721Receiver::onERC721Received, from, to, tokenId, data);
+    if (result != IERC721Receiver::onERC721ReceiverSelector()) {
+      throw DynamicException("ERC721::checkOnERC721Received_: transfer to non ERC721Receiver implementer");
+    }
+  }
+}
+
 bool ERC721::isApprovedForAll(const Address& owner, const Address& operatorAddress) const {
   auto it = this->operatorAddressApprovals_.find(owner);
   if (it == this->operatorAddressApprovals_.cend()) return false;
@@ -258,6 +270,15 @@ bool ERC721::isApprovedForAll(const Address& owner, const Address& operatorAddre
 
 void ERC721::transferFrom(const Address& from, const Address& to, const uint256_t& tokenId) {
   this->transfer_(from, to, tokenId);
+}
+
+void ERC721::safeTransferFrom(const Address& from, const Address& to, const uint256_t& tokenId, const Bytes& data) {
+  this->transfer_(from, to, tokenId);
+  this->checkOnERC721Received_(from, to, tokenId, data);
+}
+
+void ERC721::safeTransferFrom(const Address& from, const Address& to, const uint256_t& tokenId) {
+  this->safeTransferFrom(from, to, tokenId, Bytes());
 }
 
 DBBatch ERC721::dump() const {

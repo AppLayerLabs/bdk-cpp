@@ -17,6 +17,7 @@ ContractManager::ContractManager(
 ) : BaseContract("ContractManager", ProtocolContractAddresses.at("ContractManager"),
   options.getChainOwner(), options.getChainID()), contracts_(contracts), manager_(manager)
 {
+  ContractFactory::registerContracts<InterfaceTypes>();
   ContractFactory::registerContracts<ContractTypes>();
   ContractFactory::addAllContractFuncs<ContractTypes>(this->createContractFuncs_);
   // Load Contracts from DB
