@@ -667,6 +667,17 @@ class DynamicContract : public BaseContract {
      * @param variable The variable that is used.
      */
     friend void registerVariableUse(DynamicContract& contract, SafeBase& variable);
+
+    /**
+     * Check if the address is a existing contract.
+     * @return
+     */
+    bool isContract(const Address& address) const {
+      if (this->host_ == nullptr) {
+        throw DynamicException("Contracts going haywire! trying to check if address is a contract without a host!");
+      }
+      return host_->context().getAccount(address).getContractType() != ContractType::NOT_A_CONTRACT;
+    }
 };
 
 #endif // DYNAMICCONTRACT_H

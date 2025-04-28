@@ -20,7 +20,10 @@ See the LICENSE.txt file in the project root for more information.
 
 // Only need to register contract templates once
 std::once_flag State::stateRegisterContractsFlag;
-void State::registerContracts() { ContractFactory::registerContracts<ContractTypes>(); }
+void State::registerContracts() {
+  ContractFactory::registerContracts<ContractTypes>();
+  ContractFactory::registerContracts<InterfaceTypes>();
+}
 
 State::State(Blockchain& blockchain) : blockchain_(blockchain), vm_(evmc_create_evmone()) {
   // Register all contract templates in this binary at the ContractFactory

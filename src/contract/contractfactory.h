@@ -10,7 +10,6 @@ See the LICENSE.txt file in the project root for more information.
 
 // Leave it in to avoid "invalid use of incomplete type" warnings
 #include "contracthost.h" // utils/{contractreflectioninterface.h,safehash.h,string.h,utils.h}, contractmanager.h -> abi.h, contract.h
-
 #include "../utils/evmcconv.h"
 #include "../utils/uintconv.h"
 

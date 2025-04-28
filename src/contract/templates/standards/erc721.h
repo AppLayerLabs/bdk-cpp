@@ -156,6 +156,11 @@ protected:
    */
   void requireMinted_(const uint256_t &tokenId) const;
 
+  /**
+   * Check if the receipient can receive a ERC721 token.
+   */
+  void checkOnERC721Received_(const Address& from, const Address& to, const uint256_t& tokenId, const Bytes& data);
+
   void registerContractFunctions() override;
 
 public:
@@ -319,6 +324,25 @@ public:
   void transferFrom(const Address &from, const Address &to,
                     const uint256_t &tokenId);
 
+  /**
+   * Safely transfer a token from one address to another.
+   * Solidity counterpart: function safeTransferFrom(address from, address to, uint256 tokenId, bytes calldata data) external;
+   * @param from The address to transfer the token from.
+   * @param to The address to transfer the token to.
+   * @param tokenId The tokenId to transfer.
+   * @param data The data to pass to the recipient contract.
+   */
+  void safeTransferFrom(const Address &from, const Address &to, const uint256_t &tokenId, const Bytes& data);
+
+  /**
+   * Safely transfer a token from one address to another.
+   * Solidity counterpart: function safeTransferFrom(address from, address to, uint256 tokenId) external;
+   * @param from The address to transfer the token from.
+   * @param to The address to transfer the token to.
+   * @param tokenId The tokenId to transfer.
+   */
+  void safeTransferFrom(const Address &from, const Address &to, const uint256_t &tokenId);
+
   /// Register contract class via ContractReflectionInterface.
   static void registerContract() {
     ContractReflectionInterface::registerContractMethods<
@@ -347,6 +371,14 @@ public:
         std::make_tuple("isApprovedForAll", &ERC721::isApprovedForAll, FunctionTypes::View,
                         std::vector<std::string>{"owner", "operatorAddress"}),
         std::make_tuple("transferFrom", &ERC721::transferFrom, FunctionTypes::NonPayable,
+                        std::vector<std::string>{"from", "to", "tokenId"}),
+        std::make_tuple("safeTransferFrom",
+                        static_cast<void(ERC721::*)(const Address&, const Address&, const uint256_t&, const Bytes&)>(&ERC721::safeTransferFrom),
+                        FunctionTypes::NonPayable,
+                        std::vector<std::string>{"from", "to", "tokenId", "data"}),
+        std::make_tuple("safeTransferFrom",
+                        static_cast<void(ERC721::*)(const Address&, const Address&, const uint256_t&)>(&ERC721::safeTransferFrom),
+                        FunctionTypes::NonPayable,
                         std::vector<std::string>{"from", "to", "tokenId"}));
     ContractReflectionInterface::registerContractEvents<ERC721>(
         std::make_tuple("Transfer", false, &ERC721::Transfer, std::vector<std::string>{"from","to", "tokenId"}),

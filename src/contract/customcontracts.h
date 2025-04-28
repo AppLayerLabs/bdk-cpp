@@ -13,6 +13,7 @@ See the LICENSE.txt file in the project root for more information.
 #include "templates/nativewrapper.h"
 #include "templates/simplecontract.h"
 #include "templates/standards/erc721.h"
+#include "templates/standards/ierc721receiver.hpp"
 #include "templates/dexv2/dexv2pair.h"
 #include "templates/dexv2/dexv2factory.h"
 #include "templates/dexv2/dexv2router02.h"
@@ -29,6 +30,8 @@ See the LICENSE.txt file in the project root for more information.
 #include "templates/pebble.h"
 #include "templates/systemcontract.h"
 #include "templates/mintableerc20.h"
+
+using InterfaceTypes = std::tuple<IERC721Receiver>;
 
 /// Typedef for the blockchain's registered contracts.
 #ifdef BUILD_TESTNET
