@@ -17,7 +17,7 @@ See the LICENSE.txt file in the project root for more information.
 #include "../variables/safestring.h"
 #include "../variables/safeunorderedmap.h"
 #include "ownable.h"
-#include "erc20.h"
+#include "standards/erc20.h"
 
 /// Template for a Mintable ERC20 contract.
 class ERC20Mintable : virtual public ERC20, virtual public Ownable {

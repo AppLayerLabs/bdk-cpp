@@ -21,10 +21,10 @@ set(CONTRACT_HEADERS
   ${CMAKE_SOURCE_DIR}/src/contract/variables/safeunorderedmap.h
   ${CMAKE_SOURCE_DIR}/src/contract/variables/safevector.h
   ${CMAKE_SOURCE_DIR}/src/contract/variables/safetuple.h
-  ${CMAKE_SOURCE_DIR}/src/contract/templates/erc20.h
-  ${CMAKE_SOURCE_DIR}/src/contract/templates/erc721.h
+  ${CMAKE_SOURCE_DIR}/src/contract/templates/standards/erc20.h
+  ${CMAKE_SOURCE_DIR}/src/contract/templates/standards/erc721.h
+  ${CMAKE_SOURCE_DIR}/src/contract/templates/standards/erc721uristorage.h
   ${CMAKE_SOURCE_DIR}/src/contract/templates/erc721test.h
-  ${CMAKE_SOURCE_DIR}/src/contract/templates/erc721uristorage.h
   ${CMAKE_SOURCE_DIR}/src/contract/templates/erc20wrapper.h
   ${CMAKE_SOURCE_DIR}/src/contract/templates/mintableerc20.h
   ${CMAKE_SOURCE_DIR}/src/contract/templates/nativewrapper.h
@@ -67,11 +67,11 @@ set(CONTRACT_SOURCES
   ${CMAKE_SOURCE_DIR}/src/contract/precompiles/modexp.cpp
   ${CMAKE_SOURCE_DIR}/src/contract/precompiledcontractexecutor.cpp
   ${CMAKE_SOURCE_DIR}/src/contract/templates/ownable.cpp
-  ${CMAKE_SOURCE_DIR}/src/contract/templates/erc20.cpp
+  ${CMAKE_SOURCE_DIR}/src/contract/templates/standards/erc20.cpp
+  ${CMAKE_SOURCE_DIR}/src/contract/templates/standards/erc721.cpp
+  ${CMAKE_SOURCE_DIR}/src/contract/templates/standards/erc721uristorage.cpp
   ${CMAKE_SOURCE_DIR}/src/contract/templates/mintableerc20.cpp
-  ${CMAKE_SOURCE_DIR}/src/contract/templates/erc721.cpp
   ${CMAKE_SOURCE_DIR}/src/contract/templates/erc721test.cpp
-  ${CMAKE_SOURCE_DIR}/src/contract/templates/erc721uristorage.cpp
   ${CMAKE_SOURCE_DIR}/src/contract/templates/erc20wrapper.cpp
   ${CMAKE_SOURCE_DIR}/src/contract/templates/nativewrapper.cpp
   ${CMAKE_SOURCE_DIR}/src/contract/templates/simplecontract.cpp

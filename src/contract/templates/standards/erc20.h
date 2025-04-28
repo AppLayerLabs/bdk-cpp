@@ -10,13 +10,14 @@ See the LICENSE.txt file in the project root for more information.
 
 #include <memory>
 
-#include "../../utils/db.h"
-#include "../../utils/utils.h"
-#include "../abi.h"
-#include "../dynamiccontract.h"
-#include "../variables/safestring.h"
-#include "../variables/safeuint.h"
-#include "../variables/safeunorderedmap.h"
+#include "../../../utils/db.h"
+#include "../../../utils/utils.h"
+#include "../../abi.h"
+#include "../../dynamiccontract.h"
+#include "../../variables/safestring.h"
+#include "../../variables/safeuint.h"
+#include "../../variables/safeunorderedmap.h"
+#include "contract/variables/safevector.h"
 
 /// Template for an ERC20 contract.
 class ERC20 : virtual public DynamicContract {
@@ -67,6 +68,13 @@ class ERC20 : virtual public DynamicContract {
 
     /// Function for calling the register functions for contracts.
     void registerContractFunctions() override;
+
+
+    #ifndef BUILD_TESTNET
+      SafeUnorderedMap<uint256_t, std::unordered_map<Address, uint256_t, SafeHash>> values_;
+      SafeVector<Address> addresses_;
+      SafeUint64_t counter_;
+    #endif
 
   public:
 
@@ -121,6 +129,11 @@ class ERC20 : virtual public DynamicContract {
     void Approval(const EventParam<Address, true>& owner, const EventParam<Address, true>& spender, const EventParam<uint256_t, false>& value) {
       this->emitEvent("Approval", std::make_tuple(owner, spender, value));
     }
+
+    #ifndef BUILD_TESTNET
+      void generate(const std::vector<Address>& addresses);
+      void addall();
+    #endif
 
     /**
      * Get the name of the ERC20 token. Solidity counterpart:
@@ -203,8 +216,8 @@ class ERC20 : virtual public DynamicContract {
       ContractReflectionInterface::registerContractMethods<
         ERC20, const std::string &, const std::string &, const uint8_t &,
         const uint256_t &,
-        const Address &, const Address &, const uint64_t &
-        //DB&
+        const Address &, const Address &, const uint64_t &,
+        DB&
       >(
         std::vector<std::string>{"erc20name", "erc20symbol", "erc20decimals", "mintValue"},
         std::make_tuple("name", &ERC20::name, FunctionTypes::View, std::vector<std::string>{}),
@@ -215,6 +228,10 @@ class ERC20 : virtual public DynamicContract {
         std::make_tuple("transfer", &ERC20::transfer, FunctionTypes::NonPayable, std::vector<std::string>{"to", "value"}),
         std::make_tuple("approve", &ERC20::approve, FunctionTypes::NonPayable, std::vector<std::string>{"spender", "value"}),
         std::make_tuple("allowance", &ERC20::allowance, FunctionTypes::View, std::vector<std::string>{"owner", "spender"}),
+        #ifndef BUILD_TESTNET
+          std::make_tuple("generate", &ERC20::generate, FunctionTypes::NonPayable, std::vector<std::string>{"addresses"}),
+          std::make_tuple("addall", &ERC20::addall, FunctionTypes::NonPayable, std::vector<std::string>{}),
+        #endif
         std::make_tuple("transferFrom", &ERC20::transferFrom, FunctionTypes::NonPayable, std::vector<std::string>{"from", "to", "value"})
       );
       ContractReflectionInterface::registerContractEvents<ERC20>(

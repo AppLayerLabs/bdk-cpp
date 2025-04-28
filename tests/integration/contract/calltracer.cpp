@@ -9,7 +9,7 @@ See the LICENSE.txt file in the project root for more information.
 
 #include "contract/calltracer.h"
 
-#include "contract/templates/erc20.h"
+#include "contract/templates/standards/erc20.h"
 #include "contract/templates/erc20wrapper.h"
 #include "contract/templates/simplecontract.h"
 

@@ -18,7 +18,7 @@ See the LICENSE.txt file in the project root for more information.
 #include "../../variables/safeaddress.h"
 #include "../../variables/safestring.h"
 #include "../../variables/safeunorderedmap.h"
-#include "../erc20.h"
+#include "../standards/erc20.h"
 #include "uq112x112.h"
 
 /// Template for an DEXV2Pair contract.
