@@ -277,7 +277,13 @@ namespace BTVServer {
       assert(chunkRequestResponse.size() == 64);
       for (const auto& chunkResponse : chunkRequestResponse) {
         uint64_t chunkId = chunkResponse["id"].get<uint64_t>();
-        *this->world_.getChunk({x, chunkId - 32}) = BTVUtils::Chunk::deserialize(Hex::toBytes(chunkResponse["result"].get<std::string>()));
+        auto data = ABI::Decoder::decodeData<Bytes>(Hex::toBytes(chunkResponse["result"].get<std::string>()));
+        const auto& chunkData = std::get<0>(data);
+        *this->world_.getChunk({x, chunkId - 32}) = BTVUtils::Chunk::deserialize(chunkData);
+        if (this->world_.getChunk({x, chunkId - 32})->serialize() != chunkData) {
+          Printer::safePrint("Chunk (" + std::to_string(x) + ", " + std::to_string(chunkId - 32) + ") does not match!");
+          throw std::runtime_error("Chunk does not match!");
+        }
         chunksReceived.at(chunkId - 32) = true;
       }
       for (const auto& [y, received] : chunksReceived) {
