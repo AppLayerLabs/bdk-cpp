@@ -70,7 +70,7 @@ class BTVPlayer : public virtual ERC721, public virtual Ownable {
 
     /// Register contract class via ContractReflectionInterface.
     static void registerContract() {
-      ContractReflectionInterface::registerContractMethods<
+      DynamicContract::registerContractMethods<
         BTVPlayer, const std::string &, const std::string &,
         const Address &, const Address &, const uint64_t &,
         const std::unique_ptr<DB> &

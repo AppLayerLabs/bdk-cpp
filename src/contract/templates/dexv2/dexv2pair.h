@@ -206,7 +206,7 @@ class DEXV2Pair : public ERC20 {
 
     /// Register contract class via ContractReflectionInterface.
     static void registerContract() {
-      ContractReflectionInterface::registerContractMethods<
+      DynamicContract::registerContractMethods<
         DEXV2Pair,
         const Address &, const Address &, const uint64_t &,
         DB&

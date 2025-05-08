@@ -41,7 +41,9 @@ uint8_t ThrowTestB::getNumB() const { return this->num_.get(); }
 
 void ThrowTestB::registerContractFunctions() {
   registerContract();
-  this->registerMemberFunction("getNumB", &ThrowTestB::getNumB, FunctionTypes::View, this);
-  this->registerMemberFunction("setNumB", &ThrowTestB::setNumB, FunctionTypes::NonPayable, this);
+  this->registerMemberFunctions(
+    std::make_tuple("getNumB", &ThrowTestB::getNumB, FunctionTypes::View, this),
+    std::make_tuple("setNumB", &ThrowTestB::setNumB, FunctionTypes::NonPayable, this)
+  );
 }
 

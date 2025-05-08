@@ -245,24 +245,26 @@ void BTVPlayer::approveProposalSpend() {
 }
 
 void BTVPlayer::registerContractFunctions() {
-  this->registerMemberFunction("getPlayerName", &BTVPlayer::getPlayerName, FunctionTypes::View, this);
-  this->registerMemberFunction("playerExists", &BTVPlayer::playerExists, FunctionTypes::View, this);
-  this->registerMemberFunction("mintPlayer", &BTVPlayer::mintPlayer, FunctionTypes::NonPayable, this);
-  this->registerMemberFunction("setProposalContract", &BTVPlayer::setProposalContract, FunctionTypes::NonPayable, this);
-  this->registerMemberFunction("getProposalContract", &BTVPlayer::getProposalContract, FunctionTypes::View, this);
-  this->registerMemberFunction("setEnergyContract", &BTVPlayer::setEnergyContract, FunctionTypes::NonPayable, this);
-  this->registerMemberFunction("getEnergyContract", &BTVPlayer::getEnergyContract, FunctionTypes::View, this);
-  this->registerMemberFunction("setWorldContract", &BTVPlayer::setWorldContract, FunctionTypes::NonPayable, this);
-  this->registerMemberFunction("getWorldContract", &BTVPlayer::getWorldContract, FunctionTypes::View, this);
-  this->registerMemberFunction("totalSupply", &BTVPlayer::totalSupply, FunctionTypes::View, this);
-  this->registerMemberFunction("getPlayerEnergy", &BTVPlayer::getPlayerEnergy, FunctionTypes::View, this);
-  this->registerMemberFunction("addPlayerEnergy", &BTVPlayer::addPlayerEnergy, FunctionTypes::NonPayable, this);
-  this->registerMemberFunction("takePlayerEnergy", &BTVPlayer::takePlayerEnergy, FunctionTypes::NonPayable, this);
-  this->registerMemberFunction("getPlayerTokens", &BTVPlayer::getPlayerTokens, FunctionTypes::View, this);
-  this->registerMemberFunction("createProposal", &BTVPlayer::createProposal, FunctionTypes::NonPayable, this);
-  this->registerMemberFunction("voteOnProposal", &BTVPlayer::voteOnProposal, FunctionTypes::NonPayable, this);
-  this->registerMemberFunction("removeVote", &BTVPlayer::removeVote, FunctionTypes::NonPayable, this);
-  this->registerMemberFunction("approveProposalSpend", &BTVPlayer::approveProposalSpend, FunctionTypes::NonPayable, this);
+  this->registerMemberFunctions(
+    std::make_tuple("getPlayerName", &BTVPlayer::getPlayerName, FunctionTypes::View, this),
+    std::make_tuple("playerExists", &BTVPlayer::playerExists, FunctionTypes::View, this),
+    std::make_tuple("mintPlayer", &BTVPlayer::mintPlayer, FunctionTypes::NonPayable, this),
+    std::make_tuple("setProposalContract", &BTVPlayer::setProposalContract, FunctionTypes::NonPayable, this),
+    std::make_tuple("getProposalContract", &BTVPlayer::getProposalContract, FunctionTypes::View, this),
+    std::make_tuple("setEnergyContract", &BTVPlayer::setEnergyContract, FunctionTypes::NonPayable, this),
+    std::make_tuple("getEnergyContract", &BTVPlayer::getEnergyContract, FunctionTypes::View, this),
+    std::make_tuple("setWorldContract", &BTVPlayer::setWorldContract, FunctionTypes::NonPayable, this),
+    std::make_tuple("getWorldContract", &BTVPlayer::getWorldContract, FunctionTypes::View, this),
+    std::make_tuple("totalSupply", &BTVPlayer::totalSupply, FunctionTypes::View, this),
+    std::make_tuple("getPlayerEnergy", &BTVPlayer::getPlayerEnergy, FunctionTypes::View, this),
+    std::make_tuple("addPlayerEnergy", &BTVPlayer::addPlayerEnergy, FunctionTypes::NonPayable, this),
+    std::make_tuple("takePlayerEnergy", &BTVPlayer::takePlayerEnergy, FunctionTypes::NonPayable, this),
+    std::make_tuple("getPlayerTokens", &BTVPlayer::getPlayerTokens, FunctionTypes::View, this),
+    std::make_tuple("createProposal", &BTVPlayer::createProposal, FunctionTypes::NonPayable, this),
+    std::make_tuple("voteOnProposal", &BTVPlayer::voteOnProposal, FunctionTypes::NonPayable, this),
+    std::make_tuple("removeVote", &BTVPlayer::removeVote, FunctionTypes::NonPayable, this),
+    std::make_tuple("approveProposalSpend", &BTVPlayer::approveProposalSpend, FunctionTypes::NonPayable, this)
+  );
 }
 
 DBBatch BTVPlayer::dump() const {

@@ -36,7 +36,7 @@ DBBatch ERC20Mintable::dump() const {
 
 void ERC20Mintable::registerContractFunctions() {
   registerContract();
-  this->registerMemberFunction("mint", &ERC20Mintable::mint, FunctionTypes::NonPayable, this);
+  this->registerMemberFunctions(std::make_tuple("mint", &ERC20Mintable::mint, FunctionTypes::NonPayable, this));
 }
 
 void ERC20Mintable::mint(const Address &to, const uint256_t &amount) {

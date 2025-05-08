@@ -554,27 +554,29 @@ OrderBook::getUserOrders(const Address& user) const
 void OrderBook::registerContractFunctions()
 {
   registerContract();
-  this->registerMemberFunction("getNextOrderID", &OrderBook::getNextOrderID, FunctionTypes::View, this);
-  this->registerMemberFunction("getAddressAssetA", &OrderBook::getAddressAssetA, FunctionTypes::View, this);
-  this->registerMemberFunction("getAddressAssetB", &OrderBook::getAddressAssetB, FunctionTypes::View, this);
-  this->registerMemberFunction("getTickerAssetA", &OrderBook::getTickerAssetA, FunctionTypes::View, this);
-  this->registerMemberFunction("getTickerAssetB", &OrderBook::getTickerAssetB, FunctionTypes::View, this);
-  this->registerMemberFunction("getSpread", &OrderBook::getSpread, FunctionTypes::View, this);
-  this->registerMemberFunction("getTickSize", &OrderBook::getTickSize, FunctionTypes::View, this);
-  this->registerMemberFunction("getLotSize", &OrderBook::getLotSize, FunctionTypes::View, this);
-  this->registerMemberFunction("getLastPrice", &OrderBook::getLastPrice, FunctionTypes::View, this);
-  this->registerMemberFunction("getPrecision", &OrderBook::getPrecision, FunctionTypes::View, this);
-  this->registerMemberFunction("getAsks", &OrderBook::getAsks, FunctionTypes::View, this);
-  this->registerMemberFunction("getBids", &OrderBook::getBids, FunctionTypes::View, this);
-  this->registerMemberFunction("getFirstAsk", &OrderBook::getFirstAsk, FunctionTypes::View, this);
-  this->registerMemberFunction("getFirstBid", &OrderBook::getFirstBid, FunctionTypes::View, this);
-  this->registerMemberFunction("getUserOrders", &OrderBook::getUserOrders, FunctionTypes::View, this);
-  this->registerMemberFunction("addAskLimitOrder", &OrderBook::addAskLimitOrder, FunctionTypes::NonPayable, this);
-  this->registerMemberFunction("addBidLimitOrder", &OrderBook::addBidLimitOrder, FunctionTypes::NonPayable, this);
-  this->registerMemberFunction("delAskLimitOrder", &OrderBook::delAskLimitOrder, FunctionTypes::NonPayable, this);
-  this->registerMemberFunction("delBidLimitOrder", &OrderBook::delBidLimitOrder, FunctionTypes::NonPayable, this);
-  this->registerMemberFunction("addAskMarketOrder", &OrderBook::addAskMarketOrder, FunctionTypes::NonPayable, this);
-  this->registerMemberFunction("addBidMarketOrder", &OrderBook::addBidMarketOrder, FunctionTypes::NonPayable, this);
+  this->registerMemberFunctions(
+    std::make_tuple("getNextOrderID", &OrderBook::getNextOrderID, FunctionTypes::View, this),
+    std::make_tuple("getAddressAssetA", &OrderBook::getAddressAssetA, FunctionTypes::View, this),
+    std::make_tuple("getAddressAssetB", &OrderBook::getAddressAssetB, FunctionTypes::View, this),
+    std::make_tuple("getTickerAssetA", &OrderBook::getTickerAssetA, FunctionTypes::View, this),
+    std::make_tuple("getTickerAssetB", &OrderBook::getTickerAssetB, FunctionTypes::View, this),
+    std::make_tuple("getSpread", &OrderBook::getSpread, FunctionTypes::View, this),
+    std::make_tuple("getTickSize", &OrderBook::getTickSize, FunctionTypes::View, this),
+    std::make_tuple("getLotSize", &OrderBook::getLotSize, FunctionTypes::View, this),
+    std::make_tuple("getLastPrice", &OrderBook::getLastPrice, FunctionTypes::View, this),
+    std::make_tuple("getPrecision", &OrderBook::getPrecision, FunctionTypes::View, this),
+    std::make_tuple("getAsks", &OrderBook::getAsks, FunctionTypes::View, this),
+    std::make_tuple("getBids", &OrderBook::getBids, FunctionTypes::View, this),
+    std::make_tuple("getFirstAsk", &OrderBook::getFirstAsk, FunctionTypes::View, this),
+    std::make_tuple("getFirstBid", &OrderBook::getFirstBid, FunctionTypes::View, this),
+    std::make_tuple("getUserOrders", &OrderBook::getUserOrders, FunctionTypes::View, this),
+    std::make_tuple("addAskLimitOrder", &OrderBook::addAskLimitOrder, FunctionTypes::NonPayable, this),
+    std::make_tuple("addBidLimitOrder", &OrderBook::addBidLimitOrder, FunctionTypes::NonPayable, this),
+    std::make_tuple("delAskLimitOrder", &OrderBook::delAskLimitOrder, FunctionTypes::NonPayable, this),
+    std::make_tuple("delBidLimitOrder", &OrderBook::delBidLimitOrder, FunctionTypes::NonPayable, this),
+    std::make_tuple("addAskMarketOrder", &OrderBook::addAskMarketOrder, FunctionTypes::NonPayable, this),
+    std::make_tuple("addBidMarketOrder", &OrderBook::addBidMarketOrder, FunctionTypes::NonPayable, this)
+  );
 }
 
 DBBatch OrderBook::dump() const

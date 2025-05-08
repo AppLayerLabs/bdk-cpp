@@ -317,7 +317,7 @@ class SnailTracer : public DynamicContract {
 
     /// Register the contract structure.
     static void registerContract() {
-      ContractReflectionInterface::registerContractMethods<
+      DynamicContract::registerContractMethods<
         SnailTracer, int256_t&, int256_t&,
         const Address&, const Address&, const uint64_t&, DB&
       >(

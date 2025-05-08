@@ -10,7 +10,7 @@ class IERC721Receiver : public DynamicContract {
       return Bytes4();
     }
     void static registerContract() {
-      ContractReflectionInterface::registerContractMethods<
+      DynamicContract::registerContractMethods<
         IERC721Receiver
       >(
         std::vector<std::string>{},

@@ -92,19 +92,21 @@ DEXV2Pair::~DEXV2Pair() {};
 
 void DEXV2Pair::registerContractFunctions() {
   registerContract();
-  this->registerMemberFunction("initialize", &DEXV2Pair::initialize, FunctionTypes::NonPayable, this);
-  this->registerMemberFunction("getReserves", &DEXV2Pair::getReserves, FunctionTypes::View, this);
-  this->registerMemberFunction("factory", &DEXV2Pair::factory, FunctionTypes::View, this);
-  this->registerMemberFunction("token0", &DEXV2Pair::token0, FunctionTypes::View, this);
-  this->registerMemberFunction("token1", &DEXV2Pair::token1, FunctionTypes::View, this);
-  this->registerMemberFunction("price0CumulativeLast", &DEXV2Pair::price0CumulativeLast, FunctionTypes::View, this);
-  this->registerMemberFunction("price1CumulativeLast", &DEXV2Pair::price1CumulativeLast, FunctionTypes::View, this);
-  this->registerMemberFunction("kLast", &DEXV2Pair::kLast, FunctionTypes::View, this);
-  this->registerMemberFunction("mint", &DEXV2Pair::mint, FunctionTypes::NonPayable, this);
-  this->registerMemberFunction("burn", &DEXV2Pair::burn, FunctionTypes::NonPayable, this);
-  this->registerMemberFunction("swap", &DEXV2Pair::swap, FunctionTypes::NonPayable, this);
-  this->registerMemberFunction("skim", &DEXV2Pair::skim, FunctionTypes::NonPayable, this);
-  this->registerMemberFunction("sync", &DEXV2Pair::sync, FunctionTypes::NonPayable, this);
+  this->registerMemberFunctions(
+    std::make_tuple("initialize", &DEXV2Pair::initialize, FunctionTypes::NonPayable, this),
+    std::make_tuple("getReserves", &DEXV2Pair::getReserves, FunctionTypes::View, this),
+    std::make_tuple("factory", &DEXV2Pair::factory, FunctionTypes::View, this),
+    std::make_tuple("token0", &DEXV2Pair::token0, FunctionTypes::View, this),
+    std::make_tuple("token1", &DEXV2Pair::token1, FunctionTypes::View, this),
+    std::make_tuple("price0CumulativeLast", &DEXV2Pair::price0CumulativeLast, FunctionTypes::View, this),
+    std::make_tuple("price1CumulativeLast", &DEXV2Pair::price1CumulativeLast, FunctionTypes::View, this),
+    std::make_tuple("kLast", &DEXV2Pair::kLast, FunctionTypes::View, this),
+    std::make_tuple("mint", &DEXV2Pair::mint, FunctionTypes::NonPayable, this),
+    std::make_tuple("burn", &DEXV2Pair::burn, FunctionTypes::NonPayable, this),
+    std::make_tuple("swap", &DEXV2Pair::swap, FunctionTypes::NonPayable, this),
+    std::make_tuple("skim", &DEXV2Pair::skim, FunctionTypes::NonPayable, this),
+    std::make_tuple("sync", &DEXV2Pair::sync, FunctionTypes::NonPayable, this)
+  );
 }
 
 void DEXV2Pair::_safeTransfer(const Address& token, const Address& to, const uint256_t& value) {

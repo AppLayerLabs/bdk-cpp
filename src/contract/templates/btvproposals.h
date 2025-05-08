@@ -66,7 +66,7 @@ class BTVProposals : public virtual DynamicContract, public Ownable {
 
     /// Register contract class via ContractReflectionInterface.
     static void registerContract() {
-      ContractReflectionInterface::registerContractMethods<
+      DynamicContract::registerContractMethods<
         BTVProposals, const std::string &, const std::string &,
         const Address &, const Address &, const uint64_t &,
         const std::unique_ptr<DB> &

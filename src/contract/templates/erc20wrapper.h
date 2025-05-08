@@ -56,7 +56,7 @@ class ERC20Wrapper : public DynamicContract {
 
     /// Register contract class via ContractReflectionInterface.
     static void registerContract() {
-      ContractReflectionInterface::registerContractMethods<
+      DynamicContract::registerContractMethods<
         ERC20Wrapper, const Address&, const Address&, const uint64_t&, DB&
       >(
         std::vector<std::string>{},

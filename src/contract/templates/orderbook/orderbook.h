@@ -472,7 +472,7 @@ public:
 
   /// Register the contract structure.
   static void registerContract() {
-    ContractReflectionInterface::registerContractMethods<
+    DynamicContract::registerContractMethods<
       OrderBook,
       const Address,
       const std::string&,

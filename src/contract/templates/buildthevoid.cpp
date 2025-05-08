@@ -137,22 +137,24 @@ BuildTheVoid::BuildTheVoid(const Address &address, const Address &creator, const
 }
 
 void BuildTheVoid::registerContractFunctions() {
-  this->registerMemberFunction("setPlayerContract", &BuildTheVoid::setPlayerContract, FunctionTypes::NonPayable, this);
-  this->registerMemberFunction("setEnergyContract", &BuildTheVoid::setEnergyContract, FunctionTypes::NonPayable, this);
-  this->registerMemberFunction("forceUpdate", &BuildTheVoid::forceUpdate, FunctionTypes::NonPayable, this);
-  this->registerMemberFunction("approve", &BuildTheVoid::approve, FunctionTypes::NonPayable, this);
-  this->registerMemberFunction("loginPlayer", &BuildTheVoid::loginPlayer, FunctionTypes::NonPayable, this);
-  this->registerMemberFunction("logoutPlayer", &BuildTheVoid::logoutPlayer, FunctionTypes::NonPayable, this);
-  this->registerMemberFunction("changeBlock", &BuildTheVoid::changeBlock, FunctionTypes::NonPayable, this);
-  this->registerMemberFunction("movePlayer", &BuildTheVoid::movePlayer, FunctionTypes::NonPayable, this);
-  this->registerMemberFunction("claimEnergy", &BuildTheVoid::claimEnergy, FunctionTypes::NonPayable, this);
-  this->registerMemberFunction("getChunk", &BuildTheVoid::getChunk, FunctionTypes::View, this);
-  this->registerMemberFunction("getPlayerContract", &BuildTheVoid::getPlayerContract, FunctionTypes::View, this);
-  this->registerMemberFunction("getEnergyContract", &BuildTheVoid::getEnergyContract, FunctionTypes::View, this);
-  this->registerMemberFunction("getActivePlayers", &BuildTheVoid::getActivePlayers, FunctionTypes::View, this);
-  this->registerMemberFunction("getInnactivePlayers", &BuildTheVoid::getInnactivePlayers, FunctionTypes::View, this);
-  this->registerMemberFunction("getDeadPlayers", &BuildTheVoid::getDeadPlayers, FunctionTypes::View, this);
-  this->registerMemberFunction("getPlayerStatus", &BuildTheVoid::getPlayerStatus, FunctionTypes::View, this);
+  this->registerMemberFunctions(
+    std::make_tuple("setPlayerContract", &BuildTheVoid::setPlayerContract, FunctionTypes::NonPayable, this),
+    std::make_tuple("setEnergyContract", &BuildTheVoid::setEnergyContract, FunctionTypes::NonPayable, this),
+    std::make_tuple("forceUpdate", &BuildTheVoid::forceUpdate, FunctionTypes::NonPayable, this),
+    std::make_tuple("approve", &BuildTheVoid::approve, FunctionTypes::NonPayable, this),
+    std::make_tuple("loginPlayer", &BuildTheVoid::loginPlayer, FunctionTypes::NonPayable, this),
+    std::make_tuple("logoutPlayer", &BuildTheVoid::logoutPlayer, FunctionTypes::NonPayable, this),
+    std::make_tuple("changeBlock", &BuildTheVoid::changeBlock, FunctionTypes::NonPayable, this),
+    std::make_tuple("movePlayer", &BuildTheVoid::movePlayer, FunctionTypes::NonPayable, this),
+    std::make_tuple("claimEnergy", &BuildTheVoid::claimEnergy, FunctionTypes::NonPayable, this),
+    std::make_tuple("getChunk", &BuildTheVoid::getChunk, FunctionTypes::View, this),
+    std::make_tuple("getPlayerContract", &BuildTheVoid::getPlayerContract, FunctionTypes::View, this),
+    std::make_tuple("getEnergyContract", &BuildTheVoid::getEnergyContract, FunctionTypes::View, this),
+    std::make_tuple("getActivePlayers", &BuildTheVoid::getActivePlayers, FunctionTypes::View, this),
+    std::make_tuple("getInnactivePlayers", &BuildTheVoid::getInnactivePlayers, FunctionTypes::View, this),
+    std::make_tuple("getDeadPlayers", &BuildTheVoid::getDeadPlayers, FunctionTypes::View, this),
+    std::make_tuple("getPlayerStatus", &BuildTheVoid::getPlayerStatus, FunctionTypes::View, this)
+  );
   this->registerBlockObserver("selfcallUpdate", 1, &BuildTheVoid::selfcallUpdate, this);
 }
 

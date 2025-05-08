@@ -58,11 +58,13 @@ DBBatch ERC721Test::dump() const {
 
 void ERC721Test::registerContractFunctions() {
   ERC721Test::registerContract();
-  this->registerMemberFunction("mint", &ERC721Test::mint, FunctionTypes::NonPayable, this);
-  this->registerMemberFunction("burn", &ERC721Test::burn, FunctionTypes::NonPayable, this);
-  this->registerMemberFunction("tokenIdCounter", &ERC721Test::tokenIdCounter, FunctionTypes::View, this);
-  this->registerMemberFunction("maxTokens", &ERC721Test::maxTokens, FunctionTypes::View, this);
-  this->registerMemberFunction("totalSupply", &ERC721Test::totalSupply, FunctionTypes::View, this);
+  this->registerMemberFunctions(
+    std::make_tuple("mint", &ERC721Test::mint, FunctionTypes::NonPayable, this),
+    std::make_tuple("burn", &ERC721Test::burn, FunctionTypes::NonPayable, this),
+    std::make_tuple("tokenIdCounter", &ERC721Test::tokenIdCounter, FunctionTypes::View, this),
+    std::make_tuple("maxTokens", &ERC721Test::maxTokens, FunctionTypes::View, this),
+    std::make_tuple("totalSupply", &ERC721Test::totalSupply, FunctionTypes::View, this)
+  );
 }
 
 void ERC721Test::mint(const Address& to) {

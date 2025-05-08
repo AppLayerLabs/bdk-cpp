@@ -34,8 +34,10 @@ void BTVEnergy::burn(const Address& from, const uint256_t& value) {
 }
 
 void BTVEnergy::registerContractFunctions() {
-  this->registerMemberFunction("mint", &BTVEnergy::mint, FunctionTypes::NonPayable, this);
-  this->registerMemberFunction("burn", &BTVEnergy::burn, FunctionTypes::NonPayable, this);
+  this->registerMemberFunctions(
+    std::make_tuple("mint", &BTVEnergy::mint, FunctionTypes::NonPayable, this),
+    std::make_tuple("burn", &BTVEnergy::burn, FunctionTypes::NonPayable, this)
+  );
 }
 
 DBBatch BTVEnergy::dump() const {

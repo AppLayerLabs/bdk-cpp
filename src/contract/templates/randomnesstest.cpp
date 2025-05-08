@@ -30,8 +30,10 @@ RandomnessTest::~RandomnessTest() {}
 
 void RandomnessTest::registerContractFunctions() {
   registerContract();
-  this->registerMemberFunction("setRandom", &RandomnessTest::setRandom, FunctionTypes::NonPayable, this);
-  this->registerMemberFunction("getRandom", &RandomnessTest::getRandom, FunctionTypes::View, this);
+  this->registerMemberFunctions(
+    std::make_tuple("setRandom", &RandomnessTest::setRandom, FunctionTypes::NonPayable, this),
+    std::make_tuple("getRandom", &RandomnessTest::getRandom, FunctionTypes::View, this)
+  );
 }
 
 uint256_t RandomnessTest::setRandom() {

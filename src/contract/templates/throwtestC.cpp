@@ -38,7 +38,9 @@ void ThrowTestC::setNumC(const uint8_t& valC) {
 
 void ThrowTestC::registerContractFunctions() {
   registerContract();
-  this->registerMemberFunction("getNumC", &ThrowTestC::getNumC, FunctionTypes::View, this);
-  this->registerMemberFunction("setNumC", &ThrowTestC::setNumC, FunctionTypes::NonPayable, this);
+  this->registerMemberFunctions(
+    std::make_tuple("getNumC", &ThrowTestC::getNumC, FunctionTypes::View, this),
+    std::make_tuple("setNumC", &ThrowTestC::setNumC, FunctionTypes::NonPayable, this)
+  );
 }
 

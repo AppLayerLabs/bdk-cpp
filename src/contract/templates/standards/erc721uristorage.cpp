@@ -52,7 +52,8 @@ DBBatch ERC721URIStorage::dump() const {
 
 void ERC721URIStorage::registerContractFunctions() {
   ERC721URIStorage::registerContract();
-  this->registerMemberFunction("tokenURI", &ERC721URIStorage::tokenURI, FunctionTypes::View, this);
+  this->registerMemberFunctions(std::make_tuple("tokenURI", &ERC721URIStorage::tokenURI, FunctionTypes::View, this));
+  this->registerInterface(Functor(UintConv::bytesToUint32(Hex::toBytes("0x49064906"))));
 }
 
 void ERC721URIStorage::setTokenURI_(const uint256_t &tokenId, const std::string &_tokenURI) {

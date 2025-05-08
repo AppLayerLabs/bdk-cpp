@@ -54,10 +54,12 @@ Ownable::Ownable(
 
 void Ownable::registerContractFunctions() {
   Ownable::registerContract();
-  this->registerMemberFunction("onlyOwner", &Ownable::onlyOwner, FunctionTypes::NonPayable, this);
-  this->registerMemberFunction("owner", &Ownable::owner, FunctionTypes::View, this);
-  this->registerMemberFunction("renounceOwnership", &Ownable::renounceOwnership, FunctionTypes::NonPayable, this);
-  this->registerMemberFunction("transferOwnership", &Ownable::transferOwnership, FunctionTypes::NonPayable, this);
+  this->registerMemberFunctions(
+    std::make_tuple("onlyOwner", &Ownable::onlyOwner, FunctionTypes::NonPayable, this),
+    std::make_tuple("owner", &Ownable::owner, FunctionTypes::View, this),
+    std::make_tuple("renounceOwnership", &Ownable::renounceOwnership, FunctionTypes::NonPayable, this),
+    std::make_tuple("transferOwnership", &Ownable::transferOwnership, FunctionTypes::NonPayable, this)
+  );
 }
 
 DBBatch Ownable::dump() const {

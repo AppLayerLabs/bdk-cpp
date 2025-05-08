@@ -89,7 +89,7 @@ class BuildTheVoid : virtual public DynamicContract, virtual public Ownable {
 
     /// Register contract class via ContractReflectionInterface.
     static void registerContract() {
-      ContractReflectionInterface::registerContractMethods<
+      DynamicContract::registerContractMethods<
         BuildTheVoid,
         const Address &, const Address &,
         const uint64_t &,

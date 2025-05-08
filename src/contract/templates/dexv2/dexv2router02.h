@@ -306,7 +306,7 @@ class DEXV2Router02 : public DynamicContract {
 
     /// Register the contract functions to the ContractReflectionInterface.
     static void registerContract() {
-      ContractReflectionInterface::registerContractMethods<
+      DynamicContract::registerContractMethods<
         DEXV2Router02, const Address &, const Address &,
         const Address &, const Address &, const uint64_t &,
         const DB&

@@ -110,19 +110,21 @@ BTVProposals::BTVProposals(const Address &address, const Address &creator, const
 }
 
 void BTVProposals::registerContractFunctions() {
-  this->registerMemberFunction("createProposal", &BTVProposals::createProposal, FunctionTypes::NonPayable, this);
-  this->registerMemberFunction("voteOnProposal", &BTVProposals::voteOnProposal, FunctionTypes::NonPayable, this);
-  this->registerMemberFunction("removeVote", &BTVProposals::removeVote, FunctionTypes::NonPayable, this);
-  this->registerMemberFunction("completeProposal", &BTVProposals::completeProposal, FunctionTypes::NonPayable, this);
-  this->registerMemberFunction("setProposalPrice", &BTVProposals::setProposalPrice, FunctionTypes::NonPayable, this);
-  this->registerMemberFunction("setPlayerContract", &BTVProposals::setPlayerContract, FunctionTypes::NonPayable, this);
-  this->registerMemberFunction("setEnergyContract", &BTVProposals::setEnergyContract, FunctionTypes::NonPayable, this);
-  this->registerMemberFunction("getActiveProposals", &BTVProposals::getActiveProposals, FunctionTypes::View, this);
-  this->registerMemberFunction("getCompletedProposals", &BTVProposals::getCompletedProposals, FunctionTypes::View, this);
-  this->registerMemberFunction("getProposalVotes", &BTVProposals::getProposalVotes, FunctionTypes::View, this);
-  this->registerMemberFunction("getProposalPrice", &BTVProposals::getProposalPrice, FunctionTypes::View, this);
-  this->registerMemberFunction("getProposalEnergy", &BTVProposals::getProposalEnergy, FunctionTypes::View, this);
-  this->registerMemberFunction("getProposalCount", &BTVProposals::getProposalCount, FunctionTypes::View, this);
+  this->registerMemberFunctions(
+    std::make_tuple("createProposal", &BTVProposals::createProposal, FunctionTypes::NonPayable, this),
+    std::make_tuple("voteOnProposal", &BTVProposals::voteOnProposal, FunctionTypes::NonPayable, this),
+    std::make_tuple("removeVote", &BTVProposals::removeVote, FunctionTypes::NonPayable, this),
+    std::make_tuple("completeProposal", &BTVProposals::completeProposal, FunctionTypes::NonPayable, this),
+    std::make_tuple("setProposalPrice", &BTVProposals::setProposalPrice, FunctionTypes::NonPayable, this),
+    std::make_tuple("setPlayerContract", &BTVProposals::setPlayerContract, FunctionTypes::NonPayable, this),
+    std::make_tuple("setEnergyContract", &BTVProposals::setEnergyContract, FunctionTypes::NonPayable, this),
+    std::make_tuple("getActiveProposals", &BTVProposals::getActiveProposals, FunctionTypes::View, this),
+    std::make_tuple("getCompletedProposals", &BTVProposals::getCompletedProposals, FunctionTypes::View, this),
+    std::make_tuple("getProposalVotes", &BTVProposals::getProposalVotes, FunctionTypes::View, this),
+    std::make_tuple("getProposalPrice", &BTVProposals::getProposalPrice, FunctionTypes::View, this),
+    std::make_tuple("getProposalEnergy", &BTVProposals::getProposalEnergy, FunctionTypes::View, this),
+    std::make_tuple("getProposalCount", &BTVProposals::getProposalCount, FunctionTypes::View, this)
+  );
 }
 
 void BTVProposals::onlyPlayer() const {

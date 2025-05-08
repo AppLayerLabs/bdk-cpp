@@ -61,7 +61,7 @@ class ERC20Mintable : virtual public ERC20, virtual public Ownable {
 
     /// Register contract using ContractReflectionInterface.
     static void registerContract() {
-      ContractReflectionInterface::registerContractMethods<
+      DynamicContract::registerContractMethods<
         ERC20Mintable, std::string &, std::string &, uint8_t &,
         const Address &,
         const Address &, const uint64_t &, DB&

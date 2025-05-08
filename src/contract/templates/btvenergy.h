@@ -37,7 +37,7 @@ class BTVEnergy : public virtual ERC20, public virtual Ownable {
 
     /// Register contract using ContractReflectionInterface.
     static void registerContract() {
-      ContractReflectionInterface::registerContractMethods<
+      DynamicContract::registerContractMethods<
         BTVEnergy, std::string &, std::string &, uint8_t &,
         const Address &,
         const Address &, const uint64_t &, DB&

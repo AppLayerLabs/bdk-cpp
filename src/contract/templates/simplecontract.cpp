@@ -214,25 +214,27 @@ void SimpleContract::onBlockNumber() { ++count_; }
 
 void SimpleContract::registerContractFunctions() {
   registerContract();
-  this->registerMemberFunction("setName", &SimpleContract::setName, FunctionTypes::NonPayable, this);
-  this->registerMemberFunction("setNames", &SimpleContract::setNames, FunctionTypes::NonPayable, this);
-  this->registerMemberFunction("setNumber", &SimpleContract::setNumber, FunctionTypes::NonPayable, this);
-  this->registerMemberFunction("setNumbers", &SimpleContract::setNumbers, FunctionTypes::NonPayable, this);
-  this->registerMemberFunction("setNamesAndNumbers", &SimpleContract::setNamesAndNumbers, FunctionTypes::NonPayable, this);
-  this->registerMemberFunction("setNamesAndNumbersInTuple", &SimpleContract::setNamesAndNumbersInTuple, FunctionTypes::NonPayable, this);
-  this->registerMemberFunction("setNamesAndNumbersInArrayOfArrays", &SimpleContract::setNamesAndNumbersInArrayOfArrays, FunctionTypes::NonPayable, this);
-  this->registerMemberFunction("setTuple", &SimpleContract::setTuple, FunctionTypes::NonPayable, this);
-  this->registerMemberFunction("getName", &SimpleContract::getName, FunctionTypes::View, this);
-  this->registerMemberFunction("getNames", &SimpleContract::getNames, FunctionTypes::View, this);
-  this->registerMemberFunction("getNumber", static_cast<uint256_t(SimpleContract::*)() const>(&SimpleContract::getNumber), FunctionTypes::View, this);
-  this->registerMemberFunction("getNumber", static_cast<uint256_t(SimpleContract::*)(const uint256_t&) const>(&SimpleContract::getNumber), FunctionTypes::View, this);
-  this->registerMemberFunction("getNumbers", &SimpleContract::getNumbers, FunctionTypes::View, this);
-  this->registerMemberFunction("getNameAndNumber", &SimpleContract::getNameAndNumber, FunctionTypes::View, this);
-  this->registerMemberFunction("getNamesAndNumbers", &SimpleContract::getNamesAndNumbers, FunctionTypes::View, this);
-  this->registerMemberFunction("getNamesAndNumbersInTuple", &SimpleContract::getNamesAndNumbersInTuple, FunctionTypes::View, this);
-  this->registerMemberFunction("getNamesAndNumbersInArrayOfArrays", &SimpleContract::getNamesAndNumbersInArrayOfArrays, FunctionTypes::View, this);
-  this->registerMemberFunction("getTuple", &SimpleContract::getTuple, FunctionTypes::View, this);
-  this->registerMemberFunction("getCount", &SimpleContract::getCount, FunctionTypes::View, this);
+  this->registerMemberFunctions(
+    std::make_tuple("setName", &SimpleContract::setName, FunctionTypes::NonPayable, this),
+    std::make_tuple("setNames", &SimpleContract::setNames, FunctionTypes::NonPayable, this),
+    std::make_tuple("setNumber", &SimpleContract::setNumber, FunctionTypes::NonPayable, this),
+    std::make_tuple("setNumbers", &SimpleContract::setNumbers, FunctionTypes::NonPayable, this),
+    std::make_tuple("setNamesAndNumbers", &SimpleContract::setNamesAndNumbers, FunctionTypes::NonPayable, this),
+    std::make_tuple("setNamesAndNumbersInTuple", &SimpleContract::setNamesAndNumbersInTuple, FunctionTypes::NonPayable, this),
+    std::make_tuple("setNamesAndNumbersInArrayOfArrays", &SimpleContract::setNamesAndNumbersInArrayOfArrays, FunctionTypes::NonPayable, this),
+    std::make_tuple("setTuple", &SimpleContract::setTuple, FunctionTypes::NonPayable, this),
+    std::make_tuple("getName", &SimpleContract::getName, FunctionTypes::View, this),
+    std::make_tuple("getNames", &SimpleContract::getNames, FunctionTypes::View, this),
+    std::make_tuple("getNumber", static_cast<uint256_t(SimpleContract::*)() const>(&SimpleContract::getNumber), FunctionTypes::View, this),
+    std::make_tuple("getNumber", static_cast<uint256_t(SimpleContract::*)(const uint256_t&) const>(&SimpleContract::getNumber), FunctionTypes::View, this),
+    std::make_tuple("getNumbers", &SimpleContract::getNumbers, FunctionTypes::View, this),
+    std::make_tuple("getNameAndNumber", &SimpleContract::getNameAndNumber, FunctionTypes::View, this),
+    std::make_tuple("getNamesAndNumbers", &SimpleContract::getNamesAndNumbers, FunctionTypes::View, this),
+    std::make_tuple("getNamesAndNumbersInTuple", &SimpleContract::getNamesAndNumbersInTuple, FunctionTypes::View, this),
+    std::make_tuple("getNamesAndNumbersInArrayOfArrays", &SimpleContract::getNamesAndNumbersInArrayOfArrays, FunctionTypes::View, this),
+    std::make_tuple("getTuple", &SimpleContract::getTuple, FunctionTypes::View, this),
+    std::make_tuple("getCount", &SimpleContract::getCount, FunctionTypes::View, this)
+  );
   this->registerBlockObserver("onBlockNumber", 1, &SimpleContract::onBlockNumber, this);
 }
 

@@ -107,7 +107,6 @@ class DynamicContract : public BaseContract {
       host_->registerVariableUse(variable);
     }
 
-  protected:
     /**
      * Template for registering a const member function with no arguments.
      * @param funcSignature Solidity function signature.
@@ -329,21 +328,6 @@ class DynamicContract : public BaseContract {
     }
 
     /**
-     * Template for registering all functions of a class.
-     * @param methods The methods to register.
-     */
-    template<typename ...Methods>
-    void registerMemberFunctions(Methods&& ... methods) {
-      Functor xorFunctor;
-      // If it never executed before, the functor will be just the first method
-      // If not, it will be XOR'ed with the previous functor
-      ((
-        xorFunctor ^= this->registerMemberFunction(std::get<0>(methods), std::get<1>(methods), std::get<2>(methods), std::get<3>(methods))
-      ), ...);
-      this->supportedInterfaces_.push_back(xorFunctor);
-    }
-
-    /**
      * Register a callable and payable function, adding it to the payable functions map.
      * @param functor Solidity function signature (first 4 hex bytes of keccak).
      * @param f Function to be called.
@@ -363,6 +347,22 @@ class DynamicContract : public BaseContract {
       const Functor& functor, const std::function<Bytes(const evmc_message& str)>& f
     ) {
       viewFunctions_[functor] = f;
+    }
+
+  protected:
+    /**
+     * Template for registering all functions of a class.
+     * @param methods The methods to register.
+     */
+    template<typename ...Methods>
+    void registerMemberFunctions(Methods&& ... methods) {
+      Functor xorFunctor;
+      // If it never executed before, the functor will be just the first method
+      // If not, it will be XOR'ed with the previous functor
+      ((
+        xorFunctor ^= this->registerMemberFunction(std::get<0>(methods), std::get<1>(methods), std::get<2>(methods), std::get<3>(methods))
+      ), ...);
+      this->supportedInterfaces_.push_back(xorFunctor);
     }
 
     template<typename C>
@@ -432,6 +432,14 @@ class DynamicContract : public BaseContract {
      */
     virtual void registerContractFunctions() {
       throw DynamicException("Derived Class from Contract does not override registerContractFunctions()");
+    }
+
+    /**
+     * Forcely register a given Functor as a supported interface.
+     * @param functor The functor to register.
+     */
+    void registerInterface(const Functor& functor) {
+      this->supportedInterfaces_.push_back(functor);
     }
 
   public:

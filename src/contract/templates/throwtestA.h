@@ -62,7 +62,7 @@ class ThrowTestA : public DynamicContract {
     * Register the contract structure.
     */
     static void registerContract() {
-      ContractReflectionInterface::registerContractMethods<
+      DynamicContract::registerContractMethods<
         ThrowTestA, const Address&, const Address&, const uint64_t&, DB&
       >(
         std::vector<std::string>{},

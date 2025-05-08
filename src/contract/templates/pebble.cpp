@@ -288,27 +288,29 @@ Address Pebble::getAuthorizer() const {
 
 void Pebble::registerContractFunctions() {
   Pebble::registerContract();
-  this->registerMemberFunction("mintNFT", &Pebble::mintNFT, FunctionTypes::NonPayable, this);
-  this->registerMemberFunction("getTokenRarity", &Pebble::getTokenRarity, FunctionTypes::View, this);
-  this->registerMemberFunction("totalSupply", &Pebble::totalSupply, FunctionTypes::View, this);
-  this->registerMemberFunction("maxSupply", &Pebble::maxSupply, FunctionTypes::View, this);
-  this->registerMemberFunction("totalNormal", &Pebble::totalNormal, FunctionTypes::View, this);
-  this->registerMemberFunction("totalGold", &Pebble::totalGold, FunctionTypes::View, this);
-  this->registerMemberFunction("totalDiamond", &Pebble::totalDiamond, FunctionTypes::View, this);
-  this->registerMemberFunction("raritySeed", &Pebble::raritySeed, FunctionTypes::View, this);
-  this->registerMemberFunction("diamondRarity", &Pebble::diamondRarity, FunctionTypes::View, this);
-  this->registerMemberFunction("goldRarity", &Pebble::goldRarity, FunctionTypes::View, this);
-  this->registerMemberFunction("setRaritySeed", &Pebble::setRaritySeed, FunctionTypes::NonPayable, this);
-  this->registerMemberFunction("setDiamondRarity", &Pebble::setDiamondRarity, FunctionTypes::NonPayable, this);
-  this->registerMemberFunction("setGoldRarity", &Pebble::setGoldRarity, FunctionTypes::NonPayable, this);
-  this->registerMemberFunction("tokenURI", &Pebble::tokenURI, FunctionTypes::View, this);
-  this->registerMemberFunction("determineRarity", &Pebble::determineRarity, FunctionTypes::View, this);
-  this->registerMemberFunction("rarityToString", &Pebble::rarityToString, FunctionTypes::View, this);
-  this->registerMemberFunction("onlyAuthorizer", &Pebble::onlyAuthorizer, FunctionTypes::NonPayable, this);
-  this->registerMemberFunction("changeAuthorizer", &Pebble::changeAuthorizer, FunctionTypes::NonPayable, this);
-  this->registerMemberFunction("addMinter", &Pebble::addMinter, FunctionTypes::NonPayable, this);
-  this->registerMemberFunction("removeMinter", &Pebble::removeMinter, FunctionTypes::NonPayable, this);
-  this->registerMemberFunction("canMint", &Pebble::canMint, FunctionTypes::View, this);
-  this->registerMemberFunction("getAuthorizer", &Pebble::getAuthorizer, FunctionTypes::View, this);
+  this->registerMemberFunctions(
+    std::make_tuple("mintNFT", &Pebble::mintNFT, FunctionTypes::NonPayable, this),
+    std::make_tuple("getTokenRarity", &Pebble::getTokenRarity, FunctionTypes::View, this),
+    std::make_tuple("totalSupply", &Pebble::totalSupply, FunctionTypes::View, this),
+    std::make_tuple("maxSupply", &Pebble::maxSupply, FunctionTypes::View, this),
+    std::make_tuple("totalNormal", &Pebble::totalNormal, FunctionTypes::View, this),
+    std::make_tuple("totalGold", &Pebble::totalGold, FunctionTypes::View, this),
+    std::make_tuple("totalDiamond", &Pebble::totalDiamond, FunctionTypes::View, this),
+    std::make_tuple("raritySeed", &Pebble::raritySeed, FunctionTypes::View, this),
+    std::make_tuple("diamondRarity", &Pebble::diamondRarity, FunctionTypes::View, this),
+    std::make_tuple("goldRarity", &Pebble::goldRarity, FunctionTypes::View, this),
+    std::make_tuple("setRaritySeed", &Pebble::setRaritySeed, FunctionTypes::NonPayable, this),
+    std::make_tuple("setDiamondRarity", &Pebble::setDiamondRarity, FunctionTypes::NonPayable, this),
+    std::make_tuple("setGoldRarity", &Pebble::setGoldRarity, FunctionTypes::NonPayable, this),
+    std::make_tuple("tokenURI", &Pebble::tokenURI, FunctionTypes::View, this),
+    std::make_tuple("determineRarity", &Pebble::determineRarity, FunctionTypes::View, this),
+    std::make_tuple("rarityToString", &Pebble::rarityToString, FunctionTypes::View, this),
+    std::make_tuple("onlyAuthorizer", &Pebble::onlyAuthorizer, FunctionTypes::NonPayable, this),
+    std::make_tuple("changeAuthorizer", &Pebble::changeAuthorizer, FunctionTypes::NonPayable, this),
+    std::make_tuple("addMinter", &Pebble::addMinter, FunctionTypes::NonPayable, this),
+    std::make_tuple("removeMinter", &Pebble::removeMinter, FunctionTypes::NonPayable, this),
+    std::make_tuple("canMint", &Pebble::canMint, FunctionTypes::View, this),
+    std::make_tuple("getAuthorizer", &Pebble::getAuthorizer, FunctionTypes::View, this)
+  );
 }
 
