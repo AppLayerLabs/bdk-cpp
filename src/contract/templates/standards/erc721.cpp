@@ -99,17 +99,24 @@ ERC721::ERC721(
 
 void ERC721::registerContractFunctions() {
   ERC721::registerContract();
-  this->registerMemberFunction("name", &ERC721::name, FunctionTypes::View, this);
-  this->registerMemberFunction("symbol", &ERC721::symbol, FunctionTypes::View, this);
-  this->registerMemberFunction("balanceOf", &ERC721::balanceOf, FunctionTypes::View, this);
-  this->registerMemberFunction("ownerOf", &ERC721::ownerOf, FunctionTypes::View, this);
-  this->registerMemberFunction("approve", &ERC721::approve, FunctionTypes::NonPayable, this);
-  this->registerMemberFunction("getApproved", &ERC721::getApproved, FunctionTypes::View, this);
-  this->registerMemberFunction("setApprovalForAll", &ERC721::setApprovalForAll, FunctionTypes::NonPayable, this);
-  this->registerMemberFunction("isApprovedForAll", &ERC721::isApprovedForAll, FunctionTypes::View, this);
-  this->registerMemberFunction("transferFrom", &ERC721::transferFrom, FunctionTypes::NonPayable, this);
-  this->registerMemberFunction("safeTransferFrom", static_cast<void(ERC721::*)(const Address&, const Address&, const uint256_t&)>(&ERC721::safeTransferFrom), FunctionTypes::NonPayable, this);
-  this->registerMemberFunction("safeTransferFrom", static_cast<void(ERC721::*)(const Address&, const Address&, const uint256_t&, const Bytes&)>(&ERC721::safeTransferFrom), FunctionTypes::NonPayable, this);
+  // IERC721Metadata
+  this->registerMemberFunctions(
+    std::make_tuple("name", &ERC721::name, FunctionTypes::View, this),
+    std::make_tuple("symbol", &ERC721::symbol, FunctionTypes::View, this),
+    std::make_tuple("tokenURI", &ERC721::tokenURI, FunctionTypes::View, this)
+  );
+  // IERC721
+  this->registerMemberFunctions(
+    std::make_tuple("balanceOf", &ERC721::balanceOf, FunctionTypes::View, this),
+    std::make_tuple("ownerOf", &ERC721::ownerOf, FunctionTypes::View, this),
+    std::make_tuple("safeTransferFrom", static_cast<void(ERC721::*)(const Address&, const Address&, const uint256_t&, const Bytes&)>(&ERC721::safeTransferFrom), FunctionTypes::NonPayable, this),
+    std::make_tuple("safeTransferFrom", static_cast<void(ERC721::*)(const Address&, const Address&, const uint256_t&)>(&ERC721::safeTransferFrom), FunctionTypes::NonPayable, this),
+    std::make_tuple("transferFrom", &ERC721::transferFrom, FunctionTypes::NonPayable, this),
+    std::make_tuple("approve", &ERC721::approve, FunctionTypes::NonPayable, this),
+    std::make_tuple("getApproved", &ERC721::getApproved, FunctionTypes::View, this),
+    std::make_tuple("setApprovalForAll", &ERC721::setApprovalForAll, FunctionTypes::NonPayable, this),
+    std::make_tuple("isApprovedForAll", &ERC721::isApprovedForAll, FunctionTypes::View, this)
+  );
 }
 
 Address ERC721::ownerOf_(const uint256_t& tokenId) const {

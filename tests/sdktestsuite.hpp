@@ -664,7 +664,11 @@ class SDKTestSuite : public Blockchain {
       ReturnType(TContract::*func)(const Args&...) const,
       const Args&... args
       ) {
-      TContract::registerContract();
+      // If TContract is NOT of type DynamicContract, we need to register it.
+      // Otherwise, do nothing, because DynamicContract functions are register in a per contract basis... (See current ERC-165 compliance implementation)
+      if constexpr (!std::is_same_v<TContract, DynamicContract>) {
+        TContract::registerContract();
+      }
       auto functor = ABI::FunctorEncoder::encode<Args...>(ContractReflectionInterface::getFunctionName(func));
       Bytes fullData;
       Utils::appendBytes(fullData, UintConv::uint32ToBytes(functor.value));

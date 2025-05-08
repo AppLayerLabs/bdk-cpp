@@ -13,6 +13,9 @@ See the LICENSE.txt file in the project root for more information.
 ERC20::ERC20(const Address& address, const DB& db)
 : DynamicContract(address, db), name_(this), symbol_(this), decimals_(this),
   totalSupply_(this), balances_(this), allowed_(this)
+  #ifndef BUILD_TESTNET
+   ,counter_(this), values_(this), addresses_(this)
+  #endif
 {
   this->name_ = StrConv::bytesToString(db.get(std::string("name_"), this->getDBPrefix()));
   this->symbol_ = StrConv::bytesToString(db.get(std::string("symbol_"), this->getDBPrefix()));
@@ -34,6 +37,11 @@ ERC20::ERC20(const Address& address, const DB& db)
   this->totalSupply_.commit();
   this->balances_.commit();
   this->allowed_.commit();
+  #ifndef BUILD_TESTNET
+    this->counter_.commit();
+    this->values_.commit();
+    this->addresses_.commit();
+  #endif
 
   this->registerContractFunctions();
 
@@ -43,6 +51,11 @@ ERC20::ERC20(const Address& address, const DB& db)
   this->totalSupply_.enableRegister();
   this->balances_.enableRegister();
   this->allowed_.enableRegister();
+  #ifndef BUILD_TESTNET
+    this->counter_.enableRegister();
+    this->values_.enableRegister();
+    this->addresses_.enableRegister();
+  #endif
 }
 
 ERC20::ERC20(
@@ -51,6 +64,9 @@ ERC20::ERC20(
   const Address& address, const Address& creator, const uint64_t& chainId
 ) : DynamicContract("ERC20", address, creator, chainId),
   name_(this), symbol_(this), decimals_(this), totalSupply_(this), balances_(this), allowed_(this)
+  #ifndef BUILD_TESTNET
+    , counter_(this), values_(this), addresses_(this)
+  #endif
 {
   this->name_ = erc20name_;
   this->symbol_ = erc20symbol_;
@@ -63,6 +79,11 @@ ERC20::ERC20(
   this->totalSupply_.commit();
   this->balances_.commit();
   this->allowed_.commit();
+  #ifndef BUILD_TESTNET
+    this->counter_.commit();
+    this->values_.commit();
+    this->addresses_.commit();
+  #endif
 
   this->registerContractFunctions();
 
@@ -72,6 +93,11 @@ ERC20::ERC20(
   this->totalSupply_.enableRegister();
   this->balances_.enableRegister();
   this->allowed_.enableRegister();
+  #ifndef BUILD_TESTNET
+    this->counter_.enableRegister();
+    this->values_.enableRegister();
+    this->addresses_.enableRegister();
+  #endif
 }
 
 ERC20::ERC20(
@@ -80,6 +106,9 @@ ERC20::ERC20(
   const Address& address, const Address& creator, const uint64_t& chainId
 ) : DynamicContract(derivedTypeName, address, creator, chainId),
     name_(this), symbol_(this), decimals_(this), totalSupply_(this), balances_(this), allowed_(this)
+  #ifndef BUILD_TESTNET
+    , counter_(this), values_(this), addresses_(this)
+  #endif
 {
   this->name_ = erc20name_;
   this->symbol_ = erc20symbol_;
@@ -92,6 +121,11 @@ ERC20::ERC20(
   this->totalSupply_.commit();
   this->balances_.commit();
   this->allowed_.commit();
+  #ifndef BUILD_TESTNET
+    this->counter_.commit();
+    this->values_.commit();
+    this->addresses_.commit();
+  #endif
 
   this->registerContractFunctions();
 
@@ -101,20 +135,58 @@ ERC20::ERC20(
   this->totalSupply_.enableRegister();
   this->balances_.enableRegister();
   this->allowed_.enableRegister();
+  #ifndef BUILD_TESTNET
+    this->counter_.enableRegister();
+    this->values_.enableRegister();
+    this->addresses_.enableRegister();
+  #endif
 }
 
 void ERC20::registerContractFunctions() {
   registerContract();
-  this->registerMemberFunction("name", &ERC20::name, FunctionTypes::View, this);
-  this->registerMemberFunction("symbol", &ERC20::symbol, FunctionTypes::View, this);
-  this->registerMemberFunction("decimals", &ERC20::decimals, FunctionTypes::View, this);
-  this->registerMemberFunction("totalSupply", &ERC20::totalSupply, FunctionTypes::View, this);
-  this->registerMemberFunction("balanceOf", &ERC20::balanceOf, FunctionTypes::View, this);
-  this->registerMemberFunction("allowance", &ERC20::allowance, FunctionTypes::View, this);
-  this->registerMemberFunction("transfer", &ERC20::transfer, FunctionTypes::NonPayable, this);
-  this->registerMemberFunction("approve", &ERC20::approve, FunctionTypes::NonPayable, this);
-  this->registerMemberFunction("transferFrom", &ERC20::transferFrom, FunctionTypes::NonPayable, this);
+  // We need to register the member functions separately
+  // because ERC20 derives from multiple standard interfaces
+  // IERC20Metadata
+  this->registerMemberFunctions(
+    std::make_tuple("name", &ERC20::name, FunctionTypes::View, this),
+    std::make_tuple("symbol", &ERC20::symbol, FunctionTypes::View, this),
+    std::make_tuple("decimals", &ERC20::decimals, FunctionTypes::View, this)
+  );
+  // IERC20
+  this->registerMemberFunctions(
+    std::make_tuple("totalSupply", &ERC20::totalSupply, FunctionTypes::View, this),
+    std::make_tuple("balanceOf", &ERC20::balanceOf, FunctionTypes::View, this),
+    std::make_tuple("allowance", &ERC20::allowance, FunctionTypes::View, this),
+    std::make_tuple("transfer", &ERC20::transfer, FunctionTypes::NonPayable, this),
+    std::make_tuple("approve", &ERC20::approve, FunctionTypes::NonPayable, this),
+    std::make_tuple("transferFrom", &ERC20::transferFrom, FunctionTypes::NonPayable, this)
+  );
+  #ifndef BUILD_TESTNET
+    this->registerMemberFunction("generate", &ERC20::generate, FunctionTypes::NonPayable, this);
+    this->registerMemberFunction("addall", &ERC20::addall, FunctionTypes::NonPayable, this);
+  #endif
 }
+
+#ifndef BUILD_TESTNET
+
+void ERC20::generate(const std::vector<Address> &addresses) {
+  this->counter_ = addresses.size();
+  for (const auto& address : addresses) {
+    this->values_[this->counter_.get()][address] = 0;
+    this->addresses_.push_back(address);
+  }
+  return;
+}
+
+void ERC20::addall() {
+  for (uint64_t i = 0; i < this->counter_.get(); i++) {
+    // Use this->address_.at() CONST, we need to enforce constness
+    this->values_[i][std::as_const(this->addresses_).at(i)] += 1;
+  }
+  return;
+}
+
+#endif
 
 void ERC20::mintValue_(const Address& address, const uint256_t& value) {
   balances_[address] += value;
@@ -178,7 +250,6 @@ bool ERC20::transferFrom(
   return true;
 }
 
-
 DBBatch ERC20::dump() const
 {
   DBBatch dbBatch = BaseContract::dump();
@@ -205,6 +276,4 @@ DBBatch ERC20::dump() const
   }
   return dbBatch;
 }
-
-
 

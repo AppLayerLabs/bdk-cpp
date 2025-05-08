@@ -33,6 +33,12 @@ struct Functor {
 
   /// Equality operator.
   inline bool operator==(const Functor& other) const { return this->value == other.value; }
+
+  /// XOR= operator.
+  inline Functor& operator^=(const Functor& other) {
+    this->value ^= other.value;
+    return *this;
+  }
 };
 
 #endif  // STRINGS_H

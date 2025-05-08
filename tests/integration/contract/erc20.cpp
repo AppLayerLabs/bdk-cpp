@@ -28,6 +28,12 @@ namespace TERC20 {
       REQUIRE(sdk.callViewFunction(erc20, &ERC20::decimals) == 18);
       REQUIRE(sdk.callViewFunction(erc20, &ERC20::totalSupply) == uint256_t("1000000000000000000"));
       REQUIRE(sdk.callViewFunction(erc20, &ERC20::balanceOf, owner) == uint256_t("1000000000000000000"));
+      // ERC-165 Itself
+      REQUIRE(sdk.callViewFunction(erc20, &ERC20::supportsInterface, Bytes4(Hex::toBytes("0x01ffc9a7"))) == true);
+      // IERC20 ERC-165
+      REQUIRE(sdk.callViewFunction(erc20, &ERC20::supportsInterface, Bytes4(Hex::toBytes("0x36372b07"))) == true);
+      // IERC20Metadata ERC-165
+      REQUIRE(sdk.callViewFunction(erc20, &ERC20::supportsInterface, Bytes4(Hex::toBytes("0xa219a025"))) == true);
     }
 
     SECTION("ERC20 transfer()") {
