@@ -479,35 +479,37 @@ std::tuple<int136_t, SnailTracerOptimized::Primitive, uint136_t> SnailTracerOpti
 
 void SnailTracerOptimized::registerContractFunctions() {
   registerContract();
-  this->registerMemberFunction("TracePixel", &SnailTracerOptimized::TracePixel, FunctionTypes::NonPayable, this);
-  this->registerMemberFunction("TraceScanline", &SnailTracerOptimized::TraceScanline, FunctionTypes::NonPayable, this);
-  this->registerMemberFunction("TraceImage", &SnailTracerOptimized::TraceImage, FunctionTypes::NonPayable, this);
-  this->registerMemberFunction("Benchmark", &SnailTracerOptimized::Benchmark, FunctionTypes::NonPayable, this);
-  this->registerMemberFunction("trace", &SnailTracerOptimized::trace, FunctionTypes::NonPayable, this);
-  this->registerMemberFunction("rand", &SnailTracerOptimized::rand, FunctionTypes::NonPayable, this);
-  this->registerMemberFunction("clamp", static_cast<int136_t(SnailTracerOptimized::*)(const int136_t&)>(&SnailTracerOptimized::clamp), FunctionTypes::NonPayable, this);
-  this->registerMemberFunction("sqrt", &SnailTracerOptimized::sqrt, FunctionTypes::NonPayable, this);
-  this->registerMemberFunction("sin", &SnailTracerOptimized::sin, FunctionTypes::NonPayable, this);
-  this->registerMemberFunction("cos", &SnailTracerOptimized::cos, FunctionTypes::NonPayable, this);
-  this->registerMemberFunction("abs", &SnailTracerOptimized::abs, FunctionTypes::NonPayable, this);
-  this->registerMemberFunction("add", &SnailTracerOptimized::add, FunctionTypes::NonPayable, this);
-  this->registerMemberFunction("sub", &SnailTracerOptimized::sub, FunctionTypes::NonPayable, this);
-  this->registerMemberFunction("mul", static_cast<Vector(SnailTracerOptimized::*)(const Vector&, const Vector&)>(&SnailTracerOptimized::mul), FunctionTypes::NonPayable, this);
-  this->registerMemberFunction("mul", static_cast<Vector(SnailTracerOptimized::*)(const Vector&, const int136_t&)>(&SnailTracerOptimized::mul), FunctionTypes::NonPayable, this);
-  this->registerMemberFunction("div", &SnailTracerOptimized::div, FunctionTypes::NonPayable, this);
-  this->registerMemberFunction("dot", &SnailTracerOptimized::dot, FunctionTypes::NonPayable, this);
-  this->registerMemberFunction("cross", &SnailTracerOptimized::cross, FunctionTypes::NonPayable, this);
-  this->registerMemberFunction("norm", &SnailTracerOptimized::norm, FunctionTypes::NonPayable, this);
-  this->registerMemberFunction("clamp", static_cast<Vector(SnailTracerOptimized::*)(const Vector&)>(&SnailTracerOptimized::clamp), FunctionTypes::NonPayable, this);
-  this->registerMemberFunction("intersect", static_cast<int136_t(SnailTracerOptimized::*)(const Sphere&, const Ray&)>(&SnailTracerOptimized::intersect), FunctionTypes::NonPayable, this);
-  this->registerMemberFunction("intersect", static_cast<int136_t(SnailTracerOptimized::*)(const Triangle&, const Ray&)>(&SnailTracerOptimized::intersect), FunctionTypes::NonPayable, this);
-  this->registerMemberFunction("radiance", static_cast<Vector(SnailTracerOptimized::*)(Ray&)>(&SnailTracerOptimized::radiance), FunctionTypes::NonPayable, this);
-  this->registerMemberFunction("radiance", static_cast<Vector(SnailTracerOptimized::*)(const Ray&, const Sphere&, const int136_t&)>(&SnailTracerOptimized::radiance), FunctionTypes::NonPayable, this);
-  this->registerMemberFunction("radiance", static_cast<Vector(SnailTracerOptimized::*)(const Ray&, const Triangle&, const int136_t&)>(&SnailTracerOptimized::radiance), FunctionTypes::NonPayable, this);
-  this->registerMemberFunction("diffuse", &SnailTracerOptimized::diffuse, FunctionTypes::NonPayable, this);
-  this->registerMemberFunction("specular", &SnailTracerOptimized::specular, FunctionTypes::NonPayable, this);
-  this->registerMemberFunction("refractive", &SnailTracerOptimized::refractive, FunctionTypes::NonPayable, this);
-  this->registerMemberFunction("traceray", &SnailTracerOptimized::traceray, FunctionTypes::NonPayable, this);
+  this->registerMemberFunctions(
+    std::make_tuple("TracePixel", &SnailTracerOptimized::TracePixel, FunctionTypes::NonPayable, this),
+    std::make_tuple("TraceScanline", &SnailTracerOptimized::TraceScanline, FunctionTypes::NonPayable, this),
+    std::make_tuple("TraceImage", &SnailTracerOptimized::TraceImage, FunctionTypes::NonPayable, this),
+    std::make_tuple("Benchmark", &SnailTracerOptimized::Benchmark, FunctionTypes::NonPayable, this),
+    std::make_tuple("trace", &SnailTracerOptimized::trace, FunctionTypes::NonPayable, this),
+    std::make_tuple("rand", &SnailTracerOptimized::rand, FunctionTypes::NonPayable, this),
+    std::make_tuple("clamp", static_cast<int136_t(SnailTracerOptimized::*)(const int136_t&)>(&SnailTracerOptimized::clamp), FunctionTypes::NonPayable, this),
+    std::make_tuple("sqrt", &SnailTracerOptimized::sqrt, FunctionTypes::NonPayable, this),
+    std::make_tuple("sin", &SnailTracerOptimized::sin, FunctionTypes::NonPayable, this),
+    std::make_tuple("cos", &SnailTracerOptimized::cos, FunctionTypes::NonPayable, this),
+    std::make_tuple("abs", &SnailTracerOptimized::abs, FunctionTypes::NonPayable, this),
+    std::make_tuple("add", &SnailTracerOptimized::add, FunctionTypes::NonPayable, this),
+    std::make_tuple("sub", &SnailTracerOptimized::sub, FunctionTypes::NonPayable, this),
+    std::make_tuple("mul", static_cast<Vector(SnailTracerOptimized::*)(const Vector&, const Vector&)>(&SnailTracerOptimized::mul), FunctionTypes::NonPayable, this),
+    std::make_tuple("mul", static_cast<Vector(SnailTracerOptimized::*)(const Vector&, const int136_t&)>(&SnailTracerOptimized::mul), FunctionTypes::NonPayable, this),
+    std::make_tuple("div", &SnailTracerOptimized::div, FunctionTypes::NonPayable, this),
+    std::make_tuple("dot", &SnailTracerOptimized::dot, FunctionTypes::NonPayable, this),
+    std::make_tuple("cross", &SnailTracerOptimized::cross, FunctionTypes::NonPayable, this),
+    std::make_tuple("norm", &SnailTracerOptimized::norm, FunctionTypes::NonPayable, this),
+    std::make_tuple("clamp", static_cast<Vector(SnailTracerOptimized::*)(const Vector&)>(&SnailTracerOptimized::clamp), FunctionTypes::NonPayable, this),
+    std::make_tuple("intersect", static_cast<int136_t(SnailTracerOptimized::*)(const Sphere&, const Ray&)>(&SnailTracerOptimized::intersect), FunctionTypes::NonPayable, this),
+    std::make_tuple("intersect", static_cast<int136_t(SnailTracerOptimized::*)(const Triangle&, const Ray&)>(&SnailTracerOptimized::intersect), FunctionTypes::NonPayable, this),
+    std::make_tuple("radiance", static_cast<Vector(SnailTracerOptimized::*)(Ray&)>(&SnailTracerOptimized::radiance), FunctionTypes::NonPayable, this),
+    std::make_tuple("radiance", static_cast<Vector(SnailTracerOptimized::*)(const Ray&, const Sphere&, const int136_t&)>(&SnailTracerOptimized::radiance), FunctionTypes::NonPayable, this),
+    std::make_tuple("radiance", static_cast<Vector(SnailTracerOptimized::*)(const Ray&, const Triangle&, const int136_t&)>(&SnailTracerOptimized::radiance), FunctionTypes::NonPayable, this),
+    std::make_tuple("diffuse", &SnailTracerOptimized::diffuse, FunctionTypes::NonPayable, this),
+    std::make_tuple("specular", &SnailTracerOptimized::specular, FunctionTypes::NonPayable, this),
+    std::make_tuple("refractive", &SnailTracerOptimized::refractive, FunctionTypes::NonPayable, this),
+    std::make_tuple("traceray", &SnailTracerOptimized::traceray, FunctionTypes::NonPayable, this)
+  );
 }
 
 DBBatch SnailTracerOptimized::dump() const {

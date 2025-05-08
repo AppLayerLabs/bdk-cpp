@@ -83,7 +83,7 @@ class ERC721URIStorage : virtual public ERC721 {
 
     /// Register contract class via ContractReflectionInterface.
     static void registerContract() {
-      ContractReflectionInterface::registerContractMethods<
+      DynamicContract::registerContractMethods<
         ERC721URIStorage, const std::string &, const std::string &,
         const Address &, const Address &, const uint64_t &//,
         //const std::unique_ptr<DB> &

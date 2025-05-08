@@ -51,7 +51,7 @@ class TestThrowVars : public DynamicContract {
 
     /// Register the contract.
     static void registerContract() {
-      ContractReflectionInterface::registerContractMethods<
+      DynamicContract::registerContractMethods<
         TestThrowVars, const std::string&, const std::string&, const std::string&,
         const Address&, const Address&, const uint64_t&//, DB&
       >(

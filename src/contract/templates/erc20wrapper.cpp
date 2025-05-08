@@ -73,11 +73,13 @@ void ERC20Wrapper::deposit(const Address& token, const uint256_t& value) {
 
 void ERC20Wrapper::registerContractFunctions() {
   registerContract();
-  this->registerMemberFunction("getContractBalance", &ERC20Wrapper::getContractBalance, FunctionTypes::View, this);
-  this->registerMemberFunction("getUserBalance", &ERC20Wrapper::getUserBalance, FunctionTypes::View, this);
-  this->registerMemberFunction("withdraw", &ERC20Wrapper::withdraw, FunctionTypes::NonPayable, this);
-  this->registerMemberFunction("transferTo", &ERC20Wrapper::transferTo, FunctionTypes::NonPayable, this);
-  this->registerMemberFunction("deposit", &ERC20Wrapper::deposit, FunctionTypes::NonPayable, this);
+  this->registerMemberFunctions(
+    std::make_tuple("getContractBalance", &ERC20Wrapper::getContractBalance, FunctionTypes::View, this),
+    std::make_tuple("getUserBalance", &ERC20Wrapper::getUserBalance, FunctionTypes::View, this),
+    std::make_tuple("withdraw", &ERC20Wrapper::withdraw, FunctionTypes::NonPayable, this),
+    std::make_tuple("transferTo", &ERC20Wrapper::transferTo, FunctionTypes::NonPayable, this),
+    std::make_tuple("deposit", &ERC20Wrapper::deposit, FunctionTypes::NonPayable, this)
+  );
 }
 
 DBBatch ERC20Wrapper::dump() const {

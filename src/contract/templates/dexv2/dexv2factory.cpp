@@ -63,15 +63,17 @@ DEXV2Factory::~DEXV2Factory() {};
 
 void DEXV2Factory::registerContractFunctions() {
   registerContract();
-  this->registerMemberFunction("feeTo", &DEXV2Factory::feeTo, FunctionTypes::View, this);
-  this->registerMemberFunction("feeToSetter", &DEXV2Factory::feeToSetter, FunctionTypes::View, this);
-  this->registerMemberFunction("allPairs", &DEXV2Factory::allPairs, FunctionTypes::View, this);
-  this->registerMemberFunction("allPairsLength", &DEXV2Factory::allPairsLength, FunctionTypes::View, this);
-  this->registerMemberFunction("getPair", &DEXV2Factory::getPair, FunctionTypes::View, this);
-  this->registerMemberFunction("getPairByIndex", &DEXV2Factory::getPairByIndex, FunctionTypes::View, this);
-  this->registerMemberFunction("createPair", &DEXV2Factory::createPair, FunctionTypes::NonPayable, this);
-  this->registerMemberFunction("setFeeTo", &DEXV2Factory::setFeeTo, FunctionTypes::NonPayable, this);
-  this->registerMemberFunction("setFeeToSetter", &DEXV2Factory::setFeeToSetter, FunctionTypes::NonPayable, this);
+  this->registerMemberFunctions(
+    std::make_tuple("feeTo", &DEXV2Factory::feeTo, FunctionTypes::View, this),
+    std::make_tuple("feeToSetter", &DEXV2Factory::feeToSetter, FunctionTypes::View, this),
+    std::make_tuple("allPairs", &DEXV2Factory::allPairs, FunctionTypes::View, this),
+    std::make_tuple("allPairsLength", &DEXV2Factory::allPairsLength, FunctionTypes::View, this),
+    std::make_tuple("getPair", &DEXV2Factory::getPair, FunctionTypes::View, this),
+    std::make_tuple("getPairByIndex", &DEXV2Factory::getPairByIndex, FunctionTypes::View, this),
+    std::make_tuple("createPair", &DEXV2Factory::createPair, FunctionTypes::NonPayable, this),
+    std::make_tuple("setFeeTo", &DEXV2Factory::setFeeTo, FunctionTypes::NonPayable, this),
+    std::make_tuple("setFeeToSetter", &DEXV2Factory::setFeeToSetter, FunctionTypes::NonPayable, this)
+  );
 }
 
 Address DEXV2Factory::feeTo() const { return this->feeTo_.get(); }

@@ -38,8 +38,10 @@ DBBatch NativeWrapper::dump() const {
 
 void NativeWrapper::registerContractFunctions() {
   registerContract();
-  this->registerMemberFunction("deposit", &NativeWrapper::deposit, FunctionTypes::Payable, this);
-  this->registerMemberFunction("withdraw", &NativeWrapper::withdraw, FunctionTypes::Payable, this);
+  this->registerMemberFunctions(
+    std::make_tuple("deposit", &NativeWrapper::deposit, FunctionTypes::Payable, this),
+    std::make_tuple("withdraw", &NativeWrapper::withdraw, FunctionTypes::Payable, this)
+  );
 }
 
 void NativeWrapper::deposit() {

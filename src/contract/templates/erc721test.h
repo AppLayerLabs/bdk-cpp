@@ -86,7 +86,7 @@ class ERC721Test : public ERC721 {
 
     /// Register contract class via ContractReflectionInterface.
     static void registerContract() {
-      ContractReflectionInterface::registerContractMethods<
+      DynamicContract::registerContractMethods<
         ERC721Test, const std::string &, const std::string &, const uint64_t &,
         const Address &, const Address &,
         const uint64_t &//, DB&

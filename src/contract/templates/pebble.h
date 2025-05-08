@@ -152,7 +152,7 @@ class Pebble : public virtual ERC721URIStorage, public virtual Ownable {
 
     /// Register contract class via ContractReflectionInterface.
     static void registerContract() {
-      ContractReflectionInterface::registerContractMethods<Pebble>(
+      DynamicContract::registerContractMethods<Pebble>(
         std::vector<std::string>{"maxSupply"},
         std::make_tuple("mintNFT", &Pebble::mintNFT, FunctionTypes::NonPayable, std::vector<std::string>{"to"}),
         std::make_tuple("getTokenRarity", &Pebble::getTokenRarity, FunctionTypes::View, std::vector<std::string>{"tokenId"}),

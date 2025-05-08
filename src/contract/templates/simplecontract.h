@@ -148,7 +148,7 @@ class SimpleContract : public DynamicContract {
 
     /// Register the contract structure.
     static void registerContract() {
-      ContractReflectionInterface::registerContractMethods<
+      DynamicContract::registerContractMethods<
         SimpleContract, const std::string&, const uint256_t&, const std::tuple<std::string, uint256_t>&,
         const Address&, const Address&, const uint64_t&//, const DB&
       >(

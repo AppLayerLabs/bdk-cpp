@@ -82,7 +82,7 @@ class Ownable : virtual public DynamicContract {
 
     /// Register the contract.
     static void registerContract() {
-      ContractReflectionInterface::registerContractMethods<Ownable, const Address&>(
+      DynamicContract::registerContractMethods<Ownable, const Address&>(
         std::vector<std::string>{"initialOwner"},
         std::make_tuple("onlyOwner", &Ownable::onlyOwner, FunctionTypes::NonPayable, std::vector<std::string>{}),
         std::make_tuple("owner", &Ownable::owner, FunctionTypes::View, std::vector<std::string>{}),

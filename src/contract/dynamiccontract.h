@@ -370,6 +370,14 @@ class DynamicContract : public BaseContract {
       throw DynamicException("Derived Class from Contract does not override registerContractFunctions()");
     }
 
+
+    /**
+     * Forcely register a given Functor as a supported interface.
+     * @param functor The functor to register.
+     */
+    void registerInterface(const Functor& functor) {
+      this->supportedInterfaces_.push_back(functor);
+    }
   public:
     /**
      * Constructor for creating the contract from scratch.

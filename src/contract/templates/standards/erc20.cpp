@@ -162,8 +162,10 @@ void ERC20::registerContractFunctions() {
     std::make_tuple("transferFrom", &ERC20::transferFrom, FunctionTypes::NonPayable, this)
   );
   #ifndef BUILD_TESTNET
-    this->registerMemberFunction("generate", &ERC20::generate, FunctionTypes::NonPayable, this);
-    this->registerMemberFunction("addall", &ERC20::addall, FunctionTypes::NonPayable, this);
+    this->registerMemberFunctions(
+      std::make_tuple("generate", &ERC20::generate, FunctionTypes::NonPayable, this),
+      std::make_tuple("addall", &ERC20::addall, FunctionTypes::NonPayable, this)
+    );
   #endif
 }
 
