@@ -144,15 +144,23 @@ ERC20::ERC20(
 
 void ERC20::registerContractFunctions() {
   registerContract();
-  this->registerMemberFunction("name", &ERC20::name, FunctionTypes::View, this);
-  this->registerMemberFunction("symbol", &ERC20::symbol, FunctionTypes::View, this);
-  this->registerMemberFunction("decimals", &ERC20::decimals, FunctionTypes::View, this);
-  this->registerMemberFunction("totalSupply", &ERC20::totalSupply, FunctionTypes::View, this);
-  this->registerMemberFunction("balanceOf", &ERC20::balanceOf, FunctionTypes::View, this);
-  this->registerMemberFunction("allowance", &ERC20::allowance, FunctionTypes::View, this);
-  this->registerMemberFunction("transfer", &ERC20::transfer, FunctionTypes::NonPayable, this);
-  this->registerMemberFunction("approve", &ERC20::approve, FunctionTypes::NonPayable, this);
-  this->registerMemberFunction("transferFrom", &ERC20::transferFrom, FunctionTypes::NonPayable, this);
+  // We need to register the member functions separately
+  // because ERC20 derives from multiple standard interfaces
+  // IERC20Metadata
+  this->registerMemberFunctions(
+    std::make_tuple("name", &ERC20::name, FunctionTypes::View, this),
+    std::make_tuple("symbol", &ERC20::symbol, FunctionTypes::View, this),
+    std::make_tuple("decimals", &ERC20::decimals, FunctionTypes::View, this)
+  );
+  // IERC20
+  this->registerMemberFunctions(
+    std::make_tuple("totalSupply", &ERC20::totalSupply, FunctionTypes::View, this),
+    std::make_tuple("balanceOf", &ERC20::balanceOf, FunctionTypes::View, this),
+    std::make_tuple("allowance", &ERC20::allowance, FunctionTypes::View, this),
+    std::make_tuple("transfer", &ERC20::transfer, FunctionTypes::NonPayable, this),
+    std::make_tuple("approve", &ERC20::approve, FunctionTypes::NonPayable, this),
+    std::make_tuple("transferFrom", &ERC20::transferFrom, FunctionTypes::NonPayable, this)
+  );
   #ifndef BUILD_TESTNET
     this->registerMemberFunction("generate", &ERC20::generate, FunctionTypes::NonPayable, this);
     this->registerMemberFunction("addall", &ERC20::addall, FunctionTypes::NonPayable, this);

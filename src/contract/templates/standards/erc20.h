@@ -213,7 +213,7 @@ class ERC20 : virtual public DynamicContract {
 
     /// Register contract class via ContractReflectionInterface.
     static void registerContract() {
-      ContractReflectionInterface::registerContractMethods<
+      DynamicContract::registerContractMethods<
         ERC20, const std::string &, const std::string &, const uint8_t &,
         const uint256_t &,
         const Address &, const Address &, const uint64_t &,

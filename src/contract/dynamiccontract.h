@@ -56,6 +56,18 @@ class DynamicContract : public BaseContract {
       Functor, std::function<Bytes(const evmc_message& callInfo)>, SafeHash
     > evmFunctions_;
 
+    /**
+     *  Vector containing all the supported ERC-165 interfaces
+     *  See more: https://eips.ethereum.org/EIPS/eip-165
+     *  ERC-165 Hashes are directly generated while registering contract functiosn
+     *  by calling DynamicContract::registerMemberFunctions().
+     *  Where all the functors of the functions inside the arguments of registerMemberFunctions
+     *  Are XOR'ed together to generate a single hash compatible with ERC-165.
+     *  0x01ffc9a7 is the ERC-165 interface ID for ERC-165 itself.
+     *  0x01ffc9a7 == 33540519
+     */
+    std::vector<Functor> supportedInterfaces_ = { Functor(33540519) };
+
     std::vector<BlockNumberObserver> blockNumberObservers_;
 
     std::vector<BlockTimestampObserver> blockTimestampObservers_;
@@ -103,10 +115,11 @@ class DynamicContract : public BaseContract {
      * @param methodMutability The mutability of the function.
      * @param instance Pointer to the instance of the class.
      */
-    template <typename R, typename T> void registerMemberFunction(
+    template <typename R, typename T> Functor registerMemberFunction(
       const std::string& funcSignature, R(T::*memFunc)() const, const FunctionTypes& methodMutability, T* instance
     ) {
       std::string functStr = funcSignature + "()";
+      Functor functor = Utils::makeFunctor(functStr);
       auto registerEvmFunction = [this, instance, memFunc]([[maybe_unused]] const evmc_message& callInfo) -> Bytes {
         if constexpr (std::is_same_v<R, void>) {
           // If the function's return type is void, return an empty Bytes object
@@ -117,10 +130,10 @@ class DynamicContract : public BaseContract {
           return ABI::Encoder::encodeData<R>((instance->*memFunc)());
         }
       };
-      this->registerEVMFunction(Utils::makeFunctor(functStr), registerEvmFunction);
+      this->registerEVMFunction(functor, registerEvmFunction);
       switch (methodMutability) {
         case FunctionTypes::View: {
-          this->registerViewFunction(Utils::makeFunctor(functStr), [instance, memFunc](const evmc_message&) -> Bytes {
+          this->registerViewFunction(functor, [instance, memFunc](const evmc_message&) -> Bytes {
             if constexpr (std::is_same_v<R, void>) {
               // If the function's return type is void, return an empty Bytes object
               (instance->*memFunc)(); // Call the member function without capturing its return
@@ -133,13 +146,13 @@ class DynamicContract : public BaseContract {
           break;
         }
         case FunctionTypes::NonPayable: {
-          this->registerFunction(Utils::makeFunctor(functStr), [instance, memFunc](const evmc_message&) {
+          this->registerFunction(functor, [instance, memFunc](const evmc_message&) {
             (instance->*memFunc)();
           });
           break;
         }
         case FunctionTypes::Payable: {
-          this->registerPayableFunction(Utils::makeFunctor(functStr), [instance, memFunc](const evmc_message&) {
+          this->registerPayableFunction(functor, [instance, memFunc](const evmc_message&) {
             (instance->*memFunc)();
           });
           break;
@@ -148,6 +161,7 @@ class DynamicContract : public BaseContract {
           throw DynamicException("Invalid function signature.");
         }
       }
+      return functor;
     }
 
     /**
@@ -157,10 +171,11 @@ class DynamicContract : public BaseContract {
      * @param methodMutability The mutability of the function.
      * @param instance Pointer to the instance of the class.
      */
-    template <typename R, typename T> void registerMemberFunction(
+    template <typename R, typename T> Functor registerMemberFunction(
       const std::string& funcSignature, R(T::*memFunc)(), const FunctionTypes& methodMutability, T* instance
     ) {
       std::string functStr = funcSignature + "()";
+      Functor functor = Utils::makeFunctor(functStr);
       auto registerEvmFunction = [this, instance, memFunc]([[maybe_unused]] const evmc_message& callInfo) -> Bytes {
         if constexpr (std::is_same_v<R, void>) {
           // If the function's return type is void, return an empty Bytes object
@@ -171,19 +186,19 @@ class DynamicContract : public BaseContract {
           return ABI::Encoder::encodeData<R>((instance->*memFunc)());
         }
       };
-      this->registerEVMFunction(Utils::makeFunctor(functStr), registerEvmFunction);
+      this->registerEVMFunction(functor, registerEvmFunction);
       switch (methodMutability) {
         case FunctionTypes::View: {
           throw DynamicException("View must be const because it does not modify the state.");
         }
         case FunctionTypes::NonPayable: {
-          this->registerFunction(Utils::makeFunctor(functStr), [instance, memFunc](const evmc_message&) {
+          this->registerFunction(functor, [instance, memFunc](const evmc_message&) {
             (instance->*memFunc)();
           });
           break;
         }
         case FunctionTypes::Payable: {
-          this->registerPayableFunction(Utils::makeFunctor(functStr), [instance, memFunc](const evmc_message&) {
+          this->registerPayableFunction(functor, [instance, memFunc](const evmc_message&) {
             (instance->*memFunc)();
           });
           break;
@@ -192,6 +207,7 @@ class DynamicContract : public BaseContract {
           throw DynamicException("Invalid function signature.");
         }
       }
+      return functor;
     }
 
     /**
@@ -201,7 +217,7 @@ class DynamicContract : public BaseContract {
      * @param methodMutability The mutability of the function.
      * @param instance Pointer to the instance of the class.
      */
-    template <typename R, typename... Args, typename T> void registerMemberFunction(
+    template <typename R, typename... Args, typename T> Functor registerMemberFunction(
       const std::string& funcSignature, R(T::*memFunc)(Args...), const FunctionTypes& methodMutability, T* instance
     ) {
       Functor functor = ABI::FunctorEncoder::encode<Args...>(funcSignature);
@@ -244,6 +260,7 @@ class DynamicContract : public BaseContract {
         default:
           throw DynamicException("Invalid function signature.");
       }
+      return functor;
     }
 
     /**
@@ -253,7 +270,7 @@ class DynamicContract : public BaseContract {
      * @param methodMutability The mutability of the function.
      * @param instance Pointer to the instance of the class.
      */
-    template <typename R, typename... Args, typename T> void registerMemberFunction(
+    template <typename R, typename... Args, typename T> Functor registerMemberFunction(
       const std::string& funcSignature, R(T::*memFunc)(Args...) const, const FunctionTypes& methodMutability, T* instance
     ) {
       Functor functor = ABI::FunctorEncoder::encode<Args...>(funcSignature);
@@ -308,6 +325,22 @@ class DynamicContract : public BaseContract {
           this->registerPayableFunction(functor, registrationFunc);
           break;
       }
+      return functor;
+    }
+
+    /**
+     * Template for registering all functions of a class.
+     * @param methods The methods to register.
+     */
+    template<typename ...Methods>
+    void registerMemberFunctions(Methods&& ... methods) {
+      Functor xorFunctor;
+      // If it never executed before, the functor will be just the first method
+      // If not, it will be XOR'ed with the previous functor
+      ((
+        xorFunctor ^= this->registerMemberFunction(std::get<0>(methods), std::get<1>(methods), std::get<2>(methods), std::get<3>(methods))
+      ), ...);
+      this->supportedInterfaces_.push_back(xorFunctor);
     }
 
     /**
@@ -411,14 +444,19 @@ class DynamicContract : public BaseContract {
      */
     DynamicContract(const std::string& contractName,
       const Address& address, const Address& creator, const uint64_t& chainId
-    ) : BaseContract(contractName, address, creator, chainId) {}
+    ) : BaseContract(contractName, address, creator, chainId) {
+      // We need to create the ERC-165 function and register it accordingly
+      this->registerMemberFunction("supportsInterface", &DynamicContract::supportsInterface, FunctionTypes::View, this);
+    }
 
     /**
      * Constructor for loading the contract from the database.
      * @param address The address where the contract will be deployed.
      * @param db Reference to the database object.
      */
-    DynamicContract(const Address& address, const DB& db) : BaseContract(address, db) {};
+    DynamicContract(const Address& address, const DB& db) : BaseContract(address, db) {
+      this->registerMemberFunction("supportsInterface", &DynamicContract::supportsInterface, FunctionTypes::View, this);
+    };
 
     auto setHost(ContractHost& host) {
       this->host_ = &host;
@@ -741,6 +779,18 @@ class DynamicContract : public BaseContract {
       return host_->context().getAccount(address).getContractType() != ContractType::NOT_A_CONTRACT;
     }
 
+    /**
+     * Implementation for the ERC-165 compliance.
+     * See more at: https://eips.ethereum.org/EIPS/eip-165
+     * @param interfaceId The interface ID to check.
+     * @return `true` if the contract supports the interface, `false` otherwise.
+     */
+    bool supportsInterface(const Bytes4& interfaceId) const {
+      Functor interfaceFunctor(UintConv::bytesToUint32(interfaceId));
+      return std::any_of(supportedInterfaces_.begin(), supportedInterfaces_.end(),
+        [&interfaceFunctor](const Functor& functor) { return functor == interfaceFunctor; });
+    }
+
 
     std::span<const BlockNumberObserver> getBlockNumberObservers() const override {
        return blockNumberObservers_;
@@ -748,6 +798,25 @@ class DynamicContract : public BaseContract {
 
     std::span<const BlockTimestampObserver> getBlockTimestampObservers() const override {
       return blockTimestampObservers_;
+    }
+
+    /**
+     * Helper function used by
+     * This function is utilized to be able to inject a extra function (ERC-165, supportsInterface)
+     * Into the ABI generator.
+     * @tparam TContract The contract type.
+     * @tparam Args NOT USED
+     * @tparam Methods Type to allow template deduction for the methods.
+     * @param ctorArgs The constructor arguments string names.
+     * @param methods The methods to register.
+     */
+    template <typename TContract, typename... Args, typename... Methods>
+    static void inline registerContractMethods(const std::vector<std::string>& ctorArgs, Methods&&... methods) {
+      ContractReflectionInterface::registerContractMethods<
+        TContract, Args...>(ctorArgs,
+        std::make_tuple("supportsInterface", &TContract::supportsInterface, FunctionTypes::View, std::vector<std::string>{"interfaceId"}),
+        methods...
+      );
     }
 
     /**

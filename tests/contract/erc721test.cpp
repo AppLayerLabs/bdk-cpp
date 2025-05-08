@@ -24,6 +24,14 @@ namespace TERC721Test {
         REQUIRE(sdk.callViewFunction(ERC721Address, &ERC721Test::symbol) == "NFT");
         REQUIRE(sdk.callViewFunction(ERC721Address, &ERC721Test::maxTokens) == 100);
         REQUIRE(sdk.callViewFunction(ERC721Address, &ERC721Test::tokenIdCounter) == 0);
+        // ERC-165 Itself
+        REQUIRE(sdk.callViewFunction(ERC721Address, &ERC721::supportsInterface, Bytes4(Hex::toBytes("0x00000000"))) == false);
+        REQUIRE(sdk.callViewFunction(ERC721Address, &ERC721::supportsInterface, Bytes4(Hex::toBytes("0xffffffff"))) == false);
+        REQUIRE(sdk.callViewFunction(ERC721Address, &ERC721::supportsInterface, Bytes4(Hex::toBytes("0x01ffc9a7"))) == true);
+        // IERC721Metadata
+        REQUIRE(sdk.callViewFunction(ERC721Address, &ERC721::supportsInterface, Bytes4(Hex::toBytes("0x5b5e139f"))) == true);
+        // IERC721
+        REQUIRE(sdk.callViewFunction(ERC721Address, &ERC721::supportsInterface, Bytes4(Hex::toBytes("0x80ac58cd"))) == true);
         // Dump to database
         options = std::make_unique<Options>(sdk.getOptions());
         sdk.getState().saveToDB();
