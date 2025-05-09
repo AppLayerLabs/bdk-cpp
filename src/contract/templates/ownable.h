@@ -82,16 +82,19 @@ class Ownable : virtual public DynamicContract {
 
     /// Register the contract.
     static void registerContract() {
-      DynamicContract::registerContractMethods<Ownable, const Address&>(
-        std::vector<std::string>{"initialOwner"},
-        std::make_tuple("onlyOwner", &Ownable::onlyOwner, FunctionTypes::NonPayable, std::vector<std::string>{}),
-        std::make_tuple("owner", &Ownable::owner, FunctionTypes::View, std::vector<std::string>{}),
-        std::make_tuple("renounceOwnership", &Ownable::renounceOwnership, FunctionTypes::NonPayable, std::vector<std::string>{}),
-        std::make_tuple("transferOwnership", &Ownable::transferOwnership, FunctionTypes::NonPayable, std::vector<std::string>{"newOwner"})
-      );
-      ContractReflectionInterface::registerContractEvents<Ownable>(
-        std::make_tuple("ownershipTransferred", false, &Ownable::ownershipTransferred, std::vector<std::string>{"previousOwner","newOwner"})
-      );
+      static std::once_flag once;
+      std::call_once(once, []() {
+        DynamicContract::registerContractMethods<Ownable>(
+          std::vector<std::string>{"initialOwner"},
+          std::make_tuple("onlyOwner", &Ownable::onlyOwner, FunctionTypes::NonPayable, std::vector<std::string>{}),
+          std::make_tuple("owner", &Ownable::owner, FunctionTypes::View, std::vector<std::string>{}),
+          std::make_tuple("renounceOwnership", &Ownable::renounceOwnership, FunctionTypes::NonPayable, std::vector<std::string>{}),
+          std::make_tuple("transferOwnership", &Ownable::transferOwnership, FunctionTypes::NonPayable, std::vector<std::string>{"newOwner"})
+        );
+        ContractReflectionInterface::registerContractEvents<Ownable>(
+          std::make_tuple("ownershipTransferred", false, &Ownable::ownershipTransferred, std::vector<std::string>{"previousOwner","newOwner"})
+        );
+      });
     }
 
     DBBatch dump() const override; ///< Dump method.

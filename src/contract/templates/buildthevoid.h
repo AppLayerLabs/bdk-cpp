@@ -89,39 +89,37 @@ class BuildTheVoid : virtual public DynamicContract, virtual public Ownable {
 
     /// Register contract class via ContractReflectionInterface.
     static void registerContract() {
-      DynamicContract::registerContractMethods<
-        BuildTheVoid,
-        const Address &, const Address &,
-        const uint64_t &,
-        DB&
-      >(
-        std::vector<std::string>{},
-        std::make_tuple("setPlayerContract", &BuildTheVoid::setPlayerContract, FunctionTypes::NonPayable, std::vector<std::string>{"playerContract"}),
-        std::make_tuple("setEnergyContract", &BuildTheVoid::setEnergyContract, FunctionTypes::NonPayable, std::vector<std::string>{"energyContract"}),
-        std::make_tuple("forceUpdate", &BuildTheVoid::forceUpdate, FunctionTypes::NonPayable, std::vector<std::string>{}),
-        std::make_tuple("approve", &BuildTheVoid::approve, FunctionTypes::NonPayable, std::vector<std::string>{}),
-        std::make_tuple("loginPlayer", &BuildTheVoid::loginPlayer, FunctionTypes::NonPayable, std::vector<std::string>{"playerId"}),
-        std::make_tuple("logoutPlayer", &BuildTheVoid::logoutPlayer, FunctionTypes::NonPayable, std::vector<std::string>{"playerId"}),
-        std::make_tuple("changeBlock", &BuildTheVoid::changeBlock, FunctionTypes::NonPayable, std::vector<std::string>{"playerId", "x", "y", "z", "type"}),
-        std::make_tuple("movePlayer", &BuildTheVoid::movePlayer, FunctionTypes::NonPayable, std::vector<std::string>{"playerId", "x", "y", "z"}),
-        std::make_tuple("claimEnergy", &BuildTheVoid::claimEnergy, FunctionTypes::NonPayable, std::vector<std::string>{"playerId", "x", "y", "z"}),
-        std::make_tuple("getChunk", &BuildTheVoid::getChunk, FunctionTypes::View, std::vector<std::string>{"cx", "cy"}),
-        std::make_tuple("getPlayerContract", &BuildTheVoid::getPlayerContract, FunctionTypes::View, std::vector<std::string>{}),
-        std::make_tuple("getEnergyContract", &BuildTheVoid::getEnergyContract, FunctionTypes::View, std::vector<std::string>{}),
-        std::make_tuple("getActivePlayers", &BuildTheVoid::getActivePlayers, FunctionTypes::View, std::vector<std::string>{}),
-        std::make_tuple("getInnactivePlayers", &BuildTheVoid::getInnactivePlayers, FunctionTypes::View, std::vector<std::string>{}),
-        std::make_tuple("getDeadPlayers", &BuildTheVoid::getDeadPlayers, FunctionTypes::View, std::vector<std::string>{}),
-        std::make_tuple("getPlayerStatus", &BuildTheVoid::getPlayerStatus, FunctionTypes::View, std::vector<std::string>{"playerId"}),
-        std::make_tuple("selfcallUpdate", &BuildTheVoid::selfcallUpdate, FunctionTypes::NonPayable, std::vector<std::string>{})
-      );
-      ContractReflectionInterface::registerContractEvents<BuildTheVoid>(
-        std::make_tuple("PlayerMoved", false, &BuildTheVoid::PlayerMoved, std::vector<std::string>{"playerId", "x", "y", "z"}),
-        std::make_tuple("PlayerLogin", false, &BuildTheVoid::PlayerLogin, std::vector<std::string>{"playerId", "x", "y", "z"}),
-        std::make_tuple("PlayerLogout", false, &BuildTheVoid::PlayerLogout, std::vector<std::string>{"playerId"}),
-        std::make_tuple("BlockChanged", false, &BuildTheVoid::BlockChanged, std::vector<std::string>{"playerId", "x", "y", "z", "blockType", "timestamp"}),
-        std::make_tuple("ClaimedEnergy", false, &BuildTheVoid::ClaimedEnergy, std::vector<std::string>{"playerId", "value"}),
-        std::make_tuple("PlayerDead", false, &BuildTheVoid::PlayerDead, std::vector<std::string>{"playerId"})
+      static std::once_flag once;
+      std::call_once (once, [](){
+        DynamicContract::registerContractMethods<BuildTheVoid>(
+          std::vector<std::string>{},
+          std::make_tuple("setPlayerContract", &BuildTheVoid::setPlayerContract, FunctionTypes::NonPayable, std::vector<std::string>{"playerContract"}),
+          std::make_tuple("setEnergyContract", &BuildTheVoid::setEnergyContract, FunctionTypes::NonPayable, std::vector<std::string>{"energyContract"}),
+          std::make_tuple("forceUpdate", &BuildTheVoid::forceUpdate, FunctionTypes::NonPayable, std::vector<std::string>{}),
+          std::make_tuple("approve", &BuildTheVoid::approve, FunctionTypes::NonPayable, std::vector<std::string>{}),
+          std::make_tuple("loginPlayer", &BuildTheVoid::loginPlayer, FunctionTypes::NonPayable, std::vector<std::string>{"playerId"}),
+          std::make_tuple("logoutPlayer", &BuildTheVoid::logoutPlayer, FunctionTypes::NonPayable, std::vector<std::string>{"playerId"}),
+          std::make_tuple("changeBlock", &BuildTheVoid::changeBlock, FunctionTypes::NonPayable, std::vector<std::string>{"playerId", "x", "y", "z", "type"}),
+          std::make_tuple("movePlayer", &BuildTheVoid::movePlayer, FunctionTypes::NonPayable, std::vector<std::string>{"playerId", "x", "y", "z"}),
+          std::make_tuple("claimEnergy", &BuildTheVoid::claimEnergy, FunctionTypes::NonPayable, std::vector<std::string>{"playerId", "x", "y", "z"}),
+          std::make_tuple("getChunk", &BuildTheVoid::getChunk, FunctionTypes::View, std::vector<std::string>{"cx", "cy"}),
+          std::make_tuple("getPlayerContract", &BuildTheVoid::getPlayerContract, FunctionTypes::View, std::vector<std::string>{}),
+          std::make_tuple("getEnergyContract", &BuildTheVoid::getEnergyContract, FunctionTypes::View, std::vector<std::string>{}),
+          std::make_tuple("getActivePlayers", &BuildTheVoid::getActivePlayers, FunctionTypes::View, std::vector<std::string>{}),
+          std::make_tuple("getInnactivePlayers", &BuildTheVoid::getInnactivePlayers, FunctionTypes::View, std::vector<std::string>{}),
+          std::make_tuple("getDeadPlayers", &BuildTheVoid::getDeadPlayers, FunctionTypes::View, std::vector<std::string>{}),
+          std::make_tuple("getPlayerStatus", &BuildTheVoid::getPlayerStatus, FunctionTypes::View, std::vector<std::string>{"playerId"}),
+          std::make_tuple("selfcallUpdate", &BuildTheVoid::selfcallUpdate, FunctionTypes::NonPayable, std::vector<std::string>{})
         );
+        ContractReflectionInterface::registerContractEvents<BuildTheVoid>(
+          std::make_tuple("PlayerMoved", false, &BuildTheVoid::PlayerMoved, std::vector<std::string>{"playerId", "x", "y", "z"}),
+          std::make_tuple("PlayerLogin", false, &BuildTheVoid::PlayerLogin, std::vector<std::string>{"playerId", "x", "y", "z"}),
+          std::make_tuple("PlayerLogout", false, &BuildTheVoid::PlayerLogout, std::vector<std::string>{"playerId"}),
+          std::make_tuple("BlockChanged", false, &BuildTheVoid::BlockChanged, std::vector<std::string>{"playerId", "x", "y", "z", "blockType", "timestamp"}),
+          std::make_tuple("ClaimedEnergy", false, &BuildTheVoid::ClaimedEnergy, std::vector<std::string>{"playerId", "value"}),
+          std::make_tuple("PlayerDead", false, &BuildTheVoid::PlayerDead, std::vector<std::string>{"playerId"})
+        );
+      });
     }
 
     DBBatch dump() const override;

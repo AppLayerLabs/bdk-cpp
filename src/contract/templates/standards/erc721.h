@@ -345,45 +345,45 @@ public:
 
   /// Register contract class via ContractReflectionInterface.
   static void registerContract() {
-    DynamicContract::registerContractMethods<
-        ERC721, const std::string &, const std::string &,
-        const Address &, const Address &,
-        const uint64_t &, DB&>(
-        std::vector<std::string>{"erc721name", "erc721symbol"},
-        std::make_tuple("name", &ERC721::name, FunctionTypes::View,
-                        std::vector<std::string>{}),
-        std::make_tuple("symbol", &ERC721::symbol, FunctionTypes::View,
-                        std::vector<std::string>{}),
-        std::make_tuple("balanceOf", &ERC721::balanceOf, FunctionTypes::View,
-                        std::vector<std::string>{"owner"}),
-        std::make_tuple("ownerOf", &ERC721::ownerOf, FunctionTypes::View,
-                        std::vector<std::string>{"tokenId"}),
-        std::make_tuple("tokenURI", &ERC721::tokenURI, FunctionTypes::View,
-                        std::vector<std::string>{"tokenId"}),
-        std::make_tuple("approve", &ERC721::approve, FunctionTypes::NonPayable,
-                        std::vector<std::string>{"to", "tokenId"}),
-        std::make_tuple("getApproved", &ERC721::getApproved, FunctionTypes::View,
-                        std::vector<std::string>{"tokenId"}),
-        std::make_tuple("setApprovalForAll", &ERC721::setApprovalForAll,
-                        FunctionTypes::NonPayable,
-                        std::vector<std::string>{"operatorAddress", "approved"}),
-        std::make_tuple("isApprovedForAll", &ERC721::isApprovedForAll, FunctionTypes::View,
-                        std::vector<std::string>{"owner", "operatorAddress"}),
-        std::make_tuple("transferFrom", &ERC721::transferFrom, FunctionTypes::NonPayable,
-                        std::vector<std::string>{"from", "to", "tokenId"}),
-        std::make_tuple("safeTransferFrom",
-                        static_cast<void(ERC721::*)(const Address&, const Address&, const uint256_t&, const Bytes&)>(&ERC721::safeTransferFrom),
-                        FunctionTypes::NonPayable,
-                        std::vector<std::string>{"from", "to", "tokenId", "data"}),
-        std::make_tuple("safeTransferFrom",
-                        static_cast<void(ERC721::*)(const Address&, const Address&, const uint256_t&)>(&ERC721::safeTransferFrom),
-                        FunctionTypes::NonPayable,
-                        std::vector<std::string>{"from", "to", "tokenId"}));
-    ContractReflectionInterface::registerContractEvents<ERC721>(
-        std::make_tuple("Transfer", false, &ERC721::Transfer, std::vector<std::string>{"from","to", "tokenId"}),
-        std::make_tuple("Approval", false, &ERC721::Approval, std::vector<std::string>{"owner","approved", "tokenId"}),
-        std::make_tuple("ApprovalForAll", false, &ERC721::ApprovalForAll, std::vector<std::string>{"owner","operatorAddress", "approved"})
-    );
+    static std::once_flag once;
+    std::call_once(once, []() {
+      DynamicContract::registerContractMethods<ERC721>(
+          std::vector<std::string>{"erc721name", "erc721symbol"},
+          std::make_tuple("name", &ERC721::name, FunctionTypes::View,
+                          std::vector<std::string>{}),
+          std::make_tuple("symbol", &ERC721::symbol, FunctionTypes::View,
+                          std::vector<std::string>{}),
+          std::make_tuple("balanceOf", &ERC721::balanceOf, FunctionTypes::View,
+                          std::vector<std::string>{"owner"}),
+          std::make_tuple("ownerOf", &ERC721::ownerOf, FunctionTypes::View,
+                          std::vector<std::string>{"tokenId"}),
+          std::make_tuple("tokenURI", &ERC721::tokenURI, FunctionTypes::View,
+                          std::vector<std::string>{"tokenId"}),
+          std::make_tuple("approve", &ERC721::approve, FunctionTypes::NonPayable,
+                          std::vector<std::string>{"to", "tokenId"}),
+          std::make_tuple("getApproved", &ERC721::getApproved, FunctionTypes::View,
+                          std::vector<std::string>{"tokenId"}),
+          std::make_tuple("setApprovalForAll", &ERC721::setApprovalForAll,
+                          FunctionTypes::NonPayable,
+                          std::vector<std::string>{"operatorAddress", "approved"}),
+          std::make_tuple("isApprovedForAll", &ERC721::isApprovedForAll, FunctionTypes::View,
+                          std::vector<std::string>{"owner", "operatorAddress"}),
+          std::make_tuple("transferFrom", &ERC721::transferFrom, FunctionTypes::NonPayable,
+                          std::vector<std::string>{"from", "to", "tokenId"}),
+          std::make_tuple("safeTransferFrom",
+                          static_cast<void(ERC721::*)(const Address&, const Address&, const uint256_t&, const Bytes&)>(&ERC721::safeTransferFrom),
+                          FunctionTypes::NonPayable,
+                          std::vector<std::string>{"from", "to", "tokenId", "data"}),
+          std::make_tuple("safeTransferFrom",
+                          static_cast<void(ERC721::*)(const Address&, const Address&, const uint256_t&)>(&ERC721::safeTransferFrom),
+                          FunctionTypes::NonPayable,
+                          std::vector<std::string>{"from", "to", "tokenId"}));
+      ContractReflectionInterface::registerContractEvents<ERC721>(
+          std::make_tuple("Transfer", false, &ERC721::Transfer, std::vector<std::string>{"from","to", "tokenId"}),
+          std::make_tuple("Approval", false, &ERC721::Approval, std::vector<std::string>{"owner","approved", "tokenId"}),
+          std::make_tuple("ApprovalForAll", false, &ERC721::ApprovalForAll, std::vector<std::string>{"owner","operatorAddress", "approved"})
+      );
+    });
   }
 
    /// Dump method

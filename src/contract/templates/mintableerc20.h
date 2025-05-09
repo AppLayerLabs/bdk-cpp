@@ -61,14 +61,13 @@ class ERC20Mintable : virtual public ERC20, virtual public Ownable {
 
     /// Register contract using ContractReflectionInterface.
     static void registerContract() {
-      DynamicContract::registerContractMethods<
-        ERC20Mintable, std::string &, std::string &, uint8_t &,
-        const Address &,
-        const Address &, const uint64_t &, DB&
-      >(
-        std::vector<std::string>{"erc20_name", "erc20_symbol", "erc20_decimals"},
-        std::make_tuple("mint", &ERC20Mintable::mint, FunctionTypes::Payable, std::vector<std::string>{})
-      );
+      static std::once_flag once;
+      std::call_once(once, []() {
+        DynamicContract::registerContractMethods<ERC20Mintable>(
+          std::vector<std::string>{"erc20_name", "erc20_symbol", "erc20_decimals"},
+          std::make_tuple("mint", &ERC20Mintable::mint, FunctionTypes::Payable, std::vector<std::string>{})
+        );
+      });
     }
 
     /// Dump method

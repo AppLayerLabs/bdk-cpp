@@ -86,18 +86,17 @@ class ERC721Test : public ERC721 {
 
     /// Register contract class via ContractReflectionInterface.
     static void registerContract() {
-      DynamicContract::registerContractMethods<
-        ERC721Test, const std::string &, const std::string &, const uint64_t &,
-        const Address &, const Address &,
-        const uint64_t &, DB&>
-      (
-        std::vector<std::string>{"erc721name", "erc721symbol", "maxTokens"},
-        std::make_tuple("mint", &ERC721Test::mint, FunctionTypes::NonPayable, std::vector<std::string>{"to"}),
-        std::make_tuple("burn", &ERC721Test::burn, FunctionTypes::NonPayable, std::vector<std::string>{"tokenId"}),
-        std::make_tuple("tokenIdCounter", &ERC721Test::tokenIdCounter, FunctionTypes::View, std::vector<std::string>{""}),
-        std::make_tuple("maxTokens", &ERC721Test::maxTokens, FunctionTypes::View, std::vector<std::string>{""}),
-        std::make_tuple("totalSupply", &ERC721Test::totalSupply, FunctionTypes::View, std::vector<std::string>{""})
-      );
+      static std::once_flag once;
+      std::call_once(once, []() {
+        DynamicContract::registerContractMethods<ERC721Test>(
+          std::vector<std::string>{},
+          std::make_tuple("mint", &ERC721Test::mint, FunctionTypes::NonPayable, std::vector<std::string>{"to"}),
+          std::make_tuple("burn", &ERC721Test::burn, FunctionTypes::NonPayable, std::vector<std::string>{"tokenId"}),
+          std::make_tuple("tokenIdCounter", &ERC721Test::tokenIdCounter, FunctionTypes::View, std::vector<std::string>{}),
+          std::make_tuple("maxTokens", &ERC721Test::maxTokens, FunctionTypes::View, std::vector<std::string>{}),
+          std::make_tuple("totalSupply", &ERC721Test::totalSupply, FunctionTypes::View, std::vector<std::string>{})
+        );
+      });
     }
 
     /// Dump method

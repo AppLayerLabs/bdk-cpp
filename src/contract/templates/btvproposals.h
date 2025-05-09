@@ -66,26 +66,25 @@ class BTVProposals : public virtual DynamicContract, public Ownable {
 
     /// Register contract class via ContractReflectionInterface.
     static void registerContract() {
-      DynamicContract::registerContractMethods<
-        BTVProposals, const std::string &, const std::string &,
-        const Address &, const Address &, const uint64_t &,
-        const std::unique_ptr<DB> &
-      >(
-        std::vector<std::string>{},
-        std::make_tuple("createProposal", &BTVProposals::createProposal, FunctionTypes::NonPayable, std::vector<std::string>{"title", "description"}),
-        std::make_tuple("voteOnProposal", &BTVProposals::voteOnProposal, FunctionTypes::NonPayable, std::vector<std::string>{"tokenId", "proposalId", "energy"}),
-        std::make_tuple("removeVote", &BTVProposals::removeVote, FunctionTypes::NonPayable, std::vector<std::string>{"tokenId", "proposalId", "energy"}),
-        std::make_tuple("completeProposal", &BTVProposals::completeProposal, FunctionTypes::NonPayable, std::vector<std::string>{"proposalId"}),
-        std::make_tuple("setProposalPrice", &BTVProposals::setProposalPrice, FunctionTypes::NonPayable, std::vector<std::string>{"price"}),
-        std::make_tuple("setPlayerContract", &BTVProposals::setPlayerContract, FunctionTypes::NonPayable, std::vector<std::string>{"playerContract"}),
-        std::make_tuple("setEnergyContract", &BTVProposals::setEnergyContract, FunctionTypes::NonPayable, std::vector<std::string>{"energyContract"}),
-        std::make_tuple("getActiveProposals", &BTVProposals::getActiveProposals, FunctionTypes::View, std::vector<std::string>{}),
-        std::make_tuple("getCompletedProposals", &BTVProposals::getCompletedProposals, FunctionTypes::View, std::vector<std::string>{}),
-        std::make_tuple("getProposalVotes", &BTVProposals::getProposalVotes, FunctionTypes::View, std::vector<std::string>{"proposalId"}),
-        std::make_tuple("getProposalPrice", &BTVProposals::getProposalPrice, FunctionTypes::View, std::vector<std::string>{}),
-        std::make_tuple("getProposalEnergy", &BTVProposals::getProposalEnergy, FunctionTypes::View, std::vector<std::string>{"proposalId"}),
-        std::make_tuple("getProposalCount", &BTVProposals::getProposalCount, FunctionTypes::View, std::vector<std::string>{})
-      );
+      static std::once_flag once;
+      std::call_once(once, [](){
+        DynamicContract::registerContractMethods<BTVProposals>(
+          std::vector<std::string>{},
+          std::make_tuple("createProposal", &BTVProposals::createProposal, FunctionTypes::NonPayable, std::vector<std::string>{"title", "description"}),
+          std::make_tuple("voteOnProposal", &BTVProposals::voteOnProposal, FunctionTypes::NonPayable, std::vector<std::string>{"tokenId", "proposalId", "energy"}),
+          std::make_tuple("removeVote", &BTVProposals::removeVote, FunctionTypes::NonPayable, std::vector<std::string>{"tokenId", "proposalId", "energy"}),
+          std::make_tuple("completeProposal", &BTVProposals::completeProposal, FunctionTypes::NonPayable, std::vector<std::string>{"proposalId"}),
+          std::make_tuple("setProposalPrice", &BTVProposals::setProposalPrice, FunctionTypes::NonPayable, std::vector<std::string>{"price"}),
+          std::make_tuple("setPlayerContract", &BTVProposals::setPlayerContract, FunctionTypes::NonPayable, std::vector<std::string>{"playerContract"}),
+          std::make_tuple("setEnergyContract", &BTVProposals::setEnergyContract, FunctionTypes::NonPayable, std::vector<std::string>{"energyContract"}),
+          std::make_tuple("getActiveProposals", &BTVProposals::getActiveProposals, FunctionTypes::View, std::vector<std::string>{}),
+          std::make_tuple("getCompletedProposals", &BTVProposals::getCompletedProposals, FunctionTypes::View, std::vector<std::string>{}),
+          std::make_tuple("getProposalVotes", &BTVProposals::getProposalVotes, FunctionTypes::View, std::vector<std::string>{"proposalId"}),
+          std::make_tuple("getProposalPrice", &BTVProposals::getProposalPrice, FunctionTypes::View, std::vector<std::string>{}),
+          std::make_tuple("getProposalEnergy", &BTVProposals::getProposalEnergy, FunctionTypes::View, std::vector<std::string>{"proposalId"}),
+          std::make_tuple("getProposalCount", &BTVProposals::getProposalCount, FunctionTypes::View, std::vector<std::string>{})
+        );
+      });
     }
 
     DBBatch dump() const override;

@@ -818,10 +818,10 @@ class DynamicContract : public BaseContract {
      * @param ctorArgs The constructor arguments string names.
      * @param methods The methods to register.
      */
-    template <typename TContract, typename... Args, typename... Methods>
+    template <typename TContract, typename... Methods>
     static void inline registerContractMethods(const std::vector<std::string>& ctorArgs, Methods&&... methods) {
       ContractReflectionInterface::registerContractMethods<
-        TContract, Args...>(ctorArgs,
+        TContract>(ctorArgs,
         std::make_tuple("supportsInterface", &TContract::supportsInterface, FunctionTypes::View, std::vector<std::string>{"interfaceId"}),
         methods...
       );

@@ -70,31 +70,30 @@ class BTVPlayer : public virtual ERC721, public virtual Ownable {
 
     /// Register contract class via ContractReflectionInterface.
     static void registerContract() {
-      DynamicContract::registerContractMethods<
-        BTVPlayer, const std::string &, const std::string &,
-        const Address &, const Address &, const uint64_t &,
-        const std::unique_ptr<DB> &
-      >(
-        std::vector<std::string>{"erc721_name", "erc721_symbol"},
-        std::make_tuple("getPlayerName", &BTVPlayer::getPlayerName, FunctionTypes::View, std::vector<std::string>{"tokenId"}),
-        std::make_tuple("playerExists", &BTVPlayer::playerExists, FunctionTypes::View, std::vector<std::string>{"playerName"}),
-        std::make_tuple("mintPlayer", &BTVPlayer::mintPlayer, FunctionTypes::NonPayable, std::vector<std::string>{"name"}),
-        std::make_tuple("setProposalContract", &BTVPlayer::setProposalContract, FunctionTypes::NonPayable, std::vector<std::string>{"proposalContract"}),
-        std::make_tuple("getProposalContract", &BTVPlayer::getProposalContract, FunctionTypes::View, std::vector<std::string>{}),
-        std::make_tuple("setEnergyContract", &BTVPlayer::setEnergyContract, FunctionTypes::NonPayable, std::vector<std::string>{"energyContract"}),
-        std::make_tuple("getEnergyContract", &BTVPlayer::getEnergyContract, FunctionTypes::View, std::vector<std::string>{}),
-        std::make_tuple("setWorldContract", &BTVPlayer::setWorldContract, FunctionTypes::NonPayable, std::vector<std::string>{"worldContract"}),
-        std::make_tuple("getWorldContract", &BTVPlayer::getWorldContract, FunctionTypes::View, std::vector<std::string>{}),
-        std::make_tuple("totalSupply", &BTVPlayer::totalSupply, FunctionTypes::View, std::vector<std::string>{}),
-        std::make_tuple("getPlayerEnergy", &BTVPlayer::getPlayerEnergy, FunctionTypes::View, std::vector<std::string>{"tokenId"}),
-        std::make_tuple("addPlayerEnergy", &BTVPlayer::addPlayerEnergy, FunctionTypes::NonPayable, std::vector<std::string>{"tokenId", "energy"}),
-        std::make_tuple("takePlayerEnergy", &BTVPlayer::takePlayerEnergy, FunctionTypes::NonPayable, std::vector<std::string>{"tokenId", "energy"}),
-        std::make_tuple("getPlayerTokens", &BTVPlayer::getPlayerTokens, FunctionTypes::View, std::vector<std::string>{"player"}),
-        std::make_tuple("createProposal", &BTVPlayer::createProposal, FunctionTypes::NonPayable, std::vector<std::string>{"tokenId", "title", "description"}),
-        std::make_tuple("voteOnProposal", &BTVPlayer::voteOnProposal, FunctionTypes::NonPayable, std::vector<std::string>{"tokenId", "proposalId", "energy"}),
-        std::make_tuple("removeVote", &BTVPlayer::removeVote, FunctionTypes::NonPayable, std::vector<std::string>{"tokenId", "proposalId", "energy"}),
-        std::make_tuple("approveProposalSpend", &BTVPlayer::approveProposalSpend, FunctionTypes::NonPayable, std::vector<std::string>{})
-      );
+      static std::once_flag once;
+      std::call_once(once, []() {
+        DynamicContract::registerContractMethods<BTVPlayer>(
+          std::vector<std::string>{"erc721_name", "erc721_symbol"},
+          std::make_tuple("getPlayerName", &BTVPlayer::getPlayerName, FunctionTypes::View, std::vector<std::string>{"tokenId"}),
+          std::make_tuple("playerExists", &BTVPlayer::playerExists, FunctionTypes::View, std::vector<std::string>{"playerName"}),
+          std::make_tuple("mintPlayer", &BTVPlayer::mintPlayer, FunctionTypes::NonPayable, std::vector<std::string>{"name"}),
+          std::make_tuple("setProposalContract", &BTVPlayer::setProposalContract, FunctionTypes::NonPayable, std::vector<std::string>{"proposalContract"}),
+          std::make_tuple("getProposalContract", &BTVPlayer::getProposalContract, FunctionTypes::View, std::vector<std::string>{}),
+          std::make_tuple("setEnergyContract", &BTVPlayer::setEnergyContract, FunctionTypes::NonPayable, std::vector<std::string>{"energyContract"}),
+          std::make_tuple("getEnergyContract", &BTVPlayer::getEnergyContract, FunctionTypes::View, std::vector<std::string>{}),
+          std::make_tuple("setWorldContract", &BTVPlayer::setWorldContract, FunctionTypes::NonPayable, std::vector<std::string>{"worldContract"}),
+          std::make_tuple("getWorldContract", &BTVPlayer::getWorldContract, FunctionTypes::View, std::vector<std::string>{}),
+          std::make_tuple("totalSupply", &BTVPlayer::totalSupply, FunctionTypes::View, std::vector<std::string>{}),
+          std::make_tuple("getPlayerEnergy", &BTVPlayer::getPlayerEnergy, FunctionTypes::View, std::vector<std::string>{"tokenId"}),
+          std::make_tuple("addPlayerEnergy", &BTVPlayer::addPlayerEnergy, FunctionTypes::NonPayable, std::vector<std::string>{"tokenId", "energy"}),
+          std::make_tuple("takePlayerEnergy", &BTVPlayer::takePlayerEnergy, FunctionTypes::NonPayable, std::vector<std::string>{"tokenId", "energy"}),
+          std::make_tuple("getPlayerTokens", &BTVPlayer::getPlayerTokens, FunctionTypes::View, std::vector<std::string>{"player"}),
+          std::make_tuple("createProposal", &BTVPlayer::createProposal, FunctionTypes::NonPayable, std::vector<std::string>{"tokenId", "title", "description"}),
+          std::make_tuple("voteOnProposal", &BTVPlayer::voteOnProposal, FunctionTypes::NonPayable, std::vector<std::string>{"tokenId", "proposalId", "energy"}),
+          std::make_tuple("removeVote", &BTVPlayer::removeVote, FunctionTypes::NonPayable, std::vector<std::string>{"tokenId", "proposalId", "energy"}),
+          std::make_tuple("approveProposalSpend", &BTVPlayer::approveProposalSpend, FunctionTypes::NonPayable, std::vector<std::string>{})
+        );
+      });
     }
 
     /// Dump method

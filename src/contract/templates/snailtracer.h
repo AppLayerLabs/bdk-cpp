@@ -317,41 +317,41 @@ class SnailTracer : public DynamicContract {
 
     /// Register the contract structure.
     static void registerContract() {
-      DynamicContract::registerContractMethods<
-        SnailTracer, int256_t&, int256_t&,
-        const Address&, const Address&, const uint64_t&, DB&
-      >(
-        std::vector<std::string>{"w", "h"},
-        std::make_tuple("TracePixel", &SnailTracer::TracePixel, FunctionTypes::NonPayable, std::vector<std::string>{"x", "y", "spp"}),
-        std::make_tuple("TraceScanline", &SnailTracer::TraceScanline, FunctionTypes::NonPayable, std::vector<std::string>{"y", "spp"}),
-        std::make_tuple("TraceImage", &SnailTracer::TraceImage, FunctionTypes::NonPayable, std::vector<std::string>{"spp"}),
-        std::make_tuple("Benchmark", &SnailTracer::Benchmark, FunctionTypes::NonPayable, std::vector<std::string>{}),
-        std::make_tuple("trace", &SnailTracer::trace, FunctionTypes::NonPayable, std::vector<std::string>{"x", "y", "spp"}),
-        std::make_tuple("rand", &SnailTracer::rand, FunctionTypes::NonPayable, std::vector<std::string>{}),
-        std::make_tuple("clamp", static_cast<int256_t(SnailTracer::*)(const int256_t&)>(&SnailTracer::clamp), FunctionTypes::NonPayable, std::vector<std::string>{"x"}),
-        std::make_tuple("sqrt", &SnailTracer::sqrt, FunctionTypes::NonPayable, std::vector<std::string>{"x"}),
-        std::make_tuple("sin", &SnailTracer::sin, FunctionTypes::NonPayable, std::vector<std::string>{"x"}),
-        std::make_tuple("cos", &SnailTracer::cos, FunctionTypes::NonPayable, std::vector<std::string>{"x"}),
-        std::make_tuple("abs", &SnailTracer::abs, FunctionTypes::NonPayable, std::vector<std::string>{"x"}),
-        std::make_tuple("add", &SnailTracer::add, FunctionTypes::NonPayable, std::vector<std::string>{"u", "v"}),
-        std::make_tuple("sub", &SnailTracer::sub, FunctionTypes::NonPayable, std::vector<std::string>{"u", "v"}),
-        std::make_tuple("mul", static_cast<Vector(SnailTracer::*)(const Vector&,const Vector&)>(&SnailTracer::mul), FunctionTypes::NonPayable, std::vector<std::string>{"u", "v"}),
-        std::make_tuple("mul", static_cast<Vector(SnailTracer::*)(const Vector&,const int256_t&)>(&SnailTracer::mul), FunctionTypes::NonPayable, std::vector<std::string>{"v", "m"}),
-        std::make_tuple("div", &SnailTracer::div, FunctionTypes::NonPayable, std::vector<std::string>{"v", "d"}),
-        std::make_tuple("dot", &SnailTracer::dot, FunctionTypes::NonPayable, std::vector<std::string>{"u", "v"}),
-        std::make_tuple("cross", &SnailTracer::cross, FunctionTypes::NonPayable, std::vector<std::string>{"u", "v"}),
-        std::make_tuple("norm", &SnailTracer::norm, FunctionTypes::NonPayable, std::vector<std::string>{"v"}),
-        std::make_tuple("clamp", static_cast<Vector(SnailTracer::*)(const Vector&)>(&SnailTracer::clamp), FunctionTypes::NonPayable, std::vector<std::string>{"v"}),
-        std::make_tuple("intersect", static_cast<int256_t(SnailTracer::*)(const Sphere&, const Ray&)>(&SnailTracer::intersect), FunctionTypes::NonPayable, std::vector<std::string>{"s", "r"}),
-        std::make_tuple("intersect", static_cast<int256_t(SnailTracer::*)(const Triangle&, const Ray&)>(&SnailTracer::intersect), FunctionTypes::NonPayable, std::vector<std::string>{"t", "r"}),
-        std::make_tuple("radiance", static_cast<Vector(SnailTracer::*)(Ray&)>(&SnailTracer::radiance), FunctionTypes::NonPayable, std::vector<std::string>{"ray"}),
-        std::make_tuple("radiance", static_cast<Vector(SnailTracer::*)(const Ray&, const Sphere&, const int256_t&)>(&SnailTracer::radiance), FunctionTypes::NonPayable, std::vector<std::string>{"ray", "obj", "dist"}),
-        std::make_tuple("radiance", static_cast<Vector(SnailTracer::*)(const Ray&, const Triangle&, const int256_t&)>(&SnailTracer::radiance), FunctionTypes::NonPayable, std::vector<std::string>{"ray", "obj", "dist"}),
-        std::make_tuple("diffuse", &SnailTracer::diffuse, FunctionTypes::NonPayable, std::vector<std::string>{"ray", "intersect", "normal"}),
-        std::make_tuple("specular", &SnailTracer::specular, FunctionTypes::NonPayable, std::vector<std::string>{"ray", "intersect", "normal"}),
-        std::make_tuple("refractive", &SnailTracer::refractive, FunctionTypes::NonPayable, std::vector<std::string>{"ray", "intersect", "normal", "nnt", "ddn", "cos2t"}),
-        std::make_tuple("traceray", &SnailTracer::traceray, FunctionTypes::NonPayable, std::vector<std::string>{"ray"})
-      );
+      static std::once_flag once;
+      std::call_once(once, []() {
+        DynamicContract::registerContractMethods<SnailTracer>(
+          std::vector<std::string>{"w", "h"},
+          std::make_tuple("TracePixel", &SnailTracer::TracePixel, FunctionTypes::NonPayable, std::vector<std::string>{"x", "y", "spp"}),
+          std::make_tuple("TraceScanline", &SnailTracer::TraceScanline, FunctionTypes::NonPayable, std::vector<std::string>{"y", "spp"}),
+          std::make_tuple("TraceImage", &SnailTracer::TraceImage, FunctionTypes::NonPayable, std::vector<std::string>{"spp"}),
+          std::make_tuple("Benchmark", &SnailTracer::Benchmark, FunctionTypes::NonPayable, std::vector<std::string>{}),
+          std::make_tuple("trace", &SnailTracer::trace, FunctionTypes::NonPayable, std::vector<std::string>{"x", "y", "spp"}),
+          std::make_tuple("rand", &SnailTracer::rand, FunctionTypes::NonPayable, std::vector<std::string>{}),
+          std::make_tuple("clamp", static_cast<int256_t(SnailTracer::*)(const int256_t&)>(&SnailTracer::clamp), FunctionTypes::NonPayable, std::vector<std::string>{"x"}),
+          std::make_tuple("sqrt", &SnailTracer::sqrt, FunctionTypes::NonPayable, std::vector<std::string>{"x"}),
+          std::make_tuple("sin", &SnailTracer::sin, FunctionTypes::NonPayable, std::vector<std::string>{"x"}),
+          std::make_tuple("cos", &SnailTracer::cos, FunctionTypes::NonPayable, std::vector<std::string>{"x"}),
+          std::make_tuple("abs", &SnailTracer::abs, FunctionTypes::NonPayable, std::vector<std::string>{"x"}),
+          std::make_tuple("add", &SnailTracer::add, FunctionTypes::NonPayable, std::vector<std::string>{"u", "v"}),
+          std::make_tuple("sub", &SnailTracer::sub, FunctionTypes::NonPayable, std::vector<std::string>{"u", "v"}),
+          std::make_tuple("mul", static_cast<Vector(SnailTracer::*)(const Vector&,const Vector&)>(&SnailTracer::mul), FunctionTypes::NonPayable, std::vector<std::string>{"u", "v"}),
+          std::make_tuple("mul", static_cast<Vector(SnailTracer::*)(const Vector&,const int256_t&)>(&SnailTracer::mul), FunctionTypes::NonPayable, std::vector<std::string>{"v", "m"}),
+          std::make_tuple("div", &SnailTracer::div, FunctionTypes::NonPayable, std::vector<std::string>{"v", "d"}),
+          std::make_tuple("dot", &SnailTracer::dot, FunctionTypes::NonPayable, std::vector<std::string>{"u", "v"}),
+          std::make_tuple("cross", &SnailTracer::cross, FunctionTypes::NonPayable, std::vector<std::string>{"u", "v"}),
+          std::make_tuple("norm", &SnailTracer::norm, FunctionTypes::NonPayable, std::vector<std::string>{"v"}),
+          std::make_tuple("clamp", static_cast<Vector(SnailTracer::*)(const Vector&)>(&SnailTracer::clamp), FunctionTypes::NonPayable, std::vector<std::string>{"v"}),
+          std::make_tuple("intersect", static_cast<int256_t(SnailTracer::*)(const Sphere&, const Ray&)>(&SnailTracer::intersect), FunctionTypes::NonPayable, std::vector<std::string>{"s", "r"}),
+          std::make_tuple("intersect", static_cast<int256_t(SnailTracer::*)(const Triangle&, const Ray&)>(&SnailTracer::intersect), FunctionTypes::NonPayable, std::vector<std::string>{"t", "r"}),
+          std::make_tuple("radiance", static_cast<Vector(SnailTracer::*)(Ray&)>(&SnailTracer::radiance), FunctionTypes::NonPayable, std::vector<std::string>{"ray"}),
+          std::make_tuple("radiance", static_cast<Vector(SnailTracer::*)(const Ray&, const Sphere&, const int256_t&)>(&SnailTracer::radiance), FunctionTypes::NonPayable, std::vector<std::string>{"ray", "obj", "dist"}),
+          std::make_tuple("radiance", static_cast<Vector(SnailTracer::*)(const Ray&, const Triangle&, const int256_t&)>(&SnailTracer::radiance), FunctionTypes::NonPayable, std::vector<std::string>{"ray", "obj", "dist"}),
+          std::make_tuple("diffuse", &SnailTracer::diffuse, FunctionTypes::NonPayable, std::vector<std::string>{"ray", "intersect", "normal"}),
+          std::make_tuple("specular", &SnailTracer::specular, FunctionTypes::NonPayable, std::vector<std::string>{"ray", "intersect", "normal"}),
+          std::make_tuple("refractive", &SnailTracer::refractive, FunctionTypes::NonPayable, std::vector<std::string>{"ray", "intersect", "normal", "nnt", "ddn", "cos2t"}),
+          std::make_tuple("traceray", &SnailTracer::traceray, FunctionTypes::NonPayable, std::vector<std::string>{"ray"})
+        );
+      });
     }
 
     DBBatch dump() const override; ///< Dump method.

@@ -37,15 +37,14 @@ class BTVEnergy : public virtual ERC20, public virtual Ownable {
 
     /// Register contract using ContractReflectionInterface.
     static void registerContract() {
-      DynamicContract::registerContractMethods<
-        BTVEnergy, std::string &, std::string &, uint8_t &,
-        const Address &,
-        const Address &, const uint64_t &, DB&
-      >(
-        std::vector<std::string>{"erc20_name", "erc20_symbol", "erc20_decimals"},
-        std::make_tuple("mint", &BTVEnergy::mint, FunctionTypes::NonPayable, std::vector<std::string>{"to","value"}),
-        std::make_tuple("burn", &BTVEnergy::burn, FunctionTypes::NonPayable, std::vector<std::string>{"from","value"})
-      );
+      static std::once_flag once;
+      std::call_once(once, [](){
+        DynamicContract::registerContractMethods<BTVEnergy>(
+          std::vector<std::string>{"erc20_name", "erc20_symbol", "erc20_decimals"},
+          std::make_tuple("mint", &BTVEnergy::mint, FunctionTypes::NonPayable, std::vector<std::string>{"to","value"}),
+          std::make_tuple("burn", &BTVEnergy::burn, FunctionTypes::NonPayable, std::vector<std::string>{"from","value"})
+        );
+      });
     }
     DBBatch dump() const override;
 };
