@@ -28,7 +28,7 @@ TEST_CASE("ContractABIGenerator helper", "[contract][contractabigenerator]") {
     #ifdef BUILD_TESTNET
       REQUIRE(j.size() == 11);
     #else
-      REQUIRE(j.size() == 13);
+      REQUIRE(j.size() == 14);
     #endif
 
     auto findTransferFrom = std::find(j.begin(), j.end(), EXPECTED::ERC20::transferFrom);
@@ -55,7 +55,7 @@ TEST_CASE("ContractABIGenerator helper", "[contract][contractabigenerator]") {
     json j;
     std::ifstream i("ABI/ERC20Wrapper.json");
     i >> j;
-    REQUIRE(j.size() == 5);
+    REQUIRE(j.size() == 6);
 
     auto findDeposit = std::find(j.begin(), j.end(), EXPECTED::ERC20Wrapper::deposit);
     REQUIRE(findDeposit != j.end());
@@ -73,7 +73,7 @@ TEST_CASE("ContractABIGenerator helper", "[contract][contractabigenerator]") {
     json j;
     std::ifstream i("ABI/NativeWrapper.json");
     i >> j;
-    REQUIRE(j.size() == 2);
+    REQUIRE(j.size() == 3);
 
     auto findDeposit = std::find(j.begin(), j.end(), EXPECTED::NativeWrapper::deposit);
     REQUIRE(findDeposit != j.end());
@@ -120,7 +120,7 @@ TEST_CASE("ContractABIGenerator helper", "[contract][contractabigenerator]") {
     std::ifstream i("ABI/SimpleContract.json");
     i >> j;
 
-    REQUIRE(j.size() == 25);
+    REQUIRE(j.size() == 26);
     auto findSetName = std::find(j.begin(), j.end(), EXPECTED::SimpleContract::setName);
     REQUIRE(findSetName != j.end());
     auto findSetNames = std::find(j.begin(), j.end(), EXPECTED::SimpleContract::setNames);
