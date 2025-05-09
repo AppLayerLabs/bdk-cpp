@@ -204,18 +204,21 @@ class SystemContract : public DynamicContract {
 
     /// Register the contract.
     static void registerContract() {
-      ContractReflectionInterface::registerContractMethods<SystemContract>(
-        std::vector<std::string>{"initialValidators", "initialNumSlots", "maxSlots"},
-        std::make_tuple("stake", &SystemContract::stake, FunctionTypes::Payable, std::vector<std::string>{}),
-        std::make_tuple("unstake", &SystemContract::unstake, FunctionTypes::NonPayable, std::vector<std::string>{"amount"}),
-        std::make_tuple("delegate", &SystemContract::delegate, FunctionTypes::NonPayable, std::vector<std::string>{"validatorPubKey", "amount"}),
-        std::make_tuple("undelegate", &SystemContract::undelegate, FunctionTypes::NonPayable, std::vector<std::string>{"validatorPubKey", "amount"}),
-        std::make_tuple("voteSlots", &SystemContract::voteSlots, FunctionTypes::NonPayable, std::vector<std::string>{"validatorPubKey", "slots"})
-      );
       // FIXME/TODO: add validator set update events (one per {validator,votes} change)
       // FIXME/TODO: add numslots update event ({int new_numslots})
       //ContractReflectionInterface::registerContractEvents<SystemContract>(
       //);
+      static std::once_flag once;
+      std::call_once(once, []() {
+        DynamicContract::registerContractMethods<SystemContract>(
+          std::vector<std::string>{},
+          std::make_tuple("stake", &SystemContract::stake, FunctionTypes::Payable, std::vector<std::string>{}),
+          std::make_tuple("unstake", &SystemContract::unstake, FunctionTypes::NonPayable, std::vector<std::string>{"amount"}),
+          std::make_tuple("delegate", &SystemContract::delegate, FunctionTypes::NonPayable, std::vector<std::string>{"validatorPubKey", "amount"}),
+          std::make_tuple("undelegate", &SystemContract::undelegate, FunctionTypes::NonPayable, std::vector<std::string>{"validatorPubKey", "amount"}),
+          std::make_tuple("voteSlots", &SystemContract::voteSlots, FunctionTypes::NonPayable, std::vector<std::string>{"validatorPubKey", "slots"})
+        );
+      });
     }
 
     DBBatch dump() const override; ///< Dump method.

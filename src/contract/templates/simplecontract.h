@@ -22,7 +22,6 @@ class SimpleContract : public DynamicContract {
     SafeString name_; ///< The name of the contract.
     SafeUint256_t number_; ///< The number of the contract.
     SafeTuple<std::string, uint256_t> tuple_;  ///< Name and number as a tuple.
-    SafeUint256_t count_;
     void registerContractFunctions() override; ///< Register the contract functions.
 
   public:
@@ -165,8 +164,8 @@ class SimpleContract : public DynamicContract {
           std::make_tuple("setNamesAndNumbersInArrayOfArrays", &SimpleContract::setNamesAndNumbersInArrayOfArrays, FunctionTypes::NonPayable, std::vector<std::string>{"argNameAndNumber"}),
           std::make_tuple("setTuple", &SimpleContract::setTuple, FunctionTypes::NonPayable, std::vector<std::string>{"argTuple"}),
           std::make_tuple("getName", &SimpleContract::getName, FunctionTypes::View, std::vector<std::string>{}),
-          std::make_tuple("getNames", &SimpleContract::getNames, FunctionTypes::View, std::vector<std::string>{"i"}),
           std::make_tuple("getNameNonView", &SimpleContract::getNameNonView, FunctionTypes::NonPayable, std::vector<std::string>{}),
+          std::make_tuple("getNames", &SimpleContract::getNames, FunctionTypes::View, std::vector<std::string>{"i"}),
           std::make_tuple("getNumber", static_cast<uint256_t(SimpleContract::*)() const>(&SimpleContract::getNumber), FunctionTypes::View, std::vector<std::string>{}),
           std::make_tuple("getNumber", static_cast<uint256_t(SimpleContract::*)(const uint256_t&) const>(&SimpleContract::getNumber), FunctionTypes::View, std::vector<std::string>{}),
           std::make_tuple("getNumbers", &SimpleContract::getNumbers, FunctionTypes::View, std::vector<std::string>{"i"}),

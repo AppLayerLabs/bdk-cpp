@@ -48,13 +48,14 @@ class ThrowTestC : public DynamicContract {
     * Register the contract structure.
     */
     static void registerContract() {
-      ContractReflectionInterface::registerContractMethods<
-        ThrowTestC, const Address&, const Address&, const uint64_t&//, DB&
-      >(
-        std::vector<std::string>{},
-        std::make_tuple("getNumC", &ThrowTestC::getNumC, FunctionTypes::View, std::vector<std::string>{}),
-        std::make_tuple("setNumC", &ThrowTestC::setNumC, FunctionTypes::NonPayable, std::vector<std::string>{"valC"})
-      );
+      static std::once_flag once;
+      std::call_once(once, []() {
+        DynamicContract::registerContractMethods<ThrowTestC>(
+          std::vector<std::string>{},
+          std::make_tuple("getNumC", &ThrowTestC::getNumC, FunctionTypes::View, std::vector<std::string>{}),
+          std::make_tuple("setNumC", &ThrowTestC::setNumC, FunctionTypes::NonPayable, std::vector<std::string>{"valC"})
+        );
+      });
     }
 
     /// Dump method

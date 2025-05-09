@@ -73,15 +73,14 @@ class NativeWrapper : public ERC20 {
 
     /// Register contract using ContractReflectionInterface.
     static void registerContract() {
-      DynamicContract::registerContractMethods<
-        NativeWrapper, std::string &, std::string &, uint8_t &,
-        const Address &,
-        const Address &, const uint64_t &//, DB&
-      >(
-        std::vector<std::string>{"erc20_name", "erc20_symbol", "erc20_decimals"},
-        std::make_tuple("deposit", &NativeWrapper::deposit, FunctionTypes::Payable, std::vector<std::string>{}),
-        std::make_tuple("withdraw", &NativeWrapper::withdraw, FunctionTypes::Payable, std::vector<std::string>{"value"})
-      );
+      static std::once_flag once;
+      std::call_once(once, [](){
+        DynamicContract::registerContractMethods<NativeWrapper>(
+          std::vector<std::string>{"erc20_name", "erc20_symbol", "erc20_decimals"},
+          std::make_tuple("deposit", &NativeWrapper::deposit, FunctionTypes::Payable, std::vector<std::string>{}),
+          std::make_tuple("withdraw", &NativeWrapper::withdraw, FunctionTypes::Payable, std::vector<std::string>{"value"})
+        );
+      });
     }
 
     /// Dump method

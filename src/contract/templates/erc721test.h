@@ -89,7 +89,7 @@ class ERC721Test : public ERC721 {
       static std::once_flag once;
       std::call_once(once, []() {
         DynamicContract::registerContractMethods<ERC721Test>(
-          std::vector<std::string>{"erc721_name", "erc721_symbol", "maxTokens"},
+          std::vector<std::string>{},
           std::make_tuple("mint", &ERC721Test::mint, FunctionTypes::NonPayable, std::vector<std::string>{"to"}),
           std::make_tuple("burn", &ERC721Test::burn, FunctionTypes::NonPayable, std::vector<std::string>{"tokenId"}),
           std::make_tuple("tokenIdCounter", &ERC721Test::tokenIdCounter, FunctionTypes::View, std::vector<std::string>{}),

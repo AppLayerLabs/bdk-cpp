@@ -51,12 +51,12 @@ class TestThrowVars : public DynamicContract {
 
     /// Register the contract.
     static void registerContract() {
-      DynamicContract::registerContractMethods<
-        TestThrowVars, const std::string&, const std::string&, const std::string&,
-        const Address&, const Address&, const uint64_t&//, DB&
-      >(
-        std::vector<std::string>{"var1_", "var2_", "var3_"}
-      );
+      static std::once_flag once;
+      std::call_once(once, []() {
+        DynamicContract::registerContractMethods<TestThrowVars>(
+          std::vector<std::string>{"var1", "var2", "var3"}
+        );
+      });
     }
 
     DBBatch dump() const override; ///< Dump method.

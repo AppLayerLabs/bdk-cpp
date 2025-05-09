@@ -213,31 +213,29 @@ class ERC20 : virtual public DynamicContract {
 
     /// Register contract class via ContractReflectionInterface.
     static void registerContract() {
-      DynamicContract::registerContractMethods<
-        ERC20, const std::string &, const std::string &, const uint8_t &,
-        const uint256_t &,
-        const Address &, const Address &, const uint64_t &,
-        DB&
-      >(
-        std::vector<std::string>{"erc20name", "erc20symbol", "erc20decimals", "mintValue"},
-        std::make_tuple("name", &ERC20::name, FunctionTypes::View, std::vector<std::string>{}),
-        std::make_tuple("symbol", &ERC20::symbol, FunctionTypes::View, std::vector<std::string>{}),
-        std::make_tuple("decimals", &ERC20::decimals, FunctionTypes::View, std::vector<std::string>{}),
-        std::make_tuple("totalSupply", &ERC20::totalSupply, FunctionTypes::View, std::vector<std::string>{}),
-        std::make_tuple("balanceOf", &ERC20::balanceOf, FunctionTypes::View, std::vector<std::string>{"owner"}),
-        std::make_tuple("transfer", &ERC20::transfer, FunctionTypes::NonPayable, std::vector<std::string>{"to", "value"}),
-        std::make_tuple("approve", &ERC20::approve, FunctionTypes::NonPayable, std::vector<std::string>{"spender", "value"}),
-        std::make_tuple("allowance", &ERC20::allowance, FunctionTypes::View, std::vector<std::string>{"owner", "spender"}),
-        #ifndef BUILD_TESTNET
-          std::make_tuple("generate", &ERC20::generate, FunctionTypes::NonPayable, std::vector<std::string>{"addresses"}),
-          std::make_tuple("addall", &ERC20::addall, FunctionTypes::NonPayable, std::vector<std::string>{}),
-        #endif
-        std::make_tuple("transferFrom", &ERC20::transferFrom, FunctionTypes::NonPayable, std::vector<std::string>{"from", "to", "value"})
-      );
-      ContractReflectionInterface::registerContractEvents<ERC20>(
-        std::make_tuple("Transfer", false, &ERC20::Transfer, std::vector<std::string>{"from","to", "value"}),
-        std::make_tuple("Approval", false, &ERC20::Approval, std::vector<std::string>{"owner","spender", "value"})
-      );
+      static std::once_flag once;
+      std::call_once(once, []() {
+        DynamicContract::registerContractMethods<ERC20>(
+          std::vector<std::string>{"erc20name", "erc20symbol", "erc20decimals", "mintValue"},
+          std::make_tuple("name", &ERC20::name, FunctionTypes::View, std::vector<std::string>{}),
+          std::make_tuple("symbol", &ERC20::symbol, FunctionTypes::View, std::vector<std::string>{}),
+          std::make_tuple("decimals", &ERC20::decimals, FunctionTypes::View, std::vector<std::string>{}),
+          std::make_tuple("totalSupply", &ERC20::totalSupply, FunctionTypes::View, std::vector<std::string>{}),
+          std::make_tuple("balanceOf", &ERC20::balanceOf, FunctionTypes::View, std::vector<std::string>{"owner"}),
+          std::make_tuple("transfer", &ERC20::transfer, FunctionTypes::NonPayable, std::vector<std::string>{"to", "value"}),
+          std::make_tuple("approve", &ERC20::approve, FunctionTypes::NonPayable, std::vector<std::string>{"spender", "value"}),
+          std::make_tuple("allowance", &ERC20::allowance, FunctionTypes::View, std::vector<std::string>{"owner", "spender"}),
+          #ifndef BUILD_TESTNET
+            std::make_tuple("generate", &ERC20::generate, FunctionTypes::NonPayable, std::vector<std::string>{"addresses"}),
+            std::make_tuple("addall", &ERC20::addall, FunctionTypes::NonPayable, std::vector<std::string>{}),
+          #endif
+          std::make_tuple("transferFrom", &ERC20::transferFrom, FunctionTypes::NonPayable, std::vector<std::string>{"from", "to", "value"})
+        );
+        ContractReflectionInterface::registerContractEvents<ERC20>(
+          std::make_tuple("Transfer", false, &ERC20::Transfer, std::vector<std::string>{"from","to", "value"}),
+          std::make_tuple("Approval", false, &ERC20::Approval, std::vector<std::string>{"owner","spender", "value"})
+        );
+      });
     }
 
   /// Dump method

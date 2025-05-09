@@ -308,45 +308,44 @@ class DEXV2Router02 : public DynamicContract {
 
     /// Register the contract functions to the ContractReflectionInterface.
     static void registerContract() {
-      DynamicContract::registerContractMethods<
-        DEXV2Router02, const Address &, const Address &,
-        const Address &, const Address &, const uint64_t &//,
-        //const DB&
-      >(
-        std::vector<std::string>{"factory", "wrappedNative"},
-        std::make_tuple("factory", &DEXV2Router02::factory, FunctionTypes::View, std::vector<std::string>{}),
-        std::make_tuple("wrappedNative", &DEXV2Router02::wrappedNative, FunctionTypes::View, std::vector<std::string>{}),
-        std::make_tuple("addLiquidity", &DEXV2Router02::addLiquidity, FunctionTypes::NonPayable,
-          std::vector<std::string>{"tokenA", "tokenB", "amountADesired", "amountBDesired", "amountAMin", "amountBMin", "to", "deadline"}
-        ),
-        std::make_tuple("addLiquidityNative", &DEXV2Router02::addLiquidityNative, FunctionTypes::Payable,
-          std::vector<std::string>{"token", "amountTokenDesired", "amountTokenMin", "amountNativeMin", "to", "deadline"}
-        ),
-        std::make_tuple("removeLiquidity", &DEXV2Router02::removeLiquidity, FunctionTypes::NonPayable,
-          std::vector<std::string>{"tokenA", "tokenB", "liquidity", "amountAMin", "amountBMin", "to", "deadline"}
-        ),
-        std::make_tuple("removeLiquidityNative", &DEXV2Router02::removeLiquidityNative, FunctionTypes::Payable,
-          std::vector<std::string>{"token", "liquidity", "amountTokenMin", "amountNativeMin", "to", "deadline"}
-        ),
-        std::make_tuple("swapExactTokensForTokens", &DEXV2Router02::swapExactTokensForTokens, FunctionTypes::NonPayable,
-          std::vector<std::string>{"amountIn", "amountOutMin", "path", "to", "deadline"}
-        ),
-        std::make_tuple("swapTokensForExactTokens", &DEXV2Router02::swapTokensForExactTokens, FunctionTypes::NonPayable,
-          std::vector<std::string>{"amountOut", "amountInMax", "path", "to", "deadline"}
-        ),
-        std::make_tuple("swapExactNativeForTokens", &DEXV2Router02::swapExactNativeForTokens, FunctionTypes::Payable,
-          std::vector<std::string>{"amountOutMin", "path", "to", "deadline"}
-        ),
-        std::make_tuple("swapTokensForExactNative", &DEXV2Router02::swapTokensForExactNative, FunctionTypes::Payable,
-          std::vector<std::string>{"amountIn", "amountOutMin", "path", "to", "deadline"}
-        ),
-        std::make_tuple("swapExactTokensForNative", &DEXV2Router02::swapExactTokensForNative, FunctionTypes::Payable,
-          std::vector<std::string>{"amountIn", "amountOutMin", "path", "to", "deadline"}
-        ),
-        std::make_tuple("swapNativeForExactTokens", &DEXV2Router02::swapNativeForExactTokens, FunctionTypes::Payable,
-          std::vector<std::string>{"amountOut", "amountInMax", "path", "to", "deadline"}
-        )
-      );
+      static std::once_flag once;
+      std::call_once(once, []() {
+        DynamicContract::registerContractMethods<DEXV2Router02>(
+          std::vector<std::string>{"factory", "wrappedNative"},
+          std::make_tuple("factory", &DEXV2Router02::factory, FunctionTypes::View, std::vector<std::string>{}),
+          std::make_tuple("wrappedNative", &DEXV2Router02::wrappedNative, FunctionTypes::View, std::vector<std::string>{}),
+          std::make_tuple("addLiquidity", &DEXV2Router02::addLiquidity, FunctionTypes::NonPayable,
+            std::vector<std::string>{"tokenA", "tokenB", "amountADesired", "amountBDesired", "amountAMin", "amountBMin", "to", "deadline"}
+          ),
+          std::make_tuple("addLiquidityNative", &DEXV2Router02::addLiquidityNative, FunctionTypes::Payable,
+            std::vector<std::string>{"token", "amountTokenDesired", "amountTokenMin", "amountNativeMin", "to", "deadline"}
+          ),
+          std::make_tuple("removeLiquidity", &DEXV2Router02::removeLiquidity, FunctionTypes::NonPayable,
+            std::vector<std::string>{"tokenA", "tokenB", "liquidity", "amountAMin", "amountBMin", "to", "deadline"}
+          ),
+          std::make_tuple("removeLiquidityNative", &DEXV2Router02::removeLiquidityNative, FunctionTypes::Payable,
+            std::vector<std::string>{"token", "liquidity", "amountTokenMin", "amountNativeMin", "to", "deadline"}
+          ),
+          std::make_tuple("swapExactTokensForTokens", &DEXV2Router02::swapExactTokensForTokens, FunctionTypes::NonPayable,
+            std::vector<std::string>{"amountIn", "amountOutMin", "path", "to", "deadline"}
+          ),
+          std::make_tuple("swapTokensForExactTokens", &DEXV2Router02::swapTokensForExactTokens, FunctionTypes::NonPayable,
+            std::vector<std::string>{"amountOut", "amountInMax", "path", "to", "deadline"}
+          ),
+          std::make_tuple("swapExactNativeForTokens", &DEXV2Router02::swapExactNativeForTokens, FunctionTypes::Payable,
+            std::vector<std::string>{"amountOutMin", "path", "to", "deadline"}
+          ),
+          std::make_tuple("swapTokensForExactNative", &DEXV2Router02::swapTokensForExactNative, FunctionTypes::Payable,
+            std::vector<std::string>{"amountIn", "amountOutMin", "path", "to", "deadline"}
+          ),
+          std::make_tuple("swapExactTokensForNative", &DEXV2Router02::swapExactTokensForNative, FunctionTypes::Payable,
+            std::vector<std::string>{"amountIn", "amountOutMin", "path", "to", "deadline"}
+          ),
+          std::make_tuple("swapNativeForExactTokens", &DEXV2Router02::swapNativeForExactTokens, FunctionTypes::Payable,
+            std::vector<std::string>{"amountOut", "amountInMax", "path", "to", "deadline"}
+          )
+        );
+      });
     }
 
     /// Dump method

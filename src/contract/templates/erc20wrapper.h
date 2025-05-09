@@ -56,16 +56,17 @@ class ERC20Wrapper : public DynamicContract {
 
     /// Register contract class via ContractReflectionInterface.
     static void registerContract() {
-      ContractReflectionInterface::registerContractMethods<
-        ERC20Wrapper, const Address&, const Address&//, const uint64_t&, DB&
-      >(
-        std::vector<std::string>{},
-        std::make_tuple("getContractBalance", &ERC20Wrapper::getContractBalance, FunctionTypes::View, std::vector<std::string>{"token"}),
-        std::make_tuple("getUserBalance", &ERC20Wrapper::getUserBalance, FunctionTypes::View, std::vector<std::string>{"token", "user"}),
-        std::make_tuple("withdraw", &ERC20Wrapper::withdraw, FunctionTypes::NonPayable, std::vector<std::string>{"token", "value"}),
-        std::make_tuple("transferTo", &ERC20Wrapper::transferTo, FunctionTypes::NonPayable, std::vector<std::string>{"token", "to", "value"}),
-        std::make_tuple("deposit", &ERC20Wrapper::deposit, FunctionTypes::NonPayable, std::vector<std::string>{"token", "value"})
-      );
+      static std::once_flag once;
+      std::call_once(once, []() {
+        DynamicContract::registerContractMethods<ERC20Wrapper>(
+          std::vector<std::string>{},
+          std::make_tuple("getContractBalance", &ERC20Wrapper::getContractBalance, FunctionTypes::View, std::vector<std::string>{"token"}),
+          std::make_tuple("getUserBalance", &ERC20Wrapper::getUserBalance, FunctionTypes::View, std::vector<std::string>{"token", "user"}),
+          std::make_tuple("withdraw", &ERC20Wrapper::withdraw, FunctionTypes::NonPayable, std::vector<std::string>{"token", "value"}),
+          std::make_tuple("transferTo", &ERC20Wrapper::transferTo, FunctionTypes::NonPayable, std::vector<std::string>{"token", "to", "value"}),
+          std::make_tuple("deposit", &ERC20Wrapper::deposit, FunctionTypes::NonPayable, std::vector<std::string>{"token", "value"})
+        );
+      });
     }
 
     /// Destructor.

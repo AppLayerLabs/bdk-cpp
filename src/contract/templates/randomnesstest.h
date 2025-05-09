@@ -68,13 +68,14 @@ class RandomnessTest : public DynamicContract {
     * Register the contract structure.
     */
     static void registerContract() {
-      ContractReflectionInterface::registerContractMethods<
-        RandomnessTest, const Address&, const Address&, const uint64_t&//, DB&
-      >(
-        std::vector<std::string>{},
-        std::make_tuple("setRandom", &RandomnessTest::setRandom, FunctionTypes::NonPayable, std::vector<std::string>{}),
-        std::make_tuple("getRandom", &RandomnessTest::getRandom, FunctionTypes::View, std::vector<std::string>{})
-      );
+      std::once_flag once;
+      std::call_once(once, []() {
+        DynamicContract::registerContractMethods<RandomnessTest>(
+          std::vector<std::string>{},
+          std::make_tuple("setRandom", &RandomnessTest::setRandom, FunctionTypes::NonPayable, std::vector<std::string>{}),
+          std::make_tuple("getRandom", &RandomnessTest::getRandom, FunctionTypes::View, std::vector<std::string>{})
+        );
+      });
     }
 
     /// Dump method

@@ -472,42 +472,33 @@ public:
 
   /// Register the contract structure.
   static void registerContract() {
-    DynamicContract::registerContractMethods<
-      OrderBook,
-      const Address,
-      const std::string&,
-      const uint8_t,
-      const Address,
-      const std::string&,
-      const uint8_t,
-      const Address&,
-      const Address&,
-      const uint64_t&,
-      DB&
-      >(
-        std::vector<std::string>{ "addA", "tickerA", "decA", "addB", "tickerB", "decB"},
-        std::make_tuple("getNextOrderID", &OrderBook::getNextOrderID, FunctionTypes::View, std::vector<std::string>{}),
-        std::make_tuple("getAddressAssetA", &OrderBook::getAddressAssetA, FunctionTypes::View, std::vector<std::string>{}),
-        std::make_tuple("getAddressAssetB", &OrderBook::getAddressAssetB, FunctionTypes::View, std::vector<std::string>{}),
-        std::make_tuple("getTickerAssetA", &OrderBook::getTickerAssetA, FunctionTypes::View, std::vector<std::string>{}),
-        std::make_tuple("getTickerAssetB", &OrderBook::getTickerAssetB, FunctionTypes::View, std::vector<std::string>{}),
-        std::make_tuple("getSpread", &OrderBook::getSpread, FunctionTypes::View, std::vector<std::string>{}),
-        std::make_tuple("getTickSize", &OrderBook::getTickSize, FunctionTypes::View, std::vector<std::string>{}),
-        std::make_tuple("getLotSize", &OrderBook::getLotSize, FunctionTypes::View, std::vector<std::string>{}),
-        std::make_tuple("getLastPrice", &OrderBook::getLastPrice, FunctionTypes::View, std::vector<std::string>{}),
-        std::make_tuple("getPrecision", &OrderBook::getPrecision, FunctionTypes::View, std::vector<std::string>{}),
-        std::make_tuple("getAsks", &OrderBook::getAsks, FunctionTypes::View, std::vector<std::string>{}),
-        std::make_tuple("getBids", &OrderBook::getBids, FunctionTypes::View, std::vector<std::string>{}),
-        std::make_tuple("getFirstAsk", &OrderBook::getFirstAsk, FunctionTypes::View, std::vector<std::string>{}),
-        std::make_tuple("getFirstBid", &OrderBook::getFirstBid, FunctionTypes::View, std::vector<std::string>{}),
-        std::make_tuple("getUserOrders", &OrderBook::getUserOrders, FunctionTypes::View, std::vector<std::string>{"user"}),
-        std::make_tuple("addBidLimitOrder", &OrderBook::addBidLimitOrder, FunctionTypes::NonPayable, std::vector<std::string>{"assetAmount", "assetPrice"}),
-        std::make_tuple("addAskLimitOrder", &OrderBook::addAskLimitOrder, FunctionTypes::NonPayable, std::vector<std::string>{"assetAmount", "assetPrice"}),
-        std::make_tuple("delAskLimitOrder", &OrderBook::delAskLimitOrder, FunctionTypes::NonPayable, std::vector<std::string>{"id"}),
-        std::make_tuple("delBidLimitOrder", &OrderBook::delBidLimitOrder, FunctionTypes::NonPayable, std::vector<std::string>{"id"}),
-        std::make_tuple("addAskMarketOrder", &OrderBook::addAskMarketOrder, FunctionTypes::NonPayable, std::vector<std::string>{"assetAmount", "assetPrice"}),
-        std::make_tuple("addBidMarketOrder", &OrderBook::addBidMarketOrder, FunctionTypes::NonPayable, std::vector<std::string>{"assetAmount", "assetPrice"})
+    static std::once_flag once;
+    std::call_once(once, []() {
+      DynamicContract::registerContractMethods<OrderBook>(
+          std::vector<std::string>{ "addA", "tickerA", "decA", "addB", "tickerB", "decB"},
+          std::make_tuple("getNextOrderID", &OrderBook::getNextOrderID, FunctionTypes::View, std::vector<std::string>{}),
+          std::make_tuple("getAddressAssetA", &OrderBook::getAddressAssetA, FunctionTypes::View, std::vector<std::string>{}),
+          std::make_tuple("getAddressAssetB", &OrderBook::getAddressAssetB, FunctionTypes::View, std::vector<std::string>{}),
+          std::make_tuple("getTickerAssetA", &OrderBook::getTickerAssetA, FunctionTypes::View, std::vector<std::string>{}),
+          std::make_tuple("getTickerAssetB", &OrderBook::getTickerAssetB, FunctionTypes::View, std::vector<std::string>{}),
+          std::make_tuple("getSpread", &OrderBook::getSpread, FunctionTypes::View, std::vector<std::string>{}),
+          std::make_tuple("getTickSize", &OrderBook::getTickSize, FunctionTypes::View, std::vector<std::string>{}),
+          std::make_tuple("getLotSize", &OrderBook::getLotSize, FunctionTypes::View, std::vector<std::string>{}),
+          std::make_tuple("getLastPrice", &OrderBook::getLastPrice, FunctionTypes::View, std::vector<std::string>{}),
+          std::make_tuple("getPrecision", &OrderBook::getPrecision, FunctionTypes::View, std::vector<std::string>{}),
+          std::make_tuple("getAsks", &OrderBook::getAsks, FunctionTypes::View, std::vector<std::string>{}),
+          std::make_tuple("getBids", &OrderBook::getBids, FunctionTypes::View, std::vector<std::string>{}),
+          std::make_tuple("getFirstAsk", &OrderBook::getFirstAsk, FunctionTypes::View, std::vector<std::string>{}),
+          std::make_tuple("getFirstBid", &OrderBook::getFirstBid, FunctionTypes::View, std::vector<std::string>{}),
+          std::make_tuple("getUserOrders", &OrderBook::getUserOrders, FunctionTypes::View, std::vector<std::string>{"user"}),
+          std::make_tuple("addBidLimitOrder", &OrderBook::addBidLimitOrder, FunctionTypes::NonPayable, std::vector<std::string>{"assetAmount", "assetPrice"}),
+          std::make_tuple("addAskLimitOrder", &OrderBook::addAskLimitOrder, FunctionTypes::NonPayable, std::vector<std::string>{"assetAmount", "assetPrice"}),
+          std::make_tuple("delAskLimitOrder", &OrderBook::delAskLimitOrder, FunctionTypes::NonPayable, std::vector<std::string>{"id"}),
+          std::make_tuple("delBidLimitOrder", &OrderBook::delBidLimitOrder, FunctionTypes::NonPayable, std::vector<std::string>{"id"}),
+          std::make_tuple("addAskMarketOrder", &OrderBook::addAskMarketOrder, FunctionTypes::NonPayable, std::vector<std::string>{"assetAmount", "assetPrice"}),
+          std::make_tuple("addBidMarketOrder", &OrderBook::addBidMarketOrder, FunctionTypes::NonPayable, std::vector<std::string>{"assetAmount", "assetPrice"})
         );
+    });
   }
 };
 

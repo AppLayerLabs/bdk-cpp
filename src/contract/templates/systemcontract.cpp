@@ -155,11 +155,13 @@ SystemContract::SystemContract(
 
 void SystemContract::registerContractFunctions() {
   SystemContract::registerContract();
-  this->registerMemberFunction("stake", &SystemContract::stake, FunctionTypes::Payable, this);
-  this->registerMemberFunction("unstake", &SystemContract::unstake, FunctionTypes::NonPayable, this);
-  this->registerMemberFunction("delegate", &SystemContract::delegate, FunctionTypes::NonPayable, this);
-  this->registerMemberFunction("undelegate", &SystemContract::undelegate, FunctionTypes::NonPayable, this);
-  this->registerMemberFunction("voteSlots", &SystemContract::voteSlots, FunctionTypes::NonPayable, this);
+  this->registerMemberFunctions(
+    std::make_tuple("stake", &SystemContract::stake, FunctionTypes::Payable, this),
+    std::make_tuple("unstake", &SystemContract::unstake, FunctionTypes::NonPayable, this),
+    std::make_tuple("delegate", &SystemContract::delegate, FunctionTypes::NonPayable, this),
+    std::make_tuple("undelegate", &SystemContract::undelegate, FunctionTypes::NonPayable, this),
+    std::make_tuple("voteSlots", &SystemContract::voteSlots, FunctionTypes::NonPayable, this)
+  );
 }
 
 void SystemContract::stake() {

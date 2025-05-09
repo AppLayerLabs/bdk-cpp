@@ -120,6 +120,12 @@ class DEXV2Pair : public ERC20 {
     void initialize(const Address& token0, const Address& token1);
 
     /**
+     * Get the reserves of the ERC2OPair
+     * Direct std::pair function call so it can be utilized by others contracts in the C++ side.
+     */
+    std::pair<uint256_t, uint256_t> getReservess() const;
+
+    /**
      * Get the reserves of the ERC20Pair.
      * Solidity counterpart: function getReserves() external view returns (uint112 reserve0, uint112 reserve1, uint32 blockTimestampLast)
      * @returns std::tuple<uint256_t, uint256_t, uint256_t> (reserve0, reserve1, blockTimestampLast)
@@ -200,26 +206,25 @@ class DEXV2Pair : public ERC20 {
 
     /// Register contract class via ContractReflectionInterface.
     static void registerContract() {
-      DynamicContract::registerContractMethods<
-        DEXV2Pair,
-        const Address &, const Address &, const uint64_t &//,
-        //DB&
-      >(
-        std::vector<std::string>{},
-        std::make_tuple("initialize", &DEXV2Pair::initialize, FunctionTypes::NonPayable, std::vector<std::string>{"token0_", "token1_"}),
-        std::make_tuple("getReserves", &DEXV2Pair::getReserves, FunctionTypes::View, std::vector<std::string>{}),
-        std::make_tuple("factory", &DEXV2Pair::factory, FunctionTypes::View, std::vector<std::string>{}),
-        std::make_tuple("token0", &DEXV2Pair::token0, FunctionTypes::View, std::vector<std::string>{}),
-        std::make_tuple("token1", &DEXV2Pair::token1, FunctionTypes::View, std::vector<std::string>{}),
-        std::make_tuple("price0CumulativeLast", &DEXV2Pair::price0CumulativeLast, FunctionTypes::View, std::vector<std::string>{}),
-        std::make_tuple("price1CumulativeLast", &DEXV2Pair::price1CumulativeLast, FunctionTypes::View, std::vector<std::string>{}),
-        std::make_tuple("kLast", &DEXV2Pair::kLast, FunctionTypes::View, std::vector<std::string>{}),
-        std::make_tuple("mint", &DEXV2Pair::mint, FunctionTypes::NonPayable, std::vector<std::string>{"to"}),
-        std::make_tuple("burn", &DEXV2Pair::burn, FunctionTypes::NonPayable, std::vector<std::string>{"to"}),
-        std::make_tuple("swap", &DEXV2Pair::swap, FunctionTypes::NonPayable, std::vector<std::string>{"amount0Out", "amount1Out", "to"}),
-        std::make_tuple("skim", &DEXV2Pair::skim, FunctionTypes::NonPayable, std::vector<std::string>{"to"}),
-        std::make_tuple("sync", &DEXV2Pair::sync, FunctionTypes::NonPayable, std::vector<std::string>{})
-      );
+      static std::once_flag once;
+      std::call_once(once, []() {
+        DynamicContract::registerContractMethods<DEXV2Pair>(
+          std::vector<std::string>{},
+          std::make_tuple("initialize", &DEXV2Pair::initialize, FunctionTypes::NonPayable, std::vector<std::string>{"token0_", "token1_"}),
+          std::make_tuple("getReserves", &DEXV2Pair::getReserves, FunctionTypes::View, std::vector<std::string>{}),
+          std::make_tuple("factory", &DEXV2Pair::factory, FunctionTypes::View, std::vector<std::string>{}),
+          std::make_tuple("token0", &DEXV2Pair::token0, FunctionTypes::View, std::vector<std::string>{}),
+          std::make_tuple("token1", &DEXV2Pair::token1, FunctionTypes::View, std::vector<std::string>{}),
+          std::make_tuple("price0CumulativeLast", &DEXV2Pair::price0CumulativeLast, FunctionTypes::View, std::vector<std::string>{}),
+          std::make_tuple("price1CumulativeLast", &DEXV2Pair::price1CumulativeLast, FunctionTypes::View, std::vector<std::string>{}),
+          std::make_tuple("kLast", &DEXV2Pair::kLast, FunctionTypes::View, std::vector<std::string>{}),
+          std::make_tuple("mint", &DEXV2Pair::mint, FunctionTypes::NonPayable, std::vector<std::string>{"to"}),
+          std::make_tuple("burn", &DEXV2Pair::burn, FunctionTypes::NonPayable, std::vector<std::string>{"to"}),
+          std::make_tuple("swap", &DEXV2Pair::swap, FunctionTypes::NonPayable, std::vector<std::string>{"amount0Out", "amount1Out", "to"}),
+          std::make_tuple("skim", &DEXV2Pair::skim, FunctionTypes::NonPayable, std::vector<std::string>{"to"}),
+          std::make_tuple("sync", &DEXV2Pair::sync, FunctionTypes::NonPayable, std::vector<std::string>{})
+        );
+      });
     }
     /// Dump method
     DBBatch dump() const override;

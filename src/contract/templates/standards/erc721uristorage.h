@@ -83,14 +83,13 @@ class ERC721URIStorage : virtual public ERC721 {
 
     /// Register contract class via ContractReflectionInterface.
     static void registerContract() {
-      DynamicContract::registerContractMethods<
-        ERC721URIStorage, const std::string &, const std::string &,
-        const Address &, const Address &, const uint64_t &//,
-        //const std::unique_ptr<DB> &
-      >(
-        std::vector<std::string>{"erc721_name", "erc721_symbol"},
-        std::make_tuple("tokenOfOwnerByIndex", &ERC721URIStorage::tokenURI, FunctionTypes::View, std::vector<std::string>{"tokenId"})
-      );
+      static std::once_flag once;
+      std::call_once(once, []() {
+        DynamicContract::registerContractMethods<ERC721URIStorage>(
+          std::vector<std::string>{"erc721_name", "erc721_symbol"},
+          std::make_tuple("tokenOfOwnerByIndex", &ERC721URIStorage::tokenURI, FunctionTypes::View, std::vector<std::string>{"tokenId"})
+        );
+      });
     }
 
     /// Dump method
