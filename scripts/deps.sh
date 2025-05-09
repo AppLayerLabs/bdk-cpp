@@ -58,8 +58,8 @@ check_libs_hdr() {
 # Versions for external dependencies - update numbers here if required
 PROTOC_VERSION="29.3"
 COMETBFT_VERSION="1.0.0"
-ETHASH_VERSION="1.0.1"
-EVMONE_VERSION="0.11.0"
+ETHASH_VERSION="1.1.0"
+EVMONE_VERSION="0.15.0"
 SPEEDB_VERSION="2.8.0"
 SQLITECPP_VERSION="3.3.2"
 
