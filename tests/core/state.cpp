@@ -41,7 +41,9 @@ std::pair<evmc_message, Bytes> buildCallInfo(const Address& addressToCall, const
     callInputSize,
     callValue,
     callCreate2Salt,
-    callCodeAddress] = std::get<0>(callInfo);
+    callCodeAddress,
+    callCode,
+    callCodeSize ] = std::get<0>(callInfo);
   callKind = EVMC_CALL;
   callFlags = 0;
   callDepth = 1;
