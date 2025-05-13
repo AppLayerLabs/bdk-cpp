@@ -86,7 +86,7 @@ static Bytes executeEvmcMessage(evmc_vm* vm, const evmc_host_interface* host, ev
     vm,
     host,
     context,
-    evmc_revision::EVMC_LATEST_STABLE_REVISION,
+    evmc_revision::EVMC_PRAGUE,
     &msg,
     code.data(),
     code.size()));
@@ -250,7 +250,9 @@ evmc_tx_context EvmContractExecutor::get_tx_context() const noexcept {
     .block_base_fee = {},
     .blob_base_fee = {},
     .blob_hashes = nullptr,
-    .blob_hashes_count = 0
+    .blob_hashes_count = 0,
+    .initcodes = nullptr,
+    .initcodes_count = 0
   };
 }
 
