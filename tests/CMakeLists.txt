@@ -38,6 +38,7 @@ set (TESTS_SOURCES
   ${CMAKE_SOURCE_DIR}/tests/contract/dexv2.cpp
   ${CMAKE_SOURCE_DIR}/tests/contract/simplecontract.cpp
   ${CMAKE_SOURCE_DIR}/tests/contract/evm.cpp
+  ${CMAKE_SOURCE_DIR}/tests/contract/evmcalls.cpp
   ${CMAKE_SOURCE_DIR}/tests/contract/randomness.cpp
   ${CMAKE_SOURCE_DIR}/tests/contract/precompiles.cpp
   ${CMAKE_SOURCE_DIR}/tests/contract/calltracer.cpp

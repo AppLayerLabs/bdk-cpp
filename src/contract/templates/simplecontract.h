@@ -116,6 +116,9 @@ class SimpleContract : public DynamicContract {
     /// function getName() public view returns(string memory)
     std::string getName() const;
 
+    /// function getNameNonView() public returns(string memory)
+    std::string getNameNonView();
+
     /// function getNames(const uint256_t& i) public view returns(string[] memory) return string[] of size i with this->name_ as all elements.
     std::vector<std::string> getNames(const uint256_t& i) const;
 
@@ -166,6 +169,7 @@ class SimpleContract : public DynamicContract {
           std::make_tuple("setNamesAndNumbersInArrayOfArrays", &SimpleContract::setNamesAndNumbersInArrayOfArrays, FunctionTypes::NonPayable, std::vector<std::string>{"argNameAndNumber"}),
           std::make_tuple("setTuple", &SimpleContract::setTuple, FunctionTypes::NonPayable, std::vector<std::string>{"argTuple"}),
           std::make_tuple("getName", &SimpleContract::getName, FunctionTypes::View, std::vector<std::string>{}),
+          std::make_tuple("getNameNonView", &SimpleContract::getNameNonView, FunctionTypes::NonPayable, std::vector<std::string>{}),
           std::make_tuple("getNames", &SimpleContract::getNames, FunctionTypes::View, std::vector<std::string>{"i"}),
           std::make_tuple("getNumber", static_cast<uint256_t(SimpleContract::*)() const>(&SimpleContract::getNumber), FunctionTypes::View, std::vector<std::string>{}),
           std::make_tuple("getNumber", static_cast<uint256_t(SimpleContract::*)(const uint256_t&) const>(&SimpleContract::getNumber), FunctionTypes::View, std::vector<std::string>{}),
