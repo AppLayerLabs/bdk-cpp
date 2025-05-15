@@ -51,6 +51,7 @@ if(BUILD_TESTS)
     ${CMAKE_SOURCE_DIR}/tests/integration/contract/simplecontract.cpp
     ${CMAKE_SOURCE_DIR}/tests/integration/contract/throwtest.cpp
     ${CMAKE_SOURCE_DIR}/tests/integration/contract/orderbook.cpp
+    ${CMAKE_SOURCE_DIR}/tests/integration/contract/evmcalls.cpp
     ${CMAKE_SOURCE_DIR}/tests/integration/core/blockchain.cpp
     ${CMAKE_SOURCE_DIR}/tests/integration/core/comet.cpp
     ${CMAKE_SOURCE_DIR}/tests/integration/net/httpjsonrpc.cpp

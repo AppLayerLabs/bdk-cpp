@@ -143,6 +143,8 @@ void SimpleContract::setTuple(const std::tuple<std::string, uint256_t>& argTuple
 
 std::string SimpleContract::getName() const { return this->name_.get(); }
 
+std::string SimpleContract::getNameNonView() { return this->name_.get(); }
+
 std::vector<std::string> SimpleContract::getNames(const uint256_t& i) const {
   std::vector<std::string> names;
   for (uint256_t j = 0; j < i; j++) {
@@ -214,6 +216,7 @@ void SimpleContract::registerContractFunctions() {
     std::make_tuple("setNamesAndNumbersInArrayOfArrays", &SimpleContract::setNamesAndNumbersInArrayOfArrays, FunctionTypes::NonPayable, this),
     std::make_tuple("setTuple", &SimpleContract::setTuple, FunctionTypes::NonPayable, this),
     std::make_tuple("getName", &SimpleContract::getName, FunctionTypes::View, this),
+    std::make_tuple("getNameNonView", &SimpleContract::getNameNonView, FunctionTypes::NonPayable, this),
     std::make_tuple("getNames", &SimpleContract::getNames, FunctionTypes::View, this),
     std::make_tuple("getNumber", static_cast<uint256_t(SimpleContract::*)() const>(&SimpleContract::getNumber), FunctionTypes::View, this),
     std::make_tuple("getNumber", static_cast<uint256_t(SimpleContract::*)(const uint256_t&) const>(&SimpleContract::getNumber), FunctionTypes::View, this),

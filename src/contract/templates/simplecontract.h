@@ -22,6 +22,7 @@ class SimpleContract : public DynamicContract {
     SafeString name_; ///< The name of the contract.
     SafeUint256_t number_; ///< The number of the contract.
     SafeTuple<std::string, uint256_t> tuple_;  ///< Name and number as a tuple.
+    SafeUint256_t count_;
     void registerContractFunctions() override; ///< Register the contract functions.
 
   public:
@@ -115,6 +116,9 @@ class SimpleContract : public DynamicContract {
     /// function getName() public view returns(string memory)
     std::string getName() const;
 
+    /// function getNameNonView() public returns(string memory)
+    std::string getNameNonView();
+
     /// function getNames(const uint256_t& i) public view returns(string[] memory) return string[] of size i with this->name_ as all elements.
     std::vector<std::string> getNames(const uint256_t& i) const;
 
@@ -148,37 +152,40 @@ class SimpleContract : public DynamicContract {
 
     /// Register the contract structure.
     static void registerContract() {
-      DynamicContract::registerContractMethods<
-        SimpleContract, const std::string&, const uint256_t&, const std::tuple<std::string, uint256_t>&,
-        const Address&, const Address&, const uint64_t&//, const DB&
-      >(
-        std::vector<std::string>{"name_", "number_", "tuple_"},
-        std::make_tuple("setName", &SimpleContract::setName, FunctionTypes::NonPayable, std::vector<std::string>{"argName"}),
-        std::make_tuple("setNames", &SimpleContract::setNames, FunctionTypes::NonPayable, std::vector<std::string>{"argName"}),
-        std::make_tuple("setNumber", &SimpleContract::setNumber, FunctionTypes::NonPayable, std::vector<std::string>{"argNumber"}),
-        std::make_tuple("setNumbers", &SimpleContract::setNumbers, FunctionTypes::NonPayable, std::vector<std::string>{"argNumber"}),
-        std::make_tuple("setNamesAndNumbers", &SimpleContract::setNamesAndNumbers, FunctionTypes::NonPayable, std::vector<std::string>{"argName", "argNumber"}),
-        std::make_tuple("setNamesAndNumbersInTuple", &SimpleContract::setNamesAndNumbersInTuple, FunctionTypes::NonPayable, std::vector<std::string>{"argNameAndNumber"}),
-        std::make_tuple("setNamesAndNumbersInArrayOfArrays", &SimpleContract::setNamesAndNumbersInArrayOfArrays, FunctionTypes::NonPayable, std::vector<std::string>{"argNameAndNumber"}),
-        std::make_tuple("setTuple", &SimpleContract::setTuple, FunctionTypes::NonPayable, std::vector<std::string>{"argTuple"}),
-        std::make_tuple("getName", &SimpleContract::getName, FunctionTypes::View, std::vector<std::string>{}),
-        std::make_tuple("getNames", &SimpleContract::getNames, FunctionTypes::View, std::vector<std::string>{"i"}),
-        std::make_tuple("getNumber", static_cast<uint256_t(SimpleContract::*)() const>(&SimpleContract::getNumber), FunctionTypes::View, std::vector<std::string>{}),
-        std::make_tuple("getNumber", static_cast<uint256_t(SimpleContract::*)(const uint256_t&) const>(&SimpleContract::getNumber), FunctionTypes::View, std::vector<std::string>{}),
-        std::make_tuple("getNumbers", &SimpleContract::getNumbers, FunctionTypes::View, std::vector<std::string>{"i"}),
-        std::make_tuple("getNameAndNumber", &SimpleContract::getNameAndNumber, FunctionTypes::View, std::vector<std::string>{}),
-        std::make_tuple("getNamesAndNumbers", &SimpleContract::getNamesAndNumbers, FunctionTypes::View, std::vector<std::string>{"i"}),
-        std::make_tuple("getNamesAndNumbersInTuple", &SimpleContract::getNamesAndNumbersInTuple, FunctionTypes::View, std::vector<std::string>{"i"}),
-        std::make_tuple("getNamesAndNumbersInArrayOfArrays", &SimpleContract::getNamesAndNumbersInArrayOfArrays, FunctionTypes::View, std::vector<std::string>{"i"}),
-        std::make_tuple("getTuple", &SimpleContract::getTuple, FunctionTypes::View, std::vector<std::string>{})
-      );
-      ContractReflectionInterface::registerContractEvents<SimpleContract>(
-        std::make_tuple("nameChanged", false, &SimpleContract::nameChanged, std::vector<std::string>{"name"}),
-        std::make_tuple("numberChanged", false, &SimpleContract::numberChanged, std::vector<std::string>{"number"}),
-        std::make_tuple("tupleChanged", false, &SimpleContract::tupleChanged, std::vector<std::string>{"tuple"}),
-        std::make_tuple("nameAndNumberChanged", false, &SimpleContract::nameAndNumberChanged, std::vector<std::string>{"name", "number"}),
-        std::make_tuple("nameAndNumberTupleChanged", false, &SimpleContract::nameAndNumberTupleChanged, std::vector<std::string>{"nameAndNumber"})
-      );
+      static std::once_flag once;
+      std::call_once(once, []() {
+        DynamicContract::registerContractMethods<SimpleContract>(
+          std::vector<std::string>{"name_", "number_", "tuple_"},
+          std::make_tuple("setName", &SimpleContract::setName, FunctionTypes::NonPayable, std::vector<std::string>{"argName"}),
+          std::make_tuple("setNames", &SimpleContract::setNames, FunctionTypes::NonPayable, std::vector<std::string>{"argName"}),
+          std::make_tuple("setNumber", &SimpleContract::setNumber, FunctionTypes::NonPayable, std::vector<std::string>{"argNumber"}),
+          std::make_tuple("setNumbers", &SimpleContract::setNumbers, FunctionTypes::NonPayable, std::vector<std::string>{"argNumber"}),
+          std::make_tuple("setNamesAndNumbers", &SimpleContract::setNamesAndNumbers, FunctionTypes::NonPayable, std::vector<std::string>{"argName", "argNumber"}),
+          std::make_tuple("setNamesAndNumbersInTuple", &SimpleContract::setNamesAndNumbersInTuple, FunctionTypes::NonPayable, std::vector<std::string>{"argNameAndNumber"}),
+          std::make_tuple("setNamesAndNumbersInArrayOfArrays", &SimpleContract::setNamesAndNumbersInArrayOfArrays, FunctionTypes::NonPayable, std::vector<std::string>{"argNameAndNumber"}),
+          std::make_tuple("setTuple", &SimpleContract::setTuple, FunctionTypes::NonPayable, std::vector<std::string>{"argTuple"}),
+          std::make_tuple("getName", &SimpleContract::getName, FunctionTypes::View, std::vector<std::string>{}),
+          std::make_tuple("getNames", &SimpleContract::getNames, FunctionTypes::View, std::vector<std::string>{"i"}),
+          std::make_tuple("getNameNonView", &SimpleContract::getNameNonView, FunctionTypes::NonPayable, std::vector<std::string>{}),
+          std::make_tuple("getNumber", static_cast<uint256_t(SimpleContract::*)() const>(&SimpleContract::getNumber), FunctionTypes::View, std::vector<std::string>{}),
+          std::make_tuple("getNumber", static_cast<uint256_t(SimpleContract::*)(const uint256_t&) const>(&SimpleContract::getNumber), FunctionTypes::View, std::vector<std::string>{}),
+          std::make_tuple("getNumbers", &SimpleContract::getNumbers, FunctionTypes::View, std::vector<std::string>{"i"}),
+          std::make_tuple("getNameAndNumber", &SimpleContract::getNameAndNumber, FunctionTypes::View, std::vector<std::string>{}),
+          std::make_tuple("getNamesAndNumbers", &SimpleContract::getNamesAndNumbers, FunctionTypes::View, std::vector<std::string>{"i"}),
+          std::make_tuple("getNamesAndNumbersInTuple", &SimpleContract::getNamesAndNumbersInTuple, FunctionTypes::View, std::vector<std::string>{"i"}),
+          std::make_tuple("getNamesAndNumbersInArrayOfArrays", &SimpleContract::getNamesAndNumbersInArrayOfArrays, FunctionTypes::View, std::vector<std::string>{"i"}),
+          std::make_tuple("getTuple", &SimpleContract::getTuple, FunctionTypes::View, std::vector<std::string>{}),
+          std::make_tuple("getCount", &SimpleContract::getCount, FunctionTypes::View, std::vector<std::string>{}),
+          std::make_tuple("onBlockNumber", &SimpleContract::onBlockNumber, FunctionTypes::NonPayable, std::vector<std::string>{})
+        );
+        ContractReflectionInterface::registerContractEvents<SimpleContract>(
+          std::make_tuple("nameChanged", false, &SimpleContract::nameChanged, std::vector<std::string>{"name"}),
+          std::make_tuple("numberChanged", false, &SimpleContract::numberChanged, std::vector<std::string>{"number"}),
+          std::make_tuple("tupleChanged", false, &SimpleContract::tupleChanged, std::vector<std::string>{"tuple"}),
+          std::make_tuple("nameAndNumberChanged", false, &SimpleContract::nameAndNumberChanged, std::vector<std::string>{"name", "number"}),
+          std::make_tuple("nameAndNumberTupleChanged", false, &SimpleContract::nameAndNumberTupleChanged, std::vector<std::string>{"nameAndNumber"})
+        );
+      });
     }
 
     /// Dump method

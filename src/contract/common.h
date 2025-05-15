@@ -18,7 +18,8 @@ constexpr uint256_t messageValueOrZero(const auto& msg) {
 }
 
 constexpr View<Address> messageCodeAddress(const auto& msg) {
-  if constexpr (concepts::DelegateCallMessage<decltype(msg)>) {
+  if constexpr (concepts::DelegateCallMessage<std::remove_cvref_t<decltype(msg)>>) {
+
     return msg.codeAddress();
   } else {
     return msg.to();
