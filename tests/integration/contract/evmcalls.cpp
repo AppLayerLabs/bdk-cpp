@@ -54,7 +54,7 @@ namespace TEVMCALL {
    *                 erc20,         // Address of the ERC20 contract
    *                 add(data, 32), // Input data pointer (skip length prefix)
    *                 mload(data),   // Input data size
-   *                 0,             // Output location (we'll use memory slot 0)
+   *                 0,             // Output location (we"ll use memory slot 0)
    *                 32             // Output size (uint256 = 32 bytes)
    *             )
    *             if eq(success, 0) {
@@ -84,6 +84,101 @@ namespace TEVMCALL {
         );
         ContractReflectionInterface::registerContractEvents<SolERC20BalanceDelegateCaller>(
           std::make_tuple("BalanceOfResult", false, &SolERC20BalanceDelegateCaller::BalanceOfResult, std::vector<std::string>{"balance"})
+        );
+      }
+  };
+
+  /*
+   * UniversalProxy
+   * // SPDX-License-Identifier: MIT
+   * pragma solidity 0.8.30;
+   * import "@openzeppelin/contracts/access/Ownable.sol";
+   *   contract Proxy is Ownable {
+   *     address private _implementation;
+   *     constructor() Ownable(msg.sender) {}
+   *     function setContractCodeAddress(address newImplementation) external onlyOwner {
+   *       require(newImplementation != address(0), "Invalid address");
+   *       _implementation = newImplementation;
+   *     }
+   *     function getImplementation() external view returns (address) {
+   *       return _implementation;
+   *     }
+   *     fallback() external payable {
+   *       address impl = _implementation;
+   *       require(impl != address(0), "Implementation not set");
+   *       assembly {
+   *         let ptr := mload(0x40)
+   *         calldatacopy(ptr, 0, calldatasize())
+   *         let result := delegatecall(gas(), impl, ptr, calldatasize(), 0, 0)
+   *         let size := returndatasize()
+   *         returndatacopy(ptr, 0, size)
+   *
+   *         switch result
+   *         case 0 { revert(ptr, size) }
+   *         default { return(ptr, size) }
+   *       }
+   *     }
+   *     receive() external payable {}
+   *   }
+   */
+
+  Bytes universalProxyBytecode = Hex::toBytes("0x6080604052348015600e575f5ffd5b503380603357604051631e4fbdf760e01b81525f600482015260240160405180910390fd5b603a81603f565b50608e565b5f80546001600160a01b038381166001600160a01b0319831681178455604051919092169283917f8be0079c531659141344cd1fd0a4f28419497f9722a3daafe3b4186f6b6457e09190a35050565b6103128061009b5f395ff3fe60806040526004361061004d575f3560e01c8063715018a6146100cf5780638da5cb5b146100e3578063aaf10f4214610117578063d17ca9b314610134578063f2fde38b1461015357610054565b3661005457005b6001546001600160a01b0316806100ab5760405162461bcd60e51b8152602060048201526016602482015275125b5c1b195b595b9d185d1a5bdb881b9bdd081cd95d60521b60448201526064015b60405180910390fd5b604051365f82375f5f3683855af43d805f843e8180156100c9578184f35b8184fd5b005b3480156100da575f5ffd5b506100cd610172565b3480156100ee575f5ffd5b505f546001600160a01b03165b6040516001600160a01b03909116815260200160405180910390f35b348015610122575f5ffd5b506001546001600160a01b03166100fb565b34801561013f575f5ffd5b506100cd61014e3660046102af565b610185565b34801561015e575f5ffd5b506100cd61016d3660046102af565b6101f7565b61017a610234565b6101835f610260565b565b61018d610234565b6001600160a01b0381166101d55760405162461bcd60e51b815260206004820152600f60248201526e496e76616c6964206164647265737360881b60448201526064016100a2565b600180546001600160a01b0319166001600160a01b0392909216919091179055565b6101ff610234565b6001600160a01b03811661022857604051631e4fbdf760e01b81525f60048201526024016100a2565b61023181610260565b50565b5f546001600160a01b031633146101835760405163118cdaa760e01b81523360048201526024016100a2565b5f80546001600160a01b038381166001600160a01b0319831681178455604051919092169283917f8be0079c531659141344cd1fd0a4f28419497f9722a3daafe3b4186f6b6457e09190a35050565b5f602082840312156102bf575f5ffd5b81356001600160a01b03811681146102d5575f5ffd5b939250505056fea2646970667358221220cd1a96e234003edd3881ad6ef938a3aa4a12acf73c2a4365e6fcfa5c6cdbaee364736f6c634300081e0033");
+  class SolUniversalProxy {
+    public:
+      void setContractCodeAddress([[maybe_unused]] const Address& newImplementation) { };
+      Address getImplementation() const { return Address(); };
+      void static registerContract() {
+        ContractReflectionInterface::registerContractMethods<SolUniversalProxy>(
+          std::vector<std::string>{""},
+          std::make_tuple("setContractCodeAddress", &SolUniversalProxy::setContractCodeAddress, FunctionTypes::NonPayable, std::vector<std::string>{"address"}),
+          std::make_tuple("getImplementation", &SolUniversalProxy::getImplementation, FunctionTypes::View, std::vector<std::string>{})
+        );
+      }
+  };
+  /*
+   * pragma solidity 0.8.30;
+   * import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+   * contract ERC20Wrapper {
+   *   mapping(address erc20 => mapping(address user => uint256 balance)) userBalances_;
+   *   function getContractBalance(address token) view external returns (uint256) {
+   *     return IERC20(token).balanceOf(address(this));
+   *   }
+   *   function getUserBalance(address token, address user) view external returns (uint256) {
+   *     return userBalances_[token][user];
+   *   }
+   *   function withdraw(address token, uint256 value) external {
+   *     require(userBalances_[token][msg.sender] >= value, "Not enough token deposited to withdraw");
+   *     userBalances_[token][msg.sender] -= value;
+   *     IERC20(token).transfer(msg.sender, value);
+   *   }
+   *   function transferTo(address token, address to, uint256 value) external {
+   *     require(userBalances_[token][msg.sender] >= value, "Not enough token deposited to withdraw");
+   *     userBalances_[token][msg.sender] -= value;
+   *     IERC20(token).transfer(to, value);
+   *   }
+   *   function deposit(address token, uint256 value) external {
+   *     IERC20(token).transferFrom(msg.sender, address(this), value);
+   *     userBalances_[token][msg.sender] += value;
+   *   }
+   * }
+   */
+
+  Bytes erc20WrapperBytecode = Hex::toBytes("0x6080604052348015600e575f5ffd5b506105a18061001c5f395ff3fe608060405234801561000f575f5ffd5b5060043610610055575f3560e01c806343ab265f1461005957806347e7ef241461007e5780636805d6ad14610093578063a5f2a152146100c9578063f3fef3a3146100dc575b5f5ffd5b61006c610067366004610402565b6100ef565b60405190815260200160405180910390f35b61009161008c366004610422565b61015d565b005b61006c6100a136600461044a565b6001600160a01b039182165f9081526020818152604080832093909416825291909152205490565b6100916100d736600461047b565b61020b565b6100916100ea366004610422565b6102ff565b6040516370a0823160e01b81523060048201525f906001600160a01b038316906370a0823190602401602060405180830381865afa158015610133573d5f5f3e3d5ffd5b505050506040513d601f19601f8201168201806040525081019061015791906104b5565b92915050565b6040516323b872dd60e01b8152336004820152306024820152604481018290526001600160a01b038316906323b872dd906064016020604051808303815f875af11580156101ad573d5f5f3e3d5ffd5b505050506040513d601f19601f820116820180604052508101906101d191906104cc565b506001600160a01b0382165f90815260208181526040808320338452909152812080548392906102029084906104ff565b90915550505050565b6001600160a01b0383165f908152602081815260408083203384529091529020548111156102545760405162461bcd60e51b815260040161024b90610512565b60405180910390fd5b6001600160a01b0383165f9081526020818152604080832033845290915281208054839290610284908490610558565b909155505060405163a9059cbb60e01b81526001600160a01b0383811660048301526024820183905284169063a9059cbb906044016020604051808303815f875af11580156102d5573d5f5f3e3d5ffd5b505050506040513d601f19601f820116820180604052508101906102f991906104cc565b50505050565b6001600160a01b0382165f9081526020818152604080832033845290915290205481111561033f5760405162461bcd60e51b815260040161024b90610512565b6001600160a01b0382165f908152602081815260408083203384529091528120805483929061036f908490610558565b909155505060405163a9059cbb60e01b8152336004820152602481018290526001600160a01b0383169063a9059cbb906044016020604051808303815f875af11580156103be573d5f5f3e3d5ffd5b505050506040513d601f19601f820116820180604052508101906103e291906104cc565b505050565b80356001600160a01b03811681146103fd575f5ffd5b919050565b5f60208284031215610412575f5ffd5b61041b826103e7565b9392505050565b5f5f60408385031215610433575f5ffd5b61043c836103e7565b946020939093013593505050565b5f5f6040838503121561045b575f5ffd5b610464836103e7565b9150610472602084016103e7565b90509250929050565b5f5f5f6060848603121561048d575f5ffd5b610496846103e7565b92506104a4602085016103e7565b929592945050506040919091013590565b5f602082840312156104c5575f5ffd5b5051919050565b5f602082840312156104dc575f5ffd5b8151801515811461041b575f5ffd5b634e487b7160e01b5f52601160045260245ffd5b80820180821115610157576101576104eb565b60208082526026908201527f4e6f7420656e6f75676820746f6b656e206465706f736974656420746f20776960408201526574686472617760d01b606082015260800190565b81810381811115610157576101576104eb56fea2646970667358221220dac5d8d4481220d03f907c72eac996ce935224bf1e75cf3a38bcf7825da8313964736f6c634300081e0033");
+  class SolERC20Wrapper {
+    public:
+      uint256_t getContractBalance([[maybe_unused]] const Address& token) const { return 0; };
+      uint256_t getUserBalance([[maybe_unused]] const Address& token, [[maybe_unused]] const Address& user) const { return 0; };
+      void withdraw([[maybe_unused]] const Address& token, [[maybe_unused]] const uint256_t& value) { };
+      void transferTo([[maybe_unused]] const Address& token, [[maybe_unused]] const Address& to, [[maybe_unused]] const uint256_t& value) { };
+      void deposit([[maybe_unused]] const Address& token, [[maybe_unused]] const uint256_t& value) { };
+      void static registerContract() {
+        ContractReflectionInterface::registerContractMethods<SolERC20Wrapper>(
+          std::vector<std::string>{""},
+          std::make_tuple("getContractBalance", &SolERC20Wrapper::getContractBalance, FunctionTypes::View, std::vector<std::string>{"address"}),
+          std::make_tuple("getUserBalance", &SolERC20Wrapper::getUserBalance, FunctionTypes::View, std::vector<std::string>{"address", "address"}),
+          std::make_tuple("withdraw", &SolERC20Wrapper::withdraw, FunctionTypes::NonPayable, std::vector<std::string>{"address", "uint256"}),
+          std::make_tuple("transferTo", &SolERC20Wrapper::transferTo, FunctionTypes::NonPayable, std::vector<std::string>{"address", "address", "uint256"}),
+          std::make_tuple("deposit", &SolERC20Wrapper::deposit, FunctionTypes::NonPayable, std::vector<std::string>{"address", "uint256"})
         );
       }
   };
@@ -130,6 +225,81 @@ namespace TEVMCALL {
 
       // Trying DELEGATECALL from EVM to C++ should throw an error
       REQUIRE_THROWS(sdk.callFunction(delegateCallerAddress, &SolERC20BalanceDelegateCaller::callBalanceOf, cppERC20contractAddress, sdk.getChainOwnerAccount().address));
+    }
+    SECTION("EVM DelegateCall -> EVM --(call)--> C++") {
+      // Basically, delegate call should be able to call any other EVM contract
+      // and that called EVM contract can directly call a C++ contract
+      // what we are going to do here is have the following contract structure:
+      // Universal Solidity Proxy -> SolERC20Wrapper -> C++ ERC20
+      // The Universal Solidity Proxy will call the SolERC20Wrapper, which will call the C++ ERC20
+      Address cppERC20contractAddress = sdk.deployContract<ERC20>(std::string("Name"), std::string("Symbol"), uint8_t(18), uint256_t("100000000000000000000"));
+      Address evmERC20contractAddress = sdk.deployBytecode(erc20bytecode);
+      Address erc20WrapperAddress = sdk.deployBytecode(erc20WrapperBytecode);
+      Address universalProxyAddress = sdk.deployBytecode(universalProxyBytecode);
+      // Now we need to set the proxy address to point towards the ERC20Wrapper
+      sdk.callFunction(universalProxyAddress, &SolUniversalProxy::setContractCodeAddress, erc20WrapperAddress);
+
+      // In order to be able to deposit, we need to approve the *proxy* contract to spend our tokens on the C++ ERC20 contract
+      sdk.callFunction(cppERC20contractAddress, &ERC20::approve, universalProxyAddress, uint256_t("50000000000000000000"));
+      sdk.callFunction(evmERC20contractAddress, &ERC20::approve, universalProxyAddress, uint256_t("50000000000000000000"));
+
+      REQUIRE(sdk.callViewFunction(cppERC20contractAddress, &ERC20::balanceOf, sdk.getChainOwnerAccount().address) == uint256_t("100000000000000000000"));
+      REQUIRE(sdk.callViewFunction(cppERC20contractAddress, &ERC20::balanceOf, universalProxyAddress) == uint256_t("0"));
+      REQUIRE(sdk.callViewFunction(evmERC20contractAddress, &ERC20::balanceOf, sdk.getChainOwnerAccount().address) == uint256_t("10000000000000000000000"));
+      REQUIRE(sdk.callViewFunction(evmERC20contractAddress, &ERC20::balanceOf, universalProxyAddress) == uint256_t("0"));
+      REQUIRE(sdk.callViewFunction(cppERC20contractAddress, &ERC20::allowance, sdk.getChainOwnerAccount().address, universalProxyAddress) == uint256_t("50000000000000000000"));
+      REQUIRE(sdk.callViewFunction(evmERC20contractAddress, &ERC20::allowance, sdk.getChainOwnerAccount().address, universalProxyAddress) == uint256_t("50000000000000000000"));
+
+      // Technically, we just call the proxy contract using the functions from the ERC20Wrapper and it should work
+      // We deposit 50 tokens to the proxy contract
+
+      auto depositTx = sdk.callFunction(universalProxyAddress, &SolERC20Wrapper::deposit, cppERC20contractAddress, uint256_t("50000000000000000000"));
+
+      // After depositing we should see the balance of the proxy contract increase
+      REQUIRE(sdk.callViewFunction(cppERC20contractAddress, &ERC20::balanceOf, universalProxyAddress) == uint256_t("50000000000000000000"));
+      // The balance of the user should decrease
+      REQUIRE(sdk.callViewFunction(cppERC20contractAddress, &ERC20::balanceOf, sdk.getChainOwnerAccount().address) == uint256_t("50000000000000000000"));
+      // The balance of the user in the wrapper should be 50
+      REQUIRE(sdk.callViewFunction(universalProxyAddress, &SolERC20Wrapper::getUserBalance, cppERC20contractAddress, sdk.getChainOwnerAccount().address) == uint256_t("50000000000000000000"));
+      // The contract balance in the proxy should be 50
+      REQUIRE(sdk.callViewFunction(universalProxyAddress, &SolERC20Wrapper::getContractBalance, cppERC20contractAddress) == uint256_t("50000000000000000000"));
+      // We should see a single ERC20::Transfer event with from being the user and to being the proxy contract
+      auto events = sdk.getEventsEmittedByTx(depositTx, &ERC20::Transfer);
+      REQUIRE(events.size() == 1);
+      REQUIRE(events[0].getAddress() == cppERC20contractAddress);
+      REQUIRE(std::get<0>(ABI::Decoder::decodeData<Address>(events[0].getTopics()[1].asBytes())) == sdk.getChainOwnerAccount().address);
+      REQUIRE(std::get<0>(ABI::Decoder::decodeData<Address>(events[0].getTopics()[2].asBytes())) == universalProxyAddress);
+      REQUIRE(std::get<0>(ABI::Decoder::decodeData<uint256_t>(events[0].getData())) == uint256_t("50000000000000000000"));
+
+      // Safety checks on the ERC20Wrapper contract
+      REQUIRE(sdk.callViewFunction(cppERC20contractAddress, &ERC20::balanceOf, erc20WrapperAddress) == uint256_t("0"));
+      REQUIRE(sdk.callViewFunction(erc20WrapperAddress, &SolERC20Wrapper::getContractBalance, cppERC20contractAddress) == uint256_t("0"));
+      REQUIRE(sdk.callViewFunction(erc20WrapperAddress, &SolERC20Wrapper::getUserBalance, cppERC20contractAddress, sdk.getChainOwnerAccount().address) == uint256_t("0"));
+
+      // Now deposit the same amount of tokens to the EVM contract
+
+      depositTx = sdk.callFunction(universalProxyAddress, &SolERC20Wrapper::deposit, evmERC20contractAddress, uint256_t("50000000000000000000"));
+
+      // After depositing we should see the balance of the proxy contract increase
+      REQUIRE(sdk.callViewFunction(evmERC20contractAddress, &ERC20::balanceOf, universalProxyAddress) == uint256_t("50000000000000000000"));
+      // The balance of the user should decrease
+      REQUIRE(sdk.callViewFunction(evmERC20contractAddress, &ERC20::balanceOf, sdk.getChainOwnerAccount().address) == uint256_t("9950000000000000000000"));
+      // The balance of the user in the wrapper should be 50
+      REQUIRE(sdk.callViewFunction(universalProxyAddress, &SolERC20Wrapper::getUserBalance, evmERC20contractAddress, sdk.getChainOwnerAccount().address) == uint256_t("50000000000000000000"));
+      // The contract balance in the proxy should be 50
+      REQUIRE(sdk.callViewFunction(universalProxyAddress, &SolERC20Wrapper::getContractBalance, evmERC20contractAddress) == uint256_t("50000000000000000000"));
+
+      // We should see a single ERC20::Transfer event with from being the user and to being the proxy contract
+      events = sdk.getEventsEmittedByTx(depositTx, &ERC20::Transfer);
+      REQUIRE(events.size() == 1);
+      REQUIRE(events[0].getAddress() == evmERC20contractAddress);
+      REQUIRE(std::get<0>(ABI::Decoder::decodeData<Address>(events[0].getTopics()[1].asBytes())) == sdk.getChainOwnerAccount().address);
+      REQUIRE(std::get<0>(ABI::Decoder::decodeData<Address>(events[0].getTopics()[2].asBytes())) == universalProxyAddress);
+      REQUIRE(std::get<0>(ABI::Decoder::decodeData<uint256_t>(events[0].getData())) == uint256_t("50000000000000000000"));
+      // Safety checks on the ERC20Wrapper contract
+      REQUIRE(sdk.callViewFunction(evmERC20contractAddress, &ERC20::balanceOf, erc20WrapperAddress) == uint256_t("0"));
+      REQUIRE(sdk.callViewFunction(erc20WrapperAddress, &SolERC20Wrapper::getContractBalance, evmERC20contractAddress) == uint256_t("0"));
+      REQUIRE(sdk.callViewFunction(erc20WrapperAddress, &SolERC20Wrapper::getUserBalance, evmERC20contractAddress, sdk.getChainOwnerAccount().address) == uint256_t("0"));
     }
   }
 }
