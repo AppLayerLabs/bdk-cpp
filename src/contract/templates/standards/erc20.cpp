@@ -206,6 +206,7 @@ void ERC20::mint_(const Address& address, const uint256_t& value) {
 void ERC20::burnValue_(const Address& address, const uint256_t& value) {
   balances_[address] -= value;
   totalSupply_ -= value;
+  this->Transfer(address, Address(), value);
 }
 
 std::string ERC20::name() const { return this->name_.get(); }

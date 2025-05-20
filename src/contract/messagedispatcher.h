@@ -40,12 +40,15 @@ public:
   }
 
   decltype(auto) dispatchMessage(concepts::CallMessage auto&& msg) {
-    transferFunds(msg);
+    if constexpr (!concepts::DelegateCallMessage<decltype(msg)>) {
+      // If it is NOT a DELEGATECALL
+      // We need to transfer the funds before executing the message
+      transferFunds(msg);
+    }
 
     if (precompiledExecutor_.isPrecompiled(msg.to())) {
       return precompiledExecutor_.execute(std::forward<decltype(msg)>(msg));
     }
-
     auto account = context_.getAccount(messageCodeAddress(msg));
 
     switch (account.getContractType()) {
@@ -56,6 +59,7 @@ public:
       case ContractType::EVM:
         return dispatchEvmCall(std::forward<decltype(msg)>(msg));
         break;
+      default: {} // Do nothing
     }
 
     if constexpr (concepts::EncodedMessage<decltype(msg)>) {
@@ -89,7 +93,6 @@ public:
 private:
   void transferFunds(const concepts::Message auto& msg) {
     const uint256_t value = messageValueOrZero(msg);
-
     if (value > 0) {
       context_.transferBalance(msg.from(), msg.to(), value);
     }

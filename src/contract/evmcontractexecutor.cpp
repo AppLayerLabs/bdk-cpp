@@ -199,7 +199,12 @@ evmc::uint256be EvmContractExecutor::get_balance(const evmc::address& addr) cons
 
 size_t EvmContractExecutor::get_code_size(const evmc::address& addr) const noexcept {
   try {
-    return context_.getAccount(addr).getCode().size();
+    auto account = context_.getAccount(addr);
+    if (account.getContractType() == ContractType::CPP) {
+      auto contract = context_.getContract(addr);
+      return (19 + contract.getContractName().size());
+    }
+    return account.getCode().size();
   } catch (const std::exception&) {
     return 0;
   }
@@ -207,28 +212,47 @@ size_t EvmContractExecutor::get_code_size(const evmc::address& addr) const noexc
 
 evmc::bytes32 EvmContractExecutor::get_code_hash(const evmc::address& addr) const noexcept {
   try {
-    return bytes::cast<evmc::bytes32>(context_.getAccount(addr).getCodeHash());
+    auto account = context_.getAccount(addr);
+    if (account.getContractType() == ContractType::CPP) {
+      auto contract = context_.getContract(addr);
+      std::string precompileContract = "PrecompileContract-";
+      precompileContract.append(contract.getContractName());
+      Bytes code(precompileContract.begin(), precompileContract.end());
+      Hash codeHash = Utils::sha3(code);
+      return bytes::cast<evmc::bytes32>(codeHash);
+    }
+    return bytes::cast<evmc::bytes32>(account.getCodeHash());
   } catch (const std::exception&) {
     return evmc::bytes32{};
   }
 }
 
 size_t EvmContractExecutor::copy_code(const evmc::address& addr, size_t code_offset, uint8_t* buffer_data, size_t buffer_size) const noexcept {
-
   try {
+    auto account = context_.getAccount(addr);
+    if (account.getContractType() == ContractType::EVM) {
+      // Insert up to 19 bytes of the "PrecompileContract-" string and the contract name
+      std::string precompileContract = "PrecompileContract-";
+      auto contract = context_.getContract(addr);
+      precompileContract.append(contract.getContractName());
+      Bytes code(precompileContract.begin(), precompileContract.end());
+      if (code_offset < code.size()) {
+        const auto n = std::min(buffer_size, code.size() - code_offset);
+        if (n > 0)
+          std::copy_n(&code[code_offset], n, buffer_data);
+        return n;
+      }
+    }
     View<Bytes> code = context_.getAccount(addr).getCode();
-
     if (code_offset < code.size()) {
       const auto n = std::min(buffer_size, code.size() - code_offset);
       if (n > 0)
         std::copy_n(&code[code_offset], n, buffer_data);
       return n;
     }
-
   } catch (const std::exception&) {
     // TODO: makes sense to just ignore?
   }
-
   return 0;
 }
 
@@ -325,6 +349,7 @@ evmc::Result EvmContractExecutor::call(const evmc_message& msg) noexcept {
     } catch (const std::exception& err) {
       Bytes output;
 
+
       if (err.what() != nullptr) {
         output = ABI::Encoder::encodeError(err.what()); // TODO: this may throw...
       }
@@ -332,7 +357,6 @@ evmc::Result EvmContractExecutor::call(const evmc_message& msg) noexcept {
       return evmc::Result(EVMC_REVERT, int64_t(gas), 0, output.data(), output.size());
     }
   };
-
   if (msg.kind == EVMC_DELEGATECALL) {
     EncodedDelegateCallMessage encodedMessage(msg.sender, msg.recipient, gas, value, View<Bytes>(msg.input_data, msg.input_size), msg.code_address);
     return process(encodedMessage);

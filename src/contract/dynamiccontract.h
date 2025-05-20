@@ -389,7 +389,7 @@ class DynamicContract : public BaseContract {
     DynamicContract(const std::string& contractName,
       const Address& address, const Address& creator, const uint64_t& chainId
     ) : BaseContract(contractName, address, creator, chainId) {
-      // We need to create the ERC-165 function and register it accordingly
+      // ERC-165 requires that all functions are XOR'ed together to create a single hash
       this->registerMemberFunction("supportsInterface", &DynamicContract::supportsInterface, FunctionTypes::View, this);
     }
 
