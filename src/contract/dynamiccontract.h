@@ -357,8 +357,7 @@ class DynamicContract : public BaseContract {
     template<typename ...Methods>
     void registerMemberFunctions(Methods&& ... methods) {
       Functor xorFunctor;
-      // If it never executed before, the functor will be just the first method
-      // If not, it will be XOR'ed with the previous functor
+      // ERC-165 requires that all functions are XOR'ed together to create a single hash
       ((
         xorFunctor ^= this->registerMemberFunction(std::get<0>(methods), std::get<1>(methods), std::get<2>(methods), std::get<3>(methods))
       ), ...);

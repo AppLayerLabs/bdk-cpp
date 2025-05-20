@@ -36,11 +36,21 @@ DBBatch ERC20Mintable::dump() const {
 
 void ERC20Mintable::registerContractFunctions() {
   registerContract();
-  this->registerMemberFunctions(std::make_tuple("mint", &ERC20Mintable::mint, FunctionTypes::NonPayable, this));
+  this->registerMemberFunctions(
+    std::make_tuple("mint", &ERC20Mintable::mint, FunctionTypes::NonPayable, this),
+    std::make_tuple("burn", &ERC20Mintable::burn, FunctionTypes::NonPayable, this)
+  );
 }
 
 void ERC20Mintable::mint(const Address &to, const uint256_t &amount) {
   this->onlyOwner();
   ERC20::mint_(to, amount);
+}
+
+void ERC20Mintable::burn(const uint256_t &amount) {
+  if (amount > this->balanceOf(this->getCaller())) {
+    throw DynamicException("Not enough balance to burn");
+  }
+  ERC20::burnValue_(this->getCaller(), amount);
 }
 

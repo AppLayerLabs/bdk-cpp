@@ -58,6 +58,7 @@ class ERC20Mintable : virtual public ERC20, virtual public Ownable {
     ~ERC20Mintable() override;
 
     void mint(const Address &to, const uint256_t &amount);
+    void burn(const uint256_t& value); // Only the owner of the token can burn tokens
 
     /// Register contract using ContractReflectionInterface.
     static void registerContract() {
@@ -65,7 +66,8 @@ class ERC20Mintable : virtual public ERC20, virtual public Ownable {
       std::call_once(once, []() {
         DynamicContract::registerContractMethods<ERC20Mintable>(
           std::vector<std::string>{"erc20_name", "erc20_symbol", "erc20_decimals"},
-          std::make_tuple("mint", &ERC20Mintable::mint, FunctionTypes::Payable, std::vector<std::string>{})
+          std::make_tuple("mint", &ERC20Mintable::mint, FunctionTypes::Payable, std::vector<std::string>{}),
+          std::make_tuple("burn", &ERC20Mintable::burn, FunctionTypes::Payable, std::vector<std::string>{})
         );
       });
     }
