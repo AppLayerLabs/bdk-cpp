@@ -30,6 +30,8 @@ See the LICENSE.txt file in the project root for more information.
 #include "templates/btvproposals.h"
 #include "templates/buildthevoid.h"
 #include "templates/mintableerc20.h"
+#include "templates/bomberlobby.h"
+#include "templates/bombergame.h"
 
 using InterfaceTypes = std::tuple<IERC721Receiver>;
 
@@ -37,14 +39,14 @@ using InterfaceTypes = std::tuple<IERC721Receiver>;
 #ifdef BUILD_TESTNET
 /// Typedef for the blockchain's registered contracts in TESTNET mode.
 using ContractTypes = std::tuple<
-  ERC20, NativeWrapper, DEXV2Pair, DEXV2Factory, DEXV2Router02, ERC721, ERC721URIStorage, Ownable, Pebble, BTVPlayer, BTVEnergy, BTVProposals, BuildTheVoid, ERC20Mintable
+  ERC20, NativeWrapper, DEXV2Pair, DEXV2Factory, DEXV2Router02, ERC721, ERC721URIStorage, Ownable, Pebble, BTVPlayer, BTVEnergy, BTVProposals, BuildTheVoid, ERC20Mintable, BomberLobby, BomberGame
 >;
 #else
 /// Typedef for the blockchain's registered contracts in normal mode.
 using ContractTypes = std::tuple<
   ERC20, ERC20Wrapper, NativeWrapper, SimpleContract, DEXV2Pair, DEXV2Factory,
   DEXV2Router02, ERC721, ThrowTestA, ThrowTestB, ThrowTestC, ERC721Test, TestThrowVars,
-  RandomnessTest, SnailTracer, SnailTracerOptimized, Pebble, BTVPlayer, BTVEnergy, BTVProposals, BuildTheVoid, ERC20Mintable, OrderBook, Ownable
+  RandomnessTest, SnailTracer, SnailTracerOptimized, Pebble, BTVPlayer, BTVEnergy, BTVProposals, BuildTheVoid, ERC20Mintable, OrderBook, Ownable, BomberLobby, BomberGame
 >;
 #endif
 

@@ -43,6 +43,8 @@ set(CONTRACT_HEADERS
   ${CMAKE_SOURCE_DIR}/src/contract/templates/btvcommon.h
   ${CMAKE_SOURCE_DIR}/src/contract/templates/btvenergy.h
   ${CMAKE_SOURCE_DIR}/src/contract/templates/btvproposals.h
+  ${CMAKE_SOURCE_DIR}/src/contract/templates/bomberlobby.h
+  ${CMAKE_SOURCE_DIR}/src/contract/templates/bombergame.h
   ${CMAKE_SOURCE_DIR}/src/contract/templates/throwtestA.h
   ${CMAKE_SOURCE_DIR}/src/contract/templates/throwtestB.h
   ${CMAKE_SOURCE_DIR}/src/contract/templates/throwtestC.h
@@ -93,6 +95,8 @@ set(CONTRACT_SOURCES
   ${CMAKE_SOURCE_DIR}/src/contract/templates/btvcommon.cpp
   ${CMAKE_SOURCE_DIR}/src/contract/templates/btvenergy.cpp
   ${CMAKE_SOURCE_DIR}/src/contract/templates/btvproposals.cpp
+  ${CMAKE_SOURCE_DIR}/src/contract/templates/bomberlobby.cpp
+  ${CMAKE_SOURCE_DIR}/src/contract/templates/bombergame.cpp
   ${CMAKE_SOURCE_DIR}/src/contract/templates/throwtestA.cpp
   ${CMAKE_SOURCE_DIR}/src/contract/templates/throwtestB.cpp
   ${CMAKE_SOURCE_DIR}/src/contract/templates/throwtestC.cpp
