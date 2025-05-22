@@ -45,7 +45,7 @@ void NativeWrapper::registerContractFunctions() {
 }
 
 void NativeWrapper::deposit() {
-  this->mintValue_(this->getCaller(), this->getValue());
+  this->mint_(this->getCaller(), this->getValue());
 }
 
 void NativeWrapper::withdraw(const uint256_t &value) {
