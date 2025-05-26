@@ -153,10 +153,6 @@ void DEXV2Pair::initialize(const Address& token0, const Address& token1) {
   this->token1_ = token1;
 }
 
-std::pair<uint256_t, uint256_t> DEXV2Pair::getReservess() const {
-  return std::make_pair(this->reserve0_.get(), this->reserve1_.get());
-}
-
 std::tuple<uint256_t, uint256_t, uint256_t> DEXV2Pair::getReserves() const {
   return std::make_tuple(this->reserve0_.get(), this->reserve1_.get(), this->blockTimestampLast_.get());
 }
