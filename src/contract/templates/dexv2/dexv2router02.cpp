@@ -89,8 +89,8 @@ std::pair<uint256_t, uint256_t> DEXV2Router02::_addLiquidity(
   } else {
     Utils::safePrint("_addLiquidity: contract exists!");
   }
-  auto reserves = this->callContractViewFunction(pairAddress, &DEXV2Pair::getReservess);
-  const auto& [reserveA, reserveB] = reserves;
+  auto reserves = this->callContractViewFunction(pairAddress, &DEXV2Pair::getReserves);
+  const auto& [reserveA, reserveB, timestamp] = reserves;
   if (reserveA == 0 && reserveB == 0) {
     amountA = amountADesired;
     amountB = amountBDesired;
@@ -187,7 +187,7 @@ std::tuple<uint256_t, uint256_t, uint256_t> DEXV2Router02::addLiquidityNative(
   this->ensure(deadline);
   auto [amountToken, amountNative] = this->_addLiquidity(
     token, this->wrappedNative_.get(), amountTokenDesired,
-    amountNativeMin, amountTokenMin, amountNativeMin
+    this->getValue(), amountTokenMin, amountNativeMin
   );
   auto pair = DEXV2Library::pairFor(this->host_, this->factory_.get(), token, this->wrappedNative_.get());
   this->callContractFunction(token, &ERC20::transferFrom, this->getCaller(), pair, amountToken);

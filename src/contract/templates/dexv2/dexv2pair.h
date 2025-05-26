@@ -120,12 +120,6 @@ class DEXV2Pair : public ERC20 {
     void initialize(const Address& token0, const Address& token1);
 
     /**
-     * Get the reserves of the ERC2OPair
-     * Direct std::pair function call so it can be utilized by others contracts in the C++ side.
-     */
-    std::pair<uint256_t, uint256_t> getReservess() const;
-
-    /**
      * Get the reserves of the ERC20Pair.
      * Solidity counterpart: function getReserves() external view returns (uint112 reserve0, uint112 reserve1, uint32 blockTimestampLast)
      * @returns std::tuple<uint256_t, uint256_t, uint256_t> (reserve0, reserve1, blockTimestampLast)

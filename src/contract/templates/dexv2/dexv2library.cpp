@@ -31,7 +31,11 @@ namespace DEXV2Library {
   ) {
     if (host == nullptr) throw DynamicException("DEXV2Library: INVALID_HOST");
     auto pair = pairFor(host, factory, tokenA, tokenB);
-    return host->getContract<DEXV2Pair>(pair)->getReservess();
+    std::pair<uint256_t, uint256_t> ret;
+    const auto& [reserveA, reserveB, timestamp] = host->getContract<DEXV2Pair>(pair)->getReserves();
+    ret.first = reserveA;
+    ret.second = reserveB;
+    return ret;
   }
 
   uint256_t quote(const uint256_t& amountA, const uint256_t& reserveA, const uint256_t& reserveB) {
