@@ -39,6 +39,10 @@ struct Functor {
     this->value ^= other.value;
     return *this;
   }
+
+  Hex hex() const {
+    return Hex::fromBytes(UintConv::uint32ToBytes(this->value));
+  }
 };
 
 #endif  // STRINGS_H

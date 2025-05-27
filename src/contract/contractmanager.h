@@ -23,6 +23,9 @@ See the LICENSE.txt file in the project root for more information.
  */
 class ContractManager : public BaseContract {
   private:
+    /// Boolean that accompanies the PointerNullifier for EVM calls
+    bool nullifiable_ = true;
+
     /// Reference of currently deployed contracts, owned by State.
     ContractsContainerType& contracts_;
 

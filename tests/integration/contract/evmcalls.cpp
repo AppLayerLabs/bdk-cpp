@@ -2,7 +2,7 @@
 #include "../../src/contract/templates/erc20wrapper.h"  // erc20.h
 #include "../../src/contract/templates/nativewrapper.h" // nativewrapper.h
 #include "../../src/contract/templates/mintableerc20.h" // mintableerc20.h
-#include "../sdktestsuite.hpp"
+#include "../../sdktestsuite.hpp"
 #include "contract/templates/simplecontract.h"
 
 namespace TEVMCALL {

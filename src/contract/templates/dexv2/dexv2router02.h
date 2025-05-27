@@ -23,6 +23,8 @@ See the LICENSE.txt file in the project root for more information.
  * See: https://uniswap.org/docs/v2/smart-contracts/router02/
  */
 class DEXV2Router02 : public DynamicContract {
+  protected:
+    virtual void receive(const evmc_message& msg) override;
   private:
     /// Solidity: address private immutable _factory
     SafeAddress factory_;

@@ -174,9 +174,7 @@ class SimpleContract : public DynamicContract {
           std::make_tuple("getNamesAndNumbers", &SimpleContract::getNamesAndNumbers, FunctionTypes::View, std::vector<std::string>{"i"}),
           std::make_tuple("getNamesAndNumbersInTuple", &SimpleContract::getNamesAndNumbersInTuple, FunctionTypes::View, std::vector<std::string>{"i"}),
           std::make_tuple("getNamesAndNumbersInArrayOfArrays", &SimpleContract::getNamesAndNumbersInArrayOfArrays, FunctionTypes::View, std::vector<std::string>{"i"}),
-          std::make_tuple("getTuple", &SimpleContract::getTuple, FunctionTypes::View, std::vector<std::string>{}),
-          std::make_tuple("getCount", &SimpleContract::getCount, FunctionTypes::View, std::vector<std::string>{}),
-          std::make_tuple("onBlockNumber", &SimpleContract::onBlockNumber, FunctionTypes::NonPayable, std::vector<std::string>{})
+          std::make_tuple("getTuple", &SimpleContract::getTuple, FunctionTypes::View, std::vector<std::string>{})
         );
         ContractReflectionInterface::registerContractEvents<SimpleContract>(
           std::make_tuple("nameChanged", false, &SimpleContract::nameChanged, std::vector<std::string>{"name"}),
