@@ -92,11 +92,11 @@ private:
     contract.caller_ = caller;
     contract.value_ = value;
 
-    if constexpr (concepts::StaticCallMessage<decltype(msg)>) {
-      return contract.ethCallView(evmcMsg, &host_);
-    } else {
+    // if constexpr (concepts::StaticCallMessage<decltype(msg)>) {
+    //  return contract.ethCallView(evmcMsg, &host_);
+    //} else {
       return contract.evmEthCall(evmcMsg, &host_);
-    }
+    // }
   }
 
   Address createContract(concepts::CreateMessage auto&& msg) {
@@ -150,7 +150,7 @@ private:
     auto account = context_.getAccount(msg.from());
     const Address contractAddress = generateContractAddress(account.getNonce(), msg.from());
 
-    contract.ethCall(evmcMsg, &host_);
+    auto returnBytes = contract.evmEthCall(evmcMsg, &host_);
 
     if (account.getContractType() != ContractType::NOT_A_CONTRACT) {
       account.setNonce(account.getNonce() + 1);

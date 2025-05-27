@@ -183,29 +183,26 @@ template<typename T> class NonNullUniquePtr {
 /// Wrapper around a raw pointer that ensures the pointer will be null at destruction.
 template<typename T> class PointerNullifier {
   private:
-    T** ptr; ///< Pointer value.
+    T** ptr_ = nullptr; ///< Pointer value.
+    bool& nullifiable_;
 
   public:
     /// Constructor.
-    explicit PointerNullifier(T*& item) : ptr(&item) {}
+    explicit PointerNullifier(T*& item, bool& nullifiable) : nullifiable_(nullifiable) {
+      if (nullifiable_) {
+        // Copy the pointer to the raw pointer.
+        ptr_ = &item;
+        nullifiable_ = false;
+      }
+    }
 
     PointerNullifier(const PointerNullifier&) = delete;
 
-    PointerNullifier(PointerNullifier&& other) noexcept : ptr(other.ptr) {
-      other.ptr = nullptr;
-    }
-
-    PointerNullifier& operator=(const PointerNullifier&) = delete;
-
-    PointerNullifier& operator=(PointerNullifier&& other) noexcept {
-      std::swap(ptr, other.ptr);
-      return *this;
-    }
-
     /// Destructor.
     ~PointerNullifier() {
-      if (ptr) {
-        *ptr = nullptr;
+      if (this->ptr_) {
+        *this->ptr_ = nullptr;
+        this->nullifiable_ = true;
       }
     }
 };

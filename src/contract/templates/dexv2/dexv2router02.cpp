@@ -50,6 +50,15 @@ DEXV2Router02::DEXV2Router02(
 
 DEXV2Router02::~DEXV2Router02() {};
 
+void DEXV2Router02::receive(const evmc_message& msg) {
+  // can only receive from wrapped token
+  if (View<Address>(msg.sender) != this->wrappedNative_.get()) {
+    throw DynamicException("DEXV2Router02::receive: Only wrapped native token can call receive!");
+  }
+  return;
+}
+
+
 void DEXV2Router02::registerContractFunctions() {
   registerContract();
   this->registerMemberFunctions(

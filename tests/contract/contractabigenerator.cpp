@@ -120,7 +120,7 @@ TEST_CASE("ContractABIGenerator helper", "[contract][contractabigenerator]") {
     std::ifstream i("ABI/SimpleContract.json");
     i >> j;
 
-    REQUIRE(j.size() == 26);
+    REQUIRE(j.size() == 27);
     auto findSetName = std::find(j.begin(), j.end(), EXPECTED::SimpleContract::setName);
     REQUIRE(findSetName != j.end());
     auto findSetNames = std::find(j.begin(), j.end(), EXPECTED::SimpleContract::setNames);

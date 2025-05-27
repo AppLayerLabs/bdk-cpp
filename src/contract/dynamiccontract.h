@@ -16,6 +16,11 @@ See the LICENSE.txt file in the project root for more information.
 /// Template for a smart contract. All contracts must inherit this class.
 class DynamicContract : public BaseContract {
   private:
+    /**
+     * Boolean that accompany a PointerNullifier to identify if it has been registered already
+     */
+    bool nullifiable_ = true;
+
    /**
     * Map of non-payable functions that can be called by the contract.
     * The key is the function signature (first 4 hex bytes of keccak).
@@ -441,6 +446,25 @@ class DynamicContract : public BaseContract {
       this->supportedInterfaces_.push_back(functor);
     }
 
+    /**
+     * receive() is a special function when there is ether + no function signature
+     * it MUST be overriden by the derived class.
+     * @param callInfo The evmc_message containing the call information.
+     */
+    virtual void receive(const evmc_message& callInfo) {
+      // Receive does not exists, so we call fallback...
+      this->fallback(callInfo);
+    }
+
+    /**
+     * fallback() is a special function when there is no function signature.
+     * it may return or not return anything, thus Bytes (can return empty Bytes)
+     */
+    virtual Bytes fallback(const evmc_message& callInfo) {
+      Functor funcName = EVMCConv::getFunctor(callInfo);
+      throw DynamicException("Function not found for evmEthCall: " + funcName.hex().get() + " and fallback OR receive is not implemented for this contract");
+    }
+
   public:
     /**
      * Constructor for creating the contract from scratch.
@@ -465,78 +489,40 @@ class DynamicContract : public BaseContract {
       this->registerMemberFunction("supportsInterface", &DynamicContract::supportsInterface, FunctionTypes::View, this);
     };
 
-    auto setHost(ContractHost& host) {
-      this->host_ = &host;
-      return PointerNullifier(this->host_);
-    }
-
-    /**
-     * Invoke a contract function using a tuple of (from, to, gasLimit, gasPrice, value, data).
-     * Automatically differs between payable and non-payable functions.
-     * Used by State when calling `processNewBlock()/validateNewBlock()`.
-     * @param callInfo Tuple of (from, to, gasLimit, gasPrice, value, data).
-     * @param host Pointer to the contract host.
-     * @throw DynamicException if the functor is not found or the function throws an exception.
-     */
-    void ethCall(const evmc_message& callInfo, ContractHost* host) final {
+    Bytes evmEthCall(const evmc_message& callInfo, ContractHost* host) final {
+      // TODO: properly review the evmc_message to call the appropriate functions (fallback, receive, payable, nonpayable and finally view)
       this->host_ = host;
-      PointerNullifier nullifier(this->host_);
-      try {
-        Functor funcName = EVMCConv::getFunctor(callInfo);
-        if (this->isPayableFunction(funcName)) {
-          auto func = this->payableFunctions_.find(funcName);
-          if (func == this->payableFunctions_.end()) throw DynamicException("Functor not found for payable function");
-          func->second(callInfo);
-        } else {
-          // value is a uint8_t[32] C array, we need to check if it's zero in modern C++
+      PointerNullifier nullifier(this->host_, this->nullifiable_);
+      Functor funcName = EVMCConv::getFunctor(callInfo);
+      // Check if functor exists
+      auto funcIt = this->evmFunctions_.find(funcName);
+      if (funcIt == this->evmFunctions_.end()) {
+        if (callInfo.flags == EVMC_STATIC) {
+          throw DynamicException("Function not found for evmEthCall, cannot call fallback or receive in static context");
+        }
+        if (callInfo.input_size == 0) {
+          this->receive(callInfo);
+          // DynamicContract::receive will call this->fallback if derived class does not override it
+          return Bytes(); // the function is not found and the functor is zero, we call fallback
+        }
+        return this->fallback(callInfo); // DynamicContract::fallback will throw an exception if not overridden
+      }
+      // Now we filter view, payable and non-payable functions
+      if (callInfo.flags == EVMC_STATIC) {
+        if (!this->viewFunctions_.contains(funcName)) {
+          throw DynamicException("Function not found for evmEthCall, cannot call non-view function in static context");
+        }
+        return funcIt->second(callInfo);
+      } else {
+        // Delegate call is already treated by whoever calls evmEthCall, so only 0 flags exists
+        // If it is a nonpayable function, we must check if the value is zero
+        if (this->publicFunctions_.contains(funcName)) {
           if (!evmc::is_zero(callInfo.value)) {
-            // If the value is not zero, we need to throw an exception
             throw DynamicException("Non-payable function called with value");
           }
-          auto func = this->publicFunctions_.find(funcName);
-          if (func == this->publicFunctions_.end()) throw DynamicException("Functor not found for non-payable function");
-          func->second(callInfo);
         }
-      } catch (const std::exception& e) {
-        throw DynamicException(e.what());
+        return funcIt->second(callInfo);
       }
-    };
-
-    Bytes evmEthCall(const evmc_message& callInfo, ContractHost* host) final {
-      this->host_ = host;
-      PointerNullifier nullifier(this->host_);
-      Functor funcName = EVMCConv::getFunctor(callInfo);
-      if (this->isPayableFunction(funcName)) {
-        auto func = this->evmFunctions_.find(funcName);
-        if (func == this->evmFunctions_.end()) throw DynamicException("Functor not found for payable function");
-        return func->second(callInfo);
-      } else {
-        // value is a uint8_t[32] C array, we need to check if it's zero in modern C++
-        if (!evmc::is_zero(callInfo.value)) {
-          // If the value is not zero, we need to throw an exception
-          throw DynamicException("Non-payable function called with value");
-        }
-        auto func = this->evmFunctions_.find(funcName);
-        if (func == this->evmFunctions_.end()) throw DynamicException("Functor not found for non-payable function");
-        return func->second(callInfo);
-      }
-    }
-
-    /**
-     * Do a contract call to a view function.
-     * @param data Tuple of (from, to, gasLimit, gasPrice, value, data).
-     * @param host Pointer to the contract host.
-     * @return The result of the view function.
-     * @throw DynamicException if the functor is not found or the function throws an exception.
-     */
-    Bytes ethCallView(const evmc_message& data, ContractHost* host) const override {
-      this->host_ = host;
-      PointerNullifier nullifier(this->host_);
-      Functor funcName = EVMCConv::getFunctor(data);
-      auto func = this->viewFunctions_.find(funcName);
-      if (func == this->viewFunctions_.end())
-        throw DynamicException("Functor not found");
-      return func->second(data);
     }
 
     /**
@@ -694,7 +680,7 @@ class DynamicContract : public BaseContract {
       ContractHost* contractHost, R (C::*func)(const Args&...), const Args&... args
     ) {
       // We don't want to ever overwrite the host_ pointer if it's already set (nested calls)
-      PointerNullifier nullifier(this->host_);
+      PointerNullifier nullifier(this->host_, this->nullifiable_);
 
       if (this->host_ == nullptr) {
         this->host_ = contractHost;
@@ -717,7 +703,7 @@ class DynamicContract : public BaseContract {
         // We don't want to ever overwrite the host_ pointer if it's already set (nested calls)
         if (this->host_ == nullptr) {
           this->host_ = contractHost;
-          PointerNullifier nullifier(this->host_);
+          PointerNullifier nullifier(this->host_, this->nullifiable_);
           return (dynamic_cast<C*>(this)->*func)();
         }
         return (dynamic_cast<C*>(this)->*func)();

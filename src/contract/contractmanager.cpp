@@ -76,13 +76,16 @@ std::tuple<bool, std::string> ContractManager::getContractInfo(const Address& ad
 
 void ContractManager::ethCall(const evmc_message& callInfo, ContractHost* host) {
   this->host_ = host;
-  PointerNullifier nullifier(this->host_);
+  PointerNullifier nullifier(this->host_, this->nullifiable_);
   const Address caller(callInfo.sender);
   const Functor functor = EVMCConv::getFunctor(callInfo);
   // Call the function on this->createContractFuncs_
   auto it = this->createContractFuncs_.find(functor);
   if (it == this->createContractFuncs_.end()) {
     return;
+  }
+  if (callInfo.flags == EVMC_STATIC) {
+    throw DynamicException("ContractManager: Static calls trying to create a contract?!");
   }
   it->second(callInfo,
             generateContractAddress(this->host_->context().getAccount(caller).getNonce(), caller),
@@ -121,7 +124,6 @@ Bytes ContractManager::evmEthCall(const evmc_message& callInfo, ContractHost* ho
 }
 
 Bytes ContractManager::ethCallView(const evmc_message& callInfo, ContractHost* host) const {
-  PointerNullifier nullifier(this->host_);
   // This hash is equivalent to "function getDeployedContracts() public view returns (Contract[] memory) {}"
   // 0xaa9a068f == uint32_t(2862220943);
   auto functor = EVMCConv::getFunctor(callInfo);

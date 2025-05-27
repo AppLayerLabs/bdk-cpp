@@ -22,6 +22,8 @@ See the LICENSE.txt file in the project root for more information.
  */
 class ContractManager : public BaseContract {
   private:
+    /// Boolean that accompanies the PointerNullifier for EVM calls
+    bool nullifiable_ = true;
     /// Reference to the current dump manager.
     /// Owned by the State
     DumpManager& manager_;
