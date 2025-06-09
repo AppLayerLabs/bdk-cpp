@@ -534,6 +534,45 @@ namespace TDEXV2 {
       uint256_t nativeBalance = sdk.getNativeBalance(owner);
       REQUIRE(nativeBalance > uint256_t("900000000000000000000"));
     }
+
+    SECTION("swapTokensForExactNative with EVM Native Wrapper") {
+      SDKTestSuite sdk = SDKTestSuite::createNewEnvironment(std::string("testSwapExactTokensForNative"));
+
+      Address token = sdk.deployContract<ERC20>(std::string("Token"), std::string("TKN"), uint8_t(18), uint256_t("10000000000000000000000"));
+      Address wrapped = sdk.deployBytecode(nativeWrapperBytecode);
+      Address factory = sdk.deployContract<DEXV2Factory>(Address());
+      Address router = sdk.deployContract<DEXV2Router02>(factory, wrapped);
+      Address owner = sdk.getChainOwnerAccount().address;
+
+      sdk.callFunction(factory, &DEXV2Factory::createPair, token, wrapped);
+      Address pair = sdk.callViewFunction(factory, &DEXV2Factory::getPair, token, wrapped);
+
+      sdk.callFunction(token, &ERC20::approve, router, uint256_t("10000000000000000000000"));
+
+      uint256_t deadline = std::chrono::duration_cast<std::chrono::microseconds>(
+        std::chrono::system_clock::now().time_since_epoch()
+      ).count() + 60000000;
+      auto balBefore = sdk.getNativeBalance(owner);
+      auto addLiqTx = sdk.callFunction(router, uint256_t("100000000000000000000"), &DEXV2Router02::addLiquidityNative,
+        token, uint256_t("500000000000000000000"), uint256_t(0), uint256_t(0), owner, deadline);
+
+      auto txInfo = sdk.getStorage().getTx(addLiqTx);
+      auto tx = *std::get<0>(txInfo);
+      auto txExtraData = sdk.getStorage().getTxAdditionalData(addLiqTx);
+      uint256_t gasUsed = txExtraData->gasUsed * tx.getMaxFeePerGas();
+
+      // Check user balance
+      REQUIRE(sdk.callViewFunction(token, &ERC20::balanceOf, owner) == uint256_t("9500000000000000000000"));
+      REQUIRE(sdk.getNativeBalance(owner) == balBefore - gasUsed - uint256_t("100000000000000000000"));
+
+      std::vector<Address> path = {token, wrapped};
+
+      sdk.callFunction(router, &DEXV2Router02::swapTokensForExactNative,
+        uint256_t("1000000000000000000"), uint256_t("6000000000000000000"), path, owner, deadline);
+
+      uint256_t nativeBalance = sdk.getNativeBalance(owner);
+      REQUIRE(nativeBalance > uint256_t("900000000000000000000"));
+    }
   }
 }
 

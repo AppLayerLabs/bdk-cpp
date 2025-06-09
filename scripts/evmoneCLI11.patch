@@ -1,0 +1,55 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index b7fc715..5360074 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -131,8 +131,10 @@ set(include_dir ${CMAKE_CURRENT_SOURCE_DIR}/include)
+ add_subdirectory(lib)
+ 
+ if(EVMONE_TESTING)
++    hunter_add_package(CLI11)
++    find_package(CLI11 REQUIRED)
+     enable_testing()
+-    add_subdirectory(test)
++    add_subdirectory(test) 
+ endif()
+ 
+ 
+diff --git a/test/blockchaintest/CMakeLists.txt b/test/blockchaintest/CMakeLists.txt
+index 6823b4c..1f6d200 100644
+--- a/test/blockchaintest/CMakeLists.txt
++++ b/test/blockchaintest/CMakeLists.txt
+@@ -3,7 +3,7 @@
+ # SPDX-License-Identifier: Apache-2.0
+ 
+ add_executable(evmone-blockchaintest)
+-target_link_libraries(evmone-blockchaintest PRIVATE evmone evmone::statetestutils evmone-buildinfo GTest::gtest)
++target_link_libraries(evmone-blockchaintest PRIVATE evmone evmone::statetestutils evmone-buildinfo GTest::gtest CLI11::CLI11)
+ target_include_directories(evmone-blockchaintest PRIVATE ${evmone_private_include_dir})
+ target_sources(
+     evmone-blockchaintest PRIVATE
+diff --git a/test/eoftest/CMakeLists.txt b/test/eoftest/CMakeLists.txt
+index 25df1d0..7f6d728 100644
+--- a/test/eoftest/CMakeLists.txt
++++ b/test/eoftest/CMakeLists.txt
+@@ -3,7 +3,7 @@
+ # SPDX-License-Identifier: Apache-2.0
+ 
+ add_executable(evmone-eoftest)
+-target_link_libraries(evmone-eoftest PRIVATE evmone evmone::testutils nlohmann_json::nlohmann_json GTest::gtest)
++target_link_libraries(evmone-eoftest PRIVATE evmone evmone::testutils nlohmann_json::nlohmann_json GTest::gtest CLI11::CLI11)
+ target_include_directories(evmone-eoftest PRIVATE ${evmone_private_include_dir})
+ target_sources(
+     evmone-eoftest PRIVATE
+diff --git a/test/statetest/CMakeLists.txt b/test/statetest/CMakeLists.txt
+index eaf85df..f156d77 100644
+--- a/test/statetest/CMakeLists.txt
++++ b/test/statetest/CMakeLists.txt
+@@ -17,7 +17,7 @@ target_sources(
+ )
+ 
+ add_executable(evmone-statetest)
+-target_link_libraries(evmone-statetest PRIVATE evmone::statetestutils evmone evmone-buildinfo GTest::gtest)
++target_link_libraries(evmone-statetest PRIVATE evmone::statetestutils evmone evmone-buildinfo GTest::gtest CLI11::CLI11)
+ target_include_directories(evmone-statetest PRIVATE ${evmone_private_include_dir})
+ target_sources(
+     evmone-statetest PRIVATE
