@@ -191,6 +191,9 @@ elif [ "${1:-}" == "--install" ]; then
     echo "-- Skipping internal dependencies (non-APT-based distro, please install those manually)"
   fi
 
+  # Take note of the EVMONE Patch Path
+  EVMONEPATCH_PATH="$(realpath evmoneCLI11.patch)"
+
   # Install external libs
   echo "-- Checking external dependencies..."
   if [ -z "$HAS_ETHASH" ] || [ -z "$HAS_KECCAK" ]; then
@@ -202,10 +205,18 @@ elif [ "${1:-}" == "--install" ]; then
   fi
   if [ -z "$HAS_EVMC_INSTRUCTIONS" ] || [ -z "$HAS_EVMC_LOADER" ] || [ -z "$HAS_EVMONE" ]; then
     echo "-- Installing evmone..."
-    cd /usr/local/src && git clone --recurse-submodules --depth 1 --branch "v${EVMONE_VERSION}" https://github.com/chfast/evmone
-    cd evmone && mkdir build && cd build
+    cd /usr/local/src && git clone --recurse-submodules --depth 1 --branch "v${EVMONE_VERSION}" https://github.com/ethereum/evmone
+    cd evmone
+    # Apply patch located at the same path of this script called "evmoneCLI11.patch"
+    echo "-- Applying patch to evmone..."
+    git apply "$EVMONEPATCH_PATH"
+    mkdir build && cd build
+    cmake -DCMAKE_INSTALL_PREFIX="/usr/local" -DBUILD_SHARED_LIBS=ON -DEVMC_INSTALL=ON -DEVMONE_TESTING=ON ..
+    cmake --build . -- -j$(nproc)
     cmake -DCMAKE_INSTALL_PREFIX="/usr/local" -DBUILD_SHARED_LIBS=OFF -DEVMC_INSTALL=ON ..
-    cmake --build . -- -j$(nproc) && cmake --install .
+    cmake --build . -- -j$(nproc)
+    ./bin/evmc-vmtester /usr/local/src/evmone/build/lib/libevmone.so && ./bin/evmone-unittests
+    cmake --install .
   fi
   if [ -z "$HAS_SPEEDB" ]; then
     echo "-- Installing speedb..."
@@ -235,18 +246,18 @@ elif [ "${1:-}" == "--cleanext" ]; then
   # Uninstall any external dependencies (+ source code repos) found in the system
   if [ -n "$HAS_ETHASH" ] || [ -n "$HAS_KECCAK" ]; then
     echo "-- Uninstalling ethash..."
-    rm -r "/usr/local/src/ethash"
-    rm -r "/usr/local/include/ethash"
+    rm -rf "/usr/local/src/ethash"
+    rm -rf "/usr/local/include/ethash"
     rm "/usr/local/lib/libethash.a"
     rm "/usr/local/lib/libethash-global-context.a"
     rm "/usr/local/lib/libkeccak.a"
   fi
   if [ -n "$HAS_EVMC_INSTRUCTIONS" ] || [ -n "$HAS_EVMC_LOADER" ] || [ -n "$HAS_EVMONE" ]; then
     echo "-- Uninstalling evmone..."
-    rm -r "/usr/local/src/evmone"
-    rm -r "/usr/local/include/evmc"
-    rm -r "/usr/local/include/evmmax"
-    rm -r "/usr/local/include/evmone"
+    rm -rf "/usr/local/src/evmone"
+    rm -rf "/usr/local/include/evmc"
+    rm -rf "/usr/local/include/evmmax"
+    rm -rf "/usr/local/include/evmone"
     rm "/usr/local/lib/libevmc-instructions.a"
     rm "/usr/local/lib/libevmc-loader.a"
     rm "/usr/local/lib/libevmone.a"
@@ -254,16 +265,16 @@ elif [ "${1:-}" == "--cleanext" ]; then
   fi
   if [ -n "$HAS_SPEEDB" ]; then
     echo "-- Uninstalling speedb..."
-    rm -r "/usr/local/src/speedb"
-    rm -r "/usr/local/include/rocksdb"
+    rm -rf "/usr/local/src/speedb"
+    rm -rf "/usr/local/include/rocksdb"
     rm "/usr/local/lib/libspeedb.a"
   fi
   if [ -n "$HAS_SQLITECPP" ]; then
     echo "-- Uninstalling SQLiteCpp..."
     rm "/usr/local/lib/libSQLiteCpp.a"
     rm "/usr/local/lib/libsqlite3.a"
-    rm -r "/usr/local/include/SQLiteCpp"
-    rm -r "/usr/local/src/SQLiteCpp"
+    rm -rf "/usr/local/include/SQLiteCpp"
+    rm -rf "/usr/local/src/SQLiteCpp"
   fi
   echo "-- External dependencies cleaned, please reinstall them later with --install"
 fi
