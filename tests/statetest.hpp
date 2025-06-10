@@ -39,7 +39,7 @@ class StateTest : public State {
       .txIndex(0)
       .blockNumber(ContractGlobals::getBlockHeight())
       .blockTimestamp(ContractGlobals::getBlockTimestamp())
-      .blockGasLimit(10'000'000)
+      .blockGasLimit(100'000'000)
       .txGasPrice(tx.getMaxFeePerGas())
       .chainId(this->options_.getChainID())
       .build();

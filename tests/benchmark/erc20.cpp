@@ -128,7 +128,7 @@ contract MappingManager {
       // Dump the state
       sdk.getState().saveToDB();
     }
-    #ifndef BUILD_TESTNET
+
     SECTION("CPP ERC20 generate Benchmark") {
       std::unique_ptr<Options> options = nullptr;
       Address to(Utils::randBytes(20));
@@ -213,14 +213,18 @@ contract MappingManager {
       auto functor = UintConv::uint32ToBytes(ABI::FunctorEncoder::encode<std::vector<Address>>("generate").value);
       Bytes generateEncoded(functor.cbegin(), functor.cend());
       Utils::appendBytes(generateEncoded, ABI::Encoder::encodeData<std::vector<Address>>(addresses));
-      TxBlock transferTx = sdk.createNewTx(sdk.getChainOwnerAccount(), erc20Address, 0, generateEncoded);
+      TxBlock preGenerateTx = sdk.createNewTx(sdk.getChainOwnerAccount(), erc20Address, 0, generateEncoded);
       auto& state = sdk.getState();
       uint64_t iterations = 1000;
+      // We actually need to call the contract once and then later create a new tx because of the
+      // delete inside the generate function causing the generate function to run out of gas.
+      state.call(preGenerateTx);
+      TxBlock generateTx = sdk.createNewTx(sdk.getChainOwnerAccount(), erc20Address, 0, generateEncoded);
 
       auto start = std::chrono::high_resolution_clock::now();
       std::cout << "Starting EVM Generate Benchmark" << std::endl;
       for (uint64_t i = 0; i < iterations; i++) {
-        state.call(transferTx);
+        state.call(generateTx);
       }
       std::cout << "Finished EVM Generate Benchmark" << std::endl;
       auto end = std::chrono::high_resolution_clock::now();
@@ -249,7 +253,7 @@ contract MappingManager {
       std::cout << "EVM ERC20 Addall took " << microSecsPerCall << " microseconds per call" << std::endl;
       std::cout << "EVM Addall Total Time: " << durationInMicroseconds / 1000000 << " seconds" << std::endl;
     }
-    #endif // BUILD_TESTNET
+
     SECTION("CPP ERC20 transferFrom Benchmark") {
       std::unique_ptr<Options> options = nullptr;
       TestAccount sender = TestAccount::newRandomAccount();
