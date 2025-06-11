@@ -1564,6 +1564,12 @@ json Blockchain::eth_getUncleByBlockHashAndIndex(const json& request) {
   return json::value_t::null;
 }
 
+json eth_maxPriorityFeePerGas(const json &request, const Options &options) {
+  // Simply return "0x0" as the max priority fee per gas. maxPriorityFeePerGas must always be 0.
+  forbidParams(request);
+  return "0x0";
+}
+
 json Blockchain::debug_traceBlockByNumber(const json& request) {
   requiresDebugIndexing(storage_, "debug_traceBlockByNumber");
 

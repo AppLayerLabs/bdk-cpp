@@ -202,6 +202,7 @@ class Blockchain : public CometListener, public NodeRPCInterface, public Log::Lo
     virtual json eth_getTransactionByBlockNumberAndIndex(const json& request) override;
     virtual json eth_getTransactionReceipt(const json& request) override;
     virtual json eth_getUncleByBlockHashAndIndex(const json& request) override;
+    virtual json eth_maxPriorityFeePerGas(const json& request) override;
     virtual json debug_traceBlockByNumber(const json& request) override;
     virtual json debug_traceTransaction(const json& request) override;
     virtual json txpool_content(const json& request) override;

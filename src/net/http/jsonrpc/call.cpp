@@ -83,6 +83,7 @@ json call(const json& request, NodeRPCInterface& rpc) noexcept {
       {"eth_getTransactionByBlockNumberAndIndex", [](NodeRPCInterface& obj, const json& req) { return obj.eth_getTransactionByBlockNumberAndIndex(req); }},
       {"eth_getTransactionReceipt", [](NodeRPCInterface& obj, const json& req) { return obj.eth_getTransactionReceipt(req); }},
       {"eth_getUncleByBlockHashAndIndex", [](NodeRPCInterface& obj, const json& req) { return obj.eth_getUncleByBlockHashAndIndex(req); }},
+      {"eth_maxPriorityFeePerGas", [](NodeRPCInterface& obj, const json& req) { return obj.eth_maxPriorityFeePerGas(req); }},
       {"debug_traceBlockByNumber", [](NodeRPCInterface& obj, const json& req) { return obj.debug_traceBlockByNumber(req); }},
       {"debug_traceTransaction", [](NodeRPCInterface& obj, const json& req) { return obj.eth_getUncleByBlockHashAndIndex(req); }},
       {"txpool_content", [](NodeRPCInterface& obj, const json& req) { return obj.txpool_content(req); }}
