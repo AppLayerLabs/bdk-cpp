@@ -49,8 +49,11 @@ namespace jsonrpc {
     if (data.is_number_unsigned()) return data.get<uint64_t>();
     if (!data.is_string()) throw Error::invalidType("string", data.type_name());
     auto value = data.get<std::string>();
-    if (!std::regex_match(value, numberFormat)) throw Error::invalidFormat(value);
-    return uint64_t(Hex(value).getUint());
+    if (std::regex_match(value, numberFormat)) return uint64_t(Hex(value).getUint());
+    // Check if the string is a valid number
+    if (value.empty()) throw Error::invalidFormat("empty string");
+    for (const auto& c : value) if (!std::isdigit(c)) throw Error::invalidFormat(value);
+    return std::stoull(value);
   }
 
   uint256_t Parser<uint256_t>::operator()(const json& data) const {
