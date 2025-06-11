@@ -484,6 +484,13 @@ json eth_getTransactionReceipt(const json& request, const Storage& storage, cons
   return json::value_t::null;
 }
 
+json eth_maxPriorityFeePerGas(const json &request, const Options &options) {
+  // Simply return "0x0" as the max priority fee per gas. maxPriorityFeePerGas must always be 0.
+  forbidParams(request);
+  return "0x0";
+}
+
+
 json eth_getUncleByBlockHashAndIndex() {
   return json::value_t::null;
 }

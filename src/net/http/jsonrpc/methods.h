@@ -72,6 +72,7 @@ See the LICENSE.txt file in the project root for more information.
  * eth_getTransactionByBlockHashAndIndex ===== DONE
  * eth_getTransactionByBlockNumberAndIndex === DONE
  * eth_getTransactionReceipt ================= DONE
+ * eth_maxPriorityFeePerGas ================== DONE
  * ```
  */
 namespace jsonrpc {
@@ -192,6 +193,7 @@ namespace jsonrpc {
   json eth_getTransactionByBlockNumberAndIndex(const json& request, const Storage& storage);
   json eth_getTransactionReceipt(const json& request, const Storage& storage, const Options& options);
   json eth_getUncleByBlockHashAndIndex();
+  json eth_maxPriorityFeePerGas(const json& request, const Options& options);
   json txpool_content(const json& request, const State& state);
   json debug_traceBlockByNumber(const json& request, const Storage& storage);
   json debug_traceTransaction(const json& request, const Storage& storage);

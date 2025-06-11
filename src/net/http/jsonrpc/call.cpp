@@ -105,6 +105,8 @@ json call(const json& request, State& state, const Storage& storage,
       result = jsonrpc::eth_getTransactionReceipt(request, storage, options);
     else if (method == "eth_getUncleByBlockHashAndIndex")
       result = jsonrpc::eth_getUncleByBlockHashAndIndex();
+    else if (method == "eth_maxPriorityFeePerGas")
+      result = jsonrpc::eth_maxPriorityFeePerGas(request, options);
     else if (method == "txpool_content")
       result = jsonrpc::txpool_content(request, state);
     else if (method == "debug_traceBlockByNumber")
