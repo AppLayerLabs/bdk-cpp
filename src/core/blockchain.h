@@ -129,6 +129,7 @@ class Blockchain : public CometListener, public NodeRPCInterface, public Log::Lo
      * Helper for BDK RPC services.
      */
     json getBlockJson(const FinalizedBlock *block, bool includeTransactions);
+    json getEIP1559TransactionJson(const TxBlock& transaction, const Hash* const blockHash, const uint64_t* const blockNumber, const uint64_t* const txIndex);
 
     /**
      * Reset all Blockchain state.

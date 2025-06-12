@@ -556,8 +556,8 @@ namespace TDEXV2 {
       auto addLiqTx = sdk.callFunction(router, uint256_t("100000000000000000000"), &DEXV2Router02::addLiquidityNative,
         token, uint256_t("500000000000000000000"), uint256_t(0), uint256_t(0), owner, deadline);
 
-      auto txInfo = sdk.getStorage().getTx(addLiqTx);
-      auto tx = *std::get<0>(txInfo);
+      auto txInfo = sdk.getTx(addLiqTx);
+      auto tx = *txInfo.txBlockPtr;
       auto txExtraData = sdk.getStorage().getTxAdditionalData(addLiqTx);
       uint256_t gasUsed = txExtraData->gasUsed * tx.getMaxFeePerGas();
 
