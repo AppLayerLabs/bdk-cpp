@@ -11,17 +11,42 @@ See the LICENSE.txt file in the project root for more information.
 #include "variadicparser.h"
 #include "../../../core/storage.h"
 #include "../../../core/state.h"
-#include "bytes/cast.h"
-
-#include "../../../utils/evmcconv.h"
 
 static inline constexpr std::string_view FIXED_BASE_FEE_PER_GAS = "0x9502f900"; // Fixed to 2.5 GWei
 
 namespace jsonrpc {
 
-json getBlockJson(const FinalizedBlock* block, bool includeTransactions) {
+json getEIP1559TransactionJson(const TxBlock& transaction, const Hash* const blockHash, const uint64_t* const blockNumber, const uint64_t* const txIndex) {
+  json ret;
+  // Signed 1559 Transaction
+  ret["blockHash"] = (blockHash) ? blockHash->hex(true) : json::value_t::null;
+  ret["blockNumber"] = (blockNumber) ? Hex::fromBytes(Utils::uintToBytes(*blockNumber), true).forRPC() : json::value_t::null;
+  ret["from"] = transaction.getFrom().hex(true);
+  ret["hash"] = transaction.hash().hex(true);
+  ret["transactionIndex"] = (txIndex) ? Hex::fromBytes(Utils::uintToBytes(*txIndex), true).forRPC() : json::value_t::null;
+  ret["type"] = "0x2"; // Only EIP-1559 transaction types are supported.
+  ret["nonce"] = Hex::fromBytes(Utils::uintToBytes(transaction.getNonce()), true).forRPC();
+  // If the transaction created a EVM contract, the "to" field is null.
+  ret["to"] = (transaction.getTo()) ? transaction.getTo().hex(true) : json::value_t::null;
+  ret["gas"] = Hex::fromBytes(Utils::uintToBytes(transaction.getGasLimit()), true).forRPC();
+  ret["value"] = Hex::fromBytes(Utils::uintToBytes(transaction.getValue()), true).forRPC();
+  ret["input"] = Hex::fromBytes(transaction.getData(), true);
+  ret["maxPriorityFeePerGas"] = Hex::fromBytes(Utils::uintToBytes(transaction.getMaxPriorityFeePerGas()), true).forRPC();
+  ret["maxFeePerGas"] = Hex::fromBytes(Utils::uintToBytes(transaction.getMaxFeePerGas()), true).forRPC();
+  ret["gasPrice"] = Hex::fromBytes(Utils::uintToBytes(transaction.getMaxFeePerGas()), true).forRPC(); // Technically deprecated but still used. bdk only cares for maxFeePerGas
+  ret["accessList"] = json::array(); // Access lists are not supported in BDK.
+  ret["chainId"] = Hex::fromBytes(Utils::uintToBytes(transaction.getChainId()), true).forRPC();
+  ret["yParity"] = Hex::fromBytes(Utils::uintToBytes(transaction.getV()), true).forRPC();
+  ret["v"] = Hex::fromBytes(Utils::uintToBytes(transaction.getV()), true).forRPC(); // Technically deprecated but still used.
+  ret["r"] = Hex::fromBytes(Utils::uintToBytes(transaction.getR()), true).forRPC();
+  ret["s"] = Hex::fromBytes(Utils::uintToBytes(transaction.getS()), true).forRPC();
+  return ret;
+}
+
+json getBlockJson(const Storage& storage, const FinalizedBlock* block, bool includeTransactions) {
   json ret;
   if (block == nullptr) { ret = json::value_t::null; return ret; }
+  // https://ethereum.github.io/execution-apis/docs/reference/eth_getblockbyhash
   ret["hash"] = block->getHash().hex(true);
   ret["parentHash"] = block->getPrevBlockHash().hex(true);
   ret["sha3Uncles"] = Hash().hex(true); // Uncles do not exist.
@@ -33,7 +58,7 @@ json getBlockJson(const FinalizedBlock* block, bool includeTransactions) {
   ret["difficulty"] = "0x1";
   ret["number"] = Hex::fromBytes(Utils::uintToBytes(block->getNHeight()),true).forRPC();
   ret["gasLimit"] = Hex::fromBytes(Utils::uintToBytes(std::numeric_limits<uint64_t>::max()),true).forRPC();
-  ret["gasUsed"] = Hex::fromBytes(Utils::uintToBytes(uint64_t(1000000000)),true).forRPC(); // Arbitrary number
+  ret["gasUsed"] = Hex::fromBytes(Utils::uintToBytes(static_cast<uint64_t>(1000000000)),true).forRPC(); // Arbitrary number
   ret["timestamp"] = Hex::fromBytes(Utils::uintToBytes((block->getTimestamp()/1000000)),true).forRPC(); // Block tim
   ret["extraData"] = "0x0000000000000000000000000000000000000000000000000000000000000000";
   ret["mixHash"] = Hash().hex(true); // No mixHash.
@@ -41,30 +66,18 @@ json getBlockJson(const FinalizedBlock* block, bool includeTransactions) {
   ret["totalDifficulty"] = "0x1";
   ret["baseFeePerGas"] = FIXED_BASE_FEE_PER_GAS;
   ret["withdrawRoot"] = Hash().hex(true); // No withdrawRoot.
+  ret["blobGasUsed"] = "0x0"; // No blobGasUsed.
+  ret["excessBlobGas"] = "0x0"; // No excessBlobGas. there is no blobs in BDK (for the moment)
   // TODO: to get a block you have to serialize it entirely, this can be expensive.
-  ret["size"] = Hex::fromBytes(Utils::uintToBytes(block->serializeBlock().size()),true).forRPC();
+  ret["size"] = Hex::fromBytes(Utils::uintToBytes(block->getSize()),true).forRPC();
   ret["transactions"] = json::array();
   uint64_t txIndex = 0;
   for (const auto& tx : block->getTxs()) {
     if (!includeTransactions) { // Only include the transaction hashes.
       ret["transactions"].push_back(tx.hash().hex(true));
     } else { // Include the transactions as a whole.
-      json txJson = json::object();
-      txJson["blockHash"] = block->getHash().hex(true);
-      txJson["blockNumber"] = Hex::fromBytes(Utils::uintToBytes(block->getNHeight()),true).forRPC();
-      txJson["from"] = tx.getFrom().hex(true);
-      txJson["gas"] = Hex::fromBytes(Utils::uintToBytes(tx.getGasLimit()),true).forRPC();
-      txJson["gasPrice"] = Hex::fromBytes(Utils::uintToBytes(tx.getMaxFeePerGas()),true).forRPC();
-      txJson["hash"] = tx.hash().hex(true);
-      txJson["input"] = Hex::fromBytes(tx.getData(), true);
-      txJson["nonce"] = Hex::fromBytes(Utils::uintToBytes(tx.getNonce()),true).forRPC();
-      txJson["to"] = tx.getTo().hex(true);
-      txJson["transactionIndex"] = Hex::fromBytes(Utils::uintToBytes(txIndex++),true).forRPC();
-      txJson["value"] = Hex::fromBytes(Utils::uintToBytes(tx.getValue()),true).forRPC();
-      txJson["v"] = Hex::fromBytes(Utils::uintToBytes(tx.getV()),true).forRPC();
-      txJson["r"] = Hex::fromBytes(Utils::uintToBytes(tx.getR()),true).forRPC();
-      txJson["s"] = Hex::fromBytes(Utils::uintToBytes(tx.getS()),true).forRPC();
-      ret["transactions"].emplace_back(std::move(txJson));
+      ret["transactions"].emplace_back(std::move(getEIP1559TransactionJson(tx, &block->getHash(), &block->getNHeight(), &txIndex)));
+      ++txIndex;
     }
   }
   ret["withdrawls"] = json::array();
@@ -138,21 +151,19 @@ json net_peerCount(const json& request, const P2P::ManagerNormal& p2p) {
 json eth_getBlockByHash(const json& request, const Storage& storage) {
   const auto [blockHash, optionalIncludeTxs] = parseAllParams<Hash, std::optional<bool>>(request);
   const bool includeTxs = optionalIncludeTxs.value_or(false);
-  return getBlockJson(storage.getBlock(blockHash).get(), includeTxs);
+  return getBlockJson(storage, storage.getBlock(blockHash).get(), includeTxs);
 }
 
 json eth_getBlockByNumber(const json& request, const Storage& storage) {
   const auto [blockNumberOrTag, optionalIncludeTxs] = parseAllParams<BlockTagOrNumber, std::optional<bool>>(request);
   const uint64_t blockNumber = blockNumberOrTag.number(storage);
   const bool includeTxs = optionalIncludeTxs.value_or(false);
-  return getBlockJson(storage.getBlock(blockNumber).get(), includeTxs);
+  return getBlockJson(storage, storage.getBlock(blockNumber).get(), includeTxs);
 }
 
 json eth_getBlockTransactionCountByHash(const json& request, const Storage& storage) {
   const auto [blockHash] = parseAllParams<Hash>(request);
-  const auto block = storage.getBlock(blockHash);
-
-  if (block)
+  if (const auto block = storage.getBlock(blockHash))
     return Hex::fromBytes(Utils::uintToBytes(block->getTxs().size()), true).forRPC();
   else
     return json::value_t::null;
@@ -161,9 +172,8 @@ json eth_getBlockTransactionCountByHash(const json& request, const Storage& stor
 json eth_getBlockTransactionCountByNumber(const json& request, const Storage& storage) {
   const auto [blockTagOrNumber] = parseAllParams<BlockTagOrNumber>(request);
   const uint64_t blockNumber = blockTagOrNumber.number(storage);
-  const auto block = storage.getBlock(blockNumber);
 
-  if (block)
+  if (const auto block = storage.getBlock(blockNumber))
     return Hex::fromBytes(Utils::uintToBytes(block->getTxs().size()), true).forRPC();
   else
     return json::value_t::null;
@@ -234,12 +244,12 @@ json eth_feeHistory(const json& request, const Storage& storage) {
     std::shared_ptr<const FinalizedBlock> oneAfterLastBlock = storage.getBlock(blockNumber + 1);
     oneAfterLastBlock != nullptr
   ) ret["baseFeePerGas"].push_back(FIXED_BASE_FEE_PER_GAS);
-  uint64_t oldestBlock;
+  uint64_t oldestBlock = blockNumber;
   while (blockCount--) {
     if (std::shared_ptr<const FinalizedBlock> block = storage.getBlock(blockNumber); block == nullptr) break;
     ret["baseFeePerGas"].push_back(FIXED_BASE_FEE_PER_GAS); // TODO: fill with proper value once available
     ret["gasUsedRatio"].push_back(1.0f); // TODO: calculate as gasUsed / gasLimit
-    oldestBlock = blockNumber--;
+    --oldestBlock;
   }
 
   if (ret["baseFeePerGas"].empty()) throw Error::executionError("Requested block not found");
@@ -354,41 +364,18 @@ json eth_getTransactionByHash(const json& request, const Storage& storage, const
 
   json ret;
   if (auto txOnMempool = state.getTxFromMempool(txHash); txOnMempool != nullptr) {
-    ret["blockHash"] = json::value_t::null;
-    ret["blockIndex"] = json::value_t::null;
-    ret["from"] = txOnMempool->getFrom().hex(true);
-    ret["gas"] = Hex::fromBytes(Utils::uintToBytes(txOnMempool->getGasLimit()), true).forRPC();
-    ret["gasPrice"] = Hex::fromBytes(Utils::uintToBytes(txOnMempool->getMaxFeePerGas()), true).forRPC();
-    ret["hash"] = txOnMempool->hash().hex(true);
-    ret["input"] = Hex::fromBytes(txOnMempool->getData(), true);
-    ret["nonce"] = Hex::fromBytes(Utils::uintToBytes(txOnMempool->getNonce()), true).forRPC();
-    ret["to"] = txOnMempool->getTo().hex(true);
-    ret["transactionIndex"] = json::value_t::null;
-    ret["value"] = Hex::fromBytes(Utils::uintToBytes(txOnMempool->getValue()), true).forRPC();
-    ret["v"] = Hex::fromBytes(Utils::uintToBytes(txOnMempool->getV()), true).forRPC();
-    ret["r"] = Hex::fromBytes(Utils::uintToBytes(txOnMempool->getR()), true).forRPC();
-    ret["s"] = Hex::fromBytes(Utils::uintToBytes(txOnMempool->getS()), true).forRPC();
-    return ret;
+    return getEIP1559TransactionJson(*txOnMempool, nullptr, nullptr, nullptr);
   }
 
   auto txOnChain = storage.getTx(txHash);
   const auto& [tx, blockHash, blockIndex, blockHeight] = txOnChain;
   if (tx != nullptr) {
-    ret["blockHash"] = blockHash.hex(true);
-    ret["blockNumber"] = Hex::fromBytes(Utils::uintToBytes(blockHeight), true).forRPC();
-    ret["from"] = tx->getFrom().hex(true);
-    ret["gas"] = Hex::fromBytes(Utils::uintToBytes(tx->getGasLimit()), true).forRPC();
-    ret["gasPrice"] = Hex::fromBytes(Utils::uintToBytes(tx->getMaxFeePerGas()), true).forRPC();
-    ret["hash"] = tx->hash().hex(true);
-    ret["input"] = Hex::fromBytes(tx->getData(), true);
-    ret["nonce"] = Hex::fromBytes(Utils::uintToBytes(tx->getNonce()), true).forRPC();
-    ret["to"] = tx->getTo().hex(true);
-    ret["transactionIndex"] = Hex::fromBytes(Utils::uintToBytes(blockIndex), true).forRPC();
-    ret["value"] = Hex::fromBytes(Utils::uintToBytes(tx->getValue()), true).forRPC();
-    ret["v"] = Hex::fromBytes(Utils::uintToBytes(tx->getV()), true).forRPC();
-    ret["r"] = Hex::fromBytes(Utils::uintToBytes(tx->getR()), true).forRPC();
-    ret["s"] = Hex::fromBytes(Utils::uintToBytes(tx->getS()), true).forRPC();
-    return ret;
+    return getEIP1559TransactionJson(
+      *tx,
+      &blockHash,
+      &blockHeight,
+      &blockIndex
+    );
   }
 
   return json::value_t::null;
@@ -400,22 +387,12 @@ json eth_getTransactionByBlockHashAndIndex(const json& request, const Storage& s
   const auto& [tx, txBlockHash, txBlockIndex, txBlockHeight] = txInfo;
 
   if (tx != nullptr) {
-    json ret;
-    ret["blockHash"] = txBlockHash.hex(true);
-    ret["blockNumber"] = Hex::fromBytes(Utils::uintToBytes(txBlockHeight), true).forRPC();
-    ret["from"] = tx->getFrom().hex(true);
-    ret["gas"] = Hex::fromBytes(Utils::uintToBytes(tx->getGasLimit()), true).forRPC();
-    ret["gasPrice"] = Hex::fromBytes(Utils::uintToBytes(tx->getMaxFeePerGas()), true).forRPC();
-    ret["hash"] = tx->hash().hex(true);
-    ret["input"] = Hex::fromBytes(tx->getData(), true);
-    ret["nonce"] = Hex::fromBytes(Utils::uintToBytes(tx->getNonce()), true).forRPC();
-    ret["to"] = tx->getTo().hex(true);
-    ret["transactionIndex"] = Hex::fromBytes(Utils::uintToBytes(txBlockIndex), true).forRPC();
-    ret["value"] = Hex::fromBytes(Utils::uintToBytes(tx->getValue()), true).forRPC();
-    ret["v"] = Hex::fromBytes(Utils::uintToBytes(tx->getV()), true).forRPC();
-    ret["r"] = Hex::fromBytes(Utils::uintToBytes(tx->getR()), true).forRPC();
-    ret["s"] = Hex::fromBytes(Utils::uintToBytes(tx->getS()), true).forRPC();
-    return ret;
+    return getEIP1559TransactionJson(
+      *tx,
+      &txBlockHash,
+      &txBlockHeight,
+      &txBlockIndex
+    );
   }
 
   return json::value_t::null;
@@ -427,22 +404,12 @@ json eth_getTransactionByBlockNumberAndIndex(const json& request, const Storage&
   const auto& [tx, txBlockHash, txBlockIndex, txBlockHeight] = txInfo;
 
   if (tx != nullptr) {
-    json ret;
-    ret["blockHash"] = txBlockHash.hex(true);
-    ret["blockNumber"] = Hex::fromBytes(Utils::uintToBytes(txBlockHeight), true).forRPC();
-    ret["from"] = tx->getFrom().hex(true);
-    ret["gas"] = Hex::fromBytes(Utils::uintToBytes(tx->getGasLimit()), true).forRPC();
-    ret["gasPrice"] = Hex::fromBytes(Utils::uintToBytes(tx->getMaxFeePerGas()), true).forRPC();
-    ret["hash"] = tx->hash().hex(true);
-    ret["input"] = Hex::fromBytes(tx->getData(), true);
-    ret["nonce"] = Hex::fromBytes(Utils::uintToBytes(tx->getNonce()), true).forRPC();
-    ret["to"] = tx->getTo().hex(true);
-    ret["transactionIndex"] = Hex::fromBytes(Utils::uintToBytes(txBlockIndex), true).forRPC();
-    ret["value"] = Hex::fromBytes(Utils::uintToBytes(tx->getValue()), true).forRPC();
-    ret["v"] = Hex::fromBytes(Utils::uintToBytes(tx->getV()), true).forRPC();
-    ret["r"] = Hex::fromBytes(Utils::uintToBytes(tx->getR()), true).forRPC();
-    ret["s"] = Hex::fromBytes(Utils::uintToBytes(tx->getS()), true).forRPC();
-    return ret;
+    return getEIP1559TransactionJson(
+      *tx,
+      &txBlockHash,
+      &txBlockHeight,
+      &txBlockIndex
+    );
   }
   return json::value_t::null;
 }
@@ -460,25 +427,24 @@ json eth_getTransactionReceipt(const json& request, const Storage& storage, cons
     const TxAdditionalData txAddData = storage.getTxAdditionalData(tx->hash())
       .or_else([] () -> std::optional<TxAdditionalData> { throw DynamicException("Unable to fetch existing transaction data"); })
       .value();
-
+    // https://ethereum.github.io/execution-apis/docs/reference/eth_getTransactionReceipt
+    ret["type"] = "0x2"; // EIP-1559 transaction type
     ret["transactionHash"] = tx->hash().hex(true);
     ret["transactionIndex"] = Hex::fromBytes(Utils::uintToBytes(txIndex), true).forRPC();
     ret["blockHash"] = blockHash.hex(true);
     ret["blockNumber"] = Hex::fromBytes(Utils::uintToBytes(blockHeight), true).forRPC();
     ret["from"] = tx->getFrom().hex(true);
-    ret["to"] = tx->getTo().hex(true);
+    ret["to"] = (txAddData.contractAddress) ? json::value_t::null : tx->getTo().hex(true);
     ret["cumulativeGasUsed"] = Hex::fromBytes(Utils::uintToBytes(txAddData.gasUsed), true).forRPC(); // TODO: Fix this, cumulativeGasUsed is not the same as gasUsed
-    ret["effectiveGasPrice"] = Hex::fromBytes(Utils::uintToBytes(tx->getMaxFeePerGas()),true).forRPC();
     ret["gasUsed"] =  Hex::fromBytes(Utils::uintToBytes(txAddData.gasUsed), true).forRPC();
-    ret["contractAddress"] = bool(txAddData.contractAddress) ? json(txAddData.contractAddress.hex(true)) : json(json::value_t::null);
+    ret["contractAddress"] = (txAddData.contractAddress) ? json(txAddData.contractAddress.hex(true)) : json(json::value_t::null);
     ret["logs"] = json::array();
-    ret["logsBloom"] = Hash().hex(true);
-    ret["type"] = "0x2";
+    ret["logsBloom"] = Hash().hex(true); // TODO: Properly generate logsBloom (add to TxAdditionalData like with cumulativeGasUsed) values defined while processing tx/block
     ret["status"] = txAddData.succeeded ? "0x1" : "0x0";
+    ret["effectiveGasPrice"] = Hex::fromBytes(Utils::uintToBytes(tx->getMaxFeePerGas()),true).forRPC();
     for (const Event& e : storage.events().getEvents({ .fromBlock = blockHeight, .toBlock = blockHeight, .txIndex = txIndex }, options.getEventLogCap())) {
       ret["logs"].push_back(e.serializeForRPC());
     }
-
     return ret;
   }
   return json::value_t::null;
@@ -505,22 +471,7 @@ json txpool_content(const json& request, const State& state) {
 
   for (const auto& [hash, tx] : state.getPendingTxs()) {
     json accountJson;
-    json& txJson = accountJson[tx.getFrom().hex(true)][tx.getNonce().str()];
-    txJson["blockHash"] = json::value_t::null;
-    txJson["blockNumber"] = json::value_t::null;
-    txJson["from"] = tx.getFrom().hex(true);
-    txJson["to"] = tx.getTo().hex(true);
-    txJson["gas"] = Hex::fromBytes(Utils::uintToBytes(tx.getGasLimit()), true).forRPC();
-    txJson["gasPrice"] = Hex::fromBytes(Utils::uintToBytes(tx.getMaxFeePerGas()),true).forRPC();
-    txJson["getMaxFeePerGas"] = Hex::fromBytes(Utils::uintToBytes(tx.getMaxFeePerGas()),true).forRPC();
-    txJson["chainId"] = Hex::fromBytes(Utils::uintToBytes(tx.getChainId()),true).forRPC();
-    txJson["input"] = Hex::fromBytes(tx.getData(), true).forRPC();
-    txJson["nonce"] = Hex::fromBytes(Utils::uintToBytes(tx.getNonce()), true).forRPC();
-    txJson["transactionIndex"] = json::value_t::null;
-    txJson["type"] = "0x2"; // Legacy Transactions ONLY
-    txJson["v"] = Hex::fromBytes(Utils::uintToBytes(tx.getV()), true).forRPC();
-    txJson["r"] = Hex::fromBytes(Utils::uintToBytes(tx.getR()), true).forRPC();
-    txJson["s"] = Hex::fromBytes(Utils::uintToBytes(tx.getS()), true).forRPC();
+    accountJson[tx.getFrom().hex(true)][tx.getNonce().str()] = getEIP1559TransactionJson(tx, nullptr, nullptr, nullptr);
     pending.push_back(std::move(accountJson));
   }
 

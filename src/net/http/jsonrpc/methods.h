@@ -146,7 +146,7 @@ namespace jsonrpc {
    * @param includeTransactions If `true`, includes the block's transactions. If `false`, include only their hashes.
    * @return The block as a JSON object.
    */
-  json getBlockJson(const FinalizedBlock* block, bool includeTransactions);
+  json getBlockJson(const Storage& storage, const FinalizedBlock* block, bool includeTransactions);
 
   /**
    * Helper function for parsing an EVMC message.
