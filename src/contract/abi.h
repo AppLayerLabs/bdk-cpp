@@ -585,6 +585,12 @@ namespace ABI {
       return result;
     }
 
+    // Template overload for empty tuples or no arguments
+    template <typename... Ts>
+    requires (sizeof...(Ts) == 0)
+    Bytes encodeData(const std::tuple<Ts...>& tup) {
+      return {};
+    }
     Bytes encodeError(std::string_view reason);
   }; // namespace Encoder
 
