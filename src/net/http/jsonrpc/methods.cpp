@@ -262,9 +262,9 @@ json eth_feeHistory(const json& request, const Storage& storage) {
   ) ret["baseFeePerGas"].push_back(FIXED_BASE_FEE_PER_GAS);
   uint64_t oldestBlock = blockNumber;
   while (blockCount--) {
-    if (std::shared_ptr<const FinalizedBlock> block = storage.getBlock(blockNumber); block == nullptr) break;
     ret["baseFeePerGas"].push_back(FIXED_BASE_FEE_PER_GAS); // TODO: fill with proper value once available
     ret["gasUsedRatio"].push_back(1.0f); // TODO: calculate as gasUsed / gasLimit
+    if (oldestBlock == 0) break;
     --oldestBlock;
   }
 
