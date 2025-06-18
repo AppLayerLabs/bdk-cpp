@@ -19,15 +19,31 @@ namespace jsonrpc {
 json getEIP1559TransactionJson(const TxBlock& transaction, const Hash* const blockHash, const uint64_t* const blockNumber, const uint64_t* const txIndex) {
   json ret;
   // Signed 1559 Transaction
-  ret["blockHash"] = (blockHash) ? blockHash->hex(true) : json::value_t::null;
-  ret["blockNumber"] = (blockNumber) ? Hex::fromBytes(Utils::uintToBytes(*blockNumber), true).forRPC() : json::value_t::null;
+  if (blockHash) {
+    ret["blockHash"] = blockHash->hex(true);
+  } else {
+    ret["blockHash"] = json::value_t::null;
+  }
+  if (blockNumber) {
+    ret["blockNumber"] = Hex::fromBytes(Utils::uintToBytes(*blockNumber), true).forRPC();
+  } else {
+    ret["blockNumber"] = json::value_t::null;
+  }
   ret["from"] = transaction.getFrom().hex(true);
   ret["hash"] = transaction.hash().hex(true);
-  ret["transactionIndex"] = (txIndex) ? Hex::fromBytes(Utils::uintToBytes(*txIndex), true).forRPC() : json::value_t::null;
+  if (txIndex) {
+    ret["transactionIndex"] = Hex::fromBytes(Utils::uintToBytes(*txIndex), true).forRPC();
+  } else {
+    ret["transactionIndex"] = json::value_t::null;
+  }
   ret["type"] = "0x2"; // Only EIP-1559 transaction types are supported.
   ret["nonce"] = Hex::fromBytes(Utils::uintToBytes(transaction.getNonce()), true).forRPC();
   // If the transaction created a EVM contract, the "to" field is null.
-  ret["to"] = (transaction.getTo()) ? transaction.getTo().hex(true) : json::value_t::null;
+  if (transaction.getTo()) {
+    ret["to"] = transaction.getTo().hex(true);
+  } else {
+    ret["to"] = json::value_t::null; // If the transaction is a contract creation, the "to" field is null.
+  }
   ret["gas"] = Hex::fromBytes(Utils::uintToBytes(transaction.getGasLimit()), true).forRPC();
   ret["value"] = Hex::fromBytes(Utils::uintToBytes(transaction.getValue()), true).forRPC();
   ret["input"] = Hex::fromBytes(transaction.getData(), true);
@@ -434,10 +450,18 @@ json eth_getTransactionReceipt(const json& request, const Storage& storage, cons
     ret["blockHash"] = blockHash.hex(true);
     ret["blockNumber"] = Hex::fromBytes(Utils::uintToBytes(blockHeight), true).forRPC();
     ret["from"] = tx->getFrom().hex(true);
-    ret["to"] = (txAddData.contractAddress) ? json::value_t::null : tx->getTo().hex(true);
+    if (txAddData.contractAddress) {
+      ret["to"] = json::value_t::null; // If the transaction created a contract, the "to" field is null.
+    } else {
+      ret["to"] = tx->getTo().hex(true);
+    }
     ret["cumulativeGasUsed"] = Hex::fromBytes(Utils::uintToBytes(txAddData.gasUsed), true).forRPC(); // TODO: Fix this, cumulativeGasUsed is not the same as gasUsed
     ret["gasUsed"] =  Hex::fromBytes(Utils::uintToBytes(txAddData.gasUsed), true).forRPC();
-    ret["contractAddress"] = (txAddData.contractAddress) ? json(txAddData.contractAddress.hex(true)) : json(json::value_t::null);
+    if (txAddData.contractAddress) {
+      ret["contractAddress"] = txAddData.contractAddress.hex(true);
+    } else {
+      ret["contractAddress"] = json::value_t::null; // If the transaction did not create a contract, the "contractAddress" field is null.
+    }
     ret["logs"] = json::array();
     ret["logsBloom"] = Hash().hex(true); // TODO: Properly generate logsBloom (add to TxAdditionalData like with cumulativeGasUsed) values defined while processing tx/block
     ret["status"] = txAddData.succeeded ? "0x1" : "0x0";
