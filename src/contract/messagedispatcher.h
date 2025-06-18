@@ -68,7 +68,23 @@ public:
       }
     }
 
-    throw DynamicException("Attempt to invoke non-contract or inexistent address");
+    if constexpr (concepts::DelegateCallMessage<decltype(msg)>) {
+      // Delegate calls can never be Packed so we dont need to check for PackedMessage
+      throw DynamicException("Attempt to invoke non-contract or inexistent address from: " + msg.to().hex(true).get() + " to: " + msg.from().hex(true).get() + " calldata: " + Hex::fromBytes(msg.input()).forRPC() + " this was a delegated call with code address: " + msg.codeAddress().hex(true).get());
+    }
+    if constexpr (concepts::HasInputField<decltype(msg)>) {
+      throw DynamicException("Attempt to invoke non-contract or inexistent address from: " + msg.to().hex(true).get() + " to: " + msg.from().hex(true).get() + " calldata: " + Hex::fromBytes(msg.input()).forRPC());
+    }
+    if constexpr (concepts::PackedMessage<decltype(msg)>) {
+      // If it is a packed message, we need to decode the packed arguments
+      if constexpr (std::is_same_v<decltype(msg.args()), std::tuple<>>) {
+        throw DynamicException("Attempt to invoke non-contract or inexistent address from: " + msg.to().hex(true).get() + " to: " + msg.from().hex(true).get() + " apparently no calldata/arguments");
+      } else {
+        Bytes packedArgs = ABI::Encoder::encodeData(msg.args());
+        throw DynamicException("Attempt to invoke non-contract or inexistent address from: " + msg.to().hex(true).get() + " to: " + msg.from().hex(true).get() + " calldata: " + Hex::fromBytes(packedArgs).forRPC());
+      }
+    }
+    throw DynamicException("Attempt to invoke non-contract or inexistent address from: " + msg.to().hex(true).get() + " to: " + msg.from().hex(true).get() + " apparently no calldata/arguments");
   }
 
   decltype(auto) dispatchCppCall(auto&& msg) {
