@@ -46,19 +46,9 @@ int256_t ABI::Decoder::decodeInt(const View<Bytes>& bytes, uint64_t& index) {
 }
 
 Bytes ABI::Encoder::encodeError(std::string_view reason) {
-  FixedBytes<32> reasonEncoded{};
-
-  const size_t count = std::min(reason.size(), reasonEncoded.size());
-  std::copy_n(reason.begin(), count, reasonEncoded.begin());
-
-  const uint256_t size(reason.size());
-  const FixedBytes<32> sizeEncoded(UintConv::uint256ToBytes(size));
-
   return Utils::makeBytes(bytes::join(
-    Hex::toBytes("0x08c379a0"),
-    Hex::toBytes("0x0000000000000000000000000000000000000000000000000000000000000020"),
-    sizeEncoded,
-    reasonEncoded
+    Hex::toBytes("0x08c379a0"), // Function selector for "Error(string)"
+    ABI::Encoder::encodeData(reason)
   ));
 }
 

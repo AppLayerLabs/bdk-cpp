@@ -111,7 +111,8 @@ namespace ABI {
    */
   template<typename T> constexpr bool isDynamic() {
     if constexpr (
-      std::is_same_v<T, Bytes> || std::is_same_v<T, View<Bytes>> || std::is_same_v<T, std::string> || false
+      std::is_same_v<T, Bytes> || std::is_same_v<T, View<Bytes>> ||
+      std::is_same_v<T, std::string> || std::is_same_v<T, std::string_view> || false
     ) return true;
     if constexpr (isVectorV<T>) return true;
     if constexpr(isArrayV<T>) return true;
@@ -470,6 +471,19 @@ namespace ABI {
 
     template <> struct TypeEncoder<std::string> {
       static Bytes encode(const std::string& str) {
+        View<Bytes> bytes = Utils::create_view_span(str);
+        int pad = 0;
+        do { pad += 32; } while (pad < bytes.size());
+        Bytes len = StrConv::padLeftBytes(Utils::uintToBytes(bytes.size()), 32);
+        Bytes data = StrConv::padRightBytes(bytes, pad);
+        len.reserve(len.size() + data.size());
+        len.insert(len.end(), std::make_move_iterator(data.begin()), std::make_move_iterator(data.end()));
+        return len;
+      }
+    };
+
+    template <> struct TypeEncoder<std::string_view> {
+      static Bytes encode(std::string_view str) {
         View<Bytes> bytes = Utils::create_view_span(str);
         int pad = 0;
         do { pad += 32; } while (pad < bytes.size());
