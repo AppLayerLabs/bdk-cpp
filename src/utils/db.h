@@ -123,7 +123,7 @@ class DBBatch {
 };
 
 /**
- * Abstraction of a [Speedb](https://github.com/speedb-io/speedb) database (RocksDB drop-in replacement).
+ * Abstraction of a [RocksDB](https://rocksdb.org/) database.
  * Keys begin with prefixes that separate entries in several categories. @see DBPrefix
  */
 class DB {

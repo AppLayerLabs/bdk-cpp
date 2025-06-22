@@ -98,6 +98,9 @@ set(Protobuf_USE_STATIC_LIBS ON)
 find_package(Boost 1.83.0 REQUIRED COMPONENTS chrono filesystem program_options system thread nowide)
 find_package(OpenSSL 1.1.1 REQUIRED)
 find_package(Protobuf REQUIRED) # TODO: not used yet but will be, keep it for now
+find_package(BZip2 REQUIRED)
+find_package(Snappy REQUIRED)
+find_package(RocksDB REQUIRED)
 find_package(Threads)
 
 # Find system packages (custom)
@@ -110,7 +113,6 @@ find_package(GRPC REQUIRED) # TODO: not used yet but will be, keep it for now
 find_package(Keccak REQUIRED)
 find_package(Scrypt REQUIRED)
 find_package(Secp256k1 REQUIRED)
-find_package(Speedb REQUIRED)
 find_package(SQLiteCpp REQUIRED)
 
 # Add catch2 as a library
@@ -154,15 +156,16 @@ add_library(bdk_lib STATIC
 )
 
 target_include_directories(bdk_lib PRIVATE
-  ${CMAKE_SOURCE_DIR}/include ${OPENSSL_INCLUDE_DIR} ${ETHASH_INCLUDE_DIR} ${KECCAK_INCLUDE_DIR}
-  ${EVMC_INCLUDE_DIR} ${EVMONE_INCLUDE_DIR} ${SPEEDB_INCLUDE_DIR} ${SECP256K1_INCLUDE_DIR}
+  ${CMAKE_SOURCE_DIR}/include ${OPENSSL_INCLUDE_DIR} ${ETHASH_INCLUDE_DIR}
+  ${KECCAK_INCLUDE_DIR} ${EVMC_INCLUDE_DIR} ${EVMONE_INCLUDE_DIR}
+  ${BZIP2_INCLUDE_DIRS} ${SNAPPY_INCLUDE_DIR} ${ROCKSDB_INCLUDE_DIR} ${SECP256K1_INCLUDE_DIR}
 )
 
 target_link_libraries(bdk_lib PRIVATE
   ${EVMC_INSTRUCTIONS_LIBRARY} ${EVMC_LOADER_LIBRARY} ${EVMONE_LIBRARY}
   ${CRYPTOPP_LIBRARIES} ${SCRYPT_LIBRARY} ${SECP256K1_LIBRARY}
-  ${ETHASH_LIBRARY} ${KECCAK_LIBRARY} ${SPEEDB_LIBRARY}
-  ${Boost_LIBRARIES} ${OPENSSL_LIBRARIES} -l:liblz4.a SQLiteCpp
+  ${ETHASH_LIBRARY} ${KECCAK_LIBRARY} ${BZIP2_LIBRARIES} ${SNAPPY_LIBRARY}
+  ${ROCKSDB_LIBRARY} ${Boost_LIBRARIES} ${OPENSSL_LIBRARIES} -l:liblz4.a SQLiteCpp
 )
 
 add_subdirectory(src/bins)

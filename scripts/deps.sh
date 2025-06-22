@@ -48,7 +48,6 @@ check_libs() {
 # Versions for external dependencies - update numbers here if required
 ETHASH_VERSION="1.1.0"
 EVMONE_VERSION="0.15.0"
-SPEEDB_VERSION="2.8.0"
 SQLITECPP_VERSION="3.3.2"
 
 # ===========================================================================
@@ -82,7 +81,8 @@ HAS_CLANGTIDY=$(check_exec clang-tidy)
 
 # Check internal libraries
 # Necessary: libboost-all-dev, openssl/libssl-dev, libzstd-dev, liblz4-dev, libcrypto++-dev,
-#            libscrypt-dev, libgrpc-dev, libgrpc++-dev, libc-ares-dev, libsecp256k1-dev
+#            libscrypt-dev, libgrpc-dev, libgrpc++-dev, libc-ares-dev, libsecp256k1-dev,
+#            libbz2.a, libsnappy.a, librocksdb-dev
 HAS_BOOST=$(check_libs "libboost_*.a")
 HAS_LIBSSL=$(check_lib "libssl.a")
 HAS_ZSTD=$(check_lib "libzstd.a")
@@ -94,15 +94,17 @@ if [ -z "$HAS_LIBCARES" ]; then HAS_LIBCARES=$(check_lib "libcares.a"); fi # Deb
 HAS_LIBGRPC=$(check_lib "libgrpc.a")
 HAS_LIBGRPCPP=$(check_lib "libgrpc++.a")
 HAS_SECP256K1=$(check_lib "libsecp256k1.a")
+HAS_LIBBZ2=$(check_lib "libbz2.a")
+HAS_SNAPPY=$(check_lib "libsnappy.a")
+HAS_ROCKSDB=$(check_lib "librocksdb.a")
 
 # Check external libraries
-# Necessary: ethash (+ keccak), evmone (+ evmc), speedb
+# Necessary: ethash (+ keccak), evmone (+ evmc)
 HAS_ETHASH=$(check_lib "libethash.a")
 HAS_KECCAK=$(check_lib "libkeccak.a")
 HAS_EVMC_INSTRUCTIONS=$(check_lib "libevmc-instructions.a")
 HAS_EVMC_LOADER=$(check_lib "libevmc-loader.a")
 HAS_EVMONE=$(check_lib "libevmone.a")
-HAS_SPEEDB=$(check_lib "libspeedb.a")
 HAS_SQLITECPP=$(check_lib "libSQLiteCpp.a")
 
 if [ "${1:-}" == "--check" ]; then
@@ -138,6 +140,9 @@ if [ "${1:-}" == "--check" ]; then
   echo -n "libgrpc: " && [ -n "$HAS_LIBGRPC" ] && echo "$HAS_LIBGRPC" || echo "not found"
   echo -n "libgrpc++: " && [ -n "$HAS_LIBGRPCPP" ] && echo "$HAS_LIBGRPCPP" || echo "not found"
   echo -n "libsecp256k1: " && [ -n "$HAS_SECP256K1" ] && echo "$HAS_SECP256K1" || echo "not found"
+  echo -n "libbz2: " && [ -n "$HAS_LIBBZ2" ] && echo "$HAS_LIBBZ2" || echo "not found"
+  echo -n "libsnappy: " && [ -n "$HAS_SNAPPY" ] && echo "$HAS_SNAPPY" || echo "not found"
+  echo -n "librocksdb: " && [ -n "$HAS_ROCKSDB" ] && echo "$HAS_ROCKSDB" || echo "not found"
 
   echo "-- External libraries:"
   echo -n "libethash: " && [ -n "$HAS_ETHASH" ] && echo "$HAS_ETHASH" || echo "not found"
@@ -145,7 +150,6 @@ if [ "${1:-}" == "--check" ]; then
   echo -n "libevmc-instructions: " && [ -n "$HAS_EVMC_INSTRUCTIONS" ] && echo "$HAS_EVMC_INSTRUCTIONS" || echo "not found"
   echo -n "libevmc-loader: " && [ -n "$HAS_EVMC_LOADER" ] && echo "$HAS_EVMC_LOADER" || echo "not found"
   echo -n "libevmone: " && [ -n "$HAS_EVMONE" ] && echo "$HAS_EVMONE" || echo "not found"
-  echo -n "libspeedb: " && [ -n "$HAS_SPEEDB" ] && echo "$HAS_SPEEDB" || echo "not found"
   echo -n "libSQLiteCpp: " && [ -n "$HAS_SQLITECPP" ] && echo "$HAS_SQLITECPP" || echo "not found"
 elif [ "${1:-}" == "--install" ]; then
   # Anti-anti-sudo prevention
@@ -183,6 +187,9 @@ elif [ "${1:-}" == "--install" ]; then
     if [ -z "$HAS_LIBGRPC" ]; then PKGS+="libgrpc-dev "; fi
     if [ -z "$HAS_LIBGRPCPP" ]; then PKGS+="libgrpc++-dev "; fi
     if [ -z "$HAS_SECP256K1" ]; then PKGS+="libsecp256k1-dev "; fi
+    if [ -z "$HAS_LIBBZ2" ]; then PKGS+="libbz2-dev "; fi
+    if [ -z "$HAS_SNAPPY" ]; then PKGS+="libsnappy-dev "; fi
+    if [ -z "$HAS_ROCKSDB" ]; then PKGS+="librocksdb-dev "; fi
     if [ -n "$PKGS" ]; then
       echo "-- Installing internal dependencies..."
       apt-get install -y $PKGS
@@ -218,16 +225,6 @@ elif [ "${1:-}" == "--install" ]; then
     ./bin/evmc-vmtester /usr/local/src/evmone/build/lib/libevmone.so && ./bin/evmone-unittests
     cmake --install .
   fi
-  if [ -z "$HAS_SPEEDB" ]; then
-    echo "-- Installing speedb..."
-    cd /usr/local/src && git clone --depth 1 --branch "speedb/v${SPEEDB_VERSION}" https://github.com/speedb-io/speedb
-    cd speedb && mkdir build && cd build
-    cmake -DCMAKE_INSTALL_PREFIX="/usr/local" -DCMAKE_BUILD_TYPE=Release \
-      -DROCKSDB_BUILD_SHARED=OFF -DFAIL_ON_WARNINGS=OFF -DWITH_GFLAGS=OFF -DWITH_RUNTIME_DEBUG=OFF \
-      -DWITH_BENCHMARK_TOOLS=OFF -DWITH_CORE_TOOLS=OFF -DWITH_TOOLS=OFF -DWITH_TRACE_TOOLS=OFF \
-      -DWITH_LZ4=ON ..
-    cmake --build . -- -j$(nproc) && cmake --install .
-  fi
   if [ -z "$HAS_SQLITECPP" ]; then
     echo "-- Installing SQLiteCpp..."
     cd /usr/local/src && git clone --depth 1 --branch "${SQLITECPP_VERSION}" https://github.com/SRombauts/SQLiteCpp
@@ -262,12 +259,6 @@ elif [ "${1:-}" == "--cleanext" ]; then
     rm "/usr/local/lib/libevmc-loader.a"
     rm "/usr/local/lib/libevmone.a"
     rm "/usr/local/lib/libevmone-standalone.a"
-  fi
-  if [ -n "$HAS_SPEEDB" ]; then
-    echo "-- Uninstalling speedb..."
-    rm -rf "/usr/local/src/speedb"
-    rm -rf "/usr/local/include/rocksdb"
-    rm "/usr/local/lib/libspeedb.a"
   fi
   if [ -n "$HAS_SQLITECPP" ]; then
     echo "-- Uninstalling SQLiteCpp..."

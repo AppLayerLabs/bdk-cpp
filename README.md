@@ -48,7 +48,7 @@ You will need the following dependencies installed locally on your system:
 
 * *Toolchain binaries*:
   * **git**
-  * **GCC** with support for **C++23** or higher
+  * **GCC 14.1** (with support for **C++23**) or higher
   * **Make**
   * **CMake 3.19.0** or higher
   * **Protobuf** (protoc + grpc_cpp_plugin)
@@ -68,7 +68,7 @@ You will need the following dependencies installed locally on your system:
   * **secp256k1**
   * **ethash** + **keccak**
   * **EVMOne** + **EVMC**
-  * **Speedb**
+  * **RocksDB** + **libbz2** + **Snappy**
 
 The versions of those dependencies should suffice out-of-the-box for at least the following distros (or greater, including their derivatives):
 
