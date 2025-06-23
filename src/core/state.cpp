@@ -496,8 +496,9 @@ Bytes State::ethCall(EncodedStaticCallMessage& msg) {
     return {};
   }
   const auto& acc = accIt->second;
-  if (acc->isContract()) {
-    ExecutionContext context = ExecutionContext::Builder{}
+  try {
+    if (acc->isContract()) {
+      ExecutionContext context = ExecutionContext::Builder{}
       .storage(this->vmStorage_)
       .accounts(this->accounts_)
       .contracts(this->contracts_)
@@ -513,18 +514,23 @@ Bytes State::ethCall(EncodedStaticCallMessage& msg) {
       .chainId(this->options_.getChainID())
       .build();
 
-    // As we are simulating, the randomSeed can be anything
-    const Hash randomSeed = bytes::random();
+      // As we are simulating, the randomSeed can be anything
+      const Hash randomSeed = bytes::random();
 
-    return ContractHost(
-      this->vm_,
-      this->dumpManager_,
-      this->storage_,
-      randomSeed,
-      context
-    ).execute(msg);
-  } else {
-    return {};
+      return ContractHost(
+        this->vm_,
+        this->dumpManager_,
+        this->storage_,
+        randomSeed,
+        context
+      ).execute(msg);
+    } else {
+      return {};
+    }
+  } catch (VMExecutionError& e) {
+    throw;
+  } catch (std::exception& e) {
+    throw VMExecutionError(-32603, std::string("Internal error: ") + e.what(), "0x");
   }
 }
 
@@ -554,8 +560,10 @@ int64_t State::estimateGas(EncodedMessageVariant msg) {
       host.simulate(std::forward<decltype(msg)>(msg));
       return int64_t((initialGas - int64_t(gas)) * 1.15);
     }, std::move(msg));
+  } catch (VMExecutionError& e) {
+    throw;
   } catch (std::exception& e) {
-    throw jsonrpc::ExecutionError(-32603, std::string("Internal error: ") + e.what(), Hex::fromBytes(ABI::Encoder::encodeError(e.what()),true));
+    throw VMExecutionError(-32603, std::string("Internal error: ") + e.what(), "0x");
   }
 }
 

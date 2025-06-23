@@ -64,32 +64,6 @@ public:
   }
 };
 
-class ExecutionError : public std::exception {
-private:
-  int code_;  ///< The error code.
-  std::string message_; ///< The error message.
-  std::string data_; ///< The error data.
-
-public:
-  /// @brief error constructor
-  /// @param code the error code
-  /// @param message the error message
-  ExecutionError(int code, std::string message, std::string data) : code_(code), message_(std::move(message)), data_(std::move(data)) {}
-
-  /// @brief returns the error code
-  /// @return the error code
-  int code() const noexcept { return code_; }
-
-  /// @brief returns the error message
-  /// @return the error message
-  std::string_view message() const noexcept { return message_; }
-
-  /// @brief returns the error data
-  /// @return the error data
-  std::string_view data() const noexcept { return data_; }
-
-};
-
 } // namespace jsonrpc
 
 #endif // JSONRPC_ERROR_H
