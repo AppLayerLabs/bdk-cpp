@@ -53,16 +53,16 @@ Bytes ABI::Encoder::encodeError(std::string_view reason) {
 }
 
 std::string ABI::Decoder::decodeError(View<Bytes> data) {
-  static constexpr size_t MAX_STR_SIZE = 32;
-
-    if (data.size() != 100) {
-    throw DynamicException("Encoded revert reason is expected to have exactly 100 bytes");
+  Utils::safePrint("decodeError with: " + Hex::fromBytes(data).get());
+  // Make sure that the data is long enough to contain the error signature and the string length
+  if (data.size() < 4) {
+    return "";
   }
-
-  const size_t size = std::min(size_t(UintConv::bytesToUint256(data.subspan(36, 32))), MAX_STR_SIZE);
-
-  std::string res;
-  res.reserve(size);
-  std::ranges::copy(data.subspan(68, size), std::back_inserter(res));
-  return res;
+  // Make sure that the function selector matches the "Error(string)" signature
+  Functor functor {.value = UintConv::bytesToUint32(data.subspan(0, 4)) };
+  if (functor.value != 147028384) {
+    Utils::safePrint("decodeError functor: " + functor.hex().get() + " expected: " + Functor(147028384).hex().get());
+    return "";
+  }
+  return std::get<0>(ABI::Decoder::decodeData<std::string>(data.subspan(4), 0));
 }

@@ -216,6 +216,33 @@ template<typename T, bool Index> struct EventParam {
   EventParam(const T& value) : value(value) {}  ///< Constructor.
 };
 
+// EVM execution error class
+class VMExecutionError : public std::exception {
+private:
+  int code_;  ///< The error code.
+  std::string message_; ///< The error message (human readable with entire stack trace).
+  std::string data_; ///< The error data (hex string of the data that caused the error).
+
+public:
+  /// @brief error constructor
+  /// @param code the error code
+  /// @param message the error message
+  VMExecutionError(int code, std::string message, std::string data) : code_(code), message_(std::move(message)), data_(std::move(data)) {}
+
+  /// @brief returns the error code
+  /// @return the error code
+  int code() const noexcept { return code_; }
+
+  /// @brief returns the error message
+  /// @return the error message
+  std::string_view message() const noexcept { return message_; }
+
+  /// @brief returns the error data
+  /// @return the error data
+  std::string_view data() const noexcept { return data_; }
+
+};
+
 /// Namespace for utility functions.
 namespace Utils {
 

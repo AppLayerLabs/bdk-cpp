@@ -78,6 +78,9 @@ class ContractHost {
         mustRevert_ = false;
         msg.gas().use(CONTRACT_EXECUTION_COST);
         return dispatchMessage(std::forward<decltype(msg)>(msg));
+      } catch (VMExecutionError& e){
+        mustRevert_ = true;
+        throw;
       } catch (const std::exception& err) {
         mustRevert_ = true;
         throw;

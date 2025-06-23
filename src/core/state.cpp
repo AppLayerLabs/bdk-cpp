@@ -505,8 +505,9 @@ Bytes State::ethCall(EncodedStaticCallMessage& msg) {
     return {};
   }
   const auto& acc = accIt->second;
-  if (acc->isContract()) {
-    ExecutionContext context = ExecutionContext::Builder{}
+  try {
+    if (acc->isContract()) {
+      ExecutionContext context = ExecutionContext::Builder{}
       .storage(this->vmStorage_)
       .accounts(this->accounts_)
       .contracts(this->contracts_)
@@ -521,17 +522,22 @@ Bytes State::ethCall(EncodedStaticCallMessage& msg) {
       .txGasPrice(0)
       .chainId(blockchain_.opt().getChainID())
       .build();
-    // As we are simulating, the randomSeed can be anything
-    const Hash randomSeed = bytes::random();
+      // As we are simulating, the randomSeed can be anything
+      const Hash randomSeed = bytes::random();
 
-    return ContractHost(
-      this->vm_,
-      this->blockchain_.storage(),
-      randomSeed,
-      context
-    ).execute(msg);
-  } else {
-    return {};
+      return ContractHost(
+        this->vm_,
+        this->blockchain_.storage(),
+        randomSeed,
+        context
+      ).execute(msg);
+    } else {
+      return {};
+    }
+  } catch (VMExecutionError& e) {
+    throw;
+  } catch (std::exception& e) {
+    throw VMExecutionError(-32603, std::string("Internal error: ") + e.what(), "0x");
   }
 }
 

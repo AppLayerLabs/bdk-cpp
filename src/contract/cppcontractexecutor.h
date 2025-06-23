@@ -1,6 +1,8 @@
 #ifndef BDK_MESSAGES_CPPCONTRACTEXECUTOR_H
 #define BDK_MESSAGES_CPPCONTRACTEXECUTOR_H
 
+#include <boost/any/fwd.hpp>
+
 #include "executioncontext.h"
 #include "traits.h"
 #include "bytes/cast.h"
@@ -91,12 +93,26 @@ private:
 
     contract.caller_ = caller;
     contract.value_ = value;
-
-    // if constexpr (concepts::StaticCallMessage<decltype(msg)>) {
-    //  return contract.ethCallView(evmcMsg, &host_);
-    //} else {
+    try {
       return contract.evmEthCall(evmcMsg, &host_);
-    // }
+    } catch (VMExecutionError &e) {
+      // Just rethrow the error, it will be handled by the caller
+      throw;
+    } catch (std::exception &e) {
+      std::string errorMessage = std::string("C++ Contract execution failed with reason \"") + e.what() + "\"" +
+        " with from: " + Address(msg.from()).hex(true).get();
+      if constexpr(concepts::HasToField<decltype(msg)>) {
+        errorMessage += " with to: " + Address(msg.to()).hex(true).get();
+      }
+      if constexpr(concepts::HasInputField<decltype(msg)>) {
+        errorMessage += " and input: " + Hex::fromBytes(View<Bytes>(msg.input()), true).get();
+      }
+      throw VMExecutionError({
+        -32000,
+        errorMessage,
+        (e.what() ? Hex::fromBytes(ABI::Encoder::encodeError(e.what()), true).get() : std::string("0x"))
+      });
+    }
   }
 
   Address createContract(concepts::CreateMessage auto&& msg) {
@@ -150,8 +166,26 @@ private:
     auto account = context_.getAccount(msg.from());
     const Address contractAddress = generateContractAddress(account.getNonce(), msg.from());
 
-    auto returnBytes = contract.evmEthCall(evmcMsg, &host_);
-
+    try {
+      auto returnBytes = contract.evmEthCall(evmcMsg, &host_);
+    } catch (VMExecutionError &e) {
+      // Just rethrow the error, it will be handled by the caller
+      throw;
+    } catch (std::exception &e) {
+      std::string errorMessage = std::string("C++ Contract execution failed with reason \"") + e.what() + "\"" +
+        " with from: " + Address(msg.from()).hex(true).get();
+      if constexpr(concepts::HasToField<decltype(msg)>) {
+        errorMessage += " with to: " + Address(msg.to()).hex(true).get();
+      }
+      if constexpr(concepts::HasInputField<decltype(msg)>) {
+        errorMessage += " and input: " + Hex::fromBytes(View<Bytes>(msg.input())).get();
+      }
+      throw VMExecutionError({
+        -32000,
+        errorMessage,
+        (e.what() ? Hex::fromBytes(ABI::Encoder::encodeError(e.what())).get() : std::string("0x"))
+      });
+    }
     if (account.getContractType() != ContractType::NOT_A_CONTRACT) {
       account.setNonce(account.getNonce() + 1);
     }

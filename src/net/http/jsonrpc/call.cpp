@@ -11,6 +11,8 @@ See the LICENSE.txt file in the project root for more information.
 #include <string>
 #include <functional>
 #include "../utils/logger.h"
+#include "../utils/utils.h"
+
 
 namespace jsonrpc {
 void checkJsonRPCSpec(const json& request) {
@@ -97,7 +99,11 @@ json call(const json& request, NodeRPCInterface& rpc) noexcept {
     result = it->second(rpc, request);
 
     ret["result"] = std::move(result);
-
+  } catch (const VMExecutionError& err) {
+    ret["error"]["code"] = err.code();
+    ret["error"]["message"] = err.message();
+    ret["error"]["data"] = err.data();
+    ret["error"]["name"] = "CallError";
   } catch (const Error& err) {
     ret["error"]["code"] = err.code();
     ret["error"]["message"] = err.message();

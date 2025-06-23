@@ -179,12 +179,7 @@ class DynamicContract : public BaseContract {
           return Bytes();
         } else {
           return std::apply([instance, memFunc](auto&&... args) -> Bytes {
-            if constexpr (std::is_same_v<R, void>) {
-              (instance->*memFunc)(std::forward<decltype(args)>(args)...);
-              return Bytes();
-            } else {
               return ABI::Encoder::encodeData((instance->*memFunc)(std::forward<decltype(args)>(args)...));
-            }
           }, decodedData);
         }
       };

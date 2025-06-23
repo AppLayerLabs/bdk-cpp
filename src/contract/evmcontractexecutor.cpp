@@ -98,20 +98,27 @@ static Bytes executeEvmcMessage(evmc_vm* vm, const evmc_host_interface* host, ev
   } else if (result.status_code == EVMC_OUT_OF_GAS) {
     throw OutOfGas();
   } else {
-    std::string reason = "";
-
     if (result.output_size > 0) {
-      reason = ABI::Decoder::decodeError(View<Bytes>(result.output_data, result.output_size));
-      throw DynamicException("EVM Contract execution failed with reason: " + reason
-        + " with from: " + Address(msg.sender).hex(true).get() + " to: " + Address(msg.recipient).hex(true).get()
-        + " code address: " + Address(msg.code_address).hex(true).get()
-        + " and input: " + Hex::fromBytes(View<Bytes>(msg.input_data, msg.input_size)).forRPC());
+      auto reason = ABI::Decoder::decodeError(View<Bytes>(result.output_data, result.output_size));
+      throw VMExecutionError({
+       -32000,
+        "EVM Contract execution failed with reason \"" + reason + "\" with from: "
+          + Address(msg.sender).hex(true).get()
+          + " to: " + Address(msg.recipient).hex(true).get()
+          + " code address: " + Address(msg.code_address).hex(true).get()
+          + " and input: " + Hex::fromBytes(View<Bytes>(msg.input_data, msg.input_size)).get(),
+        Hex::fromBytes(View<Bytes>(result.output_data, result.output_size), true).get()
+      });
     }
 
-    throw DynamicException("EVM Contract execution failed with no specified reason with from: "
-      + Address(msg.sender).hex(true).get() + " to: " + Address(msg.recipient).hex(true).get()
-      + " code address: " + Address(msg.code_address).hex(true).get()
-      + " and input: " + Hex::fromBytes(View<Bytes>(msg.input_data, msg.input_size)).forRPC());
+    throw VMExecutionError({
+      -32000,
+      "EVM Contract execution failed with from: "
+        + Address(msg.sender).hex(true).get()
+        + " to: " + Address(msg.recipient).hex(true).get()
+        + " code address: " + Address(msg.code_address).hex(true).get(),
+      "0x"
+    });
   }
 }
 
