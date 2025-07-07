@@ -244,6 +244,12 @@ public:
   /// @return the error data
   std::string_view data() const noexcept { return data_; }
 
+  /// @brief override the what() method to return the error message
+  /// @return the error message
+  const char* what() const noexcept override {
+    return message_.c_str();
+  }
+
 };
 
 /// Namespace for utility functions.

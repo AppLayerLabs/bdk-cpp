@@ -536,24 +536,57 @@ Bytes State::ethCall(EncodedStaticCallMessage& msg) {
 
 int64_t State::estimateGas(EncodedMessageVariant msg) {
   std::unique_lock lock(this->stateMutex_);
-
+  auto latestBlock = this->storage_.latest();
   try {
-    ExecutionContext context = ExecutionContext::Builder{}
-    .storage(this->vmStorage_)
-    .accounts(this->accounts_)
-    .contracts(this->contracts_)
-    .build();
+    std::unique_ptr<ExecutionContext> context;
+    const EncodedCallMessage* callMessage = std::get_if<EncodedCallMessage>(&msg);
+    const EncodedCreateMessage* createMessage = nullptr;
+    if (callMessage) {
+      context = ExecutionContext::Builder{}
+        .storage(this->vmStorage_)
+        .accounts(this->accounts_)
+        .contracts(this->contracts_)
+        .blockHash(latestBlock->getHash())
+        .txHash(Hash())
+        .txOrigin(callMessage->from())
+        .blockCoinbase(Secp256k1::toAddress(latestBlock->getValidatorPubKey()))
+        .txIndex(0)
+        .blockNumber(latestBlock->getNHeight())
+        .blockTimestamp(latestBlock->getTimestamp())
+        .blockGasLimit(10'000'000)
+        .txGasPrice(0)
+        .chainId(this->options_.getChainID())
+        .buildPtr();
+    } else {
+      createMessage = std::get_if<EncodedCreateMessage>(&msg);
+      if (createMessage == nullptr) {
+        throw DynamicException("Invalid message type for gas estimation");
+      }
+      context = ExecutionContext::Builder{}
+        .storage(this->vmStorage_)
+        .accounts(this->accounts_)
+        .contracts(this->contracts_)
+        .blockHash(latestBlock->getHash())
+        .txHash(Hash())
+        .txOrigin(createMessage->from())
+        .blockCoinbase(Secp256k1::toAddress(latestBlock->getValidatorPubKey()))
+        .txIndex(0)
+        .blockNumber(latestBlock->getNHeight())
+        .blockTimestamp(latestBlock->getTimestamp())
+        .blockGasLimit(10'000'000)
+        .txGasPrice(0)
+        .chainId(this->options_.getChainID())
+        .buildPtr();
+    }
 
     const Hash randomSeed = bytes::random();
-
     ContractHost host(
       this->vm_,
       this->dumpManager_,
       this->storage_,
       randomSeed,
-      context
+      *context
     );
-
     return std::visit([&host] (auto&& msg) {
       const Gas& gas = msg.gas();
       const int64_t initialGas(gas);
