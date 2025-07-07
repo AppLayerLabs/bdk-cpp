@@ -153,17 +153,13 @@ The deployed chain will have the following information by default:
 
 Nodes are all deployed on the same machine, under the following ports and tmux sessions:
 
-| Session Name             | Node Type | P2P Port | HTTP Port | Validator Key                                                      |
-|--------------------------|-----------|----------|-----------|--------------------------------------------------------------------|
-| local_testnet_discovery  | Discovery | 8080     | 8090      | XXXX                                                               |
-| local_testnet_validator1 | Validator | 8081     | 8090      | 0xba5e6e9dd9cbd263969b94ee385d885c2d303dfc181db2a09f6bf19a7ba26759 |
-| local_testnet_validator2 | Validator | 8082     | 8091      | 0xfd84d99aa18b474bf383e10925d82194f1b0ca268e7a339032679d6e3a201ad4 |
-| local_testnet_validator3 | Validator | 8083     | 8092      | 0x66ce71abe0b8acd92cfd3965d6f9d80122aed9b0e9bdd3dbe018230bafde5751 |
-| local_testnet_validator4 | Validator | 8084     | 8093      | 0x856aeb3b9c20a80d1520a2406875f405d336e09475f43c478eb4f0dafb765fe7 |
-| local_testnet_validator5 | Validator | 8085     | 8094      | 0x81f288dd776f4edfe256d34af1f7d719f511559f19115af3e3d692e741faadc6 |
-| local_testnet_normal1    | Normal    | 8086     | 8095      | XXXX                                                               |
-| local_testnet_normal2    | Normal    | 8087     | 8096      | XXXX                                                               |
-| local_testnet_normal3    | Normal    | 8088     | 8097      | XXXX                                                               |
-| local_testnet_normal4    | Normal    | 8089     | 8098      | XXXX                                                               |
-| local_testnet_normal5    | Normal    | 8110     | 8099      | XXXX                                                               |
-| local_testnet_normal6    | Normal    | 8111     | 8100      | XXXX                                                               |
+| Session Name             | Node Type | P2P Port | HTTP Port | Validator Key                                                                                                                                                                                                                                                                    |
+|--------------------------|-----------|----------|-----------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| local_testnet_discovery  | Discovery | 8080     | 8090      | XXXX                                                                                                                                                                                                                                                                             |
+| local_testnet_validator1 | Validator | 8081     | 8090      | 0xba5e6e9dd9cbd263969b94ee385d885c2d303dfc181db2a09f6bf19a7ba26759, 0xfd84d99aa18b474bf383e10925d82194f1b0ca268e7a339032679d6e3a201ad4, 0xfd84d99aa18b474bf383e10925d82194f1b0ca268e7a339032679d6e3a201ad4, 0x856aeb3b9c20a80d1520a2406875f405d336e09475f43c478eb4f0dafb765fe7, 0x81f288dd776f4edfe256d34af1f7d719f511559f19115af3e3d692e741faadc6 |
+| local_testnet_normal1    | Normal    | 8086     | 8095      | XXXX                                                                                                                                                                                                                                                                             |
+| local_testnet_normal2    | Normal    | 8087     | 8096      | XXXX                                                                                                                                                                                                                                                                             |
+| local_testnet_normal3    | Normal    | 8088     | 8097      | XXXX                                                                                                                                                                                                                                                                             |
+| local_testnet_normal4    | Normal    | 8089     | 8098      | XXXX                                                                                                                                                                                                                                                                             |
+| local_testnet_normal5    | Normal    | 8110     | 8099      | XXXX                                                                                                                                                                                                                                                                             |
+| local_testnet_normal6    | Normal    | 8111     | 8100      | XXXX                                                                                                                                                                                                                                                                             |
