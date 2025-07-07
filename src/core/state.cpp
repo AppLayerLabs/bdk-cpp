@@ -543,28 +543,68 @@ Bytes State::ethCall(EncodedStaticCallMessage& msg) {
 
 int64_t State::estimateGas(EncodedMessageVariant msg) {
   std::unique_lock lock(this->stateMutex_);
+  auto latestBlock = this->blockchain_.latest();
+  try {
+    std::unique_ptr<ExecutionContext> context;
+    const EncodedCallMessage* callMessage = std::get_if<EncodedCallMessage>(&msg);
+    const EncodedCreateMessage* createMessage = nullptr;
+    if (callMessage) {
+      context = ExecutionContext::Builder{}
+        .storage(this->vmStorage_)
+        .accounts(this->accounts_)
+        .contracts(this->contracts_)
+        .blockHash(latestBlock->getHash())
+        .txHash(Hash())
+        .txOrigin(callMessage->from())
+        .blockCoinbase(latestBlock->getProposerAddr())
+        .txIndex(0)
+        .blockNumber(latestBlock->getNHeight())
+        .blockTimestamp(latestBlock->getTimestamp())
+        .blockGasLimit(10'000'000)
+        .txGasPrice(0)
+        .chainId(blockchain_.opt().getChainID())
+        .buildPtr();
+    } else {
+      createMessage = std::get_if<EncodedCreateMessage>(&msg);
+      if (createMessage == nullptr) {
+        throw DynamicException("Invalid message type for gas estimation");
+      }
+      context = ExecutionContext::Builder{}
+        .storage(this->vmStorage_)
+        .accounts(this->accounts_)
+        .contracts(this->contracts_)
+        .blockHash(latestBlock->getHash())
+        .txHash(Hash())
+        .txOrigin(createMessage->from())
+        .blockCoinbase(latestBlock->getProposerAddr())
+        .txIndex(0)
+        .blockNumber(latestBlock->getNHeight())
+        .blockTimestamp(latestBlock->getTimestamp())
+        .blockGasLimit(10'000'000)
+        .txGasPrice(0)
+        .chainId(blockchain_.opt().getChainID())
+        .buildPtr();
+    }
 
-  ExecutionContext context = ExecutionContext::Builder{}
-    .storage(this->vmStorage_)
-    .accounts(this->accounts_)
-    .contracts(this->contracts_)
-    .build();
+    const Hash randomSeed = bytes::random();
+    ContractHost host(
+      this->vm_,
+      this->blockchain_.storage(),
+      randomSeed,
+      *context
+    );
 
-  const Hash randomSeed = bytes::random();
-
-  ContractHost host(
-    this->vm_,
-    blockchain_.storage(),
-    randomSeed,
-    context
-  );
-
-  return std::visit([&host] (auto&& msg) {
-    const Gas& gas = msg.gas();
-    const int64_t initialGas(gas);
-    host.simulate(std::forward<decltype(msg)>(msg));
-    return int64_t((initialGas - int64_t(gas)) * 1.15);
-  }, std::move(msg));
+    return std::visit([&host] (auto&& msg) {
+      const Gas& gas = msg.gas();
+      const int64_t initialGas(gas);
+      host.simulate(std::forward<decltype(msg)>(msg));
+      return int64_t((initialGas - int64_t(gas)) * 1.15);
+    }, std::move(msg));
+  } catch (VMExecutionError& e) {
+    throw;
+  } catch (std::exception& e) {
+    throw VMExecutionError(-32603, std::string("Internal error: ") + e.what(), "0x");
+  }
 }
 
 std::vector<std::pair<std::string, Address>> State::getCppContracts() const {

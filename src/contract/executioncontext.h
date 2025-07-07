@@ -204,6 +204,12 @@ public:
       blockCoinbase_, txOrigin_, blockHash_, txHash_, chainId_, txGasPrice_);
   }
 
+  std::unique_ptr<ExecutionContext> buildPtr() {
+    return std::make_unique<ExecutionContext>(
+      *accounts_, *storage_, *contracts_, blockGasLimit_, blockNumber_, blockTimestamp_, txIndex_,
+      blockCoinbase_, txOrigin_, blockHash_, txHash_, chainId_, txGasPrice_);
+  }
+
 private:
   ExecutionContext::Accounts* accounts_;
   ExecutionContext::Storage* storage_;

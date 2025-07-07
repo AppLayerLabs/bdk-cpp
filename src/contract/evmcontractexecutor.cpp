@@ -302,7 +302,6 @@ void EvmContractExecutor::emit_log(const evmc::address& addr, const uint8_t* dat
   if (indexingMode_ != IndexingMode::RPC_TRACE) {
     return;
   }
-
   try {
     // We need the following arguments to build a event:
     // (std::string) name The event's name.
@@ -362,12 +361,9 @@ evmc::Result EvmContractExecutor::call(const evmc_message& msg) noexcept {
       return evmc::Result(EVMC_OUT_OF_GAS);
     } catch (const std::exception& err) {
       Bytes output;
-
-
       if (err.what() != nullptr) {
         output = ABI::Encoder::encodeError(err.what()); // TODO: this may throw...
       }
-
       return evmc::Result(EVMC_REVERT, int64_t(gas), 0, output.data(), output.size());
     }
   };
