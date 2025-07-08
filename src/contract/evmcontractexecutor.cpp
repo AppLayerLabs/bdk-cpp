@@ -105,13 +105,15 @@ Bytes EvmContractExecutor::executeEvmcMessage(evmc_vm* vm, const evmc_host_inter
         auto reason = ABI::Decoder::decodeError(View<Bytes>(result.output_data, result.output_size));
         this->deepestError_ = std::make_unique<VMExecutionError>(
          -32000,
-          "EVM Contract execution failed with reason \"" + reason + "\" with the deepest "
-            + ((msg.recipient.bytes != msg.code_address.bytes) ? " DELEGATED CALL " : " CALL ")
+          "EVM Contract execution failed with "
+            + ((!reason.empty()) ? "\"" + reason + "\" " : "unknown reason ")
+            + "with the deepest "
+            + ((msg.recipient.bytes != msg.code_address.bytes) ? "DELEGATED CALL " : "CALL ")
             + "fail from: "
             + Address(msg.sender).hex(true).get()
             + " to: " + Address(msg.recipient).hex(true).get()
             + " code address: " + Address(msg.code_address).hex(true).get()
-            + " and input: " + Hex::fromBytes(View<Bytes>(msg.input_data, msg.input_size)).get(),
+            + " and input: " + Hex::fromBytes(View<Bytes>(msg.input_data, msg.input_size), true).get(),
             Bytes(result.output_data, result.output_data + result.output_size)
         );
         throw *this->deepestError_;
@@ -120,7 +122,9 @@ Bytes EvmContractExecutor::executeEvmcMessage(evmc_vm* vm, const evmc_host_inter
 
     this->deepestError_ = std::make_unique<VMExecutionError>(
       -32000,
-      "EVM Contract execution failed with from: "
+      std::string("EVM Contract execution failed with no specified reason with the deepest ")
+        + ((msg.recipient.bytes != msg.code_address.bytes) ? "DELEGATED CALL " : "CALL ")
+        + "fail from: "
         + Address(msg.sender).hex(true).get()
         + " to: " + Address(msg.recipient).hex(true).get()
         + " code address: " + Address(msg.code_address).hex(true).get(),
