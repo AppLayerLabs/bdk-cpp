@@ -110,7 +110,7 @@ private:
       throw VMExecutionError({
         -32000,
         errorMessage,
-        (e.what() ? Hex::fromBytes(ABI::Encoder::encodeError(e.what()), true).get() : std::string("0x"))
+        (e.what() ? ABI::Encoder::encodeError(e.what()) : Bytes())
       });
     }
   }
@@ -183,7 +183,7 @@ private:
       throw VMExecutionError({
         -32000,
         errorMessage,
-        (e.what() ? Hex::fromBytes(ABI::Encoder::encodeError(e.what())).get() : std::string("0x"))
+        (e.what() ? ABI::Encoder::encodeError(e.what()) : Bytes())
       });
     }
     if (account.getContractType() != ContractType::NOT_A_CONTRACT) {

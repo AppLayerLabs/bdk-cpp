@@ -102,7 +102,7 @@ json call(const json& request, NodeRPCInterface& rpc) noexcept {
   } catch (const VMExecutionError& err) {
     ret["error"]["code"] = err.code();
     ret["error"]["message"] = err.message();
-    ret["error"]["data"] = err.data();
+    ret["error"]["data"] = Hex::fromBytes(err.data(),true).get();
     ret["error"]["name"] = "CallError";
   } catch (const Error& err) {
     ret["error"]["code"] = err.code();
