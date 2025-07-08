@@ -81,7 +81,7 @@ constexpr evmc_message makeEvmcMessage(const M& msg, uint64_t depth, View<Addres
   };
 }
 
-static Bytes executeEvmcMessage(evmc_vm* vm, const evmc_host_interface* host, evmc_host_context* context, const evmc_message& msg, Gas& gas, View<Bytes> code) {
+Bytes EvmContractExecutor::executeEvmcMessage(evmc_vm* vm, const evmc_host_interface* host, evmc_host_context* context, const evmc_message& msg, Gas& gas, View<Bytes> code) {
   evmc::Result result(::evmc_execute(
     vm,
     host,
@@ -99,30 +99,38 @@ static Bytes executeEvmcMessage(evmc_vm* vm, const evmc_host_interface* host, ev
     throw OutOfGas();
   } else {
     if (result.output_size > 0) {
-      auto reason = ABI::Decoder::decodeError(View<Bytes>(result.output_data, result.output_size));
-      throw VMExecutionError({
-       -32000,
-        "EVM Contract execution failed with reason \"" + reason + "\" with from: "
-          + Address(msg.sender).hex(true).get()
-          + " to: " + Address(msg.recipient).hex(true).get()
-          + " code address: " + Address(msg.code_address).hex(true).get()
-          + " and input: " + Hex::fromBytes(View<Bytes>(msg.input_data, msg.input_size)).get(),
-        Hex::fromBytes(View<Bytes>(result.output_data, result.output_size), true).get()
-      });
+      if (this->deepestError_) {
+        throw *this->deepestError_;
+      } else {
+        auto reason = ABI::Decoder::decodeError(View<Bytes>(result.output_data, result.output_size));
+        this->deepestError_ = std::make_unique<VMExecutionError>(
+         -32000,
+          "EVM Contract execution failed with reason \"" + reason + "\" with the deepest "
+            + ((msg.recipient.bytes != msg.code_address.bytes) ? " DELEGATED CALL " : " CALL ")
+            + "fail from: "
+            + Address(msg.sender).hex(true).get()
+            + " to: " + Address(msg.recipient).hex(true).get()
+            + " code address: " + Address(msg.code_address).hex(true).get()
+            + " and input: " + Hex::fromBytes(View<Bytes>(msg.input_data, msg.input_size)).get(),
+            Bytes(result.output_data, result.output_data + result.output_size)
+        );
+        throw *this->deepestError_;
+      }
     }
 
-    throw VMExecutionError({
+    this->deepestError_ = std::make_unique<VMExecutionError>(
       -32000,
       "EVM Contract execution failed with from: "
         + Address(msg.sender).hex(true).get()
         + " to: " + Address(msg.recipient).hex(true).get()
         + " code address: " + Address(msg.code_address).hex(true).get(),
-      "0x"
-    });
+        Bytes()
+    );
+    throw *this->deepestError_;
   }
 }
 
-static void createContractImpl(auto& msg, ExecutionContext& context, View<Address> contractAddress, evmc_vm *vm, evmc::Host& host, uint64_t depth) {
+void EvmContractExecutor::createContractImpl(auto& msg, ExecutionContext& context, View<Address> contractAddress, evmc_vm *vm, evmc::Host& host, uint64_t depth) {
   Bytes code = executeEvmcMessage(vm, &evmc::Host::get_interface(), host.to_context(),
     makeEvmcMessage(msg, depth, contractAddress), msg.gas(), msg.code());
 
@@ -357,8 +365,16 @@ evmc::Result EvmContractExecutor::call(const evmc_message& msg) noexcept {
       } else {
         return evmc::Result(EVMC_SUCCESS, int64_t(gas), 0, output.data(), output.size());
       }
-    } catch (const OutOfGas&) { // TODO: ExecutionReverted exception is important
+    } catch (const OutOfGas&) {
+      // TODO: ExecutionReverted exception is important
       return evmc::Result(EVMC_OUT_OF_GAS);
+    } catch (const VMExecutionError& err) {
+      if (!deepestError_) {
+        // Make sure that if C++ throws VMExecutionError, we store it so if there is another EVM on top of this call
+        // it can access the true deepest error.
+        deepestError_ = std::make_unique<VMExecutionError>(err);
+      }
+      return evmc::Result(EVMC_REVERT, int64_t(gas), 0, err.data().data(), err.data().size());
     } catch (const std::exception& err) {
       Bytes output;
       if (err.what() != nullptr) {

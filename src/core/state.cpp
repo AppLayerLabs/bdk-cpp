@@ -530,7 +530,7 @@ Bytes State::ethCall(EncodedStaticCallMessage& msg) {
   } catch (VMExecutionError& e) {
     throw;
   } catch (std::exception& e) {
-    throw VMExecutionError(-32603, std::string("Internal error: ") + e.what(), "0x");
+    throw VMExecutionError(-32603, std::string("Internal error: ") + e.what(), Bytes());
   }
 }
 
@@ -596,7 +596,7 @@ int64_t State::estimateGas(EncodedMessageVariant msg) {
   } catch (VMExecutionError& e) {
     throw;
   } catch (std::exception& e) {
-    throw VMExecutionError(-32603, std::string("Internal error: ") + e.what(), "0x");
+    throw VMExecutionError(-32603, std::string("Internal error: ") + e.what(), Bytes());
   }
 }
 

@@ -117,12 +117,11 @@ json call(const json& request, State& state, const Storage& storage,
       result = jsonrpc::appl_dumpState(request, state, options);
     else
       throw Error::methodNotAvailable(method);
-
     ret["result"] = std::move(result);
   } catch (const VMExecutionError& err) {
     ret["error"]["code"] = err.code();
     ret["error"]["message"] = err.message();
-    ret["error"]["data"] = err.data();
+    ret["error"]["data"] = Hex::fromBytes(err.data(),true).get();
     ret["error"]["name"] = "CallError";
   } catch (const Error& err) {
     ret["error"]["code"] = err.code();

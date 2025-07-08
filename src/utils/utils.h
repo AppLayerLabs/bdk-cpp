@@ -224,13 +224,13 @@ class VMExecutionError : public std::exception {
 private:
   int code_;  ///< The error code.
   std::string message_; ///< The error message (human readable with entire stack trace).
-  std::string data_; ///< The error data (hex string of the data that caused the error).
+  Bytes data_; ///< The error data (hex string of the data that caused the error).
 
 public:
   /// @brief error constructor
   /// @param code the error code
   /// @param message the error message
-  VMExecutionError(int code, std::string message, std::string data) : code_(code), message_(std::move(message)), data_(std::move(data)) {}
+  VMExecutionError(int code, std::string message, Bytes data) : code_(code), message_(std::move(message)), data_(std::move(data)) {}
 
   /// @brief returns the error code
   /// @return the error code
@@ -242,7 +242,7 @@ public:
 
   /// @brief returns the error data
   /// @return the error data
-  std::string_view data() const noexcept { return data_; }
+  const Bytes& data() const noexcept { return data_; }
 
   /// @brief override the what() method to return the error message
   /// @return the error message

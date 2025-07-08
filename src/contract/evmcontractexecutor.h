@@ -13,10 +13,10 @@ class EvmContractExecutor : public evmc::Host {
 public:
   EvmContractExecutor(
     AnyEncodedMessageHandler messageHandler, ExecutionContext& context, evmc_vm *vm, IndexingMode indexingMode)
-      : messageHandler_(messageHandler), context_(context), vm_(vm), transientStorage_(), depth_(0), indexingMode_(indexingMode) {}
+      : messageHandler_(messageHandler), context_(context), vm_(vm), transientStorage_(), depth_(0), indexingMode_(indexingMode), deepestError_(nullptr) {}
 
   EvmContractExecutor(ExecutionContext& context, evmc_vm *vm, IndexingMode indexingMode)
-      : context_(context), vm_(vm), transientStorage_(), depth_(0), indexingMode_(indexingMode) {}
+      : context_(context), vm_(vm), transientStorage_(), depth_(0), indexingMode_(indexingMode), deepestError_(nullptr) {}
 
   void setMessageHandler(AnyEncodedMessageHandler messageHandler) { messageHandler_ = messageHandler; }
 
@@ -95,6 +95,9 @@ private:
   boost::unordered_flat_map<StorageKey, Hash, SafeHash, SafeCompare> transientStorage_;
   IndexingMode indexingMode_;
   uint64_t depth_;
+  std::unique_ptr<VMExecutionError> deepestError_;
+  Bytes executeEvmcMessage(evmc_vm* vm, const evmc_host_interface* host, evmc_host_context* context, const evmc_message& msg, Gas& gas, View<Bytes> code);
+  void createContractImpl(auto& msg, ExecutionContext& context, View<Address> contractAddress, evmc_vm *vm, evmc::Host& host, uint64_t depth);
 };
 
 #endif // BDK_MESSAGES_EVMCONTRACTEXECUTOR_H
