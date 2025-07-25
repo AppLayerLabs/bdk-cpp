@@ -1,4 +1,5 @@
 set(UTILS_HEADERS
+  ${CMAKE_SOURCE_DIR}/src/utils/clargs.h
   ${CMAKE_SOURCE_DIR}/src/utils/db.h
   ${CMAKE_SOURCE_DIR}/src/utils/utils.h
   ${CMAKE_SOURCE_DIR}/src/utils/strings.h
@@ -7,27 +8,39 @@ set(UTILS_HEADERS
   ${CMAKE_SOURCE_DIR}/src/utils/ecdsa.h
   ${CMAKE_SOURCE_DIR}/src/utils/randomgen.h
   ${CMAKE_SOURCE_DIR}/src/utils/tx.h
-  ${CMAKE_SOURCE_DIR}/src/utils/block.h
   ${CMAKE_SOURCE_DIR}/src/utils/options.h
   ${CMAKE_SOURCE_DIR}/src/utils/contractreflectioninterface.h
   ${CMAKE_SOURCE_DIR}/src/utils/jsonabi.h
   ${CMAKE_SOURCE_DIR}/src/utils/logger.h
+  ${CMAKE_SOURCE_DIR}/src/utils/dynamicexception.h
+  ${CMAKE_SOURCE_DIR}/src/utils/finalizedblock.h
+  ${CMAKE_SOURCE_DIR}/src/utils/strconv.h
+  ${CMAKE_SOURCE_DIR}/src/utils/evmcconv.h
+  ${CMAKE_SOURCE_DIR}/src/utils/intconv.h
+  ${CMAKE_SOURCE_DIR}/src/utils/uintconv.h
   PARENT_SCOPE
 )
 
 set(UTILS_SOURCES
+  ${CMAKE_SOURCE_DIR}/src/utils/clargs.cpp
   ${CMAKE_SOURCE_DIR}/src/utils/db.cpp
+  ${CMAKE_SOURCE_DIR}/src/utils/address.cpp
+  ${CMAKE_SOURCE_DIR}/src/utils/hash.cpp
   ${CMAKE_SOURCE_DIR}/src/utils/utils.cpp
-  ${CMAKE_SOURCE_DIR}/src/utils/strings.cpp
   ${CMAKE_SOURCE_DIR}/src/utils/hex.cpp
   ${CMAKE_SOURCE_DIR}/src/utils/merkle.cpp
   ${CMAKE_SOURCE_DIR}/src/utils/ecdsa.cpp
   ${CMAKE_SOURCE_DIR}/src/utils/randomgen.cpp
   ${CMAKE_SOURCE_DIR}/src/utils/tx.cpp
-  ${CMAKE_SOURCE_DIR}/src/utils/block.cpp
   ${CMAKE_SOURCE_DIR}/src/utils/options.cpp
   ${CMAKE_SOURCE_DIR}/src/utils/optionsdefaults.cpp
   ${CMAKE_SOURCE_DIR}/src/utils/contractreflectioninterface.cpp
   ${CMAKE_SOURCE_DIR}/src/utils/jsonabi.cpp
+  ${CMAKE_SOURCE_DIR}/src/utils/finalizedblock.cpp
+  ${CMAKE_SOURCE_DIR}/src/utils/strconv.cpp
+  ${CMAKE_SOURCE_DIR}/src/utils/evmcconv.cpp
+  ${CMAKE_SOURCE_DIR}/src/utils/intconv.cpp
+  ${CMAKE_SOURCE_DIR}/src/utils/uintconv.cpp
+  ${CMAKE_SOURCE_DIR}/src/utils/eventsdb.cpp
   PARENT_SCOPE
 )

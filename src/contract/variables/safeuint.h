@@ -1,5 +1,5 @@
 /*
-Copyright (c) [2023-2024] [Sparq Network]
+Copyright (c) [2023-2024] [AppLayer Developers]
 
 This software is distributed under the MIT License.
 See the LICENSE.txt file in the project root for more information.
@@ -8,7 +8,6 @@ See the LICENSE.txt file in the project root for more information.
 #ifndef SAFEUINT_T_H
 #define SAFEUINT_T_H
 
-#include <memory>
 #include <boost/multiprecision/cpp_int.hpp>
 #include "safebase.h"
 
@@ -18,7 +17,9 @@ See the LICENSE.txt file in the project root for more information.
  */
 template <int Size> struct UintType {
   /// The type of the uint with the given size.
-  using type = boost::multiprecision::number<boost::multiprecision::cpp_int_backend<Size, Size, boost::multiprecision::unsigned_magnitude, boost::multiprecision::cpp_int_check_type::checked, void>>;
+  using type = boost::multiprecision::number<boost::multiprecision::cpp_int_backend<
+    Size, Size, boost::multiprecision::unsigned_magnitude, boost::multiprecision::cpp_int_check_type::checked, void
+  >>;
 };
 
 /// Specialization for the type of a uint with 8 bits.
@@ -41,1557 +42,616 @@ template <> struct UintType<64> {
   using type = uint64_t; ///< Type of the uint with 64 bits.
 };
 
-/// Template for a safe wrapper for a uint variable.
+/// Biggest int type for dealing with uint/int operations
+using int256_t = boost::multiprecision::number<
+  boost::multiprecision::cpp_int_backend<
+    256, 256, boost::multiprecision::signed_magnitude,
+    boost::multiprecision::cpp_int_check_type::checked, void
+  >
+>;
+
+/**
+ * Safe wrapper for a uint_t variable.
+ * @tparam Size The size of the uint.
+ */
 template <int Size> class SafeUint_t : public SafeBase {
   private:
     using uint_t = typename UintType<Size>::type; ///< Type of the uint.
-    uint_t value_; ///< The value.
-    mutable std::unique_ptr<uint_t> valuePtr_; ///< Pointer to the value.
-
-    inline void check() const override {
-      if (valuePtr_ == nullptr) valuePtr_ = std::make_unique<uint_t>(value_);
-    };
+    uint_t value_; ///< Current ("original") value.
+    uint_t copy_; ///< Previous ("temporary") value.
 
   public:
     static_assert(Size >= 8 && Size <= 256 && Size % 8 == 0, "Size must be between 8 and 256 and a multiple of 8.");
 
     /**
      * Constructor.
-     * @param owner The owner of the variable.
-     * @param value The initial value.
+     * @param value The initial value of the variable. Defaults to 0.
      */
-    SafeUint_t(DynamicContract* owner, const uint_t& value = 0)
-      : SafeBase(owner), value_(0), valuePtr_(std::make_unique<uint_t>(value))
-    {};
+    explicit SafeUint_t(const uint_t& value = 0) : SafeBase(nullptr), value_(value), copy_(value) {}
 
     /**
-     * Constructor.
-     * @param value The initial value.
+     * Constructor with owner.
+     * @param owner The DynamicContract that owns this variable.
+     * @param value The initial value of the variable. Defaults to 0.
      */
-    explicit SafeUint_t(const uint_t& value = 0)
-      : SafeBase(nullptr), value_(0), valuePtr_(std::make_unique<uint_t>(value))
-    {};
+    explicit SafeUint_t(DynamicContract* owner, const uint_t& value = 0) : SafeBase(owner), value_(value), copy_(value) {}
 
-    /**
-     * Copy constructor.
-     * @param other The SafeUint_t to copy.
-     */
-    SafeUint_t(const SafeUint_t<Size>& other) : SafeBase(nullptr) {
-      other.check(); value_ = 0; valuePtr_ = std::make_unique<uint_t>(*other.valuePtr_);
-    };
+    /// Copy constructor. Only copies the CURRENT value.
+    SafeUint_t(const SafeUint_t<Size>& other) : SafeBase(nullptr), value_(other.value_), copy_(other.value_) {}
 
-    /**
-     * Getter for the value.
-     * @return The value.
-     */
-    inline uint_t get() const { check(); return *valuePtr_; };
+    /// Getter for the temporary value.
+    inline const uint_t& get() const { return this->value_; }
 
-    /**
-     * Commit the value.
-     */
-    inline void commit() override { check(); value_ = *valuePtr_; valuePtr_ = nullptr; registered_ = false; };
-
-    /**
-     * Revert the value.
-     */
-    inline void revert() const override { valuePtr_ = nullptr; registered_ = false; };
-
-    // ====================
-    // Arithmetic operators
-    // ====================
-
+    ///@{
     /**
      * Addition operator.
-     * @param other The SafeUint_t to add.
-     * @throw std::overflow_error if an overflow happens.
-     * @return A new SafeUint_t with the result of the addition.
-     */
-    inline SafeUint_t<Size> operator+(const SafeUint_t<Size>& other) const {
-      check();
-      if (*valuePtr_ > std::numeric_limits<uint_t>::max() - other.get())
-      {
-        throw std::overflow_error("Overflow in addition operation.");
-      }
-      return SafeUint_t<Size>(*valuePtr_ + other.get());
-    }
-
-    /**
-     * Addition operator.
-     * @param other The uint_t to add.
-     * @throw std::overflow_error if an overflow happens.
-     * @return A new SafeUint_t with the result of the addition.
-     */
-    inline SafeUint_t<Size> operator+(const uint_t& other) const {
-      check();
-      if (*valuePtr_ > std::numeric_limits<uint_t>::max() - other)
-      {
-        throw std::overflow_error("Overflow in addition operation.");
-      }
-      return SafeUint_t<Size>(*valuePtr_ + other);
-    }
-
-    /**
-     * Addition operator.
-     * @param other The int to add.
+     * @param other The integer to add.
      * @throw std::overflow_error if an overflow happens.
      * @throw std::underflow_error if an underflow happens.
      * @return A new SafeUint_t with the result of the addition.
      */
-    inline SafeUint_t<Size> operator+(const int& other) const {
-      check();
-      if (other < 0) {
-        if (*valuePtr_ < static_cast<uint_t>(-other)) {
-          throw std::underflow_error("Underflow in addition operation.");
-        }
-      } else {
-        if (*valuePtr_ > std::numeric_limits<uint_t>::max() - other) {
-          throw std::overflow_error("Overflow in addition operation.");
-        }
-      }
-      return SafeUint_t<Size>(*valuePtr_ + other);
-    }
-
-    /**
-     * Addition operator.
-     * @param other The uint_t to add.
-     * @throw std::overflow_error if an overflow happens.
-     * @return A new SafeUint_t with the result of the addition.
-     */
-    template<typename T = uint_t>
-    inline typename std::enable_if<!std::is_same<T, uint64_t>::value, SafeUint_t<Size>>::type
-    operator+(const uint_t& other) const {
-      check();
-      if (*valuePtr_ > std::numeric_limits<uint_t>::max() - other)
-      {
+    inline SafeUint_t<Size> operator+(const SafeUint_t<Size>& other) const {
+      if (this->value_ > std::numeric_limits<uint_t>::max() - other.value_) {
         throw std::overflow_error("Overflow in addition operation.");
       }
-      return SafeUint_t<Size>(*valuePtr_ + other);
+      return SafeUint_t<Size>(this->value_ + other.value_);
     }
+    inline SafeUint_t<Size> operator+(const uint_t& other) const {
+      if (this->value_ > std::numeric_limits<uint_t>::max() - other) {
+        throw std::overflow_error("Overflow in addition operation.");
+      }
+      return SafeUint_t<Size>(this->value_ + other);
+    }
+    inline SafeUint_t<Size> operator+(const int& other) const {
+      // uint/int operations require a conversion to a bigger int type, which will
+      // be operated on instead of the original value, then the remainder is checked
+      // to see if it fits back into the original. This is expected behaviour.
+      // We use int256_t as it is the biggest int type used within the project.
+      // Another option is to disable `checked` in the Boost types, but then we lose the
+      // intrinsic over/underflow checks and rely on Boost itself to do the conversion correctly.
+      // See https://www.boost.org/doc/libs/1_77_0/libs/multiprecision/doc/html/boost_multiprecision/tut/ints/cpp_int.html
+      auto tmp = static_cast<int256_t>(this->value_);
+      tmp = tmp + other;
+      if (tmp < 0) {
+        throw std::underflow_error("Underflow in addition operation.");
+      } else if (tmp > static_cast<int256_t>(std::numeric_limits<uint_t>::max())) {
+        throw std::overflow_error("Overflow in addition operation.");
+      }
+      return SafeUint_t<Size>(static_cast<uint_t>(tmp));
+    }
+    ///@}
 
-
+    ///@{
     /**
      * Subtraction operator.
-     * @param other The SafeUint_t to subtract.
+     * @param other The integer to subtract.
+     * @throw std::overflow_error if an overflow happens.
      * @throw std::underflow_error if an underflow happens.
      * @return A new SafeUint_t with the result of the subtraction.
      */
     inline SafeUint_t<Size> operator-(const SafeUint_t<Size>& other) const {
-      check();
-      if (*valuePtr_ < other.get())
-      {
-        throw std::underflow_error("Underflow in subtraction operation.");
-      }
-      return SafeUint_t<Size>(*valuePtr_ - other.get());
+      if (this->value_ < other.value_) throw std::underflow_error("Underflow in subtraction operation.");
+      return SafeUint_t<Size>(this->value_ - other.value_);
     }
-
-    /**
-     * Subtraction operator.
-     * @param other The uint_t to subtract.
-     * @throw std::underflow_error if an underflow happens.
-     * @return A new SafeUint_t with the result of the subtraction.
-     */
     inline SafeUint_t<Size> operator-(const uint_t& other) const {
-      check();
-      if (*valuePtr_ < other)
-      {
-        throw std::underflow_error("Underflow in subtraction operation.");
-      }
-      return SafeUint_t<Size>(*valuePtr_ - other);
+      if (this->value_ < other) throw std::underflow_error("Underflow in subtraction operation.");
+      return SafeUint_t<Size>(this->value_ - other);
     }
-
-    /**
-     * Subtraction operator.
-     * @param other The uint_t to subtract.
-     * @throw std::underflow_error if an underflow happens.
-     * @return A new SafeUint_t with the result of the subtraction.
-     */
-    template<typename T = uint_t>
-    inline typename std::enable_if<!std::is_same<T, uint64_t>::value, SafeUint_t<Size>>::type
-    operator-(const uint_t& other) const {
-      check();
-      if (*valuePtr_ < other)
-      {
-        throw std::underflow_error("Underflow in subtraction operation.");
-      }
-      return SafeUint_t<Size>(*valuePtr_ - other);
-    }
-
-    /**
-     * Subtraction operator.
-     * @param other The int to subtract.
-     * @throw std::overflow_error if an overflow happens.
-     * @throw std::underflow_error if an underflow happens.
-     * @return A new SafeUint_t with the result of the subtraction.
-     */
     inline SafeUint_t<Size> operator-(const int& other) const {
-      check();
-      if (other > 0) {
-        if (*valuePtr_ < static_cast<uint_t>(other)) {
-          throw std::underflow_error("Underflow in subtraction operation.");
-        }
-      } else {
-        if (*valuePtr_ > std::numeric_limits<uint_t>::max() + other) {
-          throw std::overflow_error("Overflow in subtraction operation.");
-        }
+      // See operator+.
+      auto tmp = static_cast<int256_t>(this->value_);
+      tmp = tmp - other;
+      if (tmp < 0) {
+        throw std::underflow_error("Underflow in addition operation.");
+      } else if (tmp > static_cast<int256_t>(std::numeric_limits<uint_t>::max())) {
+        throw std::overflow_error("Overflow in addition operation.");
       }
-      return SafeUint_t<Size>(*valuePtr_ - other);
+      return SafeUint_t<Size>(static_cast<uint_t>(tmp));
     }
+    ///@}
 
-
+    ///@{
     /**
      * Multiplication operator.
-     * @param other The SafeUint_t to multiply.
+     * @param other The integer to multiply.
      * @throw std::overflow_error if an overflow happens.
+     * @throw std::underflow_error if an underflow happens.
      * @throw std::domain_error if the other value is zero.
      * @return A new SafeUint_t with the result of the multiplication.
      */
     inline SafeUint_t<Size> operator*(const SafeUint_t<Size>& other) const {
-      check();
-      if (other.get() == 0 || *valuePtr_ == 0) throw std::domain_error("Multiplication by zero");
-      if (*valuePtr_ > std::numeric_limits<uint_t>::max() / other.get())
-      {
+      if (other.value_ == 0 || this->value_ == 0) throw std::domain_error("Multiplication by zero");
+      if (this->value_ > std::numeric_limits<uint_t>::max() / other.value_) {
         throw std::overflow_error("Overflow in multiplication operation.");
       }
-      return SafeUint_t<Size>(*valuePtr_ * other.get());
+      return SafeUint_t<Size>(this->value_ * other.value_);
     }
-
-    /**
-     * Multiplication operator.
-     * @param other The uint_t to multiply.
-     * @throw std::overflow_error if an overflow happens.
-     * @throw std::domain_error if the other value is zero.
-     * @return A new SafeUint_t with the result of the multiplication.
-     */
-
     inline SafeUint_t<Size> operator*(const uint_t& other) const {
-      check();
-      if (other == 0 || *valuePtr_ == 0) throw std::domain_error("Multiplication by zero");
-      if (*valuePtr_ > std::numeric_limits<uint_t>::max() / other)
-      {
+      if (other == 0 || this->value_ == 0) throw std::domain_error("Multiplication by zero");
+      if (this->value_ > std::numeric_limits<uint_t>::max() / other) {
         throw std::overflow_error("Overflow in multiplication operation.");
       }
-      return SafeUint_t<Size>(*valuePtr_ * other);
+      return SafeUint_t<Size>(this->value_ * other);
     }
-
-    /**
-     * Multiplication operator.
-     * @param other The uint_t to multiply.
-     * @throw std::overflow_error if an overflow happens.
-     * @throw std::domain_error if the other value is zero.
-     * @return A new SafeUint_t with the result of the multiplication.
-     */
-    template<typename T = uint_t>
-      inline typename std::enable_if<!std::is_same<T, uint64_t>::value, SafeUint_t<Size>>::type
-      operator*(const uint_t& other) const {
-        check();
-        if (other == 0 || *valuePtr_ == 0) throw std::domain_error("Multiplication by zero");
-        if (*valuePtr_ > std::numeric_limits<uint_t>::max() / other)
-        {
-          throw std::overflow_error("Overflow in multiplication operation.");
-        }
-        return SafeUint_t<Size>(*valuePtr_ * other);
-      }
-
-    /**
-     * Multiplication operator.
-     * @param other The int to multiply with.
-     * @throw std::overflow_error if an overflow happens.
-     * @throw std::underflow_error if an underflow happens.
-     * @return A new SafeUint_t with the result of the multiplication.
-     */
     inline SafeUint_t<Size> operator*(const int& other) const {
-      check();
-      if (other == 0 || *valuePtr_ == 0) throw std::domain_error("Multiplication by zero");
-
+      if (other == 0 || this->value_ == 0) throw std::domain_error("Multiplication by zero");
       if (other < 0) {
         throw std::underflow_error("Underflow in multiplication operation.");
       } else {
-        if (*valuePtr_ > std::numeric_limits<uint_t>::max() / other) {
+        if (this->value_ > std::numeric_limits<uint_t>::max() / other) {
           throw std::overflow_error("Overflow in multiplication operation.");
         }
       }
-      return SafeUint_t<Size>(*valuePtr_ * other);
+      return SafeUint_t<Size>(this->value_ * other);
     }
+    ///@}
 
-
+    ///@{
     /**
      * Division operator.
-     * @param other The SafeUint_t to divide.
-     * @throw std::domain_error if the other value is zero.
+     * @param other The integer to divide.
+     * @throw std::domain_error if the other value is zero, or if the division results in a negative number.
      * @return A new SafeUint_t with the result of the division.
      */
     inline SafeUint_t<Size> operator/(const SafeUint_t<Size>& other) const {
-      check();
-      if (*valuePtr_ == 0 || other.get() == 0) throw std::domain_error("Division by zero");
-      return SafeUint_t<Size>(*valuePtr_ / other.get());
+      if (this->value_ == 0 || other.value_ == 0) throw std::domain_error("Division by zero");
+      return SafeUint_t<Size>(this->value_ / other.value_);
     }
-
-    /**
-     * Division operator.
-     * @param other The uint_t to divide.
-     * @throw std::domain_error if the other value is zero.
-     * @return A new SafeUint_t with the result of the division.
-     */
     inline SafeUint_t<Size> operator/(const uint_t& other) const {
-      check();
-      if (*valuePtr_ == 0 || other == 0) throw std::domain_error("Division by zero");
-      return SafeUint_t<Size>(*valuePtr_ / other);
+      if (this->value_ == 0 || other == 0) throw std::domain_error("Division by zero");
+      return SafeUint_t<Size>(this->value_ / other);
     }
-
-    /**
-     * Division operator.
-     * @param other The uint_t to divide.
-     * @throw std::domain_error if the other value is zero.
-     * @return A new SafeUint_t with the result of the division.
-     */
-    template<typename T = uint_t>
-      inline typename std::enable_if<!std::is_same<T, uint64_t>::value, SafeUint_t<Size>>::type
-      operator/(const uint_t& other) const {
-        check();
-        if (*valuePtr_ == 0 || other == 0) throw std::domain_error("Division by zero");
-        return SafeUint_t<Size>(*valuePtr_ / other);
-      }
-
-
-    /**
-     * Division operator.
-     * @param other The int to divide by.
-     * @throw std::domain_error if the other value is zero.
-     * @return A new SafeUint_t with the result of the division.
-     */
     inline SafeUint_t<Size> operator/(const int& other) const {
-      check();
       if (other == 0) throw std::domain_error("Division by zero");
-
-      // Division by a negative number results in a negative result,
-      // which cannot be represented in an unsigned integer.
+      // Division by a negative number results in a negative result, which cannot be represented in an unsigned integer.
       if (other < 0) throw std::domain_error("Division by a negative number");
-
-      return SafeUint_t<Size>(*valuePtr_ / other);
+      return SafeUint_t<Size>(this->value_ / other);
     }
+    ///@}
 
-
+    ///@{
     /**
      * Modulus operator.
-     * @param other The SafeUint_t to divide.
+     * @param other The integer to take the modulo of.
      * @throw std::domain_error if the other value is zero.
      * @return A new SafeUint_t with the result of the modulus.
      */
     inline SafeUint_t<Size> operator%(const SafeUint_t<Size>& other) const {
-      check();
-      if (*valuePtr_ == 0 || other.get() == 0) throw std::domain_error("Modulus by zero");
-      return SafeUint_t<Size>(*valuePtr_ % other.get());
+      if (this->value_ == 0 || other.value_ == 0) throw std::domain_error("Modulus by zero");
+      return SafeUint_t<Size>(this->value_ % other.value_);
     }
-
-    /**
-     * Modulus operator.
-     * @param other The uint_t to divide.
-     * @throw std::domain_error if the other value is zero.
-     * @return A new SafeUint_t with the result of the modulus.
-     */
     inline SafeUint_t<Size> operator%(const uint_t& other) const {
-      check();
-      if (*valuePtr_ == 0 || other == 0) throw std::domain_error("Modulus by zero");
-      return SafeUint_t<Size>(*valuePtr_ % other);
+      if (this->value_ == 0 || other == 0) throw std::domain_error("Modulus by zero");
+      return SafeUint_t<Size>(this->value_ % other);
     }
-
-    /**
-     * Modulus operator.
-     * @param other The uint64_t to divide.
-     * @throw std::domain_error if the other value is zero.
-     * @return A new SafeUint_t with the result of the modulus.
-     */
-    template<typename T = uint_t>
-      inline typename std::enable_if<!std::is_same<T, uint64_t>::value, SafeUint_t<Size>>::type
-      operator%(const uint64_t& other) const {
-        check();
-        if (*valuePtr_ == 0 || other == 0) throw std::domain_error("Modulus by zero");
-        return SafeUint_t<Size>(*valuePtr_ % other);
-      }
-
-    /**
-     * Modulo operator.
-     * @param other The int to modulo.
-     * @throw std::domain_error if the other value is zero.
-     * @return A new SafeUint_t with the result of the modulo.
-     */
     inline SafeUint_t<Size> operator%(const int& other) const {
-      check();
-      if (*valuePtr_ == 0 || other == 0) throw std::domain_error("Modulo by zero");
-      return SafeUint_t<Size>(*valuePtr_ % static_cast<uint_t>(other));
+      if (this->value_ == 0 || other == 0) throw std::domain_error("Modulus by zero");
+      return SafeUint_t<Size>(this->value_ % static_cast<uint_t>(other));
     }
+    ///@}
 
-    // =================
-    // Bitwise operators
-    // =================
-
+    ///@{
     /**
      * Bitwise AND operator.
-     * @param other The SafeUint_t to AND.
+     * @param other The integer to apply AND.
      * @return A new SafeUint_t with the result of the AND.
+     * @throw std::domain_error if AND is done with a negative number.
      */
     inline SafeUint_t<Size> operator&(const SafeUint_t<Size>& other) const {
-      check();
-      return SafeUint_t<Size>(*valuePtr_ & other.get());
+      return SafeUint_t<Size>(this->value_ & other.value_);
     }
-
-    /**
-     * Bitwise AND operator.
-     * @param other The uint_t to AND.
-     * @return A new SafeUint_t with the result of the AND.
-     */
     inline SafeUint_t<Size> operator&(const uint_t& other) const {
-      check();
-      return SafeUint_t<Size>(*valuePtr_ & other);
+      return SafeUint_t<Size>(this->value_ & other);
     }
-
-    /**
-     * Bitwise AND operator.
-     * @param other The uint64_t to AND.
-     * @return A new SafeUint_t with the result of the AND.
-     */
-    template<typename T = uint_t>
-      inline typename std::enable_if<!std::is_same<T, uint64_t>::value, SafeUint_t<Size>>::type
-      operator&(const uint64_t& other) const {
-        check();
-        return SafeUint_t<Size>(*valuePtr_ & other);
-      }
-
-    /**
-     * Bitwise AND operator.
-     * @param other The int to AND.
-     * @return A new SafeUint_t with the result of the AND.
-     */
     inline SafeUint_t<Size> operator&(const int& other) const {
-      check();
       if (other < 0) throw std::domain_error("Bitwise AND with a negative number");
-      return SafeUint_t<Size>(*valuePtr_ & static_cast<uint_t>(other));
+      return SafeUint_t<Size>(this->value_ & static_cast<uint_t>(other));
     }
+    ///@}
 
+    ///@{
     /**
      * Bitwise OR operator.
-     * @param other The SafeUint_t to OR.
+     * @param other The integer to apply OR.
      * @return A new SafeUint_t with the result of the OR.
+     * @throw std::domain_error if OR is done with a negative number.
      */
     inline SafeUint_t<Size> operator|(const SafeUint_t<Size>& other) const {
-      check();
-      return SafeUint_t<Size>(*valuePtr_ | other.get());
+      return SafeUint_t<Size>(this->value_ | other.value_);
     }
-
-    /**
-     * Bitwise OR operator.
-     * @param other The uint_t to OR.
-     * @return A new SafeUint_t with the result of the OR.
-     */
     inline SafeUint_t<Size> operator|(const uint_t& other) const {
-      check();
-      return SafeUint_t<Size>(*valuePtr_ | other);
+      return SafeUint_t<Size>(this->value_ | other);
     }
-
-    /**
-     * Bitwise OR operator.
-     * @param other The uint64_t to OR.
-     * @return A new SafeUint_t with the result of the OR.
-     */
-    template<typename T = uint_t>
-      inline typename std::enable_if<!std::is_same<T, uint64_t>::value, SafeUint_t<Size>>::type
-      operator|(const uint64_t& other) const {
-        check();
-        return SafeUint_t<Size>(*valuePtr_ | other);
-      }
-
-    /**
-     * Bitwise OR operator.
-     * @param other The int to OR.
-     * @return A new SafeUint_t with the result of the OR.
-     */
     inline SafeUint_t<Size> operator|(const int& other) const {
-      check();
       if (other < 0) throw std::domain_error("Bitwise OR with a negative number");
-      return SafeUint_t<Size>(*valuePtr_ | static_cast<uint_t>(other));
+      return SafeUint_t<Size>(this->value_ | static_cast<uint_t>(other));
     }
+    ///@}
 
+    ///@{
     /**
      * Bitwise XOR operator.
-     * @param other The SafeUint_t to XOR.
+     * @param other The integer to apply XOR.
      * @return A new SafeUint_t with the result of the XOR.
+     * @throw std::domain_error if XOR is done with a negative number.
      */
     inline SafeUint_t<Size> operator^(const SafeUint_t<Size>& other) const {
-      check();
-      return SafeUint_t<Size>(*valuePtr_ ^ other.get());
+      return SafeUint_t<Size>(this->value_ ^ other.value_);
     }
-
-    /**
-     * Bitwise XOR operator.
-     * @param other The uint_t to XOR.
-     * @return A new SafeUint_t with the result of the XOR.
-     */
     inline SafeUint_t<Size> operator^(const uint_t& other) const {
-      check();
-      return SafeUint_t<Size>(*valuePtr_ ^ other);
+      return SafeUint_t<Size>(this->value_ ^ other);
     }
-
-    /**
-     * Bitwise XOR operator.
-     * @param other The uint64_t to XOR.
-     * @return A new SafeUint_t with the result of the XOR.
-     */
-    template<typename T = uint_t>
-      inline typename std::enable_if<!std::is_same<T, uint64_t>::value, SafeUint_t<Size>>::type
-      operator^(const uint64_t& other) const {
-        check();
-        return SafeUint_t<Size>(*valuePtr_ ^ other);
-      }
-
-    /**
-     * Bitwise XOR operator.
-     * @param other The int to XOR.
-     * @return A new SafeUint_t with the result of the XOR.
-     */
     inline SafeUint_t<Size> operator^(const int& other) const {
-      check();
       if (other < 0) throw std::domain_error("Bitwise XOR with a negative number");
-      return SafeUint_t<Size>(*valuePtr_ ^ static_cast<uint_t>(other));
+      return SafeUint_t<Size>(this->value_ ^ static_cast<uint_t>(other));
     }
+    ///@}
 
     /**
      * Left shift operator.
-     * @param other The SafeUint_t to shift.
+     * @param other The integer to shift.
      * @return A new SafeUint_t with the result of the shift.
+     * @throw std::domain_error if shift is done with a negative number.
      */
-    inline SafeUint_t<Size> operator<<(const SafeUint_t<Size>& other) const {
-      check();
-      return SafeUint_t<Size>(*valuePtr_ << other.get());
-    }
-
-    /**
-     * Left shift operator.
-     * @param other The uint_t to shift.
-     * @return A new SafeUint_t with the result of the shift.
-     */
-    inline SafeUint_t<Size> operator<<(const uint_t& other) const {
-      check();
-      return SafeUint_t<Size>(*valuePtr_ << other);
-    }
-
-    /**
-     * Left shift operator.
-     * @param other The uint64_t to shift.
-     * @return A new SafeUint_t with the result of the shift.
-     */
-    template<typename T = uint_t>
-      inline typename std::enable_if<!std::is_same<T, uint64_t>::value, SafeUint_t<Size>>::type
-      operator<<(const uint64_t& other) const {
-        check();
-        return SafeUint_t<Size>(*valuePtr_ << other);
-      }
-
-    /**
-     * Left shift operator.
-     * @param other The int to shift.
-     * @return A new SafeUint_t with the result of the shift.
-     */
-    inline SafeUint_t<Size> operator<<(const int& other) const {
-      check();
-      if (other < 0) throw std::domain_error("Bitwise left shift with a negative number");
-      return SafeUint_t<Size>(*valuePtr_ << other);
+    inline SafeUint_t<Size> operator<<(const uint8_t& other) const {
+      return SafeUint_t<Size>(this->value_ << other);
     }
 
     /**
      * Right shift operator.
      * @param other The SafeUint_t to shift.
      * @return A new SafeUint_t with the result of the shift.
+     * @throw std::domain_error if shift is done with a negative number.
      */
-    inline SafeUint_t<Size> operator>>(const SafeUint_t<Size>& other) const {
-      check();
-      return SafeUint_t<Size>(*valuePtr_ >> other.get());
+    inline SafeUint_t<Size> operator>>(const uint8_t& other) const {
+      return SafeUint_t<Size>(this->value_ >> other);
     }
-
-    /**
-     * Right shift operator.
-     * @param other The uint_t to shift.
-     * @return A new SafeUint_t with the result of the shift.
-     */
-    template<typename T = uint_t>
-      inline typename std::enable_if<!std::is_same<T, uint64_t>::value, SafeUint_t<Size>>::type
-      operator>>(const uint_t& other) const {
-        check();
-        return SafeUint_t<Size>(*valuePtr_ >> other);
-      }
-
-    /**
-     * Right shift operator.
-     * @param other The uint64_t to shift.
-     * @return A new SafeUint_t with the result of the shift.
-     */
-    inline SafeUint_t<Size> operator>>(const uint64_t& other) const {
-      check();
-      return SafeUint_t<Size>(*valuePtr_ >> other);
-    }
-
-    /**
-     * Right shift operator.
-     * @param other The int to shift.
-     * @return A new SafeUint_t with the result of the shift.
-     */
-    inline SafeUint_t<Size> operator>>(const int& other) const {
-      check();
-      if (other < 0) throw std::domain_error("Bitwise right shift with a negative number");
-      return SafeUint_t<Size>(*valuePtr_ >> other);
-    }
-
-    // =================
-    // Logical operators
-    // =================
 
     /**
      * Logical NOT operator.
-     * @return True if the value is zero, false otherwise.
+     * @return `true` if the value is zero, `false` otherwise.
      */
-    inline bool operator!() const {
-      check();
-      return !(*valuePtr_);
-    }
+    inline bool operator!() const { return !(this->value_); }
 
+    ///@{
     /**
      * Logical AND operator.
-     * @param other The SafeUint_t to AND.
-     * @return True if both values are not zero, false otherwise.
+     * @param other The integer to apply AND.
+     * @return `true` if both values are not zero, `false` otherwise.
      */
-    inline bool operator&&(const SafeUint_t<Size>& other) const {
-      check();
-      return *valuePtr_ && other.get();
-    }
+    inline bool operator&&(const SafeUint_t<Size>& other) const { return this->value_ && other.value_; }
+    inline bool operator&&(const uint_t& other) const { return this->value_ && other; }
+    ///@}
 
-    /**
-     * Logical AND operator.
-     * @param other The uint_t to AND.
-     * @return True if both values are not zero, false otherwise.
-     */
-    inline bool operator&&(const uint_t& other) const {
-      check();
-      return *valuePtr_ && other;
-    }
-
-    /**
-     * Logical AND operator.
-     * @param other The uint_t to AND.
-     * @return True if both values are not zero, false otherwise.
-     */
-    template<typename T = uint_t>
-      inline typename std::enable_if<!std::is_same<T, uint64_t>::value, bool>::type
-      operator&&(const uint_t& other) const {
-        check();
-        return *valuePtr_ && other;
-      }
-
-
+    ///@{
     /**
      * Logical OR operator.
-     * @param other The SafeUint_t to OR.
-     * @return True if at least one value is not zero, false otherwise.
+     * @param other The integer to apply OR.
+     * @return `true` if at least one value is not zero, `false` otherwise.
      */
-    inline bool operator||(const SafeUint_t<Size>& other) const {
-      check();
-      return *valuePtr_ || other.get();
-    }
+    inline bool operator||(const SafeUint_t<Size>& other) const { return this->value_ || other.value_; }
+    inline bool operator||(const uint_t& other) const { return this->value_ || other; }
+    ///@}
 
-    /**
-     * Logical OR operator.
-     * @param other The uint_t to OR.
-     * @return True if at least one value is not zero, false otherwise.
-     */
-    inline bool operator||(const uint_t& other) const {
-      check();
-      return *valuePtr_ || other;
-    }
-
-    /**
-     * Logical OR operator.
-     * @param other The uint64_t to OR.
-     * @return True if at least one value is not zero, false otherwise.
-     */
-    template<typename T = uint_t>
-      inline typename std::enable_if<!std::is_same<T, uint64_t>::value, bool>::type
-      operator||(const uint64_t& other) const {
-        check();
-        return *valuePtr_ || other;
-      }
-
-    // ====================
-    // Comparison operators
-    // ====================
-
+    ///@{
     /**
      * Equality operator.
-     * @param other The SafeUint_t to compare.
-     * @return True if both values are equal, false otherwise.
+     * @param other The integer to compare.
+     * @return `true` if both values are equal, `false` otherwise.
      */
-    inline bool operator==(const SafeUint_t<Size>& other) const {
-      check();
-      return *valuePtr_ == other.get();
-    }
-
-    /**
-     * Equality operator.
-     * @param other The uint_t to compare.
-     * @return True if both values are equal, false otherwise.
-     */
-    inline bool operator==(const uint_t& other) const {
-      check();
-      return *valuePtr_ == other;
-    }
-
-    /**
-     * Equality operator.
-     * @param other The uint64_t to compare.
-     * @return True if both values are equal, false otherwise.
-     */
-    template<typename T = uint_t>
-    inline typename std::enable_if<!std::is_same<T, uint64_t>::value, bool>::type
-    operator==(const uint64_t& other) const {
-      check();
-      return *valuePtr_ == other;
-    }
-
-    /**
-     * Equality operator.
-     * @param other The int to compare.
-     * @return True if both values are equal, false otherwise.
-     */
+    inline bool operator==(const SafeUint_t<Size>& other) const { return this->value_ == other.value_; }
+    inline bool operator==(const uint_t& other) const { return this->value_ == other; }
     inline bool operator==(const int& other) const {
-      check();
-      if (other < 0) {
-        return false;  // unsigned value cannot be equal to negative int
-      }
-      return *valuePtr_ == static_cast<uint_t>(other);
+      if (other < 0) return false;  // Unsigned value will never equal a negative
+      return this->value_ == static_cast<uint_t>(other);
     }
+    ///@}
 
+    ///@{
     /**
      * Inequality operator.
-     * @param other The uint_t to compare.
-     * @return True if both values are not equal, false otherwise.
+     * @param other The integer to compare.
+     * @return `true` if both values are not equal, `false` otherwise.
      */
-    inline bool operator!=(const uint_t& other) const {
-      check();
-      return *valuePtr_ != other;
+    inline bool operator!=(const SafeUint_t<Size>& other) const { return this->value_ != other.value_; }
+    inline bool operator!=(const uint_t& other) const { return this->value_ != other; }
+    inline bool operator!=(const int& other) const {
+      if (other < 0) return true;  // Unsigned value will always differ from a negative
+      return this->value_ != static_cast<uint_t>(other);
     }
+    ///@}
 
-    /**
-     * Inequality operator.
-     * @param other The uint64_t to compare.
-     * @return True if both values are not equal, false otherwise.
-     */
-    template<typename T = uint_t>
-    inline typename std::enable_if<!std::is_same<T, uint64_t>::value, bool>::type
-    operator!=(const uint64_t& other) const {
-      check();
-      return *valuePtr_ != other;
-    }
-
+    ///@{
     /**
      * Less than operator.
-     * @param other The SafeUint_t to compare.
-     * @return True if the value is less than the other value, false otherwise.
+     * @param other The integer to compare.
+     * @return `true` if the value is less than the other value, `false` otherwise.
      */
-    inline bool operator<(const SafeUint_t<Size>& other) const {
-      check();
-      return *valuePtr_ < other.get();
+    inline bool operator<(const SafeUint_t<Size>& other) const { return this->value_ < other.value_; }
+    inline bool operator<(const uint_t& other) const { return this->value_ < other; }
+    inline bool operator<(const int& other) const {
+      if (other < 0) return false;  // Unsigned value will never be less than a negative
+      return this->value_ < static_cast<uint_t>(other);
     }
+    ///@}
 
-    /**
-     * Less than operator.
-     * @param other The uint_t to compare.
-     * @return True if the value is less than the other value, false otherwise.
-     */
-    inline bool operator<(const uint_t& other) const {
-      check();
-      return *valuePtr_ < other;
-    }
-
-    /**
-     * Less than operator.
-     * @param other The uint64_t to compare.
-     * @return True if the value is less than the other value, false otherwise.
-     */
-    template<typename T = uint_t>
-    inline typename std::enable_if<!std::is_same<T, uint64_t>::value, bool>::type
-    operator<(const uint64_t& other) const {
-      check();
-      return *valuePtr_ < other;
-    }
-
+    ///@{
     /**
      * Less than or equal operator.
-     * @param other The SafeUint_t to compare.
-     * @return True if the value is less than or equal to the other value, false otherwise.
+     * @param other The integer to compare.
+     * @return `true` if the value is less than or equal to the other value, `false` otherwise.
      */
-    inline bool operator<=(const SafeUint_t<Size>& other) const {
-      check();
-      return *valuePtr_ <= other.get();
+    inline bool operator<=(const SafeUint_t<Size>& other) const { return this->value_ <= other.value_; }
+    inline bool operator<=(const uint_t& other) const { return this->value_ <= other; }
+    inline bool operator<=(const int& other) const {
+      if (other < 0) return false;  // Unsigned value will never be less nor equal than a negative
+      return this->value_ <= static_cast<uint_t>(other);
     }
+    ///@}
 
-    /**
-     * Less than or equal operator.
-     * @param other The uint_t to compare.
-     * @return True if the value is less than or equal to the other value, false otherwise.
-     */
-    template<typename T = uint_t>
-    inline typename std::enable_if<!std::is_same<T, uint64_t>::value, bool>::type
-    operator<=(const uint_t& other) const {
-      check();
-      return *valuePtr_ <= other;
-    }
-
-    /**
-     * Less than or equal operator.
-     * @param other The uint64_t to compare.
-     * @return True if the value is less than or equal to the other value, false otherwise.
-     */
-    inline bool operator<=(const uint64_t& other) const {
-      check();
-      return *valuePtr_ <= other;
-    }
-
+    ///@{
     /**
      * Greater than operator.
-     * @param other The SafeUint_t to compare.
-     * @return True if the value is greater than the other value, false otherwise.
+     * @param other The integer to compare.
+     * @return `true` if the value is greater than the other value, `false` otherwise.
      */
-    inline bool operator>(const SafeUint_t<Size>& other) const {
-      check();
-      return *valuePtr_ > other.get();
+    inline bool operator>(const SafeUint_t<Size>& other) const { return this->value_ > other.value_; }
+    inline bool operator>(const uint_t& other) const { return this->value_ > other; }
+    inline bool operator>(const int& other) const {
+      if (other < 0) return true;  // Unsigned value will always be more than a negative
+      return this->value_ > static_cast<uint_t>(other);
     }
+    ///@}
 
-    /**
-     * Greater than operator.
-     * @param other The uint_t to compare.
-     * @return True if the value is greater than the other value, false otherwise.
-     */
-    template<typename T = uint_t>
-    inline typename std::enable_if<!std::is_same<T, uint64_t>::value, bool>::type
-    operator>(const uint_t& other) const {
-      check();
-      return *valuePtr_ > other;
-    }
-
-    /**
-     * Greater than operator.
-     * @param other The uint64_t to compare.
-     * @return True if the value is greater than the other value, false otherwise.
-     */
-    inline bool operator>(const uint64_t& other) const {
-      check();
-      return *valuePtr_ > other;
-    }
-
+    ///@{
     /**
      * Greater than or equal operator.
-     * @param other The SafeUint_t to compare.
-     * @return True if the value is greater than or equal to the other value, false otherwise.
+     * @param other The integer to compare.
+     * @return `true` if the value is greater than or equal to the other value, `false` otherwise.
      */
-    inline bool operator>=(const SafeUint_t<Size>& other) const {
-      check();
-      return *valuePtr_ >= other.get();
+    inline bool operator>=(const SafeUint_t<Size>& other) const { return this->value_ >= other.value_; }
+    inline bool operator>=(const uint_t& other) const { return this->value_ >= other; }
+    inline bool operator>=(const int& other) const {
+      if (other < 0) return true;  // Unsigned value will be never equal, but always more than a negative
+      return this->value_ >= static_cast<uint_t>(other);
     }
+    ///@}
 
-    /**
-     * Greater than or equal operator.
-     * @param other The uint_t to compare.
-     * @return True if the value is greater than or equal to the other value, false otherwise.
-     */
-    inline bool operator>=(const uint_t& other) const {
-      check();
-      return *valuePtr_ >= other;
-    }
-
-    /**
-     * Greater than or equal operator.
-     * @param other The uint64_t to compare.
-     * @return True if the value is greater than or equal to the other value, false otherwise.
-     */
-    template<typename T = uint_t>
-    inline typename std::enable_if<!std::is_same<T, uint64_t>::value, bool>::type
-    operator>=(const uint64_t& other) const {
-      check();
-      return *valuePtr_ >= other;
-    }
-
-    // ====================
-    // Assignment operators
-    // ====================
-
+    ///@{
     /**
      * Assignment operator.
-     * @param other The SafeUint_t to assign.
+     * @param other The integer to assign.
      * @return A reference to this SafeUint_t.
+     * @throw std::domain_error if a negative value is assigned.
      */
     inline SafeUint_t<Size>& operator=(const SafeUint_t<Size>& other) {
-      check();
-      markAsUsed();
-      *valuePtr_ = other.get();
-      return *this;
+      markAsUsed(); this->value_ = other.value_; return *this;
     }
-
-    /**
-     * Assignment operator.
-     * @param other The uint_t to assign.
-     * @return A reference to this SafeUint_t.
-     */
     inline SafeUint_t<Size>& operator=(const uint_t& other) {
-      check();
-      markAsUsed();
-      *valuePtr_ = other;
-      return *this;
+      markAsUsed(); this->value_ = other; return *this;
     }
-
-    /**
-     * Assignment operator.
-     * @param other The uint_t to assign.
-     * @return A reference to this SafeUint_t.
-     */
-    template<typename T = uint_t>
-      inline typename std::enable_if<!std::is_same<T, uint64_t>::value, SafeUint_t<Size>&>::type
-      operator=(const uint_t& other) {
-        check();
-        markAsUsed();
-        *valuePtr_ = other;
-        return *this;
-      }
-
-    /**
-     * Assignment operator.
-     * @param other The int to assign.
-     * @return A reference to this SafeUint_t.
-     */
     inline SafeUint_t<Size>& operator=(const int& other) {
-      check();
-      if (other < 0) {
-        throw std::domain_error("Cannot assign negative value to SafeUint_t");
-      }
-      markAsUsed();
-      *valuePtr_ = static_cast<uint_t>(other);
-      return *this;
+      if (other < 0) throw std::domain_error("Cannot assign negative value to SafeUint_t");
+      markAsUsed(); this->value_ = static_cast<uint_t>(other); return *this;
     }
+    ///@}
 
-
+    ///@{
     /**
      * Addition assignment operator.
-     * @param other The SafeUint_t to add.
-     * @throw std::overflow_error if an overflow happens.
+     * @param other The integer to add.
      * @return A reference to this SafeUint_t.
+     * @throw std::overflow_error if an overflow happens.
+     * @throw std::underflow_error if an underflow happens (for signed values).
      */
     inline SafeUint_t<Size>& operator+=(const SafeUint_t<Size>& other) {
-      check();
-      markAsUsed();
-      if (*valuePtr_ > std::numeric_limits<uint_t>::max() - other.get())
-      {
+      if (this->value_ > std::numeric_limits<uint_t>::max() - other.value_) {
         throw std::overflow_error("Overflow in addition assignment operation.");
       }
-      *valuePtr_ += other.get();
-      return *this;
+      markAsUsed(); this->value_ += other.value_; return *this;
     }
-
-    /**
-     * Addition assignment operator.
-     * @param other The uint_t to add.
-     * @throw std::overflow_error if an overflow happens.
-     * @return A reference to this SafeUint_t.
-     */
     inline SafeUint_t<Size>& operator+=(const uint_t& other) {
-      check();
-      markAsUsed();
-      if (*valuePtr_ > std::numeric_limits<uint_t>::max() - other)
-      {
+      if (this->value_ > std::numeric_limits<uint_t>::max() - other) {
         throw std::overflow_error("Overflow in addition assignment operation.");
       }
-      *valuePtr_ += other;
-      return *this;
+      markAsUsed(); this->value_ += other; return *this;
     }
-
-    /**
-     * Addition assignment operator.
-     * @param other The uint64_t to add.
-     * @throw std::overflow_error if an overflow happens.
-     * @return A reference to this SafeUint_t.
-     */
-    template<typename T = uint_t>
-      inline typename std::enable_if<!std::is_same<T, uint64_t>::value, SafeUint_t<Size>&>::type
-      operator+=(const uint64_t& other) {
-        check();
-        markAsUsed();
-        if (*valuePtr_ > std::numeric_limits<uint_t>::max() - other)
-        {
-          throw std::overflow_error("Overflow in addition assignment operation.");
-        }
-        *valuePtr_ += other;
-        return *this;
-      }
-
-    /**
-     * Addition assignment operator.
-     * @param other The int to add.
-     * @throw std::overflow_error if an overflow happens.
-     * @return A reference to this SafeUint_t.
-     */
     inline SafeUint_t<Size>& operator+=(const int& other) {
-      check();
-      markAsUsed();
-      if (other < 0 || static_cast<uint64_t>(other) > std::numeric_limits<uint_t>::max() - *valuePtr_)
-      {
+      // See operator+.
+      auto tmp = static_cast<int256_t>(this->value_);
+      tmp += other;
+      if (tmp < 0) {
+        throw std::underflow_error("Underflow in addition assignment operation.");
+      } else if (tmp > static_cast<int256_t>(std::numeric_limits<uint_t>::max())) {
         throw std::overflow_error("Overflow in addition assignment operation.");
       }
-      *valuePtr_ += static_cast<uint_t>(other);
-      return *this;
+      markAsUsed(); this->value_ = static_cast<uint_t>(tmp); return *this;
     }
+    ///@}
 
-
+    ///@{
     /**
      * Subtraction assignment operator.
-     * @param other The SafeUint_t to subtract.
-     * @throw std::underflow_error if an underflow happens.
+     * @param other The integer to subtract.
      * @return A reference to this SafeUint_t.
+     * @throw std::underflow_error if an underflow happens.
+     * @throw std::overflow_error if an overflow happens (for signed values).
      */
     inline SafeUint_t<Size>& operator-=(const SafeUint_t<Size>& other) {
-      check();
-      markAsUsed();
-      if (*valuePtr_ < other.get())
-      {
-        throw std::underflow_error("Underflow in subtraction assignment operation.");
-      }
-      *valuePtr_ -= other.get();
-      return *this;
+      if (this->value_ < other.value_) throw std::underflow_error("Underflow in subtraction assignment operation.");
+      markAsUsed(); this->value_ -= other.value_; return *this;
     }
-
-    /**
-     * Subtraction assignment operator.
-     * @param other The uint_t to subtract.
-     * @throw std::underflow_error if an underflow happens.
-     * @return A reference to this SafeUint_t.
-     */
     inline SafeUint_t<Size>& operator-=(const uint_t& other) {
-      check();
-      markAsUsed();
-      if (*valuePtr_ < other)
-      {
-        throw std::underflow_error("Underflow in subtraction assignment operation.");
-      }
-      *valuePtr_ -= other;
-      return *this;
+      if (this->value_ < other) throw std::underflow_error("Underflow in subtraction assignment operation.");
+      markAsUsed(); this->value_ -= other; return *this;
     }
-
-    /**
-     * Subtraction assignment operator.
-     * @param other The uint64_t to subtract.
-     * @throw std::underflow_error if an underflow happens.
-     * @return A reference to this SafeUint_t.
-     */
-    template<typename T = uint_t>
-      inline typename std::enable_if<!std::is_same<T, uint64_t>::value, SafeUint_t<Size>&>::type
-      operator-=(const uint64_t& other) {
-        check();
-        markAsUsed();
-        if (*valuePtr_ < other)
-        {
-          throw std::underflow_error("Underflow in subtraction assignment operation.");
-        }
-        *valuePtr_ -= other;
-        return *this;
-      }
-
-    /**
-     * Subtraction assignment operator.
-     * @param other The int to subtract.
-     * @throw std::underflow_error if an underflow happens.
-     * @throw std::invalid_argument if other is negative.
-     * @return A reference to this SafeUint_t.
-     */
     inline SafeUint_t<Size>& operator-=(const int& other) {
-      check();
-      markAsUsed();
-      if (other < 0) {
-        throw std::invalid_argument("Cannot subtract a negative value.");
+      // See operator+.
+      auto tmp = static_cast<int256_t>(this->value_);
+      tmp -= other;
+      if (tmp < 0) {
+        throw std::underflow_error("Underflow in addition assignment operation.");
+      } else if (tmp > static_cast<int256_t>(std::numeric_limits<uint_t>::max())) {
+        throw std::overflow_error("Overflow in addition assignment operation.");
       }
-      auto other_uint = static_cast<uint_t>(other);
-      if (*valuePtr_ < other_uint)
-      {
-        throw std::underflow_error("Underflow in subtraction assignment operation.");
-      }
-      *valuePtr_ -= other_uint;
-      return *this;
+      markAsUsed(); this->value_ = static_cast<uint_t>(tmp); return *this;
     }
+    ///@}
 
+    ///@{
     /**
      * Multiplication assignment operator.
-     * @param other The SafeUint_t to multiply.
-     * @throw std::overflow_error if an overflow happens.
-     * @throw std::domain_error if the other value is zero.
+     * @param other The integer to multiply.
      * @return A reference to this SafeUint_t.
+     * @throw std::domain_error if the other value is zero.
+     * @throw std::overflow_error if an overflow happens.
+     * @throw std::underflow_error if an underflow happens (for signed values).
      */
     inline SafeUint_t<Size>& operator*=(const SafeUint_t<Size>& other) {
-      check();
-      markAsUsed();
-      if (other.get() == 0 || *valuePtr_ == 0) throw std::domain_error("Multiplication assignment by zero");
-      if (*valuePtr_ > std::numeric_limits<uint_t>::max() / other.get()) {
+      if (other.value_ == 0 || this->value_ == 0) throw std::domain_error("Multiplication assignment by zero");
+      if (this->value_ > std::numeric_limits<uint_t>::max() / other.value_) {
         throw std::overflow_error("Overflow in multiplication assignment operation.");
       }
-      *valuePtr_ *= other.get();
-      return *this;
+      markAsUsed(); this->value_ *= other.value_; return *this;
     }
-
-    /**
-     * Multiplication assignment operator.
-     * @param other The uint_t to multiply.
-     * @throw std::overflow_error if an overflow happens.
-     * @throw std::domain_error if the other value is zero.
-     * @return A reference to this SafeUint_t.
-     */
     inline SafeUint_t<Size>& operator*=(const uint_t& other) {
-      check();
-      markAsUsed();
-      if (other == 0 || *valuePtr_ == 0) throw std::domain_error("Multiplication assignment by zero");
-      if (*valuePtr_ > std::numeric_limits<uint_t>::max() / other) {
+      if (other == 0 || this->value_ == 0) throw std::domain_error("Multiplication assignment by zero");
+      if (this->value_ > std::numeric_limits<uint_t>::max() / other) {
         throw std::overflow_error("Overflow in multiplication assignment operation.");
       }
-      *valuePtr_ *= other;
-      return *this;
+      markAsUsed(); this->value_ *= other; return *this;
     }
-
-    /**
-     * Multiplication assignment operator.
-     * @param other The int to multiply.
-     * @throw std::overflow_error if an overflow happens.
-     * @throw std::domain_error if the other value is zero or negative.
-     * @return A reference to this SafeUint_t.
-     */
     inline SafeUint_t<Size>& operator*=(const int& other) {
-      check();
-      markAsUsed();
+      if (other == 0 || this->value_ == 0) throw std::domain_error("Multiplication assignment by zero");
       if (other < 0) {
-        throw std::invalid_argument("Cannot multiply by a negative value.");
+        throw std::underflow_error("Underflow in multiplication assignment operation.");
+      } else {
+        if (this->value_ > std::numeric_limits<uint_t>::max() / other) {
+          throw std::overflow_error("Overflow in multiplication assignment operation.");
+        }
       }
-      if (other == 0 || *valuePtr_ == 0) {
-        throw std::domain_error("Multiplication assignment by zero");
-      }
-      auto other_uint = static_cast<uint_t>(other);
-      if (*valuePtr_ > std::numeric_limits<uint_t>::max() / other_uint)
-      {
-        throw std::overflow_error("Overflow in multiplication assignment operation.");
-      }
-      *valuePtr_ *= other_uint;
-      return *this;
+      markAsUsed(); this->value_ *= other; return *this;
     }
+    ///@}
 
-
+    ///@{
     /**
      * Division assignment operator.
-     * @param other The SafeUint_t to divide.
-     * @throw std::domain_error if the other value is zero.
+     * @param other The integer to divide.
      * @return A reference to this SafeUint_t.
+     * @throw std::domain_error if the other value is zero or a negative number.
      */
     inline SafeUint_t<Size>& operator/=(const SafeUint_t<Size>& other) {
-      check();
-      markAsUsed();
-      if (*valuePtr_ == 0 || other.get() == 0) throw std::domain_error("Division assignment by zero");
-      *valuePtr_ /= other.get();
-      return *this;
+      if (this->value_ == 0 || other.value_ == 0) throw std::domain_error("Division assignment by zero");
+      markAsUsed(); this->value_ /= other.value_; return *this;
     }
-
-    /**
-     * Division assignment operator.
-     * @param other The uint_t to divide.
-     * @throw std::domain_error if the other value is zero.
-     * @return A reference to this SafeUint_t.
-     */
     inline SafeUint_t<Size>& operator/=(const uint_t& other) {
-      check();
-      markAsUsed();
-      if (*valuePtr_ == 0 || other == 0) throw std::domain_error("Division assignment by zero");
-      *valuePtr_ /= other;
-      return *this;
+      if (this->value_ == 0 || other == 0) throw std::domain_error("Division assignment by zero");
+      markAsUsed(); this->value_ /= other; return *this;
     }
-
-    /**
-     * Division assignment operator.
-     * @param other The uint64_t to divide.
-     * @throw std::domain_error if the other value is zero.
-     * @return A reference to this SafeUint_t.
-     */
-    template<typename T = uint_t>
-      inline typename std::enable_if<!std::is_same<T, uint64_t>::value, SafeUint_t<Size>&>::type
-      operator/=(const uint64_t& other) {
-        check();
-        markAsUsed();
-        if (*valuePtr_ == 0 || other == 0) throw std::domain_error("Division assignment by zero");
-        *valuePtr_ /= other;
-        return *this;
-      }
-
-    /**
-     * Division assignment operator.
-     * @param other The int to divide by.
-     * @throw std::domain_error if the other value is zero or negative.
-     * @return A reference to this SafeUint_t.
-     */
     inline SafeUint_t<Size>& operator/=(const int& other) {
-      check();
-      markAsUsed();
-      if (other <= 0) {
-        throw std::invalid_argument("Cannot divide by a non-positive value.");
-      }
-      if (*valuePtr_ == 0) {
-        throw std::domain_error("Division assignment by zero");
-      }
-      auto other_uint = static_cast<uint_t>(other);
-      *valuePtr_ /= other_uint;
-      return *this;
+      if (other == 0) throw std::domain_error("Division assignment by zero");
+      // Division by a negative number results in a negative result, which cannot be represented in an unsigned integer.
+      if (other < 0) throw std::domain_error("Division assignment by a negative number");
+      markAsUsed(); this->value_ /= other; return *this;
     }
+    ///@}
 
-
+    ///@{
     /**
      * Modulus assignment operator.
-     * @param other The SafeUint_t to divide.
-     * @throw std::domain_error if the other value is zero.
+     * @param other The integer to take the modulus of.
      * @return A reference to this SafeUint_t.
+     * @throw std::domain_error if the other value is zero.
      */
     inline SafeUint_t<Size>& operator%=(const SafeUint_t<Size>& other) {
-      check();
-      markAsUsed();
-      if (*valuePtr_ == 0 || other.get() == 0) throw std::domain_error("Modulus assignment by zero");
-      *valuePtr_ %= other.get();
-      return *this;
+      if (this->value_ == 0 || other.value_ == 0) throw std::domain_error("Modulus assignment by zero");
+      markAsUsed(); this->value_ %= other.value_; return *this;
     }
-
-    /**
-     * Modulus assignment operator.
-     * @param other The uint_t to divide.
-     * @throw std::domain_error if the other value is zero.
-     * @return A reference to this SafeUint_t.
-     */
     inline SafeUint_t<Size>& operator%=(const uint_t& other) {
-      check();
-      markAsUsed();
-      if (*valuePtr_ == 0 || other == 0) throw std::domain_error("Modulus assignment by zero");
-      *valuePtr_ %= other;
-      return *this;
+      if (this->value_ == 0 || other == 0) throw std::domain_error("Modulus assignment by zero");
+      markAsUsed(); this->value_ %= other; return *this;
     }
-
-    /**
-     * Modulus assignment operator.
-     * @param other The uint64_t to divide.
-     * @throw std::domain_error if the other value is zero.
-     * @return A reference to this SafeUint_t.
-     */
-    template<typename T = uint_t>
-      inline typename std::enable_if<!std::is_same<T, uint64_t>::value, SafeUint_t<Size>&>::type
-      operator%=(const uint64_t& other) {
-        check();
-        markAsUsed();
-        if (*valuePtr_ == 0 || other == 0) throw std::domain_error("Modulus assignment by zero");
-        *valuePtr_ %= other;
-        return *this;
-      }
-
-    /**
-     * Modulus assignment operator.
-     * @param other The int to divide by.
-     * @throw std::domain_error if the other value is zero or negative.
-     * @return A reference to this SafeUint_t.
-     */
     inline SafeUint_t<Size>& operator%=(const int& other) {
-      check();
-      markAsUsed();
-      if (other <= 0) {
-        throw std::invalid_argument("Cannot modulus by a non-positive value.");
-      }
-      if (*valuePtr_ == 0) {
-        throw std::domain_error("Modulus assignment by zero");
-      }
-      auto other_uint = static_cast<uint_t>(other);
-      *valuePtr_ %= other_uint;
-      return *this;
+      if (this->value_ == 0 || other == 0) throw std::domain_error("Modulus assignment by zero");
+      markAsUsed(); this->value_ %= other; return *this;
     }
+    ///@}
 
-
+    ///@{
     /**
      * Bitwise AND assignment operator.
-     * @param other The SafeUint_t to AND.
+     * @param other The integer to apply AND.
      * @return A reference to this SafeUint_t.
+     * @throw std::domain_error if the other value is negative.
      */
     inline SafeUint_t<Size>& operator&=(const SafeUint_t<Size>& other) {
-      check();
-      markAsUsed();
-      *valuePtr_ &= other.get();
-      return *this;
+      markAsUsed(); this->value_ &= other.value_; return *this;
     }
-
-    /**
-     * Bitwise AND assignment operator.
-     * @param other The uint_t to AND.
-     * @return A reference to this SafeUint_t.
-     */
-    template<typename T = uint_t>
-      inline typename std::enable_if<!std::is_same<T, uint64_t>::value, SafeUint_t<Size>&>::type
-      operator&=(const uint_t& other) {
-        check();
-        markAsUsed();
-        *valuePtr_ &= other;
-        return *this;
-      }
-
-    /**
-     * Bitwise AND assignment operator.
-     * @param other The uint64_t to AND.
-     * @return A reference to this SafeUint_t.
-     */
-    inline SafeUint_t<Size>& operator&=(const uint64_t& other) {
-      check();
-      markAsUsed();
-      *valuePtr_ &= other;
-      return *this;
+    inline SafeUint_t<Size>& operator&=(const uint_t& other) {
+      markAsUsed(); this->value_ &= other; return *this;
     }
-
-    /**
-     * Bitwise AND assignment operator.
-     * @param other The int to AND with.
-     * @throw std::invalid_argument if the other value is negative.
-     * @return A reference to this SafeUint_t.
-     */
     inline SafeUint_t<Size>& operator&=(const int& other) {
-      check();
-      markAsUsed();
-      if (other < 0) {
-        throw std::invalid_argument("Cannot perform bitwise operation with a negative value.");
-      }
-      auto other_uint = static_cast<uint_t>(other);
-      *valuePtr_ &= other_uint;
-      return *this;
+      if (other < 0) throw std::domain_error("Bitwise AND assignment with a negative value");
+      markAsUsed(); this->value_ &= other; return *this;
     }
+    ///@}
 
-
+    ///@{
     /**
      * Bitwise OR assignment operator.
-     * @param other The SafeUint_t to OR.
+     * @param other The integer to apply OR.
      * @return A reference to this SafeUint_t.
+     * @throw std::domain_error if the other value is negative.
      */
     inline SafeUint_t<Size>& operator|=(const SafeUint_t<Size>& other) {
-      check();
-      markAsUsed();
-      *valuePtr_ |= other.get();
-      return *this;
+      markAsUsed(); this->value_ |= other.value_; return *this;
     }
-
-    /**
-     * Bitwise OR assignment operator.
-     * @param other The uint_t to OR.
-     * @return A reference to this SafeUint_t.
-     */
-    template<typename T = uint_t>
-      inline typename std::enable_if<!std::is_same<T, uint64_t>::value, SafeUint_t<Size>&>::type
-      operator|=(const uint_t& other) {
-        check();
-        markAsUsed();
-        *valuePtr_ |= other;
-        return *this;
-      }
-
-    /**
-     * Bitwise OR assignment operator.
-     * @param other The uint64_t to OR.
-     * @return A reference to this SafeUint_t.
-     */
-    inline SafeUint_t<Size>& operator|=(const uint64_t& other) {
-      check();
-      markAsUsed();
-      *valuePtr_ |= other;
-      return *this;
+    inline SafeUint_t<Size>& operator|=(const uint_t& other) {
+      markAsUsed(); this->value_ |= other; return *this;
     }
-
-    /**
-     * Bitwise OR assignment operator.
-     * @param other The int to OR with.
-     * @throw std::invalid_argument if the other value is negative.
-     * @return A reference to this SafeUint_t.
-     */
     inline SafeUint_t<Size>& operator|=(const int& other) {
-      check();
-      markAsUsed();
-      if (other < 0) {
-        throw std::invalid_argument("Cannot perform bitwise operation with a negative value.");
-      }
-      auto other_uint = static_cast<uint_t>(other);
-      *valuePtr_ |= other_uint;
-      return *this;
+      if (other < 0) throw std::domain_error("Bitwise OR assignment with a negative value");
+      markAsUsed(); this->value_ |= other; return *this;
     }
+    ///@}
 
+    ///@{
     /**
      * Bitwise XOR assignment operator.
-     * @param other The SafeUint_t to XOR.
+     * @param other The integer to apply XOR.
      * @return A reference to this SafeUint_t.
+     * @throw std::domain_error if the other value is negative.
      */
     inline SafeUint_t<Size>& operator^=(const SafeUint_t<Size>& other) {
-      check();
-      markAsUsed();
-      *valuePtr_ ^= other.get();
-      return *this;
+      markAsUsed(); this->value_ ^= other.value_; return *this;
     }
-
-    /**
-     * Bitwise XOR assignment operator.
-     * @param other The uint_t to XOR.
-     * @return A reference to this SafeUint_t.
-     */
-    template<typename T = uint_t>
-      inline typename std::enable_if<!std::is_same<T, uint64_t>::value, SafeUint_t<Size>&>::type
-      operator^=(const uint_t& other) {
-        check();
-        markAsUsed();
-        *valuePtr_ ^= other;
-        return *this;
-      }
-
-    /**
-     * Bitwise XOR assignment operator.
-     * @param other The uint64_t to XOR.
-     * @return A reference to this SafeUint_t.
-     */
-    inline SafeUint_t<Size>& operator^=(const uint64_t& other) {
-      check();
-      markAsUsed();
-      *valuePtr_ ^= other;
-      return *this;
+    inline SafeUint_t<Size>& operator^=(const uint_t& other) {
+      markAsUsed(); this->value_ ^= other; return *this;
     }
-
-    /**
-     * Bitwise XOR assignment operator.
-     * @param other The int to XOR with.
-     * @throw std::invalid_argument if the other value is negative.
-     * @return A reference to this SafeUint_t.
-     */
     inline SafeUint_t<Size>& operator^=(const int& other) {
-      check();
-      markAsUsed();
-      if (other < 0) {
-        throw std::invalid_argument("Cannot perform bitwise operation with a negative value.");
-      }
-      auto other_uint = static_cast<uint_t>(other);
-      *valuePtr_ ^= other_uint;
-      return *this;
+      if (other < 0) throw std::domain_error("Bitwise XOR assignment with a negative value.");
+      markAsUsed(); this->value_ ^= other; return *this;
     }
+    ///@}
 
     /**
      * Left shift assignment operator.
-     * @param other The SafeUint_t to shift.
+     * @param other The integer to shift.
      * @return A reference to this SafeUint_t.
      */
-    inline SafeUint_t<Size>& operator<<=(const SafeUint_t<Size>& other) {
-      check();
-      markAsUsed();
-      *valuePtr_ <<= other.get();
-      return *this;
-    }
-
-    /**
-     * Left shift assignment operator.
-     * @param other The uint_t to shift.
-     * @return A reference to this SafeUint_t.
-     */
-    template<typename T = uint_t>
-      inline typename std::enable_if<!std::is_same<T, uint64_t>::value, SafeUint_t<Size>&>::type
-      operator<<=(const uint_t& other) {
-        check();
-        markAsUsed();
-        *valuePtr_ <<= other;
-        return *this;
-      }
-
-    /**
-     * Left shift assignment operator.
-     * @param other The uint64_t to shift.
-     * @return A reference to this SafeUint_t.
-     */
-    inline SafeUint_t<Size>& operator<<=(const uint64_t& other) {
-      check();
-      markAsUsed();
-      *valuePtr_ <<= other;
-      return *this;
-    }
-
-    /**
-     * Left shift assignment operator.
-     * @param other The int to shift by.
-     * @throw std::invalid_argument if the other value is negative.
-     * @return A reference to this SafeUint_t.
-     */
-    inline SafeUint_t<Size>& operator<<=(const int& other) {
-      check();
-      markAsUsed();
-      if (other < 0) {
-        throw std::invalid_argument("Cannot perform bitwise operation with a negative value.");
-      }
-      auto other_uint = static_cast<uint_t>(other);
-      *valuePtr_ <<= other_uint;
-      return *this;
+    inline SafeUint_t<Size>& operator<<=(const uint8_t& other) {
+      markAsUsed(); this->value_ <<= other; return *this;
     }
 
     /**
      * Right shift assignment operator.
-     * @param other The SafeUint_t to shift.
+     * @param other The integer to shift.
      * @return A reference to this SafeUint_t.
      */
-    inline SafeUint_t<Size>& operator>>=(const SafeUint_t<Size>& other) {
-      check();
-      markAsUsed();
-      *valuePtr_ >>= other.get();
-      return *this;
+    inline SafeUint_t<Size>& operator>>=(const uint8_t& other) {
+      markAsUsed(); this->value_ >>= other; return *this;
     }
-
-    /**
-     * Right shift assignment operator.
-     * @param other The uint_t to shift.
-     * @return A reference to this SafeUint_t.
-     */
-    inline SafeUint_t<Size>& operator>>=(const uint_t& other) {
-      check();
-      markAsUsed();
-      *valuePtr_ >>= other;
-      return *this;
-    }
-
-    /**
-     * Right shift assignment operator.
-     * @param other The uint64_t to shift.
-     * @return A reference to this SafeUint_t.
-     */
-    template<typename T = uint_t>
-      inline typename std::enable_if<!std::is_same<T, uint64_t>::value, SafeUint_t<Size>&>::type
-      operator>>=(const uint64_t& other) {
-        check();
-        markAsUsed();
-        *valuePtr_ >>= other;
-        return *this;
-      }
-
-    /**
-     * Right shift assignment operator.
-     * @param other The int to shift by.
-     * @throw std::invalid_argument if the other value is negative.
-     * @return A reference to this SafeUint_t.
-     */
-    inline SafeUint_t<Size>& operator>>=(const int& other) {
-      check();
-      markAsUsed();
-      if (other < 0) {
-        throw std::invalid_argument("Cannot perform bitwise operation with a negative value.");
-      }
-      auto other_uint = static_cast<uint_t>(other);
-      *valuePtr_ >>= other_uint;
-      return *this;
-    }
-
-    // =================================
-    // Increment and decrement operators
-    // =================================
 
     /**
      * Prefix increment operator.
@@ -1599,14 +659,10 @@ template <int Size> class SafeUint_t : public SafeBase {
      * @return A reference to this SafeUint_t.
      */
     inline SafeUint_t<Size>& operator++() {
-      check();
-      markAsUsed();
-      if (*valuePtr_ == std::numeric_limits<uint_t>::max())
-      {
+      if (this->value_ == std::numeric_limits<uint_t>::max()) {
         throw std::overflow_error("Overflow in prefix increment operation.");
       }
-      ++(*valuePtr_);
-      return *this;
+      markAsUsed(); ++(this->value_); return *this;
     }
 
     /**
@@ -1615,15 +671,11 @@ template <int Size> class SafeUint_t : public SafeBase {
      * @return A new SafeUint_t with the value before the increment.
      */
     inline SafeUint_t<Size> operator++(int) {
-      check();
-      markAsUsed();
-      if (*valuePtr_ == std::numeric_limits<uint_t>::max())
-      {
+      if (this->value_ == std::numeric_limits<uint_t>::max()) {
         throw std::overflow_error("Overflow in postfix increment operation.");
       }
-      SafeUint_t<Size> tmp(*valuePtr_);
-      ++(*valuePtr_);
-      return tmp;
+      SafeUint_t<Size> tmp(this->value_);
+      markAsUsed(); ++(this->value_); return tmp;
     }
 
     /**
@@ -1632,14 +684,8 @@ template <int Size> class SafeUint_t : public SafeBase {
      * @return A reference to this SafeUint_t.
      */
     inline SafeUint_t<Size>& operator--() {
-      check();
-      markAsUsed();
-      if (*valuePtr_ == 0)
-      {
-        throw std::underflow_error("Underflow in prefix decrement operation.");
-      }
-      --(*valuePtr_);
-      return *this;
+      if (this->value_ == 0) throw std::underflow_error("Underflow in prefix decrement operation.");
+      markAsUsed(); --(this->value_); return *this;
     }
 
     /**
@@ -1648,16 +694,53 @@ template <int Size> class SafeUint_t : public SafeBase {
      * @return A new SafeUint_t with the value before the decrement.
      */
     inline SafeUint_t<Size> operator--(int) {
-      check();
-      markAsUsed();
-      if (*valuePtr_ == 0)
-      {
-        throw std::underflow_error("Underflow in postfix decrement operation.");
-      }
-      SafeUint_t<Size> tmp(*valuePtr_);
-      --(*valuePtr_);
-      return tmp;
+      if (this->value_ == 0) throw std::underflow_error("Underflow in postfix decrement operation.");
+      SafeUint_t<Size> tmp(this->value_);
+      markAsUsed(); --(this->value_); return tmp;
+    }
+
+    /// Commit the value.
+    inline void commit() override { this->copy_ = this->value_; this->registered_ = false; }
+
+    /// Revert the value.
+    inline void revert() override {
+      this->value_ = this->copy_;
+      this->registered_ = false;
     }
 };
+
+// Aliases for SafeUint
+using SafeUint8_t = SafeUint_t<8>;
+using SafeUint16_t = SafeUint_t<16>;
+using SafeUint24_t = SafeUint_t<24>;
+using SafeUint32_t = SafeUint_t<32>;
+using SafeUint40_t = SafeUint_t<40>;
+using SafeUint48_t = SafeUint_t<48>;
+using SafeUint56_t = SafeUint_t<56>;
+using SafeUint64_t = SafeUint_t<64>;
+using SafeUint72_t = SafeUint_t<72>;
+using SafeUint80_t = SafeUint_t<80>;
+using SafeUint88_t = SafeUint_t<88>;
+using SafeUint96_t = SafeUint_t<96>;
+using SafeUint104_t = SafeUint_t<104>;
+using SafeUint112_t = SafeUint_t<112>;
+using SafeUint120_t = SafeUint_t<120>;
+using SafeUint128_t = SafeUint_t<128>;
+using SafeUint136_t = SafeUint_t<136>;
+using SafeUint144_t = SafeUint_t<144>;
+using SafeUint152_t = SafeUint_t<152>;
+using SafeUint160_t = SafeUint_t<160>;
+using SafeUint168_t = SafeUint_t<168>;
+using SafeUint176_t = SafeUint_t<176>;
+using SafeUint184_t = SafeUint_t<184>;
+using SafeUint192_t = SafeUint_t<192>;
+using SafeUint200_t = SafeUint_t<200>;
+using SafeUint208_t = SafeUint_t<208>;
+using SafeUint216_t = SafeUint_t<216>;
+using SafeUint224_t = SafeUint_t<224>;
+using SafeUint232_t = SafeUint_t<232>;
+using SafeUint240_t = SafeUint_t<240>;
+using SafeUint248_t = SafeUint_t<248>;
+using SafeUint256_t = SafeUint_t<256>;
 
 #endif // SAFEUINT_T_H

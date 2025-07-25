@@ -1,5 +1,5 @@
 /*
-Copyright (c) [2023-2024] [Sparq Network]
+Copyright (c) [2023-2024] [AppLayer Developers]
 
 This software is distributed under the MIT License.
 See the LICENSE.txt file in the project root for more information.
@@ -8,194 +8,109 @@ See the LICENSE.txt file in the project root for more information.
 #ifndef STORAGE_H
 #define STORAGE_H
 
-#include <shared_mutex>
-
-#include "../utils/block.h"
 #include "../utils/db.h"
-#include "../utils/ecdsa.h"
-#include "../utils/randomgen.h"
-#include "../utils/safehash.h"
-#include "../utils/utils.h"
+#include "../utils/eventsdb.h"
+#include "../utils/randomgen.h" // utils.h
+#include "../utils/safehash.h" // tx.h -> ecdsa.h -> utils.h -> bytes/join.h, strings.h -> libs/zpp_bits.h
 #include "../utils/options.h"
 
-/// Enum for the status of a block or transaction inside the storage.
-enum StorageStatus { NotFound, OnChain, OnCache, OnDB };
+#include "../contract/calltracer.h"
+#include "../contract/event.h"
 
 /**
  * Abstraction of the blockchain history.
  * Used to store blocks in memory and on disk, and helps the State process
  * new blocks, transactions and RPC queries.
- * TODO: Improve const correctness.
- * Possible replace `std::shared_ptr<const Block>` with a better solution.
  */
-class Storage {
+class Storage : public Log::LogicalLocationProvider {
+  // TODO: possibly replace `std::shared_ptr<const Block>` with a better solution.
   private:
-    /// Pointer to the database that contains the blockchain's entire history.
-    const std::unique_ptr<DB>& db_;
+    std::atomic<std::shared_ptr<const FinalizedBlock>> latest_; ///< Pointer to the latest block in the blockchain.
+    DB blocksDb_;  ///< Database object that contains all the blockchain blocks
+    EventsDB eventsDb_; ///< DB exclusive to events
+    const Options& options_;  ///< Reference to the options singleton.
+    const std::string instanceIdStr_; ///< Identifier for logging
 
-    /// Pointer to the options singleton.
-    const std::unique_ptr<Options>& options_;
-
-    /**
-     * The recent blockchain history, up to the 1000 most recent blocks,
-     * or 1M transactions, whichever comes first.
-     * This limit is required because it would be too expensive to keep
-     * every single transaction in memory all the time, so once it reaches
-     * the limit, or every now and then, the blocks are dumped to the database.
-     * This keeps the blockchain lightweight in memory and extremely responsive.
-     * Older blocks always at FRONT, newer blocks always at BACK.
-     */
-    std::deque<std::shared_ptr<const Block>> chain_;
-
-    /// Map that indexes blocks in memory by their respective hashes.
-    std::unordered_map<Hash, const std::shared_ptr<const Block>, SafeHash> blockByHash_;
-
-    /// Map that indexes Tx, blockHash, blockIndex and blockHeight by their respective hashes
-    std::unordered_map<Hash, const std::tuple<const Hash,const uint64_t,const uint64_t>, SafeHash> txByHash_;
-
-    /// Map that indexes all block heights in the chain by their respective hashes.
-    std::unordered_map<Hash, const uint64_t, SafeHash> blockHeightByHash_;
-
-    /// Map that indexes all block hashes in the chain by their respective heights.
-    std::unordered_map<uint64_t, const Hash, SafeHash> blockHashByHeight_;
-
-    /// Cache space for blocks that will be included in the blockchain.
-    mutable std::unordered_map<Hash, const std::shared_ptr<const Block>, SafeHash> cachedBlocks_;
-
-    /// Cache space for transactions that will be included in the blockchain (tx, txBlockHash, txBlockIndex, txBlockHeight).
-    mutable std::unordered_map<Hash,
-      const std::tuple<const std::shared_ptr<const TxBlock>, const Hash, const uint64_t, const uint64_t>,
-    SafeHash> cachedTxs_;
-
-    /// Mutex for managing read/write access to the blockchain.
-    mutable std::shared_mutex chainLock_;
-
-    /// Mutex to manage read/write access to the cache.
-    mutable std::shared_mutex cacheLock_;
-
-    /// Thread that periodically saves the blockchain history to the database.
-    std::thread periodicSaveThread_;
-
-    /// Cooldown for the periodic save thread, in seconds.
-    uint64_t periodicSaveCooldown_ = 15;
-
-    /// Flag for stopping the periodic save thread, if required.
-    bool stopPeriodicSave_ = false;
+    void initializeBlockchain(); ///< Initialize the blockchain.
 
     /**
-     * Add a block to the end of the chain.
-     * Only call this function directly if absolutely sure that `chainLock_` is locked.
-     * @param block The block to add.
-     * @throw std::runtime_error on incorrect previous hash or height.
-     */
-    void pushBackInternal(Block&& block);
-
-    /**
-     * Add a block to the start of the chain.
-     * Only call this function directly if absolutely sure that `chainLock_` is locked.
-     * @param block The block to add.
-     * @throw std::runtime_error on incorrect previous hash or height.
-     */
-    void pushFrontInternal(Block&& block);
-
-    /**
-     * Initializes the blockchain the first time the blockchain binary is booted.
-     * Called by the constructor. Will only populate information related to
-     * the class, such as genesis and mappings.
-     */
-    void initializeBlockchain();
-
-    /**
-     * Parse a given transaction from a serialized block data string.
-     * Used to get only a specific transaction from a block.
-     * @param blockData The serialized block data string.
+     * Get a transaction from a block based on a given transaction index.
+     * @param blockData The raw block string.
      * @param txIndex The index of the transaction to get.
-     * @return The transaction itself.
      */
-    const TxBlock getTxFromBlockWithIndex(const BytesArrView blockData, const uint64_t& txIndex) const;
+    TxBlock getTxFromBlockWithIndex(View<Bytes> blockData, uint64_t txIndex) const;
 
   public:
     /**
      * Constructor. Automatically loads the chain from the database
      * and starts the periodic save thread.
-     * @param db Pointer to the database.
-     * @param options Pointer to the options singleton.
+     * @param instanceIdStr Instance ID string to use for logging.
+     * @param options Reference to the options singleton.
      */
-    Storage(const std::unique_ptr<DB>& db, const std::unique_ptr<Options>& options);
+    Storage(std::string instanceIdStr, const Options& options);
 
-    /**
-     * Destructor.
-     * Automatically saves the chain to the database.
-     */
-    ~Storage();
+    /// Log instance (provided in ctor).
+    std::string getLogicalLocation() const override { return instanceIdStr_; }
 
     /// Wrapper for `pushBackInternal()`. Use this as it properly locks `chainLock_`.
-    void pushBack(Block&& block);
-
-    /// Wrapper for `pushFrontInternal()`. Use this as it properly locks `chainLock_`.
-    void pushFront(Block&& block);
-
-    /// Remove a block from the end of the chain.
-    void popBack();
-
-    /// Remove a block from the start of the chain.
-    void popFront();
+    void pushBlock(FinalizedBlock block);
 
     /**
      * Check if a block exists anywhere in storage (memory/chain, then cache, then database).
+     * Locks `chainLock_` and `cacheLock_`, to be used by external actors.
      * @param hash The block hash to search.
-     * @return An enum telling where the block is.
+     * @return `true` if the block exists, `false` otherwise.
      */
-    StorageStatus blockExists(const Hash& hash);
+    bool blockExists(const Hash& hash) const;
 
     /**
      * Overload of blockExists() that works with block height instead of hash.
      * @param height The block height to search.
-     * @return An enum telling where the block is.
+     * @return `true` if the block exists, `false` otherwise.
      */
-    StorageStatus blockExists(const uint64_t& height);
+    bool blockExists(uint64_t height) const;
 
     /**
      * Get a block from the chain using a given hash.
      * @param hash The block hash to get.
      * @return A pointer to the found block, or `nullptr` if block is not found.
      */
-    const std::shared_ptr<const Block> getBlock(const Hash& hash);
+    std::shared_ptr<const FinalizedBlock> getBlock(const Hash& hash) const;
 
     /**
      * Get a block from the chain using a given height.
      * @param height The block height to get.
      * @return A pointer to the found block, or `nullptr` if block is not found.
      */
-    const std::shared_ptr<const Block> getBlock(const uint64_t& height);
+    std::shared_ptr<const FinalizedBlock> getBlock(uint64_t height) const;
 
     /**
      * Check if a transaction exists anywhere in storage (memory/chain, then cache, then database).
      * @param tx The transaction to check.
-     * @return An enum telling where the transaction is.
+     * @return Bool telling if the transaction exists.
      */
-    StorageStatus txExists(const Hash& tx);
+    bool txExists(const Hash& tx) const;
 
     /**
      * Get a transaction from the chain using a given hash.
      * @param tx The transaction hash to get.
      * @return A tuple with the found transaction, block hash, index and height.
-     * @throw std::runtime_error on hash mismatch.
+     * @throw DynamicException on hash mismatch.
      */
-    const std::tuple<
+    std::tuple<
       const std::shared_ptr<const TxBlock>, const Hash, const uint64_t, const uint64_t
-    > getTx(const Hash& tx);
+    > getTx(const Hash& tx) const;
 
     /**
      * Get a transaction from a block with a specific index.
      * @param blockHash The block hash
      * @param blockIndex the index within the block
      * @return A tuple with the found transaction, block hash, index and height.
-     * @throw std::runtime_error on hash mismatch.
+     * @throw DynamicException on hash mismatch.
      */
-    const std::tuple<
+    std::tuple<
       const std::shared_ptr<const TxBlock>, const Hash, const uint64_t, const uint64_t
-    > getTxByBlockHashAndIndex(const Hash& blockHash, const uint64_t blockIndex);
+    > getTxByBlockHashAndIndex(const Hash& blockHash, const uint64_t blockIndex) const;
 
     /**
      * Get a transaction from a block with a specific index.
@@ -203,24 +118,79 @@ class Storage {
      * @param blockIndex The index within the block.
      * @return A tuple with the found transaction, block hash, index and height.
      */
-    const std::tuple<
+    std::tuple<
       const std::shared_ptr<const TxBlock>, const Hash, const uint64_t, const uint64_t
-    > getTxByBlockNumberAndIndex(const uint64_t& blockHeight, const uint64_t blockIndex);
+    > getTxByBlockNumberAndIndex(uint64_t blockHeight, uint64_t blockIndex) const;
 
-    /**
-     * Get the most recently added block from the chain.
-     * @returns A pointer to the latest block.
-     */
-    const std::shared_ptr<const Block> latest();
+    /// Get the most recently added block from the chain.
+    std::shared_ptr<const FinalizedBlock> latest() const;
 
     /// Get the number of blocks currently in the chain (nHeight of latest block + 1).
-    uint64_t currentChainSize();
+    uint64_t currentChainSize() const;
 
-    /// Start the periodic save thread. TODO: this should be called by the constructor.
-    void periodicSaveToDB() const;
+    /**
+     * Stores additional transaction data
+     * @param txData The additional transaction data
+     */
+    void putTxAdditionalData(const TxAdditionalData& txData);
 
-    /// Stop the periodic save thread. TODO: this should be called by the destructor.
-    void stopPeriodicSaveToDB() { this->stopPeriodicSave_ = true; }
+    /**
+     * Retrieve the stored additional transaction data.
+     * @param txHash The target transaction hash.
+     * @return The transaction data if existent, or an empty optional otherwise.
+     */
+    std::optional<TxAdditionalData> getTxAdditionalData(const Hash& txHash) const;
+
+    /**
+     * Store a transaction call trace.
+     * @param txHash The transaction hash.
+     * @param callTrace The call trace of the transaction.
+     */
+    void putCallTrace(const Hash& txHash, const trace::Call& callTrace);
+
+    /**
+     * Retrieve the stored call trace of the target transaction.
+     * @param txHash The target transaction hash.
+     * @return The transation call trace if existent, or an empty optional otherwise.
+     */
+    std::optional<trace::Call> getCallTrace(const Hash& txHash) const;
+
+    
+    /**
+     * Reindex transactions to the DB
+     * if the transaction is not already indexed.
+     */
+    void reindexTransactions(const FinalizedBlock& block, DBBatch& batch);
+    
+    void dumpToDisk(DBBatch& batch);
+
+    EventsDB& events() { return eventsDb_; }
+
+    const EventsDB& events() const { return eventsDb_; }
+
+    std::vector<Event> getEventsLegacy(const DB& legacyEventsDB, uint64_t fromBlock, uint64_t toBlock, const Address& address, const std::vector<Hash>& topics) const;
+
+    /**
+     * Get the indexing mode of the storage.
+     * @returns The indexing mode of the storage.
+     */
+    inline IndexingMode getIndexingMode() const { return options_.getIndexingMode(); }
+
+    /**
+     * Helper function for checking if an event has certain topics.
+     * @param event The event to check.
+     * @param topics A list of topics to check for.
+     * @return `true` if all topics match (or if no topics were provided), `false` otherwise.
+     */
+    static bool topicsMatch(const Event& event, const std::vector<Hash>& topics);
+
+    /**
+     * Helper function for storing a block in the database.
+     * @param db Reference to the database.
+     * @param block The block to store.
+     * @param indexingEnabled Whether the node has indexing enabled or not.
+     */
+    static void storeBlock(DB& db, const FinalizedBlock& block, bool indexingEnabled);
 };
 
 #endif  // STORAGE_H

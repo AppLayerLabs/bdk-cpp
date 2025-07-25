@@ -1,5 +1,5 @@
 /*
-Copyright (c) [2023-2024] [Sparq Network]
+Copyright (c) [2023-2024] [AppLayer Developers]
 
 This software is distributed under the MIT License.
 See the LICENSE.txt file in the project root for more information.
@@ -11,7 +11,7 @@ See the LICENSE.txt file in the project root for more information.
 #include "../../../utils/utils.h"
 
 /// Forward Declaration.
-class ContractManagerInterface;
+class ContractHost;
 
 /// Namespace for common functions used in the DEXV2 contract.
 namespace DEXV2Library {
@@ -28,28 +28,28 @@ namespace DEXV2Library {
   /**
    * Returns the pair address for the given tokens.
    * Differently from solidity, we don't calculate the address, we ask the factory.
-   * The way addresses are derived within OrbiterSDK are completely different.
-   * @param interface The contract manager interface.
+   * Because we don't use CREATE2 Derivation method.
+   * @param host The contract host.
    * @param factory The factory address.
    * @param tokenA The address of tokenA.
    * @param tokenB The address of tokenB.
    * @return The pair address.
    */
   Address pairFor(
-    const ContractManagerInterface& interface, const Address& factory,
+    const ContractHost* host, const Address& factory,
     const Address& tokenA, const Address& tokenB
   );
 
   /**
    * Fetches and sorts the reserves for a pair.
-   * @param interface The contract manager interface.
+   * @param host The contract host.
    * @param factory The factory address.
    * @param tokenA The address of tokenA.
    * @param tokenB The address of tokenB.
    * @return The pair of reserves.
    */
   std::pair<uint256_t, uint256_t> getReserves(
-    const ContractManagerInterface& interface, const Address& factory,
+    const ContractHost* host, const Address& factory,
     const Address& tokenA, const Address& tokenB
   );
 
@@ -86,28 +86,28 @@ namespace DEXV2Library {
   /**
    * Performs a chained getAmountOut calculation on any number of pairs.
    * Solidity counterpart: function getAmountsOut(uint amountIn, address[] memory path) internal view returns (uint[] memory amounts)
-   * @param interface The contract manager interface.
+   * @param host The contract host.
    * @param factory The factory address.
    * @param amountIn The amount of assetIn.
    * @param path The path of the pairs.
    * @return The amount each iteration will return.
    */
   std::vector<uint256_t> getAmountsOut(
-    const ContractManagerInterface& interface, const Address& factory,
+    const ContractHost* host, const Address& factory,
     const uint256_t& amountIn, const std::vector<Address>& path
   );
 
   /**
    * Performs a chained getAmountIn calculation on any number of pairs.
    * Solidity counterpart: function getAmountsIn(uint amountOut, address[] memory path) internal view returns (uint[] memory amounts)
-   * @param interface The contract manager interface.
+   * @param host The contract host.
    * @param factory The factory address.
    * @param amountOut The amount of assetOut.
    * @param path The path of the pairs.
    * @return The amount each iteration will return.
    */
    std::vector<uint256_t> getAmountsIn(
-     const ContractManagerInterface& interface, const Address& factory,
+     const ContractHost* host, const Address& factory,
      const uint256_t& amountOut, const std::vector<Address>& path
    );
 }

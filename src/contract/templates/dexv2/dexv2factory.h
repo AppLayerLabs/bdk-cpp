@@ -1,5 +1,5 @@
 /*
-Copyright (c) [2023-2024] [Sparq Network]
+Copyright (c) [2023-2024] [AppLayer Developers]
 
 This software is distributed under the MIT License.
 See the LICENSE.txt file in the project root for more information.
@@ -8,7 +8,6 @@ See the LICENSE.txt file in the project root for more information.
 #ifndef DEXFACTORY_H
 #define DEXFACTORY_H
 
-#include "../../../utils/contractreflectioninterface.h"
 #include "../../../utils/db.h"
 #include "../../abi.h"
 #include "../../dynamiccontract.h"
@@ -31,7 +30,7 @@ class DEXV2Factory : public DynamicContract {
     SafeVector<Address> allPairs_;
 
     /// Solidity: mapping(address => mapping(address => address)) public getPair;
-    SafeUnorderedMap<Address, std::unordered_map<Address, Address, SafeHash>> getPair_;
+    SafeUnorderedMap<Address, boost::unordered_flat_map<Address, Address, SafeHash>> getPair_;
 
     /// Function for calling the register functions for contracts.
     void registerContractFunctions() override;
@@ -45,29 +44,21 @@ class DEXV2Factory : public DynamicContract {
 
     /**
      * Constructor for loading contract from DB.
-     * @param interface Reference to the contract manager interface.
      * @param address The address where the contract will be deployed.
      * @param db Reference to the database object.
      */
-    DEXV2Factory(
-      ContractManagerInterface& interface,
-      const Address& address, const std::unique_ptr<DB>& db
-    );
+    DEXV2Factory(const Address& address, const DB& db);
 
     /**
      * Constructor to be used when creating a new contract.
      * @param feeToSetter The address of the feeToSetter.
-     * @param interface Reference to the contract manager interface.
      * @param address The address where the contract will be deployed.
      * @param creator The address of the creator of the contract.
      * @param chainId The chain where the contract wil be deployed.
-     * @param db Reference to the database object.
      */
     DEXV2Factory(
       const Address& feeToSetter,
-      ContractManagerInterface &interface,
-      const Address &address, const Address &creator, const uint64_t &chainId,
-      const std::unique_ptr<DB> &db
+      const Address &address, const Address &creator, const uint64_t &chainId
     );
 
     // Destructor.
@@ -108,23 +99,24 @@ class DEXV2Factory : public DynamicContract {
 
     /// Register the contract functions to the ContractReflectionInterface.
     static void registerContract() {
-      ContractReflectionInterface::registerContractMethods<
-        DEXV2Factory, const Address&,  ContractManagerInterface &,
-        const Address &, const Address &, const uint64_t &,
-        const std::unique_ptr<DB> &
-      >(
-        std::vector<std::string>{"_feeToSetter"},
-        std::make_tuple("feeTo", &DEXV2Factory::feeTo, FunctionTypes::View, std::vector<std::string>{}),
-        std::make_tuple("feeToSetter", &DEXV2Factory::feeToSetter, FunctionTypes::View, std::vector<std::string>{}),
-        std::make_tuple("allPairs", &DEXV2Factory::allPairs, FunctionTypes::View, std::vector<std::string>{}),
-        std::make_tuple("allPairsLength", &DEXV2Factory::allPairsLength, FunctionTypes::View, std::vector<std::string>{}),
-        std::make_tuple("getPair", &DEXV2Factory::getPair, FunctionTypes::View, std::vector<std::string>{"token0", "token1"}),
-        std::make_tuple("getPairByIndex", &DEXV2Factory::getPairByIndex, FunctionTypes::View, std::vector<std::string>{"index"}),
-        std::make_tuple("createPair", &DEXV2Factory::createPair, FunctionTypes::NonPayable, std::vector<std::string>{"tokenA", "tokenB"}),
-        std::make_tuple("setFeeTo", &DEXV2Factory::setFeeTo, FunctionTypes::NonPayable, std::vector<std::string>{"_feeTo"}),
-        std::make_tuple("setFeeToSetter", &DEXV2Factory::setFeeToSetter, FunctionTypes::NonPayable, std::vector<std::string>{"_feeToSetter"})
-      );
+      static std::once_flag once;
+      std::call_once(once, []() {
+        DynamicContract::registerContractMethods<DEXV2Factory>(
+          std::vector<std::string>{"_feeToSetter"},
+          std::make_tuple("feeTo", &DEXV2Factory::feeTo, FunctionTypes::View, std::vector<std::string>{}),
+          std::make_tuple("feeToSetter", &DEXV2Factory::feeToSetter, FunctionTypes::View, std::vector<std::string>{}),
+          std::make_tuple("allPairs", &DEXV2Factory::allPairs, FunctionTypes::View, std::vector<std::string>{}),
+          std::make_tuple("allPairsLength", &DEXV2Factory::allPairsLength, FunctionTypes::View, std::vector<std::string>{}),
+          std::make_tuple("getPair", &DEXV2Factory::getPair, FunctionTypes::View, std::vector<std::string>{"token0", "token1"}),
+          std::make_tuple("getPairByIndex", &DEXV2Factory::getPairByIndex, FunctionTypes::View, std::vector<std::string>{"index"}),
+          std::make_tuple("createPair", &DEXV2Factory::createPair, FunctionTypes::NonPayable, std::vector<std::string>{"tokenA", "tokenB"}),
+          std::make_tuple("setFeeTo", &DEXV2Factory::setFeeTo, FunctionTypes::NonPayable, std::vector<std::string>{"_feeTo"}),
+          std::make_tuple("setFeeToSetter", &DEXV2Factory::setFeeToSetter, FunctionTypes::NonPayable, std::vector<std::string>{"_feeToSetter"})
+        );
+      });
     }
+  /// Dump method
+  DBBatch dump() const override;
 };
 
 #endif  // DEXFACTORY_H

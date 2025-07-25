@@ -1,5 +1,5 @@
 /*
-Copyright (c) [2023-2024] [Sparq Network]
+Copyright (c) [2023-2024] [AppLayer Developers]
 
 This software is distributed under the MIT License.
 See the LICENSE.txt file in the project root for more information.
@@ -8,23 +8,24 @@ See the LICENSE.txt file in the project root for more information.
 #ifndef HTTPSERVER_H
 #define HTTPSERVER_H
 
-#include "httpparser.h"
-#include "httplistener.h"
+#include "httplistener.h" // httpsession.h -> httpparser.h
+
+#include "../p2p/managernormal.h"
 
 /// Abstraction of an HTTP server.
-class HTTPServer {
+class HTTPServer : public Log::LogicalLocationProvider {
   private:
     /// Reference pointer to the blockchain's state.
-    const std::unique_ptr<State>& state_;
+    State& state_;
 
     /// Reference pointer to the blockchain's storage.
-    const std::unique_ptr<Storage>& storage_;
+    const Storage& storage_;
 
     /// Reference pointer to the P2P connection manager.
-    const std::unique_ptr<P2P::ManagerNormal>& p2p_;
+    P2P::ManagerNormal& p2p_;
 
     /// Reference pointer to the options singleton.
-    const std::unique_ptr<Options>& options_;
+    const Options& options_;
 
     /// Provides core I/O functionality ({x} = max threads the object can use).
     net::io_context ioc_{4};
@@ -50,10 +51,12 @@ class HTTPServer {
      * @param options Reference pointer to the options singleton.
      */
     HTTPServer(
-      const std::unique_ptr<State>& state, const std::unique_ptr<Storage>& storage,
-      const std::unique_ptr<P2P::ManagerNormal>& p2p, const std::unique_ptr<Options>& options
-    ) : state_(state), storage_(storage), p2p_(p2p), options_(options), port_(options->getHttpPort())
+      State& state, const Storage& storage,
+      P2P::ManagerNormal& p2p, const Options& options
+    ) : state_(state), storage_(storage), p2p_(p2p), options_(options), port_(options.getHttpPort())
     {}
+
+    std::string getLogicalLocation() const override; ///< Get log location from the P2P engine
 
     /**
      * Destructor.

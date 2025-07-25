@@ -1,5 +1,5 @@
 /*
-Copyright (c) [2023-2024] [Sparq Network]
+Copyright (c) [2023-2024] [AppLayer Developers]
 
 This software is distributed under the MIT License.
 See the LICENSE.txt file in the project root for more information.
@@ -31,17 +31,38 @@ Bytes ABI::Encoder::encodeInt(const int256_t& num) {
   return ret;
 }
 
-uint256_t ABI::Decoder::decodeUint(const BytesArrView &bytes, uint64_t &index) {
+uint256_t ABI::Decoder::decodeUint(const View<Bytes> &bytes, uint64_t &index) {
   if (index + 32 > bytes.size()) throw std::length_error("Data too short for uint256");
-  uint256_t result = Utils::bytesToUint256(bytes.subspan(index, 32));
+  uint256_t result = UintConv::bytesToUint256(bytes.subspan(index, 32));
   index += 32;
   return result;
 }
 
-int256_t ABI::Decoder::decodeInt(const BytesArrView& bytes, uint64_t& index) {
+int256_t ABI::Decoder::decodeInt(const View<Bytes>& bytes, uint64_t& index) {
   if (index + 32 > bytes.size()) throw std::length_error("Data too short for int256");
-  int256_t result = Utils::bytesToInt256(bytes.subspan(index, 32));
+  int256_t result = IntConv::bytesToInt256(bytes.subspan(index, 32));
   index += 32;
   return result;
 }
 
+Bytes ABI::Encoder::encodeError(std::string_view reason) {
+  return Utils::makeBytes(bytes::join(
+    Hex::toBytes("0x08c379a0"), // Function selector for "Error(string)"
+    ABI::Encoder::encodeData(reason)
+  ));
+}
+
+std::string ABI::Decoder::decodeError(View<Bytes> data) {
+  Utils::safePrint("decodeError with: " + Hex::fromBytes(data).get());
+  // Make sure that the data is long enough to contain the error signature and the string length
+  if (data.size() < 4) {
+    return "";
+  }
+  // Make sure that the function selector matches the "Error(string)" signature
+  Functor functor {.value = UintConv::bytesToUint32(data.subspan(0, 4)) };
+  if (functor.value != 147028384) {
+    Utils::safePrint("decodeError functor: " + functor.hex().get() + " expected: " + Functor(147028384).hex().get());
+    return "";
+  }
+  return std::get<0>(ABI::Decoder::decodeData<std::string>(data.subspan(4), 0));
+}

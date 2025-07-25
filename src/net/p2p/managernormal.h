@@ -1,5 +1,5 @@
 /*
-Copyright (c) [2023-2024] [Sparq Network]
+Copyright (c) [2023-2024] [AppLayer Developers]
 
 This software is distributed under the MIT License.
 See the LICENSE.txt file in the project root for more information.
@@ -9,168 +9,172 @@ See the LICENSE.txt file in the project root for more information.
 #define P2P_MANAGER_NORMAL_H
 
 #include "managerbase.h"
+#include "nodeconns.h" // encoding.h -> optional, NodeID, NodeInfo
+#include "broadcaster.h"
 
 // Forward declaration.
-class rdPoS;
 class Storage;
 class State;
 
+/// Namespace for P2P-related functionalities.
 namespace P2P {
-  /// Manager focused exclusively at Normal nodes.
+  /// Manager class focused exclusively at Normal nodes.
   class ManagerNormal : public ManagerBase {
     protected:
       /**
        * Handle a request from a client.
-       * @param session The session that sent the request.
+       * @param nodeId The ID of the node that sent the request.
        * @param message The request message to handle.
        */
-      void handleRequest(std::weak_ptr<Session> session, const std::shared_ptr<const Message>& message) override;
+      void handleRequest(const NodeID &nodeId, const std::shared_ptr<const Message>& message) override;
 
       /**
        * Handle an answer from a server.
-       * @param session The session that sent the answer.
+       * @param nodeId The ID of the node that sent the request.
        * @param message The answer message to handle.
        */
-      void handleAnswer(std::weak_ptr<Session> session, const std::shared_ptr<const Message>& message) override;
+      void handleAnswer(const NodeID &nodeId, const std::shared_ptr<const Message>& message) override;
 
       /**
-       * Handle a broadcast from a node.
-       * @param session The session that sent the broadcast.
-       * @param message The broadcast message to handle.
+       * Handle a notification from a node.
+       * @param nodeId The ID of the node that sent the request.
+       * @param message The notification message to handle.
        */
-      void handleBroadcast(std::weak_ptr<Session> session, const std::shared_ptr<const Message>& message);
+      void handleNotification(const NodeID &nodeId, const std::shared_ptr<const Message>& message);
 
     private:
-      /// Pointer to the rdPoS object.
-      const std::unique_ptr<rdPoS>& rdpos_;
-
-      /// Pointer to the blockchain's storage.
-      const std::unique_ptr<Storage>& storage_;
-
-      /// Pointer to the blockchain's state.
-      const std::unique_ptr<State>& state_;
+      const Storage& storage_; ///< Reference to the blockchain's storage.
+      State& state_; ///< Reference to the blockchain's state.
+      P2P::NodeConns nodeConns_; ///< P2P engine's logical peer connection tracking & keepalive component.
+      P2P::Broadcaster broadcaster_; ///< P2P engine's multihop networking component.
 
       /**
-       * Map with broadcasted messages and a counter of how many times they were broadcast.
-       * Used to avoid broadcasting the same message multiple times.
+       * Send a message to all connected nodes.
+       * @param message The message to send to all connected nodes (P2P sessions).
+       * @param originalSender Node whose latest known peers won't receive the message from us (optional).
        */
-      std::unordered_map <uint64_t, unsigned int, SafeHash> broadcastedMessages_;
-
-      /// Mutex for managing read/write access to broadcasted messages.
-      std::shared_mutex broadcastMutex_;
-
-      /// Mutex for managing read/write access to block broadcasts.
-      std::mutex blockBroadcastMutex_;
-
-      /**
-       * Broadcast a message to all connected nodes.
-       * @param message The message to broadcast.
-       */
-      void broadcastMessage(const std::shared_ptr<const Message> message);
+      void sendMessageToAll(const std::shared_ptr<const Message> message, const std::optional<NodeID>& originalSender);
 
       /**
        * Handle a `Ping` request.
-       * @param session The session that sent the request.
+       * @param nodeId The ID of the node that sent the request.
        * @param message The request message to handle.
        */
-      void handlePingRequest(std::weak_ptr<Session> session, const std::shared_ptr<const Message>& message);
+      void handlePingRequest(const NodeID &nodeId, const std::shared_ptr<const Message>& message);
 
       /**
        * Handle a `Info` request.
-       * @param session The session that sent the request.
+       * @param nodeId The ID of the node that sent the request.
        * @param message The request message to handle.
        */
-      void handleInfoRequest(std::weak_ptr<Session> session, const std::shared_ptr<const Message>& message);
+      void handleInfoRequest(const NodeID &nodeId, const std::shared_ptr<const Message>& message);
 
       /**
        * Handle a `RequestNodes` request.
-       * @param session The session that sent the request.
+       * @param nodeId The ID of the node that sent the request.
        * @param message The request message to handle.
        */
-      void handleRequestNodesRequest(std::weak_ptr<Session> session, const std::shared_ptr<const Message>& message);
+      void handleRequestNodesRequest(const NodeID &nodeId, const std::shared_ptr<const Message>& message);
 
       /**
        * Handle a `RequestValidatorTxs` request.
-       * @param session The session that sent the request.
+       * @param nodeId The ID of the node that sent the request.
        * @param message The request message to handle.
        */
-      void handleTxValidatorRequest(std::weak_ptr<Session> session, const std::shared_ptr<const Message>& message);
+      void handleTxValidatorRequest(const NodeID &nodeId, const std::shared_ptr<const Message>& message);
+
+      /**
+       * Handle a `RequestTxs` request.
+       * @param nodeId The ID of the node that sent the request.
+       * @param message The request message to handle.
+       */
+      void handleTxRequest(const NodeID &nodeId, const std::shared_ptr<const Message>& message);
+
+      /**
+       * Handle a `RequestBlock` request.
+       * @param nodeId The ID of the node that sent the request.
+       * @param message The request message to handle.
+       */
+      void handleRequestBlockRequest(const NodeID &nodeId, const std::shared_ptr<const Message>& message);
 
       /**
        * Handle a `Ping` answer.
-       * @param session The session that sent the answer.
+       * @param nodeId The ID of the node that sent the answer.
        * @param message The answer message to handle.
        */
-      void handlePingAnswer(std::weak_ptr<Session> session, const std::shared_ptr<const Message>& message);
+      void handlePingAnswer(const NodeID &nodeId, const std::shared_ptr<const Message>& message);
 
       /**
        * Handle a `Info` answer.
-       * @param session The session that sent the answer.
+       * @param nodeId The ID of the node that sent the answer.
        * @param message The answer message to handle.
        */
-      void handleInfoAnswer(std::weak_ptr<Session> session, const std::shared_ptr<const Message>& message);
+      void handleInfoAnswer(const NodeID &nodeId, const std::shared_ptr<const Message>& message);
 
       /**
        * Handle a `RequestNodes` answer.
-       * @param session The session that sent the answer.
+       * @param nodeId The ID of the node that sent the answer.
        * @param message The answer message to handle.
        */
-      void handleRequestNodesAnswer(std::weak_ptr<Session> session, const std::shared_ptr<const Message>& message);
+      void handleRequestNodesAnswer(const NodeID &nodeId, const std::shared_ptr<const Message>& message);
 
       /**
        * Handle a `RequestValidatorTxs` answer.
-       * @param session The session that sent the answer.
+       * @param nodeId The ID of the node that sent the answer.
        * @param message The answer message to handle.
        */
-      void handleTxValidatorAnswer(std::weak_ptr<Session> session, const std::shared_ptr<const Message>& message);
+      void handleTxValidatorAnswer(const NodeID &nodeId, const std::shared_ptr<const Message>& message);
 
       /**
-       * Handle a Validator transaction broadcast message.
-       * @param session The node that sent the broadcast.
-       * @param message The message that was broadcast.
+       * Handle a `RequestTxs` answer.
+       * @param nodeId The ID of the node that sent the answer.
+       * @param message The answer message to handle.
        */
-      void handleTxValidatorBroadcast(std::weak_ptr<Session> session, const std::shared_ptr<const Message>& message);
+      void handleTxAnswer(const NodeID &nodeId, const std::shared_ptr<const Message>& message);
 
       /**
-       * Handle a block transaction broadcast message.
-       * @param session The node that sent the broadcast.
-       * @param message The message that was broadcast.
+       * Handle a `RequestBlock` answer.
+       * @param nodeId The ID of the node that sent the answer.
+       * @param message The answer message to handle.
        */
-      void handleTxBroadcast(std::weak_ptr<Session> session, const std::shared_ptr<const Message>& message);
+      void handleRequestBlockAnswer(const NodeID &nodeId, const std::shared_ptr<const Message>& message);
 
       /**
-       * Handle a block broadcast message.
-       * @param session The node that sent the broadcast.
-       * @param message The message that was broadcast.
+       * Handle a info notification message.
+       * @param nodeId The ID of the node that sent the notification.
+       * @param message The notification message to handle.
        */
-      void handleBlockBroadcast(std::weak_ptr<Session> session, const std::shared_ptr<const Message>& message);
+      void handleInfoNotification(const NodeID &nodeId, const std::shared_ptr<const Message>& message);
 
     public:
       /**
        * Constructor.
        * @param hostIp The manager's host IP/address.
-       * @param rdpos Pointer to the rdPoS object.
        * @param options Pointer to the options singleton.
        * @param storage Pointer to the blockchain's storage.
        * @param state Pointer to the blockchain's state.
        */
       ManagerNormal(
-        const boost::asio::ip::address& hostIp, const std::unique_ptr<rdPoS>& rdpos,
-        const std::unique_ptr<Options>& options, const std::unique_ptr<Storage>& storage,
-        const std::unique_ptr<State>& state
-      ) : ManagerBase(hostIp, NodeType::NORMAL_NODE, 50, options),
-      rdpos_(rdpos), storage_(storage), state_(state)
-      {};
+        const boost::asio::ip::address& hostIp, const Options& options, const Storage& storage, State& state
+      ) : ManagerBase(hostIp, NodeType::NORMAL_NODE, options, options.getMinNormalConns(), options.getMaxNormalConns()),
+        storage_(storage), state_(state), nodeConns_(*this), broadcaster_(*this, storage, state)
+      {}
 
-      /// Destructor. Automatically stops the manager.
-      ~ManagerNormal() { this->stop(); }
+      /// Get a reference to the NodeConns component.
+      P2P::NodeConns& getNodeConns() { return this->nodeConns_; }
+
+      /// Get a reference to the Broadcaster component.
+      P2P::Broadcaster& getBroadcaster() { return this->broadcaster_; }
+
+      void start() override; ///< Start the P2P engine.
+      void stop() override; ///< Stop the P2P engine.
 
       /**
        * Handle a message from a session. Entry point for all the other handlers.
-       * @param session The session that sent the message.
+       * @param nodeId The ID of the node that sent the message.
        * @param message The message to handle.
        */
-      void handleMessage(std::weak_ptr<Session> session, const std::shared_ptr<const Message> message) override;
+      void handleMessage(const NodeID &nodeId, const std::shared_ptr<const Message> message) override;
 
       /**
        * Request Validator transactions from a given node.
@@ -180,6 +184,13 @@ namespace P2P {
       std::vector<TxValidator> requestValidatorTxs(const NodeID& nodeId);
 
       /**
+       * Request Validator transactions from a given node.
+       * @param nodeId The ID of the node to request.
+       * @return A list of the node's Validator transactions.
+       */
+      std::vector<TxBlock> requestTxs(const NodeID& nodeId);
+
+      /**
        * Request info about a given node.
        * @param nodeId The ID of the node to request.
        * @return A struct with the node's info.
@@ -187,22 +198,21 @@ namespace P2P {
       NodeInfo requestNodeInfo(const NodeID& nodeId);
 
       /**
-       * Broadcast a Validator transaction to all connected nodes.
-       * @param tx The transaction to broadcast.
+       * Request blocks to a peer.
+       * @param nodeId The ID of the node to request.
+       * @param height The start block height to request.
+       * @param heightEnd The end block height to request.
+       * @param bytesLimit The maximum amount of bytes to return in block data (minimum: 1 block).
+       * @return The requested block, or an empty optional on error.
        */
-      void broadcastTxValidator(const TxValidator& tx);
+      std::vector<FinalizedBlock> requestBlock(const NodeID& nodeId, const uint64_t& height, const uint64_t& heightEnd, const uint64_t& bytesLimit);
 
       /**
-       * Broadcast a block transaction to all connected nodes.
-       * @param txBlock The transaction to broadcast.
+       * Notify all connected peers of our current node info
        */
-      void broadcastTxBlock(const TxBlock& txBlock);
+      void notifyAllInfo();
 
-      /**
-       * Broadcast a block to all connected nodes.
-       * @param block The block to broadcast.
-       */
-      void broadcastBlock(const std::shared_ptr<const Block> block);
+      friend class Broadcaster;
   };
 };
 

@@ -1,5 +1,5 @@
 /*
-Copyright (c) [2023-2024] [Sparq Network]
+Copyright (c) [2023-2024] [AppLayer Developers]
 
 This software is distributed under the MIT License.
 See the LICENSE.txt file in the project root for more information.
@@ -18,7 +18,7 @@ See the LICENSE.txt file in the project root for more information.
 #include "../variables/safestring.h"
 #include "../variables/safeuint.h"
 #include "../variables/safeunorderedmap.h"
-#include "erc20.h"
+#include "standards/erc20.h"
 
 /// Template for a NativeWrapper contract.
 class NativeWrapper : public ERC20 {
@@ -34,32 +34,25 @@ class NativeWrapper : public ERC20 {
 
     /**
      * Constructor for loading contract from DB.
-     * @param interface Reference to the contract manager interface.
      * @param address The address where the contract will be deployed.
      * @param db Reference to the database object.
      */
-    NativeWrapper(
-      ContractManagerInterface& interface,
-      const Address& address, const std::unique_ptr<DB>& db
-    );
+    NativeWrapper(const Address& address, const DB& db);
 
     /**
      * Constructor to be used when creating a new contract.
      * @param erc20_name The name of the token.
      * @param erc20_symbol The symbol of the token.
      * @param erc20_decimals The decimals of the token.
-     * @param interface Reference to the contract manager interface.
      * @param address The address where the contract will be deployed.
      * @param creator The address of the creator of the contract.
      * @param chainId The chain id of the contract.
-     * @param db Reference to the database object.
      */
     NativeWrapper(
       const std::string &erc20_name, const std::string &erc20_symbol,
       const uint8_t &erc20_decimals,
-      ContractManagerInterface &interface,
       const Address &address, const Address &creator,
-      const uint64_t &chainId, const std::unique_ptr<DB> &db
+      const uint64_t &chainId
     );
 
     /// Destructor.
@@ -80,16 +73,18 @@ class NativeWrapper : public ERC20 {
 
     /// Register contract using ContractReflectionInterface.
     static void registerContract() {
-      ContractReflectionInterface::registerContractMethods<
-        NativeWrapper, std::string &, std::string &, uint8_t &,
-        ContractManagerInterface &, const Address &,
-        const Address &, const uint64_t &, const std::unique_ptr<DB> &
-      >(
-        std::vector<std::string>{"erc20_name", "erc20_symbol", "erc20_decimals"},
-        std::make_tuple("deposit", &NativeWrapper::deposit, FunctionTypes::Payable, std::vector<std::string>{}),
-        std::make_tuple("withdraw", &NativeWrapper::withdraw, FunctionTypes::Payable, std::vector<std::string>{"value"})
-      );
+      static std::once_flag once;
+      std::call_once(once, [](){
+        DynamicContract::registerContractMethods<NativeWrapper>(
+          std::vector<std::string>{"erc20_name", "erc20_symbol", "erc20_decimals"},
+          std::make_tuple("deposit", &NativeWrapper::deposit, FunctionTypes::Payable, std::vector<std::string>{}),
+          std::make_tuple("withdraw", &NativeWrapper::withdraw, FunctionTypes::Payable, std::vector<std::string>{"value"})
+        );
+      });
     }
+
+    /// Dump method
+    DBBatch dump() const override;
 };
 
 #endif // NATIVEWRAPPER_H

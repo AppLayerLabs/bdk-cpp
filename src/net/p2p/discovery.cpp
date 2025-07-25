@@ -1,5 +1,5 @@
 /*
-Copyright (c) [2023-2024] [Sparq Network]
+Copyright (c) [2023-2024] [AppLayer Developers]
 
 This software is distributed under the MIT License.
 See the LICENSE.txt file in the project root for more information.
@@ -8,15 +8,17 @@ See the LICENSE.txt file in the project root for more information.
 #include "managerbase.h"
 
 namespace P2P {
+  std::string DiscoveryWorker::getLogicalLocation() const { return this->manager_.getLogicalLocation(); }
+
   void DiscoveryWorker::refreshRequestedNodes() {
     std::unique_lock lock(this->requestedNodesMutex_);
     for (auto it = this->requestedNodes_.begin(); it != this->requestedNodes_.end();) {
       if (std::chrono::duration_cast<std::chrono::seconds>(
         std::chrono::high_resolution_clock::now().time_since_epoch()
-      ).count() - it->second > 60) {
+      ).count() - it->second > 10) {
         this->requestedNodes_.erase(it++);
       } else {
-        it++;
+        ++it;
       }
     }
   }
@@ -39,7 +41,7 @@ namespace P2P {
     return connectedNodes;
   }
 
-  std::unordered_map<NodeID, NodeType, SafeHash> DiscoveryWorker::getConnectedNodes(const NodeID& nodeId) {
+  boost::unordered_flat_map<NodeID, NodeType, SafeHash> DiscoveryWorker::getConnectedNodes(const NodeID& nodeId) {
     return this->manager_.requestNodes(nodeId);
   }
 
@@ -49,28 +51,85 @@ namespace P2P {
     this->manager_.connectToServer(nodeIp, nodePort);
   }
 
+  bool DiscoveryWorker::collectDiscoveryPeers(
+    const std::unordered_set<NodeID, SafeHash>& connectedDiscoveries, const uint64_t& sessionSize
+  ) {
+    // Ask each found discovery node for their peer list,
+    // connect to said peer, and add them to the list of requested nodes
+    for (const auto& nodeId : connectedDiscoveries) {
+      // Request nodes from discovery node
+      auto nodeList = this->getConnectedNodes(nodeId);
+      if (this->stopWorker_) return false;
+
+      // Connect to all found nodes
+      for (const auto& [foundNodeId, foundNodeInfo] : nodeList) {
+        if (this->stopWorker_) return false;
+        this->connectToNode(foundNodeId, foundNodeInfo);
+      }
+      if (this->stopWorker_) return false;
+
+      // Add requested node to list of requested nodes, but only if the list is has at least minConnections and we have at least minConnections
+      if (nodeList.size() >= this->manager_.minConnections() && sessionSize >= this->manager_.minConnections()) {
+        std::unique_lock lock(this->requestedNodesMutex_);
+        this->requestedNodes_[nodeId] = std::chrono::duration_cast<std::chrono::seconds>(
+          std::chrono::high_resolution_clock::now().time_since_epoch()
+        ).count();
+      }
+    }
+    return true;
+  }
+
+  bool DiscoveryWorker::collectNormalPeers(
+    const std::unordered_set<NodeID, SafeHash>& connectedNormals, const uint64_t& sessionSize
+  ) {
+    // Ask each found normal node for their peer list
+    // Connect to said peer, and add them to the list of requested nodes
+    for (const auto& nodeId : connectedNormals) {
+      // Request nodes from normal node
+      auto nodeList = this->getConnectedNodes(nodeId);
+      if (this->stopWorker_) return false;
+
+      // Connect to all found nodes.
+      for (const auto& [foundNodeId, foundNodeInfo] : nodeList) {
+        if (this->stopWorker_) return false;
+        this->connectToNode(foundNodeId, foundNodeInfo);
+      }
+      if (this->stopWorker_) return false;
+
+      // Add requested node to list of requested nodes, but only if we have at least minConnections
+      if (sessionSize >= this->manager_.minConnections()) {
+        std::unique_lock lock(this->requestedNodesMutex_);
+        this->requestedNodes_[nodeId] = std::chrono::duration_cast<std::chrono::seconds>(
+          std::chrono::high_resolution_clock::now().time_since_epoch()
+        ).count();
+      }
+    }
+    return true;
+  }
+
   bool DiscoveryWorker::discoverLoop() {
     bool discoveryPass = false;
-    Logger::logToDebug(LogType::INFO, Log::P2PDiscoveryWorker, __func__, "Discovery thread started");
+    LOGDEBUG("Discovery thread started minConnections: "
+                        + std::to_string(this->manager_.minConnections()) + " maxConnections: " + std::to_string(this->manager_.maxConnections()));
+    uint64_t lastLogged = 0;
     while (!this->stopWorker_) {
       // Check if we reached connection limit
+      uint64_t sessionSize;
       {
-        std::this_thread::sleep_for(std::chrono::seconds(1));
         std::shared_lock<std::shared_mutex> lock(this->manager_.sessionsMutex_);
-        if (this->manager_.sessions_.size() >= this->manager_.minConnections()) {
-          // If we don't have at least 11 connections, we don't sleep discovery.
-          // This is to make sure that local_testnet can quickly start up a new
-          // network, but still sleep discovery if the minimum is reached.
-          lock.unlock();
-          Logger::logToDebug(LogType::INFO, Log::P2PDiscoveryWorker, __func__, "Min connections reached, sleeping");
-          std::this_thread::sleep_for(std::chrono::seconds(5)); // Only 1 second because we still want to reach maxConnections
-          lock.lock();
-        } else if (this->manager_.sessions_.size() >= this->manager_.maxConnections()) {
-          lock.unlock();
-          Logger::logToDebug(LogType::INFO, Log::P2PDiscoveryWorker, __func__, "Max connections reached, sleeping");
-          std::this_thread::sleep_for(std::chrono::seconds(60));
-          continue;
-        }
+        sessionSize = this->manager_.sessions_.size();
+      }
+
+      if (lastLogged != sessionSize) {
+        LOGDEBUG("DiscoveryWorker current sessionSize: " + std::to_string(sessionSize));
+        lastLogged = sessionSize;
+      }
+
+      std::this_thread::sleep_for(std::chrono::milliseconds(100));
+      if (sessionSize >= this->manager_.maxConnections()) {
+         LOGDEBUG("Max connections reached, sleeping...");
+         std::this_thread::sleep_for(std::chrono::seconds(10));
+         continue;
       }
 
       // Refresh and get the list of requested nodes
@@ -78,49 +137,13 @@ namespace P2P {
       auto [connectedDiscoveries, connectedNormals] = this->listConnectedNodes();
       if (this->stopWorker_) return true;
 
+      /// Keep switching between discovery and normal nodes
       if (!discoveryPass) {
-        // Ask each found discovery node for their peer list,
-        // connect to said peer, and add them to the list of requested nodes
-        for (const auto& nodeId : connectedDiscoveries) {
-          // Request nodes from discovery node
-          auto nodeList = this->getConnectedNodes(nodeId);
-          if (this->stopWorker_) return true;
-
-          // Connect to all found nodes
-          for (const auto& [foundNodeId, foundNodeInfo] : nodeList) {
-            if (this->stopWorker_) return true;
-            this->connectToNode(foundNodeId, foundNodeInfo);
-          }
-          if (this->stopWorker_) return true;
-
-          // Add requested node to list of requested nodes
-          std::unique_lock lock(this->requestedNodesMutex_);
-          this->requestedNodes_[nodeId] = std::chrono::duration_cast<std::chrono::seconds>(
-            std::chrono::high_resolution_clock::now().time_since_epoch()
-          ).count();
-        }
+        if (!this->collectDiscoveryPeers(connectedDiscoveries, sessionSize)) return true;
         discoveryPass = true;
       } else {
-        // Ask each found normal node for their peer list
-        // Connect to said peer, and add them to the list of requested nodes
-        for (const auto& nodeId : connectedNormals) {
-          // Request nodes from normal node
-          auto nodeList = this->getConnectedNodes(nodeId);
-          if (this->stopWorker_) return true;
-
-          // Connect to all found nodes.
-          for (const auto& [foundNodeId, foundNodeInfo] : nodeList) {
-            if (this->stopWorker_) return true;
-            this->connectToNode(foundNodeId, foundNodeInfo);
-          }
-          if (this->stopWorker_) return true;
-
-          // Add requested node to list of requested nodes
-          std::unique_lock<std::shared_mutex> lock(this->requestedNodesMutex_);
-          this->requestedNodes_[nodeId] = std::chrono::duration_cast<std::chrono::seconds>(
-            std::chrono::high_resolution_clock::now().time_since_epoch()
-          ).count();
-        }
+        if (!this->collectNormalPeers(connectedNormals, sessionSize)) return true;
+        discoveryPass = false;
       }
     }
     return true;

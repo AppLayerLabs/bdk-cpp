@@ -1,49 +1,42 @@
 /*
-Copyright (c) [2023-2024] [Sparq Network]
+Copyright (c) [2023-2024] [AppLayer Developers]
 
 This software is distributed under the MIT License.
 See the LICENSE.txt file in the project root for more information.
 */
 
 #include "../../src/libs/catch2/catch_amalgamated.hpp"
-#include "../../src/contract/templates/erc20.h"
-#include "../../src/contract/templates/erc20wrapper.h"
-#include "../../src/contract/abi.h"
-#include "../../src/utils/db.h"
-#include "../../src/utils/options.h"
-#include "../../src/contract/contractmanager.h"
-#include "../../src/core/rdpos.h"
+
+#include "../../src/contract/templates/erc20wrapper.h" // erc20.h
 
 #include "../sdktestsuite.hpp"
-
-#include <filesystem>
-#include <string>
 
 // TODO: test events if/when implemented
 
 namespace TERC20Wrapper {
   TEST_CASE("ERC20Wrapper Class", "[contract][erc20wrapper]") {
     SECTION("ERC20Wrapper creation") {
-      SDKTestSuite sdk("testERC20Creation");
+      SDKTestSuite sdk = SDKTestSuite::createNewEnvironment("testERC20WrapperCreation");
       Address erc20 = sdk.deployContract<ERC20>(
         std::string("TestToken"), std::string("TST"), uint8_t(18), uint256_t("1000000000000000000")
       );
       Address erc20Wrapper = sdk.deployContract<ERC20Wrapper>();
       Address owner = sdk.getChainOwnerAccount().address;
-      for (const auto& [name, address] : sdk.getState()->getContracts()) {
+      for (const auto& [name, address] : sdk.getState().getCppContracts()) {
         if (name == "ERC20") REQUIRE(address == erc20);
         if (name == "ERC20Wrapper") REQUIRE(address == erc20Wrapper);
       }
     }
 
     SECTION("ERC20Wrapper deposit() and withdraw()") {
-      SDKTestSuite sdk("testERC20DepositAndWithdraw");
+      TestAccount randomAcc = TestAccount::newRandomAccount();
+      SDKTestSuite sdk = SDKTestSuite::createNewEnvironment("testERC20WrapperDepositAndWithdraw", {randomAcc});
       Address erc20 = sdk.deployContract<ERC20>(
         std::string("TestToken"), std::string("TST"), uint8_t(18), uint256_t("1000000000000000000")
       );
       Address erc20Wrapper = sdk.deployContract<ERC20Wrapper>();
       Address owner = sdk.getChainOwnerAccount().address;
-      for (const auto& [name, address] : sdk.getState()->getContracts()) {
+      for (const auto& [name, address] : sdk.getState().getCppContracts()) {
         if (name == "ERC20") REQUIRE(address == erc20);
         if (name == "ERC20Wrapper") REQUIRE(address == erc20Wrapper);
       }
@@ -51,7 +44,7 @@ namespace TERC20Wrapper {
       // Try depositing without allowance first
       uint256_t allowance = sdk.callViewFunction(erc20, &ERC20::allowance, owner, erc20Wrapper);
       REQUIRE(allowance == 0);  // "erc20Wrapper" is not allowed (yet) to spend anything on behalf of "owner"
-      Hash depositFailTx = sdk.callFunction(erc20Wrapper, &ERC20Wrapper::deposit, erc20, uint256_t("500000000000000000"));
+      REQUIRE_THROWS(sdk.callFunction(erc20Wrapper, &ERC20Wrapper::deposit, erc20, uint256_t("500000000000000000")));
       REQUIRE(sdk.callViewFunction(erc20Wrapper, &ERC20Wrapper::getUserBalance, erc20, owner) == 0);
 
       // Allow "erc20Wrapper" and make a deposit of 0.5 TST
@@ -78,17 +71,29 @@ namespace TERC20Wrapper {
       REQUIRE(contractBal == uint256_t("250000000000000000"));
       REQUIRE(erc20Bal == uint256_t("750000000000000000"));
       REQUIRE(wrapperBal == uint256_t("250000000000000000"));
+
+      // For coverage
+      Address randomToken(Utils::randBytes(20));
+      Address randomUser(Utils::randBytes(20));
+      REQUIRE(sdk.callViewFunction(erc20Wrapper, &ERC20Wrapper::getUserBalance, erc20, randomUser) == 0);
+      // Token not found
+      REQUIRE_THROWS(sdk.callFunction(erc20Wrapper, &ERC20Wrapper::withdraw, randomToken, uint256_t("250000000000000000")));
+      // User not found
+      REQUIRE_THROWS(sdk.callFunction(erc20Wrapper, randomAcc, &ERC20Wrapper::withdraw, erc20, uint256_t("250000000000000000")));
+      // Not enough balance
+      REQUIRE_THROWS(sdk.callFunction(erc20Wrapper, &ERC20Wrapper::withdraw, erc20, uint256_t("250000000000000000")));
     }
 
     SECTION("ERC20Wrapper transferTo()") {
-      SDKTestSuite sdk("testERC20TransferTo");
+      TestAccount randomAcc = TestAccount::newRandomAccount();
+      SDKTestSuite sdk = SDKTestSuite::createNewEnvironment("testERC20WrapperTransferTo", {randomAcc});
       Address erc20 = sdk.deployContract<ERC20>(
         std::string("TestToken"), std::string("TST"), uint8_t(18), uint256_t("1000000000000000000")
       );
       Address erc20Wrapper = sdk.deployContract<ERC20Wrapper>();
       Address owner = sdk.getChainOwnerAccount().address;
       Address dest(Utils::randBytes(20));
-      for (const auto& [name, address] : sdk.getState()->getContracts()) {
+      for (const auto& [name, address] : sdk.getState().getCppContracts()) {
         if (name == "ERC20") REQUIRE(address == erc20);
         if (name == "ERC20Wrapper") REQUIRE(address == erc20Wrapper);
       }
@@ -96,7 +101,7 @@ namespace TERC20Wrapper {
       // Try depositing without allowance first
       uint256_t allowance = sdk.callViewFunction(erc20, &ERC20::allowance, owner, erc20Wrapper);
       REQUIRE(allowance == 0);  // "erc20Wrapper" is not allowed (yet) to spend anything on behalf of "owner"
-      Hash depositFailTx = sdk.callFunction(erc20Wrapper, &ERC20Wrapper::deposit, erc20, uint256_t("500000000000000000"));
+      REQUIRE_THROWS(sdk.callFunction(erc20Wrapper, &ERC20Wrapper::deposit, erc20, uint256_t("500000000000000000")));
       REQUIRE(sdk.callViewFunction(erc20Wrapper, &ERC20Wrapper::getUserBalance, erc20, owner) == 0);
 
       // Allow "erc20Wrapper" and make a deposit of 0.5 TST
@@ -127,6 +132,17 @@ namespace TERC20Wrapper {
       REQUIRE(erc20Bal == uint256_t("500000000000000000"));
       REQUIRE(wrapperBal == uint256_t("250000000000000000"));
       REQUIRE(destBal == uint256_t("250000000000000000"));
+
+      // For coverage
+      Address randomToken(Utils::randBytes(20));
+      Address randomUser(Utils::randBytes(20));
+      REQUIRE(sdk.callViewFunction(erc20Wrapper, &ERC20Wrapper::getUserBalance, erc20, randomUser) == 0);
+      // Token not found
+      REQUIRE_THROWS(sdk.callFunction(erc20Wrapper, &ERC20Wrapper::transferTo, randomToken, dest, uint256_t("250000000000000000")));
+      // User not found
+      REQUIRE_THROWS(sdk.callFunction(erc20Wrapper, randomAcc, &ERC20Wrapper::transferTo, erc20, dest, uint256_t("250000000000000000")));
+      // Not enough balance
+      REQUIRE_THROWS(sdk.callFunction(erc20Wrapper, &ERC20Wrapper::transferTo, erc20, dest, uint256_t("250000000000000000")));
     }
   }
 }

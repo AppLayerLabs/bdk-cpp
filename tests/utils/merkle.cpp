@@ -1,15 +1,16 @@
 /*
-Copyright (c) [2023-2024] [Sparq Network]
+Copyright (c) [2023-2024] [AppLayer Developers]
 
 This software is distributed under the MIT License.
 See the LICENSE.txt file in the project root for more information.
 */
 
-#include <algorithm>
-
-#include "../../src/utils/merkle.h"
-#include "../../src/utils/tx.h"
 #include "../../src/libs/catch2/catch_amalgamated.hpp"
+#include "bytes/random.h"
+
+#include "../../src/utils/merkle.h" // tx.h
+
+#include "../../src/utils/strconv.h"
 
 using Catch::Matchers::Equals;
 
@@ -17,13 +18,13 @@ namespace TMerkle {
   TEST_CASE("Merkle Tests", "[utils][merkle]") {
     SECTION("Simple Merkle Tree") {
       std::vector<Bytes> unhashedLeafs = {
-        Utils::stringToBytes("ab"), Utils::stringToBytes("bc"), Utils::stringToBytes("cd"),
-        Utils::stringToBytes("de"), Utils::stringToBytes("ef"), Utils::stringToBytes("fg"),
-        Utils::stringToBytes("gh"), Utils::stringToBytes("hi"), Utils::stringToBytes("ij"),
-        Utils::stringToBytes("jk"), Utils::stringToBytes("km"), Utils::stringToBytes("mn")
+        StrConv::stringToBytes("ab"), StrConv::stringToBytes("bc"), StrConv::stringToBytes("cd"),
+        StrConv::stringToBytes("de"), StrConv::stringToBytes("ef"), StrConv::stringToBytes("fg"),
+        StrConv::stringToBytes("gh"), StrConv::stringToBytes("hi"), StrConv::stringToBytes("ij"),
+        StrConv::stringToBytes("jk"), StrConv::stringToBytes("km"), StrConv::stringToBytes("mn")
       };
       std::vector<Hash> hashedLeafs;
-      for(const Bytes& leaf : unhashedLeafs) hashedLeafs.emplace_back(Utils::sha3(leaf));
+      for (const Bytes& leaf : unhashedLeafs) hashedLeafs.emplace_back(Utils::sha3(leaf));
 
       Merkle tree(hashedLeafs);
       std::vector<Hash> proof = tree.getProof(3);
@@ -34,14 +35,17 @@ namespace TMerkle {
       REQUIRE_THAT(root.hex(), Equals("3fb0308018d8a6b4c2081699003624e9719774be2b7f65b7f9ac45f2bebc20b7"));
       REQUIRE(Merkle::verify(proof, leaf, root));
       REQUIRE(!Merkle::verify(proof, badLeaf, root));
+
+      // For coverage
+      REQUIRE(tree.getProof(999).empty());
     }
 
     SECTION("Random Merkle Tree") {
       std::vector<Hash> hashedLeafs {
-        Hash::random(), Hash::random(), Hash::random(), Hash::random(),
-        Hash::random(), Hash::random(), Hash::random(), Hash::random(),
-        Hash::random(), Hash::random(), Hash::random(), Hash::random(),
-        Hash::random(), Hash::random(), Hash::random()
+        bytes::random(), bytes::random(), bytes::random(), bytes::random(),
+        bytes::random(), bytes::random(), bytes::random(), bytes::random(),
+        bytes::random(), bytes::random(), bytes::random(), bytes::random(),
+        bytes::random(), bytes::random(), bytes::random()
       };
 
       Merkle tree(hashedLeafs);

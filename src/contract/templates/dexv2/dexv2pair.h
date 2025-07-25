@@ -1,5 +1,5 @@
 /*
-Copyright (c) [2023-2024] [Sparq Network]
+Copyright (c) [2023-2024] [AppLayer Developers]
 
 This software is distributed under the MIT License.
 See the LICENSE.txt file in the project root for more information.
@@ -10,7 +10,6 @@ See the LICENSE.txt file in the project root for more information.
 
 #include <memory>
 
-#include "../../../utils/contractreflectioninterface.h"
 #include "../../../utils/db.h"
 #include "../../../utils/utils.h"
 #include "../../abi.h"
@@ -19,7 +18,7 @@ See the LICENSE.txt file in the project root for more information.
 #include "../../variables/safeaddress.h"
 #include "../../variables/safestring.h"
 #include "../../variables/safeunorderedmap.h"
-#include "../erc20.h"
+#include "../standards/erc20.h"
 #include "uq112x112.h"
 
 /// Template for an DEXV2Pair contract.
@@ -91,27 +90,21 @@ class DEXV2Pair : public ERC20 {
 
     /**
      * Constructor for loading contract from DB.
-     * @param interface Reference to the contract manager interface.
      * @param address The address where the contract will be deployed.
      * @param db Reference to the database object.
     */
     DEXV2Pair(
-      ContractManagerInterface& interface,
-      const Address& address, const std::unique_ptr<DB>& db
+      const Address& address, const DB& db
     );
 
     /**
      * Constructor to be used when creating a new contract.
-     * @param interface Reference to the contract manager interface.
      * @param address The address where the contract will be deployed.
      * @param creator The address of the creator of the contract.
      * @param chainId The chain where the contract wil be deployed.
-     * @param db Reference to the database object.
      */
     DEXV2Pair(
-      ContractManagerInterface &interface,
-      const Address &address, const Address &creator, const uint64_t &chainId,
-      const std::unique_ptr<DB> &db
+      const Address &address, const Address &creator, const uint64_t &chainId
     );
 
     /// Destructor.
@@ -125,12 +118,6 @@ class DEXV2Pair : public ERC20 {
      * @param token1 The address of token1.
      */
     void initialize(const Address& token0, const Address& token1);
-
-    /**
-     * Get the reserves of the ERC2OPair
-     * Direct std::pair function call so it can be utilized by others contracts in the C++ side.
-     */
-    std::pair<uint256_t, uint256_t> getReservess() const;
 
     /**
      * Get the reserves of the ERC20Pair.
@@ -213,27 +200,28 @@ class DEXV2Pair : public ERC20 {
 
     /// Register contract class via ContractReflectionInterface.
     static void registerContract() {
-      ContractReflectionInterface::registerContractMethods<
-        DEXV2Pair, ContractManagerInterface &,
-        const Address &, const Address &, const uint64_t &,
-        const std::unique_ptr<DB> &
-      >(
-        std::vector<std::string>{},
-        std::make_tuple("initialize", &DEXV2Pair::initialize, FunctionTypes::NonPayable, std::vector<std::string>{"token0_", "token1_"}),
-        std::make_tuple("getReserves", &DEXV2Pair::getReserves, FunctionTypes::View, std::vector<std::string>{}),
-        std::make_tuple("factory", &DEXV2Pair::factory, FunctionTypes::View, std::vector<std::string>{}),
-        std::make_tuple("token0", &DEXV2Pair::token0, FunctionTypes::View, std::vector<std::string>{}),
-        std::make_tuple("token1", &DEXV2Pair::token1, FunctionTypes::View, std::vector<std::string>{}),
-        std::make_tuple("price0CumulativeLast", &DEXV2Pair::price0CumulativeLast, FunctionTypes::View, std::vector<std::string>{}),
-        std::make_tuple("price1CumulativeLast", &DEXV2Pair::price1CumulativeLast, FunctionTypes::View, std::vector<std::string>{}),
-        std::make_tuple("kLast", &DEXV2Pair::kLast, FunctionTypes::View, std::vector<std::string>{}),
-        std::make_tuple("mint", &DEXV2Pair::mint, FunctionTypes::NonPayable, std::vector<std::string>{"to"}),
-        std::make_tuple("burn", &DEXV2Pair::burn, FunctionTypes::NonPayable, std::vector<std::string>{"to"}),
-        std::make_tuple("swap", &DEXV2Pair::swap, FunctionTypes::NonPayable, std::vector<std::string>{"amount0Out", "amount1Out", "to"}),
-        std::make_tuple("skim", &DEXV2Pair::skim, FunctionTypes::NonPayable, std::vector<std::string>{"to"}),
-        std::make_tuple("sync", &DEXV2Pair::sync, FunctionTypes::NonPayable, std::vector<std::string>{})
-      );
+      static std::once_flag once;
+      std::call_once(once, []() {
+        DynamicContract::registerContractMethods<DEXV2Pair>(
+          std::vector<std::string>{},
+          std::make_tuple("initialize", &DEXV2Pair::initialize, FunctionTypes::NonPayable, std::vector<std::string>{"token0_", "token1_"}),
+          std::make_tuple("getReserves", &DEXV2Pair::getReserves, FunctionTypes::View, std::vector<std::string>{}),
+          std::make_tuple("factory", &DEXV2Pair::factory, FunctionTypes::View, std::vector<std::string>{}),
+          std::make_tuple("token0", &DEXV2Pair::token0, FunctionTypes::View, std::vector<std::string>{}),
+          std::make_tuple("token1", &DEXV2Pair::token1, FunctionTypes::View, std::vector<std::string>{}),
+          std::make_tuple("price0CumulativeLast", &DEXV2Pair::price0CumulativeLast, FunctionTypes::View, std::vector<std::string>{}),
+          std::make_tuple("price1CumulativeLast", &DEXV2Pair::price1CumulativeLast, FunctionTypes::View, std::vector<std::string>{}),
+          std::make_tuple("kLast", &DEXV2Pair::kLast, FunctionTypes::View, std::vector<std::string>{}),
+          std::make_tuple("mint", &DEXV2Pair::mint, FunctionTypes::NonPayable, std::vector<std::string>{"to"}),
+          std::make_tuple("burn", &DEXV2Pair::burn, FunctionTypes::NonPayable, std::vector<std::string>{"to"}),
+          std::make_tuple("swap", &DEXV2Pair::swap, FunctionTypes::NonPayable, std::vector<std::string>{"amount0Out", "amount1Out", "to"}),
+          std::make_tuple("skim", &DEXV2Pair::skim, FunctionTypes::NonPayable, std::vector<std::string>{"to"}),
+          std::make_tuple("sync", &DEXV2Pair::sync, FunctionTypes::NonPayable, std::vector<std::string>{})
+        );
+      });
     }
+    /// Dump method
+    DBBatch dump() const override;
 };
 
 #endif // DEXV2PAIR_H

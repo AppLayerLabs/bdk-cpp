@@ -1,13 +1,13 @@
 /*
-Copyright (c) [2023-2024] [Sparq Network]
+Copyright (c) [2023-2024] [AppLayer Developers]
 
 This software is distributed under the MIT License.
 See the LICENSE.txt file in the project root for more information.
 */
 
 #include "../../src/libs/catch2/catch_amalgamated.hpp"
-#include "../../src/utils/utils.h"
-#include "../../src/utils/ecdsa.h"
+
+#include "../../src/utils/ecdsa.h" // utils.h
 
 using Catch::Matchers::Equals;
 

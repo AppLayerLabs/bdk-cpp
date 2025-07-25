@@ -1,5 +1,5 @@
 /*
-Copyright (c) [2023-2024] [Sparq Network]
+Copyright (c) [2023-2024] [AppLayer Developers]
 
 This software is distributed under the MIT License.
 See the LICENSE.txt file in the project root for more information.
@@ -47,8 +47,7 @@ template<bool isRequest, class Body, class Fields> void HTTPQueue::operator()(
 
 void HTTPSession::do_read() {
   this->parser_.emplace();  // Construct a new parser for each message
-  this->parser_->body_limit(10000); // Apply a reasonable limit to body size in bytes to prevent abuse
-  this->stream_.expires_after(std::chrono::seconds(30)); // Set a reasonable timeout
+  this->parser_->body_limit(512000); // Apply a reasonable limit to body size in bytes to prevent abuse
   // Read a request using the parser-oriented interface
   http::async_read(this->stream_, this->buf_, *this->parser_, beast::bind_front_handler(
     &HTTPSession::on_read, this->shared_from_this()

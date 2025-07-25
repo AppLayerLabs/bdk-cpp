@@ -1,5 +1,5 @@
 {
-  "name": "OrbiterSDK C++ Dev Container",
+  "name": "BDK C++ Dev Container",
   "build": {
     "dockerfile": "Dockerfile.dev"
   },
@@ -8,11 +8,11 @@
     "terminal.integrated.shell.linux": "/bin/bash"
   },
   "mounts": [
-    "source=${localWorkspaceFolder},target=/orbitersdk-cpp,type=bind,consistency=cached"
+    "source=${localWorkspaceFolder},target=/bdk-cpp,type=bind,consistency=cached"
   ],
   "runArgs": ["-it", "--cap-add=SYS_PTRACE", "--security-opt", "seccomp=unconfined"],
   "extensions": ["ms-vscode.cpptools", "ms-vscode.cmake-tools"],
-  "postCreateCommand": "mkdir /orbitersdk-data && nohup unison -repeat 1 /orbitersdk-cpp /orbitersdk-data -auto -batch \
+  "postCreateCommand": "mkdir /bdk-data && nohup unison -repeat 1 /bdk-cpp /bdk-data -auto -batch \
     -ignore 'Name {build}' \
     -ignore 'Name {build_local_testnet}' \
     -ignore 'Name {.vscode}' \
@@ -38,5 +38,5 @@
     -ignore 'Name {kateproject}' \
     -ignore 'Name {*.o}' \
     -ignore 'Name {*.gch}' \
-    > /dev/null 2>&1 && cp -r /orbitersdk-cpp/* /orbitersdk-data"
+    > /dev/null 2>&1 && cp -r /bdk-cpp/* /bdk-data"
 }

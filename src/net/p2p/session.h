@@ -1,5 +1,5 @@
 /*
-Copyright (c) [2023-2024] [Sparq Network]
+Copyright (c) [2023-2024] [AppLayer Developers]
 
 This software is distributed under the MIT License.
 See the LICENSE.txt file in the project root for more information.
@@ -8,19 +8,12 @@ See the LICENSE.txt file in the project root for more information.
 #ifndef P2P_SESSION_H
 #define P2P_SESSION_H
 
-#include <cstdlib>
-#include <iostream>
-#include <memory>
-#include <utility>
 #include <shared_mutex>
-#include <functional>
-#include <boost/asio.hpp>
-#include <boost/beast.hpp>
-#include <boost/asio/buffer.hpp>
 
-#include "../../utils/utils.h"
-#include "../../libs/BS_thread_pool_light.hpp"
-#include "encoding.h"
+#include <boost/asio.hpp> // asio/buffer.hpp
+#include <boost/beast.hpp>
+
+#include "encoding.h" // NodeID, NodeType, utils.h -> libs/json.hpp -> cstdlib, functional, memory, utility
 
 using boost::asio::ip::tcp;
 namespace net = boost::asio;  // from <boost/asio.hpp>
@@ -30,12 +23,11 @@ namespace P2P {
   class ManagerBase;
 
   /**
-  * The session class is the base class for both the client and server sessions.
-  * It contains the basic functionality for reading and writing messages to the
-  * socket.
-  */
-  class Session : public std::enable_shared_from_this<Session> {
-    protected:
+   * The session class is the base class for both client and server connections.
+   * It contains the basic functionality for reading and writing messages to the socket.
+   */
+  class Session : public std::enable_shared_from_this<Session>, public Log::LogicalLocationProvider {
+    private:
       /// The socket used to communicate with the client.
       net::ip::tcp::socket socket_;
 
@@ -57,14 +49,13 @@ namespace P2P {
       /// Indicates which type of connection this session is.
       const ConnectionType connectionType_;
 
+      /// Set to `true` when `socket_` is closed.
+      std::atomic<bool> closed_ = false;
+
       /// Reference back to the Manager object.
       ManagerBase& manager_;
 
-      /// Reference to the thread pool.
-      const std::unique_ptr<BS::thread_pool_light>& threadPool_;
-
-      net::strand<net::any_io_executor> readStrand_; ///< Strand for read operations.
-      net::strand<net::any_io_executor> writeStrand_; ///< Strand for write operations.
+      net::strand<net::any_io_executor> strand_; ///< Strand that synchronizes all access to the socket object.
 
       std::shared_ptr<Message> inboundMessage_; ///< Pointer to the inbound message.
       std::shared_ptr<const Message> outboundMessage_; ///< Pointer to the outbound message.
@@ -84,8 +75,20 @@ namespace P2P {
       /// Handshake flag
       std::atomic<bool> doneHandshake_ = false;
 
-      /// Flag for whether the session is closed.
-      std::atomic<bool> closed_ = false;
+      /// Track if this Session is currently registered with the manager
+      std::atomic<bool> registered_ = false;
+
+      /// Track if this Session was ever unregistered by the manager
+      std::atomic<bool> unregistered_ = false;
+
+      /// Mutex to guard callbacks to ManagerBase vs. internal state transitions (such as registered_)
+      std::mutex stateMutex_;
+
+      /// My value for getLogicalLocation() LOG macros
+      std::string logSrc_;
+
+      /// Update logSrc_
+      void setLogSrc();
 
       /// CLIENT SPECIFIC FUNCTIONS (CONNECTING TO A SERVER)
       /// Connect to a specific endpoint.
@@ -129,96 +132,54 @@ namespace P2P {
       void on_write_message(boost::system::error_code ec, std::size_t);
 
       /// do_close, for closing using the io_context
-      void do_close();
+      void do_close(const std::string& reason);
 
       /// Handle an error from the socket.
-      bool handle_error(const std::string& func, const boost::system::error_code& ec);
+      void handle_error(const std::string& func, const boost::system::error_code& ec);
 
     public:
 
-      /// Construct a session with the given socket. (Used by the server)
+      /// Construct a server session with the given socket.
       explicit Session(tcp::socket &&socket,
                        ConnectionType connectionType,
-                       ManagerBase& manager,
-                       const std::unique_ptr<BS::thread_pool_light>& threadPool)
-          : socket_(std::move(socket)),
-            readStrand_(socket_.get_executor()),
-            writeStrand_(socket_.get_executor()),
-            manager_(manager),
-            threadPool_(threadPool),
-            address_(socket_.remote_endpoint().address()),
-            port_(socket_.remote_endpoint().port()),
-            connectionType_(connectionType)
-            {
-              if (connectionType == ConnectionType::OUTBOUND) {
-                /// Not a server, it will not call do_connect().
-                throw std::runtime_error("Session: Invalid connection type.");
-              }
-            }
+                       ManagerBase& manager);
 
-      /// Construct a session with the given socket (Used by the client)
+      /// Construct a client session with the given socket.
       explicit Session(tcp::socket &&socket,
                        ConnectionType connectionType,
                        ManagerBase& manager,
-                       const std::unique_ptr<BS::thread_pool_light>& threadPool,
                        const net::ip::address& address,
-                       unsigned short port
-                       )
-          : socket_(std::move(socket)),
-            readStrand_(socket_.get_executor()),
-            writeStrand_(socket_.get_executor()),
-            manager_(manager),
-            threadPool_(threadPool),
-            address_(address),
-            port_(port),
-            connectionType_(connectionType)
-      {
-        if (connectionType == ConnectionType::INBOUND) {
-          /// Not a client, it will try to write handshake without connecting.
-          throw std::runtime_error("Session: Invalid connection type.");
-        }
-      }
+                       unsigned short port);
 
-      /// Max message size
-      const uint64_t maxMessageSize_ = 1024 * 1024 * 128; // (128 MB)
+      std::string getLogicalLocation() const override; ///< Log instance from P2P.
+      const uint64_t maxMessageSize_ = 1024 * 1024 * 128; ///< Max message size (128 MB).
 
-      /// Function for running the session.
+      /// Runs the session.
       void run();
 
-      /// Function for closing the session.
-      void close();
+      /// Closes the session with a reason log message.
+      void close(std::string&& reason);
 
-      /// Function for writing a message to the socket.
-      void write(const std::shared_ptr<const Message>& message);
+      /// Closes the session without a reason log message.
+      void close() { close(""); }
 
-      /// Check if the session is closed.
-      inline bool isDisconnected() const { return !socket_.is_open(); }
+      /// Writes a message to the socket.
+      bool write(const std::shared_ptr<const Message>& message);
 
-      /// Getter for `address_`.
+      /// ManagerBase notifies this session that it has been unregistered; returns whether this session was handshaked.
+      bool notifyUnregistered();
+
+      ///@{
+      /** Getter. */
       const net::ip::address& address() const { return this->address_; }
-
-      /// Getter for `port_`.
       const unsigned short& port() const { return port_; }
-
-      /// Getter for `address_` and `port_`, in form of a pair.
-      const std::pair<net::ip::address, unsigned short> addressAndPort() const {
-        return std::make_pair(this->address_, this->port_);
+      std::string addressAndPortStr() const {
+        return this->address_.to_string() + ":" + std::to_string(this->port_);
       }
-
-      /// Getter for `hostNodeId_`.
       const NodeID& hostNodeId() const { return this->nodeId_; }
-
-      /// Getter for `connectionType_`.
-      const ConnectionType& connectionType() const { return connectionType_; }
-
-      /// Getter for `hostType_`.
       const NodeType& hostType() const { return this->type_; }
-
-      /// Getter for `hostServerPort_`.
-      const unsigned short& hostServerPort() const { return this->port_; }
-
-      /// Getter for `doneHandshake_`.
-      const std::atomic<bool>& doneHandshake() const { return this->doneHandshake_; }
+      const ConnectionType& connectionType() const { return this->connectionType_; }
+      ///@}
   };
 }
 

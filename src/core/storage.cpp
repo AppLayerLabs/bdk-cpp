@@ -1,5 +1,5 @@
 /*
-Copyright (c) [2023-2024] [Sparq Network]
+Copyright (c) [2023-2024] [AppLayer Developers]
 
 This software is distributed under the MIT License.
 See the LICENSE.txt file in the project root for more information.
@@ -7,437 +7,287 @@ See the LICENSE.txt file in the project root for more information.
 
 #include "storage.h"
 
-Storage::Storage(const std::unique_ptr<DB>& db, const std::unique_ptr<Options>& options) : db_(db), options_(options) {
-  Logger::logToDebug(LogType::INFO, Log::storage, __func__, "Loading blockchain from DB");
+#include "../utils/strconv.h"
+#include "../utils/uintconv.h"
 
+bool Storage::topicsMatch(const Event& event, const std::vector<Hash>& topics) {
+  if (topics.empty()) return true; // No topic filter applied
+  const std::vector<Hash>& eventTopics = event.getTopics();
+  if (eventTopics.size() < topics.size()) return false;
+  for (size_t i = 0; i < topics.size(); i++) if (topics.at(i) != eventTopics[i]) return false;
+  return true;
+}
+
+void Storage::storeBlock(DB& db, const FinalizedBlock& block, bool indexingEnabled) {
+  DBBatch batch;
+  batch.push_back(block.getHash(), block.serializeBlock(), DBPrefix::blocks);
+  batch.push_back(UintConv::uint64ToBytes(block.getNHeight()), block.getHash(), DBPrefix::heightToBlock);
+
+  if (indexingEnabled) {
+    const auto& Txs = block.getTxs();
+    for (uint32_t i = 0; i < Txs.size(); i++) {
+      const auto& TxHash = Txs[i].hash();
+      const FixedBytes<44> value(
+        bytes::join(block.getHash(), UintConv::uint32ToBytes(i), UintConv::uint64ToBytes(block.getNHeight()))
+      );
+      batch.push_back(TxHash, value, DBPrefix::txToBlock);
+    }
+  }
+  db.putBatch(batch);
+}
+
+void Storage::reindexTransactions(const FinalizedBlock& block, DBBatch& batch) {
+  const auto& Txs = block.getTxs();
+  for (uint32_t i = 0; i < Txs.size(); i++) {
+    const auto& TxHash = Txs[i].hash();
+    const FixedBytes<44> value(
+      bytes::join(block.getHash(), UintConv::uint32ToBytes(i), UintConv::uint64ToBytes(block.getNHeight()))
+    );
+    batch.push_back(TxHash, value, DBPrefix::txToBlock);
+  }
+}
+void Storage::dumpToDisk(DBBatch &batch) {
+  blocksDb_.putBatch(batch);
+}
+
+Storage::Storage(std::string instanceIdStr, const Options& options)
+  : blocksDb_(options.getRootPath() + "/blocksDb/"),  // Uncompressed
+    eventsDb_(options.getRootPath() + "/newEventsDb/"),
+    options_(options), instanceIdStr_(std::move(instanceIdStr))
+{
   // Initialize the blockchain if latest block doesn't exist.
+  LOGINFO("Loading blockchain from DB");
   initializeBlockchain();
 
   // Get the latest block from the database
-  Logger::logToDebug(LogType::INFO, Log::storage, __func__, "Loading latest block");
-  auto blockBytes = this->db_->get(Utils::stringToBytes("latest"), DBPrefix::blocks);
-  Block latest(blockBytes, this->options_->getChainID());
-  uint64_t depth = latest.getNHeight();
-  Logger::logToDebug(LogType::INFO, Log::storage, __func__,
-    std::string("Got latest block: ") + latest.hash().hex().get()
-    + std::string(" - height ") + std::to_string(depth)
-  );
+  LOGINFO("Loading latest block");
+  const Bytes latestBlockHash = blocksDb_.getLastByPrefix(DBPrefix::heightToBlock);
+  if (latestBlockHash.empty()) throw DynamicException("Latest block hash not found in DB");
 
-  std::unique_lock<std::shared_mutex> lock(this->chainLock_);
+  const Bytes latestBlockBytes = blocksDb_.get(latestBlockHash, DBPrefix::blocks);
+  if (latestBlockBytes.empty()) throw DynamicException("Latest block bytes not found in DB");
 
-  // Parse block mappings (hash -> height / height -> hash) from DB
-  Logger::logToDebug(LogType::INFO, Log::storage, __func__, "Parsing block mappings");
-  std::vector<DBEntry> maps = this->db_->getBatch(DBPrefix::blockHeightMaps);
-  for (DBEntry& map : maps) {
-    // TODO: Check if a block is missing.
-    // Might be interesting to change DB::getBatch to return a map instead of a vector
-    Logger::logToDebug(LogType::DEBUG, Log::storage, __func__, std::string(": ")
-      + std::to_string(Utils::bytesToUint64(map.key))
-      + std::string(", hash ") + Hash(map.value).hex().get()
-    );
-    this->blockHashByHeight_.insert({Utils::bytesToUint64(map.key),Hash(map.value)});
-    this->blockHeightByHash_.insert({Hash(map.value), Utils::bytesToUint64(map.key)});
-  }
+  latest_ = std::make_shared<const FinalizedBlock>(FinalizedBlock::fromBytes(latestBlockBytes, this->options_.getChainID()));
+  LOGINFO("Latest block successfully loaded");
 
-  // Append up to 500 most recent blocks from DB to chain
-  Logger::logToDebug(LogType::INFO, Log::storage, __func__, "Appending recent blocks");
-  for (uint64_t i = 0; i <= 500 && i <= depth; i++) {
-    Logger::logToDebug(LogType::DEBUG, Log::storage, __func__,
-      std::string("Height: ") + std::to_string(depth - i) + ", Hash: "
-      + this->blockHashByHeight_[depth - i].hex().get()
-    );
-    Block block(this->db_->get(this->blockHashByHeight_[depth - i].get(), DBPrefix::blocks), this->options_->getChainID());
-    this->pushFrontInternal(std::move(block));
-  }
+  // If the legacy events folder exists, migrate them to the new folder
+  std::filesystem::path legacyEventsPath(options.getRootPath() + "/eventsDb/");
+  if (std::filesystem::exists(legacyEventsPath)) {
+    Utils::safePrint("Detected legacy event DB, migrating to new DB");
+    DB legacyEvents(legacyEventsPath);
 
-  Logger::logToDebug(LogType::INFO, Log::storage, __func__, "Blockchain successfully loaded");
-}
+    auto transaction = eventsDb_.transaction();
 
-Storage::~Storage() {
-  DBBatch batchedOperations;
-  std::shared_ptr<const Block> latest;
-  {
-    std::unique_lock<std::shared_mutex> lock(this->chainLock_);
-    latest = this->chain_.back();
-    while (!this->chain_.empty()) {
-      // Batch block to be saved to the database.
-      // We can't call this->popBack() because of the mutex
-      std::shared_ptr<const Block> block = this->chain_.front();
-      batchedOperations.push_back(block->hash().get(), block->serializeBlock(), DBPrefix::blocks);
-      batchedOperations.push_back(Utils::uint64ToBytes(block->getNHeight()), block->hash().get(), DBPrefix::blockHeightMaps);
-
-      // Batch txs to be saved to the database and delete them from the mappings
-      auto Txs = block->getTxs();
-      for (uint32_t i = 0; i < Txs.size(); i++) {
-        const auto TxHash = Txs[i].hash();
-        Bytes value = block->hash().asBytes();
-        value.reserve(value.size() + 4 + 8);
-        Utils::appendBytes(value, Utils::uint32ToBytes(i));
-        Utils::appendBytes(value, Utils::uint64ToBytes(block->getNHeight()));
-        batchedOperations.push_back(TxHash.get(), value, DBPrefix::txToBlocks);
-        this->txByHash_.erase(TxHash);
+    for (uint64_t block = 0; block <= latest_.load()->getNHeight(); block++) {
+      if (block % 10000 == 0) {
+        Utils::safePrint("Migrated events for block " + std::to_string(block) + " total block: " + std::to_string(latest_.load()->getNHeight()) + " current progress: " + std::to_string(block * 100 / latest_.load()->getNHeight()) + "%");
       }
-
-      // Delete block from internal mappings and the chain
-      this->blockByHash_.erase(block->hash());
-      this->chain_.pop_front();
+      if (block % 200000 == 0) {
+        Utils::safePrint("Reloading SQLite DB transactions");
+        transaction->commit();
+        transaction = eventsDb_.transaction();
+      }
+      for (const Event& event : getEventsLegacy(legacyEvents, block, block, Address(), {})) {
+        eventsDb_.putEvent(event);
+      }
     }
-  }
 
-  // Batch save to database
-  this->db_->putBatch(batchedOperations);
-  this->db_->put(std::string("latest"), latest->serializeBlock(), DBPrefix::blocks);
+    transaction->commit();
+    assert(legacyEvents.close());
+
+    std::filesystem::rename(legacyEventsPath, options.getRootPath() + "/legacyEventsDb/");
+  }
 }
 
 void Storage::initializeBlockchain() {
-  if (!this->db_->has(std::string("latest"), DBPrefix::blocks)) {
-    /// Genesis block comes from Options, not hardcoded
-    const auto genesis = this->options_->getGenesisBlock();
-    if (genesis.getNHeight() != 0) {
-      throw std::runtime_error("Genesis block height is not 0");
-    }
-    this->db_->put(std::string("latest"), genesis.serializeBlock(), DBPrefix::blocks);
-    this->db_->put(Utils::uint64ToBytes(genesis.getNHeight()), genesis.hash().get(), DBPrefix::blockHeightMaps);
-    this->db_->put(genesis.hash().get(), genesis.serializeBlock(), DBPrefix::blocks);
-    Logger::logToDebug(LogType::INFO, Log::storage, __func__,
-      std::string("Created genesis block: ") + Hex::fromBytes(genesis.hash().get()).get()
-    );
+  // Genesis block comes from Options, not hardcoded
+  const auto& genesis = options_.getGenesisBlock();
+
+  if (
+    const Bytes latestBlockHash = blocksDb_.getLastByPrefix(DBPrefix::heightToBlock);
+    latestBlockHash.empty()
+  ) {
+    if (genesis.getNHeight() != 0) throw DynamicException("Genesis block height is not 0");
+    storeBlock(blocksDb_, genesis, options_.getIndexingMode() != IndexingMode::DISABLED);
+    LOGINFO(std::string("Created genesis block: ") + Hex::fromBytes(genesis.getHash()).get());
   }
-  /// Sanity check for genesis block. (check if genesis in DB matches genesis in Options)
-  const auto genesis = this->options_->getGenesisBlock();
-  const auto genesisInDBHash = Hash(this->db_->get(Utils::uint64ToBytes(0), DBPrefix::blockHeightMaps));
-  const auto genesisInDB = Block(this->db_->get(genesisInDBHash, DBPrefix::blocks), this->options_->getChainID());
+
+  // Sanity check for genesis block. (check if genesis in DB matches genesis in Options)
+  const Hash genesisInDBHash(blocksDb_.get(UintConv::uint64ToBytes(0), DBPrefix::heightToBlock));
+
+  FinalizedBlock genesisInDB = FinalizedBlock::fromBytes(
+    blocksDb_.get(genesisInDBHash, DBPrefix::blocks), options_.getChainID()
+  );
+
   if (genesis != genesisInDB) {
-    Logger::logToDebug(LogType::ERROR, Log::storage, __func__, "Sanity Check! Genesis block in DB does not match genesis block in Options");
-    throw std::runtime_error("Sanity Check! Genesis block in DB does not match genesis block in Options");
+    LOGERROR("Sanity Check! Genesis block in DB does not match genesis block in Options");
+    throw DynamicException("Sanity Check! Genesis block in DB does not match genesis block in Options");
   }
 }
 
-const TxBlock Storage::getTxFromBlockWithIndex(const BytesArrView blockData, const uint64_t& txIndex) const {
+TxBlock Storage::getTxFromBlockWithIndex(View<Bytes> blockData, uint64_t txIndex) const {
   uint64_t index = 217; // Start of block tx range
-  /// Count txs until index.
+  // Count txs until index.
   uint64_t currentTx = 0;
   while (currentTx < txIndex) {
-    uint32_t txSize = Utils::bytesToUint32(blockData.subspan(index, 4));
+    uint32_t txSize = UintConv::bytesToUint32(blockData.subspan(index, 4));
     index += txSize + 4;
     currentTx++;
   }
-  uint64_t txSize = Utils::bytesToUint32(blockData.subspan(index, 4));
+  uint64_t txSize = UintConv::bytesToUint32(blockData.subspan(index, 4));
   index += 4;
-  return TxBlock(blockData.subspan(index, txSize), this->options_->getChainID());
+  return TxBlock(blockData.subspan(index, txSize), this->options_.getChainID());
 }
 
-void Storage::pushBackInternal(Block&& block) {
-  // Push the new block and get a pointer to it
-  if (!this->chain_.empty()) {
-    if (this->chain_.back()->hash() != block.getPrevBlockHash()) {
-      throw std::runtime_error("Block " + block.hash().hex().get()
-        + " does not have the correct previous block hash."
-      );
-    }
-    if (block.getNHeight() != this->chain_.back()->getNHeight() + 1) {
-      throw std::runtime_error("Block " + block.hash().hex().get()
-        + " does not have the correct height."
-      );
-    }
+void Storage::pushBlock(FinalizedBlock block) {
+  if (auto previousBlock = latest_.load(); previousBlock->getHash() != block.getPrevBlockHash()) {
+    throw DynamicException("\"previous hash\" of new block does not match the latest block hash");
   }
-  this->chain_.emplace_back(std::make_shared<Block>(std::move(block)));
-  std::shared_ptr<const Block> newBlock = this->chain_.back();
-
-  // Add block and txs to mappings
-  this->blockByHash_.insert({newBlock->hash(), newBlock});
-  this->blockHashByHeight_.insert({newBlock->getNHeight(), newBlock->hash()});
-  this->blockHeightByHash_.insert({newBlock->hash(), newBlock->getNHeight()});
-  const auto& Txs = newBlock->getTxs();
-  for (uint32_t i = 0; i < Txs.size(); i++) {
-    this->txByHash_.insert({ Txs[i].hash(), { newBlock->hash(), i, newBlock->getNHeight() }});
-  }
+  auto newBlock = std::make_shared<FinalizedBlock>(std::move(block));
+  latest_.store(newBlock);
+  storeBlock(blocksDb_, *newBlock, options_.getIndexingMode() != IndexingMode::DISABLED);
 }
 
-void Storage::pushFrontInternal(Block&& block) {
-  // Push the new block and get a pointer to it
-  if (!this->chain_.empty()) {
-    if (this->chain_.front()->getPrevBlockHash() != block.hash()) {
-      throw std::runtime_error("Block " + block.hash().hex().get()
-        + " does not have the correct previous block hash."
-      );
-    }
-    if (block.getNHeight() != this->chain_.front()->getNHeight() - 1) {
-      throw std::runtime_error("Block " + block.hash().hex().get()
-        + " does not have the correct height."
-      );
-    }
-  }
-  this->chain_.emplace_front(std::make_shared<Block>(std::move(block)));
-  std::shared_ptr<const Block> newBlock = this->chain_.front();
+bool Storage::blockExists(const Hash& hash) const { return blocksDb_.has(hash, DBPrefix::blocks); }
 
-  // Add block and txs to mappings
-  this->blockByHash_.insert({newBlock->hash(), newBlock});
-  this->blockHashByHeight_.insert({newBlock->getNHeight(), newBlock->hash()});
-  this->blockHeightByHash_.insert({newBlock->hash(), newBlock->getNHeight()});
-  const auto& Txs = newBlock->getTxs();
-  for (uint32_t i = 0; i < Txs.size(); i++) {
-    this->txByHash_.insert({Txs[i].hash(), { newBlock->hash(), i, newBlock->getNHeight()}});
-  }
+bool Storage::blockExists(uint64_t height) const { return blocksDb_.has(UintConv::uint64ToBytes(height), DBPrefix::heightToBlock); }
+
+bool Storage::txExists(const Hash& tx) const { return blocksDb_.has(tx, DBPrefix::txToBlock); }
+
+std::shared_ptr<const FinalizedBlock> Storage::getBlock(const Hash& hash) const {
+  Bytes blockBytes = blocksDb_.get(hash, DBPrefix::blocks);
+  if (blockBytes.empty()) return nullptr;
+  return std::make_shared<FinalizedBlock>(FinalizedBlock::fromBytes(blockBytes, this->options_.getChainID()));
 }
 
-void Storage::pushBack(Block&& block) {
-  std::unique_lock<std::shared_mutex> lock(this->chainLock_);
-  this->pushBackInternal(std::move(block));
+std::shared_ptr<const FinalizedBlock> Storage::getBlock(uint64_t height) const {
+  Bytes blockHash = blocksDb_.get(UintConv::uint64ToBytes(height), DBPrefix::heightToBlock);
+  if (blockHash.empty()) return nullptr;
+  Bytes blockBytes = blocksDb_.get(blockHash, DBPrefix::blocks);
+  return std::make_shared<FinalizedBlock>(FinalizedBlock::fromBytes(blockBytes, this->options_.getChainID()));
 }
 
-void Storage::pushFront(Block&& block) {
-  std::unique_lock<std::shared_mutex> lock(this->chainLock_);
-  this->pushFrontInternal(std::move(block));
-}
-
-void Storage::popBack() {
-  // Delete block and its txs from the mappings, then pop it from the chain
-  std::unique_lock<std::shared_mutex> lock(this->chainLock_);
-  std::shared_ptr<const Block> block = this->chain_.back();
-  for (const TxBlock& tx : block->getTxs()) this->txByHash_.erase(tx.hash());
-  this->blockByHash_.erase(block->hash());
-  this->chain_.pop_back();
-}
-
-void Storage::popFront() {
-  // Delete block and its txs from the mappings, then pop it from the chain
-  std::unique_lock<std::shared_mutex> lock(this->chainLock_);
-  std::shared_ptr<const Block> block = this->chain_.front();
-  for (const TxBlock& tx : block->getTxs()) this->txByHash_.erase(tx.hash());
-  this->blockByHash_.erase(block->hash());
-  this->chain_.pop_front();
-}
-
-StorageStatus Storage::blockExists(const Hash& hash) {
-  // Check chain first, then cache, then database
-  std::shared_lock<std::shared_mutex> lock(this->chainLock_);
-  if (this->blockByHash_.contains(hash)) {
-    return StorageStatus::OnChain;
-  } else if (this->cachedBlocks_.contains(hash)) {
-    return StorageStatus::OnCache;
-  } else if (this->db_->has(hash.get(), DBPrefix::blocks)) {
-    return StorageStatus::OnDB;
-  } else {
-    return StorageStatus::NotFound;
-  }
-  return StorageStatus::NotFound;
-}
-
-StorageStatus Storage::blockExists(const uint64_t& height) {
-  // Check chain first, then cache, then database
-  std::shared_lock<std::shared_mutex> lock(this->chainLock_);
-  auto it = this->blockHashByHeight_.find(height);
-  if (it != this->blockHashByHeight_.end()) {
-    if (this->blockByHash_.contains(it->second)) return StorageStatus::OnChain;
-    std::shared_lock<std::shared_mutex> lock2(this->cacheLock_);
-    if (this->cachedBlocks_.contains(it->second)) return StorageStatus::OnCache;
-    return StorageStatus::OnDB;
-  } else {
-    return StorageStatus::NotFound;
-  }
-  return StorageStatus::NotFound;
-}
-
-const std::shared_ptr<const Block> Storage::getBlock(const Hash& hash) {
-  // Check chain first, then cache, then database
-  StorageStatus blockStatus = this->blockExists(hash);
-  switch (blockStatus) {
-    case StorageStatus::NotFound: {
-      return nullptr;
-    }
-    case StorageStatus::OnChain: {
-      std::shared_lock<std::shared_mutex> lock(this->chainLock_);
-      return this->blockByHash_.find(hash)->second;
-    }
-    case StorageStatus::OnCache: {
-      std::shared_lock<std::shared_mutex> lock(this->cacheLock_);
-      return this->cachedBlocks_[hash];
-    }
-    case StorageStatus::OnDB: {
-      std::unique_lock<std::shared_mutex> lock(this->cacheLock_);
-      this->cachedBlocks_.insert({hash, std::make_shared<Block>(
-        this->db_->get(hash.get(), DBPrefix::blocks), this->options_->getChainID()
-      )});
-      return this->cachedBlocks_[hash];
-    }
-  }
-  return nullptr;
-}
-
-const std::shared_ptr<const Block> Storage::getBlock(const uint64_t& height) {
-  // Check chain first, then cache, then database
-  StorageStatus blockStatus = this->blockExists(height);
-  if (blockStatus == StorageStatus::NotFound) return nullptr;
-  Logger::logToDebug(LogType::INFO, Log::storage, __func__, "height: " + std::to_string(height));
-  switch (blockStatus) {
-    case StorageStatus::NotFound: {
-      return nullptr;
-    }
-    case StorageStatus::OnChain: {
-      std::shared_lock<std::shared_mutex> lock(this->chainLock_);
-      return this->blockByHash_.find(this->blockHashByHeight_.find(height)->second)->second;
-    }
-    case StorageStatus::OnCache: {
-      std::shared_lock<std::shared_mutex> lock(this->cacheLock_);
-      Hash hash = this->blockHashByHeight_.find(height)->second;
-      return this->cachedBlocks_.find(hash)->second;
-    }
-    case StorageStatus::OnDB: {
-      std::unique_lock<std::shared_mutex> lock(this->cacheLock_);
-      Hash hash = this->blockHashByHeight_.find(height)->second;
-      auto blockData = this->db_->get(hash.get(), DBPrefix::blocks);
-      this->cachedBlocks_.insert({hash, std::make_shared<Block>(blockData, this->options_->getChainID())});
-      return this->cachedBlocks_[hash];
-    }
-  }
-  return nullptr;
-}
-
-StorageStatus Storage::txExists(const Hash& tx) {
-  // Check chain first, then cache, then database
-  std::shared_lock<std::shared_mutex> lock(this->chainLock_);
-  if (this->txByHash_.contains(tx)) {
-    return StorageStatus::OnChain;
-  } else if (this->cachedTxs_.contains(tx)) {
-    return StorageStatus::OnCache;
-  } else if (this->db_->has(tx.get(), DBPrefix::txToBlocks)) {
-    return StorageStatus::OnDB;
-  } else {
-    return StorageStatus::NotFound;
-  }
-}
-
-const std::tuple<
+std::tuple<
   const std::shared_ptr<const TxBlock>, const Hash, const uint64_t, const uint64_t
-> Storage::getTx(const Hash& tx) {
-  // Check chain first, then cache, then database
-  StorageStatus txStatus = this->txExists(tx);
-  switch (txStatus) {
-    case StorageStatus::NotFound: {
-      return {nullptr, Hash(), 0, 0};
-    }
-    case StorageStatus::OnChain: {
-      std::shared_lock<std::shared_mutex> lock(this->chainLock_);
-      const auto& [blockHash, blockIndex, blockHeight] = this->txByHash_.find(tx)->second;
-      const auto transaction = blockByHash_[blockHash]->getTxs()[blockIndex];
-      if (transaction.hash() != tx) throw std::runtime_error("Tx hash mismatch");
-      return {std::make_shared<const TxBlock>(transaction), blockHash, blockIndex, blockHeight};
-    }
-    case StorageStatus::OnCache: {
-      std::shared_lock<std::shared_mutex> lock(this->cacheLock_);
-      return this->cachedTxs_[tx];
-    }
-    case StorageStatus::OnDB: {
-      Bytes txData(this->db_->get(tx.get(), DBPrefix::txToBlocks));
-      BytesArrView txDataView(txData);
-      auto blockHash = Hash(txDataView.subspan(0, 32));
-      uint64_t blockIndex = Utils::bytesToUint32(txDataView.subspan(32, 4));
-      uint64_t blockHeight = Utils::bytesToUint64(txDataView.subspan(36,8));
-      Bytes blockData(this->db_->get(blockHash.get(), DBPrefix::blocks));
-      auto Tx = this->getTxFromBlockWithIndex(blockData, blockIndex);
-      std::unique_lock<std::shared_mutex> lock(this->cacheLock_);
-      this->cachedTxs_.insert({tx, {std::make_shared<const TxBlock>(Tx), blockHash, blockIndex, blockHeight}});
-      return this->cachedTxs_[tx];
-    }
-  }
-  return { nullptr, Hash(), 0, 0 };
+> Storage::getTx(const Hash& tx) const {
+  const Bytes txData = blocksDb_.get(tx, DBPrefix::txToBlock);
+  if (txData.empty()) return std::make_tuple(nullptr, Hash(), 0u, 0u);
+
+  const View<Bytes> txDataView = txData;
+  const Hash blockHash(txDataView.subspan(0, 32));
+  const uint64_t blockIndex = UintConv::bytesToUint32(txDataView.subspan(32, 4));
+  const uint64_t blockHeight = UintConv::bytesToUint64(txDataView.subspan(36, 8));
+  const Bytes blockData = blocksDb_.get(blockHash, DBPrefix::blocks);
+
+  return std::make_tuple(
+    std::make_shared<const TxBlock>(getTxFromBlockWithIndex(blockData, blockIndex)),
+    blockHash, blockIndex, blockHeight
+  );
 }
 
-const std::tuple<
+std::tuple<
   const std::shared_ptr<const TxBlock>, const Hash, const uint64_t, const uint64_t
-> Storage::getTxByBlockHashAndIndex(const Hash& blockHash, const uint64_t blockIndex) {
-  auto Status = this->blockExists(blockHash);
-  switch (Status) {
-    case StorageStatus::NotFound: {
-      return { nullptr, Hash(), 0, 0 };
-    }
-    case StorageStatus::OnChain: {
-      std::shared_lock<std::shared_mutex> lock(this->chainLock_);
-      auto txHash = this->blockByHash_[blockHash]->getTxs()[blockIndex].hash();
-      const auto& [txBlockHash, txBlockIndex, txBlockHeight] = this->txByHash_[txHash];
-      if (txBlockHash != blockHash || txBlockIndex != blockIndex) {
-        throw std::runtime_error("Tx hash mismatch");
-      }
-      const auto transaction = blockByHash_[blockHash]->getTxs()[blockIndex];
-      return {std::make_shared<const TxBlock>(transaction), txBlockHash, txBlockIndex, txBlockHeight};
-    }
-    case StorageStatus::OnCache: {
-      std::shared_lock<std::shared_mutex> lock(this->cacheLock_);
-      auto txHash = this->cachedBlocks_[blockHash]->getTxs()[blockIndex].hash();
-      return this->cachedTxs_[txHash];
-    }
-    case StorageStatus::OnDB: {
-      Bytes blockData = this->db_->get(blockHash.get(), DBPrefix::blocks);
-      auto tx = this->getTxFromBlockWithIndex(blockData, blockIndex);
-      std::unique_lock<std::shared_mutex> lock(this->cacheLock_);
-      auto blockHeight = this->blockHeightByHash_[blockHash];
-      this->cachedTxs_.insert({tx.hash(), {std::make_shared<TxBlock>(tx), blockHash, blockIndex, blockHeight}});
-      return this->cachedTxs_[tx.hash()];
-    }
-  }
-  return { nullptr, Hash(), 0, 0 };
+> Storage::getTxByBlockHashAndIndex(const Hash& blockHash, const uint64_t blockIndex) const {
+  const Bytes blockData = blocksDb_.get(blockHash, DBPrefix::blocks);
+  if (blockData.empty()) std::make_tuple(nullptr, Hash(), 0u, 0u);
+
+  const uint64_t blockHeight = UintConv::bytesToUint64(View<Bytes>(blockData).subspan(201, 8));
+  return std::make_tuple(
+    std::make_shared<TxBlock>(getTxFromBlockWithIndex(blockData, blockIndex)),
+    blockHash, blockIndex, blockHeight
+  );
 }
 
-const std::tuple<
+std::tuple<
   const std::shared_ptr<const TxBlock>, const Hash, const uint64_t, const uint64_t
-> Storage::getTxByBlockNumberAndIndex(const uint64_t& blockHeight, const uint64_t blockIndex) {
-  auto Status = this->blockExists(blockHeight);
-  switch (Status) {
-    case StorageStatus::NotFound: {
-      return { nullptr, Hash(), 0, 0 };
+> Storage::getTxByBlockNumberAndIndex(uint64_t blockHeight, uint64_t blockIndex) const {
+  const Bytes blockHash = blocksDb_.get(UintConv::uint64ToBytes(blockHeight), DBPrefix::heightToBlock);
+  if (blockHash.empty()) return std::make_tuple(nullptr, Hash(), 0u, 0u);
+
+  const Bytes blockData = blocksDb_.get(blockHash, DBPrefix::blocks);
+  if (blockData.empty()) return std::make_tuple(nullptr, Hash(), 0u, 0u);
+
+  return std::make_tuple(
+    std::make_shared<TxBlock>(getTxFromBlockWithIndex(blockData, blockIndex)),
+    Hash(blockHash), blockIndex, blockHeight
+  );
+}
+
+std::shared_ptr<const FinalizedBlock> Storage::latest() const { return latest_.load(); }
+
+uint64_t Storage::currentChainSize() const {
+  auto latest = latest_.load();
+  return latest ? (latest->getNHeight() + 1) : 0u;
+}
+
+void Storage::putCallTrace(const Hash& txHash, const trace::Call& callTrace) {
+  Bytes serial;
+  zpp::bits::out out(serial);
+  out(callTrace).or_throw();
+  blocksDb_.put(txHash, serial, DBPrefix::txToCallTrace);
+}
+
+std::optional<trace::Call> Storage::getCallTrace(const Hash& txHash) const {
+  Bytes serial = blocksDb_.get(txHash, DBPrefix::txToCallTrace);
+  if (serial.empty()) return std::nullopt;
+
+  trace::Call callTrace;
+  zpp::bits::in in(serial);
+  in(callTrace).or_throw();
+
+  return callTrace;
+}
+
+void Storage::putTxAdditionalData(const TxAdditionalData& txData) {
+  Bytes serialized;
+  zpp::bits::out out(serialized);
+  out(txData).or_throw();
+  blocksDb_.put(txData.hash, serialized, DBPrefix::txToAdditionalData);
+}
+
+std::optional<TxAdditionalData> Storage::getTxAdditionalData(const Hash& txHash) const {
+  Bytes serialized = blocksDb_.get(txHash, DBPrefix::txToAdditionalData);
+  if (serialized.empty()) return std::nullopt;
+
+  TxAdditionalData txData;
+  zpp::bits::in in(serialized);
+  in(txData).or_throw();
+  return txData;
+}
+
+std::vector<Event> Storage::getEventsLegacy(const DB& legacyEventsDB, uint64_t fromBlock, uint64_t toBlock, const Address& address, const std::vector<Hash>& topics) const {
+  if (toBlock < fromBlock) std::swap(fromBlock, toBlock);
+
+  if (uint64_t count = toBlock - fromBlock + 1; count > options_.getEventBlockCap()) {
+    throw std::out_of_range(
+      "Block range too large for event querying! Max allowed is " +
+      std::to_string(this->options_.getEventBlockCap())
+    );
+  }
+
+  std::vector<Event> events;
+  std::vector<Bytes> keys;
+
+  const Bytes startBytes = Utils::makeBytes(UintConv::uint64ToBytes(fromBlock));
+  const Bytes endBytes = Utils::makeBytes(UintConv::uint64ToBytes(toBlock));
+
+  auto dbKeys = legacyEventsDB.getKeys(DBPrefix::events, startBytes, endBytes);
+
+  for (Bytes key : dbKeys) {
+    uint64_t nHeight = UintConv::bytesToUint64(Utils::create_view_span(key, 0, 8));
+    Address currentAddress(Utils::create_view_span(key, 24, 20));
+    if (fromBlock > nHeight || toBlock < nHeight) {
+      continue;
     }
-    case StorageStatus::OnChain: {
-      std::shared_lock<std::shared_mutex> lock(this->chainLock_);
-      auto blockHash = this->blockHashByHeight_.find(blockHeight)->second;
-      auto txHash = this->blockByHash_[blockHash]->getTxs()[blockIndex].hash();
-      const auto& [txBlockHash, txBlockIndex, txBlockHeight] = this->txByHash_[txHash];
-      const auto transaction = this->blockByHash_[blockHash]->getTxs()[blockIndex];
-      return {std::make_shared<TxBlock>(transaction), txBlockHash, txBlockIndex, txBlockHeight};
-    }
-    case StorageStatus::OnCache: {
-      std::shared_lock<std::shared_mutex> lock(this->cacheLock_);
-      auto blockHash = this->blockHashByHeight_.find(blockHeight)->second;
-      auto txHash = this->cachedBlocks_[blockHash]->getTxs()[blockIndex].hash();
-      return this->cachedTxs_[txHash];
-    }
-    case StorageStatus::OnDB: {
-      auto blockHash = this->blockHashByHeight_.find(blockHeight)->second;
-      Bytes blockData = this->db_->get(blockHash.get(), DBPrefix::blocks);
-      auto tx = this->getTxFromBlockWithIndex(blockData, blockIndex);
-      std::unique_lock<std::shared_mutex> lock(this->cacheLock_);
-      auto blockHeight2 = this->blockHeightByHash_[blockHash];
-      this->cachedTxs_.insert({tx.hash(), { std::make_shared<TxBlock>(tx), blockHash, blockIndex, blockHeight2}});
-      return this->cachedTxs_[tx.hash()];
+    if (address == currentAddress || address == Address()) keys.push_back(std::move(key));
+  }
+
+  if (!keys.empty()) {
+    for (DBEntry item : legacyEventsDB.getBatch(DBPrefix::events, keys)) {
+      if (events.size() >= options_.getEventLogCap()) break;
+      Event event(StrConv::bytesToString(item.value));
+      if (topicsMatch(event, topics)) events.push_back(std::move(event));
     }
   }
-  return { nullptr, Hash(), 0, 0 };
+  return events;
 }
-
-const std::shared_ptr<const Block> Storage::latest() {
-  std::shared_lock<std::shared_mutex> lock(this->chainLock_);
-  return this->chain_.back();
-}
-
-uint64_t Storage::currentChainSize() { return this->latest()->getNHeight() + 1; }
-
-void Storage::periodicSaveToDB() const {
-  while (!this->stopPeriodicSave_) {
-    std::this_thread::sleep_for(std::chrono::seconds(this->periodicSaveCooldown_));
-    if (!this->stopPeriodicSave_ &&
-      (this->cachedBlocks_.size() > 1000 || this->cachedTxs_.size() > 1000000)
-    ) {
-      // TODO: Properly implement periodic save to DB, saveToDB() function saves **everything** to DB.
-      // Requirements:
-      // 1. Save up to 50% of current block list size to DB (e.g. 500 blocks if there are 1000 blocks).
-      // 2. Save all tx references existing on these blocks to DB.
-      // 3. Check if block is **unique** to Storage class (use shared_ptr::use_count()), if it is, save it to DB.
-      // 4. Take max 1 second, Storage::periodicSaveToDB() should never lock this->chainLock_ for too long, otherwise chain might stall.
-      // use_count() of blocks inside Storage would be 2 if on chain (this->chain + this->blockByHash_) and not being used anywhere else on the program.
-      // or 1 if on cache (cachedBlocks).
-      // if ct > 3 (or 1), we have to wait until whoever is using the block
-      // to stop using it so we can save it.
-    }
-  }
-}
-

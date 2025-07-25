@@ -1,5 +1,5 @@
 /*
-Copyright (c) [2023-2024] [Sparq Network]
+Copyright (c) [2023-2024] [AppLayer Developers]
 
 This software is distributed under the MIT License.
 See the LICENSE.txt file in the project root for more information.
@@ -9,8 +9,8 @@ See the LICENSE.txt file in the project root for more information.
 
 HTTPListener::HTTPListener(
   net::io_context& ioc, tcp::endpoint ep, const std::shared_ptr<const std::string>& docroot,
-  const std::unique_ptr<State>& state, const std::unique_ptr<Storage>& storage,
-  const std::unique_ptr<P2P::ManagerNormal>& p2p, const std::unique_ptr<Options>& options
+  State& state, const Storage& storage,
+  P2P::ManagerNormal& p2p, const Options& options
 ) : ioc_(ioc), acc_(net::make_strand(ioc)), docroot_(docroot), state_(state),
   storage_(storage), p2p_(p2p), options_(options)
 {

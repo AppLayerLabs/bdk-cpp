@@ -1,5 +1,5 @@
 /*
-Copyright (c) [2023-2024] [Sparq Network]
+Copyright (c) [2023-2024] [AppLayer Developers]
 
 This software is distributed under the MIT License.
 See the LICENSE.txt file in the project root for more information.
@@ -8,12 +8,7 @@ See the LICENSE.txt file in the project root for more information.
 #ifndef JSONABI_H
 #define JSONABI_H
 
-#include <boost/algorithm/string/split.hpp>
-
-#include "contractreflectioninterface.h"
-#include "utils.h" // contains nlohmann/json.hpp
-
-#include "../contract/customcontracts.h"
+#include "../contract/customcontracts.h" // contract templates -> dynamiccontract.h -> contracthost.h -> contractreflectioninterface.h -> contract/abi.h -> utils.h, libs/json.hpp
 
 /// Namespace for managing and converting contract ABI data to JSON format.
 namespace JsonAbi {
@@ -55,24 +50,23 @@ namespace JsonAbi {
   /**
    * Parse a given method input to a JSON object.
    * @param inputDesc The input description of the method (std::pair<type,name>).
-   * Be aware that tuple types are concatenated into the string itself.
+   *                  Be aware that tuple types are concatenated into the string itself.
    * @return A JSON object containing the inputs of the method.
    */
   json parseMethodInput(const std::vector<std::pair<std::string,std::string>>& inputDesc);
 
   /**
    * Parse a given method output to a JSON object.
-   * @param outputDesc The output description of the method (std::pair<type,name>).
-   * Be aware that tuple types are concatenated into the string itself.
+   * @param outputDesc The output description of the method (std::string).
+   *                   Be aware that tuple types are concatenated into the string itself.
    * @return A JSON object containing the outputs of the method.
    */
   json parseMethodOutput(const std::vector<std::string>& outputDesc);
 
-
   /**
-   * Parse a given event args to a JSON object
+   * Parse a given event's args to a JSON object.
    * @param args The args description of the event (std::tuple<type,name,indexed>).
-   * Be aware that tuple types are concatenated into the string itself.
+   *             Be aware that tuple types are concatenated into the string itself.
    * @return A JSON object containing the args of the event.
    */
   json parseEventArgs(const std::vector<std::tuple<std::string, std::string, bool>>& args);
@@ -148,13 +142,13 @@ namespace JsonAbi {
   }
 
   /**
-   * Base struct for writing contracts to JSON.
+   * Struct for writing contracts to JSON.
    * @tparam T The contract type.
    */
   template <typename T> struct ContractWriter;
 
   /**
-   * Specialization of ContractWriter for a list of contracts.
+   * Specialization for a list of contracts.
    * @tparam Contracts The list of contracts to write.
    */
   template <typename... Contracts> struct ContractWriter<std::tuple<Contracts...>> {
@@ -165,7 +159,7 @@ namespace JsonAbi {
   };
 
   /**
-   * Specialization of ContractWriter for a single contract.
+   * Specialization for a single contract.
    * @tparam Contract The contract to write.
    */
   template <typename Contract> struct ContractWriter {
@@ -189,8 +183,8 @@ namespace JsonAbi {
    * @param abis The array of JSON objects to store the ABI functions in.
    */
   template <typename ContractTuple, std::size_t N>
-  std::enable_if_t<(N < std::tuple_size<ContractTuple>::value)>
-  getConstructorsABI(json& abis) {
+  requires (N < std::tuple_size<ContractTuple>::value)
+  void getConstructorsABI(json& abis) {
     abis.push_back(getConstructorABI<std::tuple_element_t<N, ContractTuple>>());
     if constexpr (N + 1 < std::tuple_size<ContractTuple>::value) {
       getConstructorsABI<ContractTuple, N + 1>(abis);
@@ -201,11 +195,10 @@ namespace JsonAbi {
    * Base case for getConstructorsABI recursion (do nothing).
    * @tparam ContractTuple The tuple of contracts to get the constructors of.
    * @tparam N The number of contracts in the tuple.
-   * @param abis The array of JSON objects to store the ABI functions in.
    */
   template <typename ContractTuple, std::size_t N>
-  std::enable_if_t<(N == std::tuple_size<ContractTuple>::value)>
-  getConstructorsABI(json &abis) {
+  requires (N == std::tuple_size<ContractTuple>::value)
+  void getConstructorsABI(json&) {
     // Do nothing by default on recursion
   }
 
@@ -221,12 +214,33 @@ namespace JsonAbi {
       {"inputs", json::array()},
       {"name", "getDeployedContracts"},
       {"outputs", {
-        {{"internalType", "string[]"}, {"name", ""}, {"type", "string[]"}},
-        {{"internalType", "address[]"}, {"name", ""}, {"type", "address[]"}}
+        {
+          {"components", {
+            { {"internalType", "string"}, {"type", "string"} },
+            { {"internalType", "address"}, {"type", "address"} }
+          } }, {"type", "tuple[]"}
+        }
       }},
       {"stateMutability", "view"},
       {"type", "function"}
     });
+    managerABI.push_back({
+        {"inputs", {
+              { {"internalType", "address"}, {"name", "creator"}, {"type", "address"} }
+        }},
+      {"name", "getDeployedContractsForCreator"},
+      {"outputs", {
+        {
+          {"components", {
+            { {"internalType", "string"}, {"type", "string"} },
+            { {"internalType", "address"}, {"type", "address"} }
+          } }, {"type", "tuple[]"}
+        }
+      }},
+      {"stateMutability", "view"},
+      {"type", "function"}
+    });
+
     std::ofstream jsonFile("ABI/ContractManager.json");
     jsonFile << std::setw(2) << managerABI << std::endl;
   }

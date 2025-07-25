@@ -1,5 +1,5 @@
 /*
-Copyright (c) [2023-2024] [Sparq Network]
+Copyright (c) [2023-2024] [AppLayer Developers]
 
 This software is distributed under the MIT License.
 See the LICENSE.txt file in the project root for more information.
@@ -13,12 +13,11 @@ std::vector<Hash> Merkle::newLayer(const std::vector<Hash>& layer) const {
     (i + 1 < layer.size())
       ? Utils::sha3(
         // Lambda to concatenate
-        Bytes([&]() -> Bytes {
-          Bytes bytes;
-          bytes.reserve(64);
-          Utils::appendBytes(bytes, std::min(layer[i], layer[i + 1]));
-          Utils::appendBytes(bytes, std::max(layer[i], layer[i + 1]));
-          return bytes;
+        Bytes([&]() {
+          return Utils::makeBytes(bytes::join(
+            std::min(layer[i], layer[i + 1]),
+            std::max(layer[i], layer[i + 1])
+          ));
         }()
       ))
       : layer[i]
@@ -30,7 +29,7 @@ Merkle::Merkle(const std::vector<Hash>& leaves) {
   // Mount the base leaves
   std::vector<Hash> tmp;
   for (const Hash& leaf : leaves) {
-    Hash leafHash = Utils::sha3(leaf.get());
+    Hash leafHash = Utils::sha3(leaf);
     tmp.emplace_back(std::move(leafHash));
   }
   this->tree_.emplace_back(tmp);
@@ -38,7 +37,7 @@ Merkle::Merkle(const std::vector<Hash>& leaves) {
   while (this->tree_.back().size() > 1) this->tree_.emplace_back(newLayer(this->tree_.back()));
 }
 
-const std::vector<Hash> Merkle::getProof(const uint64_t leafIndex) const {
+std::vector<Hash> Merkle::getProof(const uint64_t leafIndex) const {
   if (leafIndex > this->tree_.front().size() - 1) return {};
   std::vector<Hash> ret;
   uint64_t pos = leafIndex;
@@ -57,12 +56,11 @@ bool Merkle::verify(const std::vector<Hash>& proof, const Hash& leaf, const Hash
   Hash computedHash = leaf;
   for (const Hash& hash : proof) computedHash = Utils::sha3(
     // Lambda to concatenate
-    Bytes([&]() -> Bytes {
-      Bytes bytes;
-      bytes.reserve(64);
-      Utils::appendBytes(bytes, std::min(computedHash, hash));
-      Utils::appendBytes(bytes, std::max(computedHash, hash));
-      return bytes;
+    Bytes([&]() {
+      return Utils::makeBytes(bytes::join(
+        std::min(computedHash, hash),
+        std::max(computedHash, hash)
+      ));
     }())
   );
   return computedHash == root;

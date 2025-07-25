@@ -40,7 +40,7 @@ https://docs.github.com/en/free-pro-team@latest/github/managing-your-work-on-git
 ## Added to documentation?
 
 - [ ] 📜 README.md
-- [ ] 📓 [Sparq Docs](https://github.com/SparqNet/sparq-docs)
+- [ ] 📓 [Sparq Docs](https://github.com/AppLayer/sparq-docs)
 - [ ] 🙅 no documentation needed
 
 ## [optional] Are there any post-deployment tasks we need to perform?

@@ -1,5 +1,5 @@
 /*
-Copyright (c) [2023-2024] [Sparq Network]
+Copyright (c) [2023-2024] [AppLayer Developers]
 
 This software is distributed under the MIT License.
 See the LICENSE.txt file in the project root for more information.
@@ -8,9 +8,7 @@ See the LICENSE.txt file in the project root for more information.
 #ifndef ECDSA_H
 #define ECDSA_H
 
-#include <secp256k1.h>
-#include <secp256k1_ecdh.h>
-#include <secp256k1_recovery.h>
+#include <secp256k1_recovery.h> // includes secp256k1.h
 
 #include "utils.h"
 
@@ -49,8 +47,7 @@ namespace Secp256k1 {
   UPubKey recover(const Signature& sig, const Hash& msg);
 
   /**
-   * Create an [ECDSA](https://en.wikipedia.org/wiki/Elliptic_Curve_Digital_Signature_Algorithm)
-   * (Elliptic Curve Digital %Signature Algorithm) signature.
+   * Create an [ECDSA](https://en.wikipedia.org/wiki/Elliptic_Curve_Digital_Signature_Algorithm) signature.
    * @param r The first half (32 bytes) of the ECDSA signature.
    * @param s The second half (32 bytes) of the ECDSA signature.
    * @param v The recovery id (1 byte).

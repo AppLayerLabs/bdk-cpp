@@ -1,5 +1,5 @@
 /*
-Copyright (c) [2023-2024] [Sparq Network]
+Copyright (c) [2023-2024] [AppLayer Developers]
 
 This software is distributed under the MIT License.
 See the LICENSE.txt file in the project root for more information.
@@ -8,24 +8,47 @@ See the LICENSE.txt file in the project root for more information.
 #include "../../src/libs/catch2/catch_amalgamated.hpp"
 #include "../../src/utils/utils.h"
 #include "../../src/utils/tx.h"
+#include "bytes/random.h"
+
+#include "../../src/utils/tx.h" // ecdsa.h -> utils.h
 
 using Catch::Matchers::Equals;
 
 namespace TTX {
   TEST_CASE("TxBlock (Throw)", "[utils][tx][throw]") {
+    SECTION("Tx is not type 2") {
+      bool catched = false;
+      TxBlock tx(
+        Address(Hex::toBytes("0x13b5c424686de186bc5268d5cfe6aa4200ca9aee")),
+        Address(Hex::toBytes("0x31Af43C5E5924610a9c02B669c7980D9eBdB9719")),
+        Hex::toBytes("0xe426208f118c6c7db391b3391dda9b94bb0e5c6da9514ad74b63fd6d723b38be421a039136c0015ef0c6bff94109cb9bc4942031949016b85e919fdca81f59f0e417bd696cf6e8f9203d792edc223a59d24e"),
+        uint64_t(8080),                 // ChainID
+        uint256_t("42968208492763873"),     // Nonce
+        uint256_t("166903214424643"),       // Value
+        uint256_t("65612315125671"),        // maxPriorityFeePerGas
+        uint256_t("712471569147246"),       // maxFeePerGas
+        uint256_t("61182866117425671"),     // gasLimit
+        PrivKey(Hex::toBytes("ce974dad85cf9593db9d5c3e89ca8c67ca0f841dc97f2c58c6ea2038e4fa6d8d"))
+      );
+      Bytes txStr = tx.rlpSerialize();
+      txStr[0] = 0x01;
+      try { TxBlock tx(txStr, 8080); } catch (std::exception &e) { catched = true; }
+      REQUIRE(catched == true);
+    }
+
     SECTION("Tx is not a list") {
       bool catched = false;
       TxBlock tx(
         Address(Hex::toBytes("0x13b5c424686de186bc5268d5cfe6aa4200ca9aee")),
         Address(Hex::toBytes("0x31Af43C5E5924610a9c02B669c7980D9eBdB9719")),
         Hex::toBytes("0xe426208f118c6c7db391b3391dda9b94bb0e5c6da9514ad74b63fd6d723b38be421a039136c0015ef0c6bff94109cb9bc4942031949016b85e919fdca81f59f0e417bd696cf6e8f9203d792edc223a59d24e"),
-        uint64_t(8080),                 /// ChainID
-        uint256_t("42968208492763873"),     /// Nonce
-        uint256_t("166903214424643"),       /// Value
-        uint256_t("65612315125671"),        /// maxPriorityFeePerGas
-        uint256_t("712471569147246"),       /// maxFeePerGas
-        uint256_t("61182866117425671"),     /// gasLimit
-        Hex::toBytes("ce974dad85cf9593db9d5c3e89ca8c67ca0f841dc97f2c58c6ea2038e4fa6d8d")
+        uint64_t(8080),                 // ChainID
+        uint256_t("42968208492763873"),     // Nonce
+        uint256_t("166903214424643"),       // Value
+        uint256_t("65612315125671"),        // maxPriorityFeePerGas
+        uint256_t("712471569147246"),       // maxFeePerGas
+        uint256_t("61182866117425671"),     // gasLimit
+        PrivKey(Hex::toBytes("ce974dad85cf9593db9d5c3e89ca8c67ca0f841dc97f2c58c6ea2038e4fa6d8d"))
       );
       Bytes txStr = tx.rlpSerialize();
       txStr[1] = 0xf6;
@@ -40,13 +63,13 @@ namespace TTX {
         Address(Hex::toBytes("0x13b5c424686de186bc5268d5cfe6aa4200ca9aee")),
         Address(Hex::toBytes("0x31Af43C5E5924610a9c02B669c7980D9eBdB9719")),
         Hex::toBytes("0xe426208f118c6c7db391b3391dda9b94bb0e5c6da9514ad74b63fd6d723b38be421a039136c0015ef0c6bff94109cb9bc4942031949016b85e919fdca81f59f0e417bd696cf6e8f9203d792edc223a59d24e"),
-        uint64_t(8080),                 /// ChainID
-        uint256_t("42968208492763873"),     /// Nonce
-        uint256_t("166903214424643"),       /// Value
-        uint256_t("65612315125671"),        /// maxPriorityFeePerGas
-        uint256_t("712471569147246"),       /// maxFeePerGas
-        uint256_t("61182866117425671"),     /// gasLimit
-        Hex::toBytes("ce974dad85cf9593db9d5c3e89ca8c67ca0f841dc97f2c58c6ea2038e4fa6d8d")
+        uint64_t(8080),                 // ChainID
+        uint256_t("42968208492763873"),     // Nonce
+        uint256_t("166903214424643"),       // Value
+        uint256_t("65612315125671"),        // maxPriorityFeePerGas
+        uint256_t("712471569147246"),       // maxFeePerGas
+        uint256_t("61182866117425671"),     // gasLimit
+        PrivKey(Hex::toBytes("ce974dad85cf9593db9d5c3e89ca8c67ca0f841dc97f2c58c6ea2038e4fa6d8d"))
       );
       Bytes txShortStr = tx.rlpSerialize();
       auto txView = Utils::create_view_span(txShortStr);
@@ -64,7 +87,7 @@ namespace TTX {
       bool catched = false;
       Bytes txStr = Hex::toBytes(
         "02f8d6b71f908798a75ba3d89ae1863bac8ebc67a7870287fd36caa56e87d95d7e1944fa079413b5c424686de186bc5268d5cfe6aa4200ca9aee8697cc2ecec243b852e426208f118c6c7db391b3391dda9b94bb0e5c6da9514ad74b63fd6d723b38be421a039136c0015ef0c6bff94109cb9bc4942031949016b85e919fdca81f59f0e417bd696cf6e8f9203d792edc223a59d24ec001a03f40d77504fededf1c0f59b1b5aeecd6cb1c9bbca983352f10717441b4c39fdfa02d71eaeba43f0cbd3f9184afc4e0a907c0b1b69b6a78e6af38b7ddf6b6c0e2a7"
-      ); /// "0x...b7" -> not value anymore", thus throw
+      ); // "0x...b7" -> not value anymore", thus throw
       try { TxBlock tx(txStr, 8080); } catch (std::exception &e) { catched = true; }
       REQUIRE(catched == true);
     }
@@ -73,7 +96,7 @@ namespace TTX {
       bool catched = false;
       Bytes txStr = Hex::toBytes(
         "02f8d6821f908798a75ba3d89ae1b73bac8ebc67a7870287fd36caa56e87d95d7e1944fa079413b5c424686de186bc5268d5cfe6aa4200ca9aee8697cc2ecec243b852e426208f118c6c7db391b3391dda9b94bb0e5c6da9514ad74b63fd6d723b38be421a039136c0015ef0c6bff94109cb9bc4942031949016b85e919fdca81f59f0e417bd696cf6e8f9203d792edc223a59d24ec001a03f40d77504fededf1c0f59b1b5aeecd6cb1c9bbca983352f10717441b4c39fdfa02d71eaeba43f0cbd3f9184afc4e0a907c0b1b69b6a78e6af38b7ddf6b6c0e2a7"
-      ); /// "0x...b7" -> not value anymore", thus throw
+      ); // "0x...b7" -> not value anymore", thus throw
       try { TxBlock tx(txStr, 8080); } catch (std::exception &e) { catched = true; }
       REQUIRE(catched == true);
     }
@@ -82,7 +105,7 @@ namespace TTX {
       bool catched = false;
       Bytes txStr = Hex::toBytes(
         "02f8d6821f90b798a75ba3d89ae1863bac8ebc67a7870287fd36caa56e87d95d7e1944fa079413b5c424686de186bc5268d5cfe6aa4200ca9aee8697cc2ecec243b852e426208f118c6c7db391b3391dda9b94bb0e5c6da9514ad74b63fd6d723b38be421a039136c0015ef0c6bff94109cb9bc4942031949016b85e919fdca81f59f0e417bd696cf6e8f9203d792edc223a59d24ec001a03f40d77504fededf1c0f59b1b5aeecd6cb1c9bbca983352f10717441b4c39fdfa02d71eaeba43f0cbd3f9184afc4e0a907c0b1b69b6a78e6af38b7ddf6b6c0e2a7"
-      ); /// "0x...b7" -> not value anymore", thus throw
+      ); // "0x...b7" -> not value anymore", thus throw
       try { TxBlock tx(txStr, 8080); } catch (std::exception &e) { catched = true; }
       REQUIRE(catched == true);
     }
@@ -91,7 +114,7 @@ namespace TTX {
       bool catched = false;
       Bytes txStr = Hex::toBytes(
         "02f8d6821f908798a75ba3d89ae1b73bac8ebc67a7870287fd36caa56e87d95d7e1944fa079413b5c424686de186bc5268d5cfe6aa4200ca9aee8697cc2ecec243b852e426208f118c6c7db391b3391dda9b94bb0e5c6da9514ad74b63fd6d723b38be421a039136c0015ef0c6bff94109cb9bc4942031949016b85e919fdca81f59f0e417bd696cf6e8f9203d792edc223a59d24ec001a03f40d77504fededf1c0f59b1b5aeecd6cb1c9bbca983352f10717441b4c39fdfa02d71eaeba43f0cbd3f9184afc4e0a907c0b1b69b6a78e6af38b7ddf6b6c0e2a7"
-      ); // /// "0x...b7" -> not value anymore", thus throw
+      ); // "0x...b7" -> not value anymore", thus throw
       try { TxBlock tx(txStr, 8080); } catch (std::exception &e) { catched = true; }
       REQUIRE(catched == true);
     }
@@ -100,7 +123,7 @@ namespace TTX {
       bool catched = false;
       Bytes txStr = Hex::toBytes(
         "02f8d6821f908798a75ba3d89ae1863bac8ebc67a7b70287fd36caa56e87d95d7e1944fa079413b5c424686de186bc5268d5cfe6aa4200ca9aee8697cc2ecec243b852e426208f118c6c7db391b3391dda9b94bb0e5c6da9514ad74b63fd6d723b38be421a039136c0015ef0c6bff94109cb9bc4942031949016b85e919fdca81f59f0e417bd696cf6e8f9203d792edc223a59d24ec001a03f40d77504fededf1c0f59b1b5aeecd6cb1c9bbca983352f10717441b4c39fdfa02d71eaeba43f0cbd3f9184afc4e0a907c0b1b69b6a78e6af38b7ddf6b6c0e2a7"
-      ); // /// "0x...b7" -> not value anymore", thus throw
+      ); // "0x...b7" -> not value anymore", thus throw
       try { TxBlock tx(txStr, 8080); } catch (std::exception &e) { catched = true; }
       REQUIRE(catched == true);
     }
@@ -110,7 +133,7 @@ namespace TTX {
       bool catched = false;
       Bytes txStr = Hex::toBytes(
         "02f8d6821f908798a75ba3d89ae1863bac8ebc67a7870287fd36caa56eb7d95d7e1944fa079413b5c424686de186bc5268d5cfe6aa4200ca9aee8697cc2ecec243b852e426208f118c6c7db391b3391dda9b94bb0e5c6da9514ad74b63fd6d723b38be421a039136c0015ef0c6bff94109cb9bc4942031949016b85e919fdca81f59f0e417bd696cf6e8f9203d792edc223a59d24ec001a03f40d77504fededf1c0f59b1b5aeecd6cb1c9bbca983352f10717441b4c39fdfa02d71eaeba43f0cbd3f9184afc4e0a907c0b1b69b6a78e6af38b7ddf6b6c0e2a7"
-      ); // /// "0x...b7" -> not value anymore", thus throw
+      ); // "0x...b7" -> not value anymore", thus throw
       try { TxBlock tx(txStr, 8080); } catch (std::exception &e) { catched = true; }
       REQUIRE(catched == true);
     }
@@ -134,7 +157,7 @@ namespace TTX {
       bool catched = false;
       Bytes txStr = Hex::toBytes(
         "02f8d6821f908798a75ba3d89ae1863bac8ebc67a7870287fd36caa56e87d95d7e1944fa079413b5c424686de186bc5268d5cfe6aa4200ca9aeeb797cc2ecec243b852e426208f118c6c7db391b3391dda9b94bb0e5c6da9514ad74b63fd6d723b38be421a039136c0015ef0c6bff94109cb9bc4942031949016b85e919fdca81f59f0e417bd696cf6e8f9203d792edc223a59d24ec001a03f40d77504fededf1c0f59b1b5aeecd6cb1c9bbca983352f10717441b4c39fdfa02d71eaeba43f0cbd3f9184afc4e0a907c0b1b69b6a78e6af38b7ddf6b6c0e2a7"
-      ); /// "0x...b7" -> not value anymore", thus throw
+      ); // "0x...b7" -> not value anymore", thus throw
       try { TxBlock tx(txStr, 8080); } catch (std::exception &e) { catched = true; }
       REQUIRE(catched == true);
     }
@@ -152,7 +175,7 @@ namespace TTX {
       bool catched = false;
       Bytes txStr = Hex::toBytes(
         "02f8d6821f908798a75ba3d89ae1863bac8ebc67a7870287fd36caa56e87d95d7e1944fa079413b5c424686de186bc5268d5cfe6aa4200ca9aee8697cc2ecec243b852e426208f118c6c7db391b3391dda9b94bb0e5c6da9514ad74b63fd6d723b38be421a039136c0015ef0c6bff94109cb9bc4942031949016b85e919fdca81f59f0e417bd696cf6e8f9203d792edc223a59d24ec001a13f40d77504fededf1c0f59b1b5aeecd6cb1c9bbca983352f10717441b4c39fdfa02d71eaeba43f0cbd3f9184afc4e0a907c0b1b69b6a78e6af38b7ddf6b6c0e2a702f8d6821f908798a75ba3d89ae1863bac8ebc67a7870287fd36caa56e87d95d7e1944fa079413b5c424686de186bc5268d5cfe6aa4200ca9aee8697cc2ecec243b852e426208f118c6c7db391b3391dda9b94bb0e5c6da9514ad74b63fd6d723b38be421a039136c0015ef0c6bff94109cb9bc4942031949016b85e919fdca81f59f0e417bd696cf6e8f9203d792edc223a59d24ec001a13f40d77504fededf1c0f59b1b5aeecd6cb1c9bbca983352f10717441b4c39fdfa02d71eaeba43f0cbd3f9184afc4e0a907c0b1b69b6a78e6af38b7ddf6b6c0e2a7"
-      ); /// "0x...a1 > 0xa0", thus throw
+      ); // "0x...a1 > 0xa0", thus throw
       try { TxBlock tx(txStr, 8080); } catch (std::exception &e) { catched = true; }
       REQUIRE(catched == true);
     }
@@ -161,7 +184,7 @@ namespace TTX {
       bool catched = false;
       Bytes txStr = Hex::toBytes(
         "02f8d6821f908798a75ba3d89ae1863bac8ebc67a7870287fd36caa56e87d95d7e1944fa079413b5c424686de186bc5268d5cfe6aa4200ca9aee8697cc2ecec243b852e426208f118c6c7db391b3391dda9b94bb0e5c6da9514ad74b63fd6d723b38be421a039136c0015ef0c6bff94109cb9bc4942031949016b85e919fdca81f59f0e417bd696cf6e8f9203d792edc223a59d24ec001a03f40d77504fededf1c0f59b1b5aeecd6cb1c9bbca983352f10717441b4c39fdfa12d71eaeba43f0cbd3f9184afc4e0a907c0b1b69b6a78e6af38b7ddf6b6c0e2a7"
-      ); /// "0x...a1 > 0xa0", thus throw
+      ); // "0x...a1 > 0xa0", thus throw
       try { TxBlock tx(txStr, 8080); } catch (std::exception &e) { catched = true; }
       REQUIRE(catched == true);
     }
@@ -184,7 +207,7 @@ namespace TTX {
     SECTION("Tx invalid PrivKey (doesn't match from)") {
       bool catched = false;
       try {
-        PrivKey privKey(Hash::random());
+        PrivKey privKey(bytes::random());
         TxBlock tx(
           Address(Hex::toBytes("0x1234567890123456789012345678901234567890")),
           Address(Hex::toBytes("0x1234567890123456789012345678901234567890")),
@@ -294,7 +317,7 @@ namespace TTX {
     SECTION("Tx invalid PrivKey (doesn't match from)") {
       bool catched = false;
       try {
-        PrivKey privKey(Hash::random());
+        PrivKey privKey(bytes::random());
         TxValidator tx(
           Address(Hex::toBytes("0x1234567890123456789012345678901234567890")),
           {}, 8080, 0, privKey

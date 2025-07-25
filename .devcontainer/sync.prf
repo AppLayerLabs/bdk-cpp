@@ -1,6 +1,6 @@
 # Unison synchronization profile
-root = /orbitersdk-cpp
-root = /orbitersdk-data
+root = /bdk-cpp
+root = /bdk-data
 
 # Specify synchronization options
 auto = true

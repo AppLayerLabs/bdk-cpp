@@ -1,5 +1,5 @@
 /*
-Copyright (c) [2023-2024] [Sparq Network]
+Copyright (c) [2023-2024] [AppLayer Developers]
 
 This software is distributed under the MIT License.
 See the LICENSE.txt file in the project root for more information.
@@ -26,23 +26,20 @@ class ThrowTestA : public DynamicContract {
 
     /**
     * Constructor.
-    * @param interface The interface to the contract manager.
     * @param address The address of the contract.
     * @param creator The address of the creator of the contract.
     * @param chainId The chain ID.
-    * @param db The database to use.
     */
-    ThrowTestA(ContractManagerInterface &interface, const Address& address,
-      const Address& creator, const uint64_t& chainId, const std::unique_ptr<DB> &db
+    ThrowTestA(const Address& address,
+      const Address& creator, const uint64_t& chainId
     );
 
     /**
     * Constructor for contract loading.
-    * @param interface The interface to the contract manager.
     * @param address The address of the contract.
     * @param db The database to use.
     */
-    ThrowTestA(ContractManagerInterface &interface, const Address& address, const std::unique_ptr<DB> &db);
+    ThrowTestA(const Address& address, const DB& db);
 
     ~ThrowTestA() override; ///< Destructor.
 
@@ -65,14 +62,18 @@ class ThrowTestA : public DynamicContract {
     * Register the contract structure.
     */
     static void registerContract() {
-      ContractReflectionInterface::registerContractMethods<
-        ThrowTestA, ContractManagerInterface&, const Address&, const Address&, const uint64_t&, const std::unique_ptr<DB>&
-      >(
-        std::vector<std::string>{},
-        std::make_tuple("getNumA", &ThrowTestA::getNumA, FunctionTypes::View, std::vector<std::string>{}),
-        std::make_tuple("setNumA", &ThrowTestA::setNumA, FunctionTypes::NonPayable, std::vector<std::string>{"valA", "addB", "valB", "addC", "valC"})
-      );
+      static std::once_flag once;
+      std::call_once(once, []() {
+        DynamicContract::registerContractMethods<ThrowTestA>(
+          std::vector<std::string>{},
+          std::make_tuple("getNumA", &ThrowTestA::getNumA, FunctionTypes::View, std::vector<std::string>{}),
+          std::make_tuple("setNumA", &ThrowTestA::setNumA, FunctionTypes::NonPayable, std::vector<std::string>{"valA", "addB", "valB", "addC", "valC"})
+        );
+      });
     }
+
+    /// Dump method
+    DBBatch dump() const override;
 };
 
 #endif  // THROWTESTA_H

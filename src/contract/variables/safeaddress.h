@@ -1,5 +1,5 @@
 /*
-Copyright (c) [2023-2024] [Sparq Network]
+Copyright (c) [2023-2024] [AppLayer Developers]
 
 This software is distributed under the MIT License.
 See the LICENSE.txt file in the project root for more information.
@@ -9,23 +9,17 @@ See the LICENSE.txt file in the project root for more information.
 #define SAFEADDRESS_H
 
 #include "../../utils/strings.h"
+
 #include "safebase.h"
 
 /**
- * Safe wrapper for an Address variable.
- * Used to safely store an Address within a contract.
- * @see SafeBase
- * @see Address
+ * Safe wrapper for an Address variable. Used to safely store an Address within a contract.
+ * @see SafeBase, Address
  */
 class SafeAddress : public SafeBase {
   private:
-    Address address_; ///< Value.
-    mutable std::unique_ptr<Address> addressPtr_; ///< Pointer to the value. check() requires this to be mutable.
-
-    /// Check if the pointer is initialized (and initialize it if not).
-    inline void check() const override {
-      if (addressPtr_ == nullptr) addressPtr_ = std::make_unique<Address>(address_);
-    };
+    Address value_; ///< Current ("original") value.
+    Address copy_; ///< Previous ("temporary") value.
 
   public:
     /**
@@ -33,62 +27,45 @@ class SafeAddress : public SafeBase {
      * @param owner The contract that owns the variable.
      * @param address The initial value. Defaults to an empty address.
      */
-    SafeAddress(DynamicContract* owner, const Address& address = Address())
-      : SafeBase(owner), address_(Address()), addressPtr_(std::make_unique<Address>(address))
-    {};
+    explicit SafeAddress(DynamicContract* owner, const Address& address = Address())
+      : SafeBase(owner), value_(address), copy_(address) {}
 
     /**
      * Empty constructor.
      * @param address The initial value. Defaults to an empty address.
      */
     explicit SafeAddress(const Address& address = Address())
-      : SafeBase(nullptr), address_(Address()), addressPtr_(std::make_unique<Address>(address))
-    {};
+      : SafeBase(nullptr), value_(address), copy_(address) {}
 
-    /// Copy constructor.
-    SafeAddress(const SafeAddress& other) : SafeBase(nullptr) {
-      check();
-      address_ = other.address_;
-      addressPtr_ = std::make_unique<Address>(*other.addressPtr_);
-    }
+    /// Copy constructor. Only copies the CURRENT value.
+    SafeAddress(const SafeAddress& other) : SafeBase(nullptr), value_(other.value_), copy_(other.value_) {}
 
-    /// Getter for the value. Returns the value from the pointer.
-    inline const Address& get() const { check(); return *addressPtr_; };
+    /// Getter for the CURRENT value.
+    inline const Address& get() const { return this->value_; }
 
-    /// Commit the value. Updates the value from the pointer and nullifies it.
-    inline void commit() override {
-      check();
-      address_ = *addressPtr_;
-      addressPtr_ = nullptr;
+    ///@{
+    /** Assignment operator. Assigns only the CURRENT value. */
+    inline SafeAddress& operator=(const Address& address) {
+      markAsUsed(); this->value_ = address; return *this;
     };
-
-    /// Revert the value. Nullifies the pointer.
-    inline void revert() const override { addressPtr_ = nullptr; };
-
-    /// Assignment operator.
-    inline Address& operator=(const Address& address) {
-      check();
-      markAsUsed();
-      *addressPtr_ = address;
-      return *addressPtr_;
+    inline SafeAddress& operator=(const SafeAddress& other) {
+      markAsUsed(); this->value_ = other.value_; return *this;
     };
+    ///@}
 
-    /// Assignment operator.
-    inline Address& operator=(const SafeAddress& other) {
-      check();
-      markAsUsed();
-      *addressPtr_ = other.get();
-      return *addressPtr_;
-    };
+    ///@{
+    /** Equality operator. Checks only the CURRENT value. */
+    inline bool operator==(const Address& other) const { return (this->value_ == other); }
+    inline bool operator==(const SafeAddress& other) const { return (this->value_ == other.get()); }
+    ///@}
 
-    /// Equality operator.
-    inline bool operator==(const Address& other) const {
-      check(); return (*addressPtr_ == other);
-    }
+    /// Commit the value.
+    inline void commit() override { this->copy_ = this->value_; this->registered_ = false; }
 
-    /// Equality operator.
-    inline bool operator==(const SafeAddress& other) const {
-      check(); return (*addressPtr_ == other.get());
+    /// Revert the value.
+    inline void revert() override {
+      this->value_ = this->copy_;
+      this->registered_ = false;
     }
 };
 

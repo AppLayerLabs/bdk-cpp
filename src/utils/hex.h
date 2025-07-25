@@ -1,5 +1,5 @@
 /*
-Copyright (c) [2023-2024] [Sparq Network]
+Copyright (c) [2023-2024] [AppLayer Developers]
 
 This software is distributed under the MIT License.
 See the LICENSE.txt file in the project root for more information.
@@ -8,40 +8,16 @@ See the LICENSE.txt file in the project root for more information.
 #ifndef HEX_H
 #define HEX_H
 
-#include <algorithm>
-#include <filesystem>
-#include <fstream>
-#include <iostream>
-#include <regex>
-#include <string_view>
-#include <thread>
-#include <span>
-
 #include <boost/multiprecision/cpp_int.hpp>
 
-using Byte = uint8_t;
-using Bytes = std::vector<Byte>;
+#include "bytes/view.h" // bytes/ranges.h -> ranges -> span libs/zpp_bits.h -> span
+#include "bytes.h"
+#include "utils/view.h"
+
 template <std::size_t N>
 using BytesArr = std::array<Byte, N>;
-using BytesArrView = std::span<const Byte, std::dynamic_extent>;
-using BytesArrMutableView = std::span<Byte, std::dynamic_extent>;
-
 
 using uint256_t = boost::multiprecision::number<boost::multiprecision::cpp_int_backend<256, 256, boost::multiprecision::unsigned_magnitude, boost::multiprecision::cpp_int_check_type::checked, void>>;
-
-/**
- * Helper struct for use with Boost's lexical_cast to convert hex strings
- * to a given type (`boost::lexical_cast<%HexTo<uint256_t>>(hexStr)`).
- */
-template <typename ElemT> struct HexTo {
-  ElemT value;  ///< The value to hold.
-  operator ElemT() const { return value; } ///< Operator to get the value.
-  /// Stream operator.
-  friend std::istream& operator>>(std::istream& in, HexTo& out) {
-    in >> std::hex >> out.value;
-    return in;
-  }
-};
 
 /// Abstraction of a strictly hex-formatted string (`(0x)[1-9][a-f][A-F]`).
 class Hex {
@@ -60,7 +36,7 @@ class Hex {
      * Move constructor.
      * @param value The hex string.
      * @param strict (optional) If `true`, includes "0x". Defaults to `false`.
-     * @throw std::runtime_error if hex string is invalid.
+     * @throw DynamicException if hex string is invalid.
      */
     Hex(std::string&& value, bool strict = false);
 
@@ -68,7 +44,7 @@ class Hex {
      * Copy constructor.
      * @param value The hex string.
      * @param strict (optional) If `true`, includes "0x". Defaults to `false`.
-     * @throw std::runtime_error if hex string is invalid.
+     * @throw DynamicException if hex string is invalid.
      */
     Hex(const std::string_view value, bool strict = false);
 
@@ -78,7 +54,7 @@ class Hex {
      * @param strict (optional) If `true`, includes "0x". Defaults to `false`.
      * @return The constructed Hex object.
      */
-    static Hex fromBytes(const BytesArrView bytes, bool strict = false);
+    static Hex fromBytes(const View<Bytes> bytes, bool strict = false);
 
     /**
      * Build a Hex object from a UTF-8 string ("example" = "6578616d706c65").
@@ -108,34 +84,36 @@ class Hex {
      */
     static bool isValid(const std::string_view hex, bool strict = false);
 
-    /**
-     * Convert internal hex data to bytes.
-     * @return The converted bytes string.
-     */
-    Bytes bytes() const;
+    Bytes bytes() const;  ///< Convert internal hex data to raw bytes.
 
     /**
      * Static overload of bytes().
      * @param hex The hex string to convert to bytes.
      * @return The converted bytes string.
-     * @throw std::runtime_error if hex string is invalid.
+     * @throw DynamicException if hex string is invalid.
      */
     static Bytes toBytes(const std::string_view hex);
 
     /// Getter for `hex`.
     inline const std::string& get() const { return this->hex_; }
 
-    /// Getter for `hex`, but converts it back to an unsigned integer.
+    /**
+     * Getter for `hex`, but converts it back to an unsigned 256-bit integer.
+     * @throw std::length_error if hex is too big to be converted to uint256_t.
+     */
     inline uint256_t getUint() const {
-      return boost::lexical_cast<HexTo<uint256_t>>(this->hex_);
+      Bytes b = Hex::toBytes(this->hex_);
+      if (b.size() > 32) throw std::length_error("Hex too big for uint conversion");
+      View<Bytes> bV(b.data(), b.size());
+      uint256_t ret;
+      boost::multiprecision::import_bits(ret, bV.begin(), bV.end(), 8);
+      return ret;
     }
 
     /**
      * Get a substring of the internal hex string.
-     * @param pos (optional) The position of the first character to start from.
-     *                       Defaults to the start of the string.
-     * @param len (optional) The number of characters to get.
-     *                       Defaults to the end of the string.
+     * @param pos (optional) Position of the first character to start from. Defaults to start of string.
+     * @param len (optional) Number of characters to get. Defaults to end of string.
      * @return The hex substring.
     */
     inline std::string substr(size_t pos = 0, size_t len = std::string::npos) const {
@@ -152,89 +130,68 @@ class Hex {
      * @param c The hex char to convert
      * @return The hex char as an integer.
      */
-    static int toInt(char c);
+    static inline int toInt(char c) {
+     if (c >= '0' && c <= '9') return c - '0';
+     if (c >= 'a' && c <= 'f') return c - 'a' + 10;
+     if (c >= 'A' && c <= 'F')	return c - 'A' + 10;
+     return -1;
+    }
 
     /**
-     * Return an Ethereum-JSONRPC-friendly hex string.
-     *
-     * See: https://ethereum.org/pt/developers/docs/apis/json-rpc/#hex-encoding
-     *
-     * 0x41 (65 in decimal)
-     *
-     * 0x400 (1024 in decimal)
-     *
-     * WRONG: 0x (should always have at least one digit - zero is "0x0")
-     *
-     * WRONG: 0x0400 (no leading zeroes allowed)
-     *
-     * WRONG: ff (must be prefixed 0x)
+     * Return an Ethereum-JSONRPC-friendly hex string. Examples:
+     * - 0x41 (65 in decimal)
+     * - 0x400 (1024 in decimal)
+     * - WRONG: 0x (should always have at least one digit - zero is "0x0")
+     * - WRONG: 0x0400 (no leading zeroes allowed)
+     * - WRONG: ff (must be prefixed with "0x")
      *
      * @return The internal hex string, modified as above if needed.
+     * @see https://ethereum.org/pt/developers/docs/apis/json-rpc/#hex-encoding
      */
     std::string forRPC() const;
 
-    /// Concat operator. Throws on invalid concat.
-    Hex& operator+=(const std::string& hex) {
-      if (Hex::isValid(hex, (hex[0] == '0' && (hex[1] == 'x' || hex[1] == 'X')))) {
-        this->hex_ += (
-          hex[0] == '0' && (hex[1] == 'x' || hex[1] == 'X')
-        ) ? hex.substr(2) : hex;
-      } else {
-        throw std::runtime_error("Invalid Hex concat operation");
-      }
-      return *this;
-    }
+    /**
+     * Concat operator.
+     * @throw DynamicException on invalid concat.
+     */
+    Hex& operator+=(const std::string& hex);
 
     /// Concat operator.
-    Hex& operator+=(const Hex& other) {
-      this->hex_ += (other.strict_) ? other.hex_.substr(2) : other.hex_;
-      return *this;
-    }
+    Hex& operator+=(const Hex& other);
 
     /**
-     * Default operator to return the internal hex string directly as a string.
-     *
-     * Example:
+     * Default operator to return the internal hex string directly as a string. Example:
      * ```
      * std::string myHexString = "My Hex is:";
      * Hex hex = Hex::fromString("Hello World");
      * myHexString += hex;
      * std::cout << myHexString << std::endl;
-     *
      * $ My Hex is: 48656c6c6f20576f726c64
      * ```
      */
     inline operator std::string() const { return this->hex_; }
 
     /**
-     * Default operator to return the internal hex string directly as a string_view.
-     *
-     * Example:
+     * Default operator to return the internal hex string directly as a string_view. Example:
      * ```
      * std::string myStringHex = "My Hex is:";
      * Hex hex = Hex::fromString("Hello World");
      * std::string_view myHexString = hex;
      * std::cout << myStringHex << myHexString << std::endl;
-     *
      * $ My Hex is: 48656c6c6f20576f726c64
      * ```
      */
     inline operator std::string_view() const { return this->hex_; }
 
     /**
-     * Friend function to allow left shift in output stream.
-     *
-     * Example:
+     * Friend function to allow left shift in output stream. Example:
      * ```
      * Hex hex = Hex("48656c6c6f20576f726c64");
      * std::cout << "My hex is: " << hex << std::endl;
-     *
      * $ My hex is: 48656c6c6f20576f726c64
      * ```
      */
-    inline friend std::ostream& operator<<(std::ostream& out, const Hex& other) {
-      return out << other.hex_;
-    }
+    inline friend std::ostream& operator<<(std::ostream& out, const Hex& other) { return out << other.hex_; }
 };
 
 #endif // HEX_H

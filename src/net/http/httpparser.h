@@ -1,5 +1,5 @@
 /*
-Copyright (c) [2023-2024] [Sparq Network]
+Copyright (c) [2023-2024] [AppLayer Developers]
 
 This software is distributed under the MIT License.
 See the LICENSE.txt file in the project root for more information.
@@ -8,45 +8,25 @@ See the LICENSE.txt file in the project root for more information.
 #ifndef HTTPPARSER_H
 #define HTTPPARSER_H
 
-#include <algorithm>
-#include <chrono>
-#include <csignal>
-#include <cstdlib>
-#include <fstream>
-#include <functional>
-#include <iostream>
-#include <memory>
-#include <sstream>
-#include <string>
-#include <thread>
-#include <vector>
+// TODO: probably not used but not sure, leaving it here for now
+//#include <google/protobuf/message.h>
+//#include <google/protobuf/text_format.h>
+//#include <google/protobuf/util/json_util.h>
 
-#include <boost/algorithm/hex.hpp>
-#include <boost/asio.hpp>
+// Those are all also included by asio.hpp
 #include <boost/asio/bind_executor.hpp>
 #include <boost/asio/dispatch.hpp>
 #include <boost/asio/ip/tcp.hpp>
 #include <boost/asio/signal_set.hpp>
 #include <boost/asio/strand.hpp>
+
 #include <boost/beast/core.hpp>
 #include <boost/beast/http.hpp>
 #include <boost/beast/version.hpp>
 #include <boost/beast/websocket.hpp>
-#include <boost/config.hpp>
-#include <boost/lexical_cast.hpp>
-#include <boost/make_unique.hpp>
-#include <boost/optional.hpp>
-#include <boost/thread.hpp>
 
-#include <google/protobuf/message.h>
-#include <google/protobuf/text_format.h>
-#include <google/protobuf/util/json_util.h>
-
-#include "../utils/utils.h"
+// finalizedblock.h -> merkle.h -> tx.h -> ecdsa.h -> utils.h -> libs/json.hpp -> algorithm, memory, string, vector
 #include "../utils/options.h"
-#include "jsonrpc/methods.h"
-#include "jsonrpc/encoding.h"
-#include "jsonrpc/decoding.h"
 
 namespace beast = boost::beast;         // from <boost/beast.hpp>
 namespace http = beast::http;           // from <boost/beast/http.hpp>
@@ -71,10 +51,10 @@ namespace P2P { class ManagerNormal; }
  */
 std::string parseJsonRpcRequest(
   const std::string& body,
-  const std::unique_ptr<State>& state,
-  const std::unique_ptr<Storage>& storage,
-  const std::unique_ptr<P2P::ManagerNormal>& p2p,
-  const std::unique_ptr<Options>& options
+  State& state,
+  const Storage& storage,
+  P2P::ManagerNormal& p2p,
+  const Options& options
 );
 
 /**
@@ -90,10 +70,10 @@ std::string parseJsonRpcRequest(
  * @param options Reference pointer to the options singleton.
  */
 template<class Body, class Allocator, class Send> void handle_request(
-    beast::string_view docroot,
-    http::request<Body, http::basic_fields<Allocator>>&& req,
-    Send&& send, const std::unique_ptr<State>& state, const std::unique_ptr<Storage>& storage,
-    const std::unique_ptr<P2P::ManagerNormal>& p2p, const std::unique_ptr<Options>& options
+  [[maybe_unused]] beast::string_view docroot,
+  http::request<Body, http::basic_fields<Allocator>>&& req,
+  Send&& send, State& state, const Storage& storage,
+  P2P::ManagerNormal& p2p, const Options& options
 ) {
   // Returns a bad request response
   const auto bad_request = [&req](beast::string_view why){
@@ -107,7 +87,7 @@ template<class Body, class Allocator, class Send> void handle_request(
   };
 
   // Returns a not found response
-  const auto not_found = [&req](beast::string_view target){
+  [[maybe_unused]] const auto not_found = [&req](beast::string_view target){
     http::response<http::string_body> res{http::status::not_found, req.version()};
     res.set(http::field::server, BOOST_BEAST_VERSION_STRING);
     res.set(http::field::content_type, "text/html");
@@ -118,7 +98,7 @@ template<class Body, class Allocator, class Send> void handle_request(
   };
 
   // Returns a server error response
-  const auto server_error = [&req](beast::string_view what) {
+  [[maybe_unused]] const auto server_error = [&req](beast::string_view what) {
     http::response<http::string_body> res{http::status::internal_server_error, req.version()};
     res.set(http::field::server, BOOST_BEAST_VERSION_STRING);
     res.set(http::field::content_type, "text/html");

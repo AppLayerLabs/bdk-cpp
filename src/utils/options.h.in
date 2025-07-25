@@ -1,5 +1,5 @@
 /*
-Copyright (c) [2023-2024] [Sparq Network]
+Copyright (c) [2023-2024] [AppLayer Developers]
 
 This software is distributed under the MIT License.
 See the LICENSE.txt file in the project root for more information.
@@ -8,25 +8,27 @@ See the LICENSE.txt file in the project root for more information.
 #ifndef OPTIONS_H
 #define OPTIONS_H
 
-#include "utils.h"
-#include "ecdsa.h"
-#include "block.h"
-
-#include <filesystem>
-#include <boost/asio/ip/address.hpp>
+#include "finalizedblock.h" // merkle.h -> tx.h -> ecdsa.h -> utils.h -> filesystem, boost/asio/ip/address.hpp
 
 /**
  * Example options.json file:
  * {
  *   "rootPath": "blockchain",
- *   "web3clientVersion": "OrbiterSDK/cpp/linux_x86-64/0.2.0",
+ *   "web3clientVersion": "BDK/cpp/linux_x86-64/0.2.0",
  *   "version": 1,
  *   "chainID": 808080,
  *   "chainOwner": "0x00dead00665771855a34155f5e7405489df2c3c6",
- *   "wsPort": 8086,
+ *   "p2pIp" : "127.0.0.1",
+ *   "p2pPort": 8086,
  *   "httpPort": 8095,
+ *   "minDiscoveryConns": 11,
+ *   "minNormalConns": 11,
+ *   "maxDiscoveryConns": 200,
+ *   "maxNormalConns": 50,
  *   "eventBlockCap": 2000,
  *   "eventLogCap": 10000,
+ *   "stateDumpTrigger" : 1000,
+ *   "minValidators": 4,
  *   "genesis" : {
  *      "validators": [
  *        "0x7588b0f553d1910266089c58822e1120db47e572",
@@ -36,7 +38,7 @@ See the LICENSE.txt file in the project root for more information.
  *        "0xbec7b74f70c151707a0bfb20fe3767c6e65499e0"
  *      ],
  *     "timestamp" : 1656356646000000,
- *     "signer" : "0x4d48bdf34d65ef2bed2e4ee9020a7d3162b494ac31d3088153425f286f3d3c8c"
+ *     "signer" : "0x4d48bdf34d65ef2bed2e4ee9020a7d3162b494ac31d3088153425f286f3d3c8c",
  *      "balances": [
  *        { "address": "0x00dead00665771855a34155f5e7405489df2c3c6", "balance": "1000000000000000000000" }
  *      ]
@@ -50,108 +52,137 @@ See the LICENSE.txt file in the project root for more information.
  * }
  */
 
+/// Helper class for setting the node's indexing mode.
+class IndexingMode {
+  private:
+    int value_; ///< The value of the setting.
+
+    /**
+     * Constructor.
+     * @param value The value of the setting.
+     */
+    constexpr explicit IndexingMode(int value) : value_(value) {}
+
+  public:
+    static const IndexingMode DISABLED; ///< Indexing is disabled.
+    static const IndexingMode RPC;  ///< Indexing is enabled (no tracing).
+    static const IndexingMode RPC_TRACE; ///< Indexing is enabled (with tracing).
+
+    /**
+     * Constructor.
+     * @param mode The value of the setting, in string form.
+     * @throw DynamicException if the name doesn't match one of the names above.
+     */
+    explicit IndexingMode(std::string_view mode);
+
+    /// Convert the internal value back to its string form.
+    constexpr std::string_view toString() const {
+      if (*this == DISABLED) return "DISABLED";
+      if (*this == RPC) return "RPC";
+      if (*this == RPC_TRACE) return "RPC_TRACE";
+      std::unreachable();
+    }
+
+    /// Equality operator (default, as the internal value is just an int).
+    constexpr bool operator==(const IndexingMode&) const = default;
+};
+
+constexpr const IndexingMode IndexingMode::DISABLED{0};
+constexpr const IndexingMode IndexingMode::RPC{1};
+constexpr const IndexingMode IndexingMode::RPC_TRACE{2};
+
 /// Singleton class for global node data.
 class Options {
   private:
-    /// Path to data root folder.
-    const std::string rootPath_;
-
-    /// Major version of the OrbiterSDK.
-    const uint64_t majorSDKVersion_ = @CMAKE_PROJECT_VERSION_MAJOR@;
-
-    /// Minor version of the OrbiterSDK.
-    const uint64_t minorSDKVersion_ = @CMAKE_PROJECT_VERSION_MINOR@;
-
-    /// Patch version of the OrbiterSDK.
-    const uint64_t patchSDKVersion_ = @CMAKE_PROJECT_VERSION_PATCH@;
-
-    /// Version of the client (string for display/Web3).
-    const std::string web3clientVersion_;
-
-    /// Version of the blockchain.
-    const uint64_t version_;
-
-    /// Chain ID of the blockchain.
-    const uint64_t chainID_;
-
-    /// Websocket server port.
-    const uint16_t wsPort_;
-
-    /// HTTP server port.
-    const uint16_t httpPort_;
-
-    /// Maximum block range for querying contract events.
-    const uint64_t eventBlockCap_;
-
-    /// Maximum number of contract events that can be queried at once.
-    const uint64_t eventLogCap_;
-
-    /// Chain owner address (used by ContractManager to see who can deploy contracts)
-    const Address chainOwner_;
-
-    /// Coinbase address (if found), used by rdPoS.
-    const Address coinbase_;
-
-    /// Indicates whether the node is a Validator, set by constructor or if found on file.
-    const bool isValidator_;
-
-    /// List of known Discovery nodes.
-    const std::vector<std::pair<boost::asio::ip::address, uint64_t>> discoveryNodes_;
-
-    /// Genesis block.
-    const Block genesisBlock_;
-
-    /// List of addresses and their respective initial balances.
-    const std::vector<std::pair<Address, uint256_t>> genesisBalances_;
-
-    /// List of genesis validators.
-    const std::vector<Address> genesisValidators_;
+    const std::string rootPath_; ///< Path to data root folder.
+    const uint64_t majorSDKVersion_ = @CMAKE_PROJECT_VERSION_MAJOR@;  ///< Major version of BDK.
+    const uint64_t minorSDKVersion_ = @CMAKE_PROJECT_VERSION_MINOR@;  ///< Minor version of BDK.
+    const uint64_t patchSDKVersion_ = @CMAKE_PROJECT_VERSION_PATCH@;  ///< Patch version of BDK.
+    const std::string web3clientVersion_; ///< String for displaying the client version (for Web3).
+    const uint64_t version_;  ///< Blockchain version.
+    const uint64_t chainID_;  ///< Blockchain chain ID.
+    const boost::asio::ip::address p2pIp_; ///< P2P server IP.
+    const uint16_t p2pPort_; ///< P2P server port.
+    const uint16_t httpPort_; ///< HTTP server port.
+    const uint16_t minDiscoveryConns_; ///< Minimum required simultaneous connections for Discovery nodes.
+    const uint16_t minNormalConns_; ///< Minimum required simultaneous connections for Normal nodes.
+    const uint16_t maxDiscoveryConns_; ///< Maximum allowed simultaneous connections for Discovery nodes.
+    const uint16_t maxNormalConns_; ///< Maximum allowed simultaneous connections for Normal nodes.
+    const uint64_t eventBlockCap_;  ///< Maximum block range for querying contract events.
+    const int64_t eventLogCap_;  ///< Maximum number of contract events that can be queried at once.
+    const uint64_t stateDumpTrigger_;  ///< Block number at which to dump the state. (Every X blocks dump the state)
+    const uint32_t minValidators_; ///< Minimum required number of Validators for creating and signing blocks.
+    const Address chainOwner_;  ///< Chain owner address (used by ContractManager for deploying contracts).
+    const Address coinbase_;  ///< Coinbase address (if found), used by rdPoS.
+    const bool isValidator_;  ///< Indicates whether the node is a Validator, set by constructor or if found on file.
+    const std::vector<std::pair<boost::asio::ip::address, uint64_t>> discoveryNodes_; ///< List of known Discovery nodes.
+    const FinalizedBlock genesisBlock_;  ///< Genesis block.
+    const std::vector<std::pair<Address, uint256_t>> genesisBalances_;  ///< List of addresses and their respective initial balances.
+    const std::vector<Address> genesisValidators_;  ///< List of genesis validators.
+    const IndexingMode indexingMode_; ///< The node's indexing mode.
 
   public:
     /**
-     * Constructor for a normal node.
+     * Constructor for a normal node. Creates option.json file within rootPath.
      * Populates coinbase() and isValidator() with false.
-     * Creates option.json file within rootPath.
      * @param rootPath Path to data root folder.
      * @param web3clientVersion Version of the client.
      * @param version Version of the chain.
      * @param chainID Chain ID of the chain.
      * @param chainOwner Chain owner address.
-     * @param wsPort Websocket server port.
+     * @param p2pIp P2P server IP.
+     * @param p2pPort P2P server port.
      * @param httpPort HTTP server port.
+     * @param minDiscoveryConns Minimum required simultaneous connections for Discovery nodes.
+     * @param minNormalConns Minimum required simultaneous connections for Normal nodes.
+     * @param maxDiscoveryConns Maximum allowed simultaneous connections for Discovery nodes.
+     * @param maxNormalConns Maximum allowed simultaneous connections for Normal nodes.
      * @param eventBlockCap Block range limit for querying events.
      * @param eventLogCap Maximum number of events that can be queried.
+     * @param stateDumpTrigger Block number at which to dump the state.
+     * @param minValidators Minimum required number of Validators for creating and signing blocks.
      * @param discoveryNodes List of known Discovery nodes.
      * @param genesisBlock Genesis block.
      * @param genesisTimestamp Genesis timestamp.
      * @param genesisSigner Genesis signer.
      * @param genesisBalances List of addresses and their respective initial balances.
      * @param genesisValidators List of genesis validators.
+     * @param indexingMode The node's indexing mode.
      */
     Options(
       const std::string& rootPath, const std::string& web3clientVersion,
       const uint64_t& version, const uint64_t& chainID, const Address& chainOwner,
-      const uint16_t& wsPort, const uint16_t& httpPort,
-      const uint64_t& eventBlockCap, const uint64_t& eventLogCap,
+      const boost::asio::ip::address& p2pIp, const uint16_t& p2pPort, const uint16_t& httpPort,
+      const uint16_t& minDiscoveryConns, const uint16_t& minNormalConns,
+      const uint16_t& maxDiscoveryConns, const uint16_t& maxNormalConns,
+      const uint64_t& eventBlockCap, const int64_t& eventLogCap,
+      const uint64_t& stateDumpTrigger,
+      const uint32_t& minValidators,
       const std::vector<std::pair<boost::asio::ip::address, uint64_t>>& discoveryNodes,
-      const Block& genesisBlock, const uint64_t genesisTimestamp, const PrivKey& genesisSigner,
+      const FinalizedBlock& genesisBlock, const uint64_t genesisTimestamp, const PrivKey& genesisSigner,
       const std::vector<std::pair<Address, uint256_t>>& genesisBalances,
-      const std::vector<Address>& genesisValidators
+      const std::vector<Address>& genesisValidators, IndexingMode indexingMode
     );
 
     /**
-     * Constructor for a Validator node.
+     * Constructor for a Validator node. Creates option.json file within rootPath.
      * Populates coinbase() and isValidator() with privKey address and true respectively.
-     * Creates option.json file within rootPath.
      * @param rootPath Path to data root folder.
      * @param web3clientVersion Version of the client.
      * @param version Version of the chain.
      * @param chainID Chain ID of the chain.
      * @param chainOwner Chain owner address.
-     * @param wsPort Websocket server port.
+     * @param p2pIp P2P server IP.
+     * @param p2pPort P2P server port.
      * @param httpPort HTTP server port.
+     * @param minDiscoveryConns Minimum required simultaneous connections for Discovery nodes.
+     * @param minNormalConns Minimum required simultaneous connections for Normal nodes.
+     * @param maxDiscoveryConns Maximum allowed simultaneous connections for Discovery nodes.
+     * @param maxNormalConns Maximum allowed simultaneous connections for Normal nodes.
      * @param eventBlockCap Block range limit for querying events.
      * @param eventLogCap Maximum number of events that can be queried.
+     * @param stateDumpTrigger Block number at which to dump the state.
+     * @param minValidators Minimum required number of Validators for creating and signing blocks.
      * @param discoveryNodes List of known Discovery nodes.
      * @param genesisBlock Genesis block.
      * @param genesisTimestamp Genesis timestamp.
@@ -159,17 +190,22 @@ class Options {
      * @param genesisBalances List of addresses and their respective initial balances.
      * @param genesisValidators List of genesis validators.
      * @param privKey Private key of the Validator.
+     * @param indexingMode The node's indexing mode.
      */
     Options(
       const std::string& rootPath, const std::string& web3clientVersion,
       const uint64_t& version, const uint64_t& chainID, const Address& chainOwner,
-      const uint16_t& wsPort, const uint16_t& httpPort,
-      const uint64_t& eventBlockCap, const uint64_t& eventLogCap,
+      const boost::asio::ip::address& p2pIp, const uint16_t& p2pPort, const uint16_t& httpPort,
+      const uint16_t& minDiscoveryConns, const uint16_t& minNormalConns,
+      const uint16_t& maxDiscoveryConns, const uint16_t& maxNormalConns,
+      const uint64_t& eventBlockCap, const int64_t& eventLogCap,
+      const uint64_t& stateDumpTrigger,
+      const uint32_t& minValidators,
       const std::vector<std::pair<boost::asio::ip::address, uint64_t>>& discoveryNodes,
-      const Block& genesisBlock, const uint64_t genesisTimestamp, const PrivKey& genesisSigner,
+      const FinalizedBlock& genesisBlock, const uint64_t genesisTimestamp, const PrivKey& genesisSigner,
       const std::vector<std::pair<Address, uint256_t>>& genesisBalances,
       const std::vector<Address>& genesisValidators,
-      const PrivKey& privKey
+      const PrivKey& privKey, IndexingMode indexingMode
     );
 
     /// Copy constructor.
@@ -182,98 +218,81 @@ class Options {
       version_(other.version_),
       chainID_(other.chainID_),
       chainOwner_(other.chainOwner_),
-      wsPort_(other.wsPort_),
+      p2pIp_(other.p2pIp_),
+      p2pPort_(other.p2pPort_),
       httpPort_(other.httpPort_),
+      minDiscoveryConns_(other.minDiscoveryConns_),
+      minNormalConns_(other.minNormalConns_),
+      maxDiscoveryConns_(other.maxDiscoveryConns_),
+      maxNormalConns_(other.maxNormalConns_),
       eventBlockCap_(other.eventBlockCap_),
       eventLogCap_(other.eventLogCap_),
+      stateDumpTrigger_(other.stateDumpTrigger_),
+      minValidators_(other.minValidators_),
       coinbase_(other.coinbase_),
       isValidator_(other.isValidator_),
       discoveryNodes_(other.discoveryNodes_),
       genesisBlock_(other.genesisBlock_),
       genesisBalances_(other.genesisBalances_),
-      genesisValidators_(other.genesisValidators_)
+      genesisValidators_(other.genesisValidators_),
+      indexingMode_(other.indexingMode_)
     {}
 
-    /// Getter for `rootPath`.
+    ///@{
+    /** Getter. */
     const std::string& getRootPath() const { return this->rootPath_; }
-
-    /// Getter for `majorSDKVersion`.
     const uint64_t& getMajorSDKVersion() const { return this->majorSDKVersion_; }
-
-    /// Getter for `minorSDKVersion`.
     const uint64_t& getMinorSDKVersion() const { return this->minorSDKVersion_; }
-
-    /// Getter for `patchSDKVersion`.
     const uint64_t& getPatchSDKVersion() const { return this->patchSDKVersion_; }
+    const std::string& getWeb3ClientVersion() const { return this->web3clientVersion_; }
+    const uint64_t& getVersion() const { return this->version_; }
+    const Address& getChainOwner() const { return this->chainOwner_; }
+    const uint64_t& getChainID() const { return this->chainID_; }
+    const boost::asio::ip::address& getP2PIp() const { return this->p2pIp_; }
+    const uint16_t& getP2PPort() const { return this->p2pPort_; }
+    const uint16_t& getHttpPort() const { return this->httpPort_; }
+    const uint16_t& getMinDiscoveryConns() const { return this->minDiscoveryConns_; }
+    const uint16_t& getMinNormalConns() const { return this->minNormalConns_; }
+    const uint16_t& getMaxDiscoveryConns() const { return this->maxDiscoveryConns_; }
+    const uint16_t& getMaxNormalConns() const { return this->maxNormalConns_; }
+    const uint64_t& getEventBlockCap() const { return this->eventBlockCap_; }
+    const int64_t& getEventLogCap() const { return this->eventLogCap_; }
+    const uint64_t& getStateDumpTrigger() const { return this->stateDumpTrigger_; }
+    const uint32_t& getMinValidators() const { return this->minValidators_; }
+    const Address& getCoinbase() const { return this->coinbase_; }
+    const bool& getIsValidator() const { return this->isValidator_; }
+    const std::vector<std::pair<boost::asio::ip::address, uint64_t>>& getDiscoveryNodes() const { return this->discoveryNodes_; }
+    const FinalizedBlock& getGenesisBlock() const { return this->genesisBlock_; }
+    const std::vector<std::pair<Address, uint256_t>>& getGenesisBalances() const { return this->genesisBalances_; }
+    const std::vector<Address>& getGenesisValidators() const { return this->genesisValidators_; }
+    IndexingMode getIndexingMode() const { return indexingMode_; }
+    std::vector<PrivKey> getExtraValidators() const;
+    std::unique_ptr<std::string> getRPCAdminPassword() const;
+    ///@}
 
-    /// Getter for the full SDK version as a string.
-    const std::string getSDKVersion() const {
+    /// Get the full SDK version as a SemVer string ("x.y.z").
+    std::string getSDKVersion() const {
       return std::to_string(this->majorSDKVersion_)
         + "." + std::to_string(this->minorSDKVersion_)
         + "." + std::to_string(this->patchSDKVersion_);
     }
 
-    /// Getter for `web3clientVersion`.
-    const std::string& getWeb3ClientVersion() const { return this->web3clientVersion_; }
-
-    /// Getter for `version`.
-    const uint64_t& getVersion() const { return this->version_; }
-
-    /// Getter for `chainOwner`.
-    const Address& getChainOwner() const { return this->chainOwner_; }
-
-    /// Getter for `chainID`.
-    const uint64_t& getChainID() const { return this->chainID_; }
-
-    /// Getter for `wsPort`.
-    const uint16_t& getP2PPort() const { return this->wsPort_; }
-
-    /// Getter for `httpPort`.
-    const uint16_t& getHttpPort() const { return this->httpPort_; }
-
-    /// Getter for `eventBlockCap_`.
-    const uint64_t& getEventBlockCap() const { return this->eventBlockCap_; }
-
-    /// Getter for `eventLogCap_`.
-    const uint64_t& getEventLogCap() const { return this->eventLogCap_; }
-
-    /// Getter for `coinbase`.
-    const Address& getCoinbase() const { return this->coinbase_; }
-
-    /// Getter for `isValidator`.
-    const bool& getIsValidator() const { return this->isValidator_; }
-
-    /// Getter for `discoveryNodes`.
-    const std::vector<std::pair<boost::asio::ip::address, uint64_t>>& getDiscoveryNodes() const { return this->discoveryNodes_; }
-
-    /// Getter for `genesisBlock`.
-    const Block& getGenesisBlock() const { return this->genesisBlock_; }
-
-    /// Getter for `genesisBalances`.
-    const std::vector<std::pair<Address, uint256_t>>& getGenesisBalances() const { return this->genesisBalances_; }
-
-    /// Getter for `genesisValidators`.
-    const std::vector<Address>& getGenesisValidators() const { return this->genesisValidators_; }
-
-    /**
-     * Get the Validator node's private key from the JSON file.
-     * @return The Validator node's private key, or an empty private key if missing.
-     */
-    const PrivKey getValidatorPrivKey() const;
+    /// Get the Validator node's private key from the JSON file, or an empty private key if missing.
+    PrivKey getValidatorPrivKey() const;
 
     /**
      * Load an options.json file from a given path and construct the singleton object.
      * Defaults to this->binaryDefaultOptions() if no file is found.
      * @param rootPath Path to data root folder.
      * @return The constructed options object.
-     * @throw std::runtime_error on failure.
+     * @throw DynamicException on failure.
      */
     static Options fromFile(const std::string& rootPath);
 
     /**
      * Load the default options defined within the optionsdefaults.cpp file
      * Used by fromFile to generate a default options.json file if not found.
-     * Defaults to Options(rootPath, "OrbiterSDK/cpp/linux_x86-64/<project-version>", 2, 8080, 8080, 8081)
+     * Defaults to Options(rootPath, "BDK/cpp/linux_x86-64/<project-version>", 2, 8080, 8080, 8081)
      * @return The constructed options object.
      */
     static Options binaryDefaultOptions(const std::string& rootPath);

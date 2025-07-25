@@ -1,5 +1,5 @@
 /*
-Copyright (c) [2023-2024] [Sparq Network]
+Copyright (c) [2023-2024] [AppLayer Developers]
 
 This software is distributed under the MIT License.
 See the LICENSE.txt file in the project root for more information.
@@ -12,195 +12,101 @@ See the LICENSE.txt file in the project root for more information.
 #include <boost/asio/ip/address.hpp>
 #include <boost/container_hash/hash.hpp>
 
-#include "strings.h"
-#include "utils.h"
-#include "tx.h"
+#include "../bytes/join.h"
+#include "../libs/wyhash.h"
+
+#include "tx.h" // ecdsa.h -> utils.h -> strings.h, bytes/join.h, boost/asio/ip/address.hpp
+#include "uintconv.h"
 
 /**
- * Custom hashing implementation for use in `std::unordered_map`.
- * Based on [this article](https://codeforces.com/blog/entry/62393).
- *
- * The default `std::unordered_map` implementation uses `uint64_t` hashes,
- * which makes collisions possible by having many Accounts and distributing them
- * in a way that they have the same hash across all nodes.
- *
- * This struct is a workaround for that, it's not perfect because it still uses
- * `uint64_t`, but it's better than nothing since nodes keep different hashes.
+ * Custom hashing implementation for use in `boost::unordered_flat_map`
+ * We use the highest and fastest quality hash function available for size_t (64-bit) hashes (Wyhash)
  */
-
 struct SafeHash {
-  using clock = std::chrono::steady_clock;  ///< Typedef for a less verbose clock.
+  using is_transparent = void;
 
-  /**
-   * %Hash a given unsigned integer.
-   * Based on [Sebastiano Vigna's original implementation](http://xorshift.di.unimi.it/splitmix64.c).
-   * @param i The 64-bit unsigned integer to hash.
-   * @returns The hashed data, as a 64-bit unsigned integer.
-   */
-  inline static uint64_t splitmix(uint64_t i) {
-    i += 0x9e3779b97f4a7c15;
-    i = (i ^ (i >> 30)) * 0xbf58476d1ce4e5b9;
-    i = (i ^ (i >> 27)) * 0x94d049bb133111eb;
-    return i ^ (i >> 31);
-  }
-
-  /**
-   * Wrapper for `splitmix()`.
-   * @param i A 64-bit unsigned integer.
-   * @returns The same as `splitmix()`.
-   */
+  ///@{
+  /** Wrapper for `splitmix()`. */
   size_t operator()(const uint64_t& i) const {
-    static const uint64_t FIXED_RANDOM = clock::now().time_since_epoch().count();
-    return splitmix(i + FIXED_RANDOM);
+    return wyhash(std::bit_cast<const void*>(&i), sizeof(i), 0, _wyp);
   }
 
-  /**
-   * Wrapper for `splitmix()`.
-   * @param str A regular string.
-   * @returns The same as `splitmix()`.
-   */
+  size_t operator()(const uint256_t& i) const {
+    return (*this)(Hash(i));
+  }
+
   size_t operator()(const std::string& str) const {
-    static const uint64_t FIXED_RANDOM = clock::now().time_since_epoch().count();
-    return splitmix(std::hash<std::string>()(str) + FIXED_RANDOM);
+    return wyhash(str.c_str(), str.size(), 0, _wyp);
   }
 
-  /**
-   * Wrapper for `splitmix()`.
-   * @param str A regular string view.
-   * @returns The same as `splitmix()`.
-   */
   size_t operator()(const std::string_view& str) const {
-    static const uint64_t FIXED_RANDOM = clock::now().time_since_epoch().count();
-    return splitmix(std::hash<std::string_view>()(str) + FIXED_RANDOM);
+    return wyhash(str.data(), str.size(), 0, _wyp);
   }
 
-  /**
-   * Wrapper for 'splitmix()'.
-   * @param bytes A std::vector<uint8_t> object.
-   * @returns The same as `splitmix()`.
-   */
-  size_t operator()(const Bytes& bytes) const {
-    static const uint64_t FIXED_RANDOM = clock::now().time_since_epoch().count();
-    return splitmix(boost::hash_range(bytes.begin(), bytes.end()) + FIXED_RANDOM);
-  }
-
-  /**
-   * Wrapper for 'splitmix()'.
-   * @param bytesArr A std::array<uint8_t, N> object.
-   * @returns The same as `splitmix()`.
-   */
-  template <unsigned N>
-  size_t operator()(const BytesArr<N>& bytesArr) const {
-    static const uint64_t FIXED_RANDOM = clock::now().time_since_epoch().count();
-    return splitmix(boost::hash_range(bytesArr.begin(), bytesArr.end()) + FIXED_RANDOM);
-  }
-
-  /**
-   * Wrapper for 'splitmix()'.
-   * @param bytesArrView A std::span<const Byte, std::dynamic_extent> object.
-   * @returns The same as `splitmix()`.
-   */
-  size_t operator()(const BytesArrView& bytesArrView) const {
-    static const uint64_t FIXED_RANDOM = clock::now().time_since_epoch().count();
-    return splitmix(boost::hash_range(bytesArrView.begin(), bytesArrView.end()) + FIXED_RANDOM);
-  }
-
-  /**
-   * Wrapper for 'splitmix()'.
-   * @param bytesArrMutableView A std::span<Byte, std::dynamic_extent> object
-   * @returns The same as `splitmix()`.
-   */
-  size_t operator()(const BytesArrMutableView& bytesArrMutableView) const {
-    static const uint64_t FIXED_RANDOM = clock::now().time_since_epoch().count();
-    return splitmix(boost::hash_range(bytesArrMutableView.begin(), bytesArrMutableView.end()) + FIXED_RANDOM);
-  }
-
-  /**
-   * Wrapper for 'splitmix()'
-   * @param address A Address (FixedBytes<20>) object
-   * @returns The same as `splitmix()`
-   */
-  size_t operator()(const Address& address) const {
-    static const uint64_t FIXED_RANDOM = clock::now().time_since_epoch().count();
-    auto data = reinterpret_cast<uint32_t const*>(address.raw()); // Faster hashing for 20 bytes of data.
-    return splitmix(boost::hash_range(data, data + 5) + FIXED_RANDOM); // 160 / 32 = 5
-  }
-
-  /**
-   * Wrapper for 'splitmix()'.
-   * @param functor A functor (FixedBytes<4>) object.
-   */
   size_t operator()(const Functor& functor) const {
-    static const uint64_t FIXED_RANDOM = clock::now().time_since_epoch().count();
-    auto data = reinterpret_cast<uint32_t const*>(functor.raw()); // Faster hashing for 4 bytes of data.
-    return splitmix(boost::hash_range(data, data + 1) + FIXED_RANDOM); // 32 / 32 = 1
+    return functor.value; // Functor is already a hash. Just return it.
   }
 
-  /**
-   * Wrapper for `splitmix()`.
-   * @param hash A Hash object.
-   * @returns The same as `splitmix()`.
-   */
-  size_t operator()(const Hash& hash) const {
-    static const uint64_t FIXED_RANDOM = clock::now().time_since_epoch().count();
-    // Fast compatible object for hashing 32 bytes of data.
-    auto data = reinterpret_cast<uint64_t const*>(hash.raw());
-    return splitmix(boost::hash_range(data, data + 4) + FIXED_RANDOM);
-  }
-
-  /**
-   * Wrapper for `splitmix()`.
-   * @param tx A TxValidator object.
-   * @returns The same as `splitmix()`.
-   */
   size_t operator()(const TxValidator& tx) const { return SafeHash()(tx.hash()); }
 
-  /**
-   * Wrapper for `splitmix()`.
-   * @param ptr A shared pointer to any given type.
-   * @returns The same as `splitmix()`.
-   */
   template <typename T> size_t operator()(const std::shared_ptr<T>& ptr) const {
-    static const uint64_t FIXED_RANDOM = clock::now().time_since_epoch().count();
-    return splitmix(std::hash<std::shared_ptr<T>>()(ptr) + FIXED_RANDOM);
+    return SafeHash()(*ptr->get());
   }
 
-  /**
-   * Wrapper for `splitmix()`.
-   * @param bytes A %FixedBytes of any size.
-   * @returns The same as `splitmix()`.
-   */
-  template <unsigned N> size_t operator()(const FixedBytes<N>& bytes) const {
-    static const uint64_t FIXED_RANDOM = clock::now().time_since_epoch().count();
-    return splitmix(boost::hash_range(bytes.cbegin(), bytes.cend()) + FIXED_RANDOM);
+  template <typename T> size_t operator()(const std::unique_ptr<T>& ptr) const {
+    return SafeHash()(*ptr->get());
   }
 
-  /**
-   * Wrapper for `splitmix()`.
-   * @param a std::unordered_map object.
-   * @returns The same as `splitmix()`.
-   */
-  template <typename Key, typename T>
-  size_t operator()(const std::unordered_map<Key, T, SafeHash>& a) const {
-    static const uint64_t FIXED_RANDOM = clock::now().time_since_epoch().count();
-    return splitmix(std::hash<std::unordered_map<Key, T, SafeHash>>()(a) + FIXED_RANDOM);
+  template <typename T> size_t operator()(const std::weak_ptr<T>& ptr) const {
+    return SafeHash()(*ptr.lock().get());
   }
 
-  /**
-   * Wrapper for `splitmix()`.
-   * @param nodeId A std::pair<boost::asio::ip::address, uint16_t> object.
-   * @returns The same as `splitmix()`.
-   */
+  size_t operator()(View<Bytes> data) const {
+    return wyhash(data.data(), data.size(), 0, _wyp);
+  }
+
+  template<typename T, typename U>
+  size_t operator()(const std::pair<T, U>& pair) const {
+    size_t hash = (*this)(pair.first);
+    boost::hash_combine(hash, pair.second);
+    return hash;
+  }
+
+  size_t operator()(const std::pair<int32_t, int32_t>& pair) const {
+    return wyhash(std::bit_cast<const void*>(&pair), sizeof(pair), 0, _wyp);
+  }
+
+  template <typename Key, typename T> size_t operator()(const boost::unordered_flat_map<Key, T, SafeHash>& a) const {
+    // TODO: replace this with wyhash somehow.
+    return splitmix(std::hash<boost::unordered_flat_map<Key, T, SafeHash>>()(a));
+  }
+
   size_t operator()(const std::pair<boost::asio::ip::address, uint16_t>& nodeId) const {
-    /// Make it compatible with SafeHash<Bytes>.
+    // Make it compatible with SafeHash<Bytes>.
     Bytes bytes;
     if (nodeId.first.is_v4()) {
-      Utils::appendBytes(bytes, nodeId.first.to_v4().to_bytes());
+      bytes = Utils::makeBytes(bytes::join(
+        nodeId.first.to_v4().to_bytes(), UintConv::uint16ToBytes(nodeId.second)
+      ));
     } else {
-      Utils::appendBytes(bytes, nodeId.first.to_v6().to_bytes());
+      bytes = Utils::makeBytes(bytes::join(
+        nodeId.first.to_v6().to_bytes(), UintConv::uint16ToBytes(nodeId.second)
+      ));
     }
-    Utils::appendBytes(bytes, Utils::uint16ToBytes(nodeId.second));
     return SafeHash()(bytes);
+  }
+  ///@}
+};
+
+struct SafeCompare {
+  using is_transparent = void;
+
+  constexpr bool operator()(View<Bytes> lhs, View<Bytes> rhs) const {
+    return std::ranges::equal(lhs, rhs);
+  }
+
+  constexpr bool operator()(const std::pair<View<Bytes>, View<Bytes>>& lhs, const std::pair<View<Bytes>, View<Bytes>>& rhs) const {
+    return (*this)(lhs.first, rhs.first) && (*this)(lhs.second, rhs.second);
   }
 };
 
@@ -215,7 +121,7 @@ struct FNVHash {
    * Call operator.
    * @param s The string to hash.
    */
-  size_t operator()(BytesArrView s) const {
+  size_t operator()(View<Bytes> s) const {
     size_t result = 2166136261U;
     for (auto it = s.begin(); it != s.end(); it++) result = (16777619 * result) ^ (*it);
     return result;

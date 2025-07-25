@@ -1,5 +1,5 @@
 /*
-Copyright (c) [2023-2024] [Sparq Network]
+Copyright (c) [2023-2024] [AppLayer Developers]
 
 This software is distributed under the MIT License.
 See the LICENSE.txt file in the project root for more information.
@@ -12,11 +12,12 @@ See the LICENSE.txt file in the project root for more information.
 #include <tuple>
 
 #include "../../utils/db.h"
+#include "../../utils/utils.h" // using uint256_t
 #include "../abi.h"
 #include "../contractmanager.h"
 #include "../dynamiccontract.h"
 #include "../variables/safeunorderedmap.h"
-#include "erc20.h"
+#include "standards/erc20.h"
 
 /// Template for an ERC20Wrapper contract.
 class ERC20Wrapper : public DynamicContract {
@@ -25,57 +26,47 @@ class ERC20Wrapper : public DynamicContract {
      * Map for tokens and balances. Solidity counterpart:
      * mapping(address => mapping(address => uint256)) internal tokensAndBalances_;
      */
-    SafeUnorderedMap<Address, std::unordered_map<Address, uint256_t, SafeHash>> tokensAndBalances_;
+    SafeUnorderedMap<Address, boost::unordered_flat_map<Address, uint256_t, SafeHash>> tokensAndBalances_;
 
     /// Function for calling the register functions for contracts.
     void registerContractFunctions() override;
 
   public:
-
     /**
-    * ConstructorArguments is a tuple of the contract constructor arguments in the order they appear in the constructor.
-    */
+     * ConstructorArguments is a tuple of the contract constructor arguments in the order they appear in the constructor.
+     */
     using ConstructorArguments = std::tuple<>;
 
     /**
      * Constructor for loading contract from DB.
-     * @param interface Reference to the contract manager interface.
      * @param contractAddress The address where the contract will be deployed.
      * @param db Reference pointer to the database object.
      */
-    ERC20Wrapper(
-      ContractManagerInterface& interface,
-      const Address& contractAddress, const std::unique_ptr<DB>& db
-    );
+    ERC20Wrapper(const Address& contractAddress, const DB& db);
 
     /**
      * Constructor for building a new contract from scratch.
-     * @param interface Reference to the contract manager interface.
      * @param address The address where the contract will be deployed.
      * @param creator The address of the creator of the contract.
      * @param chainId The chain id of the contract.
-     * @param db Reference pointer to the database object.
      */
     ERC20Wrapper(
-      ContractManagerInterface& interface,
-      const Address& address, const Address& creator,
-      const uint64_t& chainId, const std::unique_ptr<DB>& db
+      const Address& address, const Address& creator, const uint64_t& chainId
     );
 
     /// Register contract class via ContractReflectionInterface.
     static void registerContract() {
-      ContractReflectionInterface::registerContractMethods<
-        ERC20Wrapper, ContractManagerInterface&,
-        const Address&, const Address&, const uint64_t&,
-        const std::unique_ptr<DB>&
-      >(
-        std::vector<std::string>{},
-        std::make_tuple("getContractBalance", &ERC20Wrapper::getContractBalance, FunctionTypes::View, std::vector<std::string>{"token"}),
-        std::make_tuple("getUserBalance", &ERC20Wrapper::getUserBalance, FunctionTypes::View, std::vector<std::string>{"token", "user"}),
-        std::make_tuple("withdraw", &ERC20Wrapper::withdraw, FunctionTypes::NonPayable, std::vector<std::string>{"token", "value"}),
-        std::make_tuple("transferTo", &ERC20Wrapper::transferTo, FunctionTypes::NonPayable, std::vector<std::string>{"token", "to", "value"}),
-        std::make_tuple("deposit", &ERC20Wrapper::deposit, FunctionTypes::NonPayable, std::vector<std::string>{"token", "value"})
-      );
+      static std::once_flag once;
+      std::call_once(once, []() {
+        DynamicContract::registerContractMethods<ERC20Wrapper>(
+          std::vector<std::string>{},
+          std::make_tuple("getContractBalance", &ERC20Wrapper::getContractBalance, FunctionTypes::View, std::vector<std::string>{"token"}),
+          std::make_tuple("getUserBalance", &ERC20Wrapper::getUserBalance, FunctionTypes::View, std::vector<std::string>{"token", "user"}),
+          std::make_tuple("withdraw", &ERC20Wrapper::withdraw, FunctionTypes::NonPayable, std::vector<std::string>{"token", "value"}),
+          std::make_tuple("transferTo", &ERC20Wrapper::transferTo, FunctionTypes::NonPayable, std::vector<std::string>{"token", "to", "value"}),
+          std::make_tuple("deposit", &ERC20Wrapper::deposit, FunctionTypes::NonPayable, std::vector<std::string>{"token", "value"})
+        );
+      });
     }
 
     /// Destructor.
@@ -101,7 +92,7 @@ class ERC20Wrapper : public DynamicContract {
      * function withdraw (address _token, uint256 _value) public returns (bool)
      * @param token The address of the token.
      * @param value The amount of tokens to withdraw.
-     * @throw std::runtime_error if the contract does not have enough tokens,
+     * @throw DynamicException if the contract does not have enough tokens,
      * or if the token was not found.
      */
     void withdraw(const Address& token, const uint256_t& value);
@@ -112,7 +103,7 @@ class ERC20Wrapper : public DynamicContract {
      * @param token The address of the token.
      * @param to The address of the user to send tokens to.
      * @param value The amount of tokens to transfer.
-     * @throw std::runtime_error if the contract does not have enough tokens,
+     * @throw DynamicException if the contract does not have enough tokens,
      * or if either the token or the user were not found.
      */
     void transferTo(const Address& token, const Address& to, const uint256_t& value);
@@ -124,6 +115,9 @@ class ERC20Wrapper : public DynamicContract {
      * @param value The amount of tokens to deposit.
      */
     void deposit(const Address& token, const uint256_t& value);
+
+    /// Dump method
+    DBBatch dump() const override;
 };
 
 #endif // ERC20WRAPPER_H

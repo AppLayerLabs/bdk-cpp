@@ -1,5 +1,5 @@
 /*
-Copyright (c) [2023-2024] [Sparq Network]
+Copyright (c) [2023-2024] [AppLayer Developers]
 
 This software is distributed under the MIT License.
 See the LICENSE.txt file in the project root for more information.
@@ -8,15 +8,13 @@ See the LICENSE.txt file in the project root for more information.
 #ifndef SDKTESTSUITE_H
 #define SDKTESTSUITE_H
 
-#include "../src/core/storage.h"
-#include "../src/core/rdpos.h"
-#include "../src/core/state.h"
-#include "../src/net/p2p/managernormal.h"
-#include "../src/net/http/httpserver.h"
-#include "../src/utils/options.h"
-#include "../src/utils/db.h"
-#include "../src/core/blockchain.h"
-#include "../src/utils/utils.h"
+#include "../src/core/blockchain.h" // net/http/httpserver.h, consensus.h -> state.h -> rdpos.h -> net/p2p/managernormal.h, (utils/tx.h -> ecdsa.h -> utils.h -> libs/json.hpp -> tuple), (dump.h -> utils/db.h, storage.h -> options.h)
+
+#include "../src/utils/evmcconv.h"
+#include "../src/utils/uintconv.h"
+
+#include "statetest.hpp"
+#include "bytes/random.h"
 
 /// Wrapper struct for accounts used within the SDKTestSuite.
 struct TestAccount {
@@ -31,7 +29,7 @@ struct TestAccount {
   TestAccount(const PrivKey& privKey_) : privKey(privKey_), address(Secp256k1::toAddress(Secp256k1::toPub(privKey))) {}
 
   /// Create a new random account.
-  inline static TestAccount newRandomAccount() { return TestAccount(Utils::randBytes(32)); }
+  inline static TestAccount newRandomAccount() { return TestAccount(PrivKey(Utils::randBytes(32))); }
 
   /// Operator bool to check if the account is not default, use PrivKey::operator bool.
   explicit operator bool() const { return bool(this->privKey); }
@@ -43,101 +41,152 @@ struct TestAccount {
  */
 class SDKTestSuite {
   private:
-    std::unique_ptr<Options> options_;        ///< Pointer to the options singleton.
-    std::unique_ptr<DB> db_;                  ///< Pointer to the database.
-    std::unique_ptr<Storage> storage_;        ///< Pointer to the blockchain storage.
-    std::unique_ptr<State> state_;            ///< Pointer to the blockchain state.
-    std::unique_ptr<rdPoS> rdpos_;            ///< Pointer to the rdPoS object (consensus).
-    std::unique_ptr<P2P::ManagerNormal> p2p_; ///< Pointer to the P2P connection manager.
-    std::unique_ptr<HTTPServer> http_;        ///< Pointer to the HTTP server.
+    const Options options_;  ///< Options singleton.
+    P2P::ManagerNormal p2p_; ///< P2P connection manager. NOTE: p2p_ has to be constructed first due to getLogicalLocation()
+    DB db_;                  ///< Database.
+    Storage storage_;        ///< Blockchain storage.
+    StateTest state_;        ///< Blockchain state.
+    HTTPServer http_;        ///< HTTP server.
+
+    // Test listen P2P port number generator needs to be in SDKTestSuite due to createNewEnvironment(),
+    //   which selects the port for the caller.
+    // This should be used by all tests that open a node listen port, not only SDKTestSuite tests.
+    static int p2pListenPortMin_;
+    static int p2pListenPortMax_;
+    static int p2pListenPortGen_;
 
     /// Owner of the chain (0x00dead00...).
-    const TestAccount chainOwnerAccount_ = TestAccount(Hex::toBytes(
-      "0xe89ef6409c467285bcae9f80ab1cfeb3487cfe61ab28fb7d36443e1daa0c2867")
-    );
-
-    /// PrivateKeys of the validators for the rdPoS within SDKTestSuite.
-    const std::vector<PrivKey> validatorPrivKeys_ {
-      PrivKey(Hex::toBytes("0x0a0415d68a5ec2df57aab65efc2a7231b59b029bae7ff1bd2e40df9af96418c8")),
-      PrivKey(Hex::toBytes("0xb254f12b4ca3f0120f305cabf1188fe74f0bd38e58c932a3df79c4c55df8fa66")),
-      PrivKey(Hex::toBytes("0x8a52bb289198f0bcf141688a8a899bf1f04a02b003a8b1aa3672b193ce7930da")),
-      PrivKey(Hex::toBytes("0x9048f5e80549e244b7899e85a4ef69512d7d68613a3dba828266736a580e7745")),
-      PrivKey(Hex::toBytes("0x0b6f5ad26f6eb79116da8c98bed5f3ed12c020611777d4de94c3c23b9a03f739")),
-      PrivKey(Hex::toBytes("0xa69eb3a3a679e7e4f6a49fb183fb2819b7ab62f41c341e2e2cc6288ee22fbdc7")),
-      PrivKey(Hex::toBytes("0xd9b0613b7e4ccdb0f3a5ab0956edeb210d678db306ab6fae1e2b0c9ebca1c2c5")),
-      PrivKey(Hex::toBytes("0x426dc06373b694d8804d634a0fd133be18e4e9bcbdde099fce0ccf3cb965492f"))
+    static TestAccount chainOwnerAccount() {
+      return TestAccount(PrivKey(Hex::toBytes("0xe89ef6409c467285bcae9f80ab1cfeb3487cfe61ab28fb7d36443e1daa0c2867")));
     };
 
+    /// PrivateKeys of the validators for the rdPoS within SDKTestSuite.
+    static std::vector<PrivKey> validatorPrivKeys() {
+      return {
+        PrivKey(Hex::toBytes("0x0a0415d68a5ec2df57aab65efc2a7231b59b029bae7ff1bd2e40df9af96418c8")),
+        PrivKey(Hex::toBytes("0xb254f12b4ca3f0120f305cabf1188fe74f0bd38e58c932a3df79c4c55df8fa66")),
+        PrivKey(Hex::toBytes("0x8a52bb289198f0bcf141688a8a899bf1f04a02b003a8b1aa3672b193ce7930da")),
+        PrivKey(Hex::toBytes("0x9048f5e80549e244b7899e85a4ef69512d7d68613a3dba828266736a580e7745")),
+        PrivKey(Hex::toBytes("0x0b6f5ad26f6eb79116da8c98bed5f3ed12c020611777d4de94c3c23b9a03f739")),
+        PrivKey(Hex::toBytes("0xa69eb3a3a679e7e4f6a49fb183fb2819b7ab62f41c341e2e2cc6288ee22fbdc7")),
+        PrivKey(Hex::toBytes("0xd9b0613b7e4ccdb0f3a5ab0956edeb210d678db306ab6fae1e2b0c9ebca1c2c5")),
+        PrivKey(Hex::toBytes("0x426dc06373b694d8804d634a0fd133be18e4e9bcbdde099fce0ccf3cb965492f"))
+      };
+    };
+
+  // TODO: update tests here because Consensus now exists
+
   public:
+
+    /// Get next P2P listen port to use in unit tests.
+    static int getTestPort() {
+      int tries = 1000;
+      boost::asio::io_context io_context;
+      while (true) {
+        if (p2pListenPortGen_ > p2pListenPortMax_) {
+          p2pListenPortGen_ = p2pListenPortMin_;
+        } else {
+          ++p2pListenPortGen_;
+        }
+        boost::asio::ip::tcp::acceptor acceptor(io_context);
+        boost::asio::ip::tcp::endpoint endpoint(boost::asio::ip::tcp::v4(), p2pListenPortGen_);
+        boost::system::error_code ec, ec2;
+        acceptor.open(endpoint.protocol(), ec);
+        if (!ec) {
+          acceptor.bind(endpoint, ec);
+          acceptor.close(ec2);
+          if (!ec) {
+            return p2pListenPortGen_;
+          }
+        }
+        if (--tries <= 0) {
+          SLOGFATAL_THROW("Exhausted tries while searching for a free port number");
+        }
+      }
+    }
+
+    /**
+     * Constructor for SDKTestSuite based on a given Options.
+     */
+    explicit SDKTestSuite(const Options& options) :
+      options_(options),
+      db_(std::get<0>(DumpManager::getBestStateDBPath(this->options_))),
+      storage_(p2p_.getLogicalLocation(), options_),
+      state_(db_, storage_, p2p_, std::get<1>(DumpManager::getBestStateDBPath(this->options_)), options_),
+      p2p_(LOCALHOST, options_, storage_, state_),
+      http_(state_, storage_, p2p_, options_)
+    {}
+
+    ~SDKTestSuite() {
+      state_.dumpStopWorker();
+      p2p_.stopDiscovery();
+      p2p_.stop();
+      http_.stop();
+    }
+
     /**
      * Initialize all components of a full blockchain node.
      * @param sdkPath Path to the SDK folder.
      * @param accounts (optional) List of accounts to initialize the blockchain with. Defaults to none (empty vector).
      * @param options (optional) Options to initialize the blockchain with. Defaults to none (nullptr).
      */
-    SDKTestSuite(
+    static SDKTestSuite createNewEnvironment(
       const std::string& sdkPath,
       const std::vector<TestAccount>& accounts = {},
-      const std::unique_ptr<Options>& options = nullptr
+      const Options* const options = nullptr,
+      const IndexingMode indexingMode = IndexingMode::RPC_TRACE
     ) {
-      // Initialize the DB
-      std::string dbPath = sdkPath + "/db";
-      if (std::filesystem::exists(dbPath)) std::filesystem::remove_all(dbPath);
-      this->db_ = std::make_unique<DB>(dbPath);
-
-      // Populate rdPoS DB with unique rdPoS, not default.
-      for (uint64_t i = 0; i < this->validatorPrivKeys_.size(); i++) {
-        this->db_->put(Utils::uint64ToBytes(i),
-          Address(Secp256k1::toAddress(Secp256k1::toUPub(this->validatorPrivKeys_[i]))).get(),
-          DBPrefix::rdPoS
-        );
-      }
+      if (std::filesystem::exists(sdkPath)) std::filesystem::remove_all(sdkPath);
 
       // Create a default options if none is provided.
+      std::unique_ptr<Options> options_;
       if (options == nullptr) {
         // Create a genesis block with a timestamp of 1678887538000000 (2023-02-12 00:45:38 UTC)
         uint64_t genesisTimestamp = 1678887538000000;
         PrivKey genesisSigner(Hex::toBytes("0x0a0415d68a5ec2df57aab65efc2a7231b59b029bae7ff1bd2e40df9af96418c8"));
-        Block genesis(Hash(), 0, 0);
-        genesis.finalize(genesisSigner, genesisTimestamp);
+        FinalizedBlock genesis = FinalizedBlock::createNewValidBlock({}, {}, Hash(), genesisTimestamp, 0, genesisSigner);
         std::vector<std::pair<boost::asio::ip::address, uint64_t>> discoveryNodes;
         std::vector<std::pair<Address,uint256_t>> genesisBalances;
         // Add the chain owner account to the genesis balances.
         const uint256_t desiredBalance("1000000000000000000000");
-        genesisBalances.emplace_back(this->chainOwnerAccount_.address, desiredBalance);
+        genesisBalances.emplace_back(chainOwnerAccount().address, desiredBalance);
         // Add the remaining accounts to the genesis balances.
         for (const TestAccount& account : accounts) {
           genesisBalances.emplace_back(account.address, desiredBalance);
         }
         std::vector<Address> genesisValidators;
-        for (const auto& privKey : this->validatorPrivKeys_) {
+        for (const auto& privKey : validatorPrivKeys()) {
           genesisValidators.push_back(Secp256k1::toAddress(Secp256k1::toUPub(privKey)));
         }
-        this->options_ = std::make_unique<Options>(
+        options_ = std::make_unique<Options>(
           sdkPath,
-          "OrbiterSDK/cpp/linux_x86-64/0.2.0",
+          "BDK/cpp/linux_x86-64/0.2.0",
           1,
           8080,
           Address(Hex::toBytes("0x00dead00665771855a34155f5e7405489df2c3c6")),
-          8080,
+          LOCALHOST,
+          SDKTestSuite::getTestPort(),
           9999,
+          11,
+          11,
+          200,
+          50,
           2000,
           10000,
+          1000,
+          4,
           discoveryNodes,
           genesis,
           genesisTimestamp,
           genesisSigner,
           genesisBalances,
-          genesisValidators
+          genesisValidators,
+          indexingMode
         );
       } else {
-        this->options_ = std::make_unique<Options>(*options);
+        options_ = std::make_unique<Options>(*options);
       }
-      this->storage_ = std::make_unique<Storage>(db_, options_);
-      this->rdpos_ = std::make_unique<rdPoS>(db_, storage_, p2p_, options_, state_);
-      this->state_ = std::make_unique<State>(db_, storage_, rdpos_, p2p_, options_);
-      this->p2p_ = std::make_unique<P2P::ManagerNormal>(boost::asio::ip::address::from_string("127.0.0.1"), rdpos_, options_, storage_, state_);
-      this->http_ = std::make_unique<HTTPServer>(state_, storage_, p2p_, options_);
+      return SDKTestSuite(*options_);
     }
 
     /**
@@ -145,8 +194,8 @@ class SDKTestSuite {
      * @param hash Hash of the block to get.
      * @return A pointer to the block, or nullptr if not found.
      */
-    const std::shared_ptr<const Block> getBlock(const Hash& hash) const {
-      return this->storage_->getBlock(hash);
+    const std::shared_ptr<const FinalizedBlock> getBlock(const Hash& hash) const {
+      return this->storage_.getBlock(hash);
     }
 
     /**
@@ -154,8 +203,8 @@ class SDKTestSuite {
      * @param height Height of the block to get.
      * @return A pointer to the block, or nullptr if not found.
      */
-    const std::shared_ptr<const Block> getBlock(const uint64_t height) const {
-      return this->storage_->getBlock(height);
+    const std::shared_ptr<const FinalizedBlock> getBlock(const uint64_t height) const {
+      return this->storage_.getBlock(height);
     }
 
     /**
@@ -164,19 +213,20 @@ class SDKTestSuite {
      * @param txs (optional) List of transactions to include in the block. Defaults to none (empty vector).
      * @return A pointer to the new block.
      */
-    const std::shared_ptr<const Block> advanceChain(const uint64_t& timestamp = 0, const std::vector<TxBlock>& txs = {}) {
-      auto validators = rdpos_->getValidators();
-      auto randomList = rdpos_->getRandomList();
+    const std::shared_ptr<const FinalizedBlock> advanceChain(const uint64_t& timestamp = 0,
+                                                             std::vector<TxBlock>&& txs = {}) {
+      auto validators = state_.rdposGetValidators();
+      auto randomList = state_.rdposGetRandomList();
       Hash blockSignerPrivKey;           // Private key for the block signer.
-      std::vector<Hash> orderedPrivKeys; // Private keys for the rdPoS in the order of the random list, limited to rdPoS::minValidators.
+      std::vector<Hash> orderedPrivKeys; // Private keys for the rdPoS in the order of the random list, limited to rdPoS' minValidators.
       orderedPrivKeys.reserve(4);
-      for (const auto& privKey : this->validatorPrivKeys_) {
+      for (const auto& privKey : this->validatorPrivKeys()) {
         if (Secp256k1::toAddress(Secp256k1::toUPub(privKey)) == randomList[0]) {
           blockSignerPrivKey = privKey; break;
         }
       }
-      for (uint64_t i = 1; i < rdPoS::minValidators + 1; i++) {
-        for (const auto& privKey : this->validatorPrivKeys_) {
+      for (uint64_t i = 1; i < state_.rdposGetMinValidators() + 1; i++) {
+        for (const auto& privKey : this->validatorPrivKeys()) {
           if (Secp256k1::toAddress(Secp256k1::toUPub(privKey)) == randomList[i]) {
             orderedPrivKeys.push_back(privKey); break;
           }
@@ -189,22 +239,21 @@ class SDKTestSuite {
       // **ordered** by the random list.
 
       // Create a block with 8 TxValidator transactions, 2 for each validator, in order (randomHash and random)
-      uint64_t newBlocknHeight = this->storage_->latest()->getNHeight() + 1;
+      uint64_t newBlocknHeight = this->storage_.latest()->getNHeight() + 1;
       uint64_t newBlockTimestamp = std::chrono::duration_cast<std::chrono::microseconds>(
         std::chrono::high_resolution_clock::now().time_since_epoch()
       ).count();
-      Hash newBlockPrevHash = this->storage_->latest()->hash();
-      Block newBlock(newBlockPrevHash, newBlockTimestamp, newBlocknHeight);
+      Hash newBlockPrevHash = this->storage_.latest()->getHash();
       std::vector<TxValidator> randomHashTxs;
       std::vector<TxValidator> randomTxs;
 
-      std::vector<Hash> randomSeeds(orderedPrivKeys.size(), Hash::random());
+      std::vector<Hash> randomSeeds(orderedPrivKeys.size(), bytes::random());
       for (uint64_t i = 0; i < orderedPrivKeys.size(); ++i) {
         Address validatorAddress = Secp256k1::toAddress(Secp256k1::toUPub(orderedPrivKeys[i]));
         Bytes hashTxData = Hex::toBytes("0xcfffe746");
-        Utils::appendBytes(hashTxData, Utils::sha3(randomSeeds[i].get()));
+        Utils::appendBytes(hashTxData, Utils::sha3(randomSeeds[i]));
         Bytes randomTxData = Hex::toBytes("0x6fc5a2d6");
-        Utils::appendBytes(randomTxData, randomSeeds[i].get());
+        Utils::appendBytes(randomTxData, randomSeeds[i]);
         randomHashTxs.emplace_back(
           validatorAddress, hashTxData, 8080, newBlocknHeight, orderedPrivKeys[i]
         );
@@ -214,29 +263,43 @@ class SDKTestSuite {
       }
 
       // Append the transactions to the block.
+      std::vector<TxValidator> txsValidator;
       for (const auto& tx : randomHashTxs) {
-        this->rdpos_->addValidatorTx(tx); newBlock.appendTxValidator(tx);
+        this->state_.rdposAddValidatorTx(tx); txsValidator.emplace_back(tx);
       }
       for (const auto& tx : randomTxs) {
-        this->rdpos_->addValidatorTx(tx); newBlock.appendTxValidator(tx);
+        this->state_.rdposAddValidatorTx(tx); txsValidator.emplace_back(tx);
       }
-      for (const auto& tx : txs) newBlock.appendTx(tx);
 
       // Finalize the block.
       if (timestamp == 0) {
-        newBlock.finalize(blockSignerPrivKey, std::chrono::duration_cast<std::chrono::microseconds>(
-          std::chrono::high_resolution_clock::now().time_since_epoch()
-        ).count());
+        auto finalizedBlock = FinalizedBlock::createNewValidBlock(std::move(txs),
+                                                                  std::move(txsValidator),
+                                                                  newBlockPrevHash,
+                                                                  newBlockTimestamp,
+                                                                  newBlocknHeight,
+                                                                  blockSignerPrivKey);
+        // After finalization, the block should be valid. If it is, process the next one.
+        BlockValidationStatus bvs = state_.tryProcessNextBlock(std::move(finalizedBlock));
+        if (bvs != BlockValidationStatus::valid) {
+          throw DynamicException("SDKTestSuite::advanceBlock: Block is not valid");
+        }
+        return this->storage_.latest();
       } else {
-        newBlock.finalize(blockSignerPrivKey, timestamp);
+        //TODO/REVIEW: These branches are identical?
+        auto finalizedBlock = FinalizedBlock::createNewValidBlock(std::move(txs),
+                                                                  std::move(txsValidator),
+                                                                  newBlockPrevHash,
+                                                                  newBlockTimestamp,
+                                                                  newBlocknHeight,
+                                                                  blockSignerPrivKey);
+        // After finalization, the block should be valid. If it is, process the next one.
+        BlockValidationStatus bvs = state_.tryProcessNextBlock(std::move(finalizedBlock));
+        if (bvs != BlockValidationStatus::valid) {
+          throw DynamicException("SDKTestSuite::advanceBlock: Block is not valid");
+        }
+        return this->storage_.latest();
       }
-
-      // After finalization, the block should be valid. If it is, process the next one.
-      if (!this->state_->validateNextBlock(newBlock)) throw std::runtime_error(
-        "SDKTestSuite::advanceBlock: Block is not valid"
-      );
-      state_->processNextBlock(std::move(newBlock));
-      return this->storage_->latest();
     }
 
     /**
@@ -250,9 +313,24 @@ class SDKTestSuite {
     TxBlock createNewTx(
       const TestAccount& from, const Address& to, const uint256_t& value, Bytes data = Bytes()
     ) {
-      // 1000000000 = 1 GWEI, 21000 = 21000 WEI
-      return TxBlock(to, from.address, data, this->options_->getChainID(),
-        this->state_->getNativeNonce(from.address), value, 1000000000, 1000000000, 21000, from.privKey
+      
+      Gas gas(1'000'000'000);
+
+      const uint64_t gasUsed = 10'000 + std::invoke([&] () {
+        if (to) {
+          return this->state_.estimateGas(EncodedCallMessage(from.address, to, gas, value, data));
+        } else {
+          return this->state_.estimateGas(EncodedCreateMessage(from.address, gas, value, data));
+        }
+      });
+
+      return TxBlock(to, from.address, data, this->options_.getChainID(),
+        this->state_.getNativeNonce(from.address),
+        value,
+        1000000000,
+        1000000000,
+        gasUsed,
+        from.privKey
       );
     }
 
@@ -270,32 +348,33 @@ class SDKTestSuite {
     }
 
     /**
-     * Get all events emitted under a given transaction.
-     * @param txHash The hash of the transaction to look for events.
-     * @return a vector of events emitted by the transaction.
-     */
-    const std::vector<Event> getEvents(const Hash& tx) const {
-      auto txBlock = this->storage_->getTx(tx);
-      return this->state_->getEvents(
-        std::get<0>(txBlock)->hash(), std::get<3>(txBlock), std::get<2>(txBlock)
-      );
-    }
-
-    /**
      * Get the latest accepted block.
      * @return A pointer to the latest accepted block.
      */
-    inline const std::shared_ptr<const Block> getLatestBlock() const { return this->storage_->latest(); }
+    inline const std::shared_ptr<const FinalizedBlock> getLatestBlock() const { return this->storage_.latest(); }
 
     /**
      * Get a transaction from the chain using a given hash.
      * @param tx The transaction hash to get.
      * @return A tuple with the found transaction, block hash, index and height, nullptr if the tx was not found
-     * @throw std::runtime_error on hash mismatch (should never happen).
+     * @throw DynamicException on hash mismatch (should never happen).
      */
     const std::tuple<
       const std::shared_ptr<const TxBlock>, const Hash, const uint64_t, const uint64_t
-    > getTx(const Hash& tx) { return this->storage_->getTx(tx); }
+    > getTx(const Hash& tx) { return this->storage_.getTx(tx); }
+
+    /**
+     * Create a transaction to deploy a given EVM bytecode and advance the chain with it.
+     * Always use the chain owner account to deploy contracts.
+     * @param bytecode EVM bytecode to deploy.
+     * @return Address of the deployed contract.
+     */
+    Address deployBytecode(const Bytes& bytecode) {
+      Address newContractAddress = generateContractAddress(this->getNativeNonce(this->getChainOwnerAccount().address), this->getChainOwnerAccount().address);
+      auto createTx = this->createNewTx(this->getChainOwnerAccount(), Address(), 0, bytecode);
+      this->advanceChain(0, {createTx});
+      return newContractAddress;
+    }
 
     /**
      * Create a transaction to deploy a new contract and advance the chain with it.
@@ -307,19 +386,20 @@ class SDKTestSuite {
      */
     template <typename TContract> const Address deployContract() {
       TContract::registerContract();
-      auto prevContractList = this->state_->getContracts();
+      auto prevContractList = this->state_.getCppContracts();
       using ContractArgumentTypes = decltype(Utils::removeQualifiers<typename TContract::ConstructorArguments>());
 
       // Encode the functor
       std::string createSignature = "createNew" + Utils::getRealTypeName<TContract>() + "Contract("
         + ContractReflectionInterface::getConstructorArgumentTypesString<TContract>() + ")";
-      Functor functor = Utils::sha3(Utils::create_view_span(createSignature)).view_const(0, 4);
-      Bytes data(functor.cbegin(), functor.cend());
+      Bytes data;
+      Utils::appendBytes(data, Utils::sha3(Utils::create_view_span(createSignature)));
+      data.resize(4); // We only need the first 4 bytes for the function signature
 
       // Create the transaction, advance the chain with it, and get the new contract address.
-      TxBlock createContractTx = createNewTx(this->chainOwnerAccount_, ProtocolContractAddresses.at("ContractManager"), 0, data);
+      TxBlock createContractTx = createNewTx(this->chainOwnerAccount(), ProtocolContractAddresses.at("ContractManager"), 0, data);
       this->advanceChain(0, {createContractTx});
-      auto newContractList = this->state_->getContracts();
+      auto newContractList = this->state_.getCppContracts();
 
       // Filter new contract list to find the new contract.
       // TODO: We are assuming that only one contract of the same type is deployed at a time.
@@ -344,15 +424,16 @@ class SDKTestSuite {
      */
     template <typename TContract, typename ...Args> const Address deployContract(Args&&... args) {
       TContract::registerContract();
-      auto prevContractList = this->state_->getContracts();
+      auto prevContractList = this->state_.getCppContracts();
       using ContractArgumentTypes = decltype(Utils::removeQualifiers<typename TContract::ConstructorArguments>());
       static_assert(std::is_same_v<ContractArgumentTypes, std::tuple<std::decay_t<Args>...>>, "Invalid contract constructor arguments");
 
       // Encode the functor
       std::string createSignature = "createNew" + Utils::getRealTypeName<TContract>() + "Contract("
         + ContractReflectionInterface::getConstructorArgumentTypesString<TContract>() + ")";
-      Functor functor = Utils::sha3(Utils::create_view_span(createSignature)).view_const(0, 4);
-      Bytes data(functor.cbegin(), functor.cend());
+      Bytes data;
+      Utils::appendBytes(data, Utils::sha3(Utils::create_view_span(createSignature)));
+      data.resize(4); // We only need the first 4 bytes for the function signature
 
       // Encode the arguments
       if (sizeof...(args) > 0) Utils::appendBytes(
@@ -360,9 +441,9 @@ class SDKTestSuite {
       );
 
       // Create the transaction, advance the chain with it, and get the new contract address.
-      TxBlock createContractTx = createNewTx(this->chainOwnerAccount_, ProtocolContractAddresses.at("ContractManager"), 0, data);
+      TxBlock createContractTx = createNewTx(this->chainOwnerAccount(), ProtocolContractAddresses.at("ContractManager"), 0, data);
       this->advanceChain(0, {createContractTx});
-      auto newContractList = this->state_->getContracts();
+      auto newContractList = this->state_.getCppContracts();
 
       // Filter new contract list to find the new contract.
       // TODO: We are assuming that only one contract of the same type is deployed at a time.
@@ -397,17 +478,20 @@ class SDKTestSuite {
       const uint64_t& timestamp = 0
     ) {
       // Create the transaction data
+      TContract::registerContract();
       Hash ret;
       Functor txFunctor = ABI::FunctorEncoder::encode<>(
         ContractReflectionInterface::getFunctionName(func)
       );
-      Bytes txData(txFunctor.cbegin(), txFunctor.cend());
+      Bytes txData;
+      Utils::appendBytes(txData, UintConv::uint32ToBytes(txFunctor.value));
       // Use the chain owner account if no account is provided
       TxBlock tx = this->createNewTx(
         ((!testAccount) ? this->getChainOwnerAccount() : testAccount),
         contractAddress, value, txData
       );
       ret = tx.hash();
+      // Check if the execution is not going to be reverted/throw
       this->advanceChain(timestamp, {tx});
       return ret;
     }
@@ -437,20 +521,24 @@ class SDKTestSuite {
       const Args&... args
     ) {
       // Create the transaction data
+      TContract::registerContract();
       Hash ret;
       Functor txFunctor = ABI::FunctorEncoder::encode<Args...>(
         ContractReflectionInterface::getFunctionName(func)
       );
-      Bytes txData(txFunctor.cbegin(), txFunctor.cend());
+      Bytes txData;
+      Utils::appendBytes(txData, UintConv::uint32ToBytes(txFunctor.value));
       Utils::appendBytes(
         txData, ABI::Encoder::encodeData<Args...>(std::forward<decltype(args)>(args)...)
       );
       // Use the chain owner account if no account is provided
+
       TxBlock tx = this->createNewTx(
         ((!testAccount) ? this->getChainOwnerAccount() : testAccount),
         contractAddress, value, txData
       );
       ret = tx.hash();
+      // Check if the execution is not going to be reverted/throw
       this->advanceChain(timestamp, {tx});
       return ret;
     }
@@ -639,15 +727,24 @@ class SDKTestSuite {
     const ReturnType callViewFunction(
       const Address& contractAddress, ReturnType(TContract::*func)() const
     ) {
-      ethCallInfoAllocated callData;
-      auto& [fromInfo, toInfo, gasInfo, gasPriceInfo, valueInfo, functorInfo, dataInfo] = callData;
-      toInfo = contractAddress;
-      functorInfo = ABI::FunctorEncoder::encode<>(ContractReflectionInterface::getFunctionName(func));
-      dataInfo = Bytes();
-      return std::get<0>(ABI::Decoder::decodeData<ReturnType>(this->state_->ethCall(callData)));
+      TContract::registerContract();
+
+      auto functor = ABI::FunctorEncoder::encode<>(ContractReflectionInterface::getFunctionName(func));
+      Bytes fullData;
+      Utils::appendBytes(fullData, UintConv::uint32ToBytes(functor.value));
+
+      Gas gas(10'000'000);
+      const Address from = this->getChainOwnerAccount().address;
+      EncodedStaticCallMessage msg(from, contractAddress, gas, fullData);
+
+      const Bytes result = this->state_.ethCall(msg);
+
+      if constexpr (not std::same_as<ReturnType, void>) {
+        return std::get<0>(ABI::Decoder::decodeData<ReturnType>(result));
+      }
     }
 
-    /**
+      /**
      * Call a contract view function with args and return the result.
      * @tparam ReturnType Return type of the function.
      * @tparam TContract Contract type to call.
@@ -662,15 +759,28 @@ class SDKTestSuite {
       const Address& contractAddress,
       ReturnType(TContract::*func)(const Args&...) const,
       const Args&... args
-    ) {
-      TContract::registerContract();
-      ethCallInfoAllocated callData;
-      auto& [fromInfo, toInfo, gasInfo, gasPriceInfo, valueInfo, functorInfo, dataInfo] = callData;
-      toInfo = contractAddress;
-      functorInfo = ABI::FunctorEncoder::encode<Args...>(ContractReflectionInterface::getFunctionName(func));
-      dataInfo = ABI::Encoder::encodeData<Args...>(std::forward<decltype(args)>(args)...);
-      return std::get<0>(ABI::Decoder::decodeData<ReturnType>(this->state_->ethCall(callData)));
+      ) {
+      // If TContract is NOT of type DynamicContract, we need to register it.
+      // Otherwise, do nothing, because DynamicContract functions are register in a per contract basis... (See current ERC-165 compliance implementation)
+      if constexpr (!std::is_same_v<TContract, DynamicContract>) {
+        TContract::registerContract();
+      }
+      auto functor = ABI::FunctorEncoder::encode<Args...>(ContractReflectionInterface::getFunctionName(func));
+      Bytes fullData;
+      Utils::appendBytes(fullData, UintConv::uint32ToBytes(functor.value));
+      Utils::appendBytes(fullData, ABI::Encoder::encodeData<Args...>(std::forward<decltype(args)>(args)...));
+
+      Gas gas(10'000'000);
+      const Address from = this->getChainOwnerAccount().address;
+      EncodedStaticCallMessage msg(from, contractAddress, gas, fullData);
+
+      const Bytes result = this->state_.ethCall(msg);
+
+      if constexpr (not std::same_as<ReturnType, void>) {
+        return std::get<0>(ABI::Decoder::decodeData<ReturnType>(result));
+      }
     }
+
 
     /**
      * Get all the events emitted under the given inputs.
@@ -681,9 +791,22 @@ class SDKTestSuite {
      * @return A list of matching events, limited by the block and/or log caps set above.
      */
     std::vector<Event> getEvents(
-      const uint64_t& fromBlock, const uint64_t& toBlock,
+      uint64_t fromBlock, uint64_t toBlock,
       const Address& address, const std::vector<Hash>& topics
-    ) { return this->state_->getEvents(fromBlock, toBlock, address, topics); }
+    ) const {
+      std::vector<std::vector<Hash>> topicsFilter;
+      topicsFilter.reserve(topics.size());
+
+      std::transform(topics.begin(), topics.end(), std::back_inserter(topicsFilter), 
+        [] (const Hash& hash) { return std::vector<Hash>{hash}; });
+
+      return storage_.events().getEvents({
+        .fromBlock = fromBlock,
+        .toBlock = toBlock,
+        .address = address,
+        .topics = topicsFilter
+      }, this->options_.getEventLogCap());
+    }
 
     /**
      * Overload of getEvents() used by "eth_getTransactionReceipts", where
@@ -693,17 +816,20 @@ class SDKTestSuite {
      * @param txIndex The index of the transaction to look for events.
      * @return A list of matching events, limited by the block and/or log caps set above.
      */
-    std::vector<Event> getEvents(
-      const Hash& txHash, const uint64_t& blockIndex, const uint64_t& txIndex
-    ) { return this->state_->getEvents(txHash, blockIndex, txIndex); }
+    std::vector<Event> getEvents(uint64_t blockIndex, uint64_t txIndex) const {
+      std::vector<Event> events = storage_.events().getEvents({ .fromBlock = blockIndex, .toBlock = blockIndex }, this->options_.getEventLogCap());
+      std::erase_if(events, [txIndex] (const Event& event) { return event.getTxIndex() != txIndex; });
+      return events;
+    }
 
     /**
      * Get all events emitted by a given confirmed transaction.
      * @param txHash The hash of the transaction to look for events.
      */
-    std::vector<Event> getEvents(const Hash& txHash) {
-      auto tx = this->storage_->getTx(txHash);
-      return this->state_->getEvents(std::get<0>(tx)->hash(), std::get<3>(tx), std::get<2>(tx));
+    std::vector<Event> getEvents(const Hash& txHash) const {
+      std::vector<Event> events = storage_.events().getEvents({ .blockHash = std::get<1>(storage_.getTx(txHash)) }, this->options_.getEventLogCap());
+      std::erase_if(events, [&txHash] (const Event& event) { return event.getTxHash() != txHash; });
+      return events;
     }
 
     /**
@@ -731,8 +857,8 @@ class SDKTestSuite {
       if (!anonymous) topicsToFilter.push_back(eventSignature);
       std::vector<Event> filteredEvents;
       // Specifically filter events from the most recent 2000 blocks
-      uint64_t lastBlock = this->storage_->latest()->getNHeight();
-      uint64_t firstBlock = (lastBlock - 2000 >= 0) ? lastBlock - 2000 : 0;
+      uint64_t lastBlock = this->storage_.latest()->getNHeight();
+      uint64_t firstBlock = (lastBlock > 2000) ? lastBlock - 2000 : 0;
       auto allEvents = this->getEvents(firstBlock, lastBlock, address, {});
 
       // Filter the events by the topics
@@ -784,7 +910,7 @@ class SDKTestSuite {
 
       // Filter the events by the topics, from the most recent 2000 blocks
       std::vector<Event> filteredEvents;
-      uint64_t lastBlock = this->storage_->latest()->getNHeight();
+      uint64_t lastBlock = this->storage_.latest()->getNHeight();
       uint64_t firstBlock = (lastBlock > 2000) ? lastBlock - 2000 : 0;
       auto allEvents = this->getEvents(firstBlock, lastBlock, address, {});
       for (const auto& event : allEvents) {
@@ -850,7 +976,7 @@ class SDKTestSuite {
                 tuples.push_back(tuple);
             }
         } else {
-            throw std::runtime_error("Attempted to decode an event with only indexed parameters (empty tuple).");
+            throw DynamicException("Attempted to decode an event with only indexed parameters (empty tuple).");
         }
 
         return tuples;
@@ -882,7 +1008,6 @@ class SDKTestSuite {
       std::vector<Event> filteredEvents;
       auto allEvents = this->getEvents(txHash);
 
-      // Filter the events by the topics
       for (const auto& event : allEvents) {
         if (topicsToFilter.size() == 0) {
           filteredEvents.push_back(event);
@@ -948,44 +1073,41 @@ class SDKTestSuite {
     }
 
     /// Getter for `chainOwnerAccount_`.
-    const TestAccount& getChainOwnerAccount() const { return this->chainOwnerAccount_; };
+    TestAccount getChainOwnerAccount() const { return this->chainOwnerAccount(); };
 
     /// Getter for `options_`.
-    const std::unique_ptr<Options>& getOptions() const { return this->options_; };
+    const Options& getOptions() const { return this->options_; };
 
     /// Getter for `db_`.
-    const std::unique_ptr<DB>& getDB() const { return this->db_; };
+    const DB& getDB() { return this->db_; };
 
     /// Getter for `storage_`.
-    const std::unique_ptr<Storage>& getStorage() const { return this->storage_; };
-
-    /// Getter for `rdpos_`.
-    const std::unique_ptr<rdPoS>& getrdPoS() const { return this->rdpos_; };
+    Storage& getStorage() { return this->storage_; };
 
     /// Getter for `state_`.
-    const std::unique_ptr<State>& getState() const { return this->state_; };
+    StateTest& getState() { return this->state_; };
 
     /// Getter for `p2p_`.
-    const std::unique_ptr<P2P::ManagerNormal>& getP2P() const { return this->p2p_; };
+    P2P::ManagerNormal& getP2P() { return this->p2p_; };
 
     /// Getter for `http_`.
-    const std::unique_ptr<HTTPServer>& getHTTP() const { return this->http_; };
+    HTTPServer& getHTTP() { return this->http_; };
 
     /// Get the native balance of a given address.
     const uint256_t getNativeBalance(const Address& address) const {
-      return this->state_->getNativeBalance(address);
+      return this->state_.getNativeBalance(address);
     }
 
     /// Get the nonce of a given address.
     const uint64_t getNativeNonce(const Address& address) const {
-      return this->state_->getNativeNonce(address);
+      return this->state_.getNativeNonce(address);
     }
 
     /// Initialize the P2P and HTTP servers.
-    void initializeServices() { this->p2p_->start(); this->http_->start(); }
+    void initializeServices() { this->p2p_.start(); this->http_.start(); }
 
     /// Stop the P2P and HTTP servers.
-    void stopServices() { this->http_->stop(); this->p2p_->stop(); }
+    void stopServices() { this->http_.stop(); this->p2p_.stop(); }
 };
 
 #endif // SDKTESTSUITE_H

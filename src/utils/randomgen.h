@@ -1,5 +1,5 @@
 /*
-Copyright (c) [2023-2024] [Sparq Network]
+Copyright (c) [2023-2024] [AppLayer Developers]
 
 This software is distributed under the MIT License.
 See the LICENSE.txt file in the project root for more information.
@@ -8,26 +8,18 @@ See the LICENSE.txt file in the project root for more information.
 #ifndef RANDOMGEN_H
 #define RANDOMGEN_H
 
-#include <boost/lexical_cast.hpp>
-#include <boost/multiprecision/cpp_dec_float.hpp>
-#include <boost/multiprecision/cpp_int.hpp>
-#include <boost/random.hpp>
-#include <boost/random/mersenne_twister.hpp>
-#include <boost/random/uniform_int_distribution.hpp>
-
 #include "utils.h"
 
 /// Custom Pseudo-Random Number Generator (PRNG) for use in rdPoS.
 class RandomGen {
   private:
-    Hash seed_;  ///< The seed used by the generator.
-    mutable std::mutex seedLock_;  ///< Mutex for managing read/write access to the seed.
+    Hash seed_;                   ///< The seed used by the generator.
+    mutable std::mutex seedLock_; ///< Mutex for managing read/write access to the seed.
 
   public:
     /**
-     * Alias for the result type.
-     * Implemented in conformity with UniformRandomBitGenerator:
-     * https://en.cppreference.com/w/cpp/named_req/UniformRandomBitGenerator
+     * Alias for the result type, implemented in conformity with UniformRandomBitGenerator.
+     * @see https://en.cppreference.com/w/cpp/named_req/UniformRandomBitGenerator
      */
     using result_type = uint256_t;
 
@@ -35,12 +27,22 @@ class RandomGen {
      * Constructor.
      * @param seed A random seed for initialization.
      */
-    explicit RandomGen(const Hash& seed) : seed_(seed) {};
+    explicit RandomGen(const Hash& seed) : seed_(seed) {}
 
-    /// Getter for `seed`.
-    inline const Hash getSeed() const { std::lock_guard lock(seedLock_); return this->seed_; }
+    ~RandomGen() = default;
 
-    /// Setter for `seed`.
+    RandomGen(const RandomGen&);
+
+    RandomGen(RandomGen&& other) noexcept : seed_(other.seed_) {}
+
+    RandomGen& operator=(const RandomGen&);
+
+    RandomGen& operator=(RandomGen&&) noexcept;
+
+    /// Getter for `seed_`.
+    inline const Hash& getSeed() const { std::lock_guard lock(seedLock_); return this->seed_; }
+
+    /// Setter for `seed_`.
     inline void setSeed(const Hash& seed) { std::lock_guard lock(seedLock_); this->seed_ = seed; }
 
     /// Return the maximum numeric limit of a 256-bit unsigned integer.
@@ -51,15 +53,15 @@ class RandomGen {
 
     /**
      * Shuffle the elements of a given vector.
-     * Vector is a std::vector of any given type.
+     * @tparam Vector Any type of std::vector.
      * @param v The vector to shuffle.
      */
     template <typename Vector> void shuffle(Vector& v) {
       std::lock_guard lock(seedLock_);
       for (uint64_t i = 0; i < v.size(); ++i) {
-        this->seed_ = Utils::sha3(this->seed_.get());
+        this->seed_ = Utils::sha3(this->seed_);
         // Print seed as hex here if you want to debug it
-        uint64_t n = uint64_t(i + this->seed_.toUint256() % (v.size() - i));
+        uint64_t n = uint64_t(i + static_cast<uint256_t>(this->seed_) % (v.size() - i));
         std::swap(v[n], v[i]);
       }
     }

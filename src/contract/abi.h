@@ -1,5 +1,5 @@
 /*
-Copyright (c) [2023-2024] [Sparq Network]
+Copyright (c) [2023-2024] [AppLayer Developers]
 
 This software is distributed under the MIT License.
 See the LICENSE.txt file in the project root for more information.
@@ -8,12 +8,10 @@ See the LICENSE.txt file in the project root for more information.
 #ifndef ABI_H
 #define ABI_H
 
-#include <string>
-#include <any>
-
-#include "../utils/hex.h"
-#include "../libs/json.hpp"
-#include "../utils/utils.h"
+#include "../utils/intconv.h"
+#include "../utils/uintconv.h"
+#include "../utils/strconv.h"
+#include "../utils/utils.h" // FunctionTypes, libs/json.hpp -> string
 
 /// Namespace for Solidity ABI-related operations.
 namespace ABI {
@@ -31,9 +29,11 @@ namespace ABI {
     std::string type; ///< Type of the method.
   };
 
-  /// Struct that contains the data for a contract event.
-  /// args are encoded with ABI::FunctorEncoder::listArgumentTypesV.
-  /// Follow same rules as MethodDescription, but has a extra bool for indexed args.
+  /**
+   * Struct that contains the data for a contract event.
+   * Args are encoded with ABI::FunctorEncoder::listArgumentTypesV.
+   * Follows the same rules as MethodDescription, but has an extra bool for indexed args.
+   */
   struct EventDescription {
     std::string name; ///< Name of the event.
     std::vector<std::tuple<std::string, std::string, bool>> args; ///< List of tuples of event arg types, names and indexed flag.
@@ -49,6 +49,9 @@ namespace ABI {
   /// Forward declaration for std::vector<T>.
   template<typename T> struct isTupleOfDynamicTypes<std::vector<T>>;
 
+  /// Forward delcaration for std::array<T>
+  template<typename T, size_t N> struct isTupleOfDynamicTypes<std::array<T, N>>;
+
   /// Type trait to check if T is a std::vector (defaults to false for types without args).
   template <typename T> struct isVector : std::false_type {};
 
@@ -57,6 +60,15 @@ namespace ABI {
 
   /// Helper variable template for is_vector.
   template <typename T> inline constexpr bool isVectorV = isVector<T>::value;
+
+  /// Type trait to check if T is a std::array (defaults to false for types without args).
+  template <typename T> struct isArray : std::false_type {};
+
+  /// Type trait to check if T is a std::array (defaults to true for types with args).
+  template <typename... Args, size_t N> struct isArray<std::array<Args..., N>> : std::true_type {};
+
+  /// Helper variable template for is_array.
+  template <typename T> inline constexpr bool isArrayV = isArray<T>::value;
 
   /// vectorElementType trait to get the element type of a vector.
   template <typename T> struct vectorElementType {};
@@ -68,6 +80,17 @@ namespace ABI {
 
   /// Helper alias template for vector_element_type.
   template <typename T> using vectorElementTypeT = typename vectorElementType<T>::type;
+
+  /// arrayElementType trait to get the element type of a arrayu.
+  template <typename T> struct arrayElementType {};
+
+  /// Getter for the element type of a array.
+  template <typename... Args, size_t N> struct arrayElementType<std::array<Args..., N>> {
+    using type = typename std::array<Args..., N>::value_type; ///< The element type of the aray.
+  };
+
+  /// Helper alias template for array_element_type.
+  template <typename T> using arrayElementTypeT = typename arrayElementType<T>::type;
 
   /// Helper to check if a type is a std::tuple (defaults to false for types without args).
   template <typename T> struct isTuple : std::false_type {};
@@ -88,11 +111,11 @@ namespace ABI {
    */
   template<typename T> constexpr bool isDynamic() {
     if constexpr (
-      std::is_same_v<T, Bytes> ||
-      std::is_same_v<T, BytesArrView> ||
-      std::is_same_v<T, std::string> || false
+      std::is_same_v<T, Bytes> || std::is_same_v<T, View<Bytes>> ||
+      std::is_same_v<T, std::string> || std::is_same_v<T, std::string_view> || false
     ) return true;
     if constexpr (isVectorV<T>) return true;
+    if constexpr(isArrayV<T>) return true;
     if constexpr (isTupleOfDynamicTypes<T>::value) return true;
     return false;
   }
@@ -120,6 +143,14 @@ namespace ABI {
    * @tparam T Any type.
    */
   template<typename T> struct isTupleOfDynamicTypes<std::vector<T>> {
+    static constexpr bool value = isTupleOfDynamicTypes<T>::value; ///< For every type in T, check if it is dynamic. If it is, return true.
+  };
+
+  /**
+   * Check if a std::array contain a tuple of dynamic types.
+   * @tparam T Any type.
+   */
+  template<typename T, size_t N> struct isTupleOfDynamicTypes<std::array<T, N>> {
     static constexpr bool value = isTupleOfDynamicTypes<T>::value; ///< For every type in T, check if it is dynamic. If it is, return true.
   };
 
@@ -247,9 +278,13 @@ namespace ABI {
     template<> struct TypeName<bool> { static std::string get() { return "bool"; }};
     template<> struct TypeName<Bytes> { static std::string get() { return "bytes"; }};
     template<> struct TypeName<std::string> { static std::string get() { return "string"; }};
+    template<> struct TypeName<Hash> { static std::string get() { return "bytes32"; }};
+
+    template<size_t N> struct TypeName<FixedBytes<N>> { static std::string get() { return "bytes" + std::to_string(N); } };
+
     /// Enum types are encoded as uint8_t
     template<typename T>
-    struct TypeName<T, std::enable_if_t<std::is_enum_v<T>>> {
+    requires std::is_enum_v<T> struct TypeName<T> {
       static std::string get() {
         return TypeName<uint8_t>::get();
       }
@@ -291,6 +326,15 @@ namespace ABI {
      * @tparam T The vector type.
      */
     template<typename T> struct TypeName<std::vector<T>> {
+      /// Get the type name.
+      static std::string get() { return TypeName<T>::get() + "[]"; }
+    };
+
+    /**
+     * TypeName specialization for std::array.
+     * @tparam T The vector type.
+     */
+    template<typename T, size_t N> struct TypeName<std::array<T, N>> {
       /// Get the type name.
       static std::string get() { return TypeName<T>::get() + "[]"; }
     };
@@ -365,8 +409,11 @@ namespace ABI {
      * @param funcSig The function signature (name).
      */
     template <typename... Args> static Functor encode(const std::string& funcSig) {
+      Functor ret;
       std::string fullSig = funcSig + "(" + listArgumentTypes<Args...>() + ")";
-      return Utils::sha3(Utils::create_view_span(fullSig)).view_const(0, 4);
+      auto hash = Utils::sha3(Utils::create_view_span(fullSig));
+      ret.value = UintConv::bytesToUint32(hash.view(0,4));
+      return ret;
     }
   }; // namespace FunctorEncoder
 
@@ -391,101 +438,133 @@ namespace ABI {
     template<typename T, typename Enable = void>
     struct TypeEncoder {
       static Bytes encode(const T&) {
-        static_assert(always_false<T>, "TypeName specialization for this type is not defined");
+        static_assert(std::is_same_v<T, void>, "TypeName specialization for this type is not defined");
         return Bytes();
       }
     };
 
-    /// Specialization for default solidity types
-    template <> struct TypeEncoder<Address> { static Bytes encode(const Address& add) { return Utils::padLeftBytes(add.get(), 32); }};
-    template <> struct TypeEncoder<bool> { static Bytes encode(const bool& b) { return Utils::padLeftBytes((b ? Bytes{0x01} : Bytes{0x00}), 32); }};
+    // Specialization for default solidity types
+    template <> struct TypeEncoder<Address> { static Bytes encode(const Address& add) { return StrConv::padLeftBytes(add, 32); }};
+    template <> struct TypeEncoder<bool> { static Bytes encode(const bool& b) { return StrConv::padLeftBytes((b ? Bytes{0x01} : Bytes{0x00}), 32); }};
+    template <> struct TypeEncoder<Hash> { static Bytes encode(const Hash& hash) { return hash.asBytes(); }; };
     template <> struct TypeEncoder<Bytes> {
       static Bytes encode(const Bytes& bytes) {
         int pad = 0;
         do { pad += 32; } while (pad < bytes.size());
-        Bytes len = Utils::padLeftBytes(Utils::uintToBytes(bytes.size()), 32);
-        Bytes data = Utils::padRightBytes(bytes, pad);
-        len.reserve(len.size() + data.size());
-        len.insert(len.end(), std::make_move_iterator(data.begin()), std::make_move_iterator(data.end()));
-        return len;
-      }
-    };
-    template <> struct TypeEncoder<std::string> {
-      static Bytes encode(const std::string& str) {
-        BytesArrView bytes = Utils::create_view_span(str);
-        int pad = 0;
-        do { pad += 32; } while (pad < bytes.size());
-        Bytes len = Utils::padLeftBytes(Utils::uintToBytes(bytes.size()), 32);
-        Bytes data = Utils::padRightBytes(bytes, pad);
+        Bytes len = StrConv::padLeftBytes(Utils::uintToBytes(bytes.size()), 32);
+        Bytes data = StrConv::padRightBytes(bytes, pad);
         len.reserve(len.size() + data.size());
         len.insert(len.end(), std::make_move_iterator(data.begin()), std::make_move_iterator(data.end()));
         return len;
       }
     };
 
-    /// Specializations for int types (int8_t, int16_t, int24_t, ..., int256_t)
-    /// Takes advantage of std::enable_if_t to check if the type is a or int.
+    template <size_t N> struct TypeEncoder<FixedBytes<N>> {
+      static_assert(N <= 32);
+
+      static Bytes encode(const FixedBytes<N>& bytes) {
+        Bytes result(32);
+        std::ranges::copy(bytes, result.begin());
+        return result;
+      }
+    };
+
+    template <> struct TypeEncoder<std::string> {
+      static Bytes encode(const std::string& str) {
+        View<Bytes> bytes = Utils::create_view_span(str);
+        int pad = 0;
+        do { pad += 32; } while (pad < bytes.size());
+        Bytes len = StrConv::padLeftBytes(Utils::uintToBytes(bytes.size()), 32);
+        Bytes data = StrConv::padRightBytes(bytes, pad);
+        len.reserve(len.size() + data.size());
+        len.insert(len.end(), std::make_move_iterator(data.begin()), std::make_move_iterator(data.end()));
+        return len;
+      }
+    };
+
+    template <> struct TypeEncoder<std::string_view> {
+      static Bytes encode(std::string_view str) {
+        View<Bytes> bytes = Utils::create_view_span(str);
+        int pad = 0;
+        do { pad += 32; } while (pad < bytes.size());
+        Bytes len = StrConv::padLeftBytes(Utils::uintToBytes(bytes.size()), 32);
+        Bytes data = StrConv::padRightBytes(bytes, pad);
+        len.reserve(len.size() + data.size());
+        len.insert(len.end(), std::make_move_iterator(data.begin()), std::make_move_iterator(data.end()));
+        return len;
+      }
+    };
+
+    // Specializations for int types (int8_t, int16_t, int24_t, ..., int256_t)
+    // Takes advantage of requires to check if the type is a or int.
     template<typename T>
-    struct TypeEncoder<T, std::enable_if_t<std::is_same_v<T, int8_t> || std::is_same_v<T, int16_t> || std::is_same_v<T, int24_t> ||
-        std::is_same_v<T, int32_t> || std::is_same_v<T, int40_t> || std::is_same_v<T, int48_t> ||
-        std::is_same_v<T, int56_t> || std::is_same_v<T, int64_t> || std::is_same_v<T, int72_t> ||
-        std::is_same_v<T, int80_t> || std::is_same_v<T, int88_t> || std::is_same_v<T, int96_t> ||
-        std::is_same_v<T, int104_t> || std::is_same_v<T, int112_t> || std::is_same_v<T, int120_t> ||
-        std::is_same_v<T, int128_t> || std::is_same_v<T, int136_t> || std::is_same_v<T, int144_t> ||
-        std::is_same_v<T, int152_t> || std::is_same_v<T, int160_t> || std::is_same_v<T, int168_t> ||
-        std::is_same_v<T, int176_t> || std::is_same_v<T, int184_t> || std::is_same_v<T, int192_t> ||
-        std::is_same_v<T, int200_t> || std::is_same_v<T, int208_t> || std::is_same_v<T, int216_t> ||
-        std::is_same_v<T, int224_t> || std::is_same_v<T, int232_t> || std::is_same_v<T, int240_t> ||
-        std::is_same_v<T, int248_t> || std::is_same_v<T, int256_t>>> {
+    requires std::is_same_v<T, int8_t> || std::is_same_v<T, int16_t> || std::is_same_v<T, int24_t> ||
+      std::is_same_v<T, int32_t> || std::is_same_v<T, int40_t> || std::is_same_v<T, int48_t> ||
+      std::is_same_v<T, int56_t> || std::is_same_v<T, int64_t> || std::is_same_v<T, int72_t> ||
+      std::is_same_v<T, int80_t> || std::is_same_v<T, int88_t> || std::is_same_v<T, int96_t> ||
+      std::is_same_v<T, int104_t> || std::is_same_v<T, int112_t> || std::is_same_v<T, int120_t> ||
+      std::is_same_v<T, int128_t> || std::is_same_v<T, int136_t> || std::is_same_v<T, int144_t> ||
+      std::is_same_v<T, int152_t> || std::is_same_v<T, int160_t> || std::is_same_v<T, int168_t> ||
+      std::is_same_v<T, int176_t> || std::is_same_v<T, int184_t> || std::is_same_v<T, int192_t> ||
+      std::is_same_v<T, int200_t> || std::is_same_v<T, int208_t> || std::is_same_v<T, int216_t> ||
+      std::is_same_v<T, int224_t> || std::is_same_v<T, int232_t> || std::is_same_v<T, int240_t> ||
+      std::is_same_v<T, int248_t> || std::is_same_v<T, int256_t>
+    struct TypeEncoder<T> {
       static Bytes encode(const T& i) {
         return encodeInt(i);
       }
     };
 
-    /// Specialization for uint types (uint8_t, uint16_t, uint24_t, ..., uint256_t)
-    /// Takes advantage of std::enable_if_t to check if the type is a or uint.
+    // Specialization for uint types (uint8_t, uint16_t, uint24_t, ..., uint256_t)
+    // Takes advantage of requires to check if the type is a or uint.
     template<typename T>
-    struct TypeEncoder<T, std::enable_if_t<std::is_same_v<T, uint8_t> || std::is_same_v<T, uint16_t> || std::is_same_v<T, uint24_t> ||
-        std::is_same_v<T, uint32_t> || std::is_same_v<T, uint40_t> || std::is_same_v<T, uint48_t> ||
-        std::is_same_v<T, uint56_t> || std::is_same_v<T, uint64_t> || std::is_same_v<T, uint72_t> ||
-        std::is_same_v<T, uint80_t> || std::is_same_v<T, uint88_t> || std::is_same_v<T, uint96_t> ||
-        std::is_same_v<T, uint104_t> || std::is_same_v<T, uint112_t> || std::is_same_v<T, uint120_t> ||
-        std::is_same_v<T, uint128_t> || std::is_same_v<T, uint136_t> || std::is_same_v<T, uint144_t> ||
-        std::is_same_v<T, uint152_t> || std::is_same_v<T, uint160_t> || std::is_same_v<T, uint168_t> ||
-        std::is_same_v<T, uint176_t> || std::is_same_v<T, uint184_t> || std::is_same_v<T, uint192_t> ||
-        std::is_same_v<T, uint200_t> || std::is_same_v<T, uint208_t> || std::is_same_v<T, uint216_t> ||
-        std::is_same_v<T, uint224_t> || std::is_same_v<T, uint232_t> || std::is_same_v<T, uint240_t> ||
-        std::is_same_v<T, uint248_t> || std::is_same_v<T, uint256_t>>> {
+    requires std::is_same_v<T, uint8_t> || std::is_same_v<T, uint16_t> || std::is_same_v<T, uint24_t> ||
+      std::is_same_v<T, uint32_t> || std::is_same_v<T, uint40_t> || std::is_same_v<T, uint48_t> ||
+      std::is_same_v<T, uint56_t> || std::is_same_v<T, uint64_t> || std::is_same_v<T, uint72_t> ||
+      std::is_same_v<T, uint80_t> || std::is_same_v<T, uint88_t> || std::is_same_v<T, uint96_t> ||
+      std::is_same_v<T, uint104_t> || std::is_same_v<T, uint112_t> || std::is_same_v<T, uint120_t> ||
+      std::is_same_v<T, uint128_t> || std::is_same_v<T, uint136_t> || std::is_same_v<T, uint144_t> ||
+      std::is_same_v<T, uint152_t> || std::is_same_v<T, uint160_t> || std::is_same_v<T, uint168_t> ||
+      std::is_same_v<T, uint176_t> || std::is_same_v<T, uint184_t> || std::is_same_v<T, uint192_t> ||
+      std::is_same_v<T, uint200_t> || std::is_same_v<T, uint208_t> || std::is_same_v<T, uint216_t> ||
+      std::is_same_v<T, uint224_t> || std::is_same_v<T, uint232_t> || std::is_same_v<T, uint240_t> ||
+      std::is_same_v<T, uint248_t> || std::is_same_v<T, uint256_t>
+    struct TypeEncoder<T> {
       static Bytes encode(const T& i) {
         return encodeUint(i);
       }
     };
 
-    /// Specialization for enum types
+    // Specialization for enum types
     template <typename T>
-    struct TypeEncoder<T, std::enable_if_t<std::is_enum_v<T>>> {
+    requires std::is_enum_v<T>
+    struct TypeEncoder<T> {
       static Bytes encode(const T& i) {
         return encodeUint(static_cast<uint8_t>(i));
       }
     };
 
-    /// Forward declaration of TypeEncode<std::vector<T>> so TypeEncoder<std::tuple<Ts...>> can see it.
+    // Forward declaration of TypeEncode<std::vector<T>> so TypeEncoder<std::tuple<Ts...>> can see it.
     template <typename T> struct TypeEncoder<std::vector<T>> {
       static Bytes encode(const std::vector<T>& v);
     };
 
-    /// Specialization for std::tuple<T>
+    // Forward declaration of TypeEncode<std::array<T>> so TypeEncoder<std::tuple<Ts...>> can see it.
+    template <typename T, size_t N> struct TypeEncoder<std::array<T, N>> {
+      static Bytes encode(const std::array<T, N>& v);
+    };
+
+    // Specialization for std::tuple<T>
     template <typename... Ts> struct TypeEncoder<std::tuple<Ts...>> {
       static Bytes encode(const std::tuple<Ts...>& t) {
         Bytes result;
         Bytes dynamicBytes;
         uint64_t nextOffset = calculateTotalOffset<Ts...>();
-        std::apply([&](const auto&... args) {
-          auto encodeItem = [&](auto&& item) {
-            using ItemType = std::decay_t<decltype(item)>;
+        std::apply([&result, &dynamicBytes, &nextOffset](const auto&... args) {
+          auto encodeItem = [&]<typename ItemType>(const ItemType& item) {
             if (isDynamic<ItemType>()) {
               Bytes packed = TypeEncoder<ItemType>::encode(item);
-              append(result, Utils::padLeftBytes(Utils::uintToBytes(nextOffset), 32));
+              append(result, StrConv::padLeftBytes(Utils::uintToBytes(nextOffset), 32));
               nextOffset += packed.size();
               dynamicBytes.insert(dynamicBytes.end(), packed.begin(), packed.end());
             } else {
@@ -499,7 +578,16 @@ namespace ABI {
       }
     };
 
-    /// Specialization for std::vector<T>
+    // Specialization for std::pair<T, U>
+    template<typename T, typename U>
+    struct TypeEncoder<std::pair<T, U>> {
+      static Bytes encode(const std::pair<T, U>& p) {
+        using Tuple = std::tuple<const T&, const U&>;
+        return TypeEncoder<Tuple>::encode(Tuple(p.first, p.second));
+      }
+    };
+
+    // Specialization for std::vector<T>
     template <typename T>
     Bytes TypeEncoder<std::vector<T>>::encode(const std::vector<T>& v) {
       Bytes result;
@@ -511,26 +599,58 @@ namespace ABI {
 
         // Encode each item within the vector
         for (const auto& t : v) {
-          append(dynamicOffSets, Utils::uint256ToBytes(nextOffset));
+          append(dynamicOffSets, UintConv::uint256ToBytes(nextOffset));
           Bytes dynamicBytes = TypeEncoder<T>::encode(t);  // We're calling the encode function specialized for the T type.
           nextOffset += dynamicBytes.size();
           dynamicData.insert(dynamicData.end(), dynamicBytes.begin(), dynamicBytes.end());
         }
 
         // Add the array length, dynamic offsets and dynamic data
-        append(result, Utils::padLeftBytes(Utils::uintToBytes(v.size()), 32));
+        append(result, StrConv::padLeftBytes(Utils::uintToBytes(v.size()), 32));
         append(result, dynamicOffSets);
         result.insert(result.end(), dynamicData.begin(), dynamicData.end());
         return result;
       } else {
         // Add array length and append
-        append(result, Utils::padLeftBytes(Utils::uintToBytes(v.size()), 32));
+        append(result, StrConv::padLeftBytes(Utils::uintToBytes(v.size()), 32));
+        for (const auto& t : v) append(result, TypeEncoder<T>::encode(t));
+        return result;
+      }
+    };
+
+    // Specialization for std::array<T, N>
+    template <typename T, size_t N>
+    Bytes TypeEncoder<std::array<T, N>>::encode(const std::array<T, N>& v) {
+      Bytes result;
+      uint64_t nextOffset = 32 * v.size();  // First 32 bytes are the length of the dynamic array
+      if constexpr (isDynamic<T>()) {
+        // If the array is dynamic, we need to account the offsets of each tuple
+        Bytes dynamicData;
+        Bytes dynamicOffSets;
+
+        // Encode each item within the array
+        for (const auto& t : v) {
+          append(dynamicOffSets, UintConv::uint256ToBytes(nextOffset));
+          Bytes dynamicBytes = TypeEncoder<T>::encode(t);  // We're calling the encode function specialized for the T type.
+          nextOffset += dynamicBytes.size();
+          dynamicData.insert(dynamicData.end(), dynamicBytes.begin(), dynamicBytes.end());
+        }
+
+        // Add the array length, dynamic offsets and dynamic data
+        append(result, StrConv::padLeftBytes(Utils::uintToBytes(v.size()), 32));
+        append(result, dynamicOffSets);
+        result.insert(result.end(), dynamicData.begin(), dynamicData.end());
+        return result;
+      } else {
+        // Add array length and append
+        append(result, StrConv::padLeftBytes(Utils::uintToBytes(v.size()), 32));
         for (const auto& t : v) append(result, TypeEncoder<T>::encode(t));
         return result;
       }
     };
 
     ///@endcond
+
     /**
      * The main encode function. Use this one.
      * @tparam T Any supported ABI type (first one).
@@ -543,11 +663,10 @@ namespace ABI {
       Bytes result;
       uint64_t nextOffset = calculateTotalOffset<T, Ts...>();
       Bytes dynamicBytes;
-      auto encodeItem = [&](auto&& item) {
-        using ItemType = std::decay_t<decltype(item)>;
+      auto encodeItem = [&]<typename ItemType>(const ItemType& item) {
         if constexpr (isDynamic<ItemType>()) {
           Bytes packed = TypeEncoder<ItemType>::encode(item);
-          append(result, Utils::padLeftBytes(Utils::uintToBytes(nextOffset), 32));
+          append(result, StrConv::padLeftBytes(Utils::uintToBytes(nextOffset), 32));
           nextOffset += packed.size();
           dynamicBytes.insert(dynamicBytes.end(), packed.begin(), packed.end());
         } else append(result, TypeEncoder<ItemType>::encode(item));
@@ -557,6 +676,14 @@ namespace ABI {
       result.insert(result.end(), dynamicBytes.begin(), dynamicBytes.end());
       return result;
     }
+
+    // Template overload for empty tuples or no arguments
+    template <typename... Ts>
+    requires (sizeof...(Ts) == 0)
+    Bytes encodeData(const std::tuple<Ts...>& tup) {
+      return {};
+    }
+    Bytes encodeError(std::string_view reason);
   }; // namespace Encoder
 
   /**
@@ -578,89 +705,93 @@ namespace ABI {
     template<typename T, typename Enable = void>
     struct TypeEncoder {
       static Bytes encode(const T&) {
-        static_assert(always_false<T>, "TypeName specialization for this type is not defined");
+        static_assert(std::is_same_v<T, void>, "TypeName specialization for this type is not defined");
         return Bytes();
       }
     };
 
-    /// Specialization for default solidity types
+    // Specialization for default solidity types
     template <> struct TypeEncoder<Address> { static Bytes encode(const Address& add) { return Encoder::TypeEncoder<Address>::encode(add); }};
     template <> struct TypeEncoder<bool> { static Bytes encode(const bool& b) { return Encoder::TypeEncoder<bool>::encode(b); }};
     template <> struct TypeEncoder<Bytes> {
       static Bytes encode(const Bytes& bytes) {
-        /// Almost the same as ABI::Encoder::encode, but without the padding.
+        // Almost the same as ABI::Encoder::encode, but without the padding.
         int pad = 0;
         do { pad += 32; } while (pad < bytes.size());
-        return Utils::padRightBytes(bytes, pad);
+        return StrConv::padRightBytes(bytes, pad);
       }
     };
 
     template <> struct TypeEncoder<std::string> {
       static Bytes encode(const std::string& str) {
-        BytesArrView bytes = Utils::create_view_span(str);
+        View<Bytes> bytes = Utils::create_view_span(str);
         int pad = 0;
         do { pad += 32; } while (pad < bytes.size());
-        return Utils::padRightBytes(bytes, pad);
+        return StrConv::padRightBytes(bytes, pad);
       }
     };
 
-    /// Specializations for int types (int8_t, int16_t, int24_t, ..., int256_t)
-    /// Takes advantage of std::enable_if_t to check if the type is a or int.
+    // Specializations for int types (int8_t, int16_t, int24_t, ..., int256_t)
+    // Takes advantage of requires to check if the type is a or int.
     template<typename T>
-    struct TypeEncoder<T, std::enable_if_t<std::is_same_v<T, int8_t> || std::is_same_v<T, int16_t> || std::is_same_v<T, int24_t> ||
-        std::is_same_v<T, int32_t> || std::is_same_v<T, int40_t> || std::is_same_v<T, int48_t> ||
-        std::is_same_v<T, int56_t> || std::is_same_v<T, int64_t> || std::is_same_v<T, int72_t> ||
-        std::is_same_v<T, int80_t> || std::is_same_v<T, int88_t> || std::is_same_v<T, int96_t> ||
-        std::is_same_v<T, int104_t> || std::is_same_v<T, int112_t> || std::is_same_v<T, int120_t> ||
-        std::is_same_v<T, int128_t> || std::is_same_v<T, int136_t> || std::is_same_v<T, int144_t> ||
-        std::is_same_v<T, int152_t> || std::is_same_v<T, int160_t> || std::is_same_v<T, int168_t> ||
-        std::is_same_v<T, int176_t> || std::is_same_v<T, int184_t> || std::is_same_v<T, int192_t> ||
-        std::is_same_v<T, int200_t> || std::is_same_v<T, int208_t> || std::is_same_v<T, int216_t> ||
-        std::is_same_v<T, int224_t> || std::is_same_v<T, int232_t> || std::is_same_v<T, int240_t> ||
-        std::is_same_v<T, int248_t> || std::is_same_v<T, int256_t>>> {
+    requires std::is_same_v<T, int8_t> || std::is_same_v<T, int16_t> || std::is_same_v<T, int24_t> ||
+      std::is_same_v<T, int32_t> || std::is_same_v<T, int40_t> || std::is_same_v<T, int48_t> ||
+      std::is_same_v<T, int56_t> || std::is_same_v<T, int64_t> || std::is_same_v<T, int72_t> ||
+      std::is_same_v<T, int80_t> || std::is_same_v<T, int88_t> || std::is_same_v<T, int96_t> ||
+      std::is_same_v<T, int104_t> || std::is_same_v<T, int112_t> || std::is_same_v<T, int120_t> ||
+      std::is_same_v<T, int128_t> || std::is_same_v<T, int136_t> || std::is_same_v<T, int144_t> ||
+      std::is_same_v<T, int152_t> || std::is_same_v<T, int160_t> || std::is_same_v<T, int168_t> ||
+      std::is_same_v<T, int176_t> || std::is_same_v<T, int184_t> || std::is_same_v<T, int192_t> ||
+      std::is_same_v<T, int200_t> || std::is_same_v<T, int208_t> || std::is_same_v<T, int216_t> ||
+      std::is_same_v<T, int224_t> || std::is_same_v<T, int232_t> || std::is_same_v<T, int240_t> ||
+      std::is_same_v<T, int248_t> || std::is_same_v<T, int256_t>
+    struct TypeEncoder<T> {
       static Bytes encode(const T& i) {
         return ABI::Encoder::encodeInt(i);
       }
     };
 
-    /// Specialization for uint types (uint8_t, uint16_t, uint24_t, ..., uint256_t)
-    /// Takes advantage of std::enable_if_t to check if the type is a or uint.
+    // Specialization for uint types (uint8_t, uint16_t, uint24_t, ..., uint256_t)
+    // Takes advantage of requires to check if the type is a or uint.
     template<typename T>
-    struct TypeEncoder<T, std::enable_if_t<std::is_same_v<T, uint8_t> || std::is_same_v<T, uint16_t> || std::is_same_v<T, uint24_t> ||
-        std::is_same_v<T, uint32_t> || std::is_same_v<T, uint40_t> || std::is_same_v<T, uint48_t> ||
-        std::is_same_v<T, uint56_t> || std::is_same_v<T, uint64_t> || std::is_same_v<T, uint72_t> ||
-        std::is_same_v<T, uint80_t> || std::is_same_v<T, uint88_t> || std::is_same_v<T, uint96_t> ||
-        std::is_same_v<T, uint104_t> || std::is_same_v<T, uint112_t> || std::is_same_v<T, uint120_t> ||
-        std::is_same_v<T, uint128_t> || std::is_same_v<T, uint136_t> || std::is_same_v<T, uint144_t> ||
-        std::is_same_v<T, uint152_t> || std::is_same_v<T, uint160_t> || std::is_same_v<T, uint168_t> ||
-        std::is_same_v<T, uint176_t> || std::is_same_v<T, uint184_t> || std::is_same_v<T, uint192_t> ||
-        std::is_same_v<T, uint200_t> || std::is_same_v<T, uint208_t> || std::is_same_v<T, uint216_t> ||
-        std::is_same_v<T, uint224_t> || std::is_same_v<T, uint232_t> || std::is_same_v<T, uint240_t> ||
-        std::is_same_v<T, uint248_t> || std::is_same_v<T, uint256_t>>> {
+    requires std::is_same_v<T, uint8_t> || std::is_same_v<T, uint16_t> || std::is_same_v<T, uint24_t> ||
+      std::is_same_v<T, uint32_t> || std::is_same_v<T, uint40_t> || std::is_same_v<T, uint48_t> ||
+      std::is_same_v<T, uint56_t> || std::is_same_v<T, uint64_t> || std::is_same_v<T, uint72_t> ||
+      std::is_same_v<T, uint80_t> || std::is_same_v<T, uint88_t> || std::is_same_v<T, uint96_t> ||
+      std::is_same_v<T, uint104_t> || std::is_same_v<T, uint112_t> || std::is_same_v<T, uint120_t> ||
+      std::is_same_v<T, uint128_t> || std::is_same_v<T, uint136_t> || std::is_same_v<T, uint144_t> ||
+      std::is_same_v<T, uint152_t> || std::is_same_v<T, uint160_t> || std::is_same_v<T, uint168_t> ||
+      std::is_same_v<T, uint176_t> || std::is_same_v<T, uint184_t> || std::is_same_v<T, uint192_t> ||
+      std::is_same_v<T, uint200_t> || std::is_same_v<T, uint208_t> || std::is_same_v<T, uint216_t> ||
+      std::is_same_v<T, uint224_t> || std::is_same_v<T, uint232_t> || std::is_same_v<T, uint240_t> ||
+      std::is_same_v<T, uint248_t> || std::is_same_v<T, uint256_t>
+    struct TypeEncoder<T> {
       static Bytes encode(const T& i) {
         return ABI::Encoder::encodeUint(i);
       }
     };
 
-    /// Specialization for enum types
-    template <typename T> struct TypeEncoder<T, std::enable_if_t<std::is_enum_v<T>>> {
-      static Bytes encode(const T& i) {
-        return ABI::Encoder::encodeUint(static_cast<uint8_t>(i));
-      }
+    // Specialization for enum types
+    template <typename T> requires std::is_enum_v<T> struct TypeEncoder<T> {
+      static Bytes encode(const T& i) { return ABI::Encoder::encodeUint(static_cast<uint8_t>(i)); }
     };
 
-    /// Forward declaration of TypeEncode<std::vector<T>> so TypeEncoder<std::tuple<Ts...>> can see it.
+    // Forward declaration of TypeEncode<std::vector<T>> so TypeEncoder<std::tuple<Ts...>> can see it.
     template <typename T> struct TypeEncoder<std::vector<T>> {
       static Bytes encode(const std::vector<T>& v);
+    };
+
+    // Forward declaration of TypeEncode<std::array<T, N>> so TypeEncoder<std::tuple<Ts...>> can see it.
+    template <typename T, size_t N> struct TypeEncoder<std::array<T, N>> {
+      static Bytes encode(const std::array<T,N>& v);
     };
 
     /// Specialization for std::tuple<T>
     template <typename... Ts> struct TypeEncoder<std::tuple<Ts...>> {
       static Bytes encode(const std::tuple<Ts...>& t) {
         Bytes result;
-        std::apply([&](const auto&... args) {
-          auto encodeItem = [&](auto&& item) {
-            using ItemType = std::decay_t<decltype(item)>;
+        std::apply([&result](const auto&... args) {
+          auto encodeItem = [&]<typename ItemType>(const ItemType& item) {
             append(result, TypeEncoder<ItemType>::encode(item));
           };
           (encodeItem(args), ...);
@@ -669,15 +800,19 @@ namespace ABI {
       }
     };
 
-    /// Specialization for std::vector<T>
-    template <typename T>
-    Bytes TypeEncoder<std::vector<T>>::encode(const std::vector<T>& v) {
+    // Specialization for std::vector<T>
+    template <typename T> Bytes TypeEncoder<std::vector<T>>::encode(const std::vector<T>& v) {
       Bytes result;
-      for (const T& item : v) {
-        append(result, TypeEncoder<T>::encode(item));
-      }
+      for (const T& item : v) append(result, TypeEncoder<T>::encode(item));
       return result;
     };
+    // Specialization for std::array<T,N>
+    template <typename T, size_t N> Bytes TypeEncoder<std::array<T,N>>::encode(const std::array<T,N>& v) {
+      Bytes result;
+      for (const T& item : v) append(result, TypeEncoder<T>::encode(item));
+      return result;
+    };
+
     ///@endcond
 
     /**
@@ -694,10 +829,10 @@ namespace ABI {
         return Utils::sha3(Utils::create_view_span(item));
       }
       Bytes result = TypeEncoder<T>::encode(item);
-      if constexpr (isTuple<T>::value || isVector<T>::value) {
+      if constexpr (isTuple<T>::value || isVector<T>::value || isArray<T>::value) {
         return Utils::sha3(result); // If it is a dynamic type, hash the encoded result.
       }
-      return result;
+      return Hash(result);
     }
 
     /// Similar to ABI::Encoder::Encode, but instead takes std::tuple<EventParam...> as input.
@@ -706,18 +841,17 @@ namespace ABI {
       Bytes result;
       uint64_t nextOffset = calculateTotalOffset<Args...>();
       Bytes dynamicBytes;
-      auto encodeItem = [&](auto&& item) {
-        using EventParamType = std::decay_t<decltype(item)>;
+      auto encodeItem = [&]<typename EventParamType>(const EventParamType& item) {
         if constexpr (EventParamType::isIndexed) return;
         using ItemType = std::decay_t<decltype(item.value)>;
         if constexpr (isDynamic<ItemType>()) {
           Bytes packed = ABI::Encoder::TypeEncoder<ItemType>::encode(item.value);
-          append(result, Utils::padLeftBytes(Utils::uintToBytes(nextOffset), 32));
+          append(result, StrConv::padLeftBytes(Utils::uintToBytes(nextOffset), 32));
           nextOffset += packed.size();
           dynamicBytes.insert(dynamicBytes.end(), packed.begin(), packed.end());
         } else append(result, ABI::Encoder::TypeEncoder<ItemType>::encode(item.value));
       };
-      std::apply([&](const auto&... args) {
+      std::apply([&encodeItem](const auto&... args) {
         (encodeItem(args), ...);
       }, params);
 
@@ -736,7 +870,7 @@ namespace ABI {
      * @return The decoded data.
      * @throw std::length_error if data is too short for the type.
      */
-    uint256_t decodeUint(const BytesArrView& bytes, uint64_t& index);
+    uint256_t decodeUint(const View<Bytes>& bytes, uint64_t& index);
 
     /**
      * Decode an int256.
@@ -745,21 +879,20 @@ namespace ABI {
      * @return The decoded data.
      * @throw std::length_error if data is too short for the type.
      */
-    int256_t decodeInt(const BytesArrView& bytes, uint64_t& index);
+    int256_t decodeInt(const View<Bytes>& bytes, uint64_t& index);
 
     /// @cond
-    /// General template for bytes to type decoding
-    template<typename T, typename Enable = void>
-    struct TypeDecoder {
-      static T decode(const BytesArrView&, const uint64_t&) {
+    // General template for bytes to type decoding
+    template<typename T, typename Enable = void> struct TypeDecoder {
+      static T decode(const View<Bytes>&, const uint64_t&) {
         static_assert(always_false<T>, "TypeName specialization for this type is not defined");
         return T();
       }
     };
 
-    /// Specialization for default solidity types
+    // Specialization for default solidity types
     template <> struct TypeDecoder<Address> {
-      static Address decode(const BytesArrView& bytes, uint64_t& index) {
+      static Address decode(const View<Bytes>& bytes, uint64_t& index) {
         if (index + 32 > bytes.size()) throw std::length_error("Data too short for address");
         auto result = Address(bytes.subspan(index + 12, 20));
         index += 32;
@@ -767,8 +900,17 @@ namespace ABI {
       }
     };
 
+    template <> struct TypeDecoder<Hash> {
+      static Hash decode(const View<Bytes>& bytes, uint64_t& index) {
+        if (index + 32 > bytes.size()) { throw std::length_error("Data too short for hash"); }
+        auto result = Hash(bytes.subspan(index, 32));
+        index += 32;
+        return result;
+      }
+    };
+
     template <> struct TypeDecoder<bool> {
-      static bool decode(const BytesArrView& bytes, uint64_t& index) {
+      static bool decode(const View<Bytes>& bytes, uint64_t& index) {
         if (index + 32 > bytes.size()) throw std::length_error("Data too short for bool");
         bool result = (bytes[index + 31] == 0x01);
         index += 32;
@@ -777,7 +919,7 @@ namespace ABI {
     };
 
     template <> struct TypeDecoder<Bytes> {
-      static Bytes decode(const BytesArrView& bytes, uint64_t& index) {
+      static Bytes decode(const View<Bytes>& bytes, uint64_t& index) {
         if (index + 32 > bytes.size()) throw std::length_error("Data too short for bytes");
         Bytes tmp(bytes.begin() + index, bytes.begin() + index + 32);
         uint64_t bytesStart = Utils::fromBigEndian<uint64_t>(tmp);
@@ -799,8 +941,21 @@ namespace ABI {
       }
     };
 
+    template<size_t N> struct TypeDecoder<FixedBytes<N>> {
+      static_assert(N <= 32);
+
+      static FixedBytes<N> decode(const View<Bytes>& bytes, uint64_t& index) {
+        if (index + 32 > bytes.size())
+          throw std::length_error("Data too short for bytes");
+
+        FixedBytes<N> result;
+        std::ranges::copy(bytes.subspan(index, N), result.begin());
+        return result;
+      }
+    };
+
     template <> struct TypeDecoder<std::string> {
-      static std::string decode(const BytesArrView& bytes, uint64_t& index) {
+      static std::string decode(const View<Bytes>& bytes, uint64_t& index) {
         if (index + 32 > bytes.size()) throw std::length_error("Data too short for string 1");
         std::string tmp(bytes.begin() + index, bytes.begin() + index + 32);
         uint64_t bytesStart = Utils::fromBigEndian<uint64_t>(tmp);
@@ -822,56 +977,61 @@ namespace ABI {
       }
     };
 
-    /// Specializations for int types (int8_t, int16_t, int24_t, ..., int256_t)
-    /// Takes advantage of std::enable_if_t to check if the type is a or int.
+    // Specializations for int types (int8_t, int16_t, int24_t, ..., int256_t)
+    // Takes advantage of requires to check if the type is a or int.
     template<typename T>
-    struct TypeDecoder<T, std::enable_if_t<std::is_same_v<T, int8_t> || std::is_same_v<T, int16_t> || std::is_same_v<T, int24_t> ||
-        std::is_same_v<T, int32_t> || std::is_same_v<T, int40_t> || std::is_same_v<T, int48_t> ||
-        std::is_same_v<T, int56_t> || std::is_same_v<T, int64_t> || std::is_same_v<T, int72_t> ||
-        std::is_same_v<T, int80_t> || std::is_same_v<T, int88_t> || std::is_same_v<T, int96_t> ||
-        std::is_same_v<T, int104_t> || std::is_same_v<T, int112_t> || std::is_same_v<T, int120_t> ||
-        std::is_same_v<T, int128_t> || std::is_same_v<T, int136_t> || std::is_same_v<T, int144_t> ||
-        std::is_same_v<T, int152_t> || std::is_same_v<T, int160_t> || std::is_same_v<T, int168_t> ||
-        std::is_same_v<T, int176_t> || std::is_same_v<T, int184_t> || std::is_same_v<T, int192_t> ||
-        std::is_same_v<T, int200_t> || std::is_same_v<T, int208_t> || std::is_same_v<T, int216_t> ||
-        std::is_same_v<T, int224_t> || std::is_same_v<T, int232_t> || std::is_same_v<T, int240_t> ||
-        std::is_same_v<T, int248_t> || std::is_same_v<T, int256_t>>> {
-      static T decode(const BytesArrView& bytes, uint64_t& index) {
+    requires std::is_same_v<T, int8_t> || std::is_same_v<T, int16_t> || std::is_same_v<T, int24_t> ||
+      std::is_same_v<T, int32_t> || std::is_same_v<T, int40_t> || std::is_same_v<T, int48_t> ||
+      std::is_same_v<T, int56_t> || std::is_same_v<T, int64_t> || std::is_same_v<T, int72_t> ||
+      std::is_same_v<T, int80_t> || std::is_same_v<T, int88_t> || std::is_same_v<T, int96_t> ||
+      std::is_same_v<T, int104_t> || std::is_same_v<T, int112_t> || std::is_same_v<T, int120_t> ||
+      std::is_same_v<T, int128_t> || std::is_same_v<T, int136_t> || std::is_same_v<T, int144_t> ||
+      std::is_same_v<T, int152_t> || std::is_same_v<T, int160_t> || std::is_same_v<T, int168_t> ||
+      std::is_same_v<T, int176_t> || std::is_same_v<T, int184_t> || std::is_same_v<T, int192_t> ||
+      std::is_same_v<T, int200_t> || std::is_same_v<T, int208_t> || std::is_same_v<T, int216_t> ||
+      std::is_same_v<T, int224_t> || std::is_same_v<T, int232_t> || std::is_same_v<T, int240_t> ||
+      std::is_same_v<T, int248_t> || std::is_same_v<T, int256_t>
+    struct TypeDecoder<T> {
+      static T decode(const View<Bytes>& bytes, uint64_t& index) {
         return static_cast<T>(decodeInt(bytes, index));
       }
     };
 
-    /// Specialization for uint types (uint8_t, uint16_t, uint24_t, ..., uint256_t)
-    /// Takes advantage of std::enable_if_t to check if the type is a or uint.
+    // Specialization for uint types (uint8_t, uint16_t, uint24_t, ..., uint256_t)
+    // Takes advantage of requires to check if the type is a or uint.
     template <typename T>
-    struct TypeDecoder<T, std::enable_if_t<std::is_same_v<T, uint8_t> || std::is_same_v<T, uint16_t> || std::is_same_v<T, uint24_t> ||
-        std::is_same_v<T, uint32_t> || std::is_same_v<T, uint40_t> || std::is_same_v<T, uint48_t> ||
-        std::is_same_v<T, uint56_t> || std::is_same_v<T, uint64_t> || std::is_same_v<T, uint72_t> ||
-        std::is_same_v<T, uint80_t> || std::is_same_v<T, uint88_t> || std::is_same_v<T, uint96_t> ||
-        std::is_same_v<T, uint104_t> || std::is_same_v<T, uint112_t> || std::is_same_v<T, uint120_t> ||
-        std::is_same_v<T, uint128_t> || std::is_same_v<T, uint136_t> || std::is_same_v<T, uint144_t> ||
-        std::is_same_v<T, uint152_t> || std::is_same_v<T, uint160_t> || std::is_same_v<T, uint168_t> ||
-        std::is_same_v<T, uint176_t> || std::is_same_v<T, uint184_t> || std::is_same_v<T, uint192_t> ||
-        std::is_same_v<T, uint200_t> || std::is_same_v<T, uint208_t> || std::is_same_v<T, uint216_t> ||
-        std::is_same_v<T, uint224_t> || std::is_same_v<T, uint232_t> || std::is_same_v<T, uint240_t> ||
-        std::is_same_v<T, uint248_t> || std::is_same_v<T, uint256_t>>> {
-        static T decode(const BytesArrView& bytes, uint64_t& index) {
+    requires std::is_same_v<T, uint8_t> || std::is_same_v<T, uint16_t> || std::is_same_v<T, uint24_t> ||
+      std::is_same_v<T, uint32_t> || std::is_same_v<T, uint40_t> || std::is_same_v<T, uint48_t> ||
+      std::is_same_v<T, uint56_t> || std::is_same_v<T, uint64_t> || std::is_same_v<T, uint72_t> ||
+      std::is_same_v<T, uint80_t> || std::is_same_v<T, uint88_t> || std::is_same_v<T, uint96_t> ||
+      std::is_same_v<T, uint104_t> || std::is_same_v<T, uint112_t> || std::is_same_v<T, uint120_t> ||
+      std::is_same_v<T, uint128_t> || std::is_same_v<T, uint136_t> || std::is_same_v<T, uint144_t> ||
+      std::is_same_v<T, uint152_t> || std::is_same_v<T, uint160_t> || std::is_same_v<T, uint168_t> ||
+      std::is_same_v<T, uint176_t> || std::is_same_v<T, uint184_t> || std::is_same_v<T, uint192_t> ||
+      std::is_same_v<T, uint200_t> || std::is_same_v<T, uint208_t> || std::is_same_v<T, uint216_t> ||
+      std::is_same_v<T, uint224_t> || std::is_same_v<T, uint232_t> || std::is_same_v<T, uint240_t> ||
+      std::is_same_v<T, uint248_t> || std::is_same_v<T, uint256_t>
+    struct TypeDecoder<T> {
+        static T decode(const View<Bytes>& bytes, uint64_t& index) {
           return static_cast<T>(decodeUint(bytes, index));
         }
     };
 
-    /// Specialization for enum types
-    template <typename T>
-    struct TypeDecoder<T, std::enable_if_t<std::is_enum_v<T>>> {
-      static T decode(const BytesArrView& bytes, uint64_t& index) {
+    // Specialization for enum types
+    template <typename T> requires std::is_enum_v<T> struct TypeDecoder<T> {
+      static T decode(const View<Bytes>& bytes, uint64_t& index) {
         return static_cast<T>(decodeUint(bytes, index));
       }
     };
 
-    /// Forward declaration of TypeDecode<std::vector<T>> so TypeDecoder<std::tuple<Ts...>> can see it.
-    template <typename T>
-    struct TypeDecoder<T, std::enable_if_t<isVectorV<T>>> {
-      static T decode(const BytesArrView& bytes, uint64_t& index);
+    // Forward declaration of TypeDecode<std::vector<T>> so TypeDecoder<std::tuple<Ts...>> can see it.
+    template <typename T> requires isVectorV<T> struct TypeDecoder<T> {
+      static T decode(const View<Bytes>& bytes, uint64_t& index);
+    };
+
+    // Forward declaration of TypeDecode<std::array<T,N>> so TypeDecoder<std::tuple<Ts...>> can see it.
+    template <typename T> requires isArrayV<T> struct TypeDecoder<T> {
+      static T decode(const View<Bytes>& bytes, uint64_t& index);
     };
 
     /**
@@ -883,8 +1043,7 @@ namespace ABI {
      * @param index The point on the encoded string to start decoding.
      * @param ret The tuple object to "return". Needs to be a reference and created outside the function due to recursion.
      */
-    template<typename TupleLike, size_t I = 0>
-    void decodeTuple(const BytesArrView& bytes, uint64_t& index, TupleLike& ret) {
+    template<typename TupleLike, size_t I = 0> void decodeTuple(const View<Bytes>& bytes, uint64_t& index, TupleLike& ret) {
       if constexpr (I < std::tuple_size_v<TupleLike>) {
         using SelectedType = typename std::tuple_element<I, TupleLike>::type;
         std::get<I>(ret) = TypeDecoder<SelectedType>::decode(bytes, index);
@@ -892,10 +1051,9 @@ namespace ABI {
       }
     }
 
-    /// Specialization for std::tuple<Ts...>
-    template <typename T>
-    struct TypeDecoder<T, std::enable_if_t<isTuple<T>::value>> {
-      static T decode(const BytesArrView& bytes, uint64_t& index) {
+    // Specialization for std::tuple<Ts...>
+    template <typename T> requires isTuple<T>::value struct TypeDecoder<T> {
+      static T decode(const View<Bytes>& bytes, uint64_t& index) {
         T ret;
         if constexpr (isTupleOfDynamicTypes<T>::value) {
           if (index + 32 > bytes.size()) throw std::length_error("Data too short for tuple of dynamic types");
@@ -913,12 +1071,11 @@ namespace ABI {
       }
     };
 
-
     /// Specialization for std::vector<T>
-    template <typename T>
-    T TypeDecoder<T, std::enable_if_t<isVectorV<T>>>::decode(const BytesArrView& bytes, uint64_t& index) {
+    template <typename T> requires isVectorV<T> T TypeDecoder<T>::decode(const View<Bytes>& bytes, uint64_t& index) {
       using ElementType = vectorElementTypeT<T>;
       std::vector<ElementType> retVector;
+
       // Get array offset
       if (index + 32 > bytes.size()) throw std::length_error("Data too short for vector");
       Bytes tmp(bytes.begin() + index, bytes.begin() + index + 32);
@@ -940,12 +1097,40 @@ namespace ABI {
       return retVector;
     };
 
+    /// Specialization for std::array<T,N>
+    template <typename T> requires isArrayV<T> T TypeDecoder<T>::decode(const View<Bytes>& bytes, uint64_t& index) {
+      using ElementType = arrayElementTypeT<T>;
+      // Get the size of the array
+      constexpr size_t argumentArrSize = std::tuple_size_v<T>;
+      std::array<ElementType, argumentArrSize> retArray;
+
+      // Get array offset
+      if (index + 32 > bytes.size()) throw std::length_error("Data too short for array");
+      Bytes tmp(bytes.begin() + index, bytes.begin() + index + 32);
+      uint64_t arrayStart = Utils::fromBigEndian<uint64_t>(tmp);
+      index += 32;
+
+      // Get array length
+      tmp.clear();
+      if (arrayStart + 32 > bytes.size()) throw std::length_error("Data too short for array");
+      tmp.insert(tmp.end(), bytes.begin() + arrayStart, bytes.begin() + arrayStart + 32);
+      uint64_t arrayLength = Utils::fromBigEndian<uint64_t>(tmp);
+
+      if (arrayLength != argumentArrSize) throw std::length_error("Array length does not match the expected size");
+      if (arrayStart + 32 > bytes.size()) throw std::length_error("Data too short for array");
+      uint64_t newIndex = 0;
+      auto view = bytes.subspan(arrayStart + 32);
+      for (uint64_t i = 0; i < arrayLength; i++) {
+        retArray[i] = TypeDecoder<ElementType>::decode(view, newIndex); // Hic sunt recursis
+      }
+      return retArray;
+    };
     ///@endcond
 
     /// Specialization of decodeTupleHelper() for when tuple index is the last one
     template<std::size_t Index = 0, typename... Args>
-    typename std::enable_if_t<Index == sizeof...(Args), void>
-    decodeTupleHelper(const BytesArrView&, const uint64_t&, std::tuple<Args...>&) {
+    requires (Index == sizeof...(Args))
+    void decodeTupleHelper(const View<Bytes>&, const uint64_t&, std::tuple<Args...>&) {
       // End of recursion, do nothing
     }
 
@@ -958,8 +1143,8 @@ namespace ABI {
      * @param tuple The tuple to hold the decoded values.
      */
     template<std::size_t Index = 0, typename... Args>
-    typename std::enable_if_t<Index < sizeof...(Args), void>
-    decodeTupleHelper(const BytesArrView& encodedData, uint64_t& index, std::tuple<Args...>& tuple) {
+    requires (Index < sizeof...(Args))
+    void decodeTupleHelper(const View<Bytes>& encodedData, uint64_t& index, std::tuple<Args...>& tuple) {
       // TODO: Technically, we could pass std::get<Index>(tuple) as a reference to decode<>().
       // But, it is worth to reduce code readability for a few nanoseconds? Need to benchmark.
       std::get<Index>(tuple) = TypeDecoder<std::tuple_element_t<Index, std::tuple<Args...>>>::decode(encodedData, index);
@@ -974,7 +1159,7 @@ namespace ABI {
      * @return A tuple with the decoded data, or an empty tuple if there's no arguments to decode.
      */
     template<typename... Args>
-    inline std::tuple<Args...> decodeData(const BytesArrView& encodedData, uint64_t index = 0) {
+    inline std::tuple<Args...> decodeData(const View<Bytes>& encodedData, uint64_t index = 0) {
       if constexpr (sizeof...(Args) == 0) {
         return std::tuple<>();
       } else {
@@ -984,15 +1169,21 @@ namespace ABI {
       }
     }
 
+    std::string decodeError(View<Bytes> data);
+
+    /// Specialization for tuples without args.
     template<typename T> struct decodeDataAsTuple {
-      static T decode(const BytesArrView&) {
+      /// Decode the tuple.
+      static T decode(const View<Bytes>&) {
         static_assert(always_false<T>, "Can't use decodeDataAsTuple with a non-tuple type");
         return T();
       }
     };
 
+    /// Specialization for tuples with args.
     template<typename... Args> struct decodeDataAsTuple<std::tuple<Args...>> {
-      static std::tuple<Args...> decode(const BytesArrView& encodedData) {
+      /// Decode the tuple.
+      static std::tuple<Args...> decode(const View<Bytes>& encodedData) {
         if constexpr (sizeof...(Args) == 0) {
           throw std::invalid_argument("Can't decode empty tuple");
         } else {

@@ -1,0 +1,8 @@
+add_subdirectory(bdkd)
+add_subdirectory(bdkd-tests)
+add_subdirectory(bdkd-discovery)
+add_subdirectory(networkdeployer)
+add_subdirectory(contractabigenerator)
+add_subdirectory(network-sim)
+add_subdirectory(faucet-api)
+add_subdirectory(btv-server)

@@ -1,13 +1,13 @@
-# orbitersdk
+# Blockchain Development Kit (BDK)
 
 </p>
 <p align="center">
-    <a href="https://github.com/SparqNet/orbitersdk-cpp/graphs/contributors" alt="Contributors">
-        <img src="https://img.shields.io/github/contributors/SparqNet/orbitersdk-cpp" /></a>
-    <a href="https://github.com/SparqNet/orbitersdk-cpp/pulse" alt="Activity">
-        <img src="https://img.shields.io/github/commit-activity/m/SparqNet/orbitersdk-cpp" /></a>
-    <a href="https://github.com/SparqNet/orbitersdk-cpp/actions/workflows/c-cpp.yml/badge.svg?branch=main">
-        <img src="https://github.com/SparqNet/orbitersdk-cpp/actions/workflows/c-cpp.yml/badge.svg?branch=main" alt="build status"></a>
+    <a href="https://github.com/AppLayer/bdk-cpp/graphs/contributors" alt="Contributors">
+        <img src="https://img.shields.io/github/contributors/AppLayer/bdk-cpp" /></a>
+    <a href="https://github.com/AppLayer/bdk-cpp/pulse" alt="Activity">
+        <img src="https://img.shields.io/github/commit-activity/m/AppLayer/bdk-cpp" /></a>
+    <a href="https://github.com/AppLayer/bdk-cpp/actions/workflows/c-cpp.yml/badge.svg?branch=main">
+        <img src="https://github.com/AppLayer/bdk-cpp/actions/workflows/c-cpp.yml/badge.svg?branch=main" alt="build status"></a>
     <a href="https://discord.com/channels/1072297918897340506/1085807995595788378">
         <img src="https://img.shields.io/discord/308323056592486420?logo=discord"
             alt="chat on Discord"></a>
@@ -20,7 +20,7 @@
             alt="chat on Telegram"></a>
 </p>
 
-Sparq subnet source code. [See the docs](https://github.com/SparqNet/sparq-docs) for a more thorough look at the project.
+AppLayer's BDK source code. [See the docs](https://docs.applayer.com) for a more thorough look at the project.
 
 If you are a developer, fill this form out for free support and additional incentives: https://forms.gle/m83ceG3XoJY3fpwU9
 
@@ -32,41 +32,70 @@ The project has a Dockerfile at the root of the repository that will build the p
   * [Docker for Windows](https://docs.docker.com/docker-for-windows/install/)
   * [Docker for Mac](https://docs.docker.com/docker-for-mac/install/)
   * [Docker for Linux](https://docs.docker.com/desktop/install/linux-install/)
-* Build the image locally with `docker build -t bdk-cpp-dev:latest ` (if using Linux or Mac, run as `sudo`)
+* Build the image locally with `docker build -t bdk-cpp-dev:latest .`
   * This will build the image and tag it as `bdk-cpp-dev:latest` - you can change the tag to whatever you want, but remember to change it on the next step
 * Run the container (you will be logged in as root):
-  * **For Linux/Mac**: `sudo docker run -it -v $(pwd):/orbitersdk-volume -p 8080-8099:8080-8099 -p 8110-8111:8110-8111 orbitersdk-cpp-dev:latest`
-  * **For Windows**: `docker run -it -v %cd%:/orbitersdk-volume -p 8080-8099:8080-8099 -p 8110-8111:8110-8111 orbitersdk-cpp-dev:latest`
+  * **For Linux/Mac**: `docker run -it --name bdk-cpp -v $(pwd):/bdk-volume -p 8080-8099:8080-8099 -p 8110-8111:8110-8111 bdk-cpp-dev:latest`
+  * **For Windows**: `docker run -it --name bdk-cpp -v %cd%:/bdk-volume -p 8080-8099:8080-8099 -p 8110-8111:8110-8111 bdk-cpp-dev:latest`
 
-Remember that we are using our local SDK repo as a volume, so every change in the local folder will be reflected to the container in real time, and vice-versa.
+Remember that we are using our local repo as a volume, so every change in the local folder will be reflected to the container in real time, and vice-versa.
 
 Also, you can integrate the container with your favorite IDE or editor, e.g. [VSCode + Docker extension](https://marketplace.visualstudio.com/items?itemName=ms-azuretools.vscode-docker).
 
 ## Developing manually
 
-Install the following dependencies on your system:
+You will need the following dependencies installed locally on your system:
 
-* **GCC** with support for **C++23** or higher
-* **CMake 3.19.0** or higher
-* **Boost 1.74** or higher (components: *chrono, filesystem, program-options, system, thread, nowide*)
-* **OpenSSL 1.1.1**
-* **CryptoPP 8.2.0** or higher
-* **libscrypt**
-* **zlib**
-* **libsnappy** for database compression
-* (optional) **clang-tidy** for linting
+* *Toolchain binaries*:
+  * **git**
+  * **GCC** with support for **C++23** or higher
+  * **Make**
+  * **CMake 3.19.0** or higher
+  * **Protobuf** (protoc + grpc_cpp_plugin)
+  * **tmux** (for deploying)
+  * (optional) **ninja** if you prefer it over make
+  * (optional) **mold** if you prefer it over ld
+  * (optional) **doxygen** for generating docs
+  * (optional) **clang-tidy** for linting
+* *Libraries*:
+  * **Boost 1.83** or higher (components: *chrono, filesystem, program-options, system, thread, nowide*)
+  * **OpenSSL 1.1.1** / **libssl 1.1.1** or higher
+  * **libzstd**
+  * **CryptoPP 8.2.0** or higher
+  * **libscrypt**
+  * **libc-ares**
+  * **gRPC** (libgrpc and libgrpc++)
+  * **secp256k1**
+  * **ethash** + **keccak**
+  * **EVMOne** + **EVMC**
+  * **Speedb**
 
-If building with AvalancheGo support, you'll also need:
+The versions of those dependencies should suffice out-of-the-box for at least the following distros (or greater, including their derivatives):
 
-* **Abseil (absl)**
-* **libc-ares**
-* **Protobuf 3.12** or higher
-* **gRPC**
+* **Debian 13 (Trixie)**
+* **Ubuntu 24.04 LTS (Noble Numbat)**
+* **Linux Mint 22 (Wilma)**
+* **Fedora 40**
+* Any rolling release distro from around **May 2024** onwards (check their repos to be sure)
 
-### One-liners
+### Tips for dependencies
 
-For **Debian 12 Bookworm or newer**:
-* `sudo apt install build-essential cmake tmux clang-tidy autoconf libtool pkg-config libabsl-dev libboost-all-dev libc-ares-dev libcrypto++-dev libgrpc-dev libgrpc++-dev libscrypt-dev libssl-dev zlib1g-dev openssl protobuf-compiler protobuf-compiler-grpc`
+There is a script called `scripts/deps.sh` which you can use to check if you have those dependencies installed (`deps.sh --check`), install them in case you don't (`deps.sh --install`), and clean up the external ones for reinstalling (`deps.sh --cleanext`). The script expects dependencies to be installed either on `/usr` or `/usr/local`, giving preference to the latter if it finds anything there (so you can use a higher version of a dependency while still keeping your distro's default one).
+
+**Please note that installing most dependencies through the script only works on APT-based distros** (Debian, Ubuntu and derivatives) - you can still check the dependencies on any distro and install the few ones labeled as "external" (those are fetched through `git`), but if you're on a distro with another package manager and/or a distro older than one of the minimum ones listed above, you're on your own.
+
+For Debian specifically, you can (and should) use `update-alternatives` to register and set your GCC version to a more up-to-date build if required.
+
+If you're using a self-compiled GCC build out of the system path (e.g. `--prefix=/usr/local/gcc-X.Y.Z` instead of `--prefix=/usr/local`), don't forget to export its installation paths in your `PATH` and `LD_LIBRARY_PATH` env vars (to prevent e.g. "version `GLIBCXX_...'/`CXXABI_...` not found" errors). Put something like this in your `~/.bashrc` file for example, changing the version accordingly to whichever one you have installed:
+
+```bash
+# For GCC in /usr/local
+export LD_LIBRARY_PATH=/usr/local/lib64:$LD_LIBRARY_PATH
+
+# For self-contained GCC outside /usr/local
+export PATH=/usr/local/gcc-14.2.0/bin:$PATH
+export LD_LIBRARY_PATH=/usr/local/gcc-14.2.0/lib64:$LD_LIBRARY_PATH
+```
 
 ## Documentation
 
@@ -74,18 +103,18 @@ We use [Doxygen](https://www.doxygen.nl/index.html) to generate documentation ov
 
 You should do this after running `cmake ..` in the build directory, as some header files need to be generated first.
 
-For a more detailed explanation of the project's structure, check the [docs](https://github.com/SparqNet/sparq-docs/tree/main/Sparq_en-US) repository.
+For a more detailed explanation of the project's structure, check the [docs](https://github.com/AppLayer/sparq-docs/tree/main/Sparq_en-US) repository.
 
 ## Compiling
 
-* Clone the project: `git clone https://github.com/SparqNet/orbitersdk-cpp
+* Clone the project: `git clone https://github.com/AppLayer/bdk-cpp
 * Go to the project's root folder, create a "build" folder and change to it:
-  * `cd orbitersdk-cpp && mkdir build && cd build`
+  * `cd bdk-cpp && mkdir build && cd build`
 * Run `cmake` inside the build folder: `cmake ..`
   * Use `-DCMAKE_BUILD_TYPE={Debug,RelWithDebInfo,Release}` to set the respective debug/release builds (Debug by default)
   * Use `-DDEBUG=OFF` to build without debug flags (ON by default)
   * Use `-DUSE_LINT=ON` to run clang-tidy along the build (OFF by default, WILL TAKE SIGNIFICANTLY LONGER TO COMPILE)
-* Build the executable: `cmake --build . -- -j$(nproc)`
+* Build the executable: `cmake --build . -- -j$(nproc)` (adjust `-j$(nproc)` accordingly if needed)
   * If using the linter, pipe stderr to a file (e.g. `cmake --build . -- -j$(nproc) 2> log.txt`)
 
 ## Deploying
@@ -124,17 +153,13 @@ The deployed chain will have the following information by default:
 
 Nodes are all deployed on the same machine, under the following ports and tmux sessions:
 
-| Session Name             | Node Type | P2P Port | HTTP Port | Validator Key                                                      |
-|--------------------------|-----------|----------|-----------|--------------------------------------------------------------------|
-| local_testnet_discovery  | Discovery | 8080     | 8090      | XXXX                                                               |
-| local_testnet_validator1 | Validator | 8081     | 8090      | 0xba5e6e9dd9cbd263969b94ee385d885c2d303dfc181db2a09f6bf19a7ba26759 |
-| local_testnet_validator2 | Validator | 8082     | 8091      | 0xfd84d99aa18b474bf383e10925d82194f1b0ca268e7a339032679d6e3a201ad4 |
-| local_testnet_validator3 | Validator | 8083     | 8092      | 0x66ce71abe0b8acd92cfd3965d6f9d80122aed9b0e9bdd3dbe018230bafde5751 |
-| local_testnet_validator4 | Validator | 8084     | 8093      | 0x856aeb3b9c20a80d1520a2406875f405d336e09475f43c478eb4f0dafb765fe7 |
-| local_testnet_validator5 | Validator | 8085     | 8094      | 0x81f288dd776f4edfe256d34af1f7d719f511559f19115af3e3d692e741faadc6 |
-| local_testnet_normal1    | Normal    | 8086     | 8095      | XXXX                                                               |
-| local_testnet_normal2    | Normal | 8087     | 8096      | XXXX |
-| local_testnet_normal3    | Normal | 8088     | 8097      | XXXX |
-| local_testnet_normal4    | Normal | 8089     | 8098      | XXXX |
-| local_testnet_normal5    | Normal | 8110     | 8099      | XXXX |
-| local_testnet_normal6    | Normal | 8111     | 8100      | XXXX |
+| Session Name             | Node Type | P2P Port | HTTP Port | Validator Key                                                                                                                                                                                                                                                                    |
+|--------------------------|-----------|----------|-----------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| local_testnet_discovery  | Discovery | 8080     | 8090      | XXXX                                                                                                                                                                                                                                                                             |
+| local_testnet_validator1 | Validator | 8081     | 8090      | 0xba5e6e9dd9cbd263969b94ee385d885c2d303dfc181db2a09f6bf19a7ba26759, 0xfd84d99aa18b474bf383e10925d82194f1b0ca268e7a339032679d6e3a201ad4, 0xfd84d99aa18b474bf383e10925d82194f1b0ca268e7a339032679d6e3a201ad4, 0x856aeb3b9c20a80d1520a2406875f405d336e09475f43c478eb4f0dafb765fe7, 0x81f288dd776f4edfe256d34af1f7d719f511559f19115af3e3d692e741faadc6 |
+| local_testnet_normal1    | Normal    | 8086     | 8095      | XXXX                                                                                                                                                                                                                                                                             |
+| local_testnet_normal2    | Normal    | 8087     | 8096      | XXXX                                                                                                                                                                                                                                                                             |
+| local_testnet_normal3    | Normal    | 8088     | 8097      | XXXX                                                                                                                                                                                                                                                                             |
+| local_testnet_normal4    | Normal    | 8089     | 8098      | XXXX                                                                                                                                                                                                                                                                             |
+| local_testnet_normal5    | Normal    | 8110     | 8099      | XXXX                                                                                                                                                                                                                                                                             |
+| local_testnet_normal6    | Normal    | 8111     | 8100      | XXXX                                                                                                                                                                                                                                                                             |

@@ -1,5 +1,5 @@
 /*
-Copyright (c) [2023-2024] [Sparq Network]
+Copyright (c) [2023-2024] [AppLayer Developers]
 
 This software is distributed under the MIT License.
 See the LICENSE.txt file in the project root for more information.
@@ -9,57 +9,50 @@ See the LICENSE.txt file in the project root for more information.
 #define STATE_H
 
 #include "../contract/contract.h"
-#include "../contract/contractmanager.h"
-#include "../utils/utils.h"
-#include "../utils/db.h"
-#include "storage.h"
-#include "rdpos.h"
 
-// TODO: We could possibly change the bool functions
-// into a enum function, to be able to properly return each error case
-// We need this in order to slash invalid rdPoS blocks.
-/// Enum for labeling transaction validity.
-enum TxInvalid { NotInvalid, InvalidNonce, InvalidBalance };
+#include "rdpos.h" // set, boost/unordered/unordered_flat_map.hpp
+#include "dump.h" // utils/db.h, storage.h -> utils/randomgen.h -> utils.h -> logger.h, (strings.h -> evmc/evmc.hpp), (libs/json.hpp -> boost/unordered/unordered_flat_map.hpp)
+#include "contract/blockobservers.h"
 
-/**
- * Abstraction of the blockchain's state.
- * Responsible for maintaining the current blockchain state at the current block.
- */
-class State {
-  private:
-    /// Pointer to the database.
-    const std::unique_ptr<DB>& db_;
+// TODO: We could possibly change the bool functions into an enum function,
+// to be able to properly return each error case. We need this in order to slash invalid rdPoS blocks.
 
-    /// Pointer to the blockchain's storage.
-    const std::unique_ptr<Storage>& storage_;
+/// Next-block validation status codes.
+enum class BlockValidationStatus { valid, invalidWrongHeight, invalidErroneous };
 
-    /// Pointer to the rdPoS object.
-    const std::unique_ptr<rdPoS>& rdpos_;
-
-    /// Pointer to the P2P connection manager.
-    const std::unique_ptr<P2P::ManagerNormal> &p2pManager_;
-
-    /// Pointer to the options singleton.
-    const std::unique_ptr<Options>& options_;
-
-    /// Pointer to the contract manager.
-    const std::unique_ptr<ContractManager> contractManager_;
-
-    /// Map with information about blockchain accounts (Address -> Account).
-    std::unordered_map<Address, Account, SafeHash> accounts_;
-
-    /// TxBlock mempool.
-    std::unordered_map<Hash, TxBlock, SafeHash> mempool_;
-
-    /// Mutex for managing read/write access to the state object.
-    mutable std::shared_mutex stateMutex_;
+/// Abstraction of the blockchain's current state at the current block.
+class State : public Dumpable, public Log::LogicalLocationProvider {
+  protected: // TODO: those shouldn't be protected, plz refactor someday
+    mutable std::shared_mutex stateMutex_;  ///< Mutex for managing read/write access to the state object.
+    evmc_vm* vm_;  ///< Pointer to the EVMC VM.
+    const Options& options_;  ///< Reference to the options singleton.
+    Storage& storage_;  ///< Reference to the blockchain's storage.
+    DumpManager dumpManager_; ///< The Dump Worker object
+    DumpWorker dumpWorker_; ///< Dump Manager object
+    P2P::ManagerNormal& p2pManager_;  ///< Reference to the P2P connection manager.
+    rdPoS rdpos_; ///< rdPoS object (consensus).
+    boost::unordered_flat_map<Address, std::unique_ptr<BaseContract>, SafeHash, SafeCompare> contracts_; ///< Map with information about blockchain contracts (Address -> Contract).
+    boost::unordered_flat_map<StorageKey, Hash, SafeHash, SafeCompare> vmStorage_; ///< Map with the storage of the EVM.
+    boost::unordered_flat_map<Address, NonNullUniquePtr<Account>, SafeHash, SafeCompare> accounts_; ///< Map with information about blockchain accounts (Address -> Account).
+    boost::unordered_flat_map<Hash, TxBlock, SafeHash> mempool_; ///< TxBlock mempool.
+    BlockObservers blockObservers_;
 
     /**
      * Verify if a transaction can be accepted within the current state.
      * @param tx The transaction to check.
      * @return An enum telling if the block is invalid or not.
      */
-    TxInvalid validateTransactionInternal(const TxBlock& tx) const;
+    TxStatus validateTransactionInternal(const TxBlock& tx) const;
+
+    /**
+     * Validate the next block given the current state and its transactions. Does NOT update the state.
+     * The block will be rejected if there are invalid transactions in it
+     * (e.g. invalid signature, insufficient balance, etc.).
+     * NOTE: This method does not perform synchronization.
+     * @param block The block to validate.
+     * @return A status code from BlockValidationStatus.
+     */
+    BlockValidationStatus validateNextBlockInternal(const FinalizedBlock& block) const;
 
     /**
      * Process a transaction within a block. Called by processNextBlock().
@@ -67,117 +60,146 @@ class State {
      * @param tx The transaction to process.
      * @param blockHash The hash of the block being processed.
      * @param txIndex The index of the transaction inside the block that is being processed.
+     * @param randomnessHash The hash of the previous block's randomness seed.
      */
-    void processTransaction(const TxBlock& tx, const Hash& blockHash, const uint64_t& txIndex);
+    void processTransaction(const TxBlock& tx, const Hash& blockHash, const uint64_t& txIndex, const Hash& randomnessHash);
 
     /**
-     * Update the mempool, removing transactions that are in the given block,
-     * and leaving only valid transactions in it.
-     * Called by processNewBlock(), used to filter the current mempool based
-     * on transactions that have been accepted on the block, and verify if
-     * transactions on the mempool are valid given the new state after processing
-     * the block itself.
+     * Update the mempool, remove transactions that are in the given block, and leave only valid transactions in it.
+     * Called by processNewBlock(), used to filter the current mempool based on transactions that have been
+     * accepted on the block, and verify if transactions on the mempool are valid given the new state after
+     * processing the block itself.
      * @param block The block to use for pruning transactions from the mempool.
      */
-    void refreshMempool(const Block& block);
+    void refreshMempool(const FinalizedBlock& block);
 
-    /// Flag indicating whether the state is currently processing a payable contract function
-    bool processingPayable_ = false;
+    /**
+     * Helper function that does a sanity check on all contracts in the accounts_ map.
+     * Used exclusively by the constructor.
+     * @param addr The address of the contract.
+     * @param acc The account tied to the contract.
+     * @throw DynamicException if any contract does not have code, or if an
+     *        address that isn't a contract has any code.
+     */
+    void contractSanityCheck(const Address& addr, const Account& acc);
 
   public:
     /**
      * Constructor.
      * @param db Pointer to the database.
      * @param storage Pointer to the blockchain's storage.
-     * @param rdpos Pointer to the rdPoS object.
      * @param p2pManager Pointer to the P2P connection manager.
+     * @param snapshotHeight The block height to start from.
      * @param options Pointer to the options singleton.
-     * @throw std::runtime_error on any database size mismatch.
+     * @throw DynamicException on any database size mismatch.
      */
-    State(
-      const std::unique_ptr<DB>& db,
-      const std::unique_ptr<Storage>& storage,
-      const std::unique_ptr<rdPoS>& rdpos,
-      const std::unique_ptr<P2P::ManagerNormal>& p2pManager,
-      const std::unique_ptr<Options>& options
-    );
+    State(const DB& db, Storage& storage, P2P::ManagerNormal& p2pManager, const uint64_t& snapshotHeight, const Options& options);
 
-    /// Destructor.
-    ~State();
+    ~State(); ///< Destructor.
+
+    std::string getLogicalLocation() const override { return p2pManager_.getLogicalLocation(); } ///< Log instance from P2P
+
+    // ----------------------------------------------------------------------
+    // RDPOS WRAPPER FUNCTIONS
+    // ----------------------------------------------------------------------
+
+    ///@{
+    /** Wrapper for the respective rdPoS function. */
+    std::set<Validator> rdposGetValidators() const { std::shared_lock lock(this->stateMutex_); return this->rdpos_.getValidators(); }
+    std::vector<Validator> rdposGetRandomList() const { std::shared_lock lock(this->stateMutex_); return this->rdpos_.getRandomList(); }
+    size_t rdposGetMempoolSize() const { std::shared_lock lock(this->stateMutex_); return this->rdpos_.getMempoolSize(); }
+    const boost::unordered_flat_map<Hash, TxValidator, SafeHash> rdposGetMempool() const { std::shared_lock lock(this->stateMutex_); return this->rdpos_.getMempool(); }
+    const Hash& rdposGetBestRandomSeed() const { std::shared_lock lock(this->stateMutex_); return this->rdpos_.getBestRandomSeed(); }
+    bool rdposGetIsValidator() const { std::shared_lock lock(this->stateMutex_); return this->rdpos_.getIsValidator(); }
+    const uint32_t& rdposGetMinValidators() const { std::shared_lock lock(this->stateMutex_); return this->rdpos_.getMinValidators(); }
+    void rdposClearMempool() { std::unique_lock lock(this->stateMutex_); return this->rdpos_.clearMempool(); }
+    bool rdposValidateBlock(const FinalizedBlock& block) const { std::shared_lock lock(this->stateMutex_); return this->rdpos_.validateBlock(block); }
+    Hash rdposProcessBlock(const FinalizedBlock& block) { std::unique_lock lock(this->stateMutex_); return this->rdpos_.processBlock(block); }
+    TxStatus rdposAddValidatorTx(const TxValidator& tx) { std::unique_lock lock(this->stateMutex_); return this->rdpos_.addValidatorTx(tx); }
+    void dumpStartWorker() { this->dumpWorker_.startWorker(); }
+    void dumpStopWorker() { this->dumpWorker_.stopWorker(); }
+    size_t getDumpManagerSize() const { std::shared_lock lock(this->stateMutex_); return this->dumpManager_.size(); }
+    // Returns the block height of the dump and the time it took to serialize and dump to DB.
+    std::tuple<uint64_t, uint64_t, uint64_t> saveToDB() const { return this->dumpManager_.dumpToDB(); }
+    ///@}
+
+    // ----------------------------------------------------------------------
+    // STATE FUNCTIONS
+    // ----------------------------------------------------------------------
 
     /**
      * Get the native balance of an account in the state.
      * @param addr The address of the account to check.
      * @return The native account balance of the given address.
      */
-    const uint256_t getNativeBalance(const Address& addr) const;
+    uint256_t getNativeBalance(const Address& addr) const;
 
     /**
      * Get the native nonce of an account in the state.
      * @param addr The address of the account to check.
      * @return The native account nonce of the given address.
      */
-    const uint64_t getNativeNonce(const Address& addr) const;
+    uint64_t getNativeNonce(const Address& addr) const;
 
-    /// Getter for `accounts`. Returns a copy.
-    const std::unordered_map<Address, Account, SafeHash> getAccounts() const;
-
-    /// Getter for `mempool`. Returns a copy.
-    const std::unordered_map<Hash, TxBlock, SafeHash> getMempool() const;
+    /**
+     * Get a copy of the mempool (as a vector).
+     * @return A vector with all transactions in the mempool.
+     */
+    std::vector<TxBlock> getMempool() const;
 
     /// Get the mempool's current size.
-    inline const size_t getMempoolSize() const {
+    inline size_t getMempoolSize() const {
       std::shared_lock<std::shared_mutex> lock (this->stateMutex_);
       return this->mempool_.size();
     }
 
     /**
-     * Validate the next block given the current state and its transactions.
-     * Does NOT update the state.
+     * Validate the next block given the current state and its transactions. Does NOT update the state.
      * The block will be rejected if there are invalid transactions in it
      * (e.g. invalid signature, insufficient balance, etc.).
      * @param block The block to validate.
      * @return `true` if the block is validated successfully, `false` otherwise.
      */
-    bool validateNextBlock(const Block& block) const;
+    bool validateNextBlock(const FinalizedBlock& block) const;
 
     /**
-     * Process the next block given current state from the network.
-     * DOES update the state.
+     * Process the next block given current state from the network. DOES update the state.
      * Appends block to Storage after processing.
      * @param block The block to process.
-     * @throw std::runtime_error if block is invalid.
+     * @throw DynamicException if block is invalid.
      */
-    void processNextBlock(Block&& block);
+    void processNextBlock(FinalizedBlock&& block);
 
     /**
-     * Fill a block with all transactions currently in the mempool.
-     * DOES NOT FINALIZE THE BLOCK.
-     * @param block The block to fill.
+     * Process the next block given current state from the network. DOES update the state.
+     * Appends block to Storage after processing.
+     * Does not throw an exception in case of block validation error.
+     * @param block The block to process.
+     * @return A status code from BlockValidationStatus.
      */
-    void fillBlockWithTransactions(Block& block) const;
+    BlockValidationStatus tryProcessNextBlock(FinalizedBlock&& block);
 
     /**
      * Verify if a transaction can be accepted within the current state.
-     * Calls validateTransactionInternal(), but locking the mutex in a shared manner.
+     * Calls validateTransactionInternal(), but locks the mutex in a shared manner.
      * @param tx The transaction to verify.
      * @return An enum telling if the transaction is valid or not.
      */
-    TxInvalid validateTransaction(const TxBlock& tx) const;
+    TxStatus validateTransaction(const TxBlock& tx) const;
 
     /**
      * Add a transaction to the mempool, if valid.
      * @param tx The transaction to add.
      * @return An enum telling if the transaction is valid or not.
      */
-    TxInvalid addTx(TxBlock&& tx);
+    TxStatus addTx(TxBlock&& tx);
 
     /**
      * Add a Validator transaction to the rdPoS mempool, if valid.
      * @param tx The transaction to add.
      * @return `true` if transaction is valid, `false` otherwise.
      */
-    bool addValidatorTx(const TxValidator& tx);
+    TxStatus addValidatorTx(const TxValidator& tx);
 
     /**
      * Check if a transaction is in the mempool.
@@ -197,6 +219,8 @@ class State {
      */
     std::unique_ptr<TxBlock> getTxFromMempool(const Hash& txHash) const;
 
+    // TODO: remember this function is for testing purposes only,
+    // it should probably be removed at some point before definitive release.
     /**
      * Add balance to a given account.
      * Used through HTTP RPC to add balance to a given address
@@ -213,56 +237,36 @@ class State {
      * @param callInfo Tuple with info about the call (from, to, gasLimit, gasPrice, value, data).
      * @return The return of the called function as a data string.
      */
-    Bytes ethCall(const ethCallInfo& callInfo);
+    Bytes ethCall(EncodedStaticCallMessage& msg);
 
     /**
      * Estimate gas for callInfo in RPC.
      * Doesn't really "estimate" gas, but rather tells if the transaction is valid or not.
      * @param callInfo Tuple with info about the call (from, to, gasLimit, gasPrice, value, data).
-     * @return `true` if the call is valid, `false` otherwise.
+     * @return The used gas limit of the transaction.
      */
-    bool estimateGas(const ethCallInfo& callInfo);
+    int64_t estimateGas(EncodedMessageVariant msg);
+
+    /// Get a list of the C++ contract addresses and names.
+    std::vector<std::pair<std::string, Address>> getCppContracts() const;
+
+    /// Get a list of Addresss which are EVM contracts.
+    std::vector<Address> getEvmContracts() const;
+
+    DBBatch dump() const final; ///< State dumping function.
+
+    /// Get the pending transactions from the mempool.
+    auto getPendingTxs() const {
+      std::shared_lock lock(this->stateMutex_);
+      return this->mempool_;
+    }
 
     /**
-     * Update the State's account balances after a contract call. Called by ContractManager.
-     * @param payableMap A map of the accounts to update and their respective new balances.
-     * @throw std::runtime_error on an attempt to change State while not processing a payable contract.
+     * Get the code section of a given contract.
+     * @param addr The address of the contract.
+     * @return The code section as a raw bytes string.
      */
-    void processContractPayable(const std::unordered_map<Address, uint256_t, SafeHash>& payableMap);
-
-    /// Get a list of contract addresses and names.
-    std::vector<std::pair<std::string, Address>> getContracts() const;
-
-    /**
-     * Get all the events emitted under the given inputs.
-     * Parameters are defined when calling "eth_getLogs" on an HTTP request
-     * (directly from the http/jsonrpc submodules, through handle_request() on httpparser).
-     * They're supposed to be all "optional" at that point, but here they're
-     * all required, even if all of them turn out to be empty.
-     * @param fromBlock The initial block height to look for.
-     * @param toBlock The final block height to look for.
-     * @param address The address to look for. Defaults to empty (look for all available addresses).
-     * @param topics The topics to filter by. Defaults to empty (look for all available topics).
-     * @return A list of matching events.
-     */
-    const std::vector<Event> getEvents(
-      const uint64_t& fromBlock, const uint64_t& toBlock,
-      const Address& address = Address(), const std::vector<Hash>& topics = {}
-    ) const;
-
-    /**
-     * Overload of getEvents() for transaction receipts.
-     * @param txHash The hash of the transaction to look for events.
-     * @param blockIndex The height of the block to look for events.
-     * @param txIndex The index of the transaction to look for events.
-     * @return A list of matching events.
-     */
-    const std::vector<Event> getEvents(
-      const Hash& txHash, const uint64_t& blockIndex, const uint64_t& txIndex
-    ) const;
-
-    /// the Manager Interface cannot use getNativeBalance. as it will call a lock with the mutex.
-    friend class ContractManagerInterface;
+    Bytes getContractCode(const Address& addr) const;
 };
 
 #endif // STATE_H
