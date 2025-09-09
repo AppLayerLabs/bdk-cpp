@@ -37,6 +37,9 @@ See the LICENSE.txt file in the project root for more information.
 /// Localhost IPv4 address constant
 inline const boost::asio::ip::address LOCALHOST = boost::asio::ip::address::from_string("127.0.0.1");
 
+// Testnet Address generation fork height at 18834827
+inline constexpr int64_t TESTNET_ADDRESSGEN_FORK_HEIGHT = 18'834'827;
+
 /// @file utils.h
 // Forward declaration.
 class Hash;

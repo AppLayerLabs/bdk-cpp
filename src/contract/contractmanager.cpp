@@ -87,11 +87,28 @@ void ContractManager::ethCall(const evmc_message& callInfo, ContractHost* host) 
   if (callInfo.flags == EVMC_STATIC) {
     throw DynamicException("ContractManager: Static calls trying to create a contract?!");
   }
+#ifdef BUILD_TESTNET
+  if (this->host_->context().getBlockNumber() > TESTNET_ADDRESSGEN_FORK_HEIGHT) {
+    it->second(callInfo,
+              generateContractAddress(this->host_->context().getAccount(caller).getNonce(), caller),
+               this->contracts_,
+               this->getContractChainId(),
+               this->host_);
+  } else {
+    it->second(callInfo,
+              deprecatedGenerateContractAddress(this->host_->context().getAccount(caller).getNonce(), caller),
+              this->contracts_,
+              this->getContractChainId(),
+           this->host_);
+  }
+#else
   it->second(callInfo,
             generateContractAddress(this->host_->context().getAccount(caller).getNonce(), caller),
              this->contracts_,
              this->getContractChainId(),
              this->host_);
+
+#endif
   this->executed_ = true;
 }
 

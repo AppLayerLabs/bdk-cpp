@@ -1,7 +1,7 @@
 #include "common.h"
 
-Address generateContractAddress(uint64_t nonce, View<Address> address) {
 #ifdef BUILD_TESTNET
+Address deprecatedGenerateContractAddress(uint64_t nonce, View<Address> address) {
   // TODO: Make forkable
   uint8_t rlpSize = 0xc0;
   rlpSize += 20;
@@ -17,8 +17,10 @@ Address generateContractAddress(uint64_t nonce, View<Address> address) {
   }
 
   return Address(Utils::sha3(rlp).view(12));
-#else
+}
+#endif
 
+Address generateContractAddress(uint64_t nonce, View<Address> address) {
   Bytes payload;
   payload.push_back(0x80 + 20);
   payload.insert(payload.end(), address.cbegin(), address.cend());
@@ -43,7 +45,6 @@ Address generateContractAddress(uint64_t nonce, View<Address> address) {
 
   auto hash = Utils::sha3(rlp);
   return Address(hash.view(12));  // skip first 12 bytes, keep last 20
-#endif
 }
 
 

@@ -9,6 +9,10 @@ Address generateContractAddress(uint64_t nonce, View<Address> address);
 
 Address generateContractAddress(View<Address> from, View<Hash> salt, View<Bytes> code);
 
+#ifdef BUILD_TESTNET
+Address deprecatedGenerateContractAddress(uint64_t nonce, View<Address> address);
+#endif
+
 constexpr uint256_t messageValueOrZero(const auto& msg) {
   if constexpr (concepts::HasValueField<decltype(msg)>) {
     return msg.value();

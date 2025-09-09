@@ -164,8 +164,13 @@ private:
     contract.value_ = value;
 
     auto account = context_.getAccount(msg.from());
+#ifdef BUILD_TESTNET
+    const Address contractAddress = (this->context_.getBlockNumber() > TESTNET_ADDRESSGEN_FORK_HEIGHT)
+      ? generateContractAddress(account.getNonce(), msg.from())
+      : deprecatedGenerateContractAddress(account.getNonce(), msg.from());
+#else
     const Address contractAddress = generateContractAddress(account.getNonce(), msg.from());
-
+#endif
     try {
       auto returnBytes = contract.evmEthCall(evmcMsg, &host_);
     } catch (VMExecutionError &e) {

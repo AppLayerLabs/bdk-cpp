@@ -186,7 +186,13 @@ Address EvmContractExecutor::execute(EncodedCreateMessage& msg) {
   msg.gas().use(EVM_CONTRACT_CREATION_COST);
   auto depthGuard = transactional::copy(depth_);
   auto account = context_.getAccount(msg.from());
+#ifdef BUILD_TESTNET
+  const Address contractAddress = (this->context_.getBlockNumber() > TESTNET_ADDRESSGEN_FORK_HEIGHT)
+    ? generateContractAddress(account.getNonce(), msg.from())
+    : deprecatedGenerateContractAddress(account.getNonce(), msg.from());
+#else
   const Address contractAddress = generateContractAddress(account.getNonce(), msg.from());
+#endif
   createContractImpl(msg, context_, contractAddress, vm_, *this, ++depth_);
   if (account.getContractType() != ContractType::NOT_A_CONTRACT) {
     account.setNonce(account.getNonce() + 1);
