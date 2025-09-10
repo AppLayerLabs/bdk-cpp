@@ -39,7 +39,6 @@ void Storage::putTxAdditionalData(const TxAdditionalData& txData) {
   Bytes serialized;
   zpp::bits::out out(serialized);
   out(txData).or_throw();
-  std::cout << "putTxAdditionalData:" << Hex::fromBytes(serialized).get() << std::endl;
   blocksDb_.put(txData.hash, serialized, DBPrefix::txToAdditionalData);
 }
 
