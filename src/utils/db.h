@@ -28,6 +28,7 @@ namespace DBPrefix {
   const Bytes snapshotMetadata =   { 0x00, 0x0C }; ///< "snapshotMetadata" = "000C"
   const Bytes validatorUpdates =   { 0x00, 0x0D }; ///< "validatorUpdates" = "000D"
   const Bytes validatorSets =      { 0x00, 0x0E }; ///< "validatorSets" = "000E"
+  const Bytes evmContracts =       { 0x00, 0x0F }; ///< "evmContracts" = "000C"
 };
 
 /// Struct for a database connection/endpoint.

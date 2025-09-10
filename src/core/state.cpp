@@ -157,7 +157,7 @@ void State::contractSanityCheck(const Address& addr, const Account& acc) {
       break;
     }
     case ContractType::EVM: {
-      if (acc.code.empty()) {
+      if (acc.code == nullptr || acc.code->empty()) {
         LOGFATAL_THROW(
           "Contract " + addr.hex().get() + " is marked as EVM contract but doesn't have code"
         );
@@ -165,7 +165,7 @@ void State::contractSanityCheck(const Address& addr, const Account& acc) {
       break;
     }
     case ContractType::NOT_A_CONTRACT: {
-      if (!acc.code.empty()) {
+      if (acc.code != nullptr) {
         LOGFATAL_THROW(
           "Contract " + addr.hex().get() + " is marked as not a contract but has code"
         );
@@ -311,6 +311,13 @@ void State::saveSnapshot(const std::string& where) {
   out.putBatch(*accBatch);
   accBatch.reset();
 
+  std::unique_ptr<DBBatch> contractBatch = std::make_unique<DBBatch>();
+  for (const auto& [codeHash, code] : this->evmContracts_) {
+    contractBatch->push_back(codeHash, *code, DBPrefix::evmContracts);
+  }
+  out.putBatch(*contractBatch);
+  contractBatch.reset();
+
   // Write vmStorage_ in batches of 1,000; uses a bit more memory but should be faster
   // than just a loop of db.put(k,v).
   count = 0;
@@ -439,6 +446,28 @@ void State::loadSnapshot(const std::string& where, bool genesisSnapshot) {
      ++accCount;
   }
   LOGXTRACE("Snapshot accounts size: " + std::to_string(accCount));
+
+  // Load all EVM contracts from the DB
+  for (const auto& dbEntry : in.getBatch(DBPrefix::evmContracts)) {
+    Hash codeHash(dbEntry.key);
+    this->evmContracts_[codeHash] = std::make_shared<Bytes>(dbEntry.value);
+  }
+
+  uint64_t evmContractAccounts = 0;
+  for (auto& [address, account] : this->accounts_) {
+    if (account->contractType == ContractType::EVM) {
+      ++evmContractAccounts;
+      auto it = this->evmContracts_.find(account->codeHash);
+      if (it != this->evmContracts_.end()) {
+        account->code = it->second;
+      } else {
+        LOGERROR("Account " + address.hex().get() + " is marked as EVM contract but code hash " + account->codeHash.hex().get() + " not found in DB");
+        throw DynamicException("Account " + address.hex().get() + " is marked as EVM contract but code hash " + account->codeHash.hex().get() + " not found in DB");
+      }
+    }
+  }
+  Utils::safePrint("Loaded " + std::to_string(evmContractAccounts) + " EVM Contract accounts from DB");
+
 
   // Load vmStorage_
   uint64_t vmCount = 0;
@@ -642,7 +671,7 @@ Bytes State::getContractCode(const Address &addr) const {
     precompileContract.append(contractIt->second->getContractName());
     return {precompileContract.begin(), precompileContract.end()};
   }
-  return it->second->code;
+  return *it->second->code;
 }
 
 bool State::validateTransaction(const TxBlock& tx, bool affectsMempool, MempoolModel *mm) {

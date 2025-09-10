@@ -42,6 +42,20 @@ const BaseContract& ExecutionContext::getContract(View<Address> contractAddress)
   return *it->second;
 }
 
+std::shared_ptr<Bytes> ExecutionContext::checkEVMContract(View<Hash> codeHash, View<Bytes> code) {
+  const auto itContract = evmContracts_.find(codeHash);
+  if (itContract == evmContracts_.end()) {
+    auto itInsert = this->evmContracts_.emplace(codeHash, std::make_shared<Bytes>(code));
+    // As it is the first contract with this code hash, we need
+    // to add a transaction to delete it from the map in case of revert
+    transactions_.push(transactional::AnyTransactional(transactional::BasicTransactional(evmContracts_, [codeHash] (auto& evmContracts) {
+      evmContracts.erase(codeHash);
+    })));
+    return itInsert.first->second;
+  }
+  return itContract->second;
+}
+
 Account& ExecutionContext::getMutableAccount(View<Address> accountAddress) {
   const auto iterator = accounts_.find(accountAddress);
 
@@ -79,6 +93,10 @@ void ExecutionContext::notifyNewContract(View<Address> address, BaseContract* co
 
   transactions_.push(transactional::AnyTransactional(transactional::BasicTransactional(contracts_, [contractAddress = Address(address)] (auto& contracts) {
     contracts.erase(contractAddress);
+  })));
+
+  transactions_.push(transactional::AnyTransactional(transactional::BasicTransactional(accounts_, [accountAddress = Address(address)] (auto& accounts) {
+    accounts.erase(accountAddress);
   })));
 }
 
@@ -139,7 +157,10 @@ View<Hash> ExecutionContext::AccountPointer::getCodeHash() const {
 }
 
 View<Bytes> ExecutionContext::AccountPointer::getCode() const {
-  return account_.code;
+  if (this->account_.code == nullptr) {
+    return ExecutionContext::emptyBytes;
+  }
+  return *account_.code;
 }
 
 ContractType ExecutionContext::AccountPointer::getContractType() const {
@@ -156,10 +177,10 @@ void ExecutionContext::AccountPointer::setNonce(uint64_t nonce) {
   account_.nonce = nonce;
 }
 
-void ExecutionContext::AccountPointer::setCode(Bytes code) {
+void ExecutionContext::AccountPointer::setCode(std::shared_ptr<Bytes> code, const Hash& codeHash) {
   transactions_.push(transactional::AnyTransactional(transactional::copy(account_.codeHash)));
   transactions_.push(transactional::AnyTransactional(transactional::copy(account_.code)));
-  account_.codeHash = Utils::sha3(code);
+  account_.codeHash = codeHash;
   account_.code = std::move(code);
 }
 

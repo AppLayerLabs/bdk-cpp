@@ -22,12 +22,16 @@ public:
 
   class AccountPointer;
 
+  using EVMContracts = boost::unordered_flat_map<Hash, std::shared_ptr<Bytes>, SafeHash, SafeCompare>;
+
+  static constexpr Bytes emptyBytes = {};
+
   ExecutionContext(
-    Accounts& accounts, Storage& storage, Contracts& contracts,
+    Accounts& accounts, Storage& storage, Contracts& contracts, EVMContracts& evmContracts,
     int64_t blockGasLimit,  int64_t blockNumber, int64_t blockTimestamp, int64_t txIndex,
     View<Address> blockCoinbase, View<Address> txOrigin, View<Hash> blockHash, View<Hash> txHash,
     const uint256_t& chainId, const uint256_t& txGasPrice) :
-    accounts_(accounts), storage_(storage), contracts_(contracts),
+    accounts_(accounts), storage_(storage), contracts_(contracts), evmContracts_(evmContracts),
     blockGasLimit_(blockGasLimit), blockNumber_(blockNumber), blockTimestamp_(blockTimestamp), txIndex_(txIndex),
     blockCoinbase_(blockCoinbase), txOrigin_(txOrigin), blockHash_(blockHash), txHash_(txHash),
     chainId_(chainId), txGasPrice_(txGasPrice) {}
@@ -81,6 +85,8 @@ public:
 
   const BaseContract& getContract(View<Address> contractAddress) const;
 
+  std::shared_ptr<Bytes> checkEVMContract(View<Hash> codeHash, View<Bytes> code);
+
   const auto& getEvents() const { return events_; }
 
   void addContract(View<Address> address, std::unique_ptr<BaseContract> contract);
@@ -105,6 +111,7 @@ private:
   Accounts& accounts_;
   Storage& storage_;
   Contracts& contracts_;
+  EVMContracts& evmContracts_;
   int64_t blockGasLimit_;
   int64_t blockNumber_;
   int64_t blockTimestamp_;
@@ -138,7 +145,7 @@ public:
 
   void setNonce(uint64_t nonce);
 
-  void setCode(Bytes code);
+  void setCode(std::shared_ptr<Bytes> code, const Hash& codeHash);
 
   void setContractType(ContractType type);
 
@@ -178,6 +185,8 @@ public:
 
   Builder& contracts(ExecutionContext::Contracts& contracts) { contracts_ = &contracts; return *this; }
 
+  Builder& evmContracts(ExecutionContext::EVMContracts& evmContracts) { evmContracts_ = &evmContracts; return *this; }
+
   Builder& blockHash(View<Hash> blockHash) { blockHash_ = Hash(blockHash); return *this; }
 
   Builder& txHash(View<Hash> txHash) { txHash_ = Hash(txHash); return *this; }
@@ -200,13 +209,13 @@ public:
 
   ExecutionContext build() {
     return ExecutionContext(
-      *accounts_, *storage_, *contracts_, blockGasLimit_, blockNumber_, blockTimestamp_, txIndex_,
+      *accounts_, *storage_, *contracts_, *evmContracts_, blockGasLimit_, blockNumber_, blockTimestamp_, txIndex_,
       blockCoinbase_, txOrigin_, blockHash_, txHash_, chainId_, txGasPrice_);
   }
 
   std::unique_ptr<ExecutionContext> buildPtr() {
     return std::make_unique<ExecutionContext>(
-      *accounts_, *storage_, *contracts_, blockGasLimit_, blockNumber_, blockTimestamp_, txIndex_,
+      *accounts_, *storage_, *contracts_, *evmContracts_, blockGasLimit_, blockNumber_, blockTimestamp_, txIndex_,
       blockCoinbase_, txOrigin_, blockHash_, txHash_, chainId_, txGasPrice_);
   }
 
@@ -214,6 +223,7 @@ private:
   ExecutionContext::Accounts* accounts_;
   ExecutionContext::Storage* storage_;
   ExecutionContext::Contracts* contracts_;
+  ExecutionContext::EVMContracts* evmContracts_;
   int64_t blockGasLimit_;
   int64_t blockNumber_;
   int64_t blockTimestamp_;

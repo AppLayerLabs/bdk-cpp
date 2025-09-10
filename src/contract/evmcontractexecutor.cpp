@@ -138,9 +138,14 @@ void EvmContractExecutor::createContractImpl(auto& msg, ExecutionContext& contex
   Bytes code = executeEvmcMessage(vm, &evmc::Host::get_interface(), host.to_context(),
     makeEvmcMessage(msg, depth, contractAddress), msg.gas(), msg.code());
 
-  auto account = context.getAccount(contractAddress);
+  auto account = context.getAccount(contractAddress);\
+  auto codeHash = Utils::sha3(code);
+  auto contract = this->context_.checkEVMContract(codeHash, code);
+  if (contract == nullptr) {
+    throw DynamicException("EVMContractExecutor: failed to store contract");
+  }
   account.setNonce(1);
-  account.setCode(std::move(code));
+  account.setCode(contract, codeHash);
   account.setContractType(ContractType::EVM);
   account.setBalance(account.getBalance() + msg.value());
   context.notifyNewContract(contractAddress, nullptr);

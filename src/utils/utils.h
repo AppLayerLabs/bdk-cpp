@@ -127,7 +127,7 @@ struct Account {
   uint256_t balance = 0;                       ///< Account balance.
   uint64_t nonce = 0;                          ///< Account nonce.
   Hash codeHash = Hash();                      ///< Account code hash (if any)
-  Bytes code = Bytes();                        ///< Account code (if any)
+  std::shared_ptr<Bytes> code = nullptr;                    ///< Account code (if any)
   ContractType contractType = ContractType::NOT_A_CONTRACT; ///< Account contract type.
 
   /// Default constructor.
