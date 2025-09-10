@@ -100,10 +100,6 @@ void ExecutionContext::notifyNewContract(View<Address> address, BaseContract* co
   transactions_.push(transactional::AnyTransactional(transactional::BasicTransactional(newContracts_, [] (auto& newContracts) {
     newContracts.pop_back();
   })));
-
-  transactions_.push(transactional::AnyTransactional(transactional::BasicTransactional(accounts_, [accountAddress = Address(address)] (auto& accounts) {
-    accounts.erase(accountAddress);
-  })));
 }
 
 void ExecutionContext::transferBalance(View<Address> fromAddress, View<Address> toAddress, const uint256_t& amount) {
