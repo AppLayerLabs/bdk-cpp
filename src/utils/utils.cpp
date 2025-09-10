@@ -58,7 +58,6 @@ Account::Account(const View<Bytes>& bytes) {
   this->codeHash = Hash(bytes.subspan(40,32));
   if (bytes[72] > 2) throw DynamicException(std::string(__func__) + ": Invalid contract type");
   this->contractType = ContractType(bytes[72]);
-  if (bytes.size() > 73) this->code = Bytes(bytes.begin() + 73, bytes.end());
 }
 
 Bytes Account::serialize() const {
@@ -68,7 +67,6 @@ Bytes Account::serialize() const {
   Utils::appendBytes(ret, UintConv::uint64ToBytes(this->nonce));
   Utils::appendBytes(ret, this->codeHash);
   ret.insert(ret.end(), char(this->contractType));
-  Utils::appendBytes(ret, this->code);
   return ret;
 }
 

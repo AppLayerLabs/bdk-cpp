@@ -25,6 +25,7 @@ namespace DBPrefix {
   const Bytes vmStorage =          { 0x00, 0x09 }; ///< "vmStorage" = "0009"
   const Bytes txToAdditionalData = { 0x00, 0x0A }; ///< "txToAdditionalData" = "000A"
   const Bytes txToCallTrace =      { 0x00, 0x0B }; ///< "txToCallTrace" = "000B"
+  const Bytes evmContracts =       { 0x00, 0x0C }; ///< "evmContracts" = "000C"
 };
 
 /// Struct for a database connection/endpoint.

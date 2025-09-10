@@ -13,7 +13,7 @@ static inline void addAccount(ExecutionContext& context, View<Address> address, 
   auto pointer = context.getAccount(address);
   pointer.setBalance(account.balance);
   pointer.setNonce(account.nonce);
-  pointer.setCode(account.code);
+  pointer.setCode(account.code, account.codeHash);
   pointer.setContractType(account.contractType);
 }
 

@@ -48,9 +48,36 @@ State::State(
     contractManagerAcc.nonce = 1;
     contractManagerAcc.contractType = ContractType::CPP;
   } else {
+
+#ifdef BUILD_TESTNET
+    // We gotta import the EVM Accounts code from the Account object itself
+    // to the evmContracts_ map, so we can save up memory and avoid duplicated code
+    if (!db.has(DBPrefix::evmContracts)) {
+      Utils::safePrint("No EVM Contracts found in DB, importing from Accounts...");
+      for (const auto& dbEntry : accountsFromDB) {
+        Address addr(dbEntry.key);
+        this->accounts_.emplace(addr, dbEntry.value);
+        auto& account = this->accounts_.at(addr);
+        if (account->contractType == ContractType::EVM) {
+          auto contractIt = this->evmContracts_.find(account->codeHash);
+          if (contractIt == this->evmContracts_.end()) {
+            if (dbEntry.value.size() < 73) {
+              LOGERROR("Account " + addr.hex().get() + " is marked as EVM contract but has invalid serialized size");
+              throw DynamicException("Account " + addr.hex().get() + " is marked as EVM contract but has invalid serialized size");
+            }
+            this->evmContracts_[account->codeHash] = std::make_shared<Bytes>(dbEntry.value.begin() + 73, dbEntry.value.end());
+          } else {
+            // Point the account code to the already existing code
+            account->code = contractIt->second;
+          }
+        }
+      }
+    }
+#else
     for (const auto& dbEntry : accountsFromDB) {
       this->accounts_.emplace(Address(dbEntry.key), dbEntry.value);
     }
+#endif
   }
 
   // Load all the EVM Storage Slot/keys from the DB
@@ -62,6 +89,27 @@ State::State(
       StorageKeyView(addr, hash),
       dbEntry.value);
   }
+  // Load all EVM contracts from the DB
+  for (const auto& dbEntry : db.getBatch(DBPrefix::evmContracts)) {
+    Hash codeHash(dbEntry.key);
+    this->evmContracts_[codeHash] = std::make_shared<Bytes>(dbEntry.value);
+  }
+  Utils::safePrint("Loaded " + std::to_string(this->evmContracts_.size()) + " unique EVM Contracts from DB");
+  // Set the EVM Contract Accounts to point their respective code
+  uint64_t evmContractAccounts = 0;
+  for (auto& [address, account] : this->accounts_) {
+    if (account->contractType == ContractType::EVM) {
+      ++evmContractAccounts;
+      auto it = this->evmContracts_.find(account->codeHash);
+      if (it != this->evmContracts_.end()) {
+        account->code = it->second;
+      } else {
+        LOGERROR("Account " + address.hex().get() + " is marked as EVM contract but code hash " + account->codeHash.hex().get() + " not found in DB");
+        throw DynamicException("Account " + address.hex().get() + " is marked as EVM contract but code hash " + account->codeHash.hex().get() + " not found in DB");
+      }
+    }
+  }
+  Utils::safePrint("Loaded " + std::to_string(evmContractAccounts) + " EVM Contract accounts from DB");
 
   auto latestBlock = this->storage_.latest();
   auto snapshotBlock = this->storage_.getBlock(snapshotHeight);
@@ -146,14 +194,14 @@ void State::contractSanityCheck(const Address& addr, const Account& acc) {
       break;
     }
     case ContractType::EVM: {
-      if (acc.code.empty()) {
+      if (acc.code == nullptr || acc.code->empty()) {
         LOGERROR("Contract " + addr.hex().get() + " is marked as EVM contract but doesn't have code");
         throw DynamicException("Contract " + addr.hex().get() + " is marked as EVM contract but doesn't have code");
       }
       break;
     }
     case ContractType::NOT_A_CONTRACT: {
-      if (!acc.code.empty()) {
+      if (acc.code != nullptr && !acc.code->empty()) {
         LOGERROR("Contract " + addr.hex().get() + " is marked as not a contract but has code");
         throw DynamicException("Contract " + addr.hex().get() + " is marked as not a contract but has code");
       }
@@ -180,6 +228,10 @@ DBBatch State::dump() const {
   for (const auto& [storageKey, storageValue] : this->vmStorage_) {
     const auto key = Utils::makeBytes(bytes::join(storageKey.first, storageKey.second));
     stateBatch.push_back(key, storageValue, DBPrefix::vmStorage);
+  }
+  // Also make sure to dump all the EVM Contracts
+  for (const auto& [codeHash, code] : this->evmContracts_) {
+    stateBatch.push_back(codeHash, *code, DBPrefix::evmContracts);
   }
 
   return stateBatch;
@@ -257,6 +309,7 @@ void State::processTransaction(
       .storage(this->vmStorage_)
       .accounts(this->accounts_)
       .contracts(this->contracts_)
+      .evmContracts(this->evmContracts_)
       .blockHash(blockHash)
       .txHash(tx.hash())
       .txOrigin(tx.getFrom())
@@ -502,6 +555,7 @@ Bytes State::ethCall(EncodedStaticCallMessage& msg) {
       .storage(this->vmStorage_)
       .accounts(this->accounts_)
       .contracts(this->contracts_)
+      .evmContracts(this->evmContracts_)
       .blockHash(Hash())
       .txHash(Hash())
       .txOrigin(msg.from())
@@ -546,6 +600,7 @@ int64_t State::estimateGas(EncodedMessageVariant msg) {
         .storage(this->vmStorage_)
         .accounts(this->accounts_)
         .contracts(this->contracts_)
+        .evmContracts(this->evmContracts_)
         .blockHash(latestBlock->getHash())
         .txHash(Hash())
         .txOrigin(callMessage->from())
@@ -567,6 +622,7 @@ int64_t State::estimateGas(EncodedMessageVariant msg) {
         .accounts(this->accounts_)
         .contracts(this->contracts_)
         .blockHash(latestBlock->getHash())
+        .evmContracts(this->evmContracts_)
         .txHash(Hash())
         .txOrigin(createMessage->from())
         .blockCoinbase(Secp256k1::toAddress(latestBlock->getValidatorPubKey()))
@@ -635,6 +691,8 @@ Bytes State::getContractCode(const Address &addr) const {
     precompileContract.append(contractIt->second->getContractName());
     return {precompileContract.begin(), precompileContract.end()};
   }
-  return it->second->code;
+  if (it->second->code == nullptr) {
+    return {};
+  }
+  return *it->second->code;
 }
-

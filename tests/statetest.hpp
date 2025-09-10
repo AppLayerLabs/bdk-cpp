@@ -32,6 +32,7 @@ class StateTest : public State {
       .storage(this->vmStorage_)
       .accounts(this->accounts_)
       .contracts(this->contracts_)
+      .evmContracts(this->evmContracts_)
       .blockHash(Hash())
       .txHash(tx.hash())
       .txOrigin(tx.getFrom())
