@@ -42,7 +42,7 @@ const BaseContract& ExecutionContext::getContract(View<Address> contractAddress)
   return *it->second;
 }
 
-std::shared_ptr<Bytes> ExecutionContext::checkEVMContract(View<Hash> codeHash, View<Bytes> code) {
+std::shared_ptr<Bytes> ExecutionContext::checkEVMContract(const Hash& codeHash, View<Bytes> code) {
   const auto itContract = evmContracts_.find(codeHash);
   if (itContract == evmContracts_.end()) {
     auto itInsert = this->evmContracts_.emplace(codeHash, std::make_shared<Bytes>(code));

@@ -85,7 +85,7 @@ public:
 
   const BaseContract& getContract(View<Address> contractAddress) const;
 
-  std::shared_ptr<Bytes> checkEVMContract(View<Hash> codeHash, View<Bytes> code);
+  std::shared_ptr<Bytes> checkEVMContract(const Hash& codeHash, View<Bytes> code);
 
   const auto& getEvents() const { return events_; }
 
