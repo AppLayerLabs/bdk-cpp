@@ -170,6 +170,24 @@ class DB {
     }
 
     /**
+     * Check if a given prefix has any entries in the database.
+     * @tparam BytesContainer Any container that stores Bytes.
+     * @param pfx The prefix to search for.
+     * @return `true` if the prefix has entries, `false` otherwise.
+     */
+    template <typename BytesContainer> bool hasPrefix(const BytesContainer& pfx) const {
+      std::unique_ptr<rocksdb::Iterator> it(this->db_->NewIterator(rocksdb::ReadOptions()));
+      rocksdb::Slice pfxSlice(reinterpret_cast<const char*>(pfx.data()), pfx.size());
+      it->Seek(pfxSlice);
+      if (it->Valid()) {
+        if (it->key().starts_with(pfxSlice)) { it.reset(); return true; }
+      }
+      it.reset();
+      return false;
+    }
+
+
+    /**
      * Get a value from a given key in the database.
      * @tparam BytesContainer Any container that stores Bytes.
      * @param key The key to search for.

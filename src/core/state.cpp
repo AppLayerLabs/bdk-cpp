@@ -52,7 +52,7 @@ State::State(
 #ifdef BUILD_TESTNET
     // We gotta import the EVM Accounts code from the Account object itself
     // to the evmContracts_ map, so we can save up memory and avoid duplicated code
-    if (!db.has(DBPrefix::evmContracts)) {
+    if (db.hasPrefix(DBPrefix::evmContracts)) {
       Utils::safePrint("No EVM Contracts found in DB, importing from Accounts...");
       for (const auto& dbEntry : accountsFromDB) {
         Address addr(dbEntry.key);
