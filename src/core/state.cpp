@@ -37,6 +37,7 @@ State::State(
   auto now = std::chrono::system_clock::now();
 
   if (auto accountsFromDB = db.getBatch(DBPrefix::nativeAccounts); accountsFromDB.empty()) {
+    Utils::safePrint("No accounts found in DB, initializing genesis state");
     if (snapshotHeight != 0) {
       throw DynamicException("Snapshot height is higher than 0, but no accounts found in DB");
     }
@@ -52,7 +53,7 @@ State::State(
 #ifdef BUILD_TESTNET
     // We gotta import the EVM Accounts code from the Account object itself
     // to the evmContracts_ map, so we can save up memory and avoid duplicated code
-    if (db.hasPrefix(DBPrefix::evmContracts)) {
+    if (!db.hasPrefix(DBPrefix::evmContracts)) {
       Utils::safePrint("No EVM Contracts found in DB, importing from Accounts...");
       for (const auto& dbEntry : accountsFromDB) {
         Address addr(dbEntry.key);
@@ -72,6 +73,10 @@ State::State(
           }
         }
       }
+    } else {
+      for (const auto& dbEntry : accountsFromDB) {
+        this->accounts_.emplace(Address(dbEntry.key), dbEntry.value);
+      }
     }
 #else
     for (const auto& dbEntry : accountsFromDB) {
@@ -80,6 +85,7 @@ State::State(
 #endif
   }
 
+  Utils::safePrint("Loaded " + std::to_string(this->accounts_.size()) + " accounts from DB");
   // Load all the EVM Storage Slot/keys from the DB
   for (const auto& dbEntry : db.getBatch(DBPrefix::vmStorage)) {
     Address addr(dbEntry.key | std::views::take(ADDRESS_SIZE));
