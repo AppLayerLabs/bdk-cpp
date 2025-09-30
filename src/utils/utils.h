@@ -21,6 +21,10 @@ See the LICENSE.txt file in the project root for more information.
 #include <boost/beast/core/error.hpp>
 #include <boost/asio/ip/address.hpp>
 
+#include <boost/multiprecision/cpp_dec_float.hpp>
+
+using cpp_float = boost::multiprecision::number<boost::multiprecision::cpp_dec_float<200>>;
+
 #include <ethash/keccak.h>
 
 #include "../libs/json.hpp" // algorithm, array, tuple
@@ -37,8 +41,8 @@ See the LICENSE.txt file in the project root for more information.
 /// Localhost IPv4 address constant
 inline const boost::asio::ip::address LOCALHOST = boost::asio::ip::address::from_string("127.0.0.1");
 
-// Testnet Address generation fork height at 18834827
-inline constexpr int64_t TESTNET_ADDRESSGEN_FORK_HEIGHT = 18'834'827;
+// Testnet Address generation fork height at 23630635
+inline constexpr int64_t TESTNET_ADDRESSGEN_FORK_HEIGHT = 23630635;
 
 /// @file utils.h
 // Forward declaration.

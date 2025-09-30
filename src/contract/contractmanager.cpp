@@ -21,12 +21,18 @@ ContractManager::ContractManager(
   ContractFactory::registerContracts<ContractTypes>();
   ContractFactory::addAllContractFuncs<ContractTypes>(this->createContractFuncs_);
   // Load Contracts from DB
-  for (const DBEntry& contract : db.getBatch(DBPrefix::contractManager)) {
-    Address address(contract.key);
-    if (!this->loadFromDB<ContractTypes>(contract, address, db, observer)) {
-      throw DynamicException("Unknown contract: " + StrConv::bytesToString(contract.value));
+  auto dbContracts = db.getBatch(DBPrefix::contractManager);
+  Utils::safePrint("Loading " + std::to_string(dbContracts.size()) + " contracts from DB");
+  for (uint64_t i = 0; i < dbContracts.size(); ++i) {
+    if (i % 100 == 0 && i != 0) {
+      Utils::safePrint("Loaded " + std::to_string(i) + " / " + std::to_string(dbContracts.size()) + " contracts from DB");
+    }
+    Address address(dbContracts[i].key);
+    if (!this->loadFromDB<ContractTypes>(dbContracts[i], address, db, observer)) {
+      throw DynamicException("Unknown contract: " + StrConv::bytesToString(dbContracts[i].value));
     }
   }
+  Utils::safePrint("Loaded " + std::to_string(this->contracts_.size()) + " C++ contracts from DB");
   manager.pushBack(this);
 }
 

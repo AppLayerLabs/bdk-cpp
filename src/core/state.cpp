@@ -117,23 +117,44 @@ State::State(
   }
   Utils::safePrint("Loaded " + std::to_string(evmContractAccounts) + " EVM Contract accounts from DB");
 
+  uint256_t realEVMContractsMemSize = 0;
+  uint256_t previousEVMContractsMemSize = 0;
+  for (const auto& [codeHash, code] : this->evmContracts_) {
+    realEVMContractsMemSize += code->size() + (sizeof(std::shared_ptr<Bytes>) * code.use_count());
+    // We also need to include the size of the shared_ptr reference count
+    previousEVMContractsMemSize += code->size() * code.use_count();
+  }
+
+  uint256_t savedUpMem = previousEVMContractsMemSize - realEVMContractsMemSize;
+  // Print in MB
+  Utils::safePrint("EVM Contracts memory usage: " + (realEVMContractsMemSize / 1'000'000).str() + " MB"
+    + " (Saved up to " + (savedUpMem / 1'000'000).str() + " MB by deduplicating code in accounts)"
+  );
+
+
   auto latestBlock = this->storage_.latest();
   auto snapshotBlock = this->storage_.getBlock(snapshotHeight);
   if (snapshotBlock == nullptr) {
     throw DynamicException("Snapshot block not found!?");
   }
+  Utils::safePrint("Initializing state at snapshot block " + snapshotBlock->getHash().hex().get()
+    + " at height " + std::to_string(snapshotBlock->getNHeight())
+  );
   ContractGlobals::coinbase_ = Secp256k1::toAddress(snapshotBlock->getValidatorPubKey());
   ContractGlobals::blockHash_ = snapshotBlock->getHash();
   ContractGlobals::blockHeight_ = snapshotBlock->getNHeight();
   ContractGlobals::blockTimestamp_ = snapshotBlock->getTimestamp();
+  Utils::safePrint("Initializing the ContractManager...");
   // Insert the contract manager into the contracts_ map.
   this->contracts_[ProtocolContractAddresses.at("ContractManager")] = std::make_unique<ContractManager>(
     db, this->contracts_, this->dumpManager_ ,this->blockObservers_, this->options_
   );
 
   // State sanity check, lets check if all found contracts in the accounts_ map really have code or are C++ contracts
+  Utils::safePrint("Performing contract sanity check on " + std::to_string(this->accounts_.size()) + " accounts...");
   for (const auto& [addr, acc] : this->accounts_) contractSanityCheck(addr, *acc);
 
+  Utils::safePrint("Contract sanity check passed");
   if (snapshotHeight > this->storage_.latest()->getNHeight()) {
     LOGERROR("Snapshot height is higher than latest block, we can't load State! Crashing the program");
     throw DynamicException("Snapshot height is higher than latest block, we can't load State!");
