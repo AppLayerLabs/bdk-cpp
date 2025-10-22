@@ -71,6 +71,12 @@ endif()
 if(BUILD_TESTNET)
   add_definitions(-DBUILD_TESTNET)
 endif()
+if(BUILD_TESTS)
+  add_compile_definitions(BUILD_TESTS)
+endif()
+if(BUILD_BENCHMARK)
+  add_compile_definitions(BUILD_BENCHMARK_TESTS)
+endif()
 
 # Echo CMake vars during config
 message(STATUS "C++ standard: ${CMAKE_CXX_STANDARD}")
@@ -94,19 +100,22 @@ set(Boost_USE_STATIC_LIBS ON)
 set(OPENSSL_USE_STATIC_LIBS ON)
 set(Protobuf_USE_STATIC_LIBS ON)
 
+# Generate the code of all the CometBFT proto files (with the has_vote hack)
+# using the old protoc logic which did work, will generate target gen-proto-grpc
+include(cmake/GenerateCometBFTProto_NoExp.cmake)
+
 # Find system packages (built-in)
 find_package(Boost 1.83.0 REQUIRED COMPONENTS chrono filesystem program_options system thread nowide)
 find_package(OpenSSL 1.1.1 REQUIRED)
-find_package(Protobuf REQUIRED) # TODO: not used yet but will be, keep it for now
+find_package(ZLIB REQUIRED)
 find_package(Threads)
 
 # Find system packages (custom)
-find_package(Cares REQUIRED) # TODO: not used yet but will be, keep it for now
+find_package(Protobuf CONFIG REQUIRED)
 find_package(CryptoPP 8.2.0 REQUIRED)
 find_package(Ethash REQUIRED)
 find_package(Evmc REQUIRED)
 find_package(Evmone REQUIRED)
-find_package(GRPC REQUIRED) # TODO: not used yet but will be, keep it for now
 find_package(Keccak REQUIRED)
 find_package(Scrypt REQUIRED)
 find_package(Secp256k1 REQUIRED)
@@ -156,13 +165,16 @@ add_library(bdk_lib STATIC
 target_include_directories(bdk_lib PRIVATE
   ${CMAKE_SOURCE_DIR}/include ${OPENSSL_INCLUDE_DIR} ${ETHASH_INCLUDE_DIR} ${KECCAK_INCLUDE_DIR}
   ${EVMC_INCLUDE_DIR} ${EVMONE_INCLUDE_DIR} ${SPEEDB_INCLUDE_DIR} ${SECP256K1_INCLUDE_DIR}
+  ${Protobuf_INCLUDE_DIRS}
 )
 
 target_link_libraries(bdk_lib PRIVATE
   ${EVMC_INSTRUCTIONS_LIBRARY} ${EVMC_LOADER_LIBRARY} ${EVMONE_LIBRARY}
   ${CRYPTOPP_LIBRARIES} ${SCRYPT_LIBRARY} ${SECP256K1_LIBRARY}
   ${ETHASH_LIBRARY} ${KECCAK_LIBRARY} ${SPEEDB_LIBRARY}
-  ${Boost_LIBRARIES} ${OPENSSL_LIBRARIES} -l:liblz4.a SQLiteCpp
+  ${Boost_LIBRARIES} ${OPENSSL_LIBRARIES} protobuf::libprotobuf -l:liblz4.a SQLiteCpp
+  PUBLIC
+  gen-proto-grpc
 )
 
 add_subdirectory(src/bins)
