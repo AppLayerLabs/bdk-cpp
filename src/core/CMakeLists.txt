@@ -5,6 +5,7 @@ set(CORE_HEADERS
    ${CMAKE_SOURCE_DIR}/src/core/dump.h
    ${CMAKE_SOURCE_DIR}/src/core/storage.h
    ${CMAKE_SOURCE_DIR}/src/core/rdpos.h
+   ${CMAKE_SOURCE_DIR}/src/core/comet.h
   PARENT_SCOPE
 )
 
@@ -15,5 +16,6 @@ set(CORE_SOURCES
    ${CMAKE_SOURCE_DIR}/src/core/dump.cpp
    ${CMAKE_SOURCE_DIR}/src/core/storage.cpp
    ${CMAKE_SOURCE_DIR}/src/core/rdpos.cpp
+   ${CMAKE_SOURCE_DIR}/src/core/comet.cpp
   PARENT_SCOPE
 )

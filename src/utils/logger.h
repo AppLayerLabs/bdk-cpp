@@ -13,6 +13,7 @@ See the LICENSE.txt file in the project root for more information.
 #include <iomanip> // used by core/consensus.h
 #include <iostream> // used by core/consensus.h
 #include <sstream> // used by core/consensus.h
+#include <fstream> // needed (at least on gcc 13.2)
 #include <queue>
 
 #include <boost/core/demangle.hpp> // includes string

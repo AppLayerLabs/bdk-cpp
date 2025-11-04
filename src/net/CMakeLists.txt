@@ -13,6 +13,10 @@ set(NET_HEADERS
   ${CMAKE_SOURCE_DIR}/src/net/p2p/discovery.h
   ${CMAKE_SOURCE_DIR}/src/net/p2p/nodeconns.h
   ${CMAKE_SOURCE_DIR}/src/net/p2p/broadcaster.h
+  ${CMAKE_SOURCE_DIR}/src/net/abci/abcihandler.h
+  ${CMAKE_SOURCE_DIR}/src/net/abci/abcinetserver.h
+  ${CMAKE_SOURCE_DIR}/src/net/abci/abcinetsession.h
+  ${CMAKE_SOURCE_DIR}/src/net/abci/abciserver.h
   PARENT_SCOPE
 )
 
@@ -34,6 +38,9 @@ set(NET_SOURCES
   ${CMAKE_SOURCE_DIR}/src/net/p2p/discovery.cpp
   ${CMAKE_SOURCE_DIR}/src/net/p2p/nodeconns.cpp
   ${CMAKE_SOURCE_DIR}/src/net/p2p/broadcaster.cpp
+  ${CMAKE_SOURCE_DIR}/src/net/abci/abcinetserver.cpp
+  ${CMAKE_SOURCE_DIR}/src/net/abci/abcinetsession.cpp
+  ${CMAKE_SOURCE_DIR}/src/net/abci/abciserver.cpp
   PARENT_SCOPE
 )
 
