@@ -1271,7 +1271,7 @@ json Blockchain::eth_blockNumber(const json& request) {
 json Blockchain::eth_call(const json& request) {
   auto [from, to, gas, value, data] = parseMessage(request, true);
   EncodedStaticCallMessage msg(from, to, gas, data);
-  return Hex::fromBytes(state().ethCall(msg));
+  return Hex::fromBytes(state().ethCall(msg), true);
 }
 
 json Blockchain::eth_estimateGas(const json& request) {
