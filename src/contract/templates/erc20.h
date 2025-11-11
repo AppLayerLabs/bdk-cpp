@@ -19,7 +19,7 @@ See the LICENSE.txt file in the project root for more information.
 #include "../variables/safeunorderedmap.h"
 
 /// Template for an ERC20 contract.
-class ERC20 : public DynamicContract {
+class ERC20 : virtual public DynamicContract {
   protected:
     /// Solidity: string internal name_;
     SafeString name_;

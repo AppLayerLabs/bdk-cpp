@@ -28,7 +28,7 @@ ERC20Mintable::~ERC20Mintable() = default;
 DBBatch ERC20Mintable::dump() const {
   // We need to dump all the data from the parent class as well
   DBBatch batch = ERC20::dump();
-  DBBatch baseDump = BaseContract::dump();
+  DBBatch baseDump = Ownable::dump();
   for (const auto& dbItem : baseDump.getPuts()) batch.push_back(dbItem);
   for (const auto& dbItem : baseDump.getDels()) batch.delete_key(dbItem);
   return batch;
