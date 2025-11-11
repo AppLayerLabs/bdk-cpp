@@ -56,3 +56,4 @@ sparq-docs
 # User-defined node config
 nodeopts/options.json
 
+commits_main_not_in_halley.txt
