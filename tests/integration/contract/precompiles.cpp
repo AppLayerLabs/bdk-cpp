@@ -7,7 +7,7 @@ See the LICENSE.txt file in the project root for more information.
 
 #include "libs/catch2/catch_amalgamated.hpp"
 
-#include "contract/precompiles.h"
+#include "contract/precompiles/precompiles.h"
 
 #include "bytes/hex.h"
 
@@ -33,8 +33,7 @@ namespace TPRECOMPILES {
       const Hash s = bytes::hex("0x4f8ae3bd7535248d0bd448298cc2e2071e56992d0774dc340c368ae950852ada");
 
       const Address expectedResult = bytes::hex("0x7156526fbd7a3c72969b54f64e42c10fbb768c8a");
-
-      REQUIRE(ecrecover(hash, v, r, s) == expectedResult);
+      REQUIRE(precompiles::ecrecover(hash, v, r, s) == expectedResult);
     }
 
     SECTION("contract call for ecrecover") {

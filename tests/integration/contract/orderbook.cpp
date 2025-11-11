@@ -6,14 +6,13 @@
 */
 
 #include "../../src/utils/db.h"
-#include "../../src/core/rdpos.h"
 #include "../../src/contract/abi.h"
 #include "../../src/utils/options.h"
 #include "../../src/contract/contractmanager.h"
 #include "../../src/libs/catch2/catch_amalgamated.hpp"
 
 #include "../../src/contract/templates/orderbook/orderbook.h"
-#include "../sdktestsuite.hpp"
+#include "../../sdktestsuite.hpp"
 
 #include <filesystem>
 
@@ -22,12 +21,12 @@ namespace TORDERBOOK {
   TEST_CASE("OrderBook Class", "[contract][orderbook]") {
     SECTION("Orderbook creation") {
       SDKTestSuite sdk = SDKTestSuite::createNewEnvironment(testDumpPath + "/testOrderBookCreation");
-      REQUIRE(sdk.getState().getDumpManagerSize() == 3);
+      REQUIRE(sdk.getState().getUserContractsSize() == 0);
       Address askAddr = sdk.deployContract<ERC20>(std::string("A_Token"),
                                                   std::string("TST"),
                                                   uint8_t(18),
                                                   uint256_t("1000000000000000000"));
-      REQUIRE(sdk.getState().getDumpManagerSize() == 4);
+      REQUIRE(sdk.getState().getUserContractsSize() == 1);
       REQUIRE(sdk.callViewFunction(askAddr, &ERC20::name) == "A_Token");
       REQUIRE(sdk.callViewFunction(askAddr, &ERC20::decimals) > 8);
 
@@ -35,14 +34,14 @@ namespace TORDERBOOK {
                                                   std::string("TST"),
                                                   uint8_t(18),
                                                   uint256_t("1000000000000000000"));
-      REQUIRE(sdk.getState().getDumpManagerSize() == 5);
+      REQUIRE(sdk.getState().getUserContractsSize() == 2);
       REQUIRE(sdk.callViewFunction(bidAddr, &ERC20::name) == "B_Token");
 
       uint8_t decA = sdk.callViewFunction(askAddr, &ERC20::decimals);
       uint8_t decB = sdk.callViewFunction(bidAddr, &ERC20::decimals);
       Address orderBook = sdk.deployContract<OrderBook>(askAddr, std::string("A_Token"), decA,
                                                         bidAddr, std::string("B_Token"), decB);
-      REQUIRE(sdk.getState().getDumpManagerSize() == 6);
+      REQUIRE(sdk.getState().getUserContractsSize() == 3);
     }
 
     SECTION("Orderbook add bid limit order") {
