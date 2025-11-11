@@ -1371,7 +1371,7 @@ json Blockchain::eth_getCode(const json& request) {
   // if (!block.isLatest(getLatestHeight()))
   //   throw DynamicException("Only the latest block is supported");
 
-  return Hex::fromBytes(state_.getContractCode(address), true).forRPC();
+  return Hex::fromBytes(state_.getContractCode(address), true);
 }
 
 json Blockchain::eth_sendRawTransaction(const json& request) {
