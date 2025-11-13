@@ -307,7 +307,7 @@ namespace TEVM {
 
       uint256_t balanceBefore = sdk.getNativeBalance(owner.address);
 
-      sdk.advanceChain(0, {tx});
+      sdk.advanceChain({tx});
 
       uint256_t balanceAfter = sdk.getNativeBalance(owner.address);
 

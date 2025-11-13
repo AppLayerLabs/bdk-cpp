@@ -566,6 +566,7 @@ class DynamicContract : public BaseContract {
       return this->host_->callContractFunction(this, address, value, func);
     }
 
+
     /**
      * Wrapper for calling a contract function (non-view) based on the basic requirements of a contract call.
      * @tparam R The return type of the function.
@@ -586,14 +587,13 @@ class DynamicContract : public BaseContract {
         this->host_ = contractHost;
       }
 
-      return (static_cast<C*>(this)->*func)(args...);
+      return (dynamic_cast<C*>(this)->*func)(args...);
     }
 
     /**
      * Wrapper for calling a contract function (non-view) based on the basic requirements of a contract call with no arguments.
      * @tparam R The return type of the function.
      * @tparam C The contract type.
-     * @tparam Args The argument types of the function.
      * @param contractHost Pointer to the contract host.
      * @param func The function to call.
      * @return The result of the function.
@@ -604,9 +604,9 @@ class DynamicContract : public BaseContract {
         if (this->host_ == nullptr) {
           this->host_ = contractHost;
           PointerNullifier nullifier(this->host_);
-          return (static_cast<C*>(this)->*func)();
+          return (dynamic_cast<C*>(this)->*func)();
         }
-        return (static_cast<C*>(this)->*func)();
+        return (dynamic_cast<C*>(this)->*func)();
       } catch (const std::exception& e) {
         throw DynamicException(e.what());
       }
