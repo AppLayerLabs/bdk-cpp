@@ -977,12 +977,12 @@ std::string CometImpl::waitPauseState(uint64_t timeoutMillis) {
 }
 
 std::string CometImpl::getNodeID() {
-  std::scoped_lock(this->nodeIdMutex_);
+  std::scoped_lock lock(this->nodeIdMutex_);
   return this->nodeId_;
 }
 
 Bytes CometImpl::getValidatorPubKey() {
-  std::scoped_lock(this->validatorPubKeyMutex_);
+  std::scoped_lock lock(this->validatorPubKeyMutex_);
   return this->validatorPubKey_;
 }
 
@@ -1777,7 +1777,7 @@ void CometImpl::workerLoopInner() {
           throw DynamicException("CometBFT priv_validator_key.json pub_key::value field is missing or invalid.");
         }
         std::string validatorPubKeyStr = pubKeyObject["value"].get<std::string>();
-        std::scoped_lock(this->validatorPubKeyMutex_);
+        std::scoped_lock lockVadalitorPubkey(this->validatorPubKeyMutex_);
         validatorPubKey_ = base64::decode_into<Bytes>(validatorPubKeyStr);
         LOGINFO("Validator public key: " + Hex::fromBytes(validatorPubKey_).get());
       } else {
