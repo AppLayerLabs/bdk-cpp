@@ -44,7 +44,7 @@ struct NoOpObserver {
 template<typename Observer>
 struct MockedEnvironment {
   MockedEnvironment(Observer observer)
-    : vm(evmc_create_evmone(), evmc_destroy), storage(), accounts(), context(ExecutionContext::Builder().storage(storage).accounts(accounts).build()),
+    : vm(evmc_create_evmone(), evmc_destroy), storage(), accounts(), context(ExecutionContext::Builder().storage(storage).accounts(accounts).evmContracts(evmContracts).build()),
       executor(AnyEncodedMessageHandler::from(*this), context, vm.get()) {}
 
   MockedEnvironment() : MockedEnvironment(NoOpObserver{}) {}
@@ -68,6 +68,7 @@ struct MockedEnvironment {
   std::unique_ptr<evmc_vm, void(*)(evmc_vm*)> vm;
   ExecutionContext::Storage storage;
   ExecutionContext::Accounts accounts;
+  ExecutionContext::EVMContracts evmContracts;
   ExecutionContext context;
   EvmContractExecutor executor;
   Observer observer_;

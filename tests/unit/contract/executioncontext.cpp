@@ -23,6 +23,7 @@ TEST_CASE("Execution Context Test Cases", "[unit][contract][executioncontext]") 
   SECTION("Building correctly") {
     ExecutionContext::Accounts accounts;
     ExecutionContext::Storage storage;
+    ExecutionContext::EVMContracts evmContracts;
 
     const Address accountAddress1 = bytes::hex("0xa29F7649159DBF66daaa6D03F9ed5733c85BDc27");
     const Address accountAddress2 = bytes::hex("0x87e42c3307c79334e4A22EF406BDe0A004D9c8C7");
@@ -50,6 +51,7 @@ TEST_CASE("Execution Context Test Cases", "[unit][contract][executioncontext]") 
     ExecutionContext context = ExecutionContext::Builder()
       .storage(storage)
       .accounts(accounts)
+      .evmContracts(evmContracts)
       .blockHash(blockHash)
       .txHash(txHash)
       .txOrigin(txOrigin)
@@ -82,6 +84,7 @@ TEST_CASE("Execution Context Test Cases", "[unit][contract][executioncontext]") 
   SECTION("Checkpoint revert to accounts") {
     ExecutionContext::Accounts accounts;
     ExecutionContext::Storage storage;
+    ExecutionContext::EVMContracts evmContracts;
 
     const std::array<const Account, 10> accountsArr = {
       Account(200, 3), Account(100, 2), Account(150, 1),
@@ -107,6 +110,7 @@ TEST_CASE("Execution Context Test Cases", "[unit][contract][executioncontext]") 
     ExecutionContext context = ExecutionContext::Builder()
       .storage(storage)
       .accounts(accounts)
+      .evmContracts(evmContracts)
       .build();
 
     addAccount(context, addresses[1], accountsArr[1]);
@@ -193,12 +197,14 @@ TEST_CASE("Execution Context Test Cases", "[unit][contract][executioncontext]") 
 
     ExecutionContext::Accounts accounts;
     ExecutionContext::Storage storage;
+    ExecutionContext::EVMContracts evmContracts;
 
     storage.emplace(StorageKeyView(addr[0], slots[0]), data[0]);
 
     ExecutionContext context = ExecutionContext::Builder()
       .storage(storage)
       .accounts(accounts)
+      .evmContracts(evmContracts)
       .build();
 
     context.store(addr[1], slots[1], data[1]);
@@ -290,12 +296,14 @@ TEST_CASE("Execution Context Test Cases", "[unit][contract][executioncontext]") 
 
     ExecutionContext::Accounts accounts;
     ExecutionContext::Storage storage;
+    ExecutionContext::EVMContracts evmContracts;
 
     storage.emplace(StorageKeyView(addr[0], slots[0]), data[0]);
 
     ExecutionContext context = ExecutionContext::Builder()
       .storage(storage)
       .accounts(accounts)
+      .evmContracts(evmContracts)
       .build();
 
     context.store(addr[1], slots[1], data[1]);
