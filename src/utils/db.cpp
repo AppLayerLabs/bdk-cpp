@@ -59,7 +59,7 @@ std::vector<DBEntry> DB::getBatch(
     rocksdb::Slice newPfxSlice(reinterpret_cast<const char*>(newPfx.data()), newPfx.size());
     for (it->Seek(newPfxSlice); it->Valid() && it->key().starts_with(newPfxSlice); it->Next()) {
       auto keySlice = it->key();
-      keySlice.remove_prefix(newPfx.size());
+      keySlice.remove_prefix(bytesPfx.size());
       ret.emplace_back(Bytes(keySlice.data(), keySlice.data() + keySlice.size()), Bytes(it->value().data(), it->value().data() + it->value().size()));
     }
   }

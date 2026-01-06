@@ -105,6 +105,7 @@ namespace TDB {
       std::vector<DBEntry> getBS = db.getBatch(pfx, keysToSearch);
       REQUIRE(!getBS.empty());
       REQUIRE(getBS.size() == 4);
+
       for (const DBEntry& getES : getBS) {
         REQUIRE(std::find(keys.begin(), keys.end(), getES.key) != keys.end());
       }

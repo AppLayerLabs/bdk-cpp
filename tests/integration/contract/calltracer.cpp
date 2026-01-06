@@ -97,9 +97,8 @@ namespace TCallTracer {
       sdk.callViewFunction(contractAddress, &TestWrapper::sum);
       REQUIRE(res == 0);
 
-      sdk.callFunction(contractAddress, &TestWrapper::add, uint256_t(33));
+      Hash txHash = sdk.callFunction(contractAddress, &TestWrapper::add, uint256_t(33));
 
-      Hash txHash = getLatestTransactionHash(sdk);
       std::optional<trace::Call> callTrace = sdk.getStorage().getCallTrace(txHash);
       REQUIRE(callTrace);
 
@@ -206,23 +205,25 @@ namespace TCallTracer {
       const auto approveCallTrace = sdk.getStorage().getCallTrace(approveTx);
       const auto depositCallTrace = sdk.getStorage().getCallTrace(depositTx);
 
+      REQUIRE(erc20Wrapper == Address(Hex::toBytes("0x9787db777ee6ee9ea1097dad27f20128b2e9d086")));
       REQUIRE(approveCallTrace);
       REQUIRE(approveCallTrace->type == trace::CallType::CALL);
       REQUIRE(approveCallTrace->status == trace::CallStatus::SUCCEEDED);
       REQUIRE(approveCallTrace->from == sdk.getOptions().getChainOwner());
       REQUIRE(approveCallTrace->to == erc20);
       REQUIRE(approveCallTrace->value == FixedBytes<32>());
-      REQUIRE(approveCallTrace->input == Hex::toBytes("0x095ea7b30000000000000000000000006d48fdfe009e309dd5c4e69dec87365bfa0c811900000000000000000000000000000000000000000000000006f05b59d3b20000"));
+      REQUIRE(approveCallTrace->input == Hex::toBytes("0x095ea7b30000000000000000000000009787db777ee6ee9ea1097dad27f20128b2e9d08600000000000000000000000000000000000000000000000006f05b59d3b20000"));
       REQUIRE(approveCallTrace->output == Utils::makeBytes(bytes::hex("0x0000000000000000000000000000000000000000000000000000000000000001")));
       REQUIRE(approveCallTrace->calls.empty());
 
+      REQUIRE(erc20 == Address(Hex::toBytes("0x5c9bb9e1271b23795d9431174842fc5c52912d71")));
       REQUIRE(depositCallTrace);
       REQUIRE(depositCallTrace->type == trace::CallType::CALL);
       REQUIRE(depositCallTrace->status == trace::CallStatus::SUCCEEDED);
       REQUIRE(depositCallTrace->from == sdk.getOptions().getChainOwner());
       REQUIRE(depositCallTrace->to == erc20Wrapper);
       REQUIRE(depositCallTrace->value == FixedBytes<32>());
-      REQUIRE(depositCallTrace->input == Hex::toBytes("0x47e7ef240000000000000000000000005b41cef7f46a4a147e31150c3c5ffd077e54d0e100000000000000000000000000000000000000000000000006f05b59d3b20000"));
+      REQUIRE(depositCallTrace->input == Hex::toBytes("0x47e7ef240000000000000000000000005c9bb9e1271b23795d9431174842fc5c52912d7100000000000000000000000000000000000000000000000006f05b59d3b20000"));
       REQUIRE(depositCallTrace->output == Bytes());
       REQUIRE(!depositCallTrace->calls.empty());
       REQUIRE(depositCallTrace->calls[0].type == trace::CallType::CALL);
@@ -230,7 +231,7 @@ namespace TCallTracer {
       REQUIRE(depositCallTrace->calls[0].from == erc20Wrapper);
       REQUIRE(depositCallTrace->calls[0].to == erc20);
       REQUIRE(depositCallTrace->calls[0].value == FixedBytes<32>());
-      REQUIRE(depositCallTrace->calls[0].input == Hex::toBytes("0x23b872dd00000000000000000000000000dead00665771855a34155f5e7405489df2c3c60000000000000000000000006d48fdfe009e309dd5c4e69dec87365bfa0c811900000000000000000000000000000000000000000000000006f05b59d3b20000"));
+      REQUIRE(depositCallTrace->calls[0].input == Hex::toBytes("0x23b872dd00000000000000000000000000dead00665771855a34155f5e7405489df2c3c60000000000000000000000009787db777ee6ee9ea1097dad27f20128b2e9d08600000000000000000000000000000000000000000000000006f05b59d3b20000"));
       REQUIRE(depositCallTrace->calls[0].output == Hex::toBytes("0x0000000000000000000000000000000000000000000000000000000000000001"));
       REQUIRE(depositCallTrace->calls[0].calls.empty());
     }
@@ -256,13 +257,15 @@ namespace TCallTracer {
       const auto successCallTrace = sdk.getStorage().getCallTrace(validWithdrawTxHash);
       const auto payCallTrace = sdk.getStorage().getCallTrace(payTxHash);
 
+      REQUIRE(bankAddress == Address(Hex::toBytes("5c9bb9e1271b23795d9431174842fc5c52912d71")));
+      REQUIRE(userAddress == Address(Hex::toBytes("9787db777ee6ee9ea1097dad27f20128b2e9d086")));
       REQUIRE(errorCallTrace);
       REQUIRE(errorCallTrace->type == trace::CallType::CALL);
       REQUIRE(errorCallTrace->status == trace::CallStatus::SUCCEEDED);
       REQUIRE(errorCallTrace->from == sdk.getOptions().getChainOwner());
       REQUIRE(errorCallTrace->to == userAddress);
       REQUIRE(errorCallTrace->value == FixedBytes<32>());
-      REQUIRE(errorCallTrace->input == Hex::toBytes("0x7f3358bc0000000000000000000000005b41cef7f46a4a147e31150c3c5ffd077e54d0e100000000000000000000000000000000000000000000000000000000000001f5"));
+      REQUIRE(errorCallTrace->input == Hex::toBytes("0x7f3358bc0000000000000000000000005c9bb9e1271b23795d9431174842fc5c52912d7100000000000000000000000000000000000000000000000000000000000001f5"));
       REQUIRE(errorCallTrace->output == Bytes(32));
       REQUIRE(!errorCallTrace->calls.empty());
       REQUIRE(errorCallTrace->calls[0].type == trace::CallType::CALL);
@@ -271,7 +274,7 @@ namespace TCallTracer {
       REQUIRE(errorCallTrace->calls[0].to == bankAddress);
       REQUIRE(errorCallTrace->calls[0].value == FixedBytes<32>());
       REQUIRE(errorCallTrace->calls[0].input == Hex::toBytes("0x2e1a7d4d00000000000000000000000000000000000000000000000000000000000001f5"));
-      REQUIRE(errorCallTrace->calls[0].output == ABI::Encoder::encodeError("Insufficient funds"));
+      REQUIRE(errorCallTrace->calls[0].output == Hex::toBytes("08c379a00000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000014b45564d20436f6e747261637420657865637574696f6e206661696c656420776974682022496e73756666696369656e742066756e64732220776974682074686520646565706573742044454c4547415445442043414c4c206661696c2066726f6d3a2030783937383764623737376565366565396561313039376461643237663230313238623265396430383620746f3a2030783563396262396531323731623233373935643934333131373438343266633563353239313264373120636f646520616464726573733a2030783563396262396531323731623233373935643934333131373438343266633563353239313264373120616e6420696e7075743a203078326531613764346430303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030316635000000000000000000000000000000000000000000"));
       REQUIRE(errorCallTrace->calls[0].calls.empty());
 
       REQUIRE(successCallTrace);
@@ -280,7 +283,7 @@ namespace TCallTracer {
       REQUIRE(successCallTrace->from == sdk.getOptions().getChainOwner());
       REQUIRE(successCallTrace->to == userAddress);
       REQUIRE(successCallTrace->value == FixedBytes<32>());
-      REQUIRE(successCallTrace->input == Hex::toBytes("0x7f3358bc0000000000000000000000005b41cef7f46a4a147e31150c3c5ffd077e54d0e1000000000000000000000000000000000000000000000000000000000000012c"));
+      REQUIRE(successCallTrace->input == Hex::toBytes("0x7f3358bc0000000000000000000000005c9bb9e1271b23795d9431174842fc5c52912d71000000000000000000000000000000000000000000000000000000000000012c"));
       REQUIRE(successCallTrace->output == Hex::toBytes("0x0000000000000000000000000000000000000000000000000000000000000001"));
       REQUIRE(!successCallTrace->calls.empty());
       REQUIRE(successCallTrace->calls[0].type == trace::CallType::CALL);

@@ -362,14 +362,16 @@ namespace TEVM {
       auto sdk = SDKTestSuite::createNewEnvironment("TimestampContract");
       const Address timestampContract = sdk.deployBytecode(timestampContractBytecode);
       auto bestBlockTimestamp = sdk.latest()->getTimestamp();
-      auto bestBlockNumber = sdk.latest()->getNHeight();
+
       // The view function should return the latest block timestamp.
       REQUIRE(sdk.callViewFunction(timestampContract, &TimestampContract::returnTimestamp) == bestBlockTimestamp);
 
       // Now we do a transaction that will emit an event with the block number and timestamp.
       auto tx = sdk.callFunction(timestampContract, &TimestampContract::emitTimestamp);
-      bestBlockTimestamp = sdk.latest()->getTimestamp();
-      bestBlockNumber = sdk.latest()->getNHeight();
+      auto txInfo = sdk.getTx(tx);
+      REQUIRE(txInfo.txBlockPtr != nullptr);
+
+
       // The event should be emitted with the correct block number and timestamp.
       auto eventsOnTx = sdk.getEvents(tx);
       REQUIRE(eventsOnTx.size() == 1);
@@ -377,10 +379,11 @@ namespace TEVM {
       std::tuple<uint256_t, uint256_t> eventData = ABI::Decoder::decodeData<uint256_t, uint256_t>(eventsOnTx[0].getData());
       const uint256_t& eventBlockNumber = std::get<0>(eventData);
       const uint256_t& eventBlockTimestamp = std::get<1>(eventData);
+      const uint256_t& txBlockNumber = txInfo.blockHeight;
+      const uint256_t& txBlockTimestamp = sdk.getBlock(txInfo.blockHeight, nullptr)->getTimestamp();
       // The event should match the current block number and timestamp.
-      REQUIRE(eventBlockNumber == bestBlockNumber);
-      REQUIRE(eventBlockTimestamp == bestBlockTimestamp);
-      std::cout << "Event Number: " << eventBlockNumber << ", Event Timestamp: " << eventBlockTimestamp << std::endl;
+      REQUIRE(eventBlockNumber == txBlockNumber);
+      REQUIRE(eventBlockTimestamp == txBlockTimestamp);
     }
   }
 }

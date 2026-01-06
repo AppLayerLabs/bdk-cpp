@@ -67,7 +67,7 @@ void SystemContract::recordDelegationDelta(const PubKey& validator, const uint64
   if (checker > std::numeric_limits<int64_t>::max() || checker < 0) {
     throw DynamicException("Delegation amount limit exceeded");
   }
-  uint64_t targetVotes = checker.convert_to<uint64_t>();
+  [[maybe_unused]] uint64_t targetVotes = checker.convert_to<uint64_t>();
   // All OK, so record it
   if (positive) {
     delegationDeltas_[validator] += delta;

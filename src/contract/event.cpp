@@ -46,13 +46,13 @@ json Event::serializeForRPC() const {
   json obj = {
     {"address", Address::checksum(this->address_)},
     {"blockHash", this->blockHash_.hex(true).get()},
-    {"blockNumber", this->blockIndex_},
+    {"blockNumber", Hex::fromBytes(Utils::uintToBytes(this->blockIndex_), true).forRPC()},
     {"data", Hex::fromBytes(this->data_, true).get()},
-    {"logIndex", this->logIndex_},
+    {"logIndex", Hex::fromBytes(Utils::uintToBytes(this->logIndex_), true).forRPC()},
     {"removed", false}, // We don't fake/alter events like Ethereum does
     {"topics", topicStr},
     {"transactionHash", this->txHash_.hex(true).get()},
-    {"transactionIndex", this->txIndex_}
+    {"transactionIndex", Hex::fromBytes(Utils::uintToBytes(this->txIndex_), true).forRPC()}
   };
   return obj;
 }

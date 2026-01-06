@@ -396,6 +396,7 @@ class SDKTestSuite : public Blockchain {
       ret = tx.hash();
       // Check if the execution is not going to be reverted/throw
       this->advanceChain({tx});
+
       return ret;
     }
 

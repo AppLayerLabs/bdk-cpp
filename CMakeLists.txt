@@ -32,7 +32,7 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON) # For clang-tidy
 # TODO: -Wno-c++26-extensions is included because zpp_libs uses name-independent declarations (vars named "_").
 # This should be resolved at a later date, but was turned off for now because it doesn't affect us
 if(DEBUG)
-  set(CMAKE_CXX_FLAGS "-O0 -g -Wno-c++26-extensions -fno-inline -fno-eliminate-unused-debug-types") # Provides faster compile time.
+  set(CMAKE_CXX_FLAGS "-O0 -g -Wno-c++26-extensions -fsanitize=address -fno-inline -fno-eliminate-unused-debug-types -fstack-protector") # Provides faster compile time.
 elseif(SONARQUBE_ANALYSIS)
   set(CMAKE_CXX_FLAGS "-O0 -g -Wno-c++26-extensions --coverage")
 else()
