@@ -2,8 +2,8 @@
 # This software is distributed under the MIT License.
 # See the LICENSE.txt file in the project root for more information.
 
-# Start from a base Debian image
-FROM debian:trixie
+# Start from a base Debian Trixie image
+FROM debian:13.2
 
 # Set shell to Bash because Docker standards are stupid
 SHELL ["/bin/bash", "-c"]
