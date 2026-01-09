@@ -52,12 +52,14 @@ check_libs_hdr() {
 }
 
 # Versions for external dependencies - update numbers here if required
-PROTOC_VERSION="29.3"
-COMETBFT_VERSION="1.0.0"
+BOOST_VERSION="1.83.0"
 ETHASH_VERSION="1.1.0"
 EVMONE_VERSION="0.15.0"
 SPEEDB_VERSION="2.8.0"
 SQLITECPP_VERSION="3.3.2"
+
+PROTOC_VERSION="29.3"
+COMETBFT_VERSION="1.0.0"
 
 # Helper vars
 # Full path to the CometBFT patch file - MUST exist, otherwise script will fail
@@ -74,8 +76,9 @@ fi
 echo "-- Scanning for dependencies..."
 
 # Check toolchain binaries
-# Necessary: git, wget, tar, gcc/g++, golang, ld, make, cmake, tmux
+# Necessary: python3, git, wget, tar, gcc/g++, golang, ld, make, cmake, tmux
 # Optional: ninja, mold, doxygen, clang-tidy
+HAS_PYTHON3=$(check_exec python3)
 HAS_GIT=$(check_exec git)
 HAS_WGET=$(check_exec wget)
 HAS_TAR=$(check_exec tar)
@@ -91,16 +94,11 @@ HAS_MOLD=$(check_exec mold)
 HAS_DOXYGEN=$(check_exec doxygen)
 HAS_CLANGTIDY=$(check_exec clang-tidy)
 
-# Check external binaries
-# Necessary: protoc, cometbft
-HAS_PROTOC=$(check_exec protoc)
-HAS_COMETBFT=$(check_exec cometbft-bdk)
-
 # Check internal libraries
-# Necessary: libabsl-dev, libboost-all-dev, openssl/libssl-dev, libzstd-dev, liblz4-dev, libcrypto++-dev,
+# Necessary: zlib1g-dev, libabsl-dev, libboost-all-dev, openssl/libssl-dev, libzstd-dev, liblz4-dev, libcrypto++-dev,
 #            libscrypt-dev, libc-ares-dev, libsecp256k1-dev
-HAS_ABSL=$(check_libs_hdr "absl") # Required for Protobuf compilation
-HAS_BOOST=$(check_libs "libboost_*.a")
+HAS_ZLIB=$(check_lib "libz.a") # Required for Boost
+HAS_ABSL=$(check_libs_hdr "absl") # Required for Protobuf
 HAS_LIBSSL=$(check_lib "libssl.a")
 HAS_ZSTD=$(check_lib "libzstd.a")
 HAS_LZ4=$(check_lib "liblz4.a")
@@ -111,7 +109,8 @@ if [ -z "$HAS_LIBCARES" ]; then HAS_LIBCARES=$(check_lib "libcares.a"); fi # Deb
 HAS_SECP256K1=$(check_lib "libsecp256k1.a")
 
 # Check external libraries
-# Necessary: ethash (+ keccak), evmone (+ evmc), speedb
+# Necessary: ethash (+ keccak), evmone (+ evmc), speedb, sqlitecpp
+HAS_BOOST=$(check_libs "libboost_*.a")
 HAS_ETHASH=$(check_lib "libethash.a")
 HAS_KECCAK=$(check_lib "libkeccak.a")
 HAS_EVMC_INSTRUCTIONS=$(check_lib "libevmc-instructions.a")
@@ -120,8 +119,14 @@ HAS_EVMONE=$(check_lib "libevmone.a")
 HAS_SPEEDB=$(check_lib "libspeedb.a")
 HAS_SQLITECPP=$(check_lib "libSQLiteCpp.a")
 
+# Check external binaries
+# Necessary: protoc, cometbft
+HAS_PROTOC=$(check_exec protoc)
+HAS_COMETBFT=$(check_exec cometbft-bdk)
+
 if [ "${1:-}" == "--check" ]; then
   echo "-- Required toolchain binaries:"
+  echo -n "python3: " && [ -n "$HAS_PYTHON3" ] && echo "$HAS_PYTHON3" || echo "not found"
   echo -n "git: " && [ -n "$HAS_GIT" ] && echo "$HAS_GIT" || echo "not found"
   echo -n "wget: " && [ -n "$HAS_WGET" ] && echo "$HAS_WGET" || echo "not found"
   echo -n "tar: " && [ -n "$HAS_TAR" ] && echo "$HAS_TAR" || echo "not found"
@@ -140,8 +145,8 @@ if [ "${1:-}" == "--check" ]; then
   echo -n "clang-tidy: " && [ -n "$HAS_CLANGTIDY" ] && echo "$HAS_CLANGTIDY" || echo "not found"
 
   echo "-- Internal libraries:"
+  echo -n "libz: " && [ -n "$HAS_ZLIB" ] && echo "$HAS_ZLIB" || echo "not found"
   echo -n "absl: " && [ -n "$HAS_ABSL" ] && echo "$HAS_ABSL" || echo "not found"
-  echo -n "boost: " && [ -n "$HAS_BOOST" ] && echo "$HAS_BOOST" || echo "not found"
   echo -n "libssl: " && [ -n "$HAS_LIBSSL" ] && echo "$HAS_LIBSSL" || echo "not found"
   echo -n "libzstd: " && [ -n "$HAS_ZSTD" ] && echo "$HAS_ZSTD" || echo "not found"
   echo -n "liblz4: " && [ -n "$HAS_LZ4" ] && echo "$HAS_LZ4" || echo "not found"
@@ -150,11 +155,8 @@ if [ "${1:-}" == "--check" ]; then
   echo -n "libcares: " && [ -n "$HAS_LIBCARES" ] && echo "$HAS_LIBCARES" || echo "not found"
   echo -n "libsecp256k1: " && [ -n "$HAS_SECP256K1" ] && echo "$HAS_SECP256K1" || echo "not found"
 
-  echo "-- External toolchain binaries:"
-  echo -n "protoc: " && [ -n "$HAS_PROTOC" ] && echo "$HAS_PROTOC" || echo "not found"
-  echo -n "cometbft: " && [ -n "$HAS_COMETBFT" ] && echo "$HAS_COMETBFT" || echo "not found"
-
   echo "-- External libraries:"
+  echo -n "boost: " && [ -n "$HAS_BOOST" ] && echo "$HAS_BOOST" || echo "not found"
   echo -n "libethash: " && [ -n "$HAS_ETHASH" ] && echo "$HAS_ETHASH" || echo "not found"
   echo -n "libkeccak: " && [ -n "$HAS_KECCAK" ] && echo "$HAS_KECCAK" || echo "not found"
   echo -n "libevmc-instructions: " && [ -n "$HAS_EVMC_INSTRUCTIONS" ] && echo "$HAS_EVMC_INSTRUCTIONS" || echo "not found"
@@ -162,6 +164,10 @@ if [ "${1:-}" == "--check" ]; then
   echo -n "libevmone: " && [ -n "$HAS_EVMONE" ] && echo "$HAS_EVMONE" || echo "not found"
   echo -n "libspeedb: " && [ -n "$HAS_SPEEDB" ] && echo "$HAS_SPEEDB" || echo "not found"
   echo -n "libSQLiteCpp: " && [ -n "$HAS_SQLITECPP" ] && echo "$HAS_SQLITECPP" || echo "not found"
+
+  echo "-- External toolchain binaries:"
+  echo -n "protoc: " && [ -n "$HAS_PROTOC" ] && echo "$HAS_PROTOC" || echo "not found"
+  echo -n "cometbft: " && [ -n "$HAS_COMETBFT" ] && echo "$HAS_COMETBFT" || echo "not found"
 elif [ "${1:-}" == "--install" ]; then
   # Anti-anti-sudo prevention
   if [ $(id -u) -ne 0 ]; then
@@ -174,6 +180,7 @@ elif [ "${1:-}" == "--install" ]; then
   if [ -n "$HAS_APT" ]; then
     echo "-- Checking internal dependencies..."
     PKGS=""
+    if [ -z "$HAS_PYTHON3" ]; then PKGS+="python3 "; fi
     if [ -z "$HAS_GIT" ]; then PKGS+="git "; fi
     if [ -z "$HAS_WGET" ]; then PKGS+="wget "; fi
     if [ -z "$HAS_TAR" ]; then PKGS+="tar "; fi
@@ -186,7 +193,7 @@ elif [ "${1:-}" == "--install" ]; then
     if [ -z "$HAS_DOXYGEN" ]; then PKGS+="doxygen "; fi
     if [ -z "$HAS_CLANGTIDY" ]; then PKGS+="clang-tidy "; fi
     if [ -z "$HAS_ABSL" ]; then PKGS+="libabsl-dev "; fi
-    if [ -z "$HAS_BOOST" ]; then PKGS+="libboost-all-dev "; fi
+    if [ -z "$HAS_ZLIB" ]; then PKGS+="zlib1g-dev "; fi
     if [ -z "$HAS_LIBSSL" ]; then PKGS+="libssl-dev "; fi
     if [ -z "$HAS_ZSTD" ]; then PKGS+="libzstd-dev "; fi
     if [ -z "$HAS_LZ4" ]; then PKGS+="liblz4-dev "; fi
@@ -207,21 +214,31 @@ elif [ "${1:-}" == "--install" ]; then
 
   # Install external libs
   echo "-- Checking external dependencies..."
-  if [ -z "$HAS_PROTOC" ]; then
-    echo "-- Installing Protobuf..."
-    cd /usr/local/src
-    wget "https://github.com/protocolbuffers/protobuf/releases/download/v${PROTOC_VERSION}/protobuf-${PROTOC_VERSION}.tar.gz"
-    tar -xf "protobuf-${PROTOC_VERSION}.tar.gz"
-    cd "protobuf-${PROTOC_VERSION}"
-    mkdir build && cd build
-    cmake -Dprotobuf_BUILD_TESTS=OFF -Dprotobuf_ABSL_PROVIDER=package -DCMAKE_INSTALL_PREFIX="/usr/local" -DCMAKE_PREFIX_PATH=/usr/include ..
-    cmake --build . -- -j$(nproc) && cmake --install .
-  fi
-  if [ -z "$HAS_COMETBFT" ]; then
-    echo "-- Installing CometBFT..."
-    cd /usr/local/src && git clone --depth 1 --branch "v${COMETBFT_VERSION}" https://github.com/cometbft/cometbft
-    cd cometbft && git apply "${COMETBFT_PATCH}" # https://gist.github.com/fcecin/2fe336e9f76900f37be89a35e5ebac62
-    make build && cp ./build/cometbft /usr/local/bin/cometbft-bdk
+  if [ -z "$HAS_BOOST" ]; then
+    echo "-- Installing Boost..."
+    cd /usr/local/src && git clone --depth 1 --branch "boost-${BOOST_VERSION}" https://github.com/boostorg/boost
+    cd boost && mkdir build && git submodule update --depth 1 --init tools/boostdep \
+      libs/algorithm libs/asio libs/beast libs/chrono libs/config libs/container libs/core \
+      libs/filesystem libs/multi_index libs/multiprecision libs/nowide libs/lexical_cast \
+      libs/optional libs/process libs/program_options libs/thread libs/unordered
+    python3 tools/boostdep/depinst/depinst.py -X test -g "--depth 1" algorithm
+    python3 tools/boostdep/depinst/depinst.py -X test -g "--depth 1" asio
+    python3 tools/boostdep/depinst/depinst.py -X test -g "--depth 1" beast
+    python3 tools/boostdep/depinst/depinst.py -X test -g "--depth 1" chrono
+    python3 tools/boostdep/depinst/depinst.py -X test -g "--depth 1" config
+    python3 tools/boostdep/depinst/depinst.py -X test -g "--depth 1" container
+    python3 tools/boostdep/depinst/depinst.py -X test -g "--depth 1" core
+    python3 tools/boostdep/depinst/depinst.py -X test -g "--depth 1" filesystem
+    python3 tools/boostdep/depinst/depinst.py -X test -g "--depth 1" multi_index
+    python3 tools/boostdep/depinst/depinst.py -X test -g "--depth 1" multiprecision
+    python3 tools/boostdep/depinst/depinst.py -X test -g "--depth 1" nowide
+    python3 tools/boostdep/depinst/depinst.py -X test -g "--depth 1" lexical_cast
+    python3 tools/boostdep/depinst/depinst.py -X test -g "--depth 1" optional
+    python3 tools/boostdep/depinst/depinst.py -X test -g "--depth 1" process
+    python3 tools/boostdep/depinst/depinst.py -X test -g "--depth 1" program_options
+    python3 tools/boostdep/depinst/depinst.py -X test -g "--depth 1" thread
+    python3 tools/boostdep/depinst/depinst.py -X test -g "--depth 1" unordered
+    ./bootstrap.sh --prefix=/usr/local && ./b2 --no-cmake-config --build-dir=./build && ./b2 install
   fi
   if [ -z "$HAS_ETHASH" ] || [ -z "$HAS_KECCAK" ]; then
     echo "-- Installing ethash..."
@@ -262,6 +279,22 @@ elif [ "${1:-}" == "--install" ]; then
     cmake -DCMAKE_INSTALL_PREFIX="/usr/local" -DCMAKE_BUILD_TYPE=Release ..
     cmake --build . -- -j$(nproc) && cmake --install .
   fi
+  if [ -z "$HAS_PROTOC" ]; then
+    echo "-- Installing Protobuf..."
+    cd /usr/local/src
+    wget "https://github.com/protocolbuffers/protobuf/releases/download/v${PROTOC_VERSION}/protobuf-${PROTOC_VERSION}.tar.gz"
+    tar -xf "protobuf-${PROTOC_VERSION}.tar.gz"
+    cd "protobuf-${PROTOC_VERSION}"
+    mkdir build && cd build
+    cmake -Dprotobuf_BUILD_TESTS=OFF -Dprotobuf_ABSL_PROVIDER=package -DCMAKE_INSTALL_PREFIX="/usr/local" -DCMAKE_PREFIX_PATH=/usr/include ..
+    cmake --build . -- -j$(nproc) && cmake --install .
+  fi
+  if [ -z "$HAS_COMETBFT" ]; then
+    echo "-- Installing CometBFT..."
+    cd /usr/local/src && git clone --depth 1 --branch "v${COMETBFT_VERSION}" https://github.com/cometbft/cometbft
+    cd cometbft && git apply "${COMETBFT_PATCH}" # https://gist.github.com/fcecin/2fe336e9f76900f37be89a35e5ebac62
+    make build && cp ./build/cometbft /usr/local/bin/cometbft-bdk
+  fi
   echo "-- Dependencies installed"
 elif [ "${1:-}" == "--cleanext" ]; then
   # Anti-anti-sudo prevention
@@ -271,47 +304,53 @@ elif [ "${1:-}" == "--cleanext" ]; then
   fi
 
   # Uninstall any external dependencies (+ source code repos) found in the system
-  if [ -n "$HAS_PROTOC" ]; then
-    echo "-- Uninstalling Protobuf..."
-    rm -r "/usr/local/include/google/protobuf"
-    rm "/usr/local/bin/protoc"
-  fi
-  if [ -n "$HAS_COMETBFT" ]; then
-    echo "-- Uninstalling CometBFT..."
-    rm -r "/usr/local/src/cometbft"
-    rm "/usr/local/bin/cometbft-bdk"
+  if [ -n "$HAS_BOOST" ]; then
+    echo "-- Uninstalling Boost..."
+    rm /usr/local/lib/libboost_*
+    rm -rf /usr/local/include/boost
+    rm -rf /usr/local/src/boost
   fi
   if [ -n "$HAS_ETHASH" ] || [ -n "$HAS_KECCAK" ]; then
     echo "-- Uninstalling ethash..."
-    rm -rf "/usr/local/src/ethash"
-    rm -rf "/usr/local/include/ethash"
-    rm "/usr/local/lib/libethash.a"
-    rm "/usr/local/lib/libethash-global-context.a"
-    rm "/usr/local/lib/libkeccak.a"
+    rm /usr/local/lib/libethash.a
+    rm /usr/local/lib/libethash-global-context.a
+    rm /usr/local/lib/libkeccak.a
+    rm -rf /usr/local/include/ethash
+    rm -rf /usr/local/src/ethash
   fi
   if [ -n "$HAS_EVMC_INSTRUCTIONS" ] || [ -n "$HAS_EVMC_LOADER" ] || [ -n "$HAS_EVMONE" ]; then
     echo "-- Uninstalling evmone..."
-    rm -rf "/usr/local/src/evmone"
-    rm -rf "/usr/local/include/evmc"
-    rm -rf "/usr/local/include/evmmax"
-    rm -rf "/usr/local/include/evmone"
-    rm "/usr/local/lib/libevmc-instructions.a"
-    rm "/usr/local/lib/libevmc-loader.a"
-    rm "/usr/local/lib/libevmone.a"
-    rm "/usr/local/lib/libevmone-standalone.a"
+    rm /usr/local/lib/libevmc-instructions.a
+    rm /usr/local/lib/libevmc-loader.a
+    rm /usr/local/lib/libevmone.a
+    rm /usr/local/lib/libevmone-standalone.a
+    rm -rf /usr/local/include/evmc
+    rm -rf /usr/local/include/evmmax
+    rm -rf /usr/local/include/evmone
+    rm -rf /usr/local/src/evmone
   fi
   if [ -n "$HAS_SPEEDB" ]; then
     echo "-- Uninstalling speedb..."
-    rm -rf "/usr/local/src/speedb"
-    rm -rf "/usr/local/include/rocksdb"
-    rm "/usr/local/lib/libspeedb.a"
+    rm /usr/local/lib/libspeedb.a
+    rm -rf /usr/local/include/rocksdb
+    rm -rf /usr/local/src/speedb
   fi
   if [ -n "$HAS_SQLITECPP" ]; then
     echo "-- Uninstalling SQLiteCpp..."
-    rm "/usr/local/lib/libSQLiteCpp.a"
-    rm "/usr/local/lib/libsqlite3.a"
-    rm -rf "/usr/local/include/SQLiteCpp"
-    rm -rf "/usr/local/src/SQLiteCpp"
+    rm /usr/local/lib/libSQLiteCpp.a
+    rm /usr/local/lib/libsqlite3.a
+    rm -rf /usr/local/include/SQLiteCpp
+    rm -rf /usr/local/src/SQLiteCpp
+  fi
+  if [ -n "$HAS_PROTOC" ]; then
+    echo "-- Uninstalling Protobuf..."
+    rm /usr/local/bin/protoc
+    rm -rf /usr/local/include/google/protobuf
+  fi
+  if [ -n "$HAS_COMETBFT" ]; then
+    echo "-- Uninstalling CometBFT..."
+    rm /usr/local/bin/cometbft-bdk
+    rm -rf /usr/local/src/cometbft
   fi
   echo "-- External dependencies cleaned, please reinstall them later with --install"
 fi
