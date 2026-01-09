@@ -13,42 +13,38 @@ if [ "${1:-}" == "" ]; then
   exit
 fi
 
-# Helper function to check for an executable in the system.
-# ONLY CHECKS /usr/local AND /usr BY DEFAULT. If both match, gives preference to the former.
-# Returns the first found match, or an empty string if there is no match.
-# Usage: HAS_EXEC=$(check_exec "execname")
+# Helper functions that check for files in the system.
+# ONLY CHECKS /usr/local/ AND /usr, in that order. If both have a match, give preference to the former.
+# All functions return the first found match, or an empty string if there is no match.
+
 # $1 = exec name (e.g. "gcc")
+# Usage: HAS_EXEC=$(check_exec "execname")
 check_exec() {
   FOUND1=$(find /usr/local/bin -name "$1" 2> /dev/null | head -n 1)
   FOUND2=$(find /usr/bin -name "$1" 2> /dev/null | head -n 1)
   if [ -n "$FOUND1" ]; then echo "$FOUND1"; elif [ -n "$FOUND2" ]; then echo "$FOUND2"; else echo ""; fi
 }
 
-# Helper function to check for a library in the system.
-# ONLY CHECKS /usr/local AND /usr. If both match, gives preference to the former.
-# Returns the first found match, or an empty string if there is no match.
+# $1 = library name (e.g. "libz.a")
 # Usage: HAS_LIB=$(check_lib "libname")
-# $1 = library name, including suffix (e.g. "libz.a")
 check_lib() {
   FOUND1=$(find /usr/local/lib -name "$1" 2> /dev/null | head -n 1)
   FOUND2=$(find /usr/lib -name "$1" 2> /dev/null | head -n 1)
   if [ -n "$FOUND1" ]; then echo "$FOUND1"; elif [ -n "$FOUND2" ]; then echo "$FOUND2"; else echo ""; fi
 }
 
-# Another version of check_lib() for use with libs with multiple components (e.g. Boost).
-# Returns the first found match, or an empty string if there is no match.
+# "Overload" of check_lib() for checking multiple libs (e.g. Boost).
+# $1 = library name (e.g. "libboost_*.a")
 # Usage: HAS_LIBS=$(check_libs "libname")
-# $1 = library name, including suffix (e.g. "libboost_*.a")
 check_libs() {
   FOUND1=$(find /usr/local/lib -name "$1" 2> /dev/null | head -n 1)
   FOUND2=$(find /usr/lib -name "$1" 2> /dev/null | head -n 1)
   if [ -n "$FOUND1" ]; then echo "/usr/local/lib/$1"; elif [ -n "$FOUND2" ]; then echo "/usr/lib/$1"; else echo ""; fi
 }
 
-# Yet another version of check_lib() for use with header-only libs (e.g. absl)".
-# Returns the first found match, or an empty string if there is no match.
+# "Overload" of check_lib() for checking header-only libs (e.g. absl).
+# $1 = library folder path (e.g. "absl")
 # Usage: HAS_LIBS=$(check_libs_hdr "libpath")
-# $1 = library folder path, including suffix (e.g. "absl")
 check_libs_hdr() {
   FOUND1=$(find /usr/local/include -name "$1" 2> /dev/null | head -n 1)
   FOUND2=$(find /usr/include -name "$1" 2> /dev/null | head -n 1)
@@ -78,7 +74,7 @@ fi
 echo "-- Scanning for dependencies..."
 
 # Check toolchain binaries
-# Necessary: git, wget, tar, gcc/g++, golang, ld, autoconf, libtool, pkg-config, make, cmake, tmux
+# Necessary: git, wget, tar, gcc/g++, golang, ld, make, cmake, tmux
 # Optional: ninja, mold, doxygen, clang-tidy
 HAS_GIT=$(check_exec git)
 HAS_WGET=$(check_exec wget)
@@ -88,9 +84,6 @@ HAS_GPP=$(check_exec g++)
 HAS_GO=$(check_exec go) # Required for CometBFT compilation
 HAS_MAKE=$(check_exec make)
 HAS_LD=$(check_exec ld)
-HAS_AUTOCONF=$(check_exec autoconf)     # Required for local gRPC compilation
-HAS_LIBTOOL=$(check_exec libtool)       # Required for local gRPC compilation
-HAS_PKGCONFIG=$(check_exec pkg-config)  # Required for local gRPC compilation
 HAS_CMAKE=$(check_exec cmake)
 HAS_TMUX=$(check_exec tmux)
 HAS_NINJA=$(check_exec ninja)
@@ -137,9 +130,6 @@ if [ "${1:-}" == "--check" ]; then
   echo -n "go: " && [ -n "$HAS_GO" ] && echo "$HAS_GO" || echo "not found"
   echo -n "make: " && [ -n "$HAS_MAKE" ] && echo "$HAS_MAKE" || echo "not found"
   echo -n "ld: " && [ -n "$HAS_LD" ] && echo "$HAS_LD" || echo "not found"
-  echo -n "autoconf: " && [ -n "$HAS_AUTOCONF" ] && echo "$HAS_AUTOCONF" || echo "not found"
-  echo -n "libtool: " && [ -n "$HAS_LIBTOOL" ] && echo "$HAS_LIBTOOL" || echo "not found"
-  echo -n "pkg-config: " && [ -n "$HAS_PKGCONFIG" ] && echo "$HAS_PKGCONFIG" || echo "not found"
   echo -n "cmake: " && [ -n "$HAS_CMAKE" ] && echo "$HAS_CMAKE" || echo "not found"
   echo -n "tmux: " && [ -n "$HAS_TMUX" ] && echo "$HAS_TMUX" || echo "not found"
 
@@ -189,9 +179,6 @@ elif [ "${1:-}" == "--install" ]; then
     if [ -z "$HAS_TAR" ]; then PKGS+="tar "; fi
     if [ -z "$HAS_GCC" ] || [ -z "$HAS_GPP" ] || [ -z "$HAS_MAKE" ] || [ -z "$HAS_LD" ]; then PKGS+="build-essential "; fi
     if [ -z "$HAS_GO" ]; then PKGS+="golang "; fi
-    if [ -z "$HAS_AUTOCONF" ]; then PKGS+="autoconf "; fi
-    if [ -z "$HAS_LIBTOOL" ]; then PKGS+="libtool-bin "; fi
-    if [ -z "$HAS_PKGCONFIG" ]; then PKGS+="pkg-config "; fi
     if [ -z "$HAS_CMAKE" ]; then PKGS+="cmake "; fi
     if [ -z "$HAS_TMUX" ]; then PKGS+="tmux "; fi
     if [ -z "$HAS_NINJA" ]; then PKGS+="ninja-build "; fi
