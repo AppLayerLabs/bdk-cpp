@@ -59,15 +59,8 @@ SPEEDB_VERSION="2.8.0"
 SQLITECPP_VERSION="3.3.2"
 
 PROTOC_VERSION="29.3"
-COMETBFT_VERSION="1.0.0"
+COMETBFT_VERSION="0.38.19"
 
-# Helper vars
-# Full path to the CometBFT patch file - MUST exist, otherwise script will fail
-COMETBFT_PATCH=$(find . -name "cometbft_useKeccak256.patch" -exec realpath {} \; 2> /dev/null | head -n 1)
-if [ -z "$COMETBFT_PATCH" ]; then
-  echo "ERROR: could not find CometBFT patch file, aborting"
-  exit
-fi
 
 # ===========================================================================
 # SCRIPT STARTS HERE
@@ -291,9 +284,8 @@ elif [ "${1:-}" == "--install" ]; then
   fi
   if [ -z "$HAS_COMETBFT" ]; then
     echo "-- Installing CometBFT..."
-    cd /usr/local/src && git clone --depth 1 --branch "v${COMETBFT_VERSION}" https://github.com/cometbft/cometbft
-    cd cometbft && git apply "${COMETBFT_PATCH}" # https://gist.github.com/fcecin/2fe336e9f76900f37be89a35e5ebac62
-    make build && cp ./build/cometbft /usr/local/bin/cometbft-bdk
+    cd /usr/local/src && git clone --depth 1 --branch "v${COMETBFT_VERSION}" https://github.com/applayerlabs/cometbft
+    cd cometbft && make build && cp ./build/cometbft /usr/local/bin/cometbft-bdk
   fi
   echo "-- Dependencies installed"
 elif [ "${1:-}" == "--cleanext" ]; then
@@ -306,7 +298,7 @@ elif [ "${1:-}" == "--cleanext" ]; then
   # Uninstall any external dependencies (+ source code repos) found in the system
   if [ -n "$HAS_BOOST" ]; then
     echo "-- Uninstalling Boost..."
-    rm /usr/local/lib/libboost_*
+    rm -f /usr/local/lib/libboost_*
     rm -rf /usr/local/include/boost
     rm -rf /usr/local/src/boost
   fi
@@ -354,4 +346,3 @@ elif [ "${1:-}" == "--cleanext" ]; then
   fi
   echo "-- External dependencies cleaned, please reinstall them later with --install"
 fi
-

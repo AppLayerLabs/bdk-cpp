@@ -999,7 +999,7 @@ class SDKTestSuite : public Blockchain {
     ) override;
     virtual void checkTx(const Bytes& tx, const bool recheck, int64_t& gasWanted, bool& accept) override;
     virtual void incomingBlock(
-      const uint64_t syncingToHeight, std::unique_ptr<CometBlock> block, Bytes& appHash,
+      std::unique_ptr<CometBlock> block, Bytes& appHash,
       std::vector<CometExecTxResult>& txResults, std::vector<CometValidatorUpdate>& validatorUpdates
     ) override;
     virtual void buildBlockProposal(

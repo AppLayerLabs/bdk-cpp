@@ -238,18 +238,12 @@ public:
    * @param appHash Outparam that needs to be filled with the new state hash of the application, if any.
    */
   void incomingBlock(
-    const uint64_t syncingToHeight, std::unique_ptr<CometBlock> block, Bytes& appHash,
+    std::unique_ptr<CometBlock> block, Bytes& appHash,
     std::vector<CometExecTxResult>& txResults, std::vector<CometValidatorUpdate>& validatorUpdates
   ) override
   {
-    GLOGDEBUG("TEST: TestMachine: incomingBlock(): height=" + std::to_string(block->height) + "; syncingToheight="+std::to_string(syncingToHeight) + "; txs.size()="+std::to_string(block->txs.size()));
+    GLOGDEBUG("TEST: TestMachine: incomingBlock(): height=" + std::to_string(block->height) + "; txs.size()="+std::to_string(block->txs.size()));
     incomingHeight_ = block->height;
-    incomingSyncingToHeight_ = syncingToHeight;
-    if (requiredSyncingToHeight_ != 0) {
-      if (syncingToHeight != requiredSyncingToHeight_) {
-        GLOGFATAL_THROW("incomingBlock with unexpected syncingToHeight=" + std::to_string(syncingToHeight) + "; required=" + std::to_string(requiredSyncingToHeight_));
-      }
-    }
 
     // If we get a finalized block height that is different from what our internal model is,
     //  that's an error: the consensus process would be finalizing a duplicate block, meaning
@@ -393,7 +387,7 @@ namespace TComet {
           gotInitChain = true;
         }
         virtual void incomingBlock(
-          const uint64_t syncingToHeight, std::unique_ptr<CometBlock> block, Bytes& appHash,
+          std::unique_ptr<CometBlock> block, Bytes& appHash,
           std::vector<CometExecTxResult>& txResults, std::vector<CometValidatorUpdate>& validatorUpdates
         ) override
         {
@@ -555,7 +549,7 @@ namespace TComet {
           gotInitChain = true;
         }
         virtual void incomingBlock(
-          const uint64_t syncingToHeight, std::unique_ptr<CometBlock> block, Bytes& appHash,
+          std::unique_ptr<CometBlock> block, Bytes& appHash,
           std::vector<CometExecTxResult>& txResults, std::vector<CometValidatorUpdate>& validatorUpdates
         ) override
         {
@@ -640,7 +634,7 @@ namespace TComet {
           REQUIRE(success == true);
         }
         virtual void incomingBlock(
-          const uint64_t syncingToHeight, std::unique_ptr<CometBlock> block, Bytes& appHash,
+          std::unique_ptr<CometBlock> block, Bytes& appHash,
           std::vector<CometExecTxResult>& txResults, std::vector<CometValidatorUpdate>& validatorUpdates
         ) override
         {
@@ -762,7 +756,7 @@ namespace TComet {
           gotInitChain = true;
         }
         virtual void incomingBlock(
-          const uint64_t syncingToHeight, std::unique_ptr<CometBlock> block, Bytes& appHash,
+          std::unique_ptr<CometBlock> block, Bytes& appHash,
           std::vector<CometExecTxResult>& txResults, std::vector<CometValidatorUpdate>& validatorUpdates
         ) override
         {
@@ -1627,7 +1621,7 @@ namespace TComet {
           }
         }
         virtual void incomingBlock(
-          const uint64_t syncingToHeight, std::unique_ptr<CometBlock> block, Bytes& appHash,
+          std::unique_ptr<CometBlock> block, Bytes& appHash,
           std::vector<CometExecTxResult>& txResults, std::vector<CometValidatorUpdate>& validatorUpdates
         ) override
         {

@@ -75,7 +75,6 @@ class Blockchain : public CometListener, public NodeRPCInterface, public Log::Lo
     std::unordered_map<Hash, std::shared_ptr<TxBlock>, SafeHash> mempool_; ///< Cache of pending transactions.
     std::shared_mutex mempoolMutex_; ///< Mutex protecting mempool_.
 
-    bool syncing_ = false; ///< Updated by Blockchain::incomingBlock() when syncingToHeight > height.
     uint64_t persistStateSkipCount_ = 0; ///< Count of non-syncing_ Blockchain::persistState() calls that skipped saveSnapshot().
 
     std::atomic<bool> started_ = false; ///< Flag to protect the start()/stop() cycle.
@@ -155,8 +154,8 @@ class Blockchain : public CometListener, public NodeRPCInterface, public Log::Lo
     ) override;
     virtual void checkTx(const Bytes& tx, const bool recheck, int64_t& gasWanted, bool& accept) override;
     virtual void incomingBlock(
-      const uint64_t syncingToHeight, std::unique_ptr<CometBlock> block, Bytes& appHash,
-      std::vector<CometExecTxResult>& txResults, std::vector<CometValidatorUpdate>& validatorUpdates
+    std::unique_ptr<CometBlock> block, Bytes& appHash,
+    std::vector<CometExecTxResult>& txResults, std::vector<CometValidatorUpdate>& validatorUpdates
     ) override;
     virtual void buildBlockProposal(
       const uint64_t maxTxBytes, const CometBlock& block, bool& noChange, std::vector<size_t>& txIds,

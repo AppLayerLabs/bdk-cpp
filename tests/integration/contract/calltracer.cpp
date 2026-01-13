@@ -88,6 +88,8 @@ struct UserWrapper {
 namespace TCallTracer {
   TEST_CASE("CallTracer Tests", "[integration][contract][calltracer]") {
     SECTION("EVM Single Call") {
+
+      Logger::setLogLevel(LogType::XTRACE);
       SDKTestSuite sdk = SDKTestSuite::createNewEnvironment("TestTraceContracts");
 
       const Address contractAddress = sdk.deployBytecode(testBytecode);

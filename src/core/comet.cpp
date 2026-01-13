@@ -904,22 +904,22 @@ class CometImpl : public ABCIHandler, public Log::LogicalLocationProvider {
     // ABCIHandler interface
     // ---------------------------------------------------------------------------------------
 
-    virtual void echo(const cometbft::abci::v1::EchoRequest& req, cometbft::abci::v1::EchoResponse* res);
-    virtual void flush(const cometbft::abci::v1::FlushRequest& req, cometbft::abci::v1::FlushResponse* res);
-    virtual void info(const cometbft::abci::v1::InfoRequest& req, cometbft::abci::v1::InfoResponse* res);
-    virtual void init_chain(const cometbft::abci::v1::InitChainRequest& req, cometbft::abci::v1::InitChainResponse* res);
-    virtual void prepare_proposal(const cometbft::abci::v1::PrepareProposalRequest& req, cometbft::abci::v1::PrepareProposalResponse* res);
-    virtual void process_proposal(const cometbft::abci::v1::ProcessProposalRequest& req, cometbft::abci::v1::ProcessProposalResponse* res);
-    virtual void check_tx(const cometbft::abci::v1::CheckTxRequest& req, cometbft::abci::v1::CheckTxResponse* res);
-    virtual void commit(const cometbft::abci::v1::CommitRequest& req, cometbft::abci::v1::CommitResponse* res);
-    virtual void finalize_block(const cometbft::abci::v1::FinalizeBlockRequest& req, cometbft::abci::v1::FinalizeBlockResponse* res);
-    virtual void query(const cometbft::abci::v1::QueryRequest& req, cometbft::abci::v1::QueryResponse* res);
-    virtual void list_snapshots(const cometbft::abci::v1::ListSnapshotsRequest& req, cometbft::abci::v1::ListSnapshotsResponse* res);
-    virtual void offer_snapshot(const cometbft::abci::v1::OfferSnapshotRequest& req, cometbft::abci::v1::OfferSnapshotResponse* res);
-    virtual void load_snapshot_chunk(const cometbft::abci::v1::LoadSnapshotChunkRequest& req, cometbft::abci::v1::LoadSnapshotChunkResponse* res);
-    virtual void apply_snapshot_chunk(const cometbft::abci::v1::ApplySnapshotChunkRequest& req, cometbft::abci::v1::ApplySnapshotChunkResponse* res);
-    virtual void extend_vote(const cometbft::abci::v1::ExtendVoteRequest& req, cometbft::abci::v1::ExtendVoteResponse* res);
-    virtual void verify_vote_extension(const cometbft::abci::v1::VerifyVoteExtensionRequest& req, cometbft::abci::v1::VerifyVoteExtensionResponse* res);
+    virtual void echo(const tendermint::abci::RequestEcho& req, tendermint::abci::ResponseEcho* res);
+    virtual void flush(const tendermint::abci::RequestFlush& req, tendermint::abci::ResponseFlush* res);
+    virtual void info(const tendermint::abci::RequestInfo& req, tendermint::abci::ResponseInfo* res);
+    virtual void init_chain(const tendermint::abci::RequestInitChain& req, tendermint::abci::ResponseInitChain* res);
+    virtual void prepare_proposal(const tendermint::abci::RequestPrepareProposal& req, tendermint::abci::ResponsePrepareProposal* res);
+    virtual void process_proposal(const tendermint::abci::RequestProcessProposal& req, tendermint::abci::ResponseProcessProposal* res);
+    virtual void check_tx(const tendermint::abci::RequestCheckTx& req, tendermint::abci::ResponseCheckTx* res);
+    virtual void commit(const tendermint::abci::RequestCommit& req, tendermint::abci::ResponseCommit* res);
+    virtual void finalize_block(const tendermint::abci::RequestFinalizeBlock& req, tendermint::abci::ResponseFinalizeBlock* res);
+    virtual void query(const tendermint::abci::RequestQuery& req, tendermint::abci::ResponseQuery* res);
+    virtual void list_snapshots(const tendermint::abci::RequestListSnapshots& req, tendermint::abci::ResponseListSnapshots* res);
+    virtual void offer_snapshot(const tendermint::abci::RequestOfferSnapshot& req, tendermint::abci::ResponseOfferSnapshot* res);
+    virtual void load_snapshot_chunk(const tendermint::abci::RequestLoadSnapshotChunk& req, tendermint::abci::ResponseLoadSnapshotChunk* res);
+    virtual void apply_snapshot_chunk(const tendermint::abci::RequestApplySnapshotChunk& req, tendermint::abci::ResponseApplySnapshotChunk* res);
+    virtual void extend_vote(const tendermint::abci::RequestExtendVote& req, tendermint::abci::ResponseExtendVote* res);
+    virtual void verify_vote_extension(const tendermint::abci::RequestVerifyVoteExtension& req, tendermint::abci::ResponseVerifyVoteExtension* res);
 };
 
 CometImpl::CometImpl(CometListener* listener, std::string instanceIdStr, const Options& options, json configToml)
@@ -1141,11 +1141,11 @@ void CometImpl::checkCometBFT() {
   // This throws an exception if it can't find cometbft, for example
   runCometBFT({ "version" }, &cometOut, &cometErr);
   // Right now we expect an exact cometbft version to pair with the Comet driver.
-  // "1.0.0+ce344cc66" is the version for "git checkout v1.0.0" + modifying the code.
+  // "0.38.19+be5677c" is the version for "git checkout v0.38.19" + modifying the code.
   // This version includes our replacement of sha256 with eth sha3 for Tx hash and TxKey.
   // Unfortunately, the git commit hex varies in length depending on the machine
   // (not sure why), so we will check for a "version+" prefix only.
-  const std::string expectedVersionPrefix = "1.0.0+";
+  const std::string expectedVersionPrefix = "0.38.19+";
   if (!cometOut.starts_with(expectedVersionPrefix)) {
     throw DynamicException("Expected version prefix [" + expectedVersionPrefix + "] from cometbft, got version [" + cometOut + "] instead");
   }
@@ -1545,7 +1545,7 @@ void CometImpl::workerLoopInner() {
 
     LOGINFO("Options RootPath: " + options_.getRootPath());
 
-    json opt = options_.getCometBFT();
+    json opt = options_.getCometBFT(); // TODO: Make it read getCometBFT() from options...
 
     if (opt.is_null()) {
       LOGWARNING("Configuration option cometBFT is null.");
@@ -1724,7 +1724,7 @@ void CometImpl::workerLoopInner() {
       LOGTRACE("Comet worker: creating comet directory");
 
       // run cometbft init cometPath to create the cometbft directory with default configs
-      runCometBFT({ "init", "--home=" + cometPath, "-k=secp256k1"}, nullptr, nullptr, instanceIdStr_);
+      runCometBFT({ "init", "--home=" + cometPath}, nullptr, nullptr, instanceIdStr_);
 
       // check it exists now, otherwise halt node
       if (!std::filesystem::exists(cometPath)) {
@@ -1777,7 +1777,7 @@ void CometImpl::workerLoopInner() {
           throw DynamicException("CometBFT priv_validator_key.json pub_key::value field is missing or invalid.");
         }
         std::string validatorPubKeyStr = pubKeyObject["value"].get<std::string>();
-        std::scoped_lock lockVadalitorPubkey(this->validatorPubKeyMutex_);
+        std::scoped_lock scopedLock(this->validatorPubKeyMutex_);
         validatorPubKey_ = base64::decode_into<Bytes>(validatorPubKeyStr);
         LOGINFO("Validator public key: " + Hex::fromBytes(validatorPubKey_).get());
       } else {
@@ -2401,16 +2401,16 @@ uint64_t toNanosSinceEpoch(const google::protobuf::Timestamp& timestamp) {
   return nanoseconds_since_epoch;
 }
 
-void CometImpl::echo(const cometbft::abci::v1::EchoRequest& req, cometbft::abci::v1::EchoResponse* res) {
+void CometImpl::echo(const tendermint::abci::RequestEcho& req, tendermint::abci::ResponseEcho* res) {
   //res->set_message(req.message()); // This is done at the net/abci caller, we don't need to do it here.
   // This callback doesn't seem to be called for ABCI Sockets vs. ABCI gRPC? Not sure what's going on.
 }
 
-void CometImpl::flush(const cometbft::abci::v1::FlushRequest& req, cometbft::abci::v1::FlushResponse* res) {
+void CometImpl::flush(const tendermint::abci::RequestFlush& req, tendermint::abci::ResponseFlush* res) {
   // Nothing to do for now as all handlers should be synchronous.
 }
 
-void CometImpl::info(const cometbft::abci::v1::InfoRequest& req, cometbft::abci::v1::InfoResponse* res) {
+void CometImpl::info(const tendermint::abci::RequestInfo& req, tendermint::abci::ResponseInfo* res) {
   uint64_t height;
   Bytes hashBytes;
   std::string appSemVer;
@@ -2435,11 +2435,11 @@ void CometImpl::info(const cometbft::abci::v1::InfoRequest& req, cometbft::abci:
   ++infoCount_;
 }
 
-void CometImpl::init_chain(const cometbft::abci::v1::InitChainRequest& req, cometbft::abci::v1::InitChainResponse* res) {
+void CometImpl::init_chain(const tendermint::abci::RequestInitChain& req, tendermint::abci::ResponseInitChain* res) {
   std::vector<CometValidatorUpdate> validatorUpdates;
   for (const auto& update : req.validators()) {
     CometValidatorUpdate validatorUpdate;
-    validatorUpdate.publicKey = toBytes(update.pub_key_bytes());
+    validatorUpdate.publicKey = toBytes(update.pub_key().secp256k1());
     validatorUpdate.power = update.power();
     validatorUpdates.push_back(validatorUpdate);
   }
@@ -2465,7 +2465,7 @@ void CometImpl::init_chain(const cometbft::abci::v1::InitChainRequest& req, come
   //  If InitChainResponse.Validators is empty, the initial validator set will be the InitChainRequest.Validators
   // Meaning we don't want to set validator nodes here; we just always accept what the genesis file provides.
 
-  auto* feature_params = consensus_params->mutable_feature();
+  auto* abci_params = consensus_params->mutable_abci();
 
   // TODO/REVIEW: If we enable Vote Extensions (which we probably want to enable even if we aren't using them
   // for anything) here, we need to actually fill in vote extensions related ABCI request and response parameters
@@ -2473,19 +2473,20 @@ void CometImpl::init_chain(const cometbft::abci::v1::InitChainRequest& req, come
   //auto* vote_extensions_height = feature_params->mutable_vote_extensions_enable_height();
   //vote_extensions_height->set_value(1);
 
-  // Enable PBTS from block #1 and onwards, and configure its consensus parameters
-  auto* pbts_enable_height = feature_params->mutable_pbts_enable_height();
-  pbts_enable_height->set_value(1);
-  auto* synchrony_params = res->mutable_consensus_params()->mutable_synchrony();
-  auto* precision = synchrony_params->mutable_precision();
-  precision->set_seconds(COMETBFT_PBTS_SYNCHRONY_PARAM_PRECISION_SECONDS);
-  precision->set_nanos(0);
-  auto* message_delay = synchrony_params->mutable_message_delay();
-  message_delay->set_seconds(COMETBFT_PBTS_SYNCHRONY_PARAM_MESSAGE_DELAY_SECONDS);
-  message_delay->set_nanos(0);
+  // TODO: Enable PBTS from block #1 and onwards
+  abci_params->set_vote_extensions_enable_height(1);
+
+  // TODO? configure its consensus parameters
+  // auto* synchrony_params = res->mutable_consensus_params()->mutable_synchrony();
+  // auto* precision = synchrony_params->mutable_precision();
+  // precision->set_seconds(COMETBFT_PBTS_SYNCHRONY_PARAM_PRECISION_SECONDS);
+  // precision->set_nanos(0);
+  // auto* message_delay = synchrony_params->mutable_message_delay();
+  // message_delay->set_seconds(COMETBFT_PBTS_SYNCHRONY_PARAM_MESSAGE_DELAY_SECONDS);
+  // message_delay->set_nanos(0);
 }
 
-void CometImpl::prepare_proposal(const cometbft::abci::v1::PrepareProposalRequest& req, cometbft::abci::v1::PrepareProposalResponse* res) {
+void CometImpl::prepare_proposal(const tendermint::abci::RequestPrepareProposal& req, tendermint::abci::ResponsePrepareProposal* res) {
   const auto& reqTxs = req.txs();
 
   CometBlock block;
@@ -2528,7 +2529,7 @@ void CometImpl::prepare_proposal(const cometbft::abci::v1::PrepareProposalReques
   }
 }
 
-void CometImpl::process_proposal(const cometbft::abci::v1::ProcessProposalRequest& req, cometbft::abci::v1::ProcessProposalResponse* res) {
+void CometImpl::process_proposal(const tendermint::abci::RequestProcessProposal& req, tendermint::abci::ResponseProcessProposal* res) {
   bool accept = false;
 
   CometBlock block;
@@ -2546,16 +2547,16 @@ void CometImpl::process_proposal(const cometbft::abci::v1::ProcessProposalReques
   listener_->validateBlockProposal(block, accept);
 
   if (accept) {
-    res->set_status(cometbft::abci::v1::PROCESS_PROPOSAL_STATUS_ACCEPT);
+    res->set_status(tendermint::abci::ResponseProcessProposal_ProposalStatus_ACCEPT);
   } else {
-    res->set_status(cometbft::abci::v1::PROCESS_PROPOSAL_STATUS_REJECT);
+    res->set_status(tendermint::abci::ResponseProcessProposal_ProposalStatus_REJECT);
   }
 }
 
-void CometImpl::check_tx(const cometbft::abci::v1::CheckTxRequest& req, cometbft::abci::v1::CheckTxResponse* res) {
+void CometImpl::check_tx(const tendermint::abci::RequestCheckTx& req, tendermint::abci::ResponseCheckTx* res) {
   bool accept = false;
   int64_t gasWanted = -1;
-  const bool recheck = (req.type() == cometbft::abci::v1::CheckTxType::CHECK_TX_TYPE_RECHECK);
+  const bool recheck = (req.type() == tendermint::abci::CheckTxType::RECHECK);
   listener_->checkTx(toBytes(req.tx()), recheck, gasWanted, accept);
   int ret_code = 0;
   if (!accept) { ret_code = 1; }
@@ -2565,13 +2566,13 @@ void CometImpl::check_tx(const cometbft::abci::v1::CheckTxRequest& req, cometbft
   }
 }
 
-void CometImpl::commit(const cometbft::abci::v1::CommitRequest& req, cometbft::abci::v1::CommitResponse* res) {
+void CometImpl::commit(const tendermint::abci::RequestCommit& req, tendermint::abci::ResponseCommit* res) {
   uint64_t height;
   listener_->persistState(height);
   res->set_retain_height(height);
 }
 
-void CometImpl::finalize_block(const cometbft::abci::v1::FinalizeBlockRequest& req, cometbft::abci::v1::FinalizeBlockResponse* res) {
+void CometImpl::finalize_block(const tendermint::abci::RequestFinalizeBlock& req, tendermint::abci::ResponseFinalizeBlock* res) {
   std::unique_ptr<CometBlock> block = std::make_unique<CometBlock>();
   block->height = req.height();
   block->timeNanos = toNanosSinceEpoch(req.time());
@@ -2593,7 +2594,7 @@ void CometImpl::finalize_block(const cometbft::abci::v1::FinalizeBlockRequest& r
 
   // Moving the std::unique_ptr<CometBlock> nulls the local "block" variable, effectively
   // transferring ownership of the CometBlock object to the incomingBlock() impl.
-  listener_->incomingBlock(req.syncing_to_height(), std::move(block), hashBytes, txResults, validatorUpdates);
+  listener_->incomingBlock(std::move(block), hashBytes, txResults, validatorUpdates);
 
   // application must give us one txResult entry for every tx entry we have given it.
   // even fake transactions must generate results (they will have to generate fake results, e.g. success, 0 gas used, etc).
@@ -2608,7 +2609,7 @@ void CometImpl::finalize_block(const cometbft::abci::v1::FinalizeBlockRequest& r
   for (int32_t i = 0; i < req.txs().size(); ++i) {
     // NOTE: There are other ExecTxResult fields which could be used:
     // https://docs.cometbft.com/v1.0/spec/abci/abci++_methods#exectxresult
-    cometbft::abci::v1::ExecTxResult* tx_result = res->add_tx_results();
+    tendermint::abci::ExecTxResult* tx_result = res->add_tx_results();
     CometExecTxResult& txRes = txResults[i];
     tx_result->set_code(txRes.code);
     tx_result->set_gas_wanted(txRes.gasWanted);
@@ -2619,8 +2620,8 @@ void CometImpl::finalize_block(const cometbft::abci::v1::FinalizeBlockRequest& r
   for (const auto& validatorUpdate : validatorUpdates) {
     auto* update = res->add_validator_updates();
     update->set_power(validatorUpdate.power);
-    update->set_pub_key_type(COMET_PUB_KEY_TYPE);
-    update->set_pub_key_bytes(toStringForProtobuf(validatorUpdate.publicKey));
+    tendermint::crypto::PublicKey* pubkey = update->mutable_pub_key();
+    pubkey->set_secp256k1(toStringForProtobuf(validatorUpdate.publicKey));
   }
 
   // TODO: The Application can use FinalizeBlockRequest.decided_last_commit and FinalizeBlockRequest.misbehavior
@@ -2629,7 +2630,7 @@ void CometImpl::finalize_block(const cometbft::abci::v1::FinalizeBlockRequest& r
   // TODO: We will have to support consensus param updates, which are done through here.
 }
 
-void CometImpl::query(const cometbft::abci::v1::QueryRequest& req, cometbft::abci::v1::QueryResponse* res) {
+void CometImpl::query(const tendermint::abci::RequestQuery& req, tendermint::abci::ResponseQuery* res) {
   // Absorbed internally, may be used to implement other callbacks.
 
   // -------------------------------------------------------------------------------------
@@ -2659,19 +2660,19 @@ void CometImpl::query(const cometbft::abci::v1::QueryRequest& req, cometbft::abc
 // NOTE: If we want to support snapshot sharing, we'll do that by zipping, splicing,
 //       and creating a list of hashes for the per-block height DB directories generated
 //       by the machine state save-to-db/load-from-db feature.
-void CometImpl::list_snapshots(const cometbft::abci::v1::ListSnapshotsRequest& req, cometbft::abci::v1::ListSnapshotsResponse* res) {
+void CometImpl::list_snapshots(const tendermint::abci::RequestListSnapshots& req, tendermint::abci::ResponseListSnapshots* res) {
 }
-void CometImpl::offer_snapshot(const cometbft::abci::v1::OfferSnapshotRequest& req, cometbft::abci::v1::OfferSnapshotResponse* res) {
+void CometImpl::offer_snapshot(const tendermint::abci::RequestOfferSnapshot& req, tendermint::abci::ResponseOfferSnapshot* res) {
 }
-void CometImpl::load_snapshot_chunk(const cometbft::abci::v1::LoadSnapshotChunkRequest& req, cometbft::abci::v1::LoadSnapshotChunkResponse* res) {
+void CometImpl::load_snapshot_chunk(const tendermint::abci::RequestLoadSnapshotChunk& req, tendermint::abci::ResponseLoadSnapshotChunk* res) {
 }
-void CometImpl::apply_snapshot_chunk(const cometbft::abci::v1::ApplySnapshotChunkRequest& req, cometbft::abci::v1::ApplySnapshotChunkResponse* res) {
+void CometImpl::apply_snapshot_chunk(const tendermint::abci::RequestApplySnapshotChunk& req, tendermint::abci::ResponseApplySnapshotChunk* res) {
 }
 
 // NOTE: Not enabled in the protocol.
-void CometImpl::extend_vote(const cometbft::abci::v1::ExtendVoteRequest& req, cometbft::abci::v1::ExtendVoteResponse* res) {
+void CometImpl::extend_vote(const tendermint::abci::RequestExtendVote& req, tendermint::abci::ResponseExtendVote* res) {
 }
-void CometImpl::verify_vote_extension(const cometbft::abci::v1::VerifyVoteExtensionRequest& req, cometbft::abci::v1::VerifyVoteExtensionResponse* res) {
+void CometImpl::verify_vote_extension(const tendermint::abci::RequestVerifyVoteExtension& req, tendermint::abci::ResponseVerifyVoteExtension* res) {
 }
 
 // ---------------------------------------------------------------------------------------

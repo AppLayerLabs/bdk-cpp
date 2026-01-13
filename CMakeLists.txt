@@ -99,7 +99,7 @@ set(Protobuf_USE_STATIC_LIBS ON)
 
 # Generate the code of all the CometBFT proto files (with the has_vote hack)
 # using the old protoc logic which did work, will generate target gen-proto-grpc
-include(cmake/GenerateCometBFTProtoV1_NoExp.cmake)
+include(cmake/GenerateCometBFTProto_NoExp.cmake)
 
 # Find system packages (built-in)
 find_package(Boost 1.83.0 REQUIRED COMPONENTS chrono filesystem program_options system thread nowide)

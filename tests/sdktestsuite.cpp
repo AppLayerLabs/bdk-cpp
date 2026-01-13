@@ -583,7 +583,7 @@ void SDKTestSuite::checkTx(const Bytes& tx, const bool recheck, int64_t& gasWant
 }
 
 void SDKTestSuite::incomingBlock(
-  const uint64_t syncingToHeight, std::unique_ptr<CometBlock> block, Bytes& appHash,
+  std::unique_ptr<CometBlock> block, Bytes& appHash,
   std::vector<CometExecTxResult>& txResults, std::vector<CometValidatorUpdate>& validatorUpdates
 ) {
   // We have to std::move(block) before we update advanceChainPendingTxs_, so compute the tx hashes
@@ -595,7 +595,7 @@ void SDKTestSuite::incomingBlock(
   uint64_t blockHeight = block->height;
 
   // First, forward the block to the Blockchain so the txs will modify the State, compute appHash, etc.
-  Blockchain::incomingBlock(syncingToHeight, std::move(block), appHash, txResults, validatorUpdates);
+  Blockchain::incomingBlock(std::move(block), appHash, txResults, validatorUpdates);
 
   // *After* the block has been processed into the state:
   // Trapping incomingBlock here allows the test suite to figure out what transactions have just been

@@ -200,7 +200,6 @@ void Blockchain::saveSnapshot() {
 }
 
 void Blockchain::cleanup() {
-  syncing_ = false;
   persistStateSkipCount_ = 0;
   latest_.store(nullptr);
   txCache_.clear();
@@ -628,7 +627,7 @@ void Blockchain::checkTx(const Bytes& tx, const bool recheck, int64_t& gasWanted
 }
 
 void Blockchain::incomingBlock(
-  const uint64_t syncingToHeight, std::unique_ptr<CometBlock> block, Bytes& appHash,
+  std::unique_ptr<CometBlock> block, Bytes& appHash,
   std::vector<CometExecTxResult>& txResults, std::vector<CometValidatorUpdate>& validatorUpdates
 ) {
   std::scoped_lock lock(incomingBlockLockMutex_);
@@ -637,9 +636,6 @@ void Blockchain::incomingBlock(
   }
 
   try {
-    // Update syncing status (don't persist state to disk while syncing (?))
-    syncing_ = syncingToHeight > block->height;
-
     // The factory method should construct a FinalizedBlock which is then automatically moved
     //  into the shared_ptr, as it is a temporary.
     // NOTE: We pass in a pointer to our mempool_, which allows FinalizedBlock::fromCometBlock()
@@ -897,11 +893,6 @@ void Blockchain::persistState(uint64_t& height) {
 
   // Trigger snapshotting every X blocks.
   // Do not save snapshots when syncing the blockchain or if snapshotting is disabled via stateDumpTrigger == 0.
-
-  // If we are syncing or state dump is disabled, there's nothing else to do.
-  if (syncing_ || options_.getStateDumpTrigger() == 0) {
-    return;
-  }
 
   // If the dump trigger is satisifed and we don't have a snapshot save already active (future is invalid) then start one.
   if (++persistStateSkipCount_ >= options_.getStateDumpTrigger()) {

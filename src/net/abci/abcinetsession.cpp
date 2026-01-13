@@ -224,16 +224,16 @@ void ABCINetSession::handle_write_message(boost::system::error_code ec, std::siz
 }
 
 void ABCINetSession::process_request() {
-  cometbft::abci::v1::Request request;
+  tendermint::abci::Request request;
   if (!request.ParseFromArray(databuf_.data(), databuf_message_size_)) {
     server_->failed("Failed to parse request");
     return;
   }
 
-  cometbft::abci::v1::Response response;
+  tendermint::abci::Response response;
 
   switch (request.value_case()) {
-    case cometbft::abci::v1::Request::kEcho:
+    case tendermint::abci::Request::kEcho:
     {
       LOGXTRACE("Echo");
       const auto &echo_req = request.echo();
@@ -244,7 +244,7 @@ void ABCINetSession::process_request() {
       handler_->echo(echo_req, echo_resp);
       break;
     }
-    case cometbft::abci::v1::Request::kFlush:
+    case tendermint::abci::Request::kFlush:
     {
       LOGXTRACE("Flush");
       const auto &flush_req = request.flush();
@@ -252,7 +252,7 @@ void ABCINetSession::process_request() {
       handler_->flush(flush_req, flush_resp);
       break;
     }
-    case cometbft::abci::v1::Request::kInfo:
+    case tendermint::abci::Request::kInfo:
     {
       LOGXTRACE("Info");
       const auto &info_req = request.info();
@@ -260,7 +260,7 @@ void ABCINetSession::process_request() {
       handler_->info(info_req, info_resp);
       break;
     }
-    case cometbft::abci::v1::Request::kInitChain:
+    case tendermint::abci::Request::kInitChain:
     {
       LOGXTRACE("InitChain");
       const auto &init_chain_req = request.init_chain();
@@ -268,7 +268,7 @@ void ABCINetSession::process_request() {
       handler_->init_chain(init_chain_req, init_chain_resp);
       break;
     }
-    case cometbft::abci::v1::Request::kPrepareProposal:
+    case tendermint::abci::Request::kPrepareProposal:
     {
       LOGXTRACE("PrepareProposal");
       const auto &prepare_proposal_req = request.prepare_proposal();
@@ -276,7 +276,7 @@ void ABCINetSession::process_request() {
       handler_->prepare_proposal(prepare_proposal_req, prepare_proposal_resp);
       break;
     }
-    case cometbft::abci::v1::Request::kProcessProposal:
+    case tendermint::abci::Request::kProcessProposal:
     {
       LOGXTRACE("ProcessProposal");
       const auto &process_proposal_req = request.process_proposal();
@@ -284,7 +284,7 @@ void ABCINetSession::process_request() {
       handler_->process_proposal(process_proposal_req, process_proposal_resp);
       break;
     }
-    case cometbft::abci::v1::Request::kCheckTx:
+    case tendermint::abci::Request::kCheckTx:
     {
       LOGXTRACE("CheckTx");
       const auto &check_tx_req = request.check_tx();
@@ -292,7 +292,7 @@ void ABCINetSession::process_request() {
       handler_->check_tx(check_tx_req, check_tx_resp);
       break;
     }
-    case cometbft::abci::v1::Request::kQuery:
+    case tendermint::abci::Request::kQuery:
     {
       LOGXTRACE("Query");
       const auto &query_req = request.query();
@@ -300,7 +300,7 @@ void ABCINetSession::process_request() {
       handler_->query(query_req, query_resp);
       break;
     }
-    case cometbft::abci::v1::Request::kCommit:
+    case tendermint::abci::Request::kCommit:
     {
       LOGXTRACE("Commit");
       const auto &commit_req = request.commit();
@@ -308,7 +308,7 @@ void ABCINetSession::process_request() {
       handler_->commit(commit_req, commit_resp);
       break;
     }
-    case cometbft::abci::v1::Request::kExtendVote:
+    case tendermint::abci::Request::kExtendVote:
     {
       LOGXTRACE("ExtendVote");
       const auto &extend_vote_req = request.extend_vote();
@@ -316,7 +316,7 @@ void ABCINetSession::process_request() {
       handler_->extend_vote(extend_vote_req, extend_vote_resp);
       break;
     }
-    case cometbft::abci::v1::Request::kVerifyVoteExtension:
+    case tendermint::abci::Request::kVerifyVoteExtension:
     {
       LOGXTRACE("VerifyVoteExtension");
       const auto &verify_vote_extension_req = request.verify_vote_extension();
@@ -324,7 +324,7 @@ void ABCINetSession::process_request() {
       handler_->verify_vote_extension(verify_vote_extension_req, verify_vote_extension_resp);
       break;
     }
-    case cometbft::abci::v1::Request::kFinalizeBlock:
+    case tendermint::abci::Request::kFinalizeBlock:
     {
       LOGXTRACE("FinalizeBlock");
       const auto &finalize_block_req = request.finalize_block();
@@ -332,7 +332,7 @@ void ABCINetSession::process_request() {
       handler_->finalize_block(finalize_block_req, finalize_block_resp);
       break;
     }
-    case cometbft::abci::v1::Request::kListSnapshots:
+    case tendermint::abci::Request::kListSnapshots:
     {
       LOGXTRACE("ListSnapshots");
       const auto &list_snapshots_req = request.list_snapshots();
@@ -340,7 +340,7 @@ void ABCINetSession::process_request() {
       handler_->list_snapshots(list_snapshots_req, list_snapshots_resp);
       break;
     }
-    case cometbft::abci::v1::Request::kOfferSnapshot:
+    case tendermint::abci::Request::kOfferSnapshot:
     {
       LOGXTRACE("OfferSnapshot");
       const auto &offer_snapshot_req = request.offer_snapshot();
@@ -348,7 +348,7 @@ void ABCINetSession::process_request() {
       handler_->offer_snapshot(offer_snapshot_req, offer_snapshot_resp);
       break;
     }
-    case cometbft::abci::v1::Request::kLoadSnapshotChunk:
+    case tendermint::abci::Request::kLoadSnapshotChunk:
     {
       LOGXTRACE("LoadSnapshotChunk");
       const auto &load_snapshot_chunk_req = request.load_snapshot_chunk();
@@ -356,7 +356,7 @@ void ABCINetSession::process_request() {
       handler_->load_snapshot_chunk(load_snapshot_chunk_req, load_snapshot_chunk_resp);
       break;
     }
-    case cometbft::abci::v1::Request::kApplySnapshotChunk:
+    case tendermint::abci::Request::kApplySnapshotChunk:
     {
       LOGXTRACE("ApplySnapshotChunk");
       const auto &apply_snapshot_chunk_req = request.apply_snapshot_chunk();

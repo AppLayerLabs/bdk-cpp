@@ -8,6 +8,8 @@ See the LICENSE.txt file in the project root for more information.
 #ifndef COMET_H
 #define COMET_H
 
+#include <boost/process.hpp>
+
 #include "../utils/options.h"
 #include "../utils/logger.h"
 
@@ -155,14 +157,13 @@ class CometListener {
 
     /**
      * Notification of a new finalized block added to the chain.
-     * @param syncingToHeight If the blockchain is doing a replay, syncingToHeight > height, otherwise syncingToHeight == height.
      * @param block Unique ptr to the incoming, finalized block (you can `std::move()` it to a member variable, for example).
      * @param appHash Outparam to be set with the hash of the application state after all `txs` are processed into it.
      * @param txResults Outparam to be filled in with the result of executing each transaction in the `txs` vector (indices must match).
      * @param validatorUpdates Outparam to be filled with the validator updates generated as a side-effect of applying this block to the app state.
      */
     virtual void incomingBlock(
-      const uint64_t syncingToHeight, std::unique_ptr<CometBlock> block, Bytes& appHash,
+      std::unique_ptr<CometBlock> block, Bytes& appHash,
       std::vector<CometExecTxResult>& txResults, std::vector<CometValidatorUpdate>& validatorUpdates
     ) {
       appHash.clear();
@@ -201,13 +202,13 @@ class CometListener {
      * Callback from cometbft to check what is the current state of the application.
      * @param height Outparam to be set with the height of the last block processed to generate the current application state.
      * @param appHash Outparam to be set with the hash of the current application state (i.e. the state at `height`).
-     * @param appSemVer Outparam to be set with the application's semantic version string e.g. "1.0.0" (logged in every block).
+     * @param appSemVer Outparam to be set with the application's semantic version string e.g. "0.38.19" (logged in every block).
      * @param appVersion Outparam with the uint version of the application (0 if never modified from its original/genesis version).
      */
     virtual void getCurrentState(uint64_t& height, Bytes& appHash, std::string& appSemVer, uint64_t& appVersion) {
       height = 0;
       appHash.clear();
-      appSemVer = "1.0.0";
+      appSemVer = "0.38.19";
       appVersion = 0;
     }
 
