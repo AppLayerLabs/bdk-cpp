@@ -2473,8 +2473,9 @@ void CometImpl::init_chain(const tendermint::abci::RequestInitChain& req, tender
   //auto* vote_extensions_height = feature_params->mutable_vote_extensions_enable_height();
   //vote_extensions_height->set_value(1);
 
-  // TODO: Enable PBTS from block #1 and onwards
-  abci_params->set_vote_extensions_enable_height(1);
+  // Do not enable vote extensions for now. https://docs.cometbft.com/v0.38/spec/abci/abci++_app_requirements#abciparamsvoteextensionsenableheight
+  // 0 == disabled.
+  abci_params->set_vote_extensions_enable_height(0);
 
   // TODO? configure its consensus parameters
   // auto* synchrony_params = res->mutable_consensus_params()->mutable_synchrony();
@@ -2673,6 +2674,7 @@ void CometImpl::apply_snapshot_chunk(const tendermint::abci::RequestApplySnapsho
 void CometImpl::extend_vote(const tendermint::abci::RequestExtendVote& req, tendermint::abci::ResponseExtendVote* res) {
 }
 void CometImpl::verify_vote_extension(const tendermint::abci::RequestVerifyVoteExtension& req, tendermint::abci::ResponseVerifyVoteExtension* res) {
+
 }
 
 // ---------------------------------------------------------------------------------------

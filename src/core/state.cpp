@@ -578,19 +578,20 @@ int64_t State::estimateGas(EncodedMessageVariant msg) {
     std::unique_ptr<ExecutionContext> context;
     const EncodedCallMessage* callMessage = std::get_if<EncodedCallMessage>(&msg);
     const EncodedCreateMessage* createMessage = nullptr;
+
     if (callMessage) {
       context = ExecutionContext::Builder{}
         .storage(this->vmStorage_)
         .accounts(this->accounts_)
         .contracts(this->contracts_)
         .evmContracts(this->evmContracts_)
-        .blockHash(latestBlock->getHash())
+        .blockHash((latestBlock != nullptr) ? latestBlock->getHash() : Hash())
         .txHash(Hash())
         .txOrigin(callMessage->from())
-        .blockCoinbase(latestBlock->getProposerAddr())
+        .blockCoinbase((latestBlock != nullptr) ? latestBlock->getProposerAddr() : Address())
         .txIndex(0)
-        .blockNumber(latestBlock->getNHeight())
-        .blockTimestamp(latestBlock->getTimestamp())
+        .blockNumber((latestBlock != nullptr) ? latestBlock->getNHeight() : 0)
+        .blockTimestamp((latestBlock != nullptr) ? latestBlock->getTimestamp() : 0)
         .blockGasLimit(10'000'000)
         .txGasPrice(0)
         .chainId(blockchain_.opt().getChainID())
@@ -605,13 +606,13 @@ int64_t State::estimateGas(EncodedMessageVariant msg) {
         .accounts(this->accounts_)
         .contracts(this->contracts_)
         .evmContracts(this->evmContracts_)
-        .blockHash(latestBlock->getHash())
+        .blockHash((latestBlock != nullptr) ? latestBlock->getHash() : Hash())
         .txHash(Hash())
         .txOrigin(createMessage->from())
-        .blockCoinbase(latestBlock->getProposerAddr())
+        .blockCoinbase((latestBlock != nullptr) ? latestBlock->getProposerAddr() : Address())
         .txIndex(0)
-        .blockNumber(latestBlock->getNHeight())
-        .blockTimestamp(latestBlock->getTimestamp())
+        .blockNumber((latestBlock != nullptr) ? latestBlock->getNHeight() : 0)
+        .blockTimestamp((latestBlock != nullptr) ? latestBlock->getTimestamp() : 0)
         .blockGasLimit(10'000'000)
         .txGasPrice(0)
         .chainId(blockchain_.opt().getChainID())

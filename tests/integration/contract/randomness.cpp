@@ -43,7 +43,11 @@ namespace TContractRandomness {
       // with the seed being Hash(blockRandomness + txIndex)
       // TxIndex is 0, so the seed should be the blockRandomness
       auto setRandomTx = sdk.callFunction(randomnessContractAddr, &RandomnessTest::setRandom);
-      Hash randomnessSeed = sdk.latest()->getRandomness();
+      auto txInfo = sdk.getTx(setRandomTx);
+      if (!txInfo.txBlockPtr) {
+        FAIL("Transaction not found in blockchain");
+      }
+      Hash randomnessSeed = sdk.getBlock(txInfo.blockHeight)->getRandomness();
       RandomGen randomGen(randomnessSeed);
       REQUIRE(sdk.callViewFunction(randomnessContractAddr, &RandomnessTest::getRandom) == randomGen.operator()());
     }
@@ -58,7 +62,11 @@ namespace TContractRandomness {
       // with the seed being Hash(blockRandomness + txIndex)
       // TxIndex is 0, so the seed should be the blockRandomness
       auto setRandomTx = sdk.callFunction(randomnessContractAddr, &RandomnessTest::setRandom);
-      Hash randomnessSeed = sdk.latest()->getRandomness();
+      auto txInfo = sdk.getTx(setRandomTx);
+      if (!txInfo.txBlockPtr) {
+        FAIL("Transaction not found in blockchain");
+      }
+      Hash randomnessSeed = sdk.getBlock(txInfo.blockHeight)->getRandomness();
       RandomGen randomGen(randomnessSeed);
       REQUIRE(sdk.callViewFunction(randomnessContractAddr, &RandomnessTest::getRandom) == randomGen.operator()());
     }
@@ -77,7 +85,11 @@ namespace TContractRandomness {
         // with the seed being Hash(blockRandomness + txIndex)
         // TxIndex is 0, so the seed should be the blockRandomness
         auto setRandomTx = sdk.callFunction(randomnessContractAddr, &RandomnessTest::setRandom);
-        randomnessSeed = sdk.latest()->getRandomness();
+        auto txInfo = sdk.getTx(setRandomTx);
+        if (!txInfo.txBlockPtr) {
+          FAIL("Transaction not found in blockchain");
+        }
+        Hash randomnessSeed = sdk.getBlock(txInfo.blockHeight)->getRandomness();
         RandomGen randomGen(randomnessSeed);
         randomNum = randomGen.operator()();
         REQUIRE(sdk.callViewFunction(randomnessContractAddr, &RandomnessTest::getRandom) == randomNum);

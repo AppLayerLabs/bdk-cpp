@@ -592,7 +592,6 @@ namespace TBlockchain {
 
       GLOGDEBUG("TEST: done");
     }
-
     // SystemContract integration test with Blockchain
     SECTION("BlockchainValidatorSetTest") {
       const int numNodes = 6;
@@ -665,7 +664,7 @@ namespace TBlockchain {
           nodeAccs[i].address, // to: each node's address (controlled by its validator private key)
           aThousandNativeTokens * 5 // 5,000 eth
         );
-        // ...and all nodes agree on this...
+
         for (int j = 0; j < numNodes; ++j) {
           REQUIRE(blockchainCheckDeposit(*blockchains[j], nodeAccs[i].address, aThousandNativeTokens * 5));
         }
@@ -852,7 +851,7 @@ namespace TBlockchain {
         uint64_t validatorSetHeight = 0;
         blockchains[i]->state().getValidatorSet(validatorSet, validatorSetHeight);
         REQUIRE(validatorSet.size() == 5); // same number of slots and we still have at least 5 validators to fill in these 5 slots
-                                           // (if node 4 had also fully undelegated, we'd see only 4 validators elected for the 5 slots)
+        // (if node 4 had also fully undelegated, we'd see only 4 validators elected for the 5 slots)
         REQUIRE(PubKey(validatorSet[0].publicKey) == nodeAccs[5].pubKey);
         REQUIRE(PubKey(validatorSet[1].publicKey) == nodeAccs[0].pubKey);
         REQUIRE(PubKey(validatorSet[2].publicKey) == nodeAccs[2].pubKey);

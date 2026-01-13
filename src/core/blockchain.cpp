@@ -1113,7 +1113,6 @@ json Blockchain::getBlockJson(const FinalizedBlock* block, bool includeTransacti
   ret["hash"] = block->getHash().hex(true);
   ret["parentHash"] = block->getPrevBlockHash().hex(true);
   ret["sha3Uncles"] = Hash().hex(true); // Uncles do not exist.
-  std::cout << "Blockchain::getBlockJson BlockHash: " << block->getHash().hex(true) << " Proposer: " << block->getProposerAddr().hex(true) << std::endl;
   ret["miner"] = this->state_.validatorCometAddressToEthAddress(block->getProposerAddr()).hex(true);
   ret["stateRoot"] = Hash().hex(true); // No State root.
   ret["transactionsRoot"] = block->getTxMerkleRoot().hex(true);

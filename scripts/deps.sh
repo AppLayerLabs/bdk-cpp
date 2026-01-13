@@ -59,7 +59,7 @@ SPEEDB_VERSION="2.8.0"
 SQLITECPP_VERSION="3.3.2"
 
 PROTOC_VERSION="29.3"
-COMETBFT_VERSION="0.38.19"
+COMETBFT_VERSION="0.38.19-keccak256"
 
 
 # ===========================================================================
