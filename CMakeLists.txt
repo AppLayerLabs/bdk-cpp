@@ -132,8 +132,8 @@ set(Protobuf_USE_STATIC_LIBS ON)
 
 # Find the project's dependencies
 find_package(Threads)
-
 find_package(Boost 1.83.0 REQUIRED COMPONENTS chrono container filesystem nowide program_options thread)
+find_package(CometBFT REQUIRED)
 find_package(CryptoPP 8.2.0 REQUIRED)
 find_package(OpenSSL 1.1.1 REQUIRED)
 find_package(RocksDB REQUIRED)
