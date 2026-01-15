@@ -19,13 +19,17 @@ if (BUILD_FAUCET)
   target_include_directories(rollup_faucet_lib PRIVATE
     ${CMAKE_SOURCE_DIR}/include ${OPENSSL_INCLUDE_DIR} bdk_lib
     ${ETHASH_INCLUDE_DIR} ${KECCAK_INCLUDE_DIR}
-    ${SPEEDB_INCLUDE_DIR} ${SECP256K1_INCLUDE_DIR}
+    ${ROCKSDB_INCLUDE_DIR} ${SECP256K1_INCLUDE_DIR}
   )
 
   target_link_libraries(rollup_faucet_lib PRIVATE bdk_lib
-    ${CRYPTOPP_LIBRARIES} ${SCRYPT_LIBRARY} ${SECP256K1_LIBRARY}
-    ${ETHASH_LIBRARY} ${KECCAK_LIBRARY} ${SPEEDB_LIBRARY}
-    ${Boost_LIBRARIES} ${OPENSSL_LIBRARIES} bdk_lib
+    Boost::headers Boost::chrono Boost::container Boost::filesystem Boost::nowide Boost::program_options Boost::thread
+    ${CRYPTOPP_LIBRARIES}
+    libsecp256k1::secp256k1
+    ethash::ethash ethash::keccak
+    RocksDB::rocksdb
+    OpenSSL::SSL OpenSSL::Crypto
+    bdk_lib
   )
 
   # Compile and link the faucet-api executable
@@ -36,14 +40,16 @@ if (BUILD_FAUCET)
   target_include_directories(faucet-api PRIVATE
     bdk_lib rollup_faucet_lib ${OPENSSL_INCLUDE_DIR}
     ${ETHASH_INCLUDE_DIR} ${KECCAK_INCLUDE_DIR}
-    ${SPEEDB_INCLUDE_DIR} ${SECP256K1_INCLUDE_DIR}
+    ${ROCKSDB_INCLUDE_DIR} ${SECP256K1_INCLUDE_DIR}
   )
 
   target_link_libraries(faucet-api
     bdk_lib rollup_faucet_lib
-    ${SPEEDB_LIBRARY} ${SNAPPY_LIBRARY} ${Boost_LIBRARIES}
-    ${OPENSSL_LIBRARIES} ${ZLIB_LIBRARIES} ${SECP256K1_LIBRARY}
-    ${ETHASH_LIBRARY} ${KECCAK_LIBRARY}
+    Boost::headers Boost::chrono Boost::container Boost::filesystem Boost::nowide Boost::program_options Boost::thread
+    RocksDB::rocksdb
+    OpenSSL::SSL OpenSSL::Crypto
+    libsecp256k1::secp256k1
+    ethash::ethash ethash::keccak
   )
 
   # Compile and link the faucet-api executable
@@ -54,14 +60,16 @@ if (BUILD_FAUCET)
   target_include_directories(faucet-tester PRIVATE
     bdk_lib rollup_faucet_lib ${OPENSSL_INCLUDE_DIR}
     ${ETHASH_INCLUDE_DIR} ${KECCAK_INCLUDE_DIR}
-    ${SPEEDB_INCLUDE_DIR} ${SECP256K1_INCLUDE_DIR}
+    ${ROCKSDB_INCLUDE_DIR} ${SECP256K1_INCLUDE_DIR}
   )
 
   target_link_libraries(faucet-tester
     bdk_lib rollup_faucet_lib
-    ${SPEEDB_LIBRARY} ${SNAPPY_LIBRARY} ${Boost_LIBRARIES}
-    ${OPENSSL_LIBRARIES} ${ZLIB_LIBRARIES} ${SECP256K1_LIBRARY}
-    ${ETHASH_LIBRARY} ${KECCAK_LIBRARY}
+    Boost::headers Boost::chrono Boost::container Boost::filesystem Boost::nowide Boost::program_options Boost::thread
+    RocksDB::rocksdb
+    OpenSSL::SSL OpenSSL::Crypto
+    libsecp256k1::secp256k1
+    ethash::ethash ethash::keccak
   )
 endif()
 

@@ -1,10 +1,14 @@
-# Pre-setup
+# ===========================================================================
+# PRE-SETUP
+# ===========================================================================
+
 cmake_minimum_required(VERSION 3.19.0)
 
 include(cmake/cable/bootstrap.cmake)
 include(CableBuildInfo)
 include(CableBuildType)
 include(GNUInstallDirs)
+
 cable_set_build_type(DEFAULT Debug CONFIGURATION_TYPES Debug;Release;RelWithDebInfo)
 
 # Map current configuration to configurations of imported targets.
@@ -16,52 +20,62 @@ if (CMAKE_VERSION VERSION_GREATER_EQUAL "3.24.0")
   cmake_policy(SET CMP0135 NEW)
 endif()
 
-# TODO: avoid FindBoost deprecation message in CMake 3.30+ (cmake --help-policy CMP0167)
+# Avoid FindBoost deprecation message in CMake 3.30+
+if (CMAKE_VERSION VERSION_GREATER_EQUAL "3.30.0")
+  cmake_policy(SET CMP0167 NEW)
+endif()
 
-# Project data
+# ===========================================================================
+# SETUP
+# ===========================================================================
+
+# Project data and params
 project(bdk VERSION 0.2.0 DESCRIPTION "AppLayer Blockchain Development Kit")
-set(CMAKE_CXX_STANDARD 23)
-set(CMAKE_CXX_STANDARD_REQUIRED TRUE)
-set(CMAKE_CXX_EXTENSIONS OFF)
-SET(DEBUG ON CACHE BOOL "Debug mode")
-set(CMAKE_POSITION_INDEPENDENT_CODE ON)
-set(CMAKE_FIND_LIBRARY_SUFFIXES ".a") # Always look for static libraries - "ZLIB_USE_STATIC_LIBS" was added in 3.24
-set(CMAKE_EXPORT_COMPILE_COMMANDS ON) # For clang-tidy
 
-# Set compiler flags
-# TODO: -Wno-c++26-extensions is included because zpp_libs uses name-independent declarations (vars named "_").
-# This should be resolved at a later date, but was turned off for now because it doesn't affect us
-if(DEBUG)
-  set(CMAKE_CXX_FLAGS "-O0 -g -Wno-c++26-extensions -fsanitize=address -fno-inline -fno-eliminate-unused-debug-types -fstack-protector") # Provides faster compile time.
-elseif(SONARQUBE_ANALYSIS)
-  set(CMAKE_CXX_FLAGS "-O0 -g -Wno-c++26-extensions --coverage")
-else()
-  set(CMAKE_CXX_FLAGS "-O2 -Wno-c++26-extensions -Werror=unused-variable")
-endif()
-find_program(MOLD "mold") # Use mold by default if it is installed
-if(MOLD)
-  message(STATUS "Using mold as linker")
-  set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fuse-ld=mold")
-  set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -fuse-ld=mold")
-endif()
+set(DEBUG ON CACHE BOOL "Debug mode")
+set(USE_LINT OFF CACHE BOOL "Run linter on compile (clang-tidy)")
 
-# Set project version inside the code (forcefully so changes in the .in file are always reflected correctly to the compiler)
-configure_file(
-  ${CMAKE_SOURCE_DIR}/src/utils/options.h.in
-  ${CMAKE_SOURCE_DIR}/src/utils/options.h
-  @ONLY
-)
-
-# External project data
 set(BUILD_TESTS ON CACHE BOOL "Build unit tests")
 set(BUILD_SAFEVAR_TESTS ON CACHE BOOL "Build tests for SafeVars (contract variables) - requires BUILD_TESTS")
 set(BUILD_BENCHMARK_TESTS OFF CACHE BOOL "Build tests for benchmarks - requires BUILD_TESTS")
 set(BUILD_DISCOVERY ON CACHE BOOL "Build helper discovery node program")
 set(BUILD_TOOLS OFF CACHE BOOL "Build tools related to subnet")
 set(BUILD_TESTNET OFF CACHE BOOL "Build the project for testnet")
-set(USE_LINT OFF CACHE BOOL "Run linter on compile (clang-tidy)")
+
+# CMake compiler params and flags
+# TODO: -Wno-c++26-extensions is included because zpp_libs uses name-independent declarations (vars named "_").
+# This should be resolved at a later date, but was turned off for now because it doesn't affect us
+set(CMAKE_CXX_STANDARD 23)
+set(CMAKE_CXX_STANDARD_REQUIRED TRUE)
+set(CMAKE_CXX_EXTENSIONS OFF)
+if(DEBUG)
+  # Extra -f params provide faster compile time
+  set(CMAKE_CXX_FLAGS "-O0 -g -Wno-c++26-extensions -fsanitize=address -fno-inline -fno-eliminate-unused-debug-types -fstack-protector")
+elseif(SONARQUBE_ANALYSIS)
+  set(CMAKE_CXX_FLAGS "-O0 -g -Wno-c++26-extensions --coverage")
+else()
+  set(CMAKE_CXX_FLAGS "-O2 -Wno-c++26-extensions -Werror=unused-variable")
+endif()
 if(USE_LINT)
   set(CMAKE_CXX_CLANG_TIDY "clang-tidy;-header-filter=.;-checks=-*,abseil-*,boost-*,bugprone-*,cert-*,clang-analyzer-*,concurrency-*,cppcoreguidelines-*,hicpp-*,misc-*,modernize-*,performance-*,portability-*,readability-*")
+endif()
+
+# CMake general params
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+set(CMAKE_FIND_LIBRARY_SUFFIXES ".a") # Always look for static libraries - "ZLIB_USE_STATIC_LIBS" was added in CMake 3.24
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON) # For clang-tidy
+
+# CMake paths for the deps subfolder (prioritize dependencies coming from it)
+set(CMAKE_PREFIX_PATH "${CMAKE_SOURCE_DIR}/deps/target")
+set(CMAKE_INCLUDE_PATH "${CMAKE_SOURCE_DIR}/deps/target/include")
+set(CMAKE_LIBRARY_PATH "${CMAKE_SOURCE_DIR}/deps/target/lib;${CMAKE_SOURCE_DIR}/deps/target/lib64")
+
+# Optionally use mold as the linker if it is installed
+find_program(MOLD "mold")
+if(MOLD)
+  set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fuse-ld=mold")
+  set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -fuse-ld=mold")
+  message(STATUS "Using mold as linker")
 endif()
 
 # Set preprocessor macros based on CMake flags
@@ -75,13 +89,21 @@ if(BUILD_BENCHMARK_TESTS)
   add_compile_definitions(BUILD_BENCHMARK_TESTS)
 endif()
 
-# Echo CMake vars during config
+# Print the resulting config values
 message(STATUS "C++ standard: ${CMAKE_CXX_STANDARD}")
 message(STATUS "C++ standard is required: ${CMAKE_CXX_STANDARD_REQUIRED}")
 message(STATUS "C++ extensions: ${CMAKE_CXX_EXTENSIONS}")
 message(STATUS "C++ flags: ${CMAKE_CXX_FLAGS}")
+message(STATUS "C++ clang-tidy flags: ${CMAKE_CXX_CLANG_TIDY}")
+
 message(STATUS "Using PIC: ${CMAKE_POSITION_INDEPENDENT_CODE}")
 message(STATUS "Find libs with suffix: ${CMAKE_FIND_LIBRARY_SUFFIXES}")
+message(STATUS "Export compile commands (for clang-tidy): ${CMAKE_EXPORT_COMPILE_COMMANDS}")
+
+message(STATUS "Deps subfolder prefix path: ${CMAKE_PREFIX_PATH}")
+message(STATUS "Deps subfolder include path: ${CMAKE_INCLUDE_PATH}")
+message(STATUS "Deps subfolder library path: ${CMAKE_LIBRARY_PATH}")
+
 message("Building tests: ${BUILD_TESTS}")
 message("Building SafeVar tests: ${BUILD_SAFEVAR_TESTS}")
 message("Building benchmark tests: ${BUILD_BENCHMARK_TESTS}")
@@ -90,6 +112,17 @@ message("Building tools: ${BUILD_TOOLS}")
 message("Building testnet: ${BUILD_TESTNET}")
 message("Using lint: ${USE_LINT}")
 
+# ===========================================================================
+# CONFIG
+# ===========================================================================
+
+# Set project version inside the code (forcefully so changes in the .in file are always reflected correctly to the compiler)
+configure_file(
+  ${CMAKE_SOURCE_DIR}/src/utils/options.h.in
+  ${CMAKE_SOURCE_DIR}/src/utils/options.h
+  @ONLY
+)
+
 cable_add_buildinfo_library(PROJECT_NAME bdk)
 
 # System package configs (built-in)
@@ -97,27 +130,18 @@ set(Boost_USE_STATIC_LIBS ON)
 set(OPENSSL_USE_STATIC_LIBS ON)
 set(Protobuf_USE_STATIC_LIBS ON)
 
-# Generate the code of all the CometBFT proto files (with the has_vote hack)
-# using the old protoc logic which did work, will generate target gen-proto-grpc
-include(cmake/GenerateCometBFTProto_NoExp.cmake)
-
-# Find system packages (built-in)
-find_package(Boost 1.83.0 REQUIRED COMPONENTS chrono filesystem program_options system thread nowide)
-find_package(OpenSSL 1.1.1 REQUIRED)
-find_package(ZLIB REQUIRED)
+# Find the project's dependencies
 find_package(Threads)
 
-# Find system packages (custom)
-find_package(Protobuf CONFIG REQUIRED)
+find_package(Boost 1.83.0 REQUIRED COMPONENTS chrono container filesystem nowide program_options thread)
 find_package(CryptoPP 8.2.0 REQUIRED)
-find_package(Ethash REQUIRED)
-find_package(Evmc REQUIRED)
-find_package(Evmone REQUIRED)
-find_package(Keccak REQUIRED)
-find_package(Scrypt REQUIRED)
-find_package(Secp256k1 REQUIRED)
-find_package(Speedb REQUIRED)
+find_package(OpenSSL 1.1.1 REQUIRED)
+find_package(RocksDB REQUIRED)
 find_package(SQLiteCpp REQUIRED)
+find_package(ethash REQUIRED)
+find_package(evmc REQUIRED)
+find_package(libsecp256k1 REQUIRED)
+find_package(protobuf REQUIRED)
 
 # Add catch2 as a library
 add_library(catch2
@@ -130,6 +154,10 @@ target_compile_definitions(catch2 PRIVATE CATCH_AMALGAMATED_CUSTOM_MAIN)
 # Check compiler variable sizes
 include(cmake/CheckSizes.cmake)
 
+# Generate the code of all the CometBFT proto files (with the has_vote hack)
+# using the old protoc logic which did work, will generate target gen-proto
+include(cmake/GenerateCometBFTProto_NoExp.cmake)
+
 # Include directories for headers and libs
 include_directories(
   "${CMAKE_SOURCE_DIR}"
@@ -137,6 +165,7 @@ include_directories(
   "${CMAKE_SOURCE_DIR}/src/libs"
   "${CMAKE_SOURCE_DIR}/build"
   "${CMAKE_SOURCE_DIR}/build/deps/include"
+  "${CMAKE_SOURCE_DIR}/deps/include"
 )
 
 link_directories(
@@ -145,7 +174,12 @@ link_directories(
   "${CMAKE_SOURCE_DIR}/src/libs"
   "${CMAKE_SOURCE_DIR}/build"
   "${CMAKE_SOURCE_DIR}/build/deps/lib"
+  "${CMAKE_SOURCE_DIR}/deps/lib"
 )
+
+# ===========================================================================
+# BUILD
+# ===========================================================================
 
 # Organize, compile and link bdk libs
 add_subdirectory(src/contract)
@@ -160,21 +194,25 @@ add_library(bdk_lib STATIC
 )
 
 target_include_directories(bdk_lib PRIVATE
-  ${CMAKE_SOURCE_DIR}/include ${OPENSSL_INCLUDE_DIR} ${ETHASH_INCLUDE_DIR} ${KECCAK_INCLUDE_DIR}
-  ${EVMC_INCLUDE_DIR} ${EVMONE_INCLUDE_DIR} ${SPEEDB_INCLUDE_DIR} ${SECP256K1_INCLUDE_DIR}
+  ${OPENSSL_INCLUDE_DIR} ${ETHASH_INCLUDE_DIR} ${KECCAK_INCLUDE_DIR}
+  ${EVMC_INCLUDE_DIR} ${EVMONE_INCLUDE_DIR} ${ROCKSDB_INCLUDE_DIR} ${SECP256K1_INCLUDE_DIR}
   ${Protobuf_INCLUDE_DIRS}
 )
 
-# gen-proto-grpc contains all the generated .proto headers and sources
-# TODO: rename it later to just "gen-proto" as we're not using gRPC anymore
+# gen-proto contains all the generated .proto headers and sources
 target_link_libraries(bdk_lib
   PRIVATE
-  ${EVMC_INSTRUCTIONS_LIBRARY} ${EVMC_LOADER_LIBRARY} ${EVMONE_LIBRARY}
-  ${CRYPTOPP_LIBRARIES} ${SCRYPT_LIBRARY} ${SECP256K1_LIBRARY}
-  ${ETHASH_LIBRARY} ${KECCAK_LIBRARY} ${SPEEDB_LIBRARY}
-  ${Boost_LIBRARIES} ${OPENSSL_LIBRARIES} protobuf::libprotobuf -l:liblz4.a SQLiteCpp
+    Boost::headers Boost::chrono Boost::container Boost::filesystem Boost::nowide Boost::program_options Boost::thread
+    evmc::instructions evmc::loader
+    ${CRYPTOPP_LIBRARIES}
+    libsecp256k1::secp256k1
+    ethash::ethash ethash::keccak
+    RocksDB::rocksdb
+    OpenSSL::SSL OpenSSL::Crypto
+    -l:liblz4.a
+    SQLiteCpp
   PUBLIC
-  gen-proto-grpc
+    gen-proto
 )
 
 add_subdirectory(src/bins)

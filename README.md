@@ -20,101 +20,66 @@
             alt="chat on Telegram"></a>
 </p>
 
-AppLayer's BDK source code. [See the docs](https://docs.applayer.com) for a more thorough look at the project.
+AppLayer's BDK source code. [See the docs](https://docs.applayer.com) for a more thorough look at the project and its structure.
 
 If you are a developer, fill this form out for free support and additional incentives: https://forms.gle/m83ceG3XoJY3fpwU9
-
-## Developing on Docker
-
-The project has a Dockerfile at the root of the repository that will build the project and deploy the network. It will also install tmux and vim for convenience. To develop on Docker, follow these steps:
-
-* Install Docker on your machine:
-  * [Docker for Windows](https://docs.docker.com/docker-for-windows/install/)
-  * [Docker for Mac](https://docs.docker.com/docker-for-mac/install/)
-  * [Docker for Linux](https://docs.docker.com/desktop/install/linux-install/)
-* Build the image locally with `docker build -t bdk-cpp-dev:latest .`
-  * This will build the image and tag it as `bdk-cpp-dev:latest` - you can change the tag to whatever you want, but remember to change it on the next step
-* Run the container (you will be logged in as root):
-  * **For Linux/Mac**: `docker run -it --name bdk-cpp -v $(pwd):/bdk-volume -p 8080-8099:8080-8099 -p 8110-8111:8110-8111 bdk-cpp-dev:latest`
-  * **For Windows**: `docker run -it --name bdk-cpp -v %cd%:/bdk-volume -p 8080-8099:8080-8099 -p 8110-8111:8110-8111 bdk-cpp-dev:latest`
-
-Remember that we are using our local repo as a volume, so every change in the local folder will be reflected to the container in real time, and vice-versa.
-
-Also, you can integrate the container with your favorite IDE or editor, e.g. [VSCode + Docker extension](https://marketplace.visualstudio.com/items?itemName=ms-azuretools.vscode-docker).
-
-## Developing manually
-
-You will need the following dependencies installed locally on your system:
-
-* *Toolchain binaries*:
-  * **git**
-  * **GCC** with support for **C++23** or higher
-  * **Make**
-  * **CMake 3.19.0** or higher
-  * **Protobuf** (protoc + grpc_cpp_plugin)
-  * **tmux** (for deploying)
-  * (optional) **ninja** if you prefer it over make
-  * (optional) **mold** if you prefer it over ld
-  * (optional) **doxygen** for generating docs
-  * (optional) **clang-tidy** for linting
-* *Libraries*:
-  * **Boost 1.83** or higher (components: *chrono, filesystem, program-options, system, thread, nowide*)
-  * **OpenSSL 1.1.1** / **libssl 1.1.1** or higher
-  * **libzstd**
-  * **CryptoPP 8.2.0** or higher
-  * **libscrypt**
-  * **libc-ares**
-  * **gRPC** (libgrpc and libgrpc++)
-  * **secp256k1**
-  * **ethash** + **keccak**
-  * **EVMOne** + **EVMC**
-  * **Speedb**
-
-The versions of those dependencies should suffice out-of-the-box for at least the following distros (or greater, including their derivatives):
-
-* **Debian 13 (Trixie)**
-* **Ubuntu 24.04 LTS (Noble Numbat)**
-* **Linux Mint 22 (Wilma)**
-* **Fedora 40**
-* Any rolling release distro from around **May 2024** onwards (check their repos to be sure)
-
-### Tips for dependencies
-
-There is a script called `scripts/deps.sh` which you can use to check if you have those dependencies installed (`deps.sh --check`), install them in case you don't (`deps.sh --install`), and clean up the external ones for reinstalling (`deps.sh --cleanext`). The script expects dependencies to be installed either on `/usr` or `/usr/local`, giving preference to the latter if it finds anything there (so you can use a higher version of a dependency while still keeping your distro's default one).
-
-**Please note that installing most dependencies through the script only works on APT-based distros** (Debian, Ubuntu and derivatives) - you can still check the dependencies on any distro and install the few ones labeled as "external" (those are fetched through `git`), but if you're on a distro with another package manager and/or a distro older than one of the minimum ones listed above, you're on your own.
-
-For Debian specifically, you can (and should) use `update-alternatives` to register and set your GCC version to a more up-to-date build if required.
-
-If you're using a self-compiled GCC build out of the system path (e.g. `--prefix=/usr/local/gcc-X.Y.Z` instead of `--prefix=/usr/local`), don't forget to export its installation paths in your `PATH` and `LD_LIBRARY_PATH` env vars (to prevent e.g. "version `GLIBCXX_...'/`CXXABI_...` not found" errors). Put something like this in your `~/.bashrc` file for example, changing the version accordingly to whichever one you have installed:
-
-```bash
-# For GCC in /usr/local
-export LD_LIBRARY_PATH=/usr/local/lib64:$LD_LIBRARY_PATH
-
-# For self-contained GCC outside /usr/local
-export PATH=/usr/local/gcc-14.2.0/bin:$PATH
-export LD_LIBRARY_PATH=/usr/local/gcc-14.2.0/lib64:$LD_LIBRARY_PATH
-```
 
 ## Documentation
 
 We use [Doxygen](https://www.doxygen.nl/index.html) to generate documentation over the current source code. Run `doxygen` inside the project's root folder. Docs should be inside `docs/html`.
 
-You should do this after running `cmake ..` in the build directory, as some header files need to be generated first.
+You should do this after the CMake configuration step (see below), as some header files need to be generated first.
 
-For a more detailed explanation of the project's structure, check the [docs](https://github.com/AppLayer/sparq-docs/tree/main/Sparq_en-US) repository.
+## Environment setup
+
+The only hard requirements for this project are **GCC with support for C++23** or higher, and **CMake 3.19** or higher. You will also need **make**, **git**, and **tmux** (for deploying the network).
+
+The following distros may serve as a baseline for meeting those requirements (check the repos to be sure):
+
+* **Debian 13 (Trixie)**
+* **Ubuntu 24.04 LTS (Noble Numbat)**
+* **Linux Mint 22 (Wilma)**
+* **Fedora 40**
+* Any rolling release distro from around **May 2024** onwards
+
+Optionally you can also install:
+
+* **doxygen** (for generating documentation)
+* **ninja** (if you prefer it over make)
+* **mold** (if you prefer it over the default linker)
+* **clang-tidy** (for linting)
+
+Most of the other dependencies are compiled alongside the project or do not need strict versioning. Check the `deps` subfolder for more information.
+
+### Docker
+
+We have a Dockerfile at the root of the repository, for building the project and deploying the network inside a container.
+
+First, install Docker on your machine. Follow the instructions based on your operating system: [**Windows**](https://docs.docker.com/docker-for-windows/install/), [**MacOS**](https://docs.docker.com/docker-for-mac/install/), or [**Linux**](https://docs.docker.com/desktop/install/linux-install/).
+
+Then, build the image locally: `docker build -t bdk-cpp-dev:latest .`. This will build the image and tag it as `bdk-cpp-dev:latest` - you can change the tag to whatever you want, but remember to change it on the next step.
+
+Finally, run the container with the following command:
+
+* **For Linux/Mac**: `docker run -it --name bdk-cpp -v $(pwd):/bdk-volume -p 8080-8099:8080-8099 -p 8110-8111:8110-8111 bdk-cpp-dev:latest`
+* **For Windows**: `docker run -it --name bdk-cpp -v %cd%:/bdk-volume -p 8080-8099:8080-8099 -p 8110-8111:8110-8111 bdk-cpp-dev:latest`
+
+You will enter the container as root. The image also contains tmux, vim and other tools for convenience. Remember that we are using our local repo as a volume, so every change in the local folder will be reflected to the container in real time, and vice-versa.
+
+Also, you can integrate the container with your favorite IDE or editor, e.g. [VSCode + Docker extension](https://marketplace.visualstudio.com/items?itemName=ms-azuretools.vscode-docker).
 
 ## Compiling
 
-* Clone the project: `git clone https://github.com/AppLayer/bdk-cpp
-* Go to the project's root folder, create a "build" folder and change to it:
-  * `cd bdk-cpp && mkdir build && cd build`
-* Run `cmake` inside the build folder: `cmake ..`
-  * Use `-DCMAKE_BUILD_TYPE={Debug,RelWithDebInfo,Release}` to set the respective debug/release builds (Debug by default)
-  * Use `-DDEBUG=OFF` to build without debug flags (ON by default)
-  * Use `-DUSE_LINT=ON` to run clang-tidy along the build (OFF by default, WILL TAKE SIGNIFICANTLY LONGER TO COMPILE)
-* Build the executable: `cmake --build . -- -j$(nproc)` (adjust `-j$(nproc)` accordingly if needed)
+First, clone the project: `git clone https://github.com/AppLayer/bdk-cpp`. Then go to its root folder and follow the steps:
+
+* Go to the `deps` folder and build the required dependencies. Check the included README for more information
+* Go back to the root folder, create a "build" folder, change to it and run `cmake ..` - it should pick up the built dependencies on the `deps` folder (check the output for confirmation). You can set the following parameters in CMake:
+  * `-DCMAKE_BUILD_TYPE={Debug,RelWithDebInfo,Release}` (Debug by default) sets the respective build type
+  * `-DDEBUG=OFF` (ON by default) builds without debug flags
+  * `-DUSE_LINT=ON` (OFF by default) runs `clang-tidy` (if installed) along the build - THIS WILL TAKE SIGNIFICANTLY LONGER TO COMPILE
+  * Check the `CMakeLists.txt` file for more available options
+* If you want, also run `doxygen` here to generate the project's documentation
+* Run `cmake --build . -- -j$(nproc)` to build the project (adjust `-j$(nproc)` accordingly if needed)
   * If using the linter, pipe stderr to a file (e.g. `cmake --build . -- -j$(nproc) 2> log.txt`)
 * If you need to clean up the build, use `cmake --build . --target clean`
   * This also cleans stale `.pb.*` files in the `proto` folder (useful for if/when Protobuf gets updated)
@@ -175,4 +140,3 @@ Nodes are all deployed on the same machine, under the following ports and tmux s
 | local_testnet_normal4    | Normal    | 8089     | 8098      | XXXX                                                               |
 | local_testnet_normal5    | Normal    | 8110     | 8099      | XXXX                                                               |
 | local_testnet_normal6    | Normal    | 8111     | 8100      | XXXX                                                               |
-

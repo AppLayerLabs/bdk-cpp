@@ -250,14 +250,14 @@ class State : public Log::LogicalLocationProvider {
     /**
      * Write the entire consensus machine state held in RAM to persistent storage.
      * May throw on errors.
-     * @param where New speedb directory name the snapshot will be written to.
+     * @param where New DB directory name the snapshot will be written to.
      */
     void saveSnapshot(const std::string& where);
 
     /**
      * Read the entire consensus machine state held in persistent storage to RAM.
      * May throw on errors.
-     * @param where Existing speedb directory name the snapshot will be read from.
+     * @param where Existing DB directory name the snapshot will be read from.
      * @param genesisSnapshot `true` if loading a genesis snapshot, `false` otherwise.
      */
     void loadSnapshot(const std::string& where, bool genesisSnapshot = false);

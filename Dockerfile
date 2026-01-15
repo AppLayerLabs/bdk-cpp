@@ -17,11 +17,9 @@ WORKDIR /bdk-cpp
 # Copy the local folder to the container
 COPY . /bdk-cpp
 
-# Install Docker-specific dependencies
-RUN apt-get -y install nano vim unison curl jq unzip
-
-# Install dependencies
-RUN bash /bdk-cpp/scripts/deps.sh --install
+# Install Docker-specific and deps-specific dependencies
+RUN apt-get -y install nano vim unison curl jq unzip \
+  build-essential cmake git golang liblz4-dev mold perl python3
 
 # Create the synchronized directory
 RUN mkdir /bdk-volume
@@ -58,3 +56,4 @@ CMD nohup unison -repeat 1 /bdk-volume /bdk-cpp -auto -batch \
     -ignore 'Name {*.gch}' \
     > /dev/null 2>&1 & \
     /bin/bash
+

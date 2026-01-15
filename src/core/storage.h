@@ -32,7 +32,7 @@ class Storage : public Log::LogicalLocationProvider {
   * that we have no reason to duplicate, such as blocks (OK to cache in RAM),
   * (ii) State (consistent contract checkpoints/snapshots at some execution
   * height) as those should be serialized/deserialized from/to their own
-  * file-backed data structures (we are using the dump-to-fresh-speedb system)
+  * file-backed data structures (we are using the dump-to-fresh-DB system)
   * (iii) the list of contract types/templates that exist, since that pertains
   * to the binary itself, and should be built statically in RAM on startup (const)
   * (it is OK-ish to store in Storage the range of block heights for which a

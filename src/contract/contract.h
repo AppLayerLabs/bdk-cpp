@@ -98,7 +98,7 @@ class BaseContract : public ContractLocals {
     }
 
     /**
-     * Generate a speedb write delta with global/absolute keys that contain
+     * Generate a DB write delta with global/absolute keys that contain
      * the entire state of this contract instance such that the instance's
      * state can be completely restored just by reading the key/value pairs
      * inserted by this delta.

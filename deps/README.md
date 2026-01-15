@@ -17,7 +17,7 @@ Make sure that:
 
 * The main project (bdk-cpp) and this folder are in a PATH that does ***NOT*** have spaces, accented or non-ASCII characters in it
   * e.g. "/home/user/Área de trabalho" - some compilation processes usually throw a fit under this specific condition
-* The following programs/libs are installed: `cmake`, `gcc/g++`, `git`, `go`, `make`, `perl`, `python3`
+* The following programs/libs are installed: `cmake`, `gcc/g++`, `git`, `go`, `make`, `lz4`, `perl`, `python3`
 
 ## How to use
 
