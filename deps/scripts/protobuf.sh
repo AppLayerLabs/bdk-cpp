@@ -1,6 +1,6 @@
 #!/bin/bash -e
 
-PROTOBUF_VERSION="33.1"
+PROTOBUF_VERSION="33.3"
 PROTOBUF_ROOT="${DEPS_SRC}/protobuf"
 
 fetch_protobuf() {
