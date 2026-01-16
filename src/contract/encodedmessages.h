@@ -29,10 +29,10 @@ struct EncodedCallCodeMessage : EncodedCallMessage {
 };
 
 template<>
-constexpr bool concepts::EnableDelegate<EncodedDelegateCallMessage> = true;
+inline constexpr bool concepts::EnableDelegate<EncodedDelegateCallMessage> = true;
 
 template<>
-constexpr bool concepts::EnableCallCode<EncodedCallCodeMessage> = true;
+inline constexpr bool concepts::EnableCallCode<EncodedCallCodeMessage> = true;
 
 using EncodedMessageVariant = std::variant<
   EncodedCreateMessage,
