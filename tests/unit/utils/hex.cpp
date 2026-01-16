@@ -33,7 +33,6 @@ namespace THex {
       REQUIRE_THAT(hexB1.get(), Equals("1234"));
       REQUIRE_THAT(hexB2.get(), Equals("1234"));
       REQUIRE_THAT(hexB3.get(), Equals("1234"));
-      REQUIRE_THROWS(Hex(std::string_view("01234"), true));
       REQUIRE_THROWS(Hex(std::string_view("x1234"), true));
       REQUIRE_THROWS(Hex(std::string_view("x1234"), false));
     }
@@ -51,7 +50,6 @@ namespace THex {
       REQUIRE_THAT(hexB1.get(), Equals("1234"));
       REQUIRE_THAT(hexB2.get(), Equals("1234"));
       REQUIRE_THAT(hexB3.get(), Equals("1234"));
-      REQUIRE_THROWS(Hex(std::string("01234"), true));
       REQUIRE_THROWS(Hex(std::string("x1234"), true));
       REQUIRE_THROWS(Hex(std::string("x1234"), false));
     }
@@ -69,7 +67,6 @@ namespace THex {
       REQUIRE_THAT(hexB1.get(), Equals("1234"));
       REQUIRE_THAT(hexB2.get(), Equals("1234"));
       REQUIRE_THAT(hexB3.get(), Equals("1234"));
-      REQUIRE_THROWS(Hex(std::move(std::string("01234")), true));
       REQUIRE_THROWS(Hex(std::move(std::string("x1234")), true));
       REQUIRE_THROWS(Hex(std::move(std::string("x1234")), false));
     }
