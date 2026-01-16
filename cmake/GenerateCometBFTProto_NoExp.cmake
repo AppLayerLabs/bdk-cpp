@@ -6,8 +6,11 @@
 # Define the root proto directory
 set(PROTO_ROOT_DIR "${CMAKE_SOURCE_DIR}/proto")
 
-# Try to use CMake-found protoc, else fall back to 'protoc' on PATH (keeps your style)
-set(PROTOC_CMD protoc)
+# Provided by Protobuf in deps
+find_package(absl REQUIRED)
+
+# Use the deps subfolder protoc
+find_program(PROTOC_CMD protoc)
 
 # Log the values of all relevant variables
 message(STATUS "PROTO_ROOT_DIR: ${PROTO_ROOT_DIR}")
@@ -300,13 +303,13 @@ add_custom_command(
 )
 
 # Create a static library that holds all of the generated proto files
-add_library(gen-proto-grpc STATIC ${PROTO_SOURCES} ${PROTO_HEADERS})
+add_library(gen-proto STATIC ${PROTO_SOURCES} ${PROTO_HEADERS})
 
 # Include the proto directories so subsequent includes work during compilation
-target_include_directories(gen-proto-grpc PUBLIC "${PROTO_ROOT_DIR}")
+target_include_directories(gen-proto PUBLIC "${PROTO_ROOT_DIR}")
 
 # Link the proto files against the required libraries (e.g. absl).
-target_link_libraries(gen-proto-grpc PUBLIC
+target_link_libraries(gen-proto PUBLIC
         absl::check
         absl::absl_log
         ${_REFLECTION}

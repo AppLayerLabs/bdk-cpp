@@ -70,10 +70,10 @@ concept StaticCallMessage = CallMessage<M> && !HasValueField<M>;
  * resolution.
  */
 template<typename M>
-constexpr bool EnableDelegate = false;
+inline constexpr bool EnableDelegate = false;
 
 template<typename M>
-constexpr bool EnableCallCode = false;
+inline constexpr bool EnableCallCode = false;
 
 /**
  * Concept of delegate call messages.
