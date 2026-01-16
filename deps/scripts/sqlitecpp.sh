@@ -13,7 +13,7 @@ config_sqlitecpp() {
   echo "-- Configuring SQLiteCPP..."
   if [ ! -d "${SQLITECPP_ROOT}/build" ]; then mkdir "${SQLITECPP_ROOT}/build"; fi
   cd "${SQLITECPP_ROOT}/build"
-  cmake -DCMAKE_INSTALL_PREFIX="${DEPS_INSTALL}" -DCMAKE_BUILD_TYPE=Release ..
+  cmake -DCMAKE_INSTALL_PREFIX="${DEPS_INSTALL}" -DCMAKE_INSTALL_LIBDIR="${DEPS_INSTALL}/lib" -DCMAKE_BUILD_TYPE=Release ..
   cd "${DEPS_ROOT}"
   echo "-- SQLiteCPP configured"
 }

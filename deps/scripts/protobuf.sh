@@ -13,7 +13,8 @@ config_protobuf() {
   echo "-- Configuring Protobuf..."
   if [ ! -d "${PROTOBUF_ROOT}/build" ]; then mkdir "${PROTOBUF_ROOT}/build"; fi
   cd "${PROTOBUF_ROOT}/build"
-  cmake -Dprotobuf_BUILD_TESTS=OFF -DCMAKE_INSTALL_PREFIX="${DEPS_INSTALL}" ..
+  cmake -DCMAKE_INSTALL_PREFIX="${DEPS_INSTALL}" -DCMAKE_INSTALL_LIBDIR="${DEPS_INSTALL}/lib" \
+    -Dprotobuf_BUILD_TESTS=OFF ..
   cd "${DEPS_ROOT}"
   echo "-- Protobuf configured"
 }

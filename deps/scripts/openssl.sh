@@ -12,7 +12,7 @@ fetch_openssl() {
 config_openssl() {
   echo "-- Configuring OpenSSL..."
   cd "${OPENSSL_ROOT}"
-  ./Configure --prefix="${DEPS_INSTALL}" --openssldir="${DEPS_INSTALL}"
+  ./Configure --prefix="${DEPS_INSTALL}" --libdir="${DEPS_INSTALL}/lib" --openssldir="${DEPS_INSTALL}"
   cd "${DEPS_ROOT}"
   echo "-- OpenSSL configured"
 }

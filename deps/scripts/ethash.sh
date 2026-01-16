@@ -13,7 +13,7 @@ config_ethash() {
   echo "-- Configuring Ethash..."
   if [ ! -d "${ETHASH_ROOT}/build" ]; then mkdir "${ETHASH_ROOT}/build"; fi
   cd "${ETHASH_ROOT}/build"
-  cmake -DCMAKE_INSTALL_PREFIX="${DEPS_INSTALL}" ..
+  cmake -DCMAKE_INSTALL_PREFIX="${DEPS_INSTALL}" -DCMAKE_INSTALL_LIBDIR="${DEPS_INSTALL}/lib" ..
   cd "${DEPS_ROOT}"
   echo "-- Ethash configured"
 }

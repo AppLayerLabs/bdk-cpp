@@ -17,7 +17,8 @@ config_evmone() {
   echo "-- Configuring EVMOne..."
   if [ ! -d "${EVMONE_ROOT}/build" ]; then mkdir "${EVMONE_ROOT}/build"; fi
   cd "${EVMONE_ROOT}/build"
-  cmake -DCMAKE_INSTALL_PREFIX="${DEPS_INSTALL}" -DBUILD_SHARED_LIBS=ON -DEVMC_INSTALL=ON -DEVMONE_TESTING=ON ..
+  cmake -DCMAKE_INSTALL_PREFIX="${DEPS_INSTALL}" -DCMAKE_INSTALL_LIBDIR="${DEPS_INSTALL}/lib" \
+    -DBUILD_SHARED_LIBS=ON -DEVMC_INSTALL=ON -DEVMONE_TESTING=ON ..
   cmake --build . -- -j$(nproc)
   ./bin/evmc-vmtester ./lib64/libevmone.so && ./bin/evmone-unittests
   cd "${DEPS_ROOT}"
@@ -28,7 +29,8 @@ build_evmone() {
   echo "-- Building EVMOne..."
   if [ ! -d "${EVMONE_ROOT}/build" ]; then mkdir "${EVMONE_ROOT}/build"; fi
   cd "${EVMONE_ROOT}/build"
-  cmake -DCMAKE_INSTALL_PREFIX="${DEPS_INSTALL}" -DBUILD_SHARED_LIBS=OFF -DEVMC_INSTALL=ON ..
+  cmake -DCMAKE_INSTALL_PREFIX="${DEPS_INSTALL}" -DCMAKE_INSTALL_LIBDIR="${DEPS_INSTALL}/lib" \
+    -DBUILD_SHARED_LIBS=OFF -DEVMC_INSTALL=ON ..
   cmake --build . -- -j$(nproc)
   cd "${DEPS_ROOT}"
   echo "-- EVMOne built"
