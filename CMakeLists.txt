@@ -141,7 +141,7 @@ find_package(SQLiteCpp REQUIRED)
 find_package(ethash REQUIRED)
 find_package(evmc REQUIRED)
 find_package(libsecp256k1 REQUIRED)
-find_package(protobuf REQUIRED)
+find_package(protobuf REQUIRED PATHS "${CMAKE_PREFIX_PATH}" NO_DEFAULT_PATH)
 
 # Add catch2 as a library
 add_library(catch2
@@ -196,7 +196,6 @@ add_library(bdk_lib STATIC
 target_include_directories(bdk_lib PRIVATE
   ${OPENSSL_INCLUDE_DIR} ${ETHASH_INCLUDE_DIR} ${KECCAK_INCLUDE_DIR}
   ${EVMC_INCLUDE_DIR} ${EVMONE_INCLUDE_DIR} ${ROCKSDB_INCLUDE_DIR} ${SECP256K1_INCLUDE_DIR}
-  ${Protobuf_INCLUDE_DIRS}
 )
 
 # gen-proto contains all the generated .proto headers and sources
@@ -209,6 +208,7 @@ target_link_libraries(bdk_lib
     ethash::ethash ethash::keccak
     RocksDB::rocksdb
     OpenSSL::SSL OpenSSL::Crypto
+    protobuf::libprotobuf
     -l:liblz4.a
     SQLiteCpp
   PUBLIC

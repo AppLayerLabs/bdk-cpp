@@ -7,10 +7,13 @@
 set(PROTO_ROOT_DIR "${CMAKE_SOURCE_DIR}/proto")
 
 # Provided by Protobuf in deps
-find_package(absl REQUIRED)
+find_package(absl CONFIG REQUIRED PATHS "${CMAKE_PREFIX_PATH}" NO_DEFAULT_PATH)
 
 # Use the deps subfolder protoc
-find_program(PROTOC_CMD protoc)
+find_program(PROTOC_CMD protoc HINTS "${CMAKE_PREFIX_PATH}/bin" NO_DEFAULT_PATH)
+if(NOT PROTOC_CMD)
+  message(FATAL_ERROR "protoc not found in ${CMAKE_PREFIX_PATH}/bin")
+endif()
 
 # Log the values of all relevant variables
 message(STATUS "PROTO_ROOT_DIR: ${PROTO_ROOT_DIR}")
@@ -73,233 +76,233 @@ list(APPEND PROTO_SOURCES ${PROTO_HEADERS})
 # ---------------------------------------------------------------------------
 
 add_custom_command(
-        OUTPUT "${PROTO_ROOT_DIR}/tendermint/abci/types.pb.cc"
-        "${PROTO_ROOT_DIR}/tendermint/abci/types.pb.h"
-        COMMAND ${PROTOC_CMD}
-        ARGS --cpp_out=lite:${PROTO_ROOT_DIR}
-        --proto_path=${PROTO_ROOT_DIR}
-        "${PROTO_ROOT_DIR}/tendermint/abci/types.proto"
+  OUTPUT "${PROTO_ROOT_DIR}/tendermint/abci/types.pb.cc"
+  "${PROTO_ROOT_DIR}/tendermint/abci/types.pb.h"
+  COMMAND ${PROTOC_CMD}
+  ARGS --cpp_out=lite:${PROTO_ROOT_DIR}
+  --proto_path=${PROTO_ROOT_DIR}
+  "${PROTO_ROOT_DIR}/tendermint/abci/types.proto"
 )
 
 add_custom_command(
-        OUTPUT "${PROTO_ROOT_DIR}/tendermint/blocksync/types.pb.cc"
-        "${PROTO_ROOT_DIR}/tendermint/blocksync/types.pb.h"
-        COMMAND ${PROTOC_CMD}
-        ARGS --cpp_out=lite:${PROTO_ROOT_DIR}
-        --proto_path=${PROTO_ROOT_DIR}
-        "${PROTO_ROOT_DIR}/tendermint/blocksync/types.proto"
+  OUTPUT "${PROTO_ROOT_DIR}/tendermint/blocksync/types.pb.cc"
+  "${PROTO_ROOT_DIR}/tendermint/blocksync/types.pb.h"
+  COMMAND ${PROTOC_CMD}
+  ARGS --cpp_out=lite:${PROTO_ROOT_DIR}
+  --proto_path=${PROTO_ROOT_DIR}
+  "${PROTO_ROOT_DIR}/tendermint/blocksync/types.proto"
 )
 
 add_custom_command(
-        OUTPUT "${PROTO_ROOT_DIR}/tendermint/consensus/types.pb.cc"
-        "${PROTO_ROOT_DIR}/tendermint/consensus/types.pb.h"
-        COMMAND ${PROTOC_CMD}
-        ARGS --cpp_out=lite:${PROTO_ROOT_DIR}
-        --proto_path=${PROTO_ROOT_DIR}
-        "${PROTO_ROOT_DIR}/tendermint/consensus/types.proto"
-        # Fix hasVote
-        COMMAND bash "${PROTO_ROOT_DIR}/tendermint/consensus/fix.sh"
-        DEPENDS "${PROTO_ROOT_DIR}/tendermint/consensus/types.proto"
-        COMMENT "Generating C++ source files and applying fixes with fix.sh"
+  OUTPUT "${PROTO_ROOT_DIR}/tendermint/consensus/types.pb.cc"
+  "${PROTO_ROOT_DIR}/tendermint/consensus/types.pb.h"
+  COMMAND ${PROTOC_CMD}
+  ARGS --cpp_out=lite:${PROTO_ROOT_DIR}
+  --proto_path=${PROTO_ROOT_DIR}
+  "${PROTO_ROOT_DIR}/tendermint/consensus/types.proto"
+  # Fix hasVote
+  COMMAND bash "${PROTO_ROOT_DIR}/tendermint/consensus/fix.sh"
+  DEPENDS "${PROTO_ROOT_DIR}/tendermint/consensus/types.proto"
+  COMMENT "Generating C++ source files and applying fixes with fix.sh"
 )
 
 add_custom_command(
-        OUTPUT "${PROTO_ROOT_DIR}/tendermint/consensus/wal.pb.cc"
-        "${PROTO_ROOT_DIR}/tendermint/consensus/wal.pb.h"
-        COMMAND ${PROTOC_CMD}
-        ARGS --cpp_out=lite:${PROTO_ROOT_DIR}
-        --proto_path=${PROTO_ROOT_DIR}
-        "${PROTO_ROOT_DIR}/tendermint/consensus/wal.proto"
+  OUTPUT "${PROTO_ROOT_DIR}/tendermint/consensus/wal.pb.cc"
+  "${PROTO_ROOT_DIR}/tendermint/consensus/wal.pb.h"
+  COMMAND ${PROTOC_CMD}
+  ARGS --cpp_out=lite:${PROTO_ROOT_DIR}
+  --proto_path=${PROTO_ROOT_DIR}
+  "${PROTO_ROOT_DIR}/tendermint/consensus/wal.proto"
 )
 
 add_custom_command(
-        OUTPUT "${PROTO_ROOT_DIR}/tendermint/crypto/keys.pb.cc"
-        "${PROTO_ROOT_DIR}/tendermint/crypto/keys.pb.h"
-        COMMAND ${PROTOC_CMD}
-        ARGS --cpp_out=lite:${PROTO_ROOT_DIR}
-        --proto_path=${PROTO_ROOT_DIR}
-        "${PROTO_ROOT_DIR}/tendermint/crypto/keys.proto"
+  OUTPUT "${PROTO_ROOT_DIR}/tendermint/crypto/keys.pb.cc"
+  "${PROTO_ROOT_DIR}/tendermint/crypto/keys.pb.h"
+  COMMAND ${PROTOC_CMD}
+  ARGS --cpp_out=lite:${PROTO_ROOT_DIR}
+  --proto_path=${PROTO_ROOT_DIR}
+  "${PROTO_ROOT_DIR}/tendermint/crypto/keys.proto"
 )
 
 add_custom_command(
-        OUTPUT "${PROTO_ROOT_DIR}/tendermint/crypto/proof.pb.cc"
-        "${PROTO_ROOT_DIR}/tendermint/crypto/proof.pb.h"
-        COMMAND ${PROTOC_CMD}
-        ARGS --cpp_out=lite:${PROTO_ROOT_DIR}
-        --proto_path=${PROTO_ROOT_DIR}
-        "${PROTO_ROOT_DIR}/tendermint/crypto/proof.proto"
+  OUTPUT "${PROTO_ROOT_DIR}/tendermint/crypto/proof.pb.cc"
+  "${PROTO_ROOT_DIR}/tendermint/crypto/proof.pb.h"
+  COMMAND ${PROTOC_CMD}
+  ARGS --cpp_out=lite:${PROTO_ROOT_DIR}
+  --proto_path=${PROTO_ROOT_DIR}
+  "${PROTO_ROOT_DIR}/tendermint/crypto/proof.proto"
 )
 
 add_custom_command(
-        OUTPUT "${PROTO_ROOT_DIR}/tendermint/libs/bits/types.pb.cc"
-        "${PROTO_ROOT_DIR}/tendermint/libs/bits/types.pb.h"
-        COMMAND ${PROTOC_CMD}
-        ARGS --cpp_out=lite:${PROTO_ROOT_DIR}
-        --proto_path=${PROTO_ROOT_DIR}
-        "${PROTO_ROOT_DIR}/tendermint/libs/bits/types.proto"
+  OUTPUT "${PROTO_ROOT_DIR}/tendermint/libs/bits/types.pb.cc"
+  "${PROTO_ROOT_DIR}/tendermint/libs/bits/types.pb.h"
+  COMMAND ${PROTOC_CMD}
+  ARGS --cpp_out=lite:${PROTO_ROOT_DIR}
+  --proto_path=${PROTO_ROOT_DIR}
+  "${PROTO_ROOT_DIR}/tendermint/libs/bits/types.proto"
 )
 
 add_custom_command(
-        OUTPUT "${PROTO_ROOT_DIR}/tendermint/mempool/types.pb.cc"
-        "${PROTO_ROOT_DIR}/tendermint/mempool/types.pb.h"
-        COMMAND ${PROTOC_CMD}
-        ARGS --cpp_out=lite:${PROTO_ROOT_DIR}
-        --proto_path=${PROTO_ROOT_DIR}
-        "${PROTO_ROOT_DIR}/tendermint/mempool/types.proto"
+  OUTPUT "${PROTO_ROOT_DIR}/tendermint/mempool/types.pb.cc"
+  "${PROTO_ROOT_DIR}/tendermint/mempool/types.pb.h"
+  COMMAND ${PROTOC_CMD}
+  ARGS --cpp_out=lite:${PROTO_ROOT_DIR}
+  --proto_path=${PROTO_ROOT_DIR}
+  "${PROTO_ROOT_DIR}/tendermint/mempool/types.proto"
 )
 
 add_custom_command(
-        OUTPUT "${PROTO_ROOT_DIR}/tendermint/p2p/conn.pb.cc"
-        "${PROTO_ROOT_DIR}/tendermint/p2p/conn.pb.h"
-        COMMAND ${PROTOC_CMD}
-        ARGS --cpp_out=lite:${PROTO_ROOT_DIR}
-        --proto_path=${PROTO_ROOT_DIR}
-        "${PROTO_ROOT_DIR}/tendermint/p2p/conn.proto"
+  OUTPUT "${PROTO_ROOT_DIR}/tendermint/p2p/conn.pb.cc"
+  "${PROTO_ROOT_DIR}/tendermint/p2p/conn.pb.h"
+  COMMAND ${PROTOC_CMD}
+  ARGS --cpp_out=lite:${PROTO_ROOT_DIR}
+  --proto_path=${PROTO_ROOT_DIR}
+  "${PROTO_ROOT_DIR}/tendermint/p2p/conn.proto"
 )
 
 add_custom_command(
-        OUTPUT "${PROTO_ROOT_DIR}/tendermint/p2p/pex.pb.cc"
-        "${PROTO_ROOT_DIR}/tendermint/p2p/pex.pb.h"
-        COMMAND ${PROTOC_CMD}
-        ARGS --cpp_out=lite:${PROTO_ROOT_DIR}
-        --proto_path=${PROTO_ROOT_DIR}
-        "${PROTO_ROOT_DIR}/tendermint/p2p/pex.proto"
+  OUTPUT "${PROTO_ROOT_DIR}/tendermint/p2p/pex.pb.cc"
+  "${PROTO_ROOT_DIR}/tendermint/p2p/pex.pb.h"
+  COMMAND ${PROTOC_CMD}
+  ARGS --cpp_out=lite:${PROTO_ROOT_DIR}
+  --proto_path=${PROTO_ROOT_DIR}
+  "${PROTO_ROOT_DIR}/tendermint/p2p/pex.proto"
 )
 
 add_custom_command(
-        OUTPUT "${PROTO_ROOT_DIR}/tendermint/p2p/types.pb.cc"
-        "${PROTO_ROOT_DIR}/tendermint/p2p/types.pb.h"
-        COMMAND ${PROTOC_CMD}
-        ARGS --cpp_out=lite:${PROTO_ROOT_DIR}
-        --proto_path=${PROTO_ROOT_DIR}
-        "${PROTO_ROOT_DIR}/tendermint/p2p/types.proto"
+  OUTPUT "${PROTO_ROOT_DIR}/tendermint/p2p/types.pb.cc"
+  "${PROTO_ROOT_DIR}/tendermint/p2p/types.pb.h"
+  COMMAND ${PROTOC_CMD}
+  ARGS --cpp_out=lite:${PROTO_ROOT_DIR}
+  --proto_path=${PROTO_ROOT_DIR}
+  "${PROTO_ROOT_DIR}/tendermint/p2p/types.proto"
 )
 
 add_custom_command(
-        OUTPUT "${PROTO_ROOT_DIR}/tendermint/privval/types.pb.cc"
-        "${PROTO_ROOT_DIR}/tendermint/privval/types.pb.h"
-        COMMAND ${PROTOC_CMD}
-        ARGS --cpp_out=lite:${PROTO_ROOT_DIR}
-        --proto_path=${PROTO_ROOT_DIR}
-        "${PROTO_ROOT_DIR}/tendermint/privval/types.proto"
+  OUTPUT "${PROTO_ROOT_DIR}/tendermint/privval/types.pb.cc"
+  "${PROTO_ROOT_DIR}/tendermint/privval/types.pb.h"
+  COMMAND ${PROTOC_CMD}
+  ARGS --cpp_out=lite:${PROTO_ROOT_DIR}
+  --proto_path=${PROTO_ROOT_DIR}
+  "${PROTO_ROOT_DIR}/tendermint/privval/types.proto"
 )
 
 # NEW: tendermint/rpc/grpc/types.proto
 add_custom_command(
-        OUTPUT "${PROTO_ROOT_DIR}/tendermint/rpc/grpc/types.pb.cc"
-        "${PROTO_ROOT_DIR}/tendermint/rpc/grpc/types.pb.h"
-        COMMAND ${PROTOC_CMD}
-        ARGS --cpp_out=lite:${PROTO_ROOT_DIR}
-        --proto_path=${PROTO_ROOT_DIR}
-        "${PROTO_ROOT_DIR}/tendermint/rpc/grpc/types.proto"
+  OUTPUT "${PROTO_ROOT_DIR}/tendermint/rpc/grpc/types.pb.cc"
+  "${PROTO_ROOT_DIR}/tendermint/rpc/grpc/types.pb.h"
+  COMMAND ${PROTOC_CMD}
+  ARGS --cpp_out=lite:${PROTO_ROOT_DIR}
+  --proto_path=${PROTO_ROOT_DIR}
+  "${PROTO_ROOT_DIR}/tendermint/rpc/grpc/types.proto"
 )
 
 add_custom_command(
-        OUTPUT "${PROTO_ROOT_DIR}/tendermint/state/types.pb.cc"
-        "${PROTO_ROOT_DIR}/tendermint/state/types.pb.h"
-        COMMAND ${PROTOC_CMD}
-        ARGS --cpp_out=lite:${PROTO_ROOT_DIR}
-        --proto_path=${PROTO_ROOT_DIR}
-        "${PROTO_ROOT_DIR}/tendermint/state/types.proto"
+  OUTPUT "${PROTO_ROOT_DIR}/tendermint/state/types.pb.cc"
+  "${PROTO_ROOT_DIR}/tendermint/state/types.pb.h"
+  COMMAND ${PROTOC_CMD}
+  ARGS --cpp_out=lite:${PROTO_ROOT_DIR}
+  --proto_path=${PROTO_ROOT_DIR}
+  "${PROTO_ROOT_DIR}/tendermint/state/types.proto"
 )
 
 add_custom_command(
-        OUTPUT "${PROTO_ROOT_DIR}/tendermint/statesync/types.pb.cc"
-        "${PROTO_ROOT_DIR}/tendermint/statesync/types.pb.h"
-        COMMAND ${PROTOC_CMD}
-        ARGS --cpp_out=lite:${PROTO_ROOT_DIR}
-        --proto_path=${PROTO_ROOT_DIR}
-        "${PROTO_ROOT_DIR}/tendermint/statesync/types.proto"
+  OUTPUT "${PROTO_ROOT_DIR}/tendermint/statesync/types.pb.cc"
+  "${PROTO_ROOT_DIR}/tendermint/statesync/types.pb.h"
+  COMMAND ${PROTOC_CMD}
+  ARGS --cpp_out=lite:${PROTO_ROOT_DIR}
+  --proto_path=${PROTO_ROOT_DIR}
+  "${PROTO_ROOT_DIR}/tendermint/statesync/types.proto"
 )
 
 add_custom_command(
-        OUTPUT "${PROTO_ROOT_DIR}/tendermint/store/types.pb.cc"
-        "${PROTO_ROOT_DIR}/tendermint/store/types.pb.h"
-        COMMAND ${PROTOC_CMD}
-        ARGS --cpp_out=lite:${PROTO_ROOT_DIR}
-        --proto_path=${PROTO_ROOT_DIR}
-        "${PROTO_ROOT_DIR}/tendermint/store/types.proto"
+  OUTPUT "${PROTO_ROOT_DIR}/tendermint/store/types.pb.cc"
+  "${PROTO_ROOT_DIR}/tendermint/store/types.pb.h"
+  COMMAND ${PROTOC_CMD}
+  ARGS --cpp_out=lite:${PROTO_ROOT_DIR}
+  --proto_path=${PROTO_ROOT_DIR}
+  "${PROTO_ROOT_DIR}/tendermint/store/types.proto"
 )
 
 add_custom_command(
-        OUTPUT "${PROTO_ROOT_DIR}/tendermint/types/block.pb.cc"
-        "${PROTO_ROOT_DIR}/tendermint/types/block.pb.h"
-        COMMAND ${PROTOC_CMD}
-        ARGS --cpp_out=lite:${PROTO_ROOT_DIR}
-        --proto_path=${PROTO_ROOT_DIR}
-        "${PROTO_ROOT_DIR}/tendermint/types/block.proto"
+  OUTPUT "${PROTO_ROOT_DIR}/tendermint/types/block.pb.cc"
+  "${PROTO_ROOT_DIR}/tendermint/types/block.pb.h"
+  COMMAND ${PROTOC_CMD}
+  ARGS --cpp_out=lite:${PROTO_ROOT_DIR}
+  --proto_path=${PROTO_ROOT_DIR}
+  "${PROTO_ROOT_DIR}/tendermint/types/block.proto"
 )
 
 add_custom_command(
-        OUTPUT "${PROTO_ROOT_DIR}/tendermint/types/canonical.pb.cc"
-        "${PROTO_ROOT_DIR}/tendermint/types/canonical.pb.h"
-        COMMAND ${PROTOC_CMD}
-        ARGS --cpp_out=lite:${PROTO_ROOT_DIR}
-        --proto_path=${PROTO_ROOT_DIR}
-        "${PROTO_ROOT_DIR}/tendermint/types/canonical.proto"
+  OUTPUT "${PROTO_ROOT_DIR}/tendermint/types/canonical.pb.cc"
+  "${PROTO_ROOT_DIR}/tendermint/types/canonical.pb.h"
+  COMMAND ${PROTOC_CMD}
+  ARGS --cpp_out=lite:${PROTO_ROOT_DIR}
+  --proto_path=${PROTO_ROOT_DIR}
+  "${PROTO_ROOT_DIR}/tendermint/types/canonical.proto"
 )
 
 add_custom_command(
-        OUTPUT "${PROTO_ROOT_DIR}/tendermint/types/events.pb.cc"
-        "${PROTO_ROOT_DIR}/tendermint/types/events.pb.h"
-        COMMAND ${PROTOC_CMD}
-        ARGS --cpp_out=lite:${PROTO_ROOT_DIR}
-        --proto_path=${PROTO_ROOT_DIR}
-        "${PROTO_ROOT_DIR}/tendermint/types/events.proto"
+  OUTPUT "${PROTO_ROOT_DIR}/tendermint/types/events.pb.cc"
+  "${PROTO_ROOT_DIR}/tendermint/types/events.pb.h"
+  COMMAND ${PROTOC_CMD}
+  ARGS --cpp_out=lite:${PROTO_ROOT_DIR}
+  --proto_path=${PROTO_ROOT_DIR}
+  "${PROTO_ROOT_DIR}/tendermint/types/events.proto"
 )
 
 add_custom_command(
-        OUTPUT "${PROTO_ROOT_DIR}/tendermint/types/evidence.pb.cc"
-        "${PROTO_ROOT_DIR}/tendermint/types/evidence.pb.h"
-        COMMAND ${PROTOC_CMD}
-        ARGS --cpp_out=lite:${PROTO_ROOT_DIR}
-        --proto_path=${PROTO_ROOT_DIR}
-        "${PROTO_ROOT_DIR}/tendermint/types/evidence.proto"
+  OUTPUT "${PROTO_ROOT_DIR}/tendermint/types/evidence.pb.cc"
+  "${PROTO_ROOT_DIR}/tendermint/types/evidence.pb.h"
+  COMMAND ${PROTOC_CMD}
+  ARGS --cpp_out=lite:${PROTO_ROOT_DIR}
+  --proto_path=${PROTO_ROOT_DIR}
+  "${PROTO_ROOT_DIR}/tendermint/types/evidence.proto"
 )
 
 add_custom_command(
-        OUTPUT "${PROTO_ROOT_DIR}/tendermint/types/params.pb.cc"
-        "${PROTO_ROOT_DIR}/tendermint/types/params.pb.h"
-        COMMAND ${PROTOC_CMD}
-        ARGS --cpp_out=lite:${PROTO_ROOT_DIR}
-        --proto_path=${PROTO_ROOT_DIR}
-        "${PROTO_ROOT_DIR}/tendermint/types/params.proto"
+  OUTPUT "${PROTO_ROOT_DIR}/tendermint/types/params.pb.cc"
+  "${PROTO_ROOT_DIR}/tendermint/types/params.pb.h"
+  COMMAND ${PROTOC_CMD}
+  ARGS --cpp_out=lite:${PROTO_ROOT_DIR}
+  --proto_path=${PROTO_ROOT_DIR}
+  "${PROTO_ROOT_DIR}/tendermint/types/params.proto"
 )
 
 add_custom_command(
-        OUTPUT "${PROTO_ROOT_DIR}/tendermint/types/types.pb.cc"
-        "${PROTO_ROOT_DIR}/tendermint/types/types.pb.h"
-        COMMAND ${PROTOC_CMD}
-        ARGS --cpp_out=lite:${PROTO_ROOT_DIR}
-        --proto_path=${PROTO_ROOT_DIR}
-        "${PROTO_ROOT_DIR}/tendermint/types/types.proto"
+  OUTPUT "${PROTO_ROOT_DIR}/tendermint/types/types.pb.cc"
+  "${PROTO_ROOT_DIR}/tendermint/types/types.pb.h"
+  COMMAND ${PROTOC_CMD}
+  ARGS --cpp_out=lite:${PROTO_ROOT_DIR}
+  --proto_path=${PROTO_ROOT_DIR}
+  "${PROTO_ROOT_DIR}/tendermint/types/types.proto"
 )
 
 add_custom_command(
-        OUTPUT "${PROTO_ROOT_DIR}/tendermint/types/validator.pb.cc"
-        "${PROTO_ROOT_DIR}/tendermint/types/validator.pb.h"
-        COMMAND ${PROTOC_CMD}
-        ARGS --cpp_out=lite:${PROTO_ROOT_DIR}
-        --proto_path=${PROTO_ROOT_DIR}
-        "${PROTO_ROOT_DIR}/tendermint/types/validator.proto"
+  OUTPUT "${PROTO_ROOT_DIR}/tendermint/types/validator.pb.cc"
+  "${PROTO_ROOT_DIR}/tendermint/types/validator.pb.h"
+  COMMAND ${PROTOC_CMD}
+  ARGS --cpp_out=lite:${PROTO_ROOT_DIR}
+  --proto_path=${PROTO_ROOT_DIR}
+  "${PROTO_ROOT_DIR}/tendermint/types/validator.proto"
 )
 
 add_custom_command(
-        OUTPUT "${PROTO_ROOT_DIR}/tendermint/version/types.pb.cc"
-        "${PROTO_ROOT_DIR}/tendermint/version/types.pb.h"
-        COMMAND ${PROTOC_CMD}
-        ARGS --cpp_out=lite:${PROTO_ROOT_DIR}
-        --proto_path=${PROTO_ROOT_DIR}
-        "${PROTO_ROOT_DIR}/tendermint/version/types.proto"
+  OUTPUT "${PROTO_ROOT_DIR}/tendermint/version/types.pb.cc"
+  "${PROTO_ROOT_DIR}/tendermint/version/types.pb.h"
+  COMMAND ${PROTOC_CMD}
+  ARGS --cpp_out=lite:${PROTO_ROOT_DIR}
+  --proto_path=${PROTO_ROOT_DIR}
+  "${PROTO_ROOT_DIR}/tendermint/version/types.proto"
 )
 
 add_custom_command(
-        OUTPUT "${PROTO_ROOT_DIR}/gogoproto/gogo.pb.cc"
-        "${PROTO_ROOT_DIR}/gogoproto/gogo.pb.h"
-        COMMAND ${PROTOC_CMD}
-        ARGS --cpp_out=lite:${PROTO_ROOT_DIR}
-        --proto_path=${PROTO_ROOT_DIR}
-        "${PROTO_ROOT_DIR}/gogoproto/gogo.proto"
+  OUTPUT "${PROTO_ROOT_DIR}/gogoproto/gogo.pb.cc"
+  "${PROTO_ROOT_DIR}/gogoproto/gogo.pb.h"
+  COMMAND ${PROTOC_CMD}
+  ARGS --cpp_out=lite:${PROTO_ROOT_DIR}
+  --proto_path=${PROTO_ROOT_DIR}
+  "${PROTO_ROOT_DIR}/gogoproto/gogo.proto"
 )
 
 # Create a static library that holds all of the generated proto files
@@ -310,8 +313,8 @@ target_include_directories(gen-proto PUBLIC "${PROTO_ROOT_DIR}")
 
 # Link the proto files against the required libraries (e.g. absl).
 target_link_libraries(gen-proto PUBLIC
-        absl::check
-        absl::absl_log
-        ${_REFLECTION}
-        ${_PROTOBUF_LIBPROTOBUF}
+  absl::check
+  absl::absl_log
+  protobuf::libprotobuf
 )
+
