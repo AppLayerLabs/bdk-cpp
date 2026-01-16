@@ -136,6 +136,19 @@ class Hex {
      return -1;
     }
 
+    static bool has0x(std::string_view s) {
+      return s.size() >= 2 && s[0] == '0' && (s[1] == 'x' || s[1] == 'X');
+    }
+
+    static void normalize(std::string& s, bool strict) {
+      if (strict) {
+        if (!has0x(s)) s.insert(0, "0x");
+      } else {
+        if (has0x(s)) s.erase(0, 2);
+      }
+      if (s.size() >= 2 && s[0] == '0' && s[1] == 'X') s[1] = 'x';
+    }
+
     /**
      * Return an Ethereum-JSONRPC-friendly hex string. Examples:
      * - 0x41 (65 in decimal)

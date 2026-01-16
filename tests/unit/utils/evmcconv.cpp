@@ -55,6 +55,8 @@ namespace TJsonAbi {
       msg2.input_data = msg2Data.data();
       View<Bytes> get1 = EVMCConv::getFunctionArgs(msg1);
       View<Bytes> get2 = EVMCConv::getFunctionArgs(msg2);
+      std::cout << "msg1 size: " << msg1.input_size << std::endl;
+      std::cout << "get1 size: " << get1.size() << std::endl;
       REQUIRE(Hex::fromBytes(get1).get() == "");
       REQUIRE(Hex::fromBytes(get2).get() == "0405060708090a0b0c0d0e0f");
     }
