@@ -32,7 +32,7 @@ You should do this after the CMake configuration step (see below), as some heade
 
 ## Environment setup
 
-The only hard requirements for this project are **GCC with support for C++23** or higher, and **CMake 3.19** or higher. You will also need **make**, **git**, and **tmux** (for deploying the network).
+The only hard requirements for this project are **GCC with support for C++23** or higher, and **CMake 3.19** or higher. You will also need **make**, **git**, **tmux** (for deploying the network) and **setpriv** (part of `util-linux`, for running CometBFT-related tests).
 
 The following distros may serve as a baseline for meeting those requirements (check the repos to be sure):
 
