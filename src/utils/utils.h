@@ -21,6 +21,7 @@ See the LICENSE.txt file in the project root for more information.
 #include <boost/beast/core/error.hpp>
 #include <boost/asio/ip/address.hpp>
 #include <boost/process.hpp>
+#include <boost/unordered/unordered_flat_map.hpp>
 
 #include <ethash/keccak.h>
 
