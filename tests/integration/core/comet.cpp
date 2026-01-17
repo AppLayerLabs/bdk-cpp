@@ -659,7 +659,7 @@ namespace TComet {
           );
           REQUIRE(success == true);
           REQUIRE(finalizedHeight == blockHeight);
-          REQUIRE(finalizedBlockHashStr == nlohmann::to_string(response["result"]["block_id"]["hash"]));
+          REQUIRE(finalizedBlockHashStr == response["result"]["block_id"]["hash"].get<std::string>());
           ++blockResults;
         }
       };
