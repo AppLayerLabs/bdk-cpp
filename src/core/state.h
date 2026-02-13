@@ -120,6 +120,7 @@ class State : public Log::LogicalLocationProvider {
     boost::unordered_flat_map<Address, NonNullUniquePtr<Account>, SafeHash, SafeCompare> accounts_; ///< Map with information about blockchain accounts (Address -> Account).
     int currentValidatorSet_ = -1; ///< Index in validatorSets_ of the currently active validator set, -1 means none.
     std::deque<ValidatorSet> validatorSets_; ///< More recent set in front, oldest in back.
+    bool loadedOldSnapshot_ = false; ///< Whether we have loaded a old blockchain snapshot, used to know if initChain should reset the state or not.
 
     /**
      * A new validator set is elected in the governance contract, so update the State with it.
@@ -261,6 +262,15 @@ class State : public Log::LogicalLocationProvider {
      * @param genesisSnapshot `true` if loading a genesis snapshot, `false` otherwise.
      */
     void loadSnapshot(const std::string& where, bool genesisSnapshot = false);
+
+    /*
+     * Read the entire consensus machine state held in a persistent storage to RAM.
+     * This differs from loadSnapshot as it will try to load a snapshot of the OLD non-cometbft blockchain
+     * Called by Blockchain when it detects a old snapshot during startup, to attempt to load it instead of starting from scratch.
+     * May throw on errors.
+     * @param where Existing DB directory name the snapshot will be read from.
+     */
+    void loadOldSnapshot(const std::string& where);
 
     /**
      * Get the blockchain block height currently reflected by this machine state.

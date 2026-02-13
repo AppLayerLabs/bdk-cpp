@@ -1001,7 +1001,18 @@ void Blockchain::currentCometBFTHeight(const uint64_t height, const json& lastBl
       }
     }
   } else {
-    LOGTRACE("State height is 0 (genesis), no latest block to load.");
+    LOGTRACE("State height is 0 (genesis), no latest block to load. Looking for old snapshots if possible.");
+    LOGTRACE("Real State Height: " + std::to_string(state_.getHeight()));
+    std::filesystem::path oldChainSnapshot = options_.getRootPath() + std::string("/old_chain_snapshot/");
+    if (std::filesystem::exists(oldChainSnapshot) && std::filesystem::is_directory(oldChainSnapshot)) {
+      try {
+        LOGINFO("Loading old chain snapshot from: " + oldChainSnapshot.string());
+        state_.loadOldSnapshot(oldChainSnapshot);
+        LOGINFO("Successfully loaded old chain snapshot.");
+      } catch (const std::exception& ex) {
+        LOGERROR("Failed to load old chain snapshot: " + std::string(ex.what()));
+      }
+    }
   }
 }
 

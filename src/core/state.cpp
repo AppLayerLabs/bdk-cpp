@@ -54,8 +54,9 @@ void State::initChain(
 
   // Reset the State (accounts, vmstorage, contracts) and set the genesis
   // starting height and timeMicros (time-in-microseconds) for this State.
-  resetState(initialHeight, initialTimeEpochSeconds * 1'000'000);
-
+  if (!loadedOldSnapshot_) {
+    resetState(initialHeight, initialTimeEpochSeconds * 1'000'000);
+  }
   // If the genesis snapshot file param is set, load it.
   if (genesisSnapshot != "") {
     // Genesis snapshots can be V1 snapshots without height_ and timeMicros_
@@ -212,6 +213,7 @@ SystemContract* State::getSystemContractInternal() {
 
 void State::resetState(uint64_t height, uint64_t timeMicros) {
   std::unique_lock<std::shared_mutex> lock(stateMutex_);
+  LOGTRACE("State::resetState(): Height (BDK, -1) = " + std::to_string(height));
 
   // Init state metadata
   height_ = height;
@@ -357,6 +359,86 @@ void State::saveSnapshot(const std::string& where) {
   metaBatch.reset();
 }
 
+void State::loadOldSnapshot(const std::string& where) {
+  LOGDEBUG("Found old snapshots directory, attempting to load genesis state from it: " + where);
+  DB snapshotDb(where);
+  // Load accounts_
+  uint64_t accCount = 0;
+  auto accountsFromDB = snapshotDb.getBatch(DBPrefix::nativeAccounts);
+  for (const auto& dbEntry : accountsFromDB) {
+    if (accCount % 1000 == 0) {
+      LOGTRACE("Loading accounts from DB... " + std::to_string(accCount) + " loaded so far");
+    }
+    this->accounts_.emplace(Address(dbEntry.key), dbEntry.value);
+    ++accCount;
+  }
+  LOGDEBUG("Old Snapshot accounts size: " + std::to_string(accCount));
+
+  // Load all EVM contracts from the DB
+  uint64_t evmContractAccounts = 0;
+  for (const auto& dbEntry : snapshotDb.getBatch(DBPrefix::evmContracts)) {
+    if (evmContractAccounts % 1000 == 0) {
+      LOGTRACE("Loading EVM contracts from DB... " + std::to_string(evmContractAccounts) + " loaded so far");
+    }
+    Hash codeHash(dbEntry.key);
+    this->evmContracts_[codeHash] = std::make_shared<Bytes>(dbEntry.value);
+    ++evmContractAccounts;
+  }
+
+  evmContractAccounts = 0;
+  for (auto& [address, account] : this->accounts_) {
+    if (account->contractType == ContractType::EVM) {
+      if (evmContractAccounts % 1000 == 0) {
+        LOGTRACE("Linking EVM contracts to accounts... " + std::to_string(evmContractAccounts) + " linked so far");
+      }
+      ++evmContractAccounts;
+      auto it = this->evmContracts_.find(account->codeHash);
+      if (it != this->evmContracts_.end()) {
+        account->code = it->second;
+      } else {
+        LOGERROR("Account " + address.hex().get() + " is marked as EVM contract but code hash " + account->codeHash.hex().get() + " not found in DB");
+        throw DynamicException("Account " + address.hex().get() + " is marked as EVM contract but code hash " + account->codeHash.hex().get() + " not found in DB");
+      }
+    }
+  }
+  LOGDEBUG("Loaded " + std::to_string(evmContractAccounts) + " EVM Contract accounts from DB");
+
+  // Load vmStorage_
+  uint64_t vmCount = 0;
+  for (const auto& dbEntry : snapshotDb.getBatch(DBPrefix::vmStorage)) {
+    if (vmCount % 1000 == 0) {
+      LOGTRACE("Loading vmStorage from DB... " + std::to_string(vmCount) + " loaded so far");
+    }
+    Address addr(dbEntry.key | std::views::take(ADDRESS_SIZE));
+    Hash hash(dbEntry.key | std::views::drop(ADDRESS_SIZE));
+    this->vmStorage_.emplace(StorageKeyView(addr, hash), dbEntry.value);
+    ++vmCount;
+  }
+  LOGDEBUG("Old Snapshot vmStorage size: " + std::to_string(vmCount));
+
+  // Load contracts_
+  auto& baseContractPtr = this->contracts_[ProtocolContractAddresses.at("ContractManager")];
+  ContractManager* cmPtr = dynamic_cast<ContractManager*>(baseContractPtr.get());
+  uint64_t ctCount = 0;
+  for (const DBEntry& contract : snapshotDb.getBatch(DBPrefix::contractManager)) {
+    if (ctCount % 1000 == 0) {
+      LOGTRACE("Loading contracts from DB... " + std::to_string(ctCount) + " loaded so far");
+    }
+    Address address(contract.key);
+    if (!cmPtr->loadFromDB<PersistedContractTypes>(contract, address, snapshotDb)) {
+      throw DynamicException("Read corrupt snapshot; unknown contract: " + StrConv::bytesToString(contract.value));
+    }
+    ++ctCount;
+  }
+  LOGDEBUG("Old Snapshot contracts size: " + std::to_string(ctCount));
+  // State sanity check
+  // Check if all found contracts in the accounts_ map really have code or are C++ contracts
+  for (const auto& [addr, acc] : this->accounts_) {
+    contractSanityCheck(addr, *acc);
+  }
+  this->loadedOldSnapshot_ = true;
+}
+
 void State::loadSnapshot(const std::string& where, bool genesisSnapshot) {
   // NOTE: This method is called in a loop that tries the most recent snapshot first and catches exceptions,
   // then tries the second most recent one and so on, so it's fine to just throw on error.
@@ -466,8 +548,6 @@ void State::loadSnapshot(const std::string& where, bool genesisSnapshot) {
       }
     }
   }
-  Utils::safePrint("Loaded " + std::to_string(evmContractAccounts) + " EVM Contract accounts from DB");
-
 
   // Load vmStorage_
   uint64_t vmCount = 0;
