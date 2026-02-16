@@ -755,6 +755,9 @@ Bytes State::getContractCode(const Address &addr) const {
     precompileContract.append(contractIt->second->getContractName());
     return {precompileContract.begin(), precompileContract.end()};
   }
+  if (it->second->code == nullptr) {
+    return {};
+  }
   return *it->second->code;
 }
 
